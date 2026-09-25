@@ -18,7 +18,12 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { formatStockLabel, toNumber } from "../_utils";
+import {
+  formatStockLabel,
+  packChipLabel,
+  packEqualsLabel,
+  toNumber,
+} from "../_utils";
 import {
   CATALOG_FIX_NAME_LABEL,
   findDuplicateCatalogRowIds,
@@ -686,8 +691,14 @@ export const VirtualizedCatalogBody = forwardRef<
                             </span>
                           )}
                           {row.packageVariant ? (
-                            <span className="hidden shrink-0 rounded-none border border-border bg-white px-0.5 text-[8px] font-medium tracking-[-0.02em] text-foreground/55 sm:inline-flex">
-                              Pack
+                            <span
+                              className="hidden shrink-0 rounded-none border border-border bg-white px-0.5 text-[8px] font-medium tracking-[-0.02em] text-foreground/55 sm:inline-flex"
+                              title={packEqualsLabel(
+                                toNumber(row.packageUnitsPerSale),
+                                row.parentName,
+                              )}
+                            >
+                              {packChipLabel(toNumber(row.packageUnitsPerSale))}
                             </span>
                           ) : null}
                           {row.aisleCode?.trim() ? (

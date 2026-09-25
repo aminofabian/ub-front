@@ -7341,6 +7341,10 @@ export type MarginLeakRow = {
   netProfit: number | string;
   shareOfLossPct: number | string;
   reasons: string[];
+  /** Base units removed per pack. Absent when the SKU is not a pack. */
+  unitsPerPack?: number | string | null;
+  /** Product whose stock the pack draws from. */
+  stockSourceName?: string | null;
 };
 
 export async function fetchMarginLeaks(

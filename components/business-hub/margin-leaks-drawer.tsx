@@ -16,6 +16,26 @@ function toNum(n: number | string | null | undefined): number {
   return Number.isFinite(v) ? v : 0;
 }
 
+function countLabel(n: number, one: string, many: string): string {
+  const shown = Number.isInteger(n)
+    ? n.toLocaleString("en-KE")
+    : n.toLocaleString("en-KE", { maximumFractionDigits: 2 });
+  return `${shown} ${n === 1 ? one : many}`;
+}
+
+/** Sale quantity is stored in stock units. Packs need to be said as packs. */
+function saleLine(row: MarginLeakRow): string {
+  const qty = toNum(row.quantitySold);
+  const revenue = fmtMoney(toNum(row.netRevenue));
+  const units = toNum(row.unitsPerPack);
+  const source = row.stockSourceName?.trim();
+  if (units > 1 && source) {
+    const packs = qty / units;
+    return `${countLabel(packs, "pack", "packs")} sold · ${countLabel(qty, "unit", "units")} of ${source} left the shelf · ${revenue} taken in`;
+  }
+  return `${countLabel(qty, "sold", "sold")} · ${revenue} taken in`;
+}
+
 function reasonLabel(code: string): string {
   switch (code) {
     case "below_cost":
@@ -122,9 +142,8 @@ export function MarginLeaksDrawer({
                   <p className="truncate text-sm font-semibold text-foreground">
                     {row.itemName}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {toNum(row.quantitySold).toLocaleString("en-KE")} sold · Rev{" "}
-                    {fmtMoney(toNum(row.netRevenue))}
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {saleLine(row)}
                     {row.sku ? ` · ${row.sku}` : ""}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -166,9 +185,10 @@ export function MarginLeaksDrawer({
             ))}
           </ul>
         )}
-        <p className="text-[11px] text-muted-foreground">
-          Gross profit is after cost of goods — fixing sell prices or costs stops
-          new red weeks.{" "}
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          A pack can show a healthy margin and still lose money: the margin is
+          the pack price against the pack cost, while profit uses every unit
+          that left the shelf.{" "}
           <Link
             href={APP_ROUTES.inventoryCostIssues}
             className="font-semibold underline"
