@@ -13,7 +13,8 @@ export type OnboardingSuggestedPackPreview = {
 
 /**
  * Picks the best starter pack for onboarding / stock-shelves.
- * Catalogue packs only apply to mini mart and mixed shop.
+ * Prefers a pack whose storeKitId matches the shop type; mini-mart / mixed-shop
+ * may fall back to any tagged grocery pack.
  */
 export function pickSuggestedOnboardingPack(
   packs: readonly GlobalProductPackRecord[],
@@ -28,26 +29,31 @@ export function pickSuggestedOnboardingPack(
     return null;
   }
 
-  const preferred = new Set<string>(
-    storeTypes.filter((value) => value === "mini-mart" || value === "mixed-shop"),
-  );
-  const matched = ready.find(
-    (pack) => pack.storeKitId != null && preferred.has(pack.storeKitId),
-  );
-  if (matched) {
-    return matched;
-  }
-
-  // Prefer packs tagged for mini-mart / mixed-shop over unrelated kits.
-  const eligibleTagged = ready
-    .filter(
-      (pack) =>
-        pack.storeKitId === "mini-mart" || pack.storeKitId === "mixed-shop",
-    )
+  const preferred = new Set(storeTypes);
+  const matched = ready
+    .filter((pack) => pack.storeKitId != null && preferred.has(pack.storeKitId))
     .sort((a, b) => a.sortOrder - b.sortOrder);
-  if (eligibleTagged[0]) {
-    return eligibleTagged[0];
+  if (matched[0]) {
+    return matched[0];
   }
 
-  return [...ready].sort((a, b) => a.sortOrder - b.sortOrder)[0] ?? null;
+  // Grocery formats may fall back to mini-mart / mixed-shop packs.
+  const groceryFallback = storeTypes.some(
+    (type) => type === "mini-mart" || type === "mixed-shop",
+  );
+  if (groceryFallback) {
+    const eligibleTagged = ready
+      .filter(
+        (pack) =>
+          pack.storeKitId === "mini-mart" || pack.storeKitId === "mixed-shop",
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    if (eligibleTagged[0]) {
+      return eligibleTagged[0];
+    }
+    return [...ready].sort((a, b) => a.sortOrder - b.sortOrder)[0] ?? null;
+  }
+
+  // Pharmacy (and future verticals): never fall back to mini-mart.
+  return null;
 }

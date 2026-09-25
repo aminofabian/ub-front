@@ -11,10 +11,11 @@ export type StoreTypeId =
   | "pharmacy"
   | "other";
 
-/** Shop formats that get the shared starter-product catalogue during onboarding. */
+/** Shop formats that get a starter-product catalogue during onboarding. */
 export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
   "mini-mart",
   "mixed-shop",
+  "pharmacy",
 ];
 
 const STORE_TYPE_ORDER: readonly StoreTypeId[] = [

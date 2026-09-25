@@ -65,7 +65,6 @@ import {
 import {
   getBusinessStoreTypes,
   isButcheryOnlyBusiness,
-  isCatalogEligibleStoreTypes,
 } from "@/lib/business-store-type";
 import {
   adoptOpeningUnitCost,
@@ -266,9 +265,11 @@ export default function GlobalCatalogPage() {
       (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
     );
     if (matched) return matched;
-    // Mini-mart / mixed-shop may fall back to any ready pack; pharmacy & other
-    // niches must not inherit the mini-mart starter.
-    if (isCatalogEligibleStoreTypes(storeTypes)) {
+    // Only grocery formats may fall back to any ready pack.
+    const groceryFallback = storeTypes.some(
+      (type) => type === "mini-mart" || type === "mixed-shop",
+    );
+    if (groceryFallback) {
       return readyPacks[0] ?? null;
     }
     return null;
@@ -322,9 +323,11 @@ export default function GlobalCatalogPage() {
     const matched = readyPacks.find(
       (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
     );
+    const groceryFallback = storeTypes.some(
+      (type) => type === "mini-mart" || type === "mixed-shop",
+    );
     const pick =
-      matched ??
-      (isCatalogEligibleStoreTypes(storeTypes) ? readyPacks[0] : undefined);
+      matched ?? (groceryFallback ? readyPacks[0] : undefined);
     if (!pick) return;
     autoPickedPackRef.current = true;
     setSelectedPackId(pick.id);

@@ -49,8 +49,28 @@ describe("pickSuggestedOnboardingPack", () => {
     ];
     expect(pickSuggestedOnboardingPack(packs, ["cosmetics"])).toBeNull();
     expect(pickSuggestedOnboardingPack(packs, ["butchery"])).toBeNull();
-    expect(pickSuggestedOnboardingPack(packs, ["pharmacy"])).toBeNull();
     expect(pickSuggestedOnboardingPack(packs, ["other"])).toBeNull();
+  });
+
+  test("prefers pharmacy pack and never falls back to mini-mart", () => {
+    const packs = [
+      pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 1 }),
+      pack({
+        id: "p",
+        name: "Pharmacy",
+        storeKitId: "pharmacy",
+        sortOrder: 3,
+        productCount: 50,
+      }),
+    ];
+    expect(pickSuggestedOnboardingPack(packs, ["pharmacy"])?.id).toBe("p");
+  });
+
+  test("pharmacy with no pharmacy pack returns null", () => {
+    const packs = [
+      pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 1 }),
+    ];
+    expect(pickSuggestedOnboardingPack(packs, ["pharmacy"])).toBeNull();
   });
 
   test("eligible when mini-mart is among multiple types", () => {
