@@ -2877,6 +2877,18 @@ export async function saPublishAllDrafts(
   );
 }
 
+export async function saRestoreAllArchived(
+  catalogId?: string | null,
+): Promise<{ restoredCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/restore-all-archived${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
 export async function saArchiveCatalogProducts(
   catalogId?: string | null,
 ): Promise<SaArchiveCatalogResult> {

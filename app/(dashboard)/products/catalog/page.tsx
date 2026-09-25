@@ -261,6 +261,32 @@ export default function GlobalCatalogPage() {
     () => flattenGlobalCategoriesForNav(meta?.categories ?? []),
     [meta?.categories],
   );
+  const shopDepartments = useMemo(() => {
+    const byParent = new Map<string | null, CategoryRecord[]>();
+    for (const category of tenantCategories) {
+      const parent = category.parentId ?? null;
+      const list = byParent.get(parent) ?? [];
+      list.push(category);
+      byParent.set(parent, list);
+    }
+    const out: { id: string; name: string; depth: number }[] = [];
+    const walk = (parentId: string | null, depth: number) => {
+      for (const category of byParent.get(parentId) ?? []) {
+        out.push({ id: category.id, name: category.name, depth });
+        walk(category.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    if (out.length < tenantCategories.length) {
+      const seen = new Set(out.map((row) => row.id));
+      for (const category of tenantCategories) {
+        if (!seen.has(category.id)) {
+          out.push({ id: category.id, name: category.name, depth: 0 });
+        }
+      }
+    }
+    return out;
+  }, [tenantCategories]);
 
   const autoPickedPackRef = useRef(false);
   useEffect(() => {
@@ -1877,6 +1903,16 @@ export default function GlobalCatalogPage() {
               categoryName={(categoryId) =>
                 meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
               }
+              departments={shopDepartments}
+              suggestedDepartmentId={(product) => {
+                const globalCategory = meta?.categories.find(
+                  (category) => category.id === product.globalCategoryId,
+                );
+                const slug = globalCategory?.tenantCategorySlugHint?.trim();
+                if (!slug) return undefined;
+                return tenantCategories.find((category) => category.slug === slug)
+                  ?.id;
+              }}
               currency={currency}
               imageSrc={globalCatalogImageSrc}
               onToggle={toggleProduct}

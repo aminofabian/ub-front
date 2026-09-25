@@ -11,7 +11,7 @@ import styles from "./catalog-import-sheet.module.css";
 const COLUMNS = [
   { key: "pick", letter: "A", label: "" },
   { key: "product", letter: "B", label: "Product" },
-  { key: "category", letter: "C", label: "Category" },
+  { key: "category", letter: "C", label: "Department" },
   { key: "barcode", letter: "D", label: "Barcode" },
   { key: "sku", letter: "E", label: "SKU" },
   { key: "buy", letter: "F", label: "Buy" },
@@ -25,6 +25,9 @@ type CatalogImportSheetProps = {
   selectedIds: Set<string>;
   overrides: Map<string, GlobalCatalogAdoptLine>;
   categoryName: (categoryId: string | null | undefined) => string;
+  /** Shop departments. Choosing one only changes this import, not the global catalog. */
+  departments: { id: string; name: string; depth: number }[];
+  suggestedDepartmentId: (product: GlobalProductRecord) => string | undefined;
   currency: string;
   imageSrc: (url?: string | null) => string | null;
   onToggle: (product: GlobalProductRecord) => void;
@@ -47,6 +50,8 @@ export function CatalogImportSheet({
   selectedIds,
   overrides,
   categoryName,
+  departments,
+  suggestedDepartmentId,
   currency,
   imageSrc,
   onToggle,
@@ -66,8 +71,15 @@ export function CatalogImportSheet({
     : undefined;
   const formula =
     activeProduct && activeColumn
-      ? cellReadout(activeProduct, activeColumn.key, activeOverride, categoryName, currency)
-      : "Click a SKU, buy, or sell cell to edit it before you import.";
+      ? cellReadout(
+          activeProduct,
+          activeColumn.key,
+          activeOverride,
+          categoryName,
+          departments,
+          currency,
+        )
+      : "Click a department, SKU, or price to edit it. This stays in your shop.";
 
   return (
     <div className={styles.sheet}>
@@ -188,8 +200,43 @@ export function CatalogImportSheet({
                         </span>
                       </div>
                     </td>
-                    <td className={styles.cell}>
-                      <div className={styles.cellInner}>{categoryName(product.globalCategoryId)}</div>
+                    <td
+                      className={cn(
+                        styles.cell,
+                        styles.editable,
+                        override?.categoryId != null && styles.edited,
+                        active?.row === index && active.column === "category" && styles.cellActive,
+                      )}
+                    >
+                      <div className={styles.cellInner}>
+                        <select
+                          className={styles.select}
+                          aria-label={`Department for ${product.name}`}
+                          disabled={owned}
+                          value={
+                            override?.categoryId ??
+                            suggestedDepartmentId(product) ??
+                            ""
+                          }
+                          onFocus={() => setActive({ row: index, column: "category" })}
+                          onChange={(event) => {
+                            const next = event.target.value;
+                            onEdit(product.id, {
+                              categoryId: next ? next : null,
+                            });
+                          }}
+                        >
+                          <option value="">
+                            {categoryName(product.globalCategoryId)}
+                          </option>
+                          {departments.map((department) => (
+                            <option key={department.id} value={department.id}>
+                              {"\u00a0".repeat(department.depth * 2)}
+                              {department.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </td>
                     <td className={styles.cell}>
                       <div className={cn(styles.cellInner, styles.muted)}>
@@ -255,10 +302,16 @@ function cellReadout(
   column: ColumnKey,
   override: GlobalCatalogAdoptLine | undefined,
   categoryName: (categoryId: string | null | undefined) => string,
+  departments: { id: string; name: string }[],
   currency: string,
 ): string {
   if (column === "product") return product.name;
-  if (column === "category") return categoryName(product.globalCategoryId);
+  if (column === "category") {
+    const picked = override?.categoryId
+      ? departments.find((department) => department.id === override.categoryId)?.name
+      : null;
+    return picked ?? categoryName(product.globalCategoryId);
+  }
   if (column === "barcode") return product.barcode ?? "";
   if (column === "sku") return override?.sku ?? product.skuTemplate ?? "";
   if (column === "buy") {

@@ -39,6 +39,7 @@ import {
   patchSaGlobalProduct,
   previewSaPromote,
   saPublishAllDrafts,
+  saRestoreAllArchived,
   publishSaGlobalProducts,
   saArchiveCatalogProducts,
   saPurgeCatalog,
@@ -827,31 +828,75 @@ export default function SuperAdminGlobalCatalogPage() {
     });
   };
 
+  const onRestoreAllArchived = () => {
+    if (!catalogId || !meta || meta.archivedCount <= 0) return;
+    const n = meta.archivedCount;
+    const catalogLabel = meta.catalogName ?? "this catalog";
+    showThemedConfirmToast({
+      id: "sa-restore-all-archived",
+      title: `Restore ${n.toLocaleString()} archived product${n === 1 ? "" : "s"}?`,
+      description: `Publishes every archived row in “${catalogLabel}” so shops can import them. Use this after a clear/replace left products archived. Rows whose barcode is already used by a live product are skipped.`,
+      confirmLabel: "Restore archived",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const result = await saRestoreAllArchived(catalogId);
+          toast.success(
+            `Restored ${result.restoredCount.toLocaleString()}${
+              result.skippedCount > 0
+                ? ` · ${result.skippedCount.toLocaleString()} skipped (barcode clash)`
+                : ""
+            }.`,
+          );
+          setStatus("published");
+          setPage(0);
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not restore archived products.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
   const onPromoteEverything = async () => {
     if (!sourceBusinessId || !catalogId) return;
     setBusy(true);
     try {
+      // Full-shop promote ignores list filters. "Hide already in global" was cutting
+      // the selection in half after a partial run, because matched rows never got sent.
       const ids = await fetchAllSaSourceItemIds({
         businessId: sourceBusinessId,
         catalogId,
-        q: sourceQ,
-        excludeAlreadyInGlobal: hideAlreadyInGlobal,
-        requireImage: onlyWithImages,
-        requireBarcode: onlyWithBarcode,
+        excludeAlreadyInGlobal: false,
+        requireImage: false,
+        requireBarcode: false,
       });
       if (ids.length === 0) {
-        toast.error("No source items match the current filters.");
+        toast.error("This shop has no active products to promote.");
         return;
       }
       setSelectedSourceIds(new Set(ids));
       setPromoteAsPublished(true);
+      setHideAlreadyInGlobal(false);
+      setOnlyWithImages(false);
+      setOnlyWithBarcode(false);
+      setSourceQ("");
       const businessName =
         businesses.find((b) => b.id === sourceBusinessId)?.name ?? "this shop";
       const catalogLabel = meta?.catalogName ?? "the global catalog";
       showThemedConfirmToast({
         id: "sa-promote-everything",
         title: `Promote all ${ids.length.toLocaleString()} products?`,
-        description: `Copies every matching product from ${businessName} into “${catalogLabel}” and publishes them, so shops can import the full list without scrolling. Large batches run in the background.`,
+        description: [
+          `Copies every active product from ${businessName} into “${catalogLabel}” and publishes them.`,
+          replaceCatalog
+            ? "Clear old catalog is on — existing global products are archived first."
+            : "Already-promoted rows are updated in place. Turn on “Clear old catalog first” if you want a clean replace.",
+          "List filters (search, images, barcode, hide already in global) are ignored for this action.",
+        ].join("\n\n"),
         confirmLabel: "Promote everything",
         confirmVariant: "default",
         onConfirm: () => {
@@ -971,6 +1016,16 @@ export default function SuperAdminGlobalCatalogPage() {
                 disabled={busy || !catalogId}
               >
                 Publish {meta.draftCount.toLocaleString()} drafts
+              </Button>
+            ) : null}
+            {meta && meta.archivedCount > 0 ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onRestoreAllArchived}
+                disabled={busy || !catalogId}
+              >
+                Restore {meta.archivedCount.toLocaleString()} archived
               </Button>
             ) : null}
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={busy}>
