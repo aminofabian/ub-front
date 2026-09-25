@@ -51,7 +51,9 @@ export function pickSuggestedOnboardingPack(
     if (eligibleTagged[0]) {
       return eligibleTagged[0];
     }
-    return [...ready].sort((a, b) => a.sortOrder - b.sortOrder)[0] ?? null;
+    // Do NOT fall back to an unrelated vertical's starter (that is how a mini-mart was offered
+    // the Pharmacy pack). No compatible pack ready → no suggestion.
+    return null;
   }
 
   // Pharmacy (and future verticals): never fall back to mini-mart.
@@ -60,6 +62,8 @@ export function pickSuggestedOnboardingPack(
 
 const GROCERY_FALLBACK_TYPES = new Set(["mini-mart", "mixed-shop"]);
 const GROCERY_FALLBACK_KITS = new Set(["mini-mart", "mixed-shop"]);
+/** Verticals whose content must never leak to other shop formats. */
+const SPECIALIZED_STORE_KITS = new Set(["pharmacy", "cosmetics", "wines-spirits"]);
 
 /** Whether a starter pack belongs to one of the shop's verticals. */
 export function isPackRelevantToStoreTypes(
@@ -88,8 +92,14 @@ export function isPackRelevantToStoreTypes(
 export function scopePacksForStoreTypes<
   T extends Pick<GlobalProductPackRecord, "storeKitId">,
 >(packs: readonly T[], storeTypes: readonly string[]): T[] {
-  if (packs.length === 0 || storeTypes.length === 0) {
+  if (packs.length === 0) {
     return [...packs];
+  }
+  if (storeTypes.length === 0) {
+    // Unknown formats: never surface another vertical's starter — hide the specialized verticals.
+    return packs.filter(
+      (pack) => !SPECIALIZED_STORE_KITS.has(pack.storeKitId?.trim() ?? ""),
+    );
   }
   return packs.filter((pack) => isPackRelevantToStoreTypes(pack, storeTypes));
 }

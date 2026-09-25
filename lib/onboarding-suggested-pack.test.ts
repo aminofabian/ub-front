@@ -76,6 +76,20 @@ describe("pickSuggestedOnboardingPack", () => {
     expect(pickSuggestedOnboardingPack(packs, ["pharmacy"])).toBeNull();
   });
 
+  test("never falls back to another vertical's pack (mini-mart never gets pharmacy)", () => {
+    const packs = [
+      pack({
+        id: "p",
+        name: "Pharmacy / Chemist Starter",
+        storeKitId: "pharmacy",
+        productCount: 5402,
+        sortOrder: 3,
+      }),
+    ];
+    expect(pickSuggestedOnboardingPack(packs, ["mini-mart"])).toBeNull();
+    expect(pickSuggestedOnboardingPack(packs, ["mixed-shop"])).toBeNull();
+  });
+
   test("eligible when mini-mart is among multiple types", () => {
     const packs = [
       pack({ id: "m", name: "Mini", storeKitId: "mini-mart", sortOrder: 1 }),
@@ -121,13 +135,11 @@ describe("scopePacksForStoreTypes", () => {
     ]);
   });
 
-  test("unknown shop formats keep the full list", () => {
+  test("unknown shop formats hide specialized verticals", () => {
     expect(scopePacksForStoreTypes(packs, []).map((p) => p.id)).toEqual([
       "mini",
       "bev",
       "grocery",
-      "pharm",
-      "cosm",
     ]);
   });
 

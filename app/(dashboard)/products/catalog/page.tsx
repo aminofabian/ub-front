@@ -273,19 +273,14 @@ export default function GlobalCatalogPage() {
   );
   const selectedPackEmpty = !!selectedPack && selectedPack.productCount <= 0;
   const suggestedReadyPack = useMemo(() => {
-    const matched = readyPacks.find(
+    const matched = visibleReadyPacks.find(
       (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
     );
     if (matched) return matched;
-    // Only grocery formats may fall back to any ready pack.
-    const groceryFallback = storeTypes.some(
-      (type) => type === "mini-mart" || type === "mixed-shop",
-    );
-    if (groceryFallback) {
-      return readyPacks[0] ?? null;
-    }
-    return null;
-  }, [readyPacks, storeTypes]);
+    // visibleReadyPacks is already vertical-scoped, so its head is a safe fallback — never another
+    // vertical's starter.
+    return visibleReadyPacks[0] ?? null;
+  }, [visibleReadyPacks, storeTypes]);
   const categoryNavNodes = useMemo(
     () => flattenGlobalCategoriesForNav(meta?.categories ?? []),
     [meta?.categories],
