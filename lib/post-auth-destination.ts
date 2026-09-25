@@ -334,6 +334,7 @@ export function formatBusinessStoreTypesLabel(
     "mixed-shop": "Mixed shop",
     cosmetics: "Cosmetics",
     "wines-spirits": "Wines & spirits",
+    pharmacy: "Pharmacy / chemist",
     other: "Other",
   };
   const types = getBusinessStoreTypes(business);

@@ -25,6 +25,7 @@ export type StoreTypeChoice =
   | "mixed-shop"
   | "cosmetics"
   | "wines-spirits"
+  | "pharmacy"
   | "other";
 
 export type OnlineStoreChoice = "yes" | "no";
@@ -175,6 +176,11 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "wines-spirits",
     label: "Wines & spirits",
     hint: "Beer, wine, spirits, and mixers",
+  },
+  {
+    value: "pharmacy",
+    label: "Pharmacy / chemist",
+    hint: "Medicines, OTC, first aid, and health supplies",
   },
   {
     value: "other",

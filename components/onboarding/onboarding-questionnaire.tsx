@@ -10,6 +10,7 @@ import {
   Loader2,
   MessageCircle,
   Package,
+  Pill,
   ShoppingCart,
   Sparkles,
   Store,
@@ -91,6 +92,7 @@ const STORE_TYPE_ICONS: Record<
   "mixed-shop": LayoutGrid,
   cosmetics: Sparkles,
   "wines-spirits": Wine,
+  pharmacy: Pill,
   other: Shapes,
 };
 

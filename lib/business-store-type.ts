@@ -8,6 +8,7 @@ export type StoreTypeId =
   | "mixed-shop"
   | "cosmetics"
   | "wines-spirits"
+  | "pharmacy"
   | "other";
 
 /** Shop formats that get the shared starter-product catalogue during onboarding. */
@@ -24,6 +25,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "mixed-shop",
   "cosmetics",
   "wines-spirits",
+  "pharmacy",
   "other",
 ];
 
