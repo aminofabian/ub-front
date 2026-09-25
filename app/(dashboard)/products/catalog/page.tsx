@@ -66,6 +66,7 @@ import {
   getBusinessStoreTypes,
   isButcheryOnlyBusiness,
 } from "@/lib/business-store-type";
+import { scopePacksForStoreTypes } from "@/lib/onboarding-suggested-pack";
 import {
   adoptOpeningUnitCost,
   adoptShelfMoney,
@@ -255,6 +256,16 @@ export default function GlobalCatalogPage() {
   const comingSoonPacks = useMemo(
     () => orderedPacks.filter((p) => p.productCount <= 0),
     [orderedPacks],
+  );
+  // The sidebar only lists packs that belong to this shop's verticals, so a pharmacy never sees the
+  // mini-mart starter (or vice versa). Unknown shop formats keep the full list.
+  const visibleReadyPacks = useMemo(
+    () => scopePacksForStoreTypes(readyPacks, storeTypes),
+    [readyPacks, storeTypes],
+  );
+  const visibleComingSoonPacks = useMemo(
+    () => scopePacksForStoreTypes(comingSoonPacks, storeTypes),
+    [comingSoonPacks, storeTypes],
   );
   const selectedPack = useMemo(
     () => orderedPacks.find((p) => p.id === selectedPackId) ?? null,
@@ -1710,7 +1721,7 @@ export default function GlobalCatalogPage() {
                 import them in a click.
               </p>
               <div className="space-y-1">
-                {readyPacks.map((pack) => {
+                {visibleReadyPacks.map((pack) => {
                   const recommended =
                     !!pack.storeKitId &&
                     storeTypes.some((t) => t === pack.storeKitId);
@@ -1756,12 +1767,12 @@ export default function GlobalCatalogPage() {
                   );
                 })}
               </div>
-              {comingSoonPacks.length > 0 ? (
+              {visibleComingSoonPacks.length > 0 ? (
                 <div className="mt-3 space-y-1">
                   <p className="px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
                     Coming soon
                   </p>
-                  {comingSoonPacks.map((pack) => {
+                  {visibleComingSoonPacks.map((pack) => {
                     const active = selectedPackId === pack.id;
                     return (
                       <button

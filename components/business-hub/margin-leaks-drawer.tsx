@@ -88,13 +88,13 @@ function BridgeRow({
  */
 function MarginBridgeCard({ data }: { data: MarginLeaksResponse | null }) {
   if (!data) return null;
+  // The card now nets refunds, so anchor on the same net figure. `listed` already excludes
+  // refunded profit, so listed + removed + airtime add up to this value.
+  const refunds = toNum(data.refundsInWindow);
+  const net = toNum(data.grossProfit) - refunds;
   return (
     <div className="space-y-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 text-[11px]">
-      <BridgeRow
-        label="Gross profit (this window)"
-        value={toNum(data.grossProfit)}
-        strong
-      />
+      <BridgeRow label="Gross profit (net of refunds)" value={net} strong />
       <div className="space-y-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-1">
         <BridgeRow label="Items" value={toNum(data.listedProfit)} />
         <BridgeRow
@@ -102,11 +102,13 @@ function MarginBridgeCard({ data }: { data: MarginLeaksResponse | null }) {
           value={toNum(data.removedItemsProfit)}
         />
         <BridgeRow label="Airtime" value={toNum(data.airtimeProfit)} />
-        <BridgeRow label="Refunds" value={toNum(data.refundsInWindow)} />
       </div>
       <p className="pt-1 leading-snug text-muted-foreground">
         These add up to gross profit. “Items” is the whole product list (winners
         included), not only the losses below.
+        {refunds !== 0
+          ? ` Refunds of ${fmtMoney(refunds)} are already netted out.`
+          : ""}
       </p>
     </div>
   );

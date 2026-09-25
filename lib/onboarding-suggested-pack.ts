@@ -57,3 +57,39 @@ export function pickSuggestedOnboardingPack(
   // Pharmacy (and future verticals): never fall back to mini-mart.
   return null;
 }
+
+const GROCERY_FALLBACK_TYPES = new Set(["mini-mart", "mixed-shop"]);
+const GROCERY_FALLBACK_KITS = new Set(["mini-mart", "mixed-shop"]);
+
+/** Whether a starter pack belongs to one of the shop's verticals. */
+export function isPackRelevantToStoreTypes(
+  pack: Pick<GlobalProductPackRecord, "storeKitId">,
+  storeTypes: readonly string[],
+): boolean {
+  const kit = pack.storeKitId?.trim();
+  if (!kit) {
+    return false;
+  }
+  if (storeTypes.includes(kit)) {
+    return true;
+  }
+  const groceryFallback = storeTypes.some((type) => GROCERY_FALLBACK_TYPES.has(type));
+  return groceryFallback && GROCERY_FALLBACK_KITS.has(kit);
+}
+
+/**
+ * Narrows a pack list to the shop's verticals so a pharmacy never sees the mini-mart starter (and
+ * vice versa). Uses the same matching as {@link pickSuggestedOnboardingPack}.
+ *
+ * <p>Returns the list unchanged when the shop's formats are unknown (nothing to scope by), and the
+ * matching subset otherwise — which may be empty for a format with no pack of its own (e.g.
+ * butchery).
+ */
+export function scopePacksForStoreTypes<
+  T extends Pick<GlobalProductPackRecord, "storeKitId">,
+>(packs: readonly T[], storeTypes: readonly string[]): T[] {
+  if (packs.length === 0 || storeTypes.length === 0) {
+    return [...packs];
+  }
+  return packs.filter((pack) => isPackRelevantToStoreTypes(pack, storeTypes));
+}
