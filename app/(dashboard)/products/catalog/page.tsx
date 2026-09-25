@@ -65,7 +65,12 @@ import {
 import {
   getBusinessStoreTypes,
   isButcheryOnlyBusiness,
+  isCatalogEligibleStoreTypes,
 } from "@/lib/business-store-type";
+import {
+  adoptOpeningUnitCost,
+  adoptShelfMoney,
+} from "@/lib/global-catalog-adopt-money";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -256,7 +261,18 @@ export default function GlobalCatalogPage() {
     [orderedPacks, selectedPackId],
   );
   const selectedPackEmpty = !!selectedPack && selectedPack.productCount <= 0;
-  const suggestedReadyPack = readyPacks[0] ?? null;
+  const suggestedReadyPack = useMemo(() => {
+    const matched = readyPacks.find(
+      (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
+    );
+    if (matched) return matched;
+    // Mini-mart / mixed-shop may fall back to any ready pack; pharmacy & other
+    // niches must not inherit the mini-mart starter.
+    if (isCatalogEligibleStoreTypes(storeTypes)) {
+      return readyPacks[0] ?? null;
+    }
+    return null;
+  }, [readyPacks, storeTypes]);
   const categoryNavNodes = useMemo(
     () => flattenGlobalCategoriesForNav(meta?.categories ?? []),
     [meta?.categories],
@@ -303,10 +319,12 @@ export default function GlobalCatalogPage() {
     }
 
     if (!fromOnboarding) return;
+    const matched = readyPacks.find(
+      (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
+    );
     const pick =
-      readyPacks.find(
-        (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
-      ) ?? readyPacks[0];
+      matched ??
+      (isCatalogEligibleStoreTypes(storeTypes) ? readyPacks[0] : undefined);
     if (!pick) return;
     autoPickedPackRef.current = true;
     setSelectedPackId(pick.id);
@@ -711,16 +729,18 @@ export default function GlobalCatalogPage() {
           globalProductId: p.id,
           sku: override?.sku ?? p.skuTemplate ?? undefined,
           categoryId: override?.categoryId ?? suggestedCategoryId ?? undefined,
-          sellingPrice:
-            override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
-          buyingPrice:
-            override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
+          sellingPrice: adoptShelfMoney(
+            override?.sellingPrice ?? p.recommendedSellingPrice,
+          ),
+          buyingPrice: adoptShelfMoney(
+            override?.buyingPrice ?? p.recommendedBuyingPrice,
+          ),
           openingQty: override?.openingQty ?? undefined,
-          openingUnitCost:
+          openingUnitCost: adoptOpeningUnitCost(
             override?.openingUnitCost ??
-            override?.buyingPrice ??
-            p.recommendedBuyingPrice ??
-            undefined,
+              override?.buyingPrice ??
+              p.recommendedBuyingPrice,
+          ),
           reorderLevel:
             override?.reorderLevel ?? p.defaultReorderLevel ?? undefined,
           reorderQty: override?.reorderQty ?? p.defaultReorderQty ?? undefined,
@@ -1098,15 +1118,17 @@ export default function GlobalCatalogPage() {
             globalProductId: p.id,
             sku: override?.sku ?? p.skuTemplate ?? undefined,
             categoryId: override?.categoryId ?? suggestedCategoryId,
-            sellingPrice:
-              override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
-            buyingPrice:
-              override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
-            openingUnitCost:
+            sellingPrice: adoptShelfMoney(
+              override?.sellingPrice ?? p.recommendedSellingPrice,
+            ),
+            buyingPrice: adoptShelfMoney(
+              override?.buyingPrice ?? p.recommendedBuyingPrice,
+            ),
+            openingUnitCost: adoptOpeningUnitCost(
               override?.openingUnitCost ??
-              override?.buyingPrice ??
-              p.recommendedBuyingPrice ??
-              undefined,
+                override?.buyingPrice ??
+                p.recommendedBuyingPrice,
+            ),
             reorderLevel: p.defaultReorderLevel ?? undefined,
             reorderQty: p.defaultReorderQty ?? undefined,
             minStockLevel: p.defaultMinStockLevel ?? undefined,

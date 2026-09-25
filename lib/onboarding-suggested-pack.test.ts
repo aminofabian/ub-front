@@ -49,6 +49,7 @@ describe("pickSuggestedOnboardingPack", () => {
     ];
     expect(pickSuggestedOnboardingPack(packs, ["cosmetics"])).toBeNull();
     expect(pickSuggestedOnboardingPack(packs, ["butchery"])).toBeNull();
+    expect(pickSuggestedOnboardingPack(packs, ["pharmacy"])).toBeNull();
     expect(pickSuggestedOnboardingPack(packs, ["other"])).toBeNull();
   });
 

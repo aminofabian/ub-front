@@ -46,6 +46,7 @@ describe("business store types", () => {
     expect(isCatalogEligibleStoreTypes(["mixed-shop"])).toBe(true);
     expect(isCatalogEligibleStoreTypes(["butchery", "mini-mart"])).toBe(true);
     expect(isCatalogEligibleStoreTypes(["cosmetics"])).toBe(false);
+    expect(isCatalogEligibleStoreTypes(["pharmacy"])).toBe(false);
     expect(isCatalogEligibleStoreTypes(["other"])).toBe(false);
     expect(
       isCatalogEligibleBusiness({ profile: { storeTypes: ["other"] } }),
