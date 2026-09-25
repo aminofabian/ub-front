@@ -2865,6 +2865,18 @@ export type SaArchiveCatalogResult = {
 };
 
 /** Archives every product + deactivates every category in the catalog (replace-before-promote). */
+export async function saPublishAllDrafts(
+  catalogId?: string | null,
+): Promise<{ publishedCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/publish-all-drafts${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
 export async function saArchiveCatalogProducts(
   catalogId?: string | null,
 ): Promise<SaArchiveCatalogResult> {

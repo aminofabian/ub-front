@@ -19,10 +19,9 @@ import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Input } from "@/components/ui/input";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
-import {
-  GlobalCatalogLoadMoreSkeleton,
-  GlobalCatalogProductTableSkeleton,
-} from "@/components/products/global-catalog-product-skeleton";
+import { GlobalCatalogLoadMoreSkeleton } from "@/components/products/global-catalog-product-skeleton";
+import { CatalogImportCeremony } from "@/components/products/catalog-import-ceremony";
+import { CatalogImportSheet } from "./catalog-import-sheet";
 import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
 import {
   GlobalCatalogActionProgressBar,
@@ -31,7 +30,7 @@ import {
 import { GlobalCatalogReviewImportDialog } from "@/components/products/global-catalog-review-import-dialog";
 import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sync";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { cn, formatMoney } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import { APP_ROUTES } from "@/lib/config";
 import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
@@ -47,6 +46,7 @@ import {
   fetchCategories,
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
+  fetchAllGlobalCatalogProducts,
   fetchGlobalCatalogProducts,
   previewGlobalCatalogAdopt,
   previewGlobalCatalogReplace,
@@ -1055,6 +1055,180 @@ export default function GlobalCatalogPage() {
     }
   };
 
+  const linesForProducts = useCallback(
+    (rows: GlobalProductRecord[]): GlobalCatalogAdoptLine[] => {
+      return rows
+        .filter((p) => !p.alreadyImported)
+        .map((p) => {
+          const globalCategory = meta?.categories.find(
+            (c) => c.id === p.globalCategoryId,
+          );
+          const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
+          const suggestedCategoryId = slugHint
+            ? tenantCategories.find((category) => category.slug === slugHint)?.id
+            : undefined;
+          const override = lineOverrides.get(p.id);
+          return {
+            globalProductId: p.id,
+            sku: override?.sku ?? p.skuTemplate ?? undefined,
+            categoryId: override?.categoryId ?? suggestedCategoryId,
+            sellingPrice:
+              override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
+            buyingPrice:
+              override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
+            openingUnitCost:
+              override?.openingUnitCost ??
+              override?.buyingPrice ??
+              p.recommendedBuyingPrice ??
+              undefined,
+            reorderLevel: p.defaultReorderLevel ?? undefined,
+            reorderQty: p.defaultReorderQty ?? undefined,
+            minStockLevel: p.defaultMinStockLevel ?? undefined,
+            onSkuConflict: "merge" as const,
+          };
+        });
+    },
+    [lineOverrides, meta?.categories, tenantCategories],
+  );
+
+  const handleImportAll = () => {
+    if (!canAdopt || adopting) return;
+    if (!defaultBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
+    const known =
+      totalElements != null && hideImported && !selectedPackId
+        ? totalElements
+        : null;
+    const scope = selectedPack
+      ? selectedPack.name
+      : selectedCategoryId
+        ? (meta?.categories.find((c) => c.id === selectedCategoryId)?.name ??
+          "this category")
+        : debouncedSearch
+          ? `“${debouncedSearch}”`
+          : "the catalog";
+    showThemedConfirmToast({
+      id: "catalog-import-all",
+      title: known
+        ? `Import all ${known.toLocaleString()} products?`
+        : "Import every available product?",
+      description: `Brings in everything not already in your shop from ${scope}. Recommended prices are used. Products that share a SKU with one you already have are linked instead of duplicated. You do not need to scroll or select them.`,
+      confirmLabel: "Import all",
+      confirmVariant: "default",
+      onConfirm: () => {
+        void (async () => {
+          setAdopting(true);
+          setActionPhase("importing");
+          setImportProgress({
+            phase: "queued",
+            processed: 0,
+            total: Math.max(known ?? 1, 1),
+            percent: 2,
+            message: "Loading the full catalog…",
+          });
+          try {
+            let rows: GlobalProductRecord[];
+            if (selectedPackId) {
+              const pack = await fetchGlobalCatalogPack(selectedPackId, {
+                onlyNotImported: true,
+              });
+              rows = pack.products;
+            } else {
+              rows = await fetchAllGlobalCatalogProducts(
+                {
+                  categoryId: selectedCategoryId,
+                  q: debouncedSearch || undefined,
+                  onlyNotImported: true,
+                },
+                {
+                  pageSize: 200,
+                  onProgress: (loaded, total) => {
+                    setImportProgress({
+                      phase: "queued",
+                      processed: 0,
+                      total: Math.max(total, 1),
+                      percent: 2,
+                      message: `Loading ${loaded.toLocaleString()} of ${total.toLocaleString()}…`,
+                    });
+                  },
+                },
+              );
+            }
+            const lines = linesForProducts(rows);
+            if (lines.length === 0) {
+              toast.message("Everything in this view is already in your shop.");
+              setActionPhase("ready");
+              return;
+            }
+            setImportProgress({
+              phase: "importing",
+              processed: 0,
+              total: lines.length,
+              percent: 4,
+              message: "Importing…",
+            });
+            const result = await globalCatalogAdopt(defaultBranchId, lines, {
+              createMissingCategories: true,
+              packId: selectedPackId,
+              onProgress: setImportProgress,
+            });
+            const importedNew = result.lines.filter(
+              (l) => l.status === "imported",
+            ).length;
+            const mergedCount = result.lines.filter(
+              (l) => l.status === "merged",
+            ).length;
+            if (importedNew === 0 && mergedCount === 0) {
+              toast.error("No products were imported.");
+              setActionPhase("ready");
+              return;
+            }
+            setImportProgress({
+              phase: "finishing",
+              processed: lines.length,
+              total: Math.max(lines.length, 1),
+              percent: 100,
+              message: "Import complete",
+            });
+            setActionPhase("done");
+            toast.success(
+              mergedCount > 0
+                ? `Imported ${importedNew.toLocaleString()} · linked ${mergedCount.toLocaleString()} to existing`
+                : `Imported ${result.importedCount.toLocaleString()} products`,
+            );
+            if (result.skippedCount > 0) {
+              toast.info(`${result.skippedCount.toLocaleString()} skipped`);
+            }
+            setSelected(new Map());
+            setSkippedProductIds(new Set());
+            setLineOverrides(new Map());
+            try {
+              await loadTenantCategories();
+            } catch {
+              /* ignore */
+            }
+            void fetchProducts({
+              reset: true,
+              page: 0,
+              categoryId: selectedCategoryId,
+              packId: selectedPackId,
+            });
+          } catch (e) {
+            setActionPhase("ready");
+            if (!(e instanceof ApiRequestError)) {
+              toast.error(e instanceof Error ? e.message : "Import failed");
+            }
+          } finally {
+            setAdopting(false);
+            setImportProgress(null);
+          }
+        })();
+      },
+    });
+  };
+
   const handleAdopt = async () => {
     if (!defaultBranchId) {
       toast.error("No branch selected");
@@ -1662,6 +1836,26 @@ export default function GlobalCatalogPage() {
                 </Button>
               )}
               <Button
+                size="sm"
+                disabled={
+                  !canAdopt ||
+                  adopting ||
+                  initialLoading ||
+                  (hideImported && (totalElements ?? 0) === 0 && products.length === 0)
+                }
+                title="Import every product in this view that is not already in your shop"
+                className="rounded-none bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+                onClick={handleImportAll}
+              >
+                {adopting ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : null}
+                Import all
+                {hideImported && totalElements != null && !selectedPackId
+                  ? ` (${totalElements.toLocaleString()})`
+                  : ""}
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 disabled={products.every((p) => p.alreadyImported)}
@@ -1676,113 +1870,22 @@ export default function GlobalCatalogPage() {
             ref={scrollRef}
             className="relative flex-1 overflow-auto scroll-smooth"
           >
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_hsl(var(--border))]">
-                <tr className="text-xs text-muted-foreground">
-                  <th className="w-10 bg-white py-2.5 pl-3" />
-                  <th className="bg-white py-2.5">Product</th>
-                  <th className="bg-white py-2.5">Category</th>
-                  <th className="bg-white py-2.5">Barcode</th>
-                  <th className="bg-white py-2.5 text-right">Buy</th>
-                  <th className="bg-white py-2.5 pr-3 text-right">Sell</th>
-                </tr>
-              </thead>
-
-              {initialLoading ? (
-                <GlobalCatalogProductTableSkeleton rows={12} />
-              ) : (
-                <tbody>
-                  {products.map((p, index) => {
-                    const imageSrc = globalCatalogImageSrc(p.imageUrl);
-                    return (
-                      <tr
-                        key={p.id}
-                        onClick={() => toggleProduct(p)}
-                        className={cn(
-                          "cursor-pointer border-b transition-colors hover:bg-white motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
-                          p.alreadyImported && "opacity-50",
-                          selected.has(p.id) &&
-                            "border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)] hover:bg-white",
-                        )}
-                        style={{
-                          animationDelay: `${Math.min(index, 8) * 30}ms`,
-                        }}
-                      >
-                        <td className="py-2 pl-3">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(p.id)}
-                            disabled={false}
-                            onChange={() => toggleProduct(p)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="size-4 rounded border"
-                          />
-                        </td>
-                        <td className="py-2">
-                          <div className="flex items-center gap-2">
-                            {imageSrc ? (
-                              <img
-                                src={imageSrc}
-                                alt={p.name}
-                                className="size-8 rounded-none border object-cover"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="flex size-8 items-center justify-center rounded-none border bg-white">
-                                <Package className="size-4 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-medium">{p.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {[p.brand, p.size].filter(Boolean).join(" · ")}
-                                {p.alreadyImported && p.adoptedItemId ? (
-                                  <>
-                                    {" · "}
-                                    <button
-                                      type="button"
-                                      className="text-primary underline-offset-2 hover:underline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        router.push(
-                                          `/products?product=${p.adoptedItemId}`,
-                                        );
-                                      }}
-                                    >
-                                      In your catalog
-                                    </button>
-                                  </>
-                                ) : null}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2">
-                          <span className="text-xs">
-                            {meta?.categories.find(
-                              (c) => c.id === p.globalCategoryId,
-                            )?.name ?? "—"}
-                          </span>
-                        </td>
-                        <td className="py-2 text-xs text-muted-foreground">
-                          {p.barcode ?? "—"}
-                        </td>
-                        <td className="py-2 text-right text-xs">
-                          {p.recommendedBuyingPrice != null
-                            ? formatMoney(p.recommendedBuyingPrice, currency)
-                            : "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-right text-xs">
-                          {p.recommendedSellingPrice != null
-                            ? formatMoney(p.recommendedSellingPrice, currency)
-                            : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              )}
-            </table>
+            <CatalogImportSheet
+              products={products}
+              selectedIds={new Set(selected.keys())}
+              overrides={lineOverrides}
+              categoryName={(categoryId) =>
+                meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
+              }
+              currency={currency}
+              imageSrc={globalCatalogImageSrc}
+              onToggle={toggleProduct}
+              onEdit={updateOverride}
+              onOpenOwned={(itemId) =>
+                router.push(`/products?product=${itemId}`)
+              }
+              loading={initialLoading}
+            />
 
             {showEmptyState ? (
               <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
@@ -1933,7 +2036,10 @@ export default function GlobalCatalogPage() {
           actionPhase === "importing" ||
           actionPhase === "done" ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-              {selected.size > 0 ||
+              {importProgress &&
+              (actionPhase === "importing" || actionPhase === "done") ? (
+                <CatalogImportCeremony progress={importProgress} />
+              ) : selected.size > 0 ||
               actionPhase === "loading" ||
               actionPhase === "selecting" ||
               actionPhase === "reviewing" ||

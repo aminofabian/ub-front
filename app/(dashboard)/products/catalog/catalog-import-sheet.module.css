@@ -1,0 +1,223 @@
+.sheet {
+  --grid: #d4d4d4;
+  --head: #217346;
+  --head-ink: #f4fff8;
+  --ink: #1a1a1a;
+  --gutter: #f3f3f3;
+  --active: #217346;
+  --edit: #fff8e6;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color: var(--ink);
+  caret-color: var(--active);
+  background: #fff;
+}
+
+.sheet ::selection {
+  background: color-mix(in srgb, var(--active) 28%, white);
+  color: var(--ink);
+}
+
+.formula {
+  display: grid;
+  grid-template-columns: 4.5rem 1.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--grid);
+  background: #fff;
+  padding: 0.3rem 0.45rem;
+}
+
+.nameBox,
+.fx {
+  height: 1.65rem;
+  border: 1px solid var(--grid);
+  background: #fff;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nameBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.fx {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: italic;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.formulaValue {
+  height: 1.65rem;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--grid);
+  padding: 0 0.5rem;
+  font-size: 12px;
+  line-height: 1.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.colHead,
+.corner {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--head);
+  color: var(--head-ink);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.corner,
+.gutter {
+  left: 0;
+  z-index: 3;
+  width: 2.4rem;
+  background: var(--gutter);
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.gutter {
+  position: sticky;
+  font-size: 11px;
+}
+
+.colHead {
+  border-right: 1px solid color-mix(in srgb, white 22%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, black 18%, transparent);
+  padding: 0.35rem 0.4rem;
+}
+
+.gutter {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  text-align: center;
+}
+
+.cell {
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  padding: 0;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.cellInner {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.rowSelected .cell {
+  background: #e8f5ee;
+}
+
+.rowOwned .cell {
+  color: color-mix(in srgb, var(--ink) 48%, transparent);
+}
+
+.editable {
+  position: relative;
+  cursor: text;
+}
+
+.editable:focus-within,
+.cellActive {
+  outline: 2px solid var(--active);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.edited::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 7px solid var(--active);
+  border-left: 7px solid transparent;
+}
+
+.input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  text-align: right;
+  outline: none;
+}
+
+.inputText {
+  text-align: left;
+}
+
+.productName {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.muted {
+  color: color-mix(in srgb, var(--ink) 52%, transparent);
+}
+
+.thumb {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+  object-fit: cover;
+  border: 1px solid var(--grid);
+  background: var(--gutter);
+}
+
+.link {
+  color: var(--active);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.check {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: var(--active);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bodyRow:hover .cell {
+    background: #f7fbf8;
+  }
+
+  .rowSelected:hover .cell {
+    background: #dff3e8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cellActive {
+    outline-width: 2px;
+  }
+}

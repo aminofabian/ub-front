@@ -38,6 +38,7 @@ import {
   importSaGlobalProductsCsv,
   patchSaGlobalProduct,
   previewSaPromote,
+  saPublishAllDrafts,
   publishSaGlobalProducts,
   saArchiveCatalogProducts,
   saPurgeCatalog,
@@ -684,9 +685,11 @@ export default function SuperAdminGlobalCatalogPage() {
     }
   };
 
-  const runCommitPromote = async () => {
-    if (!sourceBusinessId || selectedSourceIds.size === 0) return;
-    const n = selectedSourceIds.size;
+  const runCommitPromote = async (override?: { itemIds: string[]; publish: boolean }) => {
+    const itemIds = override?.itemIds ?? [...selectedSourceIds];
+    const publish = override?.publish ?? promoteAsPublished;
+    if (!sourceBusinessId || itemIds.length === 0) return;
+    const n = itemIds.length;
     setBusy(true);
     setPromoteProgress({
       phase: "queued",
@@ -708,9 +711,9 @@ export default function SuperAdminGlobalCatalogPage() {
       const result = await commitSaPromote(
         {
           sourceBusinessId,
-          itemIds: [...selectedSourceIds],
+          itemIds,
           onConflict: "update",
-          publish: promoteAsPublished,
+          publish,
           catalogId,
         },
         setPromoteProgress,
@@ -734,7 +737,7 @@ export default function SuperAdminGlobalCatalogPage() {
       }
       // Land on Curate with the status that matches what we just wrote — draft promote
       // previously looked like "nothing published" when the filter stayed on published.
-      const nextStatus = promoteAsPublished ? "published" : "draft";
+      const nextStatus = publish ? "published" : "draft";
       setMode("curate");
       setStatus(nextStatus);
       setPage(0);
@@ -791,6 +794,77 @@ export default function SuperAdminGlobalCatalogPage() {
       confirmVariant: replaceCatalog ? "destructive" : "default",
       onConfirm: () => runCommitPromote(),
     });
+  };
+
+  const onPublishAllDrafts = () => {
+    if (!catalogId || !meta || meta.draftCount <= 0) return;
+    const n = meta.draftCount;
+    const catalogLabel = meta.catalogName ?? "this catalog";
+    showThemedConfirmToast({
+      id: "sa-publish-all-drafts",
+      title: `Publish ${n.toLocaleString()} draft${n === 1 ? "" : "s"}?`,
+      description: `Shops can only import published products. This makes every draft in “${catalogLabel}” available to import. Rows with a duplicate barcode stay drafts.`,
+      confirmLabel: "Publish all drafts",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const result = await saPublishAllDrafts(catalogId);
+          toast.success(
+            `Published ${result.publishedCount.toLocaleString()}${
+              result.skippedCount > 0
+                ? ` · ${result.skippedCount.toLocaleString()} skipped (barcode clash)`
+                : ""
+            }.`,
+          );
+          await reload();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not publish drafts.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  const onPromoteEverything = async () => {
+    if (!sourceBusinessId || !catalogId) return;
+    setBusy(true);
+    try {
+      const ids = await fetchAllSaSourceItemIds({
+        businessId: sourceBusinessId,
+        catalogId,
+        q: sourceQ,
+        excludeAlreadyInGlobal: hideAlreadyInGlobal,
+        requireImage: onlyWithImages,
+        requireBarcode: onlyWithBarcode,
+      });
+      if (ids.length === 0) {
+        toast.error("No source items match the current filters.");
+        return;
+      }
+      setSelectedSourceIds(new Set(ids));
+      setPromoteAsPublished(true);
+      const businessName =
+        businesses.find((b) => b.id === sourceBusinessId)?.name ?? "this shop";
+      const catalogLabel = meta?.catalogName ?? "the global catalog";
+      showThemedConfirmToast({
+        id: "sa-promote-everything",
+        title: `Promote all ${ids.length.toLocaleString()} products?`,
+        description: `Copies every matching product from ${businessName} into “${catalogLabel}” and publishes them, so shops can import the full list without scrolling. Large batches run in the background.`,
+        confirmLabel: "Promote everything",
+        confirmVariant: "default",
+        onConfirm: () => {
+          setSelectedSourceIds(new Set(ids));
+          setPromoteAsPublished(true);
+          void runCommitPromote({ itemIds: ids, publish: true });
+        },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load the full source list.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onPublishPromotedDrafts = () => {
@@ -890,6 +964,15 @@ export default function SuperAdminGlobalCatalogPage() {
                 </option>
               ))}
             </select>
+            {meta && meta.draftCount > 0 ? (
+              <Button
+                size="sm"
+                onClick={onPublishAllDrafts}
+                disabled={busy || !catalogId}
+              >
+                Publish {meta.draftCount.toLocaleString()} drafts
+              </Button>
+            ) : null}
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={busy}>
               <RefreshCw className="size-4" aria-hidden />
               Refresh
@@ -1016,6 +1099,7 @@ export default function SuperAdminGlobalCatalogPage() {
             setPreview(null);
           }}
           onSelectAllMatching={() => void onSelectAllMatching()}
+          onPromoteEverything={() => void onPromoteEverything()}
           onClearSelection={() => {
             setSelectedSourceIds(new Set());
             setPreview(null);
@@ -1455,6 +1539,7 @@ function PromotePanel({
   onToggle,
   onSelectAllVisible,
   onSelectAllMatching,
+  onPromoteEverything,
   onClearSelection,
   preview,
   promoteAsPublished,
@@ -1488,6 +1573,7 @@ function PromotePanel({
   onToggle: (id: string) => void;
   onSelectAllVisible: () => void;
   onSelectAllMatching: () => void;
+  onPromoteEverything: () => void;
   onClearSelection: () => void;
   preview: SaPromoteResult | null;
   promoteAsPublished: boolean;
@@ -1543,6 +1629,13 @@ function PromotePanel({
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled={busy || sourceItems.length === 0} onClick={onSelectAllVisible}>
               Select loaded
+            </Button>
+            <Button
+              size="sm"
+              disabled={busy || !sourceBusinessId}
+              onClick={onPromoteEverything}
+            >
+              Promote everything
             </Button>
             <Button
               variant="outline"
