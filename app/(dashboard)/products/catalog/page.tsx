@@ -1162,7 +1162,7 @@ export default function GlobalCatalogPage() {
       title: known
         ? `Import all ${known.toLocaleString()} products?`
         : "Import every available product?",
-      description: `Brings in everything not already in your shop from ${scope}. Recommended prices are used. Products that share a SKU with one you already have are linked instead of duplicated. You do not need to scroll or select them.`,
+      description: `Brings in everything not already in your shop from ${scope}. Recommended prices are used. Products that share a SKU with one you already have are linked instead of duplicated.\n\nStay on this screen while products upload — don’t refresh or close the tab.`,
       confirmLabel: "Import all",
       confirmVariant: "default",
       onConfirm: () => {
@@ -2093,61 +2093,69 @@ export default function GlobalCatalogPage() {
           actionPhase === "selecting" ||
           actionPhase === "importing" ||
           actionPhase === "done" ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+            <>
               {importProgress &&
               (actionPhase === "importing" || actionPhase === "done") ? (
                 <CatalogImportCeremony progress={importProgress} />
-              ) : selected.size > 0 ||
-              actionPhase === "loading" ||
-              actionPhase === "selecting" ||
-              actionPhase === "reviewing" ||
-              actionPhase === "importing" ||
-              actionPhase === "done" ? (
-                <GlobalCatalogActionProgressBar
-                  phase={actionPhase}
-                  selectedCount={selectedImportable.length}
-                  totalCount={
-                    selectedPack && !selectedPackEmpty
-                      ? Math.max(
-                          selectedPack.productCount,
-                          products.filter((p) => !p.alreadyImported).length,
-                        )
-                      : Math.max(
-                          products.filter((p) => !p.alreadyImported).length,
-                          selectedImportable.length,
-                        )
-                  }
-                  importProgress={importProgress}
-                  canImport={selectedImportable.length > 0 && canAdopt}
-                  onReview={handlePreview}
-                  onClear={clearSelection}
-                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
-                />
-              ) : (
-                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
-                  <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
-                    Can&apos;t find a product?
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1.5 rounded-none"
-                    onClick={goCreateFromScratch}
-                  >
-                    <PenLine className="size-3.5" />
-                    Add your own
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-none text-xs"
-                    onClick={goBrowseAll}
-                  >
-                    Clear filters
-                  </Button>
+              ) : null}
+              {!(
+                importProgress &&
+                (actionPhase === "importing" || actionPhase === "done")
+              ) ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+                  {selected.size > 0 ||
+                  actionPhase === "loading" ||
+                  actionPhase === "selecting" ||
+                  actionPhase === "reviewing" ||
+                  actionPhase === "importing" ||
+                  actionPhase === "done" ? (
+                    <GlobalCatalogActionProgressBar
+                      phase={actionPhase}
+                      selectedCount={selectedImportable.length}
+                      totalCount={
+                        selectedPack && !selectedPackEmpty
+                          ? Math.max(
+                              selectedPack.productCount,
+                              products.filter((p) => !p.alreadyImported).length,
+                            )
+                          : Math.max(
+                              products.filter((p) => !p.alreadyImported).length,
+                              selectedImportable.length,
+                            )
+                      }
+                      importProgress={importProgress}
+                      canImport={selectedImportable.length > 0 && canAdopt}
+                      onReview={handlePreview}
+                      onClear={clearSelection}
+                      className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
+                    />
+                  ) : (
+                    <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                      <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
+                        Can&apos;t find a product?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 rounded-none"
+                        onClick={goCreateFromScratch}
+                      >
+                        <PenLine className="size-3.5" />
+                        Add your own
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 rounded-none text-xs"
+                        onClick={goBrowseAll}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              ) : null}
+            </>
           ) : null}
         </main>
       </div>
