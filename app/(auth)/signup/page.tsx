@@ -33,7 +33,10 @@ import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-countr
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
-import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
+import {
+  markOnboardingQuestionnairePending,
+  prepareOnboardingForGoogleSignup,
+} from "@/lib/onboarding-questionnaire";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import {
   handleRegistrationResult,
@@ -247,6 +250,7 @@ function SignupPageContent() {
         name: businessName.trim(),
         countryCode,
       });
+      prepareOnboardingForGoogleSignup();
 
       // If the signup form fields are filled, proceed to register and redirect.
       // Otherwise just hide onboarding — the tenant is now in session, so the

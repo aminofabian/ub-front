@@ -192,14 +192,42 @@ function isStorefrontHome(path: string): boolean {
  * Pending/active are unfinished setup. Dismissed means they soft-left the
  * questionnaire — send them to the hub so Resume setup can pick them up again
  * instead of dropping them on /overview with an empty shop.
+ *
+ * Shops that already have store types / branding / answered questionnaire are
+ * treated as finished even if status was wrongly reset to `pending`.
  */
 export function isOnboardingIncomplete(
   business?: BusinessRecord | null,
 ): boolean {
   const status = business?.onboarding?.status?.trim().toLowerCase() ?? "";
-  return (
-    status === "pending" || status === "active" || status === "dismissed"
-  );
+  if (
+    status !== "pending" &&
+    status !== "active" &&
+    status !== "dismissed"
+  ) {
+    return false;
+  }
+  const types =
+    business?.profile?.storeTypes?.filter((t) => t.trim().length > 0) ?? [];
+  if (types.length > 0 || Boolean(business?.profile?.storeType?.trim())) {
+    return false;
+  }
+  const answers = business?.onboarding?.answers ?? null;
+  if (answers && typeof answers === "object") {
+    const answerTypes = (answers as { storeTypes?: unknown }).storeTypes;
+    if (Array.isArray(answerTypes) && answerTypes.length > 0) {
+      return false;
+    }
+    const storeType = (answers as { storeType?: unknown }).storeType;
+    if (typeof storeType === "string" && storeType.trim()) {
+      return false;
+    }
+    const displayName = (answers as { displayName?: unknown }).displayName;
+    if (typeof displayName === "string" && displayName.trim()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

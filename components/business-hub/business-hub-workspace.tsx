@@ -101,7 +101,6 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import {
   completeOnboardingQuestionnaire,
   getOnboardingQuestionnaireState,
-  QUESTIONNAIRE_STOCK_STEP,
 } from "@/lib/onboarding-questionnaire";
 import {
   addDays,
@@ -831,9 +830,10 @@ export function BusinessHubWorkspace() {
     if (status === "completed" || status === "idle") {
       return;
     }
-    if (local.step < QUESTIONNAIRE_STOCK_STEP && status !== "dismissed") {
-      return;
-    }
+    // A shop with sellable items is operational — onboarding is done, whatever
+    // step the questionnaire reached. (Previously this required step >= the
+    // stock step, so a shop set up outside the questionnaire stayed
+    // pending/active and re-opened onboarding on every sign-in.)
     completeOnboardingQuestionnaire(local.answers);
   }, [
     canManageBusinessSettings,

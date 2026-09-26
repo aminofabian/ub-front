@@ -21,7 +21,10 @@ import {
   setSessionTenantId,
 } from "@/lib/auth";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
-import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
+import {
+  markOnboardingQuestionnairePending,
+  prepareOnboardingForGoogleSignup,
+} from "@/lib/onboarding-questionnaire";
 import {
   clearPendingOnboardDraft,
   readPendingOnboardDraft,
@@ -200,6 +203,7 @@ export function LandingSignupModal({
       }
 
       setStep(2);
+      prepareOnboardingForGoogleSignup();
     } catch (error) {
       setErrorMessage(
         error instanceof Error
