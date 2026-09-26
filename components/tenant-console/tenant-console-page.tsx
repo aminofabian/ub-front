@@ -31,6 +31,9 @@ export function TenantConsolePage() {
   const [talkOpen, setTalkOpen] = useState(false);
   const googleEnabled = usePlatformGoogleOAuthEnabled();
 
+  const host =
+    typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+
   const openSignup = () => {
     setSignupOpen(true);
   };
