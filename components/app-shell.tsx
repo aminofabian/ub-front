@@ -92,6 +92,10 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
+import {
+  OXANIUM_SURFACE_CLASS,
+  OXANIUM_SURFACE_STYLE,
+} from "@/lib/oxanium-surface";
 
 const BRANCHES_LINK = {
   href: APP_ROUTES.branches,
@@ -1703,7 +1707,13 @@ export function AppShell({ children }: AppShellProps) {
   ]);
 
   return (
-    <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
+    <div
+      className={cn(
+        "tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30",
+        OXANIUM_SURFACE_CLASS,
+      )}
+      style={OXANIUM_SURFACE_STYLE}
+    >
       {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
       <div className={cn("shrink-0", desktopChromeVisible)}>
         <DesktopNavRail

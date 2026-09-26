@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
 import { HubMark } from "@/components/business-hub/hub-mark";
 import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
+import { OXANIUM_SURFACE_STYLE } from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
@@ -106,7 +107,11 @@ export function BusinessPageLayout({
         "sm:px-1 sm:pb-4 sm:pt-1",
         className,
       )}
-      style={{ ...BUSINESS_HUB_VARS, backgroundColor: "var(--hub-bg)" }}
+      style={{
+        ...BUSINESS_HUB_VARS,
+        ...OXANIUM_SURFACE_STYLE,
+        backgroundColor: "var(--hub-bg)",
+      }}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
         {/* `data-hub-chrome` lets in-page jumps measure the sticky header they
