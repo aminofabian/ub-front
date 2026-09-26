@@ -471,7 +471,7 @@ function ProfitPocketConfigureForm({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">Enable</p>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Pocket surplus from Business Hub — not customer tills.
+            Save profits to your bank for expenses, rent, etc. — not customer tills.
           </p>
         </div>
         <Switch
@@ -1249,7 +1249,8 @@ export function ProfitPocketSettingsSection({
         <div>
           <h2 className="text-sm font-semibold text-foreground">Profit Pocket</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Expense / owner destination for pocketing cash surplus.
+            Save your profits to your bank account for expenses, rent, etc. —
+            not your customer till.
             {settings?.destinationSummary
               ? ` · ${settings.destinationSummary}`
               : ""}

@@ -14336,6 +14336,10 @@ export type AirtimeSettingsRecord = {
   walletActive: boolean;
   walletBalance: number;
   blockedReason: string | null;
+  /** True after the one-time Airtime Float starter was credited. */
+  starterSeedGranted?: boolean;
+  /** Face value of the starter seed (KES 10). */
+  starterSeedAmount?: number;
 };
 
 /** Cashier: whether to offer the Airtime action, and within what bounds. */

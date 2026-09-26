@@ -309,8 +309,9 @@ export function ProfitPocketDrawer({
                     </>
                   ) : (
                     <>
-                      Set an expense / owner destination first — this is not your
-                      customer till.{" "}
+                      Save your profits to your bank account for expenses, rent,
+                      etc. Set an expense / owner destination first — this is not
+                      your customer till.{" "}
                       <Link
                         href={`${APP_ROUTES.paymentsSettings}#profit-pocket`}
                         className="font-semibold underline"

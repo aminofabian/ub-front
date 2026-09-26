@@ -48,6 +48,7 @@ import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { MarginLeaksDrawer } from "@/components/business-hub/margin-leaks-drawer";
 import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
+import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub-card";
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
@@ -1573,6 +1574,10 @@ export function BusinessHubWorkspace() {
                     countryCode={business?.countryCode}
                     permissions={me?.permissions}
                   />
+                  <AirtimeFloatHubCard
+                    ownerPhone={me?.phone}
+                    permissions={me?.permissions}
+                  />
                   {canManageBusinessSettings ? (
                     <ManageTillsHubCard
                       compact
@@ -1664,6 +1669,11 @@ export function BusinessHubWorkspace() {
                         permissions={me?.permissions}
                       />
                     ) : null}
+                    <AirtimeFloatHubCard
+                      rail
+                      ownerPhone={me?.phone}
+                      permissions={me?.permissions}
+                    />
                     {canManageBusinessSettings ? (
                       <ManageTillsHubCard
                         rail
@@ -1857,6 +1867,11 @@ export function BusinessHubWorkspace() {
                     permissions={me?.permissions}
                   />
                 ) : null}
+                <AirtimeFloatHubCard
+                  rail
+                  ownerPhone={me?.phone}
+                  permissions={me?.permissions}
+                />
                 {canManageBusinessSettings ? (
                   <ManageTillsHubCard
                     rail
