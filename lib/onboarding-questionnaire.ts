@@ -522,7 +522,12 @@ function mapServerOnboarding(
 export async function hydrateOnboardingQuestionnaireFromServer(): Promise<OnboardingQuestionnaireState | null> {
   try {
     const remote = await fetchOnboardingState();
-    if (remote.status === "idle") {
+    const status = remote.status?.trim().toLowerCase() ?? "idle";
+    // Server wins over stale apex/signup localStorage. Leaving local `pending`
+    // alive when the shop is `idle`/`completed` re-opens the questionnaire and
+    // PATCHes the live business back to `active`.
+    if (status === "idle") {
+      clearOnboardingQuestionnaireLocal();
       return null;
     }
     const local = mapServerOnboarding(remote);
@@ -772,7 +777,18 @@ export function resumeOnboardingQuestionnaire(): void {
 }
 
 export function resetOnboardingQuestionnaireForDev(): void {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STORAGE_KEY);
+  clearOnboardingQuestionnaireLocal();
+}
+
+/** Drop local questionnaire cache without touching the server. */
+export function clearOnboardingQuestionnaireLocal(): void {
+  if (typeof window === "undefined") {
+    return;
   }
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  clearOnboardingQuestionnaireSessionSkip();
 }

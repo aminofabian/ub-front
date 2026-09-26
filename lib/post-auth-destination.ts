@@ -208,17 +208,17 @@ export function isOnboardingIncomplete(
  * Buyers keep storefront `?next=` / credit-tab paths, except `/shop/account`
  * which is a sign-in door and sends them to the shop floor (`/`). Staff are
  * never pinned to `/shop/account`; they follow role homes. Owner/admin with an
- * unfinished business setup (or a missing business payload) go straight to the
- * business hub — `?next=` and role homes cannot pull a brand-new owner onto the
- * admin dashboard before their shop is configured, and a failed business fetch
- * must not fall through to generic defaults. Staff/POS roles keep their
- * dedicated homes (cashiers on /shifts, grocery clerks on /grocery…). Configured
- * owners/admins land on the admin dashboard (/overview). Office login
- * (`options.office`) ignores leftover storefront `?next=` so owners stay in the
- * console. The onboarding gate is cloud-only (`!IS_DESKTOP`): the desktop SKU
- * uses its own `/setup` first-run wizard and should keep its prior routing.
- * Otherwise role homes beat generic defaults; tenant default is the storefront
- * for roles without a dedicated home.
+ * unfinished business setup go straight to the business hub — `?next=` and role
+ * homes cannot pull a brand-new owner onto the admin dashboard before their shop
+ * is configured. A missing business payload (failed fetch) must not force the
+ * hub: that traps completed owners in a false “start setup again” loop after a
+ * flaky `/businesses/me`. Staff/POS roles keep their dedicated homes (cashiers on
+ * /shifts, grocery clerks on /grocery…). Configured owners/admins land on the
+ * admin dashboard (/overview). Office login (`options.office`) ignores leftover
+ * storefront `?next=` so owners stay in the console. The onboarding gate is
+ * cloud-only (`!IS_DESKTOP`): the desktop SKU uses its own `/setup` first-run
+ * wizard and should keep its prior routing. Otherwise role homes beat generic
+ * defaults; tenant default is the storefront for roles without a dedicated home.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
@@ -243,11 +243,7 @@ export function resolvePostAuthDestination(
   }
 
   const isOwnerAdmin = isOwnerOrAdminRole(me);
-  if (
-    !IS_DESKTOP &&
-    isOwnerAdmin &&
-    (isOnboardingIncomplete(business) || !business)
-  ) {
+  if (!IS_DESKTOP && isOwnerAdmin && business && isOnboardingIncomplete(business)) {
     return APP_ROUTES.business;
   }
 

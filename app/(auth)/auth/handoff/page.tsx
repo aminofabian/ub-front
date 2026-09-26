@@ -13,6 +13,8 @@ import {
 import {
   applyAuthSessionPayload,
   ensureSessionPresenceCookie,
+  getSessionClaims,
+  getSessionTenantId,
   hasAccessSession,
   persistTenantHostAfterAuth,
   setSessionTenantId,
@@ -55,6 +57,16 @@ function AuthHandoffInner() {
         const next = nextPath.startsWith("/") ? nextPath : APP_ROUTES.overview;
         // Same subdomain / custom-domain hop as password signup.
         if (slug?.trim() || returnHost?.trim()) {
+          // Ensure store-session has a tenant id before the form POST.
+          if (!getSessionTenantId()) {
+            const fromClaims = getSessionClaims()?.businessId?.trim();
+            if (fromClaims) {
+              setSessionTenantId(fromClaims);
+            }
+            if (opts?.tenantId?.trim()) {
+              setSessionTenantId(opts.tenantId.trim());
+            }
+          }
           await completeAuthAndNavigate(next, slug, {
             office: isOfficeConsolePath(next),
             preferAssignedSubdomain: !returnHost?.trim(),
@@ -70,8 +82,16 @@ function AuthHandoffInner() {
         });
       };
 
+      // Prefer the just-minted httpOnly session over any stale JS claims left on
+      // the apex from an earlier visit — otherwise store-session lacks tenantId
+      // and soft-falls to location.assign(/business) on kiosk.ke.
+      const restored = await restoreClientSessionFromCookie({ force: true });
+      if (cancelled) {
+        return;
+      }
+
       if (!fromHash) {
-        if (hasAccessSession() && nextFallback?.startsWith("/")) {
+        if ((restored || hasAccessSession()) && nextFallback?.startsWith("/")) {
           clearAuthHandoffFragment();
           persistTenantHostAfterAuth(slug ?? undefined);
           if (cancelled) {
@@ -87,14 +107,17 @@ function AuthHandoffInner() {
 
       // Preferred Gap G path: restore from shared refresh cookie (no access in URL).
       if (!data?.accessToken) {
-        const restored = await restoreClientSessionFromCookie();
-        if (cancelled) {
-          return;
-        }
         if (!restored && !hasAccessSession()) {
-          clearAuthHandoffFragment();
-          setError("Could not finish sign-in. Return to sign in and try again.");
-          return;
+          // One more non-forced attempt in case force raced a parallel restore.
+          const again = await restoreClientSessionFromCookie();
+          if (cancelled) {
+            return;
+          }
+          if (!again && !hasAccessSession()) {
+            clearAuthHandoffFragment();
+            setError("Could not finish sign-in. Return to sign in and try again.");
+            return;
+          }
         }
         if (data?.tenantId?.trim()) {
           setSessionTenantId(data.tenantId.trim());
