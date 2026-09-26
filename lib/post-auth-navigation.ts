@@ -1,4 +1,9 @@
-import { persistTenantHostAfterAuth } from "@/lib/auth";
+import {
+  getSessionClaims,
+  getSessionTenantId,
+  persistTenantHostAfterAuth,
+  setSessionTenantId,
+} from "@/lib/auth";
 import { fetchBusiness } from "@/lib/api";
 import {
   hostDerivedShopUrl,
@@ -9,7 +14,11 @@ import {
 import { isOfficeConsolePath } from "@/lib/login-audience";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
-import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
+import {
+  isSameSiteHandoffOrigin,
+  stripLeadingWww,
+  tenantHostsMatch,
+} from "@/lib/tenant-host";
 
 export type CompleteAuthNavigateOptions = {
   office?: boolean;
@@ -18,6 +27,11 @@ export type CompleteAuthNavigateOptions = {
    * platform apex and never another tenant's custom domain.
    */
   preferAssignedSubdomain?: boolean;
+  /**
+   * Prefer this hostname for the post-auth hop (e.g. custom domain after
+   * Google from the storefront). Wins over slug subdomain when set.
+   */
+  returnHost?: string | null;
 };
 
 const BARE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -98,6 +112,16 @@ async function syncSlugAndNavigate(
   let slug = knownSlug?.trim() || null;
   let primaryHost: string | null = null;
   if (!slug) {
+    // On the platform apex there is no tenant context, so `fetchBusiness()`
+    // needs the tenant id the session JWT already carries — otherwise it 4xxs,
+    // the slug stays null, and the owner is stranded on kiosk.ke/business
+    // (no slug ⇒ no hop).
+    if (!getSessionTenantId()) {
+      const fromClaims = getSessionClaims()?.businessId?.trim();
+      if (fromClaims) {
+        setSessionTenantId(fromClaims);
+      }
+    }
     try {
       const biz = await fetchBusiness();
       slug = biz.slug?.trim() || null;
@@ -107,11 +131,45 @@ async function syncSlugAndNavigate(
     }
   }
 
+  const returnHost = opts?.returnHost?.trim().toLowerCase() || null;
   const currentHost = stripLeadingWww(window.location.hostname);
+
+  if (returnHost) {
+    const shopBase = hostDerivedShopUrl(returnHost);
+    let targetOrigin = "";
+    try {
+      targetOrigin = shopBase ? new URL(shopBase).origin : "";
+    } catch {
+      targetOrigin = "";
+    }
+    if (targetOrigin && targetOrigin !== window.location.origin) {
+      // Parent-domain cookies (`.kiosk.ke`) cannot hop to a custom domain.
+      // Only same-site origins get a handoffOrigin POST; otherwise fall through
+      // to the assigned `{slug}.kiosk.ke` hop so we never finalize on the apex.
+      if (isSameSiteHandoffOrigin(targetOrigin, currentHost)) {
+        persistTenantHostAfterAuth(slug, returnHost);
+        submitStoreSessionNavigate(nextHint, {
+          office: office || isOfficeConsolePath(nextHint),
+          handoffOrigin: targetOrigin,
+          slug: slug || undefined,
+        });
+        return;
+      }
+    } else {
+      persistTenantHostAfterAuth(slug, returnHost);
+      navigateAfterAuth(nextHint, office);
+      return;
+    }
+  }
+
   const handoff = shouldHandoffToAssignedSubdomain({
     currentHost,
     slug,
-    preferAssignedSubdomain: opts?.preferAssignedSubdomain,
+    // Custom-domain returnHost that failed same-site still needs the slug hop
+    // off the apex — treat like a claim handoff.
+    preferAssignedSubdomain:
+      opts?.preferAssignedSubdomain === true ||
+      (Boolean(returnHost) && isPlatformApexHost(currentHost)),
   });
 
   if (!handoff) {

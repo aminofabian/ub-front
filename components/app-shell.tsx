@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   SlidersHorizontal,
+  Sparkles,
   Store,
   Tags,
   Truck,
@@ -92,6 +93,10 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
+import {
+  OXANIUM_SURFACE_CLASS,
+  OXANIUM_SURFACE_STYLE,
+} from "@/lib/oxanium-surface";
 
 const BRANCHES_LINK = {
   href: APP_ROUTES.branches,
@@ -125,8 +130,8 @@ type NavSection = {
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "overview",
-    title: "Home",
-    shortLabel: "Home",
+    title: "Business",
+    shortLabel: "Business",
     blurb: "Pulse of the business",
     icon: LayoutDashboard,
     entryHref: APP_ROUTES.business,
@@ -266,7 +271,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.purchasingAddSupplies,
-        label: "Records",
+        label: "Supply records",
         group: "Buying",
         flow: true,
       },
@@ -405,6 +410,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Today's takings" },
       { href: APP_ROUTES.expenses, label: "Expenses & profit" },
+      { href: APP_ROUTES.profitPocketing, label: "Pocketing calendar" },
       { href: APP_ROUTES.fixedCosts, label: "Fixed costs" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
       { href: APP_ROUTES.airtime, label: "Airtime" },
@@ -518,6 +524,7 @@ type NavGate = {
   canListUsers: boolean;
   canViewPayroll: boolean;
   canReadFinanceExpenses: boolean;
+  canWriteFinanceExpenses: boolean;
   canReadFinanceReports: boolean;
   canManageBusinessSettings: boolean;
   canViewAuditLog: boolean;
@@ -696,6 +703,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.fixedCosts) return gate.canReadFinanceExpenses;
   if (item.href === APP_ROUTES.expenses)
     return gate.canReadFinanceExpenses || gate.canReadFinanceReports;
+  if (item.href === APP_ROUTES.profitPocketing)
+    return gate.canReadFinanceReports || gate.canWriteFinanceExpenses;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
@@ -903,7 +912,7 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
 const BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "overview",
-    label: "Home",
+    label: "Business",
     icon: LayoutDashboard,
     href: APP_ROUTES.business,
     matchSectionIds: ["overview", "org"],
@@ -920,7 +929,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     label: "Stock",
     icon: Warehouse,
     href: APP_ROUTES.inventoryStock,
-    matchSectionIds: ["procurement", "inventory"],
+    matchSectionIds: ["inventory"],
   },
   {
     id: "ops",
@@ -928,7 +937,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     icon: ScanLine,
     href: APP_ROUTES.cashier,
     workspace: "cashier",
-    matchSectionIds: ["ops", "sales"],
+    matchSectionIds: ["ops"],
   },
   {
     id: "sales",
@@ -979,6 +988,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewPayroll,
     canViewPayrollSelf,
     canReadFinanceExpenses,
+    canWriteFinanceExpenses,
     canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,
@@ -1100,6 +1110,7 @@ export function AppShell({ children }: AppShellProps) {
       canListUsers,
       canViewPayroll,
       canReadFinanceExpenses,
+      canWriteFinanceExpenses,
       canReadFinanceReports,
       canManageBusinessSettings,
       canViewAuditLog,
@@ -1160,6 +1171,7 @@ export function AppShell({ children }: AppShellProps) {
     canListUsers,
     canViewPayroll,
     canReadFinanceExpenses,
+    canWriteFinanceExpenses,
     canReadFinanceReports,
     canManageBusinessSettings,
     canViewAuditLog,
@@ -1279,9 +1291,16 @@ export function AppShell({ children }: AppShellProps) {
         icon: LifeBuoy,
         action: "support",
       },
+      {
+        id: "guide",
+        label: "Ask Guide",
+        hint: "How do I…",
+        icon: Sparkles,
+        action: "guide",
+      },
     ];
     return candidates.filter((link) => {
-      if (link.action === "support") return true;
+      if (link.action === "support" || link.action === "guide") return true;
       if (link.workspace === "cashier") return canQuickSale;
       return Boolean(link.href && allowedHrefs.has(link.href));
     });
@@ -1696,7 +1715,13 @@ export function AppShell({ children }: AppShellProps) {
   ]);
 
   return (
-    <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
+    <div
+      className={cn(
+        "tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30",
+        OXANIUM_SURFACE_CLASS,
+      )}
+      style={OXANIUM_SURFACE_STYLE}
+    >
       {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
       <div className={cn("shrink-0", desktopChromeVisible)}>
         <DesktopNavRail

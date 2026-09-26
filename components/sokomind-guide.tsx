@@ -8,6 +8,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { useChromeFabSuppressed } from "@/hooks/use-chrome-fab-suppressed";
 import { GUIDE_FAB_POSITION } from "@/lib/chrome-fabs";
+import { OPEN_GUIDE_CHAT_EVENT } from "@/lib/guide-open";
 import { cn } from "@/lib/utils";
 import {
   buildSokoMindContext,
@@ -190,6 +191,18 @@ export function SokoMindGuide() {
     return () => window.removeEventListener("keydown", onKey);
   }, [hidden, open, status?.guideEnabled]);
 
+  // More sheet (and other chrome) open Guide without a floating FAB on phone/tablet.
+  useEffect(() => {
+    const onOpen = () => {
+      if (hidden) return;
+      // Status may still be loading — open anyway; render gates on guideEnabled.
+      if (status && !status.guideEnabled) return;
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_GUIDE_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_GUIDE_CHAT_EVENT, onOpen);
+  }, [hidden, status]);
+
   // Focus the composer the moment the panel opens.
   useEffect(() => {
     if (!open) return;
@@ -312,6 +325,7 @@ export function SokoMindGuide() {
   }
 
   const providerMissing = !status.providerConfigured;
+  // Floating launch stays desktop-only — phone/tablet open Guide from More.
   const showLaunchFab = !open && !fabSuppressed;
 
   return (
@@ -320,7 +334,7 @@ export function SokoMindGuide() {
         <span
           aria-hidden
           className={cn(
-            "fixed z-30 size-12 animate-ping rounded-full bg-primary/35 motion-reduce:hidden",
+            "fixed z-30 size-12 animate-ping rounded-full bg-primary/35 motion-reduce:hidden max-2xl:hidden",
             FAB_POSITION,
           )}
           style={{ animationDuration: "2.8s" }}
@@ -334,7 +348,7 @@ export function SokoMindGuide() {
         title="Ask Kiosk Guide (⌘J)"
         onClick={() => setOpen(true)}
         className={cn(
-          "group fixed z-40 flex h-12 items-center gap-2 rounded-full",
+          "group fixed z-40 flex h-12 items-center gap-2 rounded-full max-2xl:hidden",
           FAB_POSITION,
           "bg-primary pl-3.5 pr-4 text-white",
           "shadow-[0_14px_34px_-12px_rgba(22,101,52,0.7)] ring-1 ring-white/20",
@@ -360,10 +374,10 @@ export function SokoMindGuide() {
         aria-hidden={!open}
         inert={!open}
         className={cn(
-          "fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-background",
-          FAB_POSITION,
-          "w-[min(100vw-2rem,23rem)] sm:w-96",
-          "h-[min(72dvh,34rem)] max-h-[calc(100dvh-7rem)]",
+          "fixed z-50 flex flex-col overflow-hidden border border-border/70 bg-background",
+          // Phone/tablet: full-bleed sheet above the dock. Desktop: anchor at FAB.
+          "inset-x-3 bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] top-auto h-[min(72dvh,34rem)] max-h-[calc(100dvh-5.5rem)] rounded-2xl",
+          "2xl:inset-auto 2xl:bottom-6 2xl:right-6 2xl:top-auto 2xl:max-h-[calc(100dvh-7rem)] 2xl:w-96",
           "shadow-[0_28px_64px_-20px_rgba(0,0,0,0.4)]",
           "transition-all duration-200 ease-out",
           open

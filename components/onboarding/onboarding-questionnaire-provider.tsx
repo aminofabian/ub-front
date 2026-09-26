@@ -28,6 +28,7 @@ import {
   formatApplyFailureMessage,
 } from "@/lib/onboarding-questionnaire-apply";
 import {
+  fetchCatalogListStats,
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
   type GlobalProductPackRecord,
@@ -45,6 +46,7 @@ import {
   markOnboardingAwaitingStock,
   resumeOnboardingQuestionnaire,
   saveQuestionnaireProgress,
+  shopLooksAlreadyConfigured,
   shouldStartOnboardingQuestionnaire,
   softSkipOnboardingQuestionnaire,
   QUESTIONNAIRE_PHONE_STEP,
@@ -270,6 +272,35 @@ export function OnboardingQuestionnaireProvider({
       if (cancelled) {
         return;
       }
+
+      const configured = shopLooksAlreadyConfigured({
+        onboardingStatus: business?.onboarding?.status,
+        onboardingAnswers: business?.onboarding?.answers ?? null,
+        storeTypes: business?.profile?.storeTypes ?? null,
+        storeType: business?.profile?.storeType ?? null,
+      });
+
+      const stats = await fetchCatalogListStats(undefined).catch(() => null);
+      if (cancelled) {
+        return;
+      }
+      const sellable = stats
+        ? stats.parents + stats.variants + stats.standalones
+        : 0;
+
+      if (configured || sellable > 0) {
+        const status =
+          business?.onboarding?.status?.trim().toLowerCase() ??
+          getOnboardingQuestionnaireState().status;
+        if (status === "pending" || status === "active") {
+          completeOnboardingQuestionnaire(
+            getOnboardingQuestionnaireState().answers,
+          );
+        }
+        return;
+      }
+
+      // Fresh signup only — never reopen on password/Google login for a stuck pending shop.
       if (shouldStartOnboardingQuestionnaire()) {
         startQuestionnaire();
       }
@@ -277,7 +308,13 @@ export function OnboardingQuestionnaireProvider({
     return () => {
       cancelled = true;
     };
-  }, [startQuestionnaire]);
+  }, [
+    startQuestionnaire,
+    business?.onboarding?.status,
+    business?.onboarding?.answers,
+    business?.profile?.storeTypes,
+    business?.profile?.storeType,
+  ]);
 
   const finish = useCallback(() => {
     setActive(false);

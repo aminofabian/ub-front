@@ -100,7 +100,40 @@ export function ExpenseHistoryPanel({ year, month, refreshKey }: Props) {
       </p>
 
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
-        <div className="overflow-x-auto">
+        {/* Mobile cards */}
+        <ul className="divide-y divide-border md:hidden">
+          {rows.length === 0 ? (
+            <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+              No expenses posted for this month yet.
+            </li>
+          ) : (
+            rows.map((row) => (
+              <li key={row.id} className="space-y-1.5 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold leading-snug text-foreground">
+                      {row.name}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {formatFixedCostDate(row.expenseDate)}
+                      <span className="mx-1 opacity-40">·</span>
+                      {paymentMethodLabel(row.paymentMethod)}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums">
+                    {formatFixedCostMoney(Number(row.amount))}
+                  </p>
+                </div>
+                <p className="text-[11px] capitalize text-muted-foreground">
+                  {row.categoryType}
+                </p>
+              </li>
+            ))
+          )}
+        </ul>
+
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>

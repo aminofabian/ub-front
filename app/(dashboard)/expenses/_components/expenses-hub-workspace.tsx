@@ -1231,9 +1231,95 @@ export function ExpensesHubWorkspace() {
                 </ul>
               ) : null}
 
+              {/* Mobile cards */}
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border md:hidden">
+                {expenses.length === 0 ? (
+                  <li
+                    className={cn(
+                      "px-3 py-10 text-center text-sm",
+                      dashboardHintClass(),
+                    )}
+                  >
+                    No expenses in this range.
+                  </li>
+                ) : (
+                  expenses.map((e) => (
+                    <li key={e.id} className="space-y-2 bg-white px-3 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                            {e.name}
+                          </p>
+                          <p className={cn("mt-0.5 text-[12px]", dashboardHintClass())}>
+                            {formatFixedCostDate(e.expenseDate)}
+                            <span className="mx-1 opacity-40">·</span>
+                            {expenseCategoryCodeLabel(e.categoryCode)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                          {formatFixedCostMoney(moneyNumber(e.amount))}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+                        <span className={dashboardHintClass()}>
+                          {expenseSourceLabel(e.source)}
+                        </span>
+                        <span className={dashboardHintClass()}>
+                          {paymentMethodLabel(e.paymentMethod)}
+                        </span>
+                        <span className={dashboardHintClass()}>
+                          {e.approvalStatus === "pending_approval"
+                            ? "Pending"
+                            : e.approvalStatus === "rejected"
+                              ? "Rejected"
+                              : "Posted"}
+                        </span>
+                        <span className={dashboardHintClass()}>
+                          {e.paidAt
+                            ? "Paid"
+                            : e.paymentMethod === "mpesa_manual"
+                              ? "Unpaid"
+                              : "—"}
+                        </span>
+                      </div>
+                      {e.approvalStatus === "posted" &&
+                      e.paymentMethod === "mpesa_manual" &&
+                      !e.paidAt &&
+                      canManageFinanceExpenses ? (
+                        <div className="flex gap-2 pt-0.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className={cn(
+                              PRIMARY_BTN,
+                              "h-11 flex-1 rounded-2xl text-[13px]",
+                            )}
+                            disabled={payingId === e.id}
+                            onClick={() => void payViaMpesa(e)}
+                          >
+                            {payingId === e.id ? "…" : "Send Money"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-11 rounded-2xl px-3 text-[13px] font-semibold"
+                            disabled={payingId === e.id}
+                            onClick={() => void cancelPay(e.id)}
+                            title="Stop waiting on a pending Send Money"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))
+                )}
+              </ul>
+
               <div
                 className={cn(
-                  "overflow-x-auto border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_1.5%,white)]",
+                  "hidden overflow-x-auto border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_1.5%,white)] md:block",
                   HAIRLINE,
                 )}
               >

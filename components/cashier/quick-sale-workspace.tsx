@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +9,10 @@ import {
   DASHBOARD_SECTION_SURFACE,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  CashierBottomNav,
+  CashierMobileChromeProvider,
+} from "@/components/cashier/cashier-app-chrome";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
@@ -26,7 +30,7 @@ import {
   fetchItems,
   fetchPosStkPushStatus,
   fetchPosTopProducts,
-  fetchProfitPocketSettings,
+  fetchMarginGuardSettings,
   fetchSaleReceiptPdf,
   postVoidSale,
   refreshAccessToken,
@@ -314,12 +318,19 @@ type QuickSaleWorkspaceProps = {
   variant?: QuickSaleWorkspaceVariant;
   /** Rendered inside the full-screen shell drawer (no shell chrome of its own). */
   inShellDrawer?: boolean;
+  /** Close the shell drawer — used by the Business bottom-nav tab. */
+  onRequestClose?: () => void;
 };
+
+/** Survives React Strict Mode remounts (component refs reset). */
+const posDraftHydrateLocks = new Set<string>();
 
 export function QuickSaleWorkspace({
   variant = "admin",
   inShellDrawer = false,
+  onRequestClose,
 }: QuickSaleWorkspaceProps) {
+  const router = useRouter();
   const {
     me,
     business,
@@ -334,6 +345,9 @@ export function QuickSaleWorkspace({
   } = useDashboard();
   const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
   const isLedger = variant === "cashier" && tillWantsLedger;
+  /** Shell Sell drawer uses the same till chrome as `/cashier` (bottom nav, shifts). */
+  const useTillChrome = variant === "cashier" || inShellDrawer;
+  const isCashier = variant === "cashier";
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
   const posDraftsUi = useFeatureFlag(POS_DRAFT_FLAGS.uiVisible);
@@ -731,11 +745,22 @@ export function QuickSaleWorkspace({
   useEffect(() => {
     posDraftHydratedRef.current = false;
     mirrorUserIdRef.current = null;
+    const bid = branchId.trim();
+    const uid = me?.id?.trim();
+    const bizId = business?.id?.trim();
+    if (bizId && bid && uid) {
+      posDraftHydrateLocks.delete(`${bizId}:${bid}:${uid}`);
+    }
   }, [branchId, business?.id, me?.id]);
 
   useEffect(() => {
+    const bizId = business?.id?.trim() ?? "";
+    if (!bizId) {
+      setMarginGuardMode("warn");
+      return;
+    }
     let cancelled = false;
-    void fetchProfitPocketSettings()
+    void fetchMarginGuardSettings({ toast: false })
       .then((s) => {
         if (!cancelled) {
           setMarginGuardMode(normalizeMarginGuardMode(s.marginGuardMode));
@@ -794,9 +819,13 @@ export function QuickSaleWorkspace({
     const uid = me?.id?.trim();
     const bizId = business?.id?.trim();
     if (!bid || !uid || !bizId) return;
-    if (posDraftHydratedRef.current) return;
+    const hydrateKey = `${bizId}:${bid}:${uid}`;
+    if (posDraftHydratedRef.current || posDraftHydrateLocks.has(hydrateKey)) {
+      return;
+    }
 
     posDraftHydratedRef.current = true;
+    posDraftHydrateLocks.add(hydrateKey);
     const uiOpts = { uiVisible: posDraftsUi || posDraftsEnabled };
 
     void (async () => {
@@ -2175,50 +2204,45 @@ export function QuickSaleWorkspace({
   );
 
   const refreshTopProducts = useCallback(() => {
-    if (variant === "cashier") {
-      const bid = branchId?.trim();
-      if (!online || !bid) {
-        setTopProducts(getTopProducts(business?.id ?? null, 24));
-        setTopProductsLoading(false);
-        return;
-      }
-      setTopProductsLoading(true);
-      void fetchPosTopProducts(bid, {
-        limit: 24,
-        itemTypeId: posItemTypeId ?? undefined,
-      })
-        .then((list) => {
-          setTopProducts(
-            list.map((row) => ({
-              id: row.id,
-              name: row.name,
-              sku: row.sku ?? undefined,
-              thumbnailUrl: row.thumbnailUrl ?? null,
-              variantName: row.variantName ?? null,
-              brand: row.brand ?? null,
-              size: row.size ?? null,
-              variantOfItemId: row.variantOfItemId ?? null,
-              parentName: row.parentName ?? null,
-              packageVariant: row.packageVariant === true,
-              packageUnitsPerSale: row.packageUnitsPerSale ?? null,
-              count: row.saleCount,
-              qty: Number(row.totalQuantity) || 0,
-              lastUsedAt: row.lastSoldAt
-                ? Date.parse(row.lastSoldAt)
-                : 0,
-            })),
-          );
-        })
-        .catch(() => {
-          setTopProducts(getTopProducts(business?.id ?? null, 24));
-        })
-        .finally(() => {
-          setTopProductsLoading(false);
-        });
+    const bid = branchId?.trim();
+    const limit = 24;
+    if (!online || !bid) {
+      setTopProducts(getTopProducts(business?.id ?? null, limit));
+      setTopProductsLoading(false);
       return;
     }
-    setTopProducts(getTopProducts(business?.id ?? null, 8));
-  }, [variant, business?.id, branchId, online, posItemTypeId]);
+    setTopProductsLoading(true);
+    void fetchPosTopProducts(bid, {
+      limit,
+      itemTypeId: posItemTypeId ?? undefined,
+    })
+      .then((list) => {
+        setTopProducts(
+          list.map((row) => ({
+            id: row.id,
+            name: row.name,
+            sku: row.sku ?? undefined,
+            thumbnailUrl: row.thumbnailUrl ?? null,
+            variantName: row.variantName ?? null,
+            brand: row.brand ?? null,
+            size: row.size ?? null,
+            variantOfItemId: row.variantOfItemId ?? null,
+            parentName: row.parentName ?? null,
+            packageVariant: row.packageVariant === true,
+            packageUnitsPerSale: row.packageUnitsPerSale ?? null,
+            count: row.saleCount,
+            qty: Number(row.totalQuantity) || 0,
+            lastUsedAt: row.lastSoldAt ? Date.parse(row.lastSoldAt) : 0,
+          })),
+        );
+      })
+      .catch(() => {
+        setTopProducts(getTopProducts(business?.id ?? null, limit));
+      })
+      .finally(() => {
+        setTopProductsLoading(false);
+      });
+  }, [business?.id, branchId, online, posItemTypeId]);
 
   const handleStalePosItem = useCallback(
     (itemId: string) => {
@@ -2430,6 +2454,8 @@ export function QuickSaleWorkspace({
         catalogScope: "SKUS_ONLY",
         softAuth: true,
         signal: controller.signal,
+        /** Keep the POS shelf page short — batch shelf prices still scale, but list payload shouldn't. */
+        size: 48,
         ...(cat ? { categoryId: cat, includeCategoryDescendants: true } : {}),
         ...(typ ? { itemTypeId: typ } : {}),
         ...(branchId?.trim() ? { branchId: branchId.trim() } : {}),
@@ -4681,8 +4707,7 @@ export function QuickSaleWorkspace({
     }
   }, [lastSale]);
 
-  const isCashier = variant === "cashier";
-  const heading = isCashier ? "Sell" : "Quick sale";
+  const heading = useTillChrome ? "Sell" : "Quick sale";
   const activeBranchName = useMemo(
     () => branches.find((b) => b.id === branchId)?.name ?? "",
     [branches, branchId],
@@ -4704,16 +4729,16 @@ export function QuickSaleWorkspace({
   const canCloseShiftPerm = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canReadShift = hasPermission(me?.permissions, Permission.ShiftsRead);
   const showPosShiftLinks =
-    isCashier && (canOpenShift || canCloseShiftPerm);
+    useTillChrome && (canOpenShift || canCloseShiftPerm);
   const shouldFetchOpenShift =
-    isCashier && (canOpenShift || canCloseShiftPerm || canReadShift);
+    useTillChrome && (canOpenShift || canCloseShiftPerm || canReadShift);
 
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked ?? false;
   const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(
     null,
   );
-  const [branchShiftLoading, setBranchShiftLoading] = useState(isCashier);
+  const [branchShiftLoading, setBranchShiftLoading] = useState(useTillChrome);
   const [branchShiftSettled, setBranchShiftSettled] = useState(false);
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
@@ -5064,23 +5089,23 @@ export function QuickSaleWorkspace({
     </>
   );
 
-  return (
+  const workspaceBody = (
     <div
       className={cn(
-        isCashier && "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
+        (isCashier || inShellDrawer) &&
+          "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
       )}
     >
       {!isLedger ? (
         <div
           className={cn(
             "flex items-center justify-between px-1",
-            isCashier ? "shrink-0 pb-0.5" : "pb-2",
-            // On phone Pending / Invoices fold into the POS tab row instead
-            // of owning a full-width band above the shelf.
-            isCashier && "max-lg:hidden",
+            isCashier || inShellDrawer ? "shrink-0 pb-0.5" : "pb-2",
+            // Phone: Pending / Invoices live in the POS strip via toolbarExtras.
+            "max-lg:hidden",
           )}
         >
-          {!isCashier ? (
+          {!isCashier && !inShellDrawer ? (
             <span className="text-[10px] font-medium text-muted-foreground">
               {activeBranchName || "Point of sale"}
             </span>
@@ -5090,7 +5115,8 @@ export function QuickSaleWorkspace({
           <div
             className={cn(
               "flex items-center gap-2",
-              isCashier && "ml-auto max-lg:max-w-full max-lg:gap-1 max-lg:overflow-x-auto",
+              (isCashier || inShellDrawer) &&
+                "ml-auto max-lg:max-w-full max-lg:gap-1 max-lg:overflow-x-auto",
             )}
           >
             {pendingExtras}
@@ -5101,13 +5127,12 @@ export function QuickSaleWorkspace({
         checkoutDrawerOpen={checkoutDrawerOpen}
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}
-        embeddedInDashboard={!isCashier}
-        inDrawer={!isCashier && inShellDrawer}
+        embeddedInDashboard={!useTillChrome}
+        inDrawer={false}
         checkoutCompletedKey={checkoutCompletedKey}
         brandTheme={dialogBrandTheme}
-        // Phone /cashier folds Pending / Invoices into the POS tab row via
-        // toolbarExtras; other hosts keep their own standalone row.
-        toolbarExtras={isLedger || !isCashier ? (isLedger ? pendingExtras : undefined) : pendingExtras}
+        // Fold Pending / Invoices into the phone strip for every host.
+        toolbarExtras={pendingExtras}
         online={online}
         offlineBanner={posDraftOfflineBanner}
         currency={currency}
@@ -5124,16 +5149,16 @@ export function QuickSaleWorkspace({
         hits={hits}
         searchBanner={searchBanner}
         topProducts={topProducts}
-        topProductsLoading={variant === "cashier" ? topProductsLoading : false}
+        topProductsLoading={topProductsLoading}
         topProductsTitle={
-          variant === "cashier" ? "Top 24 best sellers" : undefined
+          variant === "cashier" ? "Top 24 best sellers" : "Best sellers"
         }
         topProductsSubtitle={
           variant === "cashier"
             ? "Ranked by units sold at this branch"
-            : undefined
+            : "Tap to add · popular at this branch"
         }
-        alwaysShowTopProducts={variant === "cashier"}
+        alwaysShowTopProducts
         addLine={addLine}
         onAddAirtimeToCart={addAirtimeToCart}
         canBrowseCategories={canBrowseCategories}
@@ -5323,7 +5348,7 @@ export function QuickSaleWorkspace({
           ),
         }}
       />
-      {isCashier ? (
+      {useTillChrome ? (
         <>
           <OpenShiftModal
             open={openShiftModal}
@@ -5475,4 +5500,34 @@ export function QuickSaleWorkspace({
       </Dialog>
     </div>
   );
+
+  if (inShellDrawer) {
+    const showBusinessLink =
+      isOwnerOrAdmin ||
+      hasPermission(me?.permissions, Permission.BusinessManageSettings);
+    return (
+      <CashierMobileChromeProvider>
+        <div
+          className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden pos-market-paper"
+          style={dialogBrandTheme}
+        >
+          <div className="min-h-0 flex-1 overflow-hidden">{workspaceBody}</div>
+          <CashierBottomNav
+            adminHref={showBusinessLink ? APP_ROUTES.business : null}
+            adminLabel="Business"
+            onAdminNavigate={
+              showBusinessLink
+                ? () => {
+                    onRequestClose?.();
+                    router.push(APP_ROUTES.business);
+                  }
+                : undefined
+            }
+          />
+        </div>
+      </CashierMobileChromeProvider>
+    );
+  }
+
+  return workspaceBody;
 }

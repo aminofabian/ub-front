@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
 import { ShopItemHeroMedia } from "@/components/storefront/shop-item-hero-media";
@@ -9,6 +10,7 @@ import {
   mergeVariantOptions,
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
+import { ShopProductShareButton } from "@/components/storefront/shop-product-share-button";
 import { ClimaxFloorProduct } from "@/components/storefront/templates/store/climax-floor-product";
 import { DailyGazetteProduct } from "@/components/storefront/templates/store/daily-gazette-product";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
@@ -22,7 +24,30 @@ import {
   isStorefrontWeighedItem,
   type PublicCatalogItemDetail,
 } from "@/lib/public-storefront";
+import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import { normalizeStoreThemeId } from "@/lib/storefront-templates";
+
+/** Floating share control for themed PDPs that own their own chrome. */
+function withProductShare(
+  slug: string,
+  item: PublicCatalogItemDetail,
+  children: ReactNode,
+): ReactNode {
+  return (
+    <>
+      <div className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex justify-end px-3 sm:px-5">
+        <div className="pointer-events-auto">
+          <ShopProductShareButton
+            item={item}
+            productPath={shopItemPathFromCard(item)}
+            slug={slug}
+          />
+        </div>
+      </div>
+      {children}
+    </>
+  );
+}
 
 export function ShopProductDetailView({
   slug,
@@ -35,22 +60,46 @@ export function ShopProductDetailView({
 }) {
   const theme = normalizeStoreThemeId(storeThemeId);
   if (theme === "print-atelier") {
-    return <PrintAtelierProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <PrintAtelierProduct slug={slug} item={item} />,
+    );
   }
   if (theme === "blank-drop") {
-    return <BlankDropProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <BlankDropProduct slug={slug} item={item} />,
+    );
   }
   if (theme === "pastry-case") {
-    return <PastryCaseProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <PastryCaseProduct slug={slug} item={item} />,
+    );
   }
   if (theme === "climax-floor") {
-    return <ClimaxFloorProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <ClimaxFloorProduct slug={slug} item={item} />,
+    );
   }
   if (theme === "daily-gazette") {
-    return <DailyGazetteProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <DailyGazetteProduct slug={slug} item={item} />,
+    );
   }
   if (theme === "mizu-springs") {
-    return <MizuSpringsProduct slug={slug} item={item} />;
+    return withProductShare(
+      slug,
+      item,
+      <MizuSpringsProduct slug={slug} item={item} />,
+    );
   }
 
   const variantOptions = mergeVariantOptions(item);
@@ -59,6 +108,7 @@ export function ShopProductDetailView({
   const showPrice = hasCatalogPrice(item.price);
   const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
+  const productPath = shopItemPathFromCard(item);
   const featureLines = item.description
     ? item.description
         .split(/\r?\n|[•·]/)
@@ -69,14 +119,21 @@ export function ShopProductDetailView({
   return (
     <div className="min-h-screen bg-background pb-28 sm:pb-8">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
-        <Link
-          href={APP_ROUTES.shop}
-          className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Back to shop"
-        >
-          <span aria-hidden>←</span>
-          <span>Back to shop</span>
-        </Link>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={APP_ROUTES.shop}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Back to shop"
+          >
+            <span aria-hidden>←</span>
+            <span>Back to shop</span>
+          </Link>
+          <ShopProductShareButton
+            item={item}
+            productPath={productPath}
+            slug={slug}
+          />
+        </div>
         <div className="rounded-xl border border-border/60 bg-background p-3 shadow-sm sm:p-5">
           <div className="grid gap-8 lg:grid-cols-[1.05fr_1fr]">
             <section>

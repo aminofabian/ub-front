@@ -236,12 +236,15 @@ type LandingNavProps = {
   onFindShop: () => void;
   /** Opens the apex identity pass sheet. */
   onSignIn: () => void;
+  /** Optional Google owner sign-in (apex). */
+  onGoogleSignIn?: () => void;
 };
 
 export function LandingNav({
   onCreateShop,
   onFindShop,
   onSignIn,
+  onGoogleSignIn,
 }: LandingNavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -490,6 +493,15 @@ export function LandingNav({
             >
               Sign in
             </button>
+            {onGoogleSignIn ? (
+              <button
+                type="button"
+                className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
+                onClick={onGoogleSignIn}
+              >
+                Google
+              </button>
+            ) : null}
             <Link
               href="/download"
               className={NAV_TICKET_DOWNLOAD}

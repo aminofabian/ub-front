@@ -32,9 +32,11 @@ import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import {
   coverImageUrl,
   formatMutationError,
+  packEditHint,
   toNumber,
   usesSharedPackageStock,
 } from "../_utils";
+import { PackHowItWorksButton } from "./PackHowItWorks";
 import { ProductFormField } from "./ProductFormField";
 import { SearchableSelect } from "./SearchableSelect";
 import { categorySelectOptions } from "./category-select-options";
@@ -656,23 +658,28 @@ export function ProductEditDrawer({
               <ProductFormSectionToggle
                 icon={Boxes}
                 label="How it sells"
-                hint="Pack size and how stock is taken"
+                hint="A pack sells several of the product at once"
                 expanded={openSections.package}
                 onToggle={() => toggleSection("package")}
                 badge={
                   (dr.packageVariant ?? d.packageVariant) ? (
                     <span className="rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                      Package mode
+                      Pack
                     </span>
                   ) : null
                 }
               />
               {openSections.package ? (
                 <div className={productFormSectionBodyClass}>
+                  <PackHowItWorksButton />
                   <ProductFormField
-                    label="Base units per sale"
+                    label={`How many ${familyName || "units"} leave the shelf`}
                     required={dr.packageVariant ?? d.packageVariant}
-                    hint="Units deducted from parent stock per sale (e.g. 1 each, 30 tray)"
+                    hint={
+                      (dr.packageVariant ?? d.packageVariant)
+                        ? packEditHint(dr.packagingUnitQtyStr, familyName)
+                        : "1 means you sell it one at a time."
+                    }
                   >
                     <input
                       className={productFormInputClass}
@@ -701,10 +708,10 @@ export function ProductEditDrawer({
                     />
                     <span className="min-w-0 text-xs leading-relaxed text-muted-foreground">
                       <span className="font-semibold text-foreground">
-                        Sell as package
-                      </span>{" "}
-                      — stock stays on the parent; each sale uses the units
-                      above.
+                        Sell as a pack
+                      </span>
+                      . Stock stays on {familyName || "the product"}. Each sale
+                      takes the number above off that shelf.
                     </span>
                   </label>
                 </div>
@@ -723,7 +730,13 @@ export function ProductEditDrawer({
             <div className={productFormSectionBodyClass}>
               <div className={productFormGrid2Class}>
                 <ProductFormField
-                  label={isWeighed ? "Selling price / kg" : "Selling price"}
+                  label={
+                    isWeighed
+                      ? "Selling price / kg"
+                      : sharedStock
+                        ? "Price of 1 pack"
+                        : "Selling price"
+                  }
                 >
                   <input
                     className={productFormInputClass}
@@ -754,7 +767,22 @@ export function ProductEditDrawer({
                     />
                   </ProductFormField>
                 ) : null}
-                <ProductFormField label="Cost price">
+                <ProductFormField
+                  label={
+                    isWeighed
+                      ? "Cost / kg"
+                      : sharedStock
+                        ? "Cost of 1 pack"
+                        : "Cost price"
+                  }
+                  hint={
+                    isWeighed
+                      ? "What you paid per kilogram. Profit uses the cost of every unit that leaves the shelf."
+                      : sharedStock
+                        ? "What you paid for the pack. Profit still uses the cost of the units that leave the shelf."
+                        : undefined
+                  }
+                >
                   <input
                     className={productFormInputClass}
                     inputMode="decimal"
@@ -789,16 +817,9 @@ export function ProductEditDrawer({
             <div className={productFormSectionBodyClass}>
               {sharedStock ? (
                 <p className="rounded-none border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                  Quantity is tracked on the{" "}
-                  <span className="font-medium text-foreground">
-                    parent product
-                  </span>
-                  . Each sale deducts{" "}
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {dr.packagingUnitQtyStr || "—"}
-                  </span>{" "}
-                  base units. Use the detail panel or base SKU to adjust on-hand
-                  stock.
+                  {packEditHint(dr.packagingUnitQtyStr, familyName)} You don’t
+                  count this pack on its own — change the quantity on{" "}
+                  {familyName || "the product"}.
                 </p>
               ) : (
                 <>

@@ -572,7 +572,10 @@ export default function PaymentGatewaySettingsPage() {
           return <>Send Money gateway, auto-pay schedule, and enable switch.</>;
         case "profit-pocket":
           return (
-            <>Owner / expense destination for pocketing Hub cash surplus.</>
+            <>
+              Save your profits to your bank account for expenses, rent, etc. —
+              not your customer till.
+            </>
           );
         case "airtime":
           return <>POS and storefront airtime switches funded from Kiosk Pay.</>;

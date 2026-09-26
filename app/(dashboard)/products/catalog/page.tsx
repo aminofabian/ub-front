@@ -19,10 +19,9 @@ import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Input } from "@/components/ui/input";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
-import {
-  GlobalCatalogLoadMoreSkeleton,
-  GlobalCatalogProductTableSkeleton,
-} from "@/components/products/global-catalog-product-skeleton";
+import { GlobalCatalogLoadMoreSkeleton } from "@/components/products/global-catalog-product-skeleton";
+import { CatalogImportCeremony } from "@/components/products/catalog-import-ceremony";
+import { CatalogImportSheet } from "./catalog-import-sheet";
 import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
 import {
   GlobalCatalogActionProgressBar,
@@ -31,7 +30,7 @@ import {
 import { GlobalCatalogReviewImportDialog } from "@/components/products/global-catalog-review-import-dialog";
 import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sync";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { cn, formatMoney } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import { APP_ROUTES } from "@/lib/config";
 import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
@@ -47,6 +46,7 @@ import {
   fetchCategories,
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
+  fetchAllGlobalCatalogProducts,
   fetchGlobalCatalogProducts,
   previewGlobalCatalogAdopt,
   previewGlobalCatalogReplace,
@@ -66,6 +66,11 @@ import {
   getBusinessStoreTypes,
   isButcheryOnlyBusiness,
 } from "@/lib/business-store-type";
+import { scopePacksForStoreTypes } from "@/lib/onboarding-suggested-pack";
+import {
+  adoptOpeningUnitCost,
+  adoptShelfMoney,
+} from "@/lib/global-catalog-adopt-money";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -150,6 +155,7 @@ export default function GlobalCatalogPage() {
   const [refreshSell, setRefreshSell] = useState(true);
   const [refreshBuy, setRefreshBuy] = useState(false);
   const [refreshImage, setRefreshImage] = useState(true);
+  const [refreshForceImage, setRefreshForceImage] = useState(false);
   const [skipCustomSell, setSkipCustomSell] = useState(false);
   const [createMissingCategories, setCreateMissingCategories] = useState(
     () => searchParams.get("from") === "onboarding",
@@ -251,16 +257,60 @@ export default function GlobalCatalogPage() {
     () => orderedPacks.filter((p) => p.productCount <= 0),
     [orderedPacks],
   );
+  // The sidebar only lists packs that belong to this shop's verticals, so a pharmacy never sees the
+  // mini-mart starter (or vice versa). Unknown shop formats keep the full list.
+  const visibleReadyPacks = useMemo(
+    () => scopePacksForStoreTypes(readyPacks, storeTypes),
+    [readyPacks, storeTypes],
+  );
+  const visibleComingSoonPacks = useMemo(
+    () => scopePacksForStoreTypes(comingSoonPacks, storeTypes),
+    [comingSoonPacks, storeTypes],
+  );
   const selectedPack = useMemo(
     () => orderedPacks.find((p) => p.id === selectedPackId) ?? null,
     [orderedPacks, selectedPackId],
   );
   const selectedPackEmpty = !!selectedPack && selectedPack.productCount <= 0;
-  const suggestedReadyPack = readyPacks[0] ?? null;
+  const suggestedReadyPack = useMemo(() => {
+    const matched = visibleReadyPacks.find(
+      (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
+    );
+    if (matched) return matched;
+    // visibleReadyPacks is already vertical-scoped, so its head is a safe fallback — never another
+    // vertical's starter.
+    return visibleReadyPacks[0] ?? null;
+  }, [visibleReadyPacks, storeTypes]);
   const categoryNavNodes = useMemo(
     () => flattenGlobalCategoriesForNav(meta?.categories ?? []),
     [meta?.categories],
   );
+  const shopDepartments = useMemo(() => {
+    const byParent = new Map<string | null, CategoryRecord[]>();
+    for (const category of tenantCategories) {
+      const parent = category.parentId ?? null;
+      const list = byParent.get(parent) ?? [];
+      list.push(category);
+      byParent.set(parent, list);
+    }
+    const out: { id: string; name: string; depth: number }[] = [];
+    const walk = (parentId: string | null, depth: number) => {
+      for (const category of byParent.get(parentId) ?? []) {
+        out.push({ id: category.id, name: category.name, depth });
+        walk(category.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    if (out.length < tenantCategories.length) {
+      const seen = new Set(out.map((row) => row.id));
+      for (const category of tenantCategories) {
+        if (!seen.has(category.id)) {
+          out.push({ id: category.id, name: category.name, depth: 0 });
+        }
+      }
+    }
+    return out;
+  }, [tenantCategories]);
 
   const autoPickedPackRef = useRef(false);
   useEffect(() => {
@@ -277,10 +327,14 @@ export default function GlobalCatalogPage() {
     }
 
     if (!fromOnboarding) return;
+    const matched = readyPacks.find(
+      (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
+    );
+    const groceryFallback = storeTypes.some(
+      (type) => type === "mini-mart" || type === "mixed-shop",
+    );
     const pick =
-      readyPacks.find(
-        (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
-      ) ?? readyPacks[0];
+      matched ?? (groceryFallback ? readyPacks[0] : undefined);
     if (!pick) return;
     autoPickedPackRef.current = true;
     setSelectedPackId(pick.id);
@@ -685,16 +739,18 @@ export default function GlobalCatalogPage() {
           globalProductId: p.id,
           sku: override?.sku ?? p.skuTemplate ?? undefined,
           categoryId: override?.categoryId ?? suggestedCategoryId ?? undefined,
-          sellingPrice:
-            override?.sellingPrice ?? p.recommendedSellingPrice ?? undefined,
-          buyingPrice:
-            override?.buyingPrice ?? p.recommendedBuyingPrice ?? undefined,
+          sellingPrice: adoptShelfMoney(
+            override?.sellingPrice ?? p.recommendedSellingPrice,
+          ),
+          buyingPrice: adoptShelfMoney(
+            override?.buyingPrice ?? p.recommendedBuyingPrice,
+          ),
           openingQty: override?.openingQty ?? undefined,
-          openingUnitCost:
+          openingUnitCost: adoptOpeningUnitCost(
             override?.openingUnitCost ??
-            override?.buyingPrice ??
-            p.recommendedBuyingPrice ??
-            undefined,
+              override?.buyingPrice ??
+              p.recommendedBuyingPrice,
+          ),
           reorderLevel:
             override?.reorderLevel ?? p.defaultReorderLevel ?? undefined,
           reorderQty: override?.reorderQty ?? p.defaultReorderQty ?? undefined,
@@ -992,6 +1048,30 @@ export default function GlobalCatalogPage() {
     setReviewOpen(true);
   };
 
+  const handleRefreshEntry = () => {
+    if (!defaultBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
+    if (selectedImported.length === 0) {
+      // Nothing refreshable is selected yet. "Hide items you already have" defaults on, so
+      // reveal the imported items and guide the user instead of failing silently.
+      if (hideImported) {
+        setHideImported(false);
+        toast.message("Showing items you already import", {
+          description:
+            "Select the products to refresh, then choose Refresh from template.",
+        });
+      } else {
+        toast.message("Select products already in your shop to refresh", {
+          description: "Items you already import are annotated in the list.",
+        });
+      }
+      return;
+    }
+    setRefreshOpen(true);
+  };
+
   const handleRefreshFromTemplate = async () => {
     if (!defaultBranchId) {
       toast.error("No branch selected");
@@ -1015,6 +1095,7 @@ export default function GlobalCatalogPage() {
         refreshSellingPrice: refreshSell,
         refreshBuyingPrice: refreshBuy,
         refreshImage,
+        forceImage: refreshImage && refreshForceImage,
         skipCustomizedSellingPrice: skipCustomSell,
       };
       const preview = await previewGlobalCatalogRefresh(body);
@@ -1053,6 +1134,182 @@ export default function GlobalCatalogPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const linesForProducts = useCallback(
+    (rows: GlobalProductRecord[]): GlobalCatalogAdoptLine[] => {
+      return rows
+        .filter((p) => !p.alreadyImported)
+        .map((p) => {
+          const globalCategory = meta?.categories.find(
+            (c) => c.id === p.globalCategoryId,
+          );
+          const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
+          const suggestedCategoryId = slugHint
+            ? tenantCategories.find((category) => category.slug === slugHint)?.id
+            : undefined;
+          const override = lineOverrides.get(p.id);
+          return {
+            globalProductId: p.id,
+            sku: override?.sku ?? p.skuTemplate ?? undefined,
+            categoryId: override?.categoryId ?? suggestedCategoryId,
+            sellingPrice: adoptShelfMoney(
+              override?.sellingPrice ?? p.recommendedSellingPrice,
+            ),
+            buyingPrice: adoptShelfMoney(
+              override?.buyingPrice ?? p.recommendedBuyingPrice,
+            ),
+            openingUnitCost: adoptOpeningUnitCost(
+              override?.openingUnitCost ??
+                override?.buyingPrice ??
+                p.recommendedBuyingPrice,
+            ),
+            reorderLevel: p.defaultReorderLevel ?? undefined,
+            reorderQty: p.defaultReorderQty ?? undefined,
+            minStockLevel: p.defaultMinStockLevel ?? undefined,
+            onSkuConflict: "merge" as const,
+          };
+        });
+    },
+    [lineOverrides, meta?.categories, tenantCategories],
+  );
+
+  const handleImportAll = () => {
+    if (!canAdopt || adopting) return;
+    if (!defaultBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
+    const known =
+      totalElements != null && hideImported && !selectedPackId
+        ? totalElements
+        : null;
+    const scope = selectedPack
+      ? selectedPack.name
+      : selectedCategoryId
+        ? (meta?.categories.find((c) => c.id === selectedCategoryId)?.name ??
+          "this category")
+        : debouncedSearch
+          ? `“${debouncedSearch}”`
+          : "the catalog";
+    showThemedConfirmToast({
+      id: "catalog-import-all",
+      title: known
+        ? `Import all ${known.toLocaleString()} products?`
+        : "Import every available product?",
+      description: `Brings in everything not already in your shop from ${scope}. Recommended prices are used. Products that share a SKU with one you already have are linked instead of duplicated.\n\nStay on this screen while products upload — don’t refresh or close the tab.`,
+      confirmLabel: "Import all",
+      confirmVariant: "default",
+      onConfirm: () => {
+        void (async () => {
+          setAdopting(true);
+          setActionPhase("importing");
+          setImportProgress({
+            phase: "queued",
+            processed: 0,
+            total: Math.max(known ?? 1, 1),
+            percent: 2,
+            message: "Loading the full catalog…",
+          });
+          try {
+            let rows: GlobalProductRecord[];
+            if (selectedPackId) {
+              const pack = await fetchGlobalCatalogPack(selectedPackId, {
+                onlyNotImported: true,
+              });
+              rows = pack.products;
+            } else {
+              rows = await fetchAllGlobalCatalogProducts(
+                {
+                  categoryId: selectedCategoryId,
+                  q: debouncedSearch || undefined,
+                  onlyNotImported: true,
+                },
+                {
+                  pageSize: 200,
+                  onProgress: (loaded, total) => {
+                    setImportProgress({
+                      phase: "queued",
+                      processed: 0,
+                      total: Math.max(total, 1),
+                      percent: 2,
+                      message: `Loading ${loaded.toLocaleString()} of ${total.toLocaleString()}…`,
+                    });
+                  },
+                },
+              );
+            }
+            const lines = linesForProducts(rows);
+            if (lines.length === 0) {
+              toast.message("Everything in this view is already in your shop.");
+              setActionPhase("ready");
+              return;
+            }
+            setImportProgress({
+              phase: "importing",
+              processed: 0,
+              total: lines.length,
+              percent: 4,
+              message: "Importing…",
+            });
+            const result = await globalCatalogAdopt(defaultBranchId, lines, {
+              createMissingCategories: true,
+              packId: selectedPackId,
+              onProgress: setImportProgress,
+            });
+            const importedNew = result.lines.filter(
+              (l) => l.status === "imported",
+            ).length;
+            const mergedCount = result.lines.filter(
+              (l) => l.status === "merged",
+            ).length;
+            if (importedNew === 0 && mergedCount === 0) {
+              toast.error("No products were imported.");
+              setActionPhase("ready");
+              return;
+            }
+            setImportProgress({
+              phase: "finishing",
+              processed: lines.length,
+              total: Math.max(lines.length, 1),
+              percent: 100,
+              message: "Import complete",
+            });
+            setActionPhase("done");
+            toast.success(
+              mergedCount > 0
+                ? `Imported ${importedNew.toLocaleString()} · linked ${mergedCount.toLocaleString()} to existing`
+                : `Imported ${result.importedCount.toLocaleString()} products`,
+            );
+            if (result.skippedCount > 0) {
+              toast.info(`${result.skippedCount.toLocaleString()} skipped`);
+            }
+            setSelected(new Map());
+            setSkippedProductIds(new Set());
+            setLineOverrides(new Map());
+            try {
+              await loadTenantCategories();
+            } catch {
+              /* ignore */
+            }
+            void fetchProducts({
+              reset: true,
+              page: 0,
+              categoryId: selectedCategoryId,
+              packId: selectedPackId,
+            });
+          } catch (e) {
+            setActionPhase("ready");
+            if (!(e instanceof ApiRequestError)) {
+              toast.error(e instanceof Error ? e.message : "Import failed");
+            }
+          } finally {
+            setAdopting(false);
+            setImportProgress(null);
+          }
+        })();
+      },
+    });
   };
 
   const handleAdopt = async () => {
@@ -1416,12 +1673,13 @@ export default function GlobalCatalogPage() {
               Replace with pack
             </Button>
           ) : null}
-          {selectedImported.length > 0 && canAdopt ? (
+          {canAdopt ? (
             <Button
               size="sm"
               variant="outline"
               disabled={!defaultBranchId}
-              onClick={() => setRefreshOpen(true)}
+              title="Apply the latest catalog prices or images to items you already import"
+              onClick={handleRefreshEntry}
             >
               Refresh from template
             </Button>
@@ -1458,7 +1716,7 @@ export default function GlobalCatalogPage() {
                 import them in a click.
               </p>
               <div className="space-y-1">
-                {readyPacks.map((pack) => {
+                {visibleReadyPacks.map((pack) => {
                   const recommended =
                     !!pack.storeKitId &&
                     storeTypes.some((t) => t === pack.storeKitId);
@@ -1504,12 +1762,12 @@ export default function GlobalCatalogPage() {
                   );
                 })}
               </div>
-              {comingSoonPacks.length > 0 ? (
+              {visibleComingSoonPacks.length > 0 ? (
                 <div className="mt-3 space-y-1">
                   <p className="px-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
                     Coming soon
                   </p>
-                  {comingSoonPacks.map((pack) => {
+                  {visibleComingSoonPacks.map((pack) => {
                     const active = selectedPackId === pack.id;
                     return (
                       <button
@@ -1662,6 +1920,26 @@ export default function GlobalCatalogPage() {
                 </Button>
               )}
               <Button
+                size="sm"
+                disabled={
+                  !canAdopt ||
+                  adopting ||
+                  initialLoading ||
+                  (hideImported && (totalElements ?? 0) === 0 && products.length === 0)
+                }
+                title="Import every product in this view that is not already in your shop"
+                className="rounded-none bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+                onClick={handleImportAll}
+              >
+                {adopting ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : null}
+                Import all
+                {hideImported && totalElements != null && !selectedPackId
+                  ? ` (${totalElements.toLocaleString()})`
+                  : ""}
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 disabled={products.every((p) => p.alreadyImported)}
@@ -1676,113 +1954,32 @@ export default function GlobalCatalogPage() {
             ref={scrollRef}
             className="relative flex-1 overflow-auto scroll-smooth"
           >
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_hsl(var(--border))]">
-                <tr className="text-xs text-muted-foreground">
-                  <th className="w-10 bg-white py-2.5 pl-3" />
-                  <th className="bg-white py-2.5">Product</th>
-                  <th className="bg-white py-2.5">Category</th>
-                  <th className="bg-white py-2.5">Barcode</th>
-                  <th className="bg-white py-2.5 text-right">Buy</th>
-                  <th className="bg-white py-2.5 pr-3 text-right">Sell</th>
-                </tr>
-              </thead>
-
-              {initialLoading ? (
-                <GlobalCatalogProductTableSkeleton rows={12} />
-              ) : (
-                <tbody>
-                  {products.map((p, index) => {
-                    const imageSrc = globalCatalogImageSrc(p.imageUrl);
-                    return (
-                      <tr
-                        key={p.id}
-                        onClick={() => toggleProduct(p)}
-                        className={cn(
-                          "cursor-pointer border-b transition-colors hover:bg-white motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
-                          p.alreadyImported && "opacity-50",
-                          selected.has(p.id) &&
-                            "border-[var(--catalog-primary,#0f766e)] bg-white text-[var(--catalog-primary,#0f766e)] hover:bg-white",
-                        )}
-                        style={{
-                          animationDelay: `${Math.min(index, 8) * 30}ms`,
-                        }}
-                      >
-                        <td className="py-2 pl-3">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(p.id)}
-                            disabled={false}
-                            onChange={() => toggleProduct(p)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="size-4 rounded border"
-                          />
-                        </td>
-                        <td className="py-2">
-                          <div className="flex items-center gap-2">
-                            {imageSrc ? (
-                              <img
-                                src={imageSrc}
-                                alt={p.name}
-                                className="size-8 rounded-none border object-cover"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="flex size-8 items-center justify-center rounded-none border bg-white">
-                                <Package className="size-4 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-medium">{p.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {[p.brand, p.size].filter(Boolean).join(" · ")}
-                                {p.alreadyImported && p.adoptedItemId ? (
-                                  <>
-                                    {" · "}
-                                    <button
-                                      type="button"
-                                      className="text-primary underline-offset-2 hover:underline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        router.push(
-                                          `/products?product=${p.adoptedItemId}`,
-                                        );
-                                      }}
-                                    >
-                                      In your catalog
-                                    </button>
-                                  </>
-                                ) : null}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2">
-                          <span className="text-xs">
-                            {meta?.categories.find(
-                              (c) => c.id === p.globalCategoryId,
-                            )?.name ?? "—"}
-                          </span>
-                        </td>
-                        <td className="py-2 text-xs text-muted-foreground">
-                          {p.barcode ?? "—"}
-                        </td>
-                        <td className="py-2 text-right text-xs">
-                          {p.recommendedBuyingPrice != null
-                            ? formatMoney(p.recommendedBuyingPrice, currency)
-                            : "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-right text-xs">
-                          {p.recommendedSellingPrice != null
-                            ? formatMoney(p.recommendedSellingPrice, currency)
-                            : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              )}
-            </table>
+            <CatalogImportSheet
+              products={products}
+              selectedIds={new Set(selected.keys())}
+              overrides={lineOverrides}
+              categoryName={(categoryId) =>
+                meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
+              }
+              departments={shopDepartments}
+              suggestedDepartmentId={(product) => {
+                const globalCategory = meta?.categories.find(
+                  (category) => category.id === product.globalCategoryId,
+                );
+                const slug = globalCategory?.tenantCategorySlugHint?.trim();
+                if (!slug) return undefined;
+                return tenantCategories.find((category) => category.slug === slug)
+                  ?.id;
+              }}
+              currency={currency}
+              imageSrc={globalCatalogImageSrc}
+              onToggle={toggleProduct}
+              onEdit={updateOverride}
+              onOpenOwned={(itemId) =>
+                router.push(`/products?product=${itemId}`)
+              }
+              loading={initialLoading}
+            />
 
             {showEmptyState ? (
               <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
@@ -1932,58 +2129,69 @@ export default function GlobalCatalogPage() {
           actionPhase === "selecting" ||
           actionPhase === "importing" ||
           actionPhase === "done" ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-              {selected.size > 0 ||
-              actionPhase === "loading" ||
-              actionPhase === "selecting" ||
-              actionPhase === "reviewing" ||
-              actionPhase === "importing" ||
-              actionPhase === "done" ? (
-                <GlobalCatalogActionProgressBar
-                  phase={actionPhase}
-                  selectedCount={selectedImportable.length}
-                  totalCount={
-                    selectedPack && !selectedPackEmpty
-                      ? Math.max(
-                          selectedPack.productCount,
-                          products.filter((p) => !p.alreadyImported).length,
-                        )
-                      : Math.max(
-                          products.filter((p) => !p.alreadyImported).length,
-                          selectedImportable.length,
-                        )
-                  }
-                  importProgress={importProgress}
-                  canImport={selectedImportable.length > 0 && canAdopt}
-                  onReview={handlePreview}
-                  onClear={clearSelection}
-                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
-                />
-              ) : (
-                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
-                  <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
-                    Can&apos;t find a product?
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1.5 rounded-none"
-                    onClick={goCreateFromScratch}
-                  >
-                    <PenLine className="size-3.5" />
-                    Add your own
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 rounded-none text-xs"
-                    onClick={goBrowseAll}
-                  >
-                    Clear filters
-                  </Button>
+            <>
+              {importProgress &&
+              (actionPhase === "importing" || actionPhase === "done") ? (
+                <CatalogImportCeremony progress={importProgress} />
+              ) : null}
+              {!(
+                importProgress &&
+                (actionPhase === "importing" || actionPhase === "done")
+              ) ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+                  {selected.size > 0 ||
+                  actionPhase === "loading" ||
+                  actionPhase === "selecting" ||
+                  actionPhase === "reviewing" ||
+                  actionPhase === "importing" ||
+                  actionPhase === "done" ? (
+                    <GlobalCatalogActionProgressBar
+                      phase={actionPhase}
+                      selectedCount={selectedImportable.length}
+                      totalCount={
+                        selectedPack && !selectedPackEmpty
+                          ? Math.max(
+                              selectedPack.productCount,
+                              products.filter((p) => !p.alreadyImported).length,
+                            )
+                          : Math.max(
+                              products.filter((p) => !p.alreadyImported).length,
+                              selectedImportable.length,
+                            )
+                      }
+                      importProgress={importProgress}
+                      canImport={selectedImportable.length > 0 && canAdopt}
+                      onReview={handlePreview}
+                      onClear={clearSelection}
+                      className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
+                    />
+                  ) : (
+                    <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                      <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
+                        Can&apos;t find a product?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 rounded-none"
+                        onClick={goCreateFromScratch}
+                      >
+                        <PenLine className="size-3.5" />
+                        Add your own
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 rounded-none text-xs"
+                        onClick={goBrowseAll}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              ) : null}
+            </>
           ) : null}
         </main>
       </div>
@@ -2027,6 +2235,17 @@ export default function GlobalCatalogPage() {
               />
               Fill missing product images
             </label>
+            {refreshImage ? (
+              <label className="ml-6 flex items-center gap-2 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border"
+                  checked={refreshForceImage}
+                  onChange={(e) => setRefreshForceImage(e.target.checked)}
+                />
+                Replace existing images too
+              </label>
+            ) : null}
             <label className="flex items-center gap-2 text-muted-foreground">
               <input
                 type="checkbox"

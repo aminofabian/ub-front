@@ -8,12 +8,17 @@ import {
   fetchCategories,
   fetchItemsPage,
   fetchItemTypes,
+  fetchPriceStatusCounts,
+  patchItem,
   type AisleRecord,
+  type BulkPriceRequest,
   type CatalogListScope,
   type CatalogRowType,
   type CategoryRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
+  type PriceStatusCounts,
+  type PriceStatusFilter,
 } from "@/lib/api";
 import {
   buildVariantIdsByParentId,
@@ -64,6 +69,7 @@ export function useCatalogList(
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [filterSupplierId, setFilterSupplierId] = useState("");
   const [includeCategoryDescendants, setIncludeCategoryDescendants] =
     useState(true);
   const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
@@ -73,11 +79,24 @@ export function useCatalogList(
   const [filterNoPrice, setFilterNoPrice] = useState(false);
   const [filterZeroStock, setFilterZeroStock] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [priceStatus, setPriceStatus] = useState<PriceStatusFilter>("ALL");
+  const [priceCounts, setPriceCounts] = useState<PriceStatusCounts>({
+    missingBuying: 0,
+    missingSelling: 0,
+    bothMissing: 0,
+    bothSet: 0,
+  });
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
 
   const [rowSelection, setRowSelection] = useState<Set<string>>(
     () => new Set(),
   );
+  const [matchAll, setMatchAll] = useState(false);
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(() => new Set());
+  const matchAllRef = useRef(false);
+  const excludedRef = useRef(excludedIds);
+  matchAllRef.current = matchAll;
+  excludedRef.current = excludedIds;
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
     Record<string, string[]>
   >({});
@@ -128,7 +147,8 @@ export function useCatalogList(
     filterInactiveOnly ||
     filterNoPrice ||
     filterZeroStock ||
-    filterLowStock;
+    filterLowStock ||
+    priceStatus !== "ALL";
 
   const stockFiltersNeedBranch =
     (filterZeroStock || filterLowStock) && !branchIdForStock;
@@ -136,6 +156,7 @@ export function useCatalogList(
   const listStatsOpts = useMemo(
     () => ({
       categoryId: filterCategoryId.trim() || undefined,
+      linkedSupplierId: filterSupplierId.trim() || undefined,
       includeCategoryDescendants,
       catalogScope,
       barcode: barcodeExact.trim() || undefined,
@@ -156,6 +177,7 @@ export function useCatalogList(
     }),
     [
       filterCategoryId,
+      filterSupplierId,
       includeCategoryDescendants,
       catalogScope,
       barcodeExact,
@@ -174,6 +196,7 @@ export function useCatalogList(
       noPrice: filterNoPrice,
       zeroStock: filterZeroStock && !!branchIdForStock,
       lowStock: filterLowStock && !!branchIdForStock,
+      priceStatus: priceStatus === "ALL" ? undefined : priceStatus,
     }),
     [
       listStatsOpts,
@@ -183,6 +206,7 @@ export function useCatalogList(
       filterZeroStock,
       filterLowStock,
       branchIdForStock,
+      priceStatus,
     ],
   );
 
@@ -261,6 +285,8 @@ export function useCatalogList(
         setListTotalElements(0);
         setListLast(true);
         setRowSelection(new Set());
+        setMatchAll(false);
+        setExcludedIds(new Set());
       } else {
         const page = await fetchItemsPage(debouncedSearch || undefined, {
           ...listFetchOpts,
@@ -273,12 +299,36 @@ export function useCatalogList(
         setListLast(page.last);
         nextPageRef.current = page.last ? 0 : 1;
         setRowSelection(new Set());
+        setMatchAll(false);
+        setExcludedIds(new Set());
       }
       const stats = await fetchCatalogListStats(
         debouncedSearch || undefined,
         listStatsOpts,
       );
       setCatalogStats(stats);
+      if (rowTypes !== null) {
+        try {
+          const counts = await fetchPriceStatusCounts(
+            debouncedSearch || undefined,
+            {
+              ...listFetchOpts,
+              priceStatus: undefined,
+              catalogRowTypes: rowTypes,
+            },
+          );
+          setPriceCounts(counts);
+        } catch {
+          // The list is already loaded. Counts refresh on the next filter change.
+        }
+      } else {
+        setPriceCounts({
+          missingBuying: 0,
+          missingSelling: 0,
+          bothMissing: 0,
+          bothSet: 0,
+        });
+      }
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {
         setMessage(
@@ -317,6 +367,12 @@ export function useCatalogList(
           webPublished: row.webPublished,
           stockQty: row.stockQty ?? existing.stockQty,
           bundlePrice: row.bundlePrice ?? existing.bundlePrice,
+          buyingPrice: row.buyingPrice ?? existing.buyingPrice,
+          sellingPrice:
+            row.sellingPrice ??
+            row.bundlePrice ??
+            existing.sellingPrice ??
+            existing.bundlePrice,
           packageVariant: row.packageVariant ?? existing.packageVariant,
           packageUnitsPerSale:
             row.packageUnitsPerSale ?? existing.packageUnitsPerSale,
@@ -348,6 +404,15 @@ export function useCatalogList(
         size: 80,
       });
       setListRows((prev) => [...prev, ...page.content]);
+      if (matchAllRef.current) {
+        setRowSelection((prev) => {
+          const next = new Set(prev);
+          for (const row of page.content) {
+            if (!excludedRef.current.has(row.id)) next.add(row.id);
+          }
+          return next;
+        });
+      }
       setListLast(page.last);
       nextPageRef.current = page.last ? 0 : pagen + 1;
     } catch (error) {
@@ -458,21 +523,33 @@ export function useCatalogList(
       }
 
       setRowSelection((prev) => {
+        const turningOff = (ids: string[]) =>
+          ids.length > 0 && ids.every((tid) => prev.has(tid));
+        let nextIds: string[];
+        let remove: boolean;
         if (!isParentSelector) {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          return next;
-        }
-
-        const targetIds = isGroupLabel ? variantIds : [id, ...variantIds];
-        const allOn =
-          targetIds.length > 0 && targetIds.every((tid) => prev.has(tid));
-        const next = new Set(prev);
-        if (allOn) {
-          for (const tid of targetIds) next.delete(tid);
+          nextIds = [id];
+          remove = prev.has(id);
         } else {
-          for (const tid of targetIds) next.add(tid);
+          nextIds = isGroupLabel ? variantIds : [id, ...variantIds];
+          remove = turningOff(nextIds);
+        }
+        const next = new Set(prev);
+        if (remove) {
+          for (const tid of nextIds) next.delete(tid);
+        } else {
+          for (const tid of nextIds) next.add(tid);
+        }
+        if (matchAllRef.current) {
+          setExcludedIds((excluded) => {
+            const nextExcluded = new Set(excluded);
+            if (remove) {
+              for (const tid of nextIds) nextExcluded.add(tid);
+            } else {
+              for (const tid of nextIds) nextExcluded.delete(tid);
+            }
+            return nextExcluded;
+          });
         }
         return next;
       });
@@ -485,6 +562,7 @@ export function useCatalogList(
     setDebouncedSearch("");
     setBarcodeExact("");
     setFilterCategoryId("");
+    setFilterSupplierId("");
     setCatalogScope("ALL");
     setIncludeCategoryDescendants(true);
     setFilterNoBarcode(false);
@@ -492,6 +570,7 @@ export function useCatalogList(
     setFilterNoPrice(false);
     setFilterZeroStock(false);
     setFilterLowStock(false);
+    setPriceStatus("ALL");
     setRowTypeFilter(new Set(CATALOG_LIST_DISPLAY_TYPES));
     setMessage("");
   }, []);
@@ -553,6 +632,130 @@ export function useCatalogList(
     [catalogStats],
   );
 
+  const clearRowSelection = useCallback(() => {
+    setMatchAll(false);
+    setExcludedIds(new Set());
+    setRowSelection(new Set());
+  }, []);
+
+  const selectLoadedPage = useCallback(() => {
+    setMatchAll(false);
+    setExcludedIds(new Set());
+    setRowSelection(new Set(catalogRowsRef.current.map((row) => row.id)));
+  }, []);
+
+  const selectAllMatching = useCallback(() => {
+    setMatchAll(true);
+    setExcludedIds(new Set());
+    setRowSelection(new Set(catalogRowsRef.current.map((row) => row.id)));
+  }, []);
+
+  const selectedCount = matchAll
+    ? Math.max(0, listTotalElements - excludedIds.size)
+    : rowSelection.size;
+
+  const bulkPriceTarget = useCallback((): Omit<
+    BulkPriceRequest,
+    "buying" | "selling" | "rounding" | "acknowledgeLosses"
+  > => {
+    const rowTypes = catalogRowTypesForApi(rowTypeFilter);
+    return {
+      selectAllMatching: matchAll,
+      itemIds: matchAll ? [] : [...rowSelection],
+      excludedItemIds: matchAll ? [...excludedIds] : [],
+      search: debouncedSearch.trim() || undefined,
+      ...listFetchOpts,
+      catalogRowTypes: rowTypes ?? undefined,
+    };
+  }, [
+    matchAll,
+    rowSelection,
+    excludedIds,
+    debouncedSearch,
+    listFetchOpts,
+    rowTypeFilter,
+  ]);
+
+  const applyListPriceLocal = useCallback(
+    (
+      itemId: string,
+      patch: {
+        buyingPrice?: number;
+        sellingPrice?: number;
+        bundlePrice?: number;
+      },
+    ) => {
+      setListRows((prev) => {
+        const i = prev.findIndex((r) => r.id === itemId);
+        if (i < 0) return prev;
+        const next = [...prev];
+        next[i] = { ...prev[i], ...patch };
+        return next;
+      });
+    },
+    [],
+  );
+
+  const commitListBuyingPrice = useCallback(
+    async (itemId: string, price: number) => {
+      try {
+        await patchItem(itemId, { buyingPrice: price });
+        applyListPriceLocal(itemId, { buyingPrice: price });
+        setMessage("Buying price updated.");
+      } catch (error) {
+        setMessage(
+          error instanceof ApiRequestError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Could not update buying price.",
+        );
+        throw error;
+      }
+    },
+    [applyListPriceLocal],
+  );
+
+  const commitListSellingPrice = useCallback(
+    async (itemId: string, price: number) => {
+      try {
+        await patchItem(itemId, { bundlePrice: price });
+        applyListPriceLocal(itemId, {
+          bundlePrice: price,
+          sellingPrice: price,
+        });
+        setMessage("Selling price updated.");
+      } catch (error) {
+        setMessage(
+          error instanceof ApiRequestError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Could not update selling price.",
+        );
+        throw error;
+      }
+    },
+    [applyListPriceLocal],
+  );
+
+  const commitListMarginPct = useCallback(
+    async (itemId: string, marginPct: number, buy: number) => {
+      if (!Number.isFinite(marginPct) || marginPct < 0 || marginPct >= 100) {
+        setMessage("Margin must be at least 0% and below 100%.");
+        throw new Error("Invalid margin");
+      }
+      if (!Number.isFinite(buy) || buy < 0) {
+        setMessage("Set a buying price first, then set margin.");
+        throw new Error("Missing buy");
+      }
+      const shelf = Math.round((buy / (1 - marginPct / 100)) * 100) / 100;
+      await commitListSellingPrice(itemId, shelf);
+      setMessage(`Selling price set to ${shelf} from ${marginPct}% margin.`);
+    },
+    [commitListSellingPrice],
+  );
+
   return {
     itemTypes,
     categories,
@@ -581,6 +784,8 @@ export function useCatalogList(
     setDebouncedSearch,
     filterCategoryId,
     setFilterCategoryId,
+    filterSupplierId,
+    setFilterSupplierId,
     includeCategoryDescendants,
     setIncludeCategoryDescendants,
     catalogScope,
@@ -597,6 +802,18 @@ export function useCatalogList(
     setFilterZeroStock,
     filterLowStock,
     setFilterLowStock,
+    priceStatus,
+    setPriceStatus,
+    priceCounts,
+    matchAll,
+    selectedCount,
+    selectLoadedPage,
+    selectAllMatching,
+    clearRowSelection,
+    bulkPriceTarget,
+    commitListBuyingPrice,
+    commitListSellingPrice,
+    commitListMarginPct,
     rowSelection,
     setRowSelection,
     onToggleRowSelect,

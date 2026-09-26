@@ -566,7 +566,7 @@ export default function InventoryTransfersPage() {
             <Button
               type="button"
               size="sm"
-              className="h-9"
+              className="h-11 w-full rounded-2xl text-[13px] sm:h-9 sm:w-auto sm:rounded-none"
               disabled={loading}
               onClick={() => void onCreate()}
             >
@@ -661,12 +661,12 @@ export default function InventoryTransfersPage() {
                         {t.notes}
                       </p>
                     ) : null}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       {isInTransit ? (
                         <Button
                           type="button"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-[11px]"
+                          className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
                           disabled={busy}
                           onClick={() =>
                             void runTransferAction(
@@ -677,9 +677,9 @@ export default function InventoryTransfersPage() {
                           }
                         >
                           {busy ? (
-                            <Loader2 className="size-3 animate-spin" />
+                            <Loader2 className="size-4 animate-spin sm:size-3" />
                           ) : (
-                            <CheckCircle2 className="size-3" />
+                            <CheckCircle2 className="size-4 sm:size-3" />
                           )}
                           Confirm receipt
                         </Button>
@@ -689,7 +689,7 @@ export default function InventoryTransfersPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-[11px]"
+                          className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
                           disabled={busy}
                           onClick={() => {
                             if (
@@ -705,7 +705,7 @@ export default function InventoryTransfersPage() {
                             }
                           }}
                         >
-                          <Ban className="size-3" />
+                          <Ban className="size-4 sm:size-3" />
                           Cancel
                         </Button>
                       ) : null}
@@ -714,7 +714,7 @@ export default function InventoryTransfersPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-[11px]"
+                          className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
                           disabled={busy}
                           onClick={() =>
                             void runTransferAction(
@@ -725,9 +725,9 @@ export default function InventoryTransfersPage() {
                           }
                         >
                           {busy ? (
-                            <Loader2 className="size-3 animate-spin" />
+                            <Loader2 className="size-4 animate-spin sm:size-3" />
                           ) : (
-                            <Send className="size-3" />
+                            <Send className="size-4 sm:size-3" />
                           )}
                           Send
                         </Button>
@@ -737,7 +737,7 @@ export default function InventoryTransfersPage() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-[11px] text-muted-foreground"
+                          className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] text-muted-foreground sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
                           disabled={busy}
                           onClick={() =>
                             void runTransferAction(
@@ -747,7 +747,7 @@ export default function InventoryTransfersPage() {
                             )
                           }
                         >
-                          <CheckCircle2 className="size-3" />
+                          <CheckCircle2 className="size-4 sm:size-3" />
                           Complete now
                         </Button>
                       ) : null}

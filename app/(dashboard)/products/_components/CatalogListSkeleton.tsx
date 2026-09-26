@@ -53,8 +53,14 @@ function CatalogListSkeletonRow({
       <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
         <span className="h-5 w-10 animate-pulse rounded-full bg-muted" />
       </span>
+      <span className={cn(catalogListMetricCellClass, catalogGridCol.buy)}>
+        <span className="h-3 w-10 animate-pulse rounded bg-muted/80" />
+      </span>
       <span className={cn(catalogListMetricCellClass, catalogGridCol.sell)}>
         <span className="h-3 w-10 animate-pulse rounded bg-muted/80" />
+      </span>
+      <span className={cn(catalogListMetricCellClass, catalogGridCol.margin)}>
+        <span className="h-3 w-8 animate-pulse rounded bg-muted/80" />
       </span>
       <span className={cn(catalogListMetricCellClass, catalogGridCol.category)}>
         <span className="h-3 w-20 animate-pulse rounded bg-muted/80" />

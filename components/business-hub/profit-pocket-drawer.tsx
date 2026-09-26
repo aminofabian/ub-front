@@ -29,6 +29,8 @@ type ProfitPocketDrawerProps = {
   to: string;
   branchId?: string | null;
   periodLabel: string;
+  /** When set, the amount starts here instead of the jar suggestion. */
+  initialAmount?: number | null;
   onPocketed?: () => void;
 };
 
@@ -39,6 +41,7 @@ export function ProfitPocketDrawer({
   to,
   branchId,
   periodLabel,
+  initialAmount,
   onPocketed,
 }: ProfitPocketDrawerProps) {
   const [loading, setLoading] = useState(false);
@@ -51,10 +54,12 @@ export function ProfitPocketDrawer({
     "cash" | "mpesa_manual" | "bank"
   >("cash");
   const [confirmHigh, setConfirmHigh] = useState(false);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) {
       setConfirmHigh(false);
+      setNote("");
       return;
     }
     let cancelled = false;
@@ -68,7 +73,11 @@ export function ProfitPocketDrawer({
       .then((data) => {
         if (cancelled) return;
         setSurplus(data);
-        setAmount(String(toNum(data.suggestedPocket)));
+        const seeded =
+          initialAmount != null && Number.isFinite(initialAmount) && initialAmount > 0
+            ? initialAmount
+            : toNum(data.suggestedPocket);
+        setAmount(String(seeded));
         setLeaveFloat(String(toNum(data.defaultFloat)));
       })
       .catch((e) => {
@@ -84,11 +93,17 @@ export function ProfitPocketDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, from, to, branchId]);
+  }, [open, from, to, branchId, initialAmount]);
 
   const amountN = Number(amount);
   const suggested = toNum(surplus?.suggestedPocket);
   const gp = toNum(surplus?.grossProfit);
+  const balance = Math.max(0, toNum(surplus?.profitBalance));
+  const pocketingBalance =
+    balance > 0 &&
+    Number.isFinite(amountN) &&
+    Math.abs(amountN - balance) < 0.02 &&
+    amountN <= gp + 0.009;
   const warnings = useMemo(() => {
     const list: { id: string; text: string }[] = [];
     if (gp < 0) {
@@ -97,7 +112,11 @@ export function ProfitPocketDrawer({
         text: `Gross profit is negative (${fmtMoney(gp)}). Pocketing may leave less float for suppliers — edit the amount if needed.`,
       });
     }
-    if (Number.isFinite(amountN) && amountN > suggested + 0.009) {
+    if (
+      !pocketingBalance &&
+      Number.isFinite(amountN) &&
+      amountN > suggested + 0.009
+    ) {
       list.push({
         id: "above_surplus",
         text: `Amount is above suggested profit pocket (${fmtMoney(suggested)}).`,
@@ -116,11 +135,33 @@ export function ProfitPocketDrawer({
         text: `${surplus?.openShifts} open shift(s) — surplus may still change.`,
       });
     }
+    if (gp > 0 && Number.isFinite(amountN) && amountN > gp + 0.009) {
+      list.push({
+        id: "above_profit",
+        text: `Amount is above gross profit (${fmtMoney(gp)}). Confirm only if this is a separate withdrawal, not a share of this profit.`,
+      });
+    } else if (gp <= 0 && Number.isFinite(amountN) && amountN > 0) {
+      list.push({
+        id: "above_profit",
+        text: "There is no profit in this period. Confirm only if this is a separate withdrawal.",
+      });
+    }
     return list;
-  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus]);
+  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus, pocketingBalance]);
 
   const needsHardConfirm =
-    Number.isFinite(amountN) && suggested > 0 && amountN > suggested * 1.5;
+    !pocketingBalance &&
+    ((Number.isFinite(amountN) && suggested > 0 && amountN > suggested * 1.5) ||
+      warnings.some((w) => w.id === "above_profit"));
+
+  const pocketShare =
+    gp > 0 && Number.isFinite(amountN) && amountN >= 0
+      ? (amountN / gp) * 100
+      : null;
+  const shareWidth =
+    pocketShare == null ? 0 : Math.max(0, Math.min(100, pocketShare));
+  const remainingProfit =
+    gp - (Number.isFinite(amountN) ? amountN : 0);
 
   const onConfirm = async () => {
     if (!surplus) return;
@@ -147,6 +188,7 @@ export function ProfitPocketDrawer({
         leaveFloat: Number(leaveFloat) || 0,
         fundingMethod,
         acknowledgedWarnings: warnings.map((w) => w.id),
+        note: note.trim() || undefined,
       });
       const send = result.sendMoneyStatus;
       const sendNote =
@@ -228,6 +270,7 @@ export function ProfitPocketDrawer({
               {(
                 [
                   ["Gross profit", surplus.grossProfit],
+                  ["Profit balance", surplus.profitBalance ?? 0],
                   ["Cash surplus", surplus.rawSurplus ?? surplus.suggestedPocket],
                   [
                     Number(surplus.profitJarPct) > 0 &&
@@ -236,7 +279,6 @@ export function ProfitPocketDrawer({
                       : "Suggested",
                     surplus.suggestedPocket,
                   ],
-                  ["Leave float", surplus.defaultFloat],
                 ] as const
               ).map(([label, value]) => (
                 <div key={label} className="bg-white px-2.5 py-2">
@@ -267,8 +309,9 @@ export function ProfitPocketDrawer({
                     </>
                   ) : (
                     <>
-                      Set an expense / owner destination first — this is not your
-                      customer till.{" "}
+                      Save your profits to your bank account for expenses, rent,
+                      etc. Set an expense / owner destination first — this is not
+                      your customer till.{" "}
                       <Link
                         href={`${APP_ROUTES.paymentsSettings}#profit-pocket`}
                         className="font-semibold underline"
@@ -307,6 +350,97 @@ export function ProfitPocketDrawer({
                   setConfirmHigh(false);
                 }}
                 inputMode="decimal"
+                disabled={busy}
+              />
+            </label>
+
+            {balance > 0.009 && !pocketingBalance ? (
+              <button
+                type="button"
+                className="text-left text-xs font-semibold underline"
+                disabled={busy}
+                onClick={() => {
+                  setAmount(balance.toFixed(2));
+                  setConfirmHigh(false);
+                }}
+              >
+                Pocket the profit balance, {fmtMoney(balance)}
+              </button>
+            ) : pocketingBalance ? (
+              <p className="text-xs text-muted-foreground">
+                This is the profit still not pocketed
+                {toNum(surplus?.alreadyPocketed) > 0
+                  ? ` (${fmtMoney(surplus?.alreadyPocketed)} already taken)`
+                  : ""}
+                .
+              </p>
+            ) : gp > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                The profit balance for this period is already pocketed.
+              </p>
+            ) : null}
+
+            {pocketShare != null ? (
+              <div>
+                <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
+                  <span className="font-semibold text-foreground">
+                    {pocketShare.toFixed(1)}% of profit
+                  </span>
+                  <span className="text-muted-foreground">
+                    {remainingProfit >= 0
+                      ? `${fmtMoney(remainingProfit)} stays in the business`
+                      : `${fmtMoney(Math.abs(remainingProfit))} above profit`}
+                  </span>
+                </div>
+                <div
+                  className="h-2 bg-[#e7e5e4]"
+                  role="meter"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(shareWidth)}
+                  aria-label="Share of profit being pocketed"
+                >
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${shareWidth}%`,
+                      background:
+                        shareWidth >= 75
+                          ? "#14532d"
+                          : shareWidth >= 50
+                            ? "#166534"
+                            : shareWidth > 0
+                              ? "#86efac"
+                              : "transparent",
+                    }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Pocketing does not change sales or expenses.{" "}
+                  <Link
+                    href={APP_ROUTES.profitPocketing}
+                    className="font-semibold text-foreground underline"
+                  >
+                    Pocketing calendar
+                  </Link>
+                </p>
+              </div>
+            ) : Number.isFinite(amountN) && amountN > 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                No profit in this period to measure a percentage against.
+              </p>
+            ) : null}
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Note (optional)
+              </span>
+              <input
+                className="h-10 border border-input bg-background px-3 text-sm"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Took money home, restock, rent…"
+                maxLength={500}
                 disabled={busy}
               />
             </label>

@@ -135,7 +135,7 @@ export const CONFIGURATION_SECTION_META: Record<
   },
   "settings-cashier": {
     title: "Cashier capabilities",
-    hint: "What cashiers can do on the POS. Weighted marking is on by default.",
+    hint: "Override what cashiers may do on the till — add products, edit prices, sell by weight, drawouts, and clear sale. Weighted marking is on by default. Adding products is off until you turn it on.",
   },
   "settings-pos-drafts": {
     title: "Live pending carts",

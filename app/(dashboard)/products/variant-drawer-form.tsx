@@ -30,6 +30,7 @@ import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
 import { SearchableSelect } from "./_components/SearchableSelect";
 import { categorySelectOptions } from "./_components/category-select-options";
+import { PackHowItWorksButton } from "./_components/PackHowItWorks";
 import {
   productFormHintClass,
   productFormInputClass,
@@ -76,6 +77,18 @@ type Props = {
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   suggestedNextSku?: string | null;
 };
+
+function packCreateHint(unitsRaw: string, source: string): string {
+  const units = toNumber(unitsRaw);
+  const name = source.trim() || "the product";
+  if (units != null && units > 1) {
+    const shown = Number.isInteger(units)
+      ? units.toLocaleString()
+      : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return `1 pack = ${shown} ${name}. That many leave the shelf each time this sells.`;
+  }
+  return `Type how many ${name} are in one pack. A tray of 30 is 30.`;
+}
 
 function icClass(disabled?: boolean) {
   return cn(
@@ -370,16 +383,19 @@ function VariantRowFields({
       <FormDrawerSheet>
         <FormDrawerFields appearance="sharp" embedded>
           {!parentIsProductGroup ? (
-            <ToggleChip
-              checked={row.isPackageVariant}
-              onChange={(v) =>
-                onPatch({
-                  isPackageVariant: v,
-                  openingQty: v ? "" : row.openingQty,
-                })
-              }
-              label="Package SKU (deducts parent stock)"
-            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <ToggleChip
+                checked={row.isPackageVariant}
+                onChange={(v) =>
+                  onPatch({
+                    isPackageVariant: v,
+                    openingQty: v ? "" : row.openingQty,
+                  })
+                }
+                label="Sell as a pack"
+              />
+              <PackHowItWorksButton />
+            </div>
           ) : null}
 
           <Label
@@ -438,7 +454,10 @@ function VariantRowFields({
 
           {row.isPackageVariant ? (
             <>
-              <Label required label="Units per package">
+              <Label
+                required
+                label={`How many ${familyPrefix || "units"} leave the shelf`}
+              >
                 <input
                   type="number"
                   inputMode="numeric"
@@ -448,9 +467,12 @@ function VariantRowFields({
                   value={row.unitsPerPackage}
                   onChange={(e) => onPatch({ unitsPerPackage: e.target.value })}
                 />
+                <span className={productFormHintClass}>
+                  {packCreateHint(row.unitsPerPackage, familyPrefix)}
+                </span>
               </Label>
               <Label
-                label={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}
+                label={`Price of 1 pack${currencyCode ? ` (${currencyCode})` : ""}`}
               >
                 <input
                   type="number"
@@ -460,6 +482,9 @@ function VariantRowFields({
                   value={row.bundlePrice}
                   onChange={(e) => onPatch({ bundlePrice: e.target.value })}
                 />
+                <span className={productFormHintClass}>
+                  What the customer pays for the pack, not for each unit.
+                </span>
               </Label>
             </>
           ) : (
@@ -519,7 +544,16 @@ function VariantRowFields({
           </div>
         </FormDrawerFields>
 
-        {canInventoryWrite && !row.isPackageVariant ? (
+        {row.isPackageVariant ? (
+          <FormDrawerFields legend="Stock" appearance="sharp" embedded>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              You don’t count this pack. Stock stays on{" "}
+              {familyPrefix || "the product"}, and each sale takes the number
+              above off that shelf.
+            </p>
+            {categoryField}
+          </FormDrawerFields>
+        ) : canInventoryWrite ? (
           <FormDrawerFields legend="Stock" appearance="sharp" embedded>
             <StockIncreaseFields
               mode="opening"
@@ -627,8 +661,17 @@ export function VariantDrawerForm({
   return (
     <form id="add-variant-form" className="space-y-3" onSubmit={onSubmit}>
       <div className="space-y-1">
-        <p className={productFormSectionTitleClass}>New size</p>
-        {familyPrefix ? (
+        <p className={productFormSectionTitleClass}>
+          {variantDraftRows.some((r) => r.isPackageVariant)
+            ? "New pack"
+            : "New size"}
+        </p>
+        {variantDraftRows.some((r) => r.isPackageVariant) ? (
+          <p className={productFormHintClass}>
+            A pack is another way to sell {familyPrefix || "this product"}. One
+            sale takes several units off that shelf.
+          </p>
+        ) : familyPrefix ? (
           <p className={productFormHintClass}>
             Type only the size or flavour — “{familyPrefix}” stays as the
             family.

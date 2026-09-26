@@ -49,7 +49,7 @@ import {
   fetchAisles,
   fetchItemTypes,
   fetchItemsPage,
-  fetchSupplierItemLinks,
+  fetchPriceStatusCounts,
   fetchSuppliers,
   patchItem,
   postBatchDecrease,
@@ -57,8 +57,11 @@ import {
   type AisleRecord,
   type BranchRecord,
   type CategoryRecord,
+  type BulkPriceRequest,
   type FetchItemsOpts,
   type ItemSummaryRecord,
+  type PriceStatusCounts,
+  type PriceStatusFilter,
   type ItemTypeRecord,
   type SupplierRecord,
 } from "@/lib/api";
@@ -74,6 +77,8 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
+import { BulkPriceEditor } from "@/app/(dashboard)/products/_components/BulkPriceEditor";
+import { PriceCleanupBar } from "@/app/(dashboard)/products/_components/PriceCleanupBar";
 import {
   StockActionHub,
   type FullCountProgress,
@@ -608,7 +613,7 @@ function StockStatCard({
   );
 }
 
-/** Mobile status chip — larger tap target than the desktop strip. */
+/** Mobile status chip — compact strip cell; scrolls sideways, never wraps tall. */
 function MobileStatusChip({
   label,
   value,
@@ -621,7 +626,8 @@ function MobileStatusChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 shrink-0 items-center gap-1.5 border px-3.5 text-[13px] tracking-[-0.01em] transition-colors",
+        "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[11px] tracking-[-0.01em] transition-colors first:border-l last:border-r",
+        "border-y border-r-0 border-l",
         stockHair,
         active
           ? tone === "loss"
@@ -638,10 +644,10 @@ function MobileStatusChip({
             ),
       )}
     >
-      <span>{label}</span>
+      <span className="whitespace-nowrap">{label}</span>
       <span
         className={cn(
-          "font-mono text-[13px] tabular-nums",
+          "font-mono text-[12px] tabular-nums",
           active ? "text-white/95" : "font-semibold",
           !active &&
             tone === "success" &&
@@ -715,7 +721,7 @@ function stockStatusMeta(row: StockRow): {
 }
 
 const mobileFieldInput = cn(
-  "h-14 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+  "h-14 w-full rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white md:rounded-none",
   "px-3 text-[18px] leading-none text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
@@ -724,7 +730,7 @@ const mobileFieldInput = cn(
 );
 
 const mobileStepBtn = cn(
-  "inline-flex size-14 shrink-0 items-center justify-center border bg-white transition-colors",
+  "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl border bg-white transition-colors md:rounded-none",
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
   "text-[var(--order-ink,#15231f)]",
   "active:scale-[0.96] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]",
@@ -803,7 +809,7 @@ function StockMobileCard({
           onClick={canEdit ? onStartEdit : undefined}
           disabled={!canEdit}
           className={cn(
-            "flex w-full items-center gap-3 px-3 py-3.5 text-left transition-colors",
+            "flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
             canEdit &&
               "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
@@ -819,7 +825,7 @@ function StockMobileCard({
             <div className="flex items-start gap-2">
               <p
                 className={cn(
-                  "min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.015em]",
+                  "min-w-0 flex-1 text-[14px] font-semibold leading-snug tracking-[-0.015em]",
                   stockInk,
                 )}
               >
@@ -835,27 +841,47 @@ function StockMobileCard({
               </span>
             </div>
             {metaBits.length > 0 ? (
-              <p className={cn("mt-1 truncate text-[12px] tabular-nums", stockMute)}>
+              <p className={cn("mt-0.5 truncate text-[11px] tabular-nums", stockMute)}>
                 {metaBits.join(" · ")}
               </p>
             ) : null}
+            <p className={cn("mt-0.5 text-[11px] tabular-nums", stockMute)}>
+              Sell{" "}
+              <span className={cn("font-semibold", stockInk)}>
+                {fmtMoney(row.sellPrice, currency)}
+              </span>
+              {row.buyPrice != null ? (
+                <>
+                  <span className="mx-1.5 opacity-40">·</span>
+                  Buy{" "}
+                  <span className={cn("font-semibold", stockInk)}>
+                    {fmtMoney(row.buyPrice, currency)}
+                  </span>
+                </>
+              ) : null}
+              {loss ? (
+                <span className="ml-1.5 font-semibold text-orange-700 dark:text-orange-300">
+                  Loss
+                </span>
+              ) : null}
+            </p>
             {!canEdit && !row.editable ? (
-              <p className={cn("mt-1 text-[11px]", stockMute)}>Stock on parent SKU</p>
+              <p className={cn("mt-0.5 text-[11px]", stockMute)}>Stock on parent SKU</p>
             ) : null}
           </div>
 
           <div
             className={cn(
-              "flex min-h-[3.75rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-2.5",
+              "flex min-h-[3.25rem] min-w-[4.75rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-2",
               qtyTone,
             )}
           >
-            <span className="font-mono text-[1.65rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
+            <span className="font-mono text-[1.4rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
               {row.stock.toLocaleString("en-KE")}
             </span>
             <span
               className={cn(
-                "text-[10px] font-semibold uppercase tracking-[0.1em]",
+                "text-[9px] font-semibold uppercase tracking-[0.1em]",
                 canEdit
                   ? "text-[var(--pos-primary,#0f766e)]"
                   : "opacity-60",
@@ -980,12 +1006,12 @@ function StockMobileCard({
             </label>
           ) : null}
 
-          <div className="flex gap-2">
+          <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onSaveEdit}
               disabled={saving || !targetOk || Math.abs(delta) < 0.0001}
-              className="inline-flex h-14 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition-[opacity,transform] active:scale-[0.99] active:opacity-90 disabled:opacity-40"
+              className="inline-flex h-14 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition-[opacity,transform] active:scale-[0.99] active:opacity-90 disabled:opacity-40"
             >
               <Check className="size-5" aria-hidden />
               {saving
@@ -999,10 +1025,10 @@ function StockMobileCard({
               onClick={onCancelEdit}
               disabled={saving}
               className={cn(
-                "inline-flex h-14 items-center justify-center gap-1.5 border px-5 text-[15px] font-medium transition-colors disabled:opacity-40",
+                "inline-flex h-14 items-center justify-center gap-1.5 rounded-2xl border px-5 text-[15px] font-medium transition-colors disabled:opacity-40",
                 stockHair,
                 stockMute,
-                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
+                "bg-white active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
               )}
             >
               Cancel
@@ -1476,14 +1502,26 @@ export function StockLevelsPage() {
   );
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
+  const [priceStatus, setPriceStatus] = useState<PriceStatusFilter>("ALL");
+  const [priceCounts, setPriceCounts] = useState<PriceStatusCounts>({
+    missingBuying: 0,
+    missingSelling: 0,
+    bothMissing: 0,
+    bothSet: 0,
+  });
+  const [priceMatchAll, setPriceMatchAll] = useState(false);
+  const [priceSelectedIds, setPriceSelectedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [priceEditorOpen, setPriceEditorOpen] = useState(false);
+  const [priceEditorTarget, setPriceEditorTarget] = useState<Omit<
+    BulkPriceRequest,
+    "buying" | "selling" | "rounding" | "acknowledgeLosses"
+  > | null>(null);
   const [sortKey, setSortKey] = useState<StockSortKey>("name");
   const [sortDir, setSortDir] = useState<StockSortDir>("asc");
   const [supplierId, setSupplierId] = useState("");
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
-  const [supplierItemIds, setSupplierItemIds] = useState<Set<string> | null>(
-    null,
-  );
-  const [supplierFilterLoading, setSupplierFilterLoading] = useState(false);
   const [fullCountProgress, setFullCountProgress] =
     useState<FullCountProgress | null>(null);
 
@@ -1976,42 +2014,6 @@ export function StockLevelsPage() {
     if (fallback) setBranchId(fallback);
   }, [isBranchLockedRole, branchId, branches]);
 
-  // Supplier → catalog item ids for Take stock filter.
-  useEffect(() => {
-    const sid = supplierId.trim();
-    if (!sid) {
-      setSupplierItemIds(null);
-      setSupplierFilterLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setSupplierFilterLoading(true);
-    void fetchSupplierItemLinks(sid, {
-      branchId: branchId.trim() || null,
-    })
-      .then((links) => {
-        if (cancelled) return;
-        const ids = new Set(
-          links
-            .filter((l) => l.active !== false)
-            .map((l) => l.itemId.trim())
-            .filter(Boolean),
-        );
-        setSupplierItemIds(ids);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setSupplierItemIds(new Set());
-        toast.error("Could not load products for that supplier.");
-      })
-      .finally(() => {
-        if (!cancelled) setSupplierFilterLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [supplierId, branchId]);
-
   // Resume Full count across days — progress for hub + levels banner.
   useEffect(() => {
     const branch = branchId.trim();
@@ -2055,6 +2057,20 @@ export function StockLevelsPage() {
     };
   }, [branchId, allowed]);
 
+  const priceListOpts = useMemo(
+    () => ({
+      branchId: branchId.trim() || undefined,
+      itemTypeId: headerItemTypeId?.trim() || undefined,
+      catalogScope: "SKUS_ONLY" as const,
+      categoryId: categoryId.trim() || undefined,
+      includeCategoryDescendants: Boolean(categoryId.trim()),
+      ...stockStatusFetchOpts(statusFilter),
+      priceStatus: priceStatus === "ALL" ? undefined : priceStatus,
+      linkedSupplierId: supplierId.trim() || undefined,
+    }),
+    [branchId, headerItemTypeId, categoryId, statusFilter, priceStatus, supplierId],
+  );
+
   const loadPage = useCallback(
     async (opts: { reset: boolean }) => {
       const branch = branchId.trim();
@@ -2074,6 +2090,8 @@ export function StockLevelsPage() {
         setEditId(null);
         setLoadingMore(false);
         loadingMoreRef.current = false;
+        setPriceMatchAll(false);
+        setPriceSelectedIds(new Set());
         pageRef.current = 0;
         hasMoreRef.current = true;
         setHasMore(true);
@@ -2102,18 +2120,13 @@ export function StockLevelsPage() {
         }
 
         const page = opts.reset ? 0 : pageRef.current + 1;
-        const selectedCategory = categoryId.trim();
         const listSort = toCatalogListSort(sortKey, sortDir);
         const result = await fetchItemsPage(debouncedSearch || undefined, {
+          ...priceListOpts,
           branchId: branch,
-          itemTypeId: headerItemTypeId?.trim() || undefined,
-          catalogScope: "SKUS_ONLY",
-          categoryId: selectedCategory || undefined,
-          includeCategoryDescendants: Boolean(selectedCategory),
           page,
           size: PAGE_SIZE,
           listSort,
-          ...stockStatusFetchOpts(statusFilter),
         });
 
         const mapped = result.content
@@ -2164,7 +2177,7 @@ export function StockLevelsPage() {
         setLoadingMore(false);
       }
     },
-    [branchId, categoryId, headerItemTypeId, debouncedSearch, statusFilter, sortKey, sortDir],
+    [branchId, debouncedSearch, priceListOpts, sortKey, sortDir],
   );
 
   const load = useCallback(() => {
@@ -2217,17 +2230,30 @@ export function StockLevelsPage() {
     void loadPage({ reset: true });
   }, [loadPage, allowed]);
 
+  useEffect(() => {
+    if (!allowed || !branchId.trim()) return;
+    let cancelled = false;
+    const countOpts = { ...priceListOpts, priceStatus: undefined };
+    void fetchPriceStatusCounts(debouncedSearch || undefined, countOpts)
+      .then((counts) => {
+        if (!cancelled) setPriceCounts(counts);
+      })
+      .catch(() => {
+        // The list still loads. Counts refresh with the next filter change.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, branchId, debouncedSearch, priceListOpts]);
+
   const filteredRows = useMemo(() => {
-    const filtered = rows.filter((r) => {
-      if (supplierItemIds && !supplierItemIds.has(r.id)) return false;
-      return true;
-    });
+    const filtered = rows;
     // Attention is the only page-local reorder; pricing sorts come from the API.
     if (sortKey === "attention") {
       return sortAttentionRows(filtered);
     }
     return filtered;
-  }, [rows, sortKey, supplierItemIds]);
+  }, [rows, sortKey]);
 
   const applySortPreset = useCallback((key: StockSortKey) => {
     setSortKey(key);
@@ -2244,24 +2270,6 @@ export function StockLevelsPage() {
       return col;
     });
   }, []);
-
-  // Supplier filter is still client-side; keep paging until a match appears.
-  useEffect(() => {
-    if (loading || loadingMore || !hasMore || supplierFilterLoading) return;
-    if (rows.length === 0) return;
-    if (!supplierId.trim()) return;
-    if (filteredRows.length > 0) return;
-    loadMore();
-  }, [
-    loading,
-    loadingMore,
-    hasMore,
-    supplierFilterLoading,
-    rows.length,
-    filteredRows.length,
-    supplierId,
-    loadMore,
-  ]);
 
   useEffect(() => {
     if (loading || !hasMore) return;
@@ -2301,12 +2309,6 @@ export function StockLevelsPage() {
   );
 
   const emptyMessage = useMemo(() => {
-    if (supplierId.trim() && supplierFilterLoading) {
-      return "Loading supplier products…";
-    }
-    if (supplierId.trim() && supplierItemIds?.size === 0) {
-      return "No catalog products linked to this supplier.";
-    }
     if (supplierId.trim()) return "No stocked products for this supplier.";
     if (search.trim()) return "No products match your search.";
     if (statusFilter === "low") return "No low-stock products for this branch.";
@@ -2317,6 +2319,10 @@ export function StockLevelsPage() {
       return "No products with thin margin (under 15%).";
     if (statusFilter === "no_buy") return "No products missing a buy price.";
     if (statusFilter === "no_sell") return "No products missing a sell price.";
+    if (priceStatus === "MISSING_BUYING") return "No products missing a buying price.";
+    if (priceStatus === "MISSING_SELLING") return "No products missing a selling price.";
+    if (priceStatus === "BOTH_MISSING") return "No products missing both prices.";
+    if (priceStatus === "BOTH_SET") return "No products with both prices set.";
     if (categoryId) return "No products in this category.";
     return "No stocked products found for this branch.";
   }, [
@@ -2324,8 +2330,7 @@ export function StockLevelsPage() {
     statusFilter,
     categoryId,
     supplierId,
-    supplierItemIds,
-    supplierFilterLoading,
+    priceStatus,
   ]);
 
   const sortFilterOptions = useMemo(
@@ -2372,6 +2377,32 @@ export function StockLevelsPage() {
         )
       : 0;
 
+  const priceSelectionCount = priceMatchAll
+    ? totalElements
+    : priceSelectedIds.size;
+
+  const onPriceStatus = (next: PriceStatusFilter) => {
+    setPriceStatus(next);
+    setPriceMatchAll(false);
+    setPriceSelectedIds(new Set());
+  };
+
+  const onSelectAllPrices = () => {
+    setPriceSelectedIds(new Set());
+    setPriceMatchAll(true);
+  };
+
+  const openPriceEditor = () => {
+    setPriceEditorTarget({
+      selectAllMatching: priceMatchAll,
+      itemIds: priceMatchAll ? [] : [...priceSelectedIds],
+      excludedItemIds: [],
+      search: debouncedSearch || undefined,
+      ...priceListOpts,
+    });
+    setPriceEditorOpen(true);
+  };
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -2386,7 +2417,7 @@ export function StockLevelsPage() {
   const departmentRail = (
     <div
       className={cn(
-        "flex items-center gap-1.5 border-b px-2 py-1.5 sm:px-1.5 sm:py-1",
+        "flex items-center gap-1 border-b px-2 py-1 sm:px-1.5 sm:py-1",
         "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
         "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
       )}
@@ -2402,17 +2433,17 @@ export function StockLevelsPage() {
       {departmentLocked ? (
         <span
           className={cn(
-            "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1.5 text-[13px] font-semibold sm:py-1 sm:text-[12px]",
+            "inline-flex min-w-0 flex-1 items-center gap-1.5 truncate px-1.5 py-1 text-[12px] font-semibold sm:text-[12px]",
             stockInk,
           )}
           title="Department switching is disabled for your role"
         >
-          <Lock className="size-3.5 shrink-0 opacity-60 sm:size-3" aria-hidden />
+          <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
           {itemTypeLabel || sessionItemTypes[0]?.label || "Department"}
         </span>
       ) : (
         <div
-          className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Department"
         >
@@ -2420,7 +2451,7 @@ export function StockLevelsPage() {
             type="button"
             onClick={() => setItemTypeId("")}
             className={cn(
-              "h-9 shrink-0 px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors sm:h-7 sm:px-2.5 sm:text-[11px]",
+              "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
               !headerItemTypeId.trim()
                 ? "bg-[var(--pos-primary,#0f766e)] text-white"
                 : cn(
@@ -2441,7 +2472,7 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setItemTypeId(t.id)}
                 className={cn(
-                  "h-9 max-w-[10rem] shrink-0 truncate px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors sm:h-7 sm:px-2.5 sm:text-[11px]",
+                  "h-7 max-w-[9rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
                   active
                     ? "bg-[var(--pos-primary,#0f766e)] text-white"
                     : cn(
@@ -2506,10 +2537,10 @@ export function StockLevelsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col gap-1">
+      <div className="flex min-h-0 flex-col gap-0 md:gap-1">
         <header
           className={cn(
-            "sticky top-0 z-20 -mx-3 flex items-center gap-3 border-b bg-white/92 px-3 py-2.5 backdrop-blur-xl sm:mx-0 sm:border",
+            "sticky top-0 z-20 -mx-3 flex items-center gap-2 border-b bg-white/92 px-2.5 py-1.5 backdrop-blur-xl sm:mx-0 sm:gap-3 sm:border sm:px-3 sm:py-2.5",
             stockHair,
           )}
         >
@@ -2517,7 +2548,7 @@ export function StockLevelsPage() {
             type="button"
             onClick={closeLevels}
             className={cn(
-              "inline-flex size-11 items-center justify-center border transition-colors sm:size-9",
+              "inline-flex size-10 items-center justify-center border transition-colors sm:size-9",
               stockHair,
               stockMute,
               "active:border-[var(--pos-primary,#0f766e)] active:text-[var(--pos-primary,#0f766e)]",
@@ -2525,32 +2556,32 @@ export function StockLevelsPage() {
             )}
             aria-label="Back to Stock"
           >
-            <ArrowLeft className="size-5 sm:size-4" aria-hidden />
+            <ArrowLeft className="size-4" aria-hidden />
           </button>
           <div className="min-w-0 flex-1">
             <h1
               className={cn(
-                "truncate font-heading text-[1.2rem] font-semibold tracking-[-0.02em]",
+                "truncate font-heading text-[1.05rem] font-semibold tracking-[-0.02em] sm:text-[1.2rem]",
                 stockInk,
               )}
             >
               Inventory
             </h1>
-            <p className={cn("truncate text-[12px]", stockMute)}>
+            <p className={cn("truncate text-[11px] sm:text-[12px]", stockMute)}>
               {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
                 "Tap a product · set shelf qty"}
             </p>
           </div>
         </header>
 
-        <div className={cn("rounded-none border bg-white", stockHair)}>
+        <div className={cn("flex min-h-0 flex-1 flex-col rounded-none border bg-white", stockHair)}>
           {departmentRail}
 
           {fullCountProgress && fullCountProgress.remaining > 0 ? (
             <Link
               href={APP_ROUTES.inventoryStockTake}
               className={cn(
-                "flex items-center gap-2.5 border-b px-3 py-2.5 transition-colors",
+                "flex shrink-0 items-center gap-2 border-b px-2.5 py-1.5 transition-colors",
                 stockHair,
                 "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
                 "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
@@ -2558,21 +2589,21 @@ export function StockLevelsPage() {
               )}
             >
               <ClipboardList
-                className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+                className="size-3.5 shrink-0 text-[var(--pos-primary,#0f766e)]"
                 strokeWidth={1.75}
                 aria-hidden
               />
               <div className="min-w-0 flex-1">
-                <p className={cn("text-[12px] font-semibold tracking-[-0.01em]", stockInk)}>
+                <p className={cn("text-[11px] font-semibold tracking-[-0.01em]", stockInk)}>
                   Full count · {fullCountProgress.counted.toLocaleString("en-KE")}/
                   {fullCountProgress.total.toLocaleString("en-KE")}
-                  <span className={cn("ml-1.5 font-normal", stockMute)}>
+                  <span className={cn("ml-1 font-normal", stockMute)}>
                     · {fullCountProgress.remaining.toLocaleString("en-KE")} left
                   </span>
                 </p>
                 <div
                   className={cn(
-                    "mt-1.5 h-1 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]",
+                    "mt-1 h-0.5 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]",
                   )}
                   role="progressbar"
                   aria-valuenow={fullCountPct}
@@ -2588,7 +2619,7 @@ export function StockLevelsPage() {
               </div>
               <span
                 className={cn(
-                  "shrink-0 text-[10px] font-bold uppercase tracking-[0.1em]",
+                  "shrink-0 text-[9px] font-bold uppercase tracking-[0.1em]",
                   "text-[var(--pos-primary,#0f766e)]",
                 )}
               >
@@ -2600,12 +2631,12 @@ export function StockLevelsPage() {
           {/* Search + status + filters — always above the list on mobile */}
           <div
             className={cn(
-              "border-b bg-white sm:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+              "shrink-0 border-b bg-white md:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
               stockHair,
             )}
           >
-            {/* Mobile: search + filters toggle */}
-            <div className="flex items-center gap-2 px-2.5 py-2 sm:hidden">
+            {/* Mobile / tablet: search + icon tools */}
+            <div className="flex items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] md:hidden">
               <span className="relative min-w-0 flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
@@ -2617,12 +2648,11 @@ export function StockLevelsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search name, barcode, SKU…"
                   className={cn(
-                    "h-11 w-full rounded-none border bg-white pl-10 pr-3 text-[15px]",
-                    stockHair,
+                    "h-11 w-full border-0 bg-transparent pl-10 pr-3 text-[16px]",
                     stockInk,
                     "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
                     "caret-[var(--pos-primary,#0f766e)]",
-                    "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
+                    "focus-visible:outline-none",
                   )}
                   aria-label="Search stock"
                 />
@@ -2631,19 +2661,25 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setMobileFiltersOpen((v) => !v)}
                 className={cn(
-                  "relative inline-flex h-11 shrink-0 items-center gap-1.5 border bg-white px-3 text-[12px] font-semibold",
+                  "relative inline-flex size-11 shrink-0 items-center justify-center border-l",
                   stockHair,
                   stockInk,
                   mobileFiltersOpen &&
-                    "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+                    "bg-[var(--order-ink,#15231f)] text-white",
                 )}
                 aria-expanded={mobileFiltersOpen}
                 aria-label="More filters"
               >
                 <SlidersHorizontal className="size-4" aria-hidden />
-                Filters
-                {supplierId || categoryId || sortKey !== "name" || sortDir !== "asc" ? (
-                  <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
+                {supplierId ||
+                categoryId ||
+                sortKey !== "name" ||
+                sortDir !== "asc" ||
+                statusFilter === "loss" ||
+                statusFilter === "poor_margin" ||
+                statusFilter === "no_buy" ||
+                statusFilter === "no_sell" ? (
+                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--pos-primary,#0f766e)] ring-2 ring-white" />
                 ) : null}
               </button>
               <button
@@ -2651,7 +2687,7 @@ export function StockLevelsPage() {
                 onClick={() => void load()}
                 disabled={loading || !branchId}
                 className={cn(
-                  "inline-flex size-11 shrink-0 items-center justify-center border bg-white",
+                  "inline-flex size-11 shrink-0 items-center justify-center border-l",
                   stockHair,
                   "disabled:opacity-50",
                 )}
@@ -2664,13 +2700,10 @@ export function StockLevelsPage() {
               </button>
             </div>
 
-            {/* Mobile: status chips */}
+            {/* Mobile: one slim scrolling status strip */}
             {(rows.length > 0 || loading) && (
               <div
-                className={cn(
-                  "flex gap-1.5 overflow-x-auto px-2.5 pb-2 sm:hidden",
-                  "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                )}
+                className="flex gap-0 overflow-x-auto px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
                 role="group"
                 aria-label="Stock status"
               >
@@ -2701,43 +2734,88 @@ export function StockLevelsPage() {
                   tone="success"
                   onClick={() => setStatusFilter("in_stock")}
                 />
-                <MobileStatusChip
-                  label="Loss"
-                  value={stockCounts.loss}
-                  active={statusFilter === "loss"}
-                  tone="loss"
-                  onClick={() => setStatusFilter("loss")}
-                />
-                <MobileStatusChip
-                  label="Margin"
-                  value={stockCounts.poorMargin}
-                  active={statusFilter === "poor_margin"}
-                  tone="warning"
-                  onClick={() => setStatusFilter("poor_margin")}
-                />
-                <MobileStatusChip
-                  label="No buy"
-                  value={stockCounts.noBuy}
-                  active={statusFilter === "no_buy"}
-                  onClick={() => setStatusFilter("no_buy")}
-                />
-                <MobileStatusChip
-                  label="No sell"
-                  value={stockCounts.noSell}
-                  active={statusFilter === "no_sell"}
-                  onClick={() => setStatusFilter("no_sell")}
-                />
               </div>
             )}
+
+            {/* Show active attention filter when Filters panel is closed */}
+            {!mobileFiltersOpen &&
+            (statusFilter === "loss" ||
+              statusFilter === "poor_margin" ||
+              statusFilter === "no_buy" ||
+              statusFilter === "no_sell") ? (
+              <div className="flex items-center gap-2 px-2.5 pb-2 md:hidden">
+                <span
+                  className={cn(
+                    "inline-flex h-9 flex-1 items-center justify-between rounded-2xl border px-3 text-[12px] font-semibold",
+                    stockHair,
+                    "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+                    stockInk,
+                  )}
+                >
+                  {statusFilter === "loss"
+                    ? "Showing loss items"
+                    : statusFilter === "poor_margin"
+                      ? "Showing thin margin"
+                      : statusFilter === "no_buy"
+                        ? "Showing no buy price"
+                        : "Showing no sell price"}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("all")}
+                    className="ml-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]"
+                  >
+                    Clear
+                  </button>
+                </span>
+              </div>
+            ) : null}
 
             {/* Mobile: secondary filters panel */}
             {mobileFiltersOpen ? (
               <div
                 className={cn(
-                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 sm:hidden",
+                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 md:hidden",
                   stockHair,
                 )}
               >
+                <div className="col-span-2 min-w-0">
+                  <span
+                    className={cn(
+                      "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      stockMute,
+                    )}
+                  >
+                    Attention
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <MobileStatusChip
+                      label="Loss"
+                      value={stockCounts.loss}
+                      active={statusFilter === "loss"}
+                      tone="loss"
+                      onClick={() => setStatusFilter("loss")}
+                    />
+                    <MobileStatusChip
+                      label="Margin"
+                      value={stockCounts.poorMargin}
+                      active={statusFilter === "poor_margin"}
+                      tone="warning"
+                      onClick={() => setStatusFilter("poor_margin")}
+                    />
+                    <MobileStatusChip
+                      label="No buy"
+                      value={stockCounts.noBuy}
+                      active={statusFilter === "no_buy"}
+                      onClick={() => setStatusFilter("no_buy")}
+                    />
+                    <MobileStatusChip
+                      label="No sell"
+                      value={stockCounts.noSell}
+                      active={statusFilter === "no_sell"}
+                      onClick={() => setStatusFilter("no_sell")}
+                    />
+                  </div>
+                </div>
                 {!isBranchLockedRole ? (
                   <label className="col-span-2 block min-w-0">
                     <span
@@ -2752,7 +2830,7 @@ export function StockLevelsPage() {
                       value={branchId}
                       onChange={(e) => onChangeBranch(e.target.value)}
                       className={cn(
-                        "h-11 w-full cursor-pointer border bg-white px-3 text-[14px]",
+                        "h-12 w-full cursor-pointer rounded-2xl border bg-white px-3 text-[15px]",
                         stockHair,
                         stockInk,
                       )}
@@ -2779,7 +2857,7 @@ export function StockLevelsPage() {
                     Category
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Category"
                     value={categoryId}
                     options={categoryFilterOptions}
@@ -2798,7 +2876,7 @@ export function StockLevelsPage() {
                     Supplier
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Supplier"
                     value={supplierId}
                     options={supplierFilterOptions}
@@ -2817,7 +2895,7 @@ export function StockLevelsPage() {
                     Sort
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Sort"
                     value={sortKey}
                     options={sortFilterOptions}
@@ -2828,10 +2906,10 @@ export function StockLevelsPage() {
               </div>
             ) : null}
 
-            {/* Desktop / tablet: dense one-row toolbar */}
+            {/* Desktop: dense one-row toolbar */}
             <div
               className={cn(
-                "hidden flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 sm:flex",
+                "hidden flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 md:flex",
               )}
             >
               {(rows.length > 0 || loading) && (
@@ -2987,24 +3065,66 @@ export function StockLevelsPage() {
             </div>
           </div>
 
+          {branchId ? (
+            <div className="hidden md:block">
+              <PriceCleanupBar
+                status={priceStatus}
+                counts={priceCounts}
+                listTotal={totalElements}
+                listLoading={loading}
+                matchAll={priceMatchAll}
+                onStatus={onPriceStatus}
+                onSelectAll={onSelectAllPrices}
+              />
+            </div>
+          ) : null}
+
+          {priceSelectionCount > 0 ? (
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 md:py-1.5",
+                stockHair,
+                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+              )}
+            >
+              <span className={cn("text-[13px] font-semibold tabular-nums md:text-[12px]", stockInk)}>
+                {priceSelectionCount.toLocaleString("en-KE")}{" "}
+                {priceSelectionCount === 1 ? "item" : "items"} selected
+              </span>
+              <div className="flex items-center gap-1.5">
+                {canCatalogWrite ? (
+                  <button
+                    type="button"
+                    className="h-11 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3.5 text-[13px] font-semibold text-white md:h-7 md:rounded-none md:px-2 md:text-[12px]"
+                    onClick={openPriceEditor}
+                  >
+                    Edit prices
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={cn(
+                    "h-11 rounded-2xl px-3 text-[13px] font-medium md:h-7 md:rounded-none md:px-2 md:text-[12px]",
+                    stockMute,
+                  )}
+                  onClick={() => {
+                    setPriceMatchAll(false);
+                    setPriceSelectedIds(new Set());
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {error ? (
             <p className="border-b border-rose-600/20 bg-rose-500/5 px-3 py-1.5 text-xs text-rose-800 dark:text-rose-300">
               {error}
             </p>
           ) : null}
 
-          {canWrite && rows.length > 0 ? (
-            <p
-              className={cn(
-                "border-b px-3 py-2 text-[12px] sm:hidden",
-                stockHair,
-                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
-                "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]",
-              )}
-            >
-              Tap any row → set qty with − / + → Save
-            </p>
-          ) : !canWrite && !canCatalogWrite && rows.length > 0 ? (
+          {canWrite && rows.length > 0 ? null : !canWrite && !canCatalogWrite && rows.length > 0 ? (
             <p
               className={cn(
                 "border-b px-3 py-1.5 text-[11px]",
@@ -3047,12 +3167,12 @@ export function StockLevelsPage() {
           ) : (
             <div
               ref={scrollRef}
-              className="max-h-[min(78dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] sm:max-h-[min(74vh,56rem)]"
+              className="min-h-[min(68dvh,40rem)] max-h-[min(78dvh,56rem)] flex-1 overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] md:min-h-0 md:max-h-[min(74vh,56rem)]"
             >
-              {/* Mobile: stacked cards — edit stock without horizontal scroll */}
+              {/* Mobile / tablet: stacked cards — edit stock without horizontal scroll */}
               <div
                 className={cn(
-                  "divide-y sm:hidden",
+                  "divide-y md:hidden",
                   "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
                 )}
               >
@@ -3078,7 +3198,7 @@ export function StockLevelsPage() {
               {/* Desktop: full spreadsheet */}
               <div
                 ref={shellRef}
-                className={cn(sheetStyles.shell, "hidden sm:block")}
+                className={cn(sheetStyles.shell, "hidden md:block")}
               >
                 {/* Restores persisted widths before the table's first paint. */}
                 <script
@@ -3259,6 +3379,23 @@ export function StockLevelsPage() {
           )}
         </div>
       </div>
+      <BulkPriceEditor
+        open={priceEditorOpen}
+        onOpenChange={setPriceEditorOpen}
+        currencyCode={currency}
+        selectionCount={priceSelectionCount}
+        target={priceEditorTarget}
+        onApplied={(updated) => {
+          setPriceMatchAll(false);
+          setPriceSelectedIds(new Set());
+          void load();
+          toast.success(
+            updated === 0
+              ? "No prices changed."
+              : `Updated prices on ${updated.toLocaleString("en-KE")} ${updated === 1 ? "item" : "items"}.`,
+          );
+        }}
+      />
     </div>
   );
 }

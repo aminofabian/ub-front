@@ -1347,6 +1347,10 @@ export type PlatformIntegrationsRecord = {
   whatsappMetaGraphVersion: string;
   hasWhatsappMetaWebhookVerifyToken: boolean;
   hasWhatsappMetaAppSecret: boolean;
+  googleOauthEnabled: boolean;
+  googleOauthClientId: string;
+  hasGoogleOauthClientSecret: boolean;
+  googleOauthRedirectUri: string;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
@@ -1382,6 +1386,9 @@ export type UpdatePlatformIntegrationsPayload = {
   whatsappMetaGraphVersion?: string | null;
   whatsappMetaWebhookVerifyToken?: string | null;
   whatsappMetaAppSecret?: string | null;
+  googleOauthEnabled?: boolean | null;
+  googleOauthClientId?: string | null;
+  googleOauthClientSecret?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
@@ -2865,6 +2872,30 @@ export type SaArchiveCatalogResult = {
 };
 
 /** Archives every product + deactivates every category in the catalog (replace-before-promote). */
+export async function saPublishAllDrafts(
+  catalogId?: string | null,
+): Promise<{ publishedCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/publish-all-drafts${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
+export async function saRestoreAllArchived(
+  catalogId?: string | null,
+): Promise<{ restoredCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/restore-all-archived${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
 export async function saArchiveCatalogProducts(
   catalogId?: string | null,
 ): Promise<SaArchiveCatalogResult> {

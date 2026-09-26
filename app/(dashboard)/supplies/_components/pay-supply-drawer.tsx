@@ -1023,7 +1023,7 @@ export function PaySupplyDrawer({
               : `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
           : undefined
       }
-      width="wide"
+      width="full"
       icon={<CreditCard className="size-5 text-primary" aria-hidden />}
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
@@ -1031,7 +1031,7 @@ export function PaySupplyDrawer({
           <Button
             type="button"
             variant="outline"
-            className="rounded-none"
+            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
             onClick={() => onOpenChange(false)}
             disabled={busy || deletingSupply}
           >
@@ -1041,7 +1041,7 @@ export function PaySupplyDrawer({
             <Button
               type="button"
               variant="outline"
-              className="rounded-none text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-12 rounded-2xl text-[14px] text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:rounded-none sm:text-sm"
               disabled={busy || deletingSupply}
               onClick={() => {
                 void (async () => {
@@ -1066,6 +1066,7 @@ export function PaySupplyDrawer({
             <Button
               type="button"
               variant="secondary"
+              className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
               disabled={busy || cancellingDisbursement}
               onClick={() => void cancelKopokopoPayment()}
             >
@@ -1082,7 +1083,7 @@ export function PaySupplyDrawer({
               <Button
                 type="button"
                 variant="outline"
-                className="gap-1.5 rounded-none"
+                className="h-12 gap-1.5 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
                 title="Record payment in PalMart without SMS or portal alert"
                 onClick={() => void markPaidWithoutNotify()}
                 disabled={
@@ -1101,7 +1102,7 @@ export function PaySupplyDrawer({
               </Button>
               <Button
                 type="button"
-                className="gap-1.5 rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
+                className="h-12 gap-1.5 rounded-2xl bg-[var(--pos-primary,#0f766e)] text-[14px] hover:bg-[#0d6b63] sm:h-9 sm:rounded-none sm:text-sm"
                 onClick={() => void onConfirmPay()}
                 disabled={
                   busy ||
@@ -1183,12 +1184,12 @@ export function PaySupplyDrawer({
                   </p>
                 </div>
                 {!openInvoicesLoading && openInvoices.length > 1 ? (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-row sm:flex-wrap">
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 rounded-none text-xs"
+                      className="h-11 rounded-2xl text-[13px] sm:h-7 sm:rounded-none sm:text-xs"
                       disabled={busy}
                       onClick={selectOnlyCurrent}
                     >
@@ -1197,7 +1198,7 @@ export function PaySupplyDrawer({
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 rounded-none bg-[var(--pos-primary,#0f766e)] text-xs hover:bg-[#0d6b63]"
+                      className="h-11 rounded-2xl bg-[var(--pos-primary,#0f766e)] text-[13px] hover:bg-[#0d6b63] sm:h-7 sm:rounded-none sm:text-xs"
                       disabled={busy}
                       onClick={selectAllOpen}
                     >
@@ -1215,7 +1216,7 @@ export function PaySupplyDrawer({
                       <li key={inv.id}>
                         <label
                           className={cn(
-                            "flex cursor-pointer items-center gap-2.5 rounded-none border px-2.5 py-2 text-sm transition-colors",
+                            "flex cursor-pointer items-center gap-2.5 rounded-2xl border px-3 py-3 text-[14px] transition-colors sm:rounded-none sm:px-2.5 sm:py-2 sm:text-sm",
                             checked
                               ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                               : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:text-[var(--order-ink,#15231f)]",
@@ -1223,7 +1224,7 @@ export function PaySupplyDrawer({
                         >
                           <input
                             type="checkbox"
-                            className="size-3.5 accent-[var(--pos-primary,#0f766e)]"
+                            className="size-5 accent-[var(--pos-primary,#0f766e)] sm:size-3.5"
                             checked={checked}
                             disabled={
                               busy ||
@@ -1907,47 +1908,97 @@ export function PaySupplyDrawer({
                 No payments recorded yet.
               </p>
             ) : (
-              <div className="mt-2 overflow-x-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
-                <table className="w-full border-collapse text-left text-xs">
-                  <thead className="bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                    <tr>
-                      <th className="px-2 py-1.5">When</th>
-                      <th className="px-2 py-1.5">Method</th>
-                      <th className="px-2 py-1.5 text-right">Cash</th>
-                      <th className="px-2 py-1.5 text-right">Applied</th>
-                      <th className="px-2 py-1.5">Ref / notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((h) => (
-                      <tr key={h.allocationId} className="border-t align-top">
-                        <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">
-                          {new Date(h.paidAt).toLocaleString()}
-                        </td>
-                        <td className="px-2 py-1.5 font-mono capitalize">
-                          {h.paymentMethod}
-                        </td>
-                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">
-                          {formatSupplyMoney(supplyN(h.paymentCashAmount))}
-                        </td>
-                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">
-                          {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
-                        </td>
-                        <td className="max-w-[14rem] px-2 py-1.5">
-                          <span className="block truncate">
-                            {h.reference?.trim() || "—"}
+              <>
+                {/* Mobile: stacked payment cards */}
+                <ul className="mt-2 space-y-2 sm:hidden">
+                  {history.map((h) => (
+                    <li
+                      key={h.allocationId}
+                      className="rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold capitalize text-foreground">
+                            {h.paymentMethod}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {new Date(h.paidAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-mono text-[14px] font-semibold tabular-nums">
+                            {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            applied
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-muted-foreground">
+                        <span>
+                          Cash{" "}
+                          <span className="font-mono tabular-nums text-foreground">
+                            {formatSupplyMoney(supplyN(h.paymentCashAmount))}
                           </span>
-                          {h.notes?.trim() ? (
-                            <span className="mt-0.5 block whitespace-pre-wrap text-[11px] text-muted-foreground">
-                              {h.notes.trim()}
-                            </span>
-                          ) : null}
-                        </td>
+                        </span>
+                        {h.reference?.trim() ? (
+                          <span className="truncate">
+                            Ref {h.reference.trim()}
+                          </span>
+                        ) : null}
+                      </div>
+                      {h.notes?.trim() ? (
+                        <p className="mt-1.5 whitespace-pre-wrap text-[11px] text-muted-foreground">
+                          {h.notes.trim()}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Desktop: table */}
+                <div className="mt-2 hidden overflow-x-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead className="bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                      <tr>
+                        <th className="px-2 py-1.5">When</th>
+                        <th className="px-2 py-1.5">Method</th>
+                        <th className="px-2 py-1.5 text-right">Cash</th>
+                        <th className="px-2 py-1.5 text-right">Applied</th>
+                        <th className="px-2 py-1.5">Ref / notes</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {history.map((h) => (
+                        <tr key={h.allocationId} className="border-t align-top">
+                          <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">
+                            {new Date(h.paidAt).toLocaleString()}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono capitalize">
+                            {h.paymentMethod}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                            {formatSupplyMoney(supplyN(h.paymentCashAmount))}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                            {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
+                          </td>
+                          <td className="max-w-[14rem] px-2 py-1.5">
+                            <span className="block truncate">
+                              {h.reference?.trim() || "—"}
+                            </span>
+                            {h.notes?.trim() ? (
+                              <span className="mt-0.5 block whitespace-pre-wrap text-[11px] text-muted-foreground">
+                                {h.notes.trim()}
+                              </span>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

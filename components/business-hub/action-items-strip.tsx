@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, Info } from "lucide-react";
+import { AlertTriangle, ArrowRight, Info } from "lucide-react";
 
-import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
 import { cn } from "@/lib/utils";
 
@@ -15,20 +14,24 @@ export type ActionItem = {
   tone?: "warning" | "info";
 };
 
-const CELL_DIVIDE = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]";
-const CELL_FILL = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]";
+const TONES = {
+  warning: {
+    card: "border-[#F1D9B8] bg-[#FDF8F0] hover:bg-[#FCF3E6]",
+    icon: "bg-[#FBEBD2] text-[#B45309]",
+    arrow: "text-[#B45309]",
+  },
+  info: {
+    card: "border-[#CCE6E2] bg-[#F1F9F8] hover:bg-[#E7F4F2]",
+    icon: "bg-[#D6EDEA] text-[#0f766e]",
+    arrow: "text-[#0f766e]",
+  },
+} as const;
 
-/**
- * The queue: what the shop needs a human to look at. One tap target per line on
- * a phone, two across once there is room — never a horizontal scroll, so the
- * whole queue is visible without swiping.
- */
+/** The queue: what the shop needs a human to look at, one card per job. */
 export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   if (items.length === 0) {
     return null;
   }
-
-  const fillers = items.length % 2;
 
   return (
     <section className="space-y-1.5">
@@ -37,57 +40,48 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
         meta={`${items.length} to review`}
         className="px-0.5"
       />
-      <div
-        className={cn(
-          HUB_SURFACE,
-          "grid grid-cols-1 gap-px sm:grid-cols-2",
-          CELL_DIVIDE,
-        )}
-      >
+      <div className="grid gap-1.5 sm:grid-cols-2">
         {items.map((item) => {
+          const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;
-          const warning = item.tone !== "info";
           return (
             <Link
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex min-h-12 items-center gap-3 bg-white px-3 py-2.5 transition-colors",
-                "hover:bg-[color-mix(in_srgb,#141414_2.5%,white)]",
-                "active:bg-[color-mix(in_srgb,#0f766e_6%,white)]",
-                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f766e]/45",
+                "group flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
+                tone.card,
               )}
             >
               <span
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center border bg-white",
-                  warning
-                    ? "border-[#C47A5A]/35 text-[#C47A5A]"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[#0f766e]",
+                  "flex size-7 shrink-0 items-center justify-center rounded-md",
+                  tone.icon,
                 )}
               >
-                <Icon className="size-4" aria-hidden />
+                <Icon className="size-3.5" aria-hidden />
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold leading-snug tracking-[-0.015em] text-[#141414]">
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-[12px] font-semibold tracking-[-0.015em] text-[#141414]">
                   {item.label}
                 </span>
                 {item.detail ? (
-                  <span className="mt-0.5 block truncate text-[11px] leading-snug text-[#6F6F6F]">
+                  <span className="block truncate text-[10px] text-[#6F6F6F]">
                     {item.detail}
                   </span>
                 ) : null}
               </span>
-              <ChevronRight
-                className="size-4 shrink-0 text-[#C8C2B6] transition-colors group-hover:text-[#0f766e]"
+              <ArrowRight
+                className={cn(
+                  "size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                  tone.arrow,
+                )}
                 aria-hidden
               />
             </Link>
           );
         })}
-        {fillers > 0 ? (
-          <span aria-hidden className={cn("hidden sm:block", CELL_FILL)} />
-        ) : null}
       </div>
     </section>
   );

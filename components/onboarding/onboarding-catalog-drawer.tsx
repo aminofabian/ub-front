@@ -26,6 +26,10 @@ import {
   type GlobalProductRecord,
 } from "@/lib/api";
 import { pickSuggestedOnboardingPack } from "@/lib/onboarding-suggested-pack";
+import {
+  adoptOpeningUnitCost,
+  adoptShelfMoney,
+} from "@/lib/global-catalog-adopt-money";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -60,9 +64,9 @@ function buildAdoptLines(
   return products.map((p) => ({
     globalProductId: p.id,
     sku: p.skuTemplate ?? undefined,
-    sellingPrice: p.recommendedSellingPrice ?? undefined,
-    buyingPrice: p.recommendedBuyingPrice ?? undefined,
-    openingUnitCost: p.recommendedBuyingPrice ?? undefined,
+    sellingPrice: adoptShelfMoney(p.recommendedSellingPrice),
+    buyingPrice: adoptShelfMoney(p.recommendedBuyingPrice),
+    openingUnitCost: adoptOpeningUnitCost(p.recommendedBuyingPrice),
     reorderLevel: p.defaultReorderLevel ?? undefined,
     reorderQty: p.defaultReorderQty ?? undefined,
     minStockLevel: p.defaultMinStockLevel ?? undefined,

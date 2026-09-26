@@ -398,7 +398,73 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
               <h2 className="text-sm font-medium text-muted-foreground">
                 Items in this batch
               </h2>
-              <div className="overflow-x-auto rounded-none border">
+
+              {/* Mobile cards */}
+              <div className="divide-y divide-border rounded-2xl border border-border bg-white md:hidden">
+                {data.items.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    No items in this batch.
+                  </p>
+                ) : (
+                  data.items.map((it) => (
+                    <article
+                      key={it.inventoryBatchId}
+                      className="space-y-2 px-3 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold leading-snug text-foreground">
+                            {it.itemName ?? it.itemId}
+                          </p>
+                          {it.itemSku ? (
+                            <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                              {it.itemSku}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-[12px]">
+                          {statusBadge(it.status)}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Received</span>
+                          <span className="font-mono tabular-nums font-medium">
+                            {formatQty(it.initialQuantity)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Sold</span>
+                          <span className="font-mono tabular-nums font-medium">
+                            {formatQty(it.quantitySold)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Waste</span>
+                          <span className="font-mono tabular-nums font-medium">
+                            {formatQty(it.quantityWasted)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="text-muted-foreground">Left</span>
+                          <span className="font-mono tabular-nums font-semibold">
+                            {formatQty(it.quantityRemaining)}
+                          </span>
+                        </div>
+                        <div className="col-span-2 flex justify-between gap-2 border-t border-border/60 pt-1.5">
+                          <span className="text-muted-foreground">Unit cost</span>
+                          <span className="font-mono tabular-nums font-medium">
+                            {formatQty(it.unitCost)}
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto rounded-none border md:block">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="border-b bg-muted/40">
                     <tr>

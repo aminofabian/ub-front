@@ -246,6 +246,10 @@ export async function proxyToBackend(
   const init: RequestInit = {
     method,
     headers,
+    // Never follow upstream redirects. OAuth callbacks (and any auth 302 that
+    // sets ub.refresh / Location) must reach the browser intact — Node's
+    // default redirect:"follow" would consume the 302 and drop Set-Cookie.
+    redirect: "manual",
     signal: controller.signal,
     ...(body !== undefined ? { body } : {}),
   };
@@ -303,11 +307,13 @@ export async function proxyToBackend(
   // 204/205/304 must not carry a body. Passing `upstream.body` here can hang or
   // break the client (e.g. POST /api/v1/auth/resend-verification → 204 No Content).
   const status = upstream.status;
+  const isRedirect = status >= 300 && status < 400;
   const secure = requestIsHttps(req);
   const mintAccess = status === 200 && isAccessTokenMintPath(url.pathname);
   const clearAccess =
     status >= 200 &&
     status < 300 &&
+    !isRedirect &&
     isAccessTokenClearPath(url.pathname);
   const hostname = requestHostname(req);
   const cookieDomain = sessionCookieDomain(req) || undefined;
@@ -343,7 +349,9 @@ export async function proxyToBackend(
   }
 
   const proxyBody =
-    status === 204 || status === 205 || status === 304 ? null : upstream.body;
+    status === 204 || status === 205 || status === 304 || isRedirect
+      ? null
+      : upstream.body;
 
   const out = new NextResponse(proxyBody, {
     status: upstream.status,

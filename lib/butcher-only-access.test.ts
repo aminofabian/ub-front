@@ -41,10 +41,11 @@ describe("business store types", () => {
     ).toEqual(["butchery"]);
   });
 
-  it("limits catalogue eligibility to mini mart and mixed shop", () => {
+  it("limits catalogue eligibility to mini mart, mixed shop, and pharmacy", () => {
     expect(isCatalogEligibleStoreTypes(["mini-mart"])).toBe(true);
     expect(isCatalogEligibleStoreTypes(["mixed-shop"])).toBe(true);
     expect(isCatalogEligibleStoreTypes(["butchery", "mini-mart"])).toBe(true);
+    expect(isCatalogEligibleStoreTypes(["pharmacy"])).toBe(true);
     expect(isCatalogEligibleStoreTypes(["cosmetics"])).toBe(false);
     expect(isCatalogEligibleStoreTypes(["other"])).toBe(false);
     expect(

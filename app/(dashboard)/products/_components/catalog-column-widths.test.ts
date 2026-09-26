@@ -13,7 +13,7 @@ describe("catalog-column-widths", () => {
   it("clamps to min/max", () => {
     expect(clampCatalogColWidth("stock", 1)).toBe(32);
     expect(clampCatalogColWidth("stock", 999)).toBe(200);
-    expect(clampCatalogColWidth("product", 280)).toBe(280);
+    expect(clampCatalogColWidth("product", 240)).toBe(240);
   });
 
   it("parses stored widths and ignores junk", () => {
@@ -23,14 +23,18 @@ describe("catalog-column-widths", () => {
         check: 30,
         product: 320,
         stock: "nope",
+        buy: 70,
         sell: 80,
+        margin: 55,
         category: 100,
       }),
     ).toEqual({
       ...CATALOG_COL_WIDTH_DEFAULTS,
       check: 30,
       product: 320,
+      buy: 70,
       sell: 80,
+      margin: 55,
       category: 100,
     });
   });
@@ -38,16 +42,32 @@ describe("catalog-column-widths", () => {
   it("sums sheet min width", () => {
     expect(
       catalogSheetMinWidthPx(
-        { check: 22, product: 280, stock: 48, sell: 64, category: 96 },
+        {
+          check: 22,
+          product: 240,
+          stock: 44,
+          buy: 64,
+          sell: 64,
+          margin: 52,
+          category: 88,
+        },
         true,
       ),
-    ).toBe(510);
+    ).toBe(574);
     expect(
       catalogSheetMinWidthPx(
-        { check: 22, product: 280, stock: 48, sell: 64, category: 96 },
+        {
+          check: 22,
+          product: 240,
+          stock: 44,
+          buy: 64,
+          sell: 64,
+          margin: 52,
+          category: 88,
+        },
         false,
       ),
-    ).toBe(414);
+    ).toBe(486);
   });
 
   it("restore script paints clamped widths onto its parent element", () => {
@@ -79,15 +99,15 @@ describe("catalog-column-widths", () => {
       { currentScript: { parentElement: shell } },
     );
 
-    // Stored product kept, stock clamped to max, junk key falls back to
-    // default, category included at xl, min-width sums every track.
     expect(painted).toEqual([
       ["--cat-col-check", "22px"],
       ["--cat-col-product", "400px"],
       ["--cat-col-stock", "200px"],
+      ["--cat-col-buy", "64px"],
       ["--cat-col-sell", "64px"],
-      ["--cat-col-category", "96px"],
-      ["--cat-sheet-min-width", "782px"],
+      ["--cat-col-margin", "52px"],
+      ["--cat-col-category", "88px"],
+      ["--cat-sheet-min-width", "890px"],
     ]);
   });
 
@@ -119,7 +139,6 @@ describe("catalog-column-widths", () => {
       { currentScript: { parentElement: shell } },
     );
 
-    // Nothing stored → script must leave the CSS defaults untouched.
     const untouched: Array<[string, string]> = [];
     const bare = {
       style: {
@@ -134,14 +153,15 @@ describe("catalog-column-widths", () => {
     );
     expect(untouched).toEqual([]);
 
-    // Category track forced to 0 below xl and excluded from the min-width sum.
     expect(painted).toEqual([
       ["--cat-col-check", "22px"],
-      ["--cat-col-product", "280px"],
-      ["--cat-col-stock", "48px"],
+      ["--cat-col-product", "240px"],
+      ["--cat-col-stock", "44px"],
+      ["--cat-col-buy", "64px"],
       ["--cat-col-sell", "64px"],
+      ["--cat-col-margin", "52px"],
       ["--cat-col-category", "0px"],
-      ["--cat-sheet-min-width", "414px"],
+      ["--cat-sheet-min-width", "486px"],
     ]);
   });
 });

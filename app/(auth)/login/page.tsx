@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  GoogleAuthButton,
+} from "@/components/auth/google-auth-button";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import {
   authInputClassName,
@@ -45,6 +48,29 @@ const primaryCtaClass =
 const fieldLabelClass =
   "mb-1.5 block text-[13px] font-medium text-foreground";
 
+function googleErrorMessage(code: string | null | undefined): string {
+  switch (code) {
+    case "no_account":
+      return "No shop for this Google account yet. Create one first.";
+    case "multi_shop":
+      return "That Google account is on more than one shop. Sign in with email, or open your shop’s link.";
+    case "email_unverified":
+      return "Google did not verify that email. Try another account.";
+    case "disabled":
+      return "Google Sign-In is temporarily unavailable.";
+    case "expired_state":
+    case "invalid_state":
+    case "binding_mismatch":
+      return "That Google sign-in expired. Try again.";
+    case null:
+    case undefined:
+    case "":
+      return "";
+    default:
+      return "Google sign-in did not complete. Try again.";
+  }
+}
+
 function CustomerLoginPageContent() {
   const tenant = useOptionalTenant();
   const searchParams = useSearchParams();
@@ -58,7 +84,10 @@ function CustomerLoginPageContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
-    () => searchParams.get("error")?.trim() ?? "",
+    () =>
+      searchParams.get("error")?.trim() ||
+      googleErrorMessage(searchParams.get("googleError")?.trim()) ||
+      "",
   );
   const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -202,8 +231,19 @@ function CustomerLoginPageContent() {
       ) : null}
 
       {useEmail ? (
+        <>
+          <div className="mt-6 space-y-4">
+            <GoogleAuthButton
+              intent="sign_in"
+              businessId={tenant?.tenantId ?? getSessionTenantId()}
+              next={loginNextHint || undefined}
+              requireTenantSso
+              ssoProviders={tenant?.authConfig?.ssoProviders}
+              withDivider
+            />
+          </div>
       <form
-        className="mt-6 space-y-4"
+        className="space-y-4"
         action={LOGIN_BRIDGE}
         method="POST"
         noValidate
@@ -299,6 +339,7 @@ function CustomerLoginPageContent() {
           )}
         </button>
       </form>
+        </>
       ) : (
         <div className="mt-6">
           <ShopperPhoneLogin

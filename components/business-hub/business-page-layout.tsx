@@ -5,11 +5,13 @@ import type { ReactNode } from "react";
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
 import { HubMark } from "@/components/business-hub/hub-mark";
 import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
+import { OXANIUM_SURFACE_STYLE } from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
   ["--hub-ink" as string]: "#141414",
   ["--hub-paper" as string]: "#ffffff",
+  ["--hub-bg" as string]: "#F6F7F6",
   ["--hub-accent" as string]: "#0f766e",
   ["--hub-accent-deep" as string]: "#0f766e",
   ["--hub-slip" as string]: "#ffffff",
@@ -105,7 +107,11 @@ export function BusinessPageLayout({
         "sm:px-1 sm:pb-4 sm:pt-1",
         className,
       )}
-      style={BUSINESS_HUB_VARS}
+      style={{
+        ...BUSINESS_HUB_VARS,
+        ...OXANIUM_SURFACE_STYLE,
+        backgroundColor: "var(--hub-bg)",
+      }}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
         {/* `data-hub-chrome` lets in-page jumps measure the sticky header they
@@ -114,10 +120,10 @@ export function BusinessPageLayout({
           data-hub-chrome=""
           className={cn(
             "sticky top-0 z-20 shrink-0 border-b bg-white/92",
-            "border-[color-mix(in_srgb,var(--hub-ink)_10%,transparent)]",
+            "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
             "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
-            // Edge-flush under shell gutters on phone
-            "-mx-3 sm:mx-0 sm:border",
+            // Match shell gutters on phone — avoid -mx bleed that fights the nav.
+            "mx-0 rounded-none sm:rounded-xl sm:border",
           )}
         >
           {/* Tablet up: the hub's own pages. Phones use the identity row's menu. */}
@@ -128,51 +134,43 @@ export function BusinessPageLayout({
           ) : null}
 
           {/*
-            Phones break this into two lines — shop, then the view lens — while
-            wider screens hold it on one: shop · lens · store · actions. The
-            order utilities keep the view lens beside the shop on a desk and
-            give it its own line on a phone without rendering it twice.
+            Phone: one dense row — shop · actions · menu. Period + store sit on
+            a second slim line only when needed. Desk keeps the single control line.
           */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-1.5 sm:flex-nowrap sm:gap-x-3 sm:px-2 sm:py-2">
+          <div className="flex items-center gap-2 px-3 py-2 sm:flex-wrap sm:gap-x-3 sm:gap-y-1.5 sm:px-2 sm:py-2">
             {identity ? (
               <HubIdentity identity={identity} />
             ) : (
               <span className="min-w-0 flex-1" />
             )}
 
-            <div
-              className={cn(
-                "ml-auto flex shrink-0 items-center gap-1 sm:ml-0",
-                showControlLine ? "order-2 sm:order-3" : "order-3",
-              )}
-            >
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <div className="hidden items-center gap-1.5 sm:flex">
+                {toolbarLeading}
+                <OnlineStoreHeaderSwitch />
+              </div>
               {headerActions}
               {menu}
             </div>
+          </div>
 
-            <div
-              className={cn(
-                "flex min-w-0 items-center gap-1.5",
-                showControlLine
-                  ? "order-3 w-full sm:order-2 sm:w-auto sm:shrink-0"
-                  : "order-2 shrink-0",
-              )}
-            >
+          {showControlLine ? (
+            <div className="flex items-center gap-1.5 border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3 py-1.5 sm:hidden">
               {toolbarLeading}
-              {showControlLine ? (
-                <span className="min-w-0 flex-1 sm:hidden" aria-hidden />
-              ) : null}
+              <span className="min-w-0 flex-1" aria-hidden />
               <OnlineStoreHeaderSwitch />
             </div>
-          </div>
+          ) : null}
 
           {stage ? (
             <div
               className={cn(
-                "px-3 py-1.5 sm:px-2",
+                "px-3 py-1 sm:px-2 sm:py-1.5",
                 "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
                 HUB_RULE_8,
                 "border-t",
+                // Phone: keep the till lane picker one tap-row tall.
+                "max-sm:overflow-x-auto max-sm:overflow-y-hidden",
                 stageClassName,
               )}
             >
@@ -182,7 +180,7 @@ export function BusinessPageLayout({
         </div>
 
         {showCopy ? (
-          <header className="min-w-0 px-0.5 py-0.5">
+          <header className="min-w-0 px-3 py-0.5 sm:px-0.5">
             {heading ? (
               <h1 className="font-heading text-lg font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-xl">
                 {heading}
@@ -200,7 +198,7 @@ export function BusinessPageLayout({
           <h1 className="sr-only">Business</h1>
         )}
 
-        {children}
+        <div className="min-h-0 flex-1 px-3 sm:px-0">{children}</div>
       </div>
     </div>
   );

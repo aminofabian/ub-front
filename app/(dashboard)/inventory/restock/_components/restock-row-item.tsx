@@ -27,6 +27,109 @@ type RestockRowItemProps = {
   onSave: () => void;
 };
 
+function rowMeta(row: RestockRow) {
+  const name = row.item.name?.trim() || "Unnamed product";
+  const sku = row.item.sku?.trim();
+  const variant = row.item.variantName?.trim();
+  return { name, sku, variant };
+}
+
+/** Phone card — full-width qty/cost + tall Save. */
+export function RestockMobileCard({
+  row,
+  canWrite,
+  onQtyChange,
+  onCostChange,
+  onSave,
+}: RestockRowItemProps) {
+  const { name, sku, variant } = rowMeta(row);
+
+  return (
+    <article className="space-y-2.5 border-b border-border bg-white px-3 py-3 last:border-b-0">
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold leading-snug text-foreground">
+          {name}
+          {variant ? (
+            <span className="ml-1 font-normal text-muted-foreground">
+              {variant}
+            </span>
+          ) : null}
+        </p>
+        {sku ? (
+          <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+            {sku}
+          </p>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="min-w-0 space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Qty
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            className={cn(
+              "h-12 w-full rounded-2xl border border-border bg-background px-3 text-right font-mono text-[16px] tabular-nums",
+              "disabled:opacity-60",
+            )}
+            placeholder="0"
+            value={row.qty}
+            disabled={!canWrite || row.saving}
+            onChange={(e) => onQtyChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSave();
+            }}
+            aria-label={`Quantity for ${name}`}
+          />
+        </label>
+        <label className="min-w-0 space-y-1">
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Cost
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            className={cn(
+              "h-12 w-full rounded-2xl border border-border bg-background px-3 text-right font-mono text-[16px] tabular-nums",
+              "disabled:opacity-60",
+            )}
+            placeholder="0"
+            value={row.cost}
+            disabled={!canWrite || row.saving}
+            onChange={(e) => onCostChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSave();
+            }}
+            aria-label={`Unit cost for ${name}`}
+          />
+        </label>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        className="h-12 w-full rounded-2xl text-[14px] font-semibold"
+        onClick={onSave}
+        disabled={!canWrite || row.saving || !row.qty.trim()}
+        aria-label={`Save restock for ${name}`}
+      >
+        {row.saving ? (
+          "Saving…"
+        ) : (
+          <>
+            <Check className="mr-1.5 size-4" aria-hidden />
+            Save
+          </>
+        )}
+      </Button>
+    </article>
+  );
+}
+
 export function RestockRowItem({
   row,
   canWrite,
@@ -34,9 +137,7 @@ export function RestockRowItem({
   onCostChange,
   onSave,
 }: RestockRowItemProps) {
-  const name = row.item.name?.trim() || "Unnamed product";
-  const sku = row.item.sku?.trim();
-  const variant = row.item.variantName?.trim();
+  const { name, sku, variant } = rowMeta(row);
 
   return (
     <tr className={supTableRow}>

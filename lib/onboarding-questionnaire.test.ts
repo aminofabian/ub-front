@@ -7,6 +7,7 @@ import {
   shouldStartOnboardingQuestionnaire,
   softSkipOnboardingQuestionnaire,
   resumeOnboardingQuestionnaire,
+  activateOnboardingQuestionnaire,
   markOnboardingQuestionnairePending,
   markOnboardingAwaitingStock,
   clearOnboardingQuestionnaireSessionSkip,
@@ -95,7 +96,27 @@ describe("soft skip + resume", () => {
     resumeOnboardingQuestionnaire();
     expect(wasOnboardingQuestionnaireSkippedThisSession()).toBe(false);
     expect(getOnboardingQuestionnaireState().status).toBe("active");
+    // Engaged (active) no longer auto-opens — the resume banner drives it.
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+  });
+
+  it("auto-opens a brand-new shop but not once engaged", () => {
+    markOnboardingQuestionnairePending();
     expect(shouldStartOnboardingQuestionnaire()).toBe(true);
+    activateOnboardingQuestionnaire();
+    expect(getOnboardingQuestionnaireState().status).toBe("active");
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+  });
+
+  it("does not auto-open pending from a prior visit without a fresh signup", () => {
+    markOnboardingQuestionnairePending();
+    expect(shouldStartOnboardingQuestionnaire()).toBe(true);
+    // Simulate a later login: clear the fresh-signup session flag only.
+    window.sessionStorage.removeItem(
+      "palmart.onboardingQuestionnaire.freshSignup.v1",
+    );
+    expect(getOnboardingQuestionnaireState().status).toBe("pending");
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
   });
 
   it("needs resume for dismissed and completed not", () => {
@@ -113,6 +134,7 @@ describe("soft skip + resume", () => {
     const state = getOnboardingQuestionnaireState();
     expect(state.status).toBe("active");
     expect(state.step).toBe(8);
-    expect(shouldStartOnboardingQuestionnaire()).toBe(true);
+    // Parked on the stock step is `active` — banner, not auto-open.
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
   });
 });
