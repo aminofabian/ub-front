@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { proxyToBackend } from "@/lib/backend-proxy";
+import { handleGoogleOAuthCallback } from "@/lib/google-oauth-callback.server";
 
 // Force Node.js runtime — multipart uploads (logo, item images, etc.) need
 // streaming `fetch` with `duplex: "half"`, which only the Node runtime
@@ -21,6 +22,19 @@ type Ctx = { params: Promise<{ path?: string[] }> };
 
 async function handle(req: NextRequest, ctx: Ctx) {
   const { path } = await ctx.params;
+  const segments = path ?? [];
+  // Google redirects here; run the same-host exchange instead of proxying a
+  // backend 302 whose Set-Cookie must survive the hop (see handler docblock).
+  if (
+    req.method === "GET" &&
+    segments.length === 4 &&
+    segments[0] === "auth" &&
+    segments[1] === "oauth" &&
+    segments[2] === "google" &&
+    segments[3] === "callback"
+  ) {
+    return handleGoogleOAuthCallback(req);
+  }
   return proxyToBackend(req, path);
 }
 
