@@ -30,18 +30,18 @@ export function ProductsPageLayout({
   return (
     <div
       className={cn(
-        "catalog-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-2 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2.5",
+        "catalog-paper relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-0 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4 sm:pt-2.5",
         className,
       )}
       style={PRODUCTS_CATALOG_VARS}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-white"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-white max-lg:hidden"
       />
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2">
-        <div className={cn("shrink-0 p-0.5", CATALOG_SURFACE)}>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-0 sm:gap-2">
+        <div className={cn("shrink-0 p-0.5 max-lg:border-b max-lg:border-border max-lg:px-1 max-lg:py-1", CATALOG_SURFACE)}>
           <ProductsHubNav />
         </div>
 

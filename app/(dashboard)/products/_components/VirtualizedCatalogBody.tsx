@@ -16,6 +16,7 @@ import {
   type CategoryRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import { cn } from "@/lib/utils";
 
 import {
@@ -174,6 +175,7 @@ export const VirtualizedCatalogBody = forwardRef<
 ) {
   const shellRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
+  const isLg = useMediaLg();
   const { guideRef, beginResize, resetColumn } =
     useCatalogColumnWidths(shellRef);
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
@@ -209,7 +211,9 @@ export const VirtualizedCatalogBody = forwardRef<
       const row = rows[index];
       const meta = rowMetaById.get(row.id);
       const kind = meta?.kind ?? "standalone";
-      return catalogRowHeightPx(kind, density, meta);
+      const base = catalogRowHeightPx(kind, density, meta);
+      // Phone rows are taller (touch + readable name) — CSS min-height ~2.85rem.
+      return isLg ? base : Math.max(base, 46);
     },
     overscan: 12,
   });
@@ -236,7 +240,7 @@ export const VirtualizedCatalogBody = forwardRef<
 
   useEffect(() => {
     virtualizer.measure();
-  }, [density, rows.length, virtualizer]);
+  }, [density, rows.length, virtualizer, isLg]);
 
   return (
     <div
@@ -344,6 +348,7 @@ export const VirtualizedCatalogBody = forwardRef<
               label="Buying price"
               onResizeStart={beginResize}
               onReset={() => resetColumn("buy")}
+              className="max-lg:hidden"
             />
           </span>
           <span
@@ -374,6 +379,7 @@ export const VirtualizedCatalogBody = forwardRef<
               label="Margin"
               onResizeStart={beginResize}
               onReset={() => resetColumn("margin")}
+              className="max-lg:hidden"
             />
           </span>
           <span
@@ -564,8 +570,8 @@ export const VirtualizedCatalogBody = forwardRef<
                       catalogListGridClass,
                       "group relative min-w-0 max-w-none text-left",
                       density === "dense"
-                        ? "min-h-[1.25rem] sm:min-h-[1.375rem]"
-                        : "min-h-8 sm:min-h-9",
+                        ? "min-h-[2.85rem] lg:min-h-[1.375rem]"
+                        : "min-h-[2.85rem] lg:min-h-9",
                       catalogRowHierarchyClass(meta, tone),
                       catalogRowAccentClass(tone, active),
                       catalogRowInteractionClasses(tone, rowInteraction),
@@ -647,7 +653,7 @@ export const VirtualizedCatalogBody = forwardRef<
                             <>
                               {nameResolution.label !==
                               CATALOG_FIX_NAME_LABEL ? (
-                                <span className="min-w-0 truncate text-[11px] font-medium tracking-tight text-foreground">
+                                <span className="min-w-0 truncate text-[11px] font-medium tracking-tight text-foreground max-lg:text-[13px] max-lg:font-semibold">
                                   {nameResolution.label}
                                 </span>
                               ) : null}
@@ -655,7 +661,7 @@ export const VirtualizedCatalogBody = forwardRef<
                             </>
                           ) : isVariant && variantTitle?.family ? (
                             <span
-                              className="min-w-0 truncate text-[11px] tracking-tight"
+                              className="min-w-0 truncate text-[11px] tracking-tight max-lg:text-[13px]"
                               title={variantTitle.combined}
                             >
                               <span className="font-normal text-foreground/45">
@@ -674,10 +680,10 @@ export const VirtualizedCatalogBody = forwardRef<
                           ) : (
                             <span
                               className={cn(
-                                "min-w-0 truncate text-[11px] tracking-tight",
+                                "min-w-0 truncate tracking-tight max-lg:text-[13px] max-lg:font-semibold lg:text-[11px]",
                                 isParentSelector
                                   ? "font-semibold text-foreground"
-                                  : "font-medium text-foreground",
+                                  : "font-medium text-foreground max-lg:font-semibold",
                               )}
                               title={
                                 isVariant

@@ -87,7 +87,8 @@ const toolBtn = cn(
 );
 
 /**
- * Mobile catalog chrome — search, clear Add product CTA, scope, optional filters.
+ * Mobile catalog chrome — search, Add, scope. Filters + library live in the panel
+ * so the product list keeps most of the viewport.
  */
 export function ProductMobileChrome({
   catalog,
@@ -149,7 +150,7 @@ export function ProductMobileChrome({
   return (
     <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-background lg:hidden">
       <div className="flex flex-col">
-        {/* Row 1 — search + tools */}
+        {/* Search + filter + Add — library/import moved into the panel */}
         <div className="flex items-stretch border-b border-border">
           <div className="relative min-w-0 flex-1">
             <Search
@@ -159,7 +160,7 @@ export function ProductMobileChrome({
             <input
               id="catalog-omni"
               className={cn(
-                "h-12 w-full border-0 bg-transparent pl-10 pr-9 text-[16px] text-foreground shadow-none",
+                "h-11 w-full border-0 bg-transparent pl-10 pr-9 text-[16px] text-foreground shadow-none",
                 "placeholder:text-foreground/35",
                 "focus-visible:outline-none focus-visible:ring-0",
               )}
@@ -190,6 +191,7 @@ export function ProductMobileChrome({
             aria-label="Filters"
             className={cn(
               toolBtn,
+              "size-11",
               (showPanel || panelCount > 0) &&
                 "bg-foreground text-background hover:bg-foreground hover:text-background",
             )}
@@ -202,34 +204,12 @@ export function ProductMobileChrome({
             ) : null}
           </button>
 
-          {onAddFromCatalog && canAddFromCatalog ? (
-            <button
-              type="button"
-              disabled={!canCreate}
-              onClick={onAddFromCatalog}
-              className={toolBtn}
-              aria-label="Add from library"
-              title="Library"
-            >
-              <Library className="size-4" aria-hidden />
-            </button>
-          ) : null}
-
-          <Link
-            href={APP_ROUTES.businessImport}
-            className={toolBtn}
-            aria-label="Import products from CSV"
-            title="Import"
-          >
-            <FileUp className="size-4" aria-hidden />
-          </Link>
-
           <button
             type="button"
             disabled={!canCreate}
             onClick={onCreateNew}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-1.5 border-l border-border px-3.5 text-[13px] font-semibold tracking-tight",
+              "relative inline-flex h-11 shrink-0 items-center gap-1.5 border-l border-border px-3.5 text-[13px] font-semibold tracking-tight",
               "bg-[var(--catalog-primary,#0f766e)] text-white",
               "transition-colors active:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/50",
@@ -242,59 +222,82 @@ export function ProductMobileChrome({
           </button>
         </div>
 
-        {/* Row 2 — scope as equal cells */}
-        <div
-          className="grid grid-cols-4 divide-x divide-border border-b border-border"
-          role="tablist"
-          aria-label="Catalog scope"
-        >
-          {SCOPE.map(([value, label]) => {
-            const active = catalog.catalogScope === value;
-            return (
+        {/* Scope + live count on one row */}
+        <div className="flex items-stretch border-b border-border">
+          <div
+            className="grid min-w-0 flex-1 grid-cols-4 divide-x divide-border"
+            role="tablist"
+            aria-label="Catalog scope"
+          >
+            {SCOPE.map(([value, label]) => {
+              const active = catalog.catalogScope === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => catalog.setCatalogScope(value)}
+                  className={cn(
+                    "h-9 text-[11px] font-medium tracking-tight transition-colors",
+                    active
+                      ? "bg-muted/50 font-semibold text-foreground"
+                      : "bg-background text-foreground/50 hover:bg-muted/30 hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex h-9 shrink-0 items-center gap-2 border-l border-border bg-muted/15 px-2.5">
+            <p className="text-[11px] font-semibold tabular-nums tracking-tight text-foreground/55">
+              {catalog.listTotalElements.toLocaleString()}
+              {searchPending ? (
+                <span className="font-medium text-foreground/35">…</span>
+              ) : null}
+            </p>
+            {filtersDirty ? (
               <button
-                key={value}
                 type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => catalog.setCatalogScope(value)}
-                className={cn(
-                  "h-11 text-[12px] font-medium tracking-tight transition-colors",
-                  active
-                    ? "bg-muted/50 font-semibold text-foreground"
-                    : "bg-background text-foreground/50 hover:bg-muted/30 hover:text-foreground",
-                )}
+                onClick={() => {
+                  catalog.resetFilters();
+                  setPanelOpen(false);
+                }}
+                className="text-[10px] font-semibold tracking-tight text-foreground/50 hover:text-foreground"
               >
-                {label}
+                Clear
               </button>
-            );
-          })}
-        </div>
-
-        {/* Row 4 — quiet meta */}
-        <div className="flex h-8 items-center justify-between gap-2 bg-muted/15 px-3">
-          <p className="text-[11px] font-medium tabular-nums tracking-tight text-foreground/50">
-            {catalog.listTotalElements.toLocaleString()} products
-            {searchPending ? (
-              <span className="text-foreground/35"> · updating</span>
             ) : null}
-          </p>
-          {filtersDirty ? (
-            <button
-              type="button"
-              onClick={() => {
-                catalog.resetFilters();
-                setPanelOpen(false);
-              }}
-              className="text-[11px] font-semibold tracking-tight text-foreground/55 hover:text-foreground"
-            >
-              Clear
-            </button>
-          ) : null}
+          </div>
         </div>
 
-        {/* Expandable filters — same sheet language */}
         {showPanel ? (
           <div className="space-y-3 border-t border-border bg-background px-3 py-3">
+            <div className="grid grid-cols-2 gap-2">
+              {onAddFromCatalog && canAddFromCatalog ? (
+                <button
+                  type="button"
+                  disabled={!canCreate}
+                  onClick={onAddFromCatalog}
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background text-[13px] font-semibold text-foreground/80 disabled:opacity-40"
+                >
+                  <Library className="size-4" aria-hidden />
+                  Library
+                </button>
+              ) : null}
+              <Link
+                href={APP_ROUTES.businessImport}
+                className={cn(
+                  "flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background text-[13px] font-semibold text-foreground/80",
+                  !(onAddFromCatalog && canAddFromCatalog) && "col-span-2",
+                )}
+              >
+                <FileUp className="size-4" aria-hidden />
+                Import CSV
+              </Link>
+            </div>
+
             <div className="space-y-1.5">
               <p className="text-[10px] font-semibold tracking-[-0.02em] text-foreground/40">
                 Category

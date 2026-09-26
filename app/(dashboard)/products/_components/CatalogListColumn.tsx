@@ -206,7 +206,7 @@ export function CatalogListColumn({
   }, [catalog]);
 
   return (
-    <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
+    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:overflow-hidden">
       <PriceCleanupBar
         status={catalog.priceStatus}
         counts={catalog.priceCounts}
