@@ -32,6 +32,7 @@ import {
 import { ALL_DEPARTMENTS_LABEL, ALL_SHELF_ZONES_LABEL, UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
+import { requestOpenGuideChat } from "@/lib/guide-open";
 import { requestOpenSupportChat } from "@/lib/support-open";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,7 @@ export type MoreQuickLink = {
   workspace?: ShellWorkspaceId;
   href?: string;
   /** Special actions that aren't routes. */
-  action?: "support";
+  action?: "support" | "guide";
 };
 
 export type HeaderPosLink = {
@@ -928,6 +929,11 @@ export function TabletMoreSheet({
     if (link.action === "support") {
       onClose();
       requestOpenSupportChat();
+      return;
+    }
+    if (link.action === "guide") {
+      onClose();
+      requestOpenGuideChat();
       return;
     }
     if (link.workspace && onOpenWorkspace) {

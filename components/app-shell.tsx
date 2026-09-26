@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   SlidersHorizontal,
+  Sparkles,
   Store,
   Tags,
   Truck,
@@ -1290,9 +1291,16 @@ export function AppShell({ children }: AppShellProps) {
         icon: LifeBuoy,
         action: "support",
       },
+      {
+        id: "guide",
+        label: "Ask Guide",
+        hint: "How do I…",
+        icon: Sparkles,
+        action: "guide",
+      },
     ];
     return candidates.filter((link) => {
-      if (link.action === "support") return true;
+      if (link.action === "support" || link.action === "guide") return true;
       if (link.workspace === "cashier") return canQuickSale;
       return Boolean(link.href && allowedHrefs.has(link.href));
     });

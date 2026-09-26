@@ -107,7 +107,7 @@ export function SupportLauncher() {
         aria-label={open ? "Close support chat" : "Open support chat"}
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
-          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color,opacity] duration-200",
+          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color,opacity] duration-200 max-2xl:hidden",
           SUPPORT_FAB_POSITION,
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           fabSuppressed && !open
