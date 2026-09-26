@@ -16,6 +16,8 @@ type ExchangePayload = {
   slug?: string | null;
 };
 
+const OAUTH_NEXT_COOKIE = "ub.oauth_next";
+
 function requestIsHttps(req: NextRequest): boolean {
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   if (proto) {
@@ -27,6 +29,30 @@ function requestIsHttps(req: NextRequest): boolean {
 function safeNext(value: string | null | undefined): string {
   const t = value?.trim() ?? "";
   return t.startsWith("/") && !t.startsWith("//") ? t : "/";
+}
+
+function readOauthNextCookie(req: NextRequest): string {
+  return safeNext(req.cookies.get(OAUTH_NEXT_COOKIE)?.value);
+}
+
+/** Hub / office destinations return to staff office login (Google-only owners). */
+function preferOfficeLogin(nextPath: string): boolean {
+  if (!nextPath || nextPath === "/" || nextPath.startsWith("/shop")) {
+    return false;
+  }
+  return (
+    nextPath.startsWith("/business") ||
+    nextPath.startsWith("/overview") ||
+    nextPath.startsWith("/settings") ||
+    nextPath.startsWith("/inventory") ||
+    nextPath.startsWith("/suppliers") ||
+    nextPath.startsWith("/users") ||
+    nextPath.startsWith("/branches") ||
+    nextPath.startsWith("/reports") ||
+    nextPath.startsWith("/cashier") ||
+    nextPath.startsWith("/grocery") ||
+    nextPath.startsWith("/butcher")
+  );
 }
 
 /**
@@ -51,10 +77,30 @@ export async function handleGoogleOAuthCallback(
     ? `${secure ? "https" : "http"}://${hostname}`
     : req.nextUrl.origin;
 
-  const loginRedirect = (code: string): NextResponse => {
-    const target = new URL("/login", origin);
+  const loginRedirect = (
+    code: string,
+    nextPath?: string | null,
+  ): NextResponse => {
+    const next = safeNext(nextPath || readOauthNextCookie(req));
+    const target = preferOfficeLogin(next)
+      ? new URL("/login/staff", origin)
+      : new URL("/login", origin);
+    if (preferOfficeLogin(next)) {
+      target.searchParams.set("mode", "office");
+      target.searchParams.set("next", next);
+    }
     target.searchParams.set("googleError", code);
-    return NextResponse.redirect(target, 303);
+    const res = NextResponse.redirect(target, 303);
+    // Drop the short-lived return hint.
+    res.cookies.set(OAUTH_NEXT_COOKIE, "", {
+      path: "/",
+      maxAge: 0,
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+    });
+    return res;
   };
 
   const segments = ["auth", "oauth", "google", "callback"];

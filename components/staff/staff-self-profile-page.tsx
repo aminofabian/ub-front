@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Banknote,
   ChevronRight,
+  KeyRound,
   Loader2,
   MessageSquareWarning,
   UserRound,
@@ -21,6 +22,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchStaffPaySelf,
+  requestPasswordReset,
   type StaffPaySelfAdvance,
   type StaffPaySelfPayslip,
   type StaffPaySelfPortal,
@@ -57,6 +59,8 @@ export function StaffSelfProfilePage() {
   const [portal, setPortal] = useState<StaffPaySelfPortal | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [passwordLinkSending, setPasswordLinkSending] = useState(false);
+  const [passwordLinkSent, setPasswordLinkSent] = useState(false);
 
   const [complaintSubject, setComplaintSubject] = useState("Workplace concern");
   const [complaintBody, setComplaintBody] = useState("");
@@ -109,6 +113,23 @@ export function StaffSelfProfilePage() {
     () => (portal?.payslips ?? []).slice(0, 6),
     [portal],
   );
+
+  const onSendPasswordLink = async () => {
+    const to = me?.email?.trim();
+    if (!to || passwordLinkSending) return;
+    setPasswordLinkSending(true);
+    try {
+      await requestPasswordReset(to);
+      setPasswordLinkSent(true);
+      toast.success("Password link sent. Check your email.");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not send the password link.",
+      );
+    } finally {
+      setPasswordLinkSending(false);
+    }
+  };
 
   const submitComplaint = async () => {
     const body = complaintBody.trim();
@@ -296,6 +317,35 @@ export function StaffSelfProfilePage() {
                   <ChevronRight className={cn("size-4", mute)} aria-hidden />
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => void onSendPasswordLink()}
+                disabled={passwordLinkSending || !me?.email}
+                className={cn(
+                  "flex w-full items-center gap-3 border bg-white px-3 py-3 text-left transition-colors",
+                  hair,
+                  "hover:border-[var(--pos-primary,#0f766e)] disabled:opacity-60",
+                )}
+              >
+                <KeyRound
+                  className="size-4 text-[var(--pos-primary,#0f766e)]"
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1">
+                  <span className={cn("block text-[13px] font-semibold", ink)}>
+                    {passwordLinkSending
+                      ? "Sending link\u2026"
+                      : "Set or change password"}
+                  </span>
+                  <span className={cn("block text-[11px]", mute)}>
+                    {passwordLinkSent
+                      ? "Check your email for the link."
+                      : "Email me a secure link to choose a password"}
+                  </span>
+                </span>
+                <ChevronRight className={cn("size-4", mute)} aria-hidden />
+              </button>
 
               {canReadPay ? (
                 <Link
