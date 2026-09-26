@@ -457,7 +457,7 @@ export function CashierBottomNav({
               ? Boolean(chrome?.moreOpen)
               : activeTab === tab.id && !chrome?.moreOpen;
           const tabClass = cn(
-            "tablet-nav-tab relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 transition-colors",
+            "tablet-nav-tab relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors",
             "active:scale-[0.97]",
             isActive &&
               "tablet-nav-tab-active bg-[color-mix(in_srgb,var(--pos-primary)_9%,transparent)]",
@@ -496,7 +496,7 @@ export function CashierBottomNav({
               </span>
               <span
                 className={cn(
-                  "max-w-[5.5rem] truncate text-[9px] font-semibold leading-none sm:text-[10px]",
+                  "max-w-[5.5rem] truncate text-[10px] font-semibold leading-none sm:text-[10px]",
                   isActive
                     ? "text-[var(--pos-primary)]"
                     : "text-muted-foreground",

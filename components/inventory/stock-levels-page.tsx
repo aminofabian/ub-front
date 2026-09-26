@@ -613,7 +613,7 @@ function StockStatCard({
   );
 }
 
-/** Mobile status chip — larger tap target than the desktop strip. */
+/** Mobile status chip — fills grid cells; no sideways scroll. */
 function MobileStatusChip({
   label,
   value,
@@ -626,7 +626,7 @@ function MobileStatusChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 shrink-0 items-center gap-1.5 border px-3.5 text-[13px] tracking-[-0.01em] transition-colors",
+        "inline-flex h-12 w-full min-w-0 items-center justify-between gap-1 rounded-2xl border px-2.5 text-[12px] tracking-[-0.01em] transition-colors",
         stockHair,
         active
           ? tone === "loss"
@@ -643,10 +643,10 @@ function MobileStatusChip({
             ),
       )}
     >
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       <span
         className={cn(
-          "font-mono text-[13px] tabular-nums",
+          "shrink-0 font-mono text-[13px] tabular-nums",
           active ? "text-white/95" : "font-semibold",
           !active &&
             tone === "success" &&
@@ -720,7 +720,7 @@ function stockStatusMeta(row: StockRow): {
 }
 
 const mobileFieldInput = cn(
-  "h-14 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+  "h-14 w-full rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white md:rounded-none",
   "px-3 text-[18px] leading-none text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
@@ -729,7 +729,7 @@ const mobileFieldInput = cn(
 );
 
 const mobileStepBtn = cn(
-  "inline-flex size-14 shrink-0 items-center justify-center border bg-white transition-colors",
+  "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl border bg-white transition-colors md:rounded-none",
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
   "text-[var(--order-ink,#15231f)]",
   "active:scale-[0.96] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]",
@@ -844,6 +844,26 @@ function StockMobileCard({
                 {metaBits.join(" · ")}
               </p>
             ) : null}
+            <p className={cn("mt-1 text-[12px] tabular-nums", stockMute)}>
+              Sell{" "}
+              <span className={cn("font-semibold", stockInk)}>
+                {fmtMoney(row.sellPrice, currency)}
+              </span>
+              {row.buyPrice != null ? (
+                <>
+                  <span className="mx-1.5 opacity-40">·</span>
+                  Buy{" "}
+                  <span className={cn("font-semibold", stockInk)}>
+                    {fmtMoney(row.buyPrice, currency)}
+                  </span>
+                </>
+              ) : null}
+              {loss ? (
+                <span className="ml-1.5 font-semibold text-orange-700 dark:text-orange-300">
+                  Loss
+                </span>
+              ) : null}
+            </p>
             {!canEdit && !row.editable ? (
               <p className={cn("mt-1 text-[11px]", stockMute)}>Stock on parent SKU</p>
             ) : null}
@@ -851,7 +871,7 @@ function StockMobileCard({
 
           <div
             className={cn(
-              "flex min-h-[3.75rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-2.5",
+              "flex min-h-[3.75rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border px-2.5",
               qtyTone,
             )}
           >
@@ -985,12 +1005,12 @@ function StockMobileCard({
             </label>
           ) : null}
 
-          <div className="flex gap-2">
+          <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onSaveEdit}
               disabled={saving || !targetOk || Math.abs(delta) < 0.0001}
-              className="inline-flex h-14 flex-1 items-center justify-center gap-1.5 bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition-[opacity,transform] active:scale-[0.99] active:opacity-90 disabled:opacity-40"
+              className="inline-flex h-14 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[var(--pos-primary,#0f766e)] text-[15px] font-semibold text-white transition-[opacity,transform] active:scale-[0.99] active:opacity-90 disabled:opacity-40"
             >
               <Check className="size-5" aria-hidden />
               {saving
@@ -1004,10 +1024,10 @@ function StockMobileCard({
               onClick={onCancelEdit}
               disabled={saving}
               className={cn(
-                "inline-flex h-14 items-center justify-center gap-1.5 border px-5 text-[15px] font-medium transition-colors disabled:opacity-40",
+                "inline-flex h-14 items-center justify-center gap-1.5 rounded-2xl border px-5 text-[15px] font-medium transition-colors disabled:opacity-40",
                 stockHair,
                 stockMute,
-                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
+                "bg-white active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
               )}
             >
               Cancel
@@ -2610,12 +2630,12 @@ export function StockLevelsPage() {
           {/* Search + status + filters — always above the list on mobile */}
           <div
             className={cn(
-              "border-b bg-white sm:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+              "border-b bg-white md:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
               stockHair,
             )}
           >
-            {/* Mobile: search + filters toggle */}
-            <div className="flex items-center gap-2 px-2.5 py-2 sm:hidden">
+            {/* Mobile / tablet: search + filters toggle */}
+            <div className="flex items-center gap-2 px-2.5 py-2 md:hidden">
               <span className="relative min-w-0 flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
@@ -2627,7 +2647,7 @@ export function StockLevelsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search name, barcode, SKU…"
                   className={cn(
-                    "h-11 w-full rounded-none border bg-white pl-10 pr-3 text-[15px]",
+                    "h-12 w-full rounded-2xl border bg-white pl-10 pr-3 text-[16px]",
                     stockHair,
                     stockInk,
                     "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
@@ -2641,7 +2661,7 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setMobileFiltersOpen((v) => !v)}
                 className={cn(
-                  "relative inline-flex h-11 shrink-0 items-center gap-1.5 border bg-white px-3 text-[12px] font-semibold",
+                  "relative inline-flex h-12 shrink-0 items-center gap-1.5 rounded-2xl border bg-white px-3 text-[13px] font-semibold",
                   stockHair,
                   stockInk,
                   mobileFiltersOpen &&
@@ -2652,7 +2672,14 @@ export function StockLevelsPage() {
               >
                 <SlidersHorizontal className="size-4" aria-hidden />
                 Filters
-                {supplierId || categoryId || sortKey !== "name" || sortDir !== "asc" ? (
+                {supplierId ||
+                categoryId ||
+                sortKey !== "name" ||
+                sortDir !== "asc" ||
+                statusFilter === "loss" ||
+                statusFilter === "poor_margin" ||
+                statusFilter === "no_buy" ||
+                statusFilter === "no_sell" ? (
                   <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" />
                 ) : null}
               </button>
@@ -2661,7 +2688,7 @@ export function StockLevelsPage() {
                 onClick={() => void load()}
                 disabled={loading || !branchId}
                 className={cn(
-                  "inline-flex size-11 shrink-0 items-center justify-center border bg-white",
+                  "inline-flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-white",
                   stockHair,
                   "disabled:opacity-50",
                 )}
@@ -2674,13 +2701,10 @@ export function StockLevelsPage() {
               </button>
             </div>
 
-            {/* Mobile: status chips */}
+            {/* Mobile: primary status grid — no sideways scroll */}
             {(rows.length > 0 || loading) && (
               <div
-                className={cn(
-                  "flex gap-1.5 overflow-x-auto px-2.5 pb-2 sm:hidden",
-                  "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                )}
+                className="grid grid-cols-4 gap-1.5 px-2.5 pb-2 md:hidden"
                 role="group"
                 aria-label="Stock status"
               >
@@ -2711,43 +2735,88 @@ export function StockLevelsPage() {
                   tone="success"
                   onClick={() => setStatusFilter("in_stock")}
                 />
-                <MobileStatusChip
-                  label="Loss"
-                  value={stockCounts.loss}
-                  active={statusFilter === "loss"}
-                  tone="loss"
-                  onClick={() => setStatusFilter("loss")}
-                />
-                <MobileStatusChip
-                  label="Margin"
-                  value={stockCounts.poorMargin}
-                  active={statusFilter === "poor_margin"}
-                  tone="warning"
-                  onClick={() => setStatusFilter("poor_margin")}
-                />
-                <MobileStatusChip
-                  label="No buy"
-                  value={stockCounts.noBuy}
-                  active={statusFilter === "no_buy"}
-                  onClick={() => setStatusFilter("no_buy")}
-                />
-                <MobileStatusChip
-                  label="No sell"
-                  value={stockCounts.noSell}
-                  active={statusFilter === "no_sell"}
-                  onClick={() => setStatusFilter("no_sell")}
-                />
               </div>
             )}
+
+            {/* Show active attention filter when Filters panel is closed */}
+            {!mobileFiltersOpen &&
+            (statusFilter === "loss" ||
+              statusFilter === "poor_margin" ||
+              statusFilter === "no_buy" ||
+              statusFilter === "no_sell") ? (
+              <div className="flex items-center gap-2 px-2.5 pb-2 md:hidden">
+                <span
+                  className={cn(
+                    "inline-flex h-9 flex-1 items-center justify-between rounded-2xl border px-3 text-[12px] font-semibold",
+                    stockHair,
+                    "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+                    stockInk,
+                  )}
+                >
+                  {statusFilter === "loss"
+                    ? "Showing loss items"
+                    : statusFilter === "poor_margin"
+                      ? "Showing thin margin"
+                      : statusFilter === "no_buy"
+                        ? "Showing no buy price"
+                        : "Showing no sell price"}
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("all")}
+                    className="ml-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]"
+                  >
+                    Clear
+                  </button>
+                </span>
+              </div>
+            ) : null}
 
             {/* Mobile: secondary filters panel */}
             {mobileFiltersOpen ? (
               <div
                 className={cn(
-                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 sm:hidden",
+                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 md:hidden",
                   stockHair,
                 )}
               >
+                <div className="col-span-2 min-w-0">
+                  <span
+                    className={cn(
+                      "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      stockMute,
+                    )}
+                  >
+                    Attention
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <MobileStatusChip
+                      label="Loss"
+                      value={stockCounts.loss}
+                      active={statusFilter === "loss"}
+                      tone="loss"
+                      onClick={() => setStatusFilter("loss")}
+                    />
+                    <MobileStatusChip
+                      label="Margin"
+                      value={stockCounts.poorMargin}
+                      active={statusFilter === "poor_margin"}
+                      tone="warning"
+                      onClick={() => setStatusFilter("poor_margin")}
+                    />
+                    <MobileStatusChip
+                      label="No buy"
+                      value={stockCounts.noBuy}
+                      active={statusFilter === "no_buy"}
+                      onClick={() => setStatusFilter("no_buy")}
+                    />
+                    <MobileStatusChip
+                      label="No sell"
+                      value={stockCounts.noSell}
+                      active={statusFilter === "no_sell"}
+                      onClick={() => setStatusFilter("no_sell")}
+                    />
+                  </div>
+                </div>
                 {!isBranchLockedRole ? (
                   <label className="col-span-2 block min-w-0">
                     <span
@@ -2762,7 +2831,7 @@ export function StockLevelsPage() {
                       value={branchId}
                       onChange={(e) => onChangeBranch(e.target.value)}
                       className={cn(
-                        "h-11 w-full cursor-pointer border bg-white px-3 text-[14px]",
+                        "h-12 w-full cursor-pointer rounded-2xl border bg-white px-3 text-[15px]",
                         stockHair,
                         stockInk,
                       )}
@@ -2789,7 +2858,7 @@ export function StockLevelsPage() {
                     Category
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Category"
                     value={categoryId}
                     options={categoryFilterOptions}
@@ -2808,7 +2877,7 @@ export function StockLevelsPage() {
                     Supplier
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Supplier"
                     value={supplierId}
                     options={supplierFilterOptions}
@@ -2827,7 +2896,7 @@ export function StockLevelsPage() {
                     Sort
                   </span>
                   <StockFilterMenu
-                    className="w-full [&_button]:h-11 [&_button]:text-[13px]"
+                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
                     label="Sort"
                     value={sortKey}
                     options={sortFilterOptions}
@@ -2838,10 +2907,10 @@ export function StockLevelsPage() {
               </div>
             ) : null}
 
-            {/* Desktop / tablet: dense one-row toolbar */}
+            {/* Desktop: dense one-row toolbar */}
             <div
               className={cn(
-                "hidden flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 sm:flex",
+                "hidden flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 md:flex",
               )}
             >
               {(rows.length > 0 || loading) && (
@@ -2998,34 +3067,36 @@ export function StockLevelsPage() {
           </div>
 
           {branchId ? (
-            <PriceCleanupBar
-              status={priceStatus}
-              counts={priceCounts}
-              listTotal={totalElements}
-              listLoading={loading}
-              matchAll={priceMatchAll}
-              onStatus={onPriceStatus}
-              onSelectAll={onSelectAllPrices}
-            />
+            <div className="hidden md:block">
+              <PriceCleanupBar
+                status={priceStatus}
+                counts={priceCounts}
+                listTotal={totalElements}
+                listLoading={loading}
+                matchAll={priceMatchAll}
+                onStatus={onPriceStatus}
+                onSelectAll={onSelectAllPrices}
+              />
+            </div>
           ) : null}
 
           {priceSelectionCount > 0 ? (
             <div
               className={cn(
-                "flex flex-wrap items-center justify-between gap-2 border-b px-3 py-1.5",
+                "flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 md:py-1.5",
                 stockHair,
                 "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
               )}
             >
-              <span className={cn("text-[12px] font-semibold tabular-nums", stockInk)}>
+              <span className={cn("text-[13px] font-semibold tabular-nums md:text-[12px]", stockInk)}>
                 {priceSelectionCount.toLocaleString("en-KE")}{" "}
                 {priceSelectionCount === 1 ? "item" : "items"} selected
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {canCatalogWrite ? (
                   <button
                     type="button"
-                    className="h-7 bg-[var(--pos-primary,#0f766e)] px-2 text-[12px] font-semibold text-white"
+                    className="h-11 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3.5 text-[13px] font-semibold text-white md:h-7 md:rounded-none md:px-2 md:text-[12px]"
                     onClick={openPriceEditor}
                   >
                     Edit prices
@@ -3033,7 +3104,10 @@ export function StockLevelsPage() {
                 ) : null}
                 <button
                   type="button"
-                  className={cn("h-7 px-2 text-[12px] font-medium", stockMute)}
+                  className={cn(
+                    "h-11 rounded-2xl px-3 text-[13px] font-medium md:h-7 md:rounded-none md:px-2 md:text-[12px]",
+                    stockMute,
+                  )}
                   onClick={() => {
                     setPriceMatchAll(false);
                     setPriceSelectedIds(new Set());
@@ -3054,13 +3128,13 @@ export function StockLevelsPage() {
           {canWrite && rows.length > 0 ? (
             <p
               className={cn(
-                "border-b px-3 py-2 text-[12px] sm:hidden",
+                "border-b px-3 py-2 text-[12px] md:hidden",
                 stockHair,
                 "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
                 "text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]",
               )}
             >
-              Tap any row → set qty with − / + → Save
+              Tap a product → set qty → Save
             </p>
           ) : !canWrite && !canCatalogWrite && rows.length > 0 ? (
             <p
@@ -3105,12 +3179,12 @@ export function StockLevelsPage() {
           ) : (
             <div
               ref={scrollRef}
-              className="max-h-[min(78dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] sm:max-h-[min(74vh,56rem)]"
+              className="max-h-[min(82dvh,56rem)] overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] md:max-h-[min(74vh,56rem)]"
             >
-              {/* Mobile: stacked cards — edit stock without horizontal scroll */}
+              {/* Mobile / tablet: stacked cards — edit stock without horizontal scroll */}
               <div
                 className={cn(
-                  "divide-y sm:hidden",
+                  "divide-y md:hidden",
                   "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
                 )}
               >
@@ -3136,7 +3210,7 @@ export function StockLevelsPage() {
               {/* Desktop: full spreadsheet */}
               <div
                 ref={shellRef}
-                className={cn(sheetStyles.shell, "hidden sm:block")}
+                className={cn(sheetStyles.shell, "hidden md:block")}
               >
                 {/* Restores persisted widths before the table's first paint. */}
                 <script

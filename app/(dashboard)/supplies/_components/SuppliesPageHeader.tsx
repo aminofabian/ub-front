@@ -90,7 +90,7 @@ export function SuppliesPageHeader({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
           {canShowProcurementLinks
             ? quickLinks.map((link) => {
                 const Icon = link.icon;
@@ -102,12 +102,12 @@ export function SuppliesPageHeader({
                       ? { target: "_blank", rel: "noopener noreferrer" }
                       : {})}
                     className={cn(
-                      "inline-flex h-7 items-center gap-1 border border-border bg-card px-2",
-                      "text-[11px] font-medium text-muted-foreground",
+                      "inline-flex h-10 items-center gap-1 rounded-xl border border-border bg-card px-2.5 sm:h-7 sm:rounded-none sm:px-2",
+                      "text-[12px] font-medium text-muted-foreground sm:text-[11px]",
                       "hover:border-primary/30 hover:bg-primary/[0.04] hover:text-foreground",
                     )}
                   >
-                    <Icon className="size-3" aria-hidden />
+                    <Icon className="size-3.5 sm:size-3" aria-hidden />
                     {link.label}
                   </Link>
                 );
@@ -162,11 +162,11 @@ export function SuppliesPageHeader({
               size="sm"
               className={cn(
                 supBtnPrimary,
-                "h-7 rounded-none px-2.5 text-[11px]",
+                "h-11 w-full rounded-2xl px-3 text-[13px] sm:h-7 sm:w-auto sm:rounded-none sm:px-2.5 sm:text-[11px]",
               )}
               onClick={onNewSupply}
             >
-              <PackagePlus className="size-3" aria-hidden />
+              <PackagePlus className="size-4 sm:size-3" aria-hidden />
               Walk-in supply
             </Button>
           ) : null}

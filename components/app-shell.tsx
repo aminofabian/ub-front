@@ -270,7 +270,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.purchasingAddSupplies,
-        label: "Records",
+        label: "Supply records",
         group: "Buying",
         flow: true,
       },
@@ -928,7 +928,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     label: "Stock",
     icon: Warehouse,
     href: APP_ROUTES.inventoryStock,
-    matchSectionIds: ["procurement", "inventory"],
+    matchSectionIds: ["inventory"],
   },
   {
     id: "ops",
@@ -936,7 +936,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     icon: ScanLine,
     href: APP_ROUTES.cashier,
     workspace: "cashier",
-    matchSectionIds: ["ops", "sales"],
+    matchSectionIds: ["ops"],
   },
   {
     id: "sales",

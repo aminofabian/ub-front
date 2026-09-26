@@ -537,11 +537,11 @@ function ShelfQtyStepper({
 }) {
   const removing = qty <= 1;
   const stepClass =
-    "flex w-8 shrink-0 items-center justify-center transition-colors hover:bg-white/15 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70";
+    "flex w-11 shrink-0 items-center justify-center transition-colors hover:bg-white/15 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70 sm:w-8";
   return (
     <div
       className={cn(
-        "pointer-events-auto absolute inset-x-0 bottom-0 z-[3] flex h-8 items-stretch",
+        "pointer-events-auto absolute inset-x-0 bottom-0 z-[3] flex h-11 items-stretch sm:h-8",
         "bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb] dark:bg-neutral-950 dark:text-white",
       )}
       onPointerDown={(e) => e.stopPropagation()}
@@ -560,13 +560,13 @@ function ShelfQtyStepper({
         }}
       >
         {removing ? (
-          <Trash2 className="size-3.5" aria-hidden />
+          <Trash2 className="size-4 sm:size-3.5" aria-hidden />
         ) : (
-          <Minus className="size-3.5" aria-hidden />
+          <Minus className="size-4 sm:size-3.5" aria-hidden />
         )}
       </button>
       <span
-        className="flex min-w-0 flex-1 items-center justify-center text-[11px] font-semibold leading-none tabular-nums"
+        className="flex min-w-0 flex-1 items-center justify-center text-[13px] font-semibold leading-none tabular-nums sm:text-[11px]"
         aria-label={`${qty} in the sale`}
       >
         {qty}
@@ -581,7 +581,7 @@ function ShelfQtyStepper({
           onStep(1);
         }}
       >
-        <Plus className="size-3.5" aria-hidden />
+        <Plus className="size-4 sm:size-3.5" aria-hidden />
       </button>
     </div>
   );

@@ -818,7 +818,10 @@ export function ProductCreateModal({
                 </div>
                 <SearchableSelect
                   ref={departmentSelectRef}
-                  className={cn(productFormInputClass, "h-10 rounded-none")}
+                  className={cn(
+                    productFormInputClass,
+                    "h-12 rounded-2xl text-base sm:h-10 sm:rounded-none sm:text-[14px]",
+                  )}
                   value={m.parentDraft.itemTypeId}
                   onChange={(itemTypeId) =>
                     m.setParentDraft((p) => ({ ...p, itemTypeId }))
@@ -865,7 +868,10 @@ export function ProductCreateModal({
                   </div>
                   <SearchableSelect
                     ref={categorySelectRef}
-                    className={cn(productFormInputClass, "h-10 rounded-none")}
+                    className={cn(
+                      productFormInputClass,
+                      "h-12 rounded-2xl text-base sm:h-10 sm:rounded-none sm:text-[14px]",
+                    )}
                     value={m.parentDraft.categoryId}
                     onChange={(categoryId) =>
                       m.setParentDraft((p) => ({ ...p, categoryId }))
@@ -1385,7 +1391,7 @@ export function ProductCreateModal({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:pb-3">
+          <DialogFooter className="shrink-0 flex-col gap-2.5 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:pb-3">
             <button
               type="button"
               role="switch"
@@ -1393,7 +1399,7 @@ export function ProductCreateModal({
               aria-label="Keep adding after save"
               disabled={isGroup || m.parentCreateBusy}
               onClick={() => setKeepOpen((v) => !v)}
-              className={styles.keep}
+              className={cn(styles.keep, "self-start sm:self-auto")}
             >
               <span className={styles.keepDot} aria-hidden />
               Keep adding
@@ -1402,7 +1408,7 @@ export function ProductCreateModal({
               <Button
                 type="button"
                 variant="ghost"
-                className="h-12 px-3 text-[13px] sm:h-9"
+                className="h-12 min-w-[4.5rem] px-3 text-[14px] sm:h-9 sm:text-[13px]"
                 onClick={onClose}
                 disabled={m.parentCreateBusy}
               >

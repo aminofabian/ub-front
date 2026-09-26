@@ -38,6 +38,7 @@ import {
 } from "../../suppliers/_components/supplier-ui-tokens";
 import { RestockPageHeader } from "./_components/restock-page-header";
 import {
+  RestockMobileCard,
   RestockRowItem,
   type RestockRow,
 } from "./_components/restock-row-item";
@@ -433,7 +434,23 @@ export default function InventoryRestockPage() {
                   {filteredRows.length} of {rows.length} match
                 </div>
               ) : null}
-              <div className="overflow-x-auto">
+              <div className="md:hidden">
+                {filteredRows.map((r) => (
+                  <RestockMobileCard
+                    key={r.item.id}
+                    row={r}
+                    canWrite={canWrite}
+                    onQtyChange={(value) =>
+                      setRowField(r.item.id, "qty", value)
+                    }
+                    onCostChange={(value) =>
+                      setRowField(r.item.id, "cost", value)
+                    }
+                    onSave={() => void saveRow(r.item.id)}
+                  />
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[28rem] border-collapse border-0 text-left text-xs">
                   <thead>
                     <tr className={supTableHead}>
