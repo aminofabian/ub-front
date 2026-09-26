@@ -18,11 +18,14 @@ import {
   DASHBOARD_MAX,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchMyOAuthLinks,
   fetchStaffPaySelf,
   requestPasswordReset,
+  unlinkGoogleAccount,
   type StaffPaySelfAdvance,
   type StaffPaySelfPayslip,
   type StaffPaySelfPortal,
@@ -61,6 +64,11 @@ export function StaffSelfProfilePage() {
   const [payError, setPayError] = useState<string | null>(null);
   const [passwordLinkSending, setPasswordLinkSending] = useState(false);
   const [passwordLinkSent, setPasswordLinkSent] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState<boolean | null>(null);
+  const [showUnlinkGoogle, setShowUnlinkGoogle] = useState(false);
+  const [unlinkGooglePassword, setUnlinkGooglePassword] = useState("");
+  const [unlinkGoogleBusy, setUnlinkGoogleBusy] = useState(false);
+  const [unlinkGoogleError, setUnlinkGoogleError] = useState<string | null>(null);
 
   const [complaintSubject, setComplaintSubject] = useState("Workplace concern");
   const [complaintBody, setComplaintBody] = useState("");
@@ -91,6 +99,21 @@ export function StaffSelfProfilePage() {
     if (sessionLoading) return;
     void loadPay();
   }, [sessionLoading, loadPay]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const links = await fetchMyOAuthLinks();
+        if (!cancelled) setGoogleLinked(links.googleLinked === true);
+      } catch {
+        if (!cancelled) setGoogleLinked(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const displayName =
     portal?.displayName?.trim() ||
@@ -128,6 +151,25 @@ export function StaffSelfProfilePage() {
       );
     } finally {
       setPasswordLinkSending(false);
+    }
+  };
+
+  const onUnlinkGoogle = async () => {
+    if (unlinkGoogleBusy) return;
+    setUnlinkGoogleBusy(true);
+    setUnlinkGoogleError(null);
+    try {
+      await unlinkGoogleAccount(unlinkGooglePassword);
+      setGoogleLinked(false);
+      setShowUnlinkGoogle(false);
+      setUnlinkGooglePassword("");
+      toast.success("Google disconnected.");
+    } catch (e) {
+      setUnlinkGoogleError(
+        e instanceof Error ? e.message : "Could not disconnect Google.",
+      );
+    } finally {
+      setUnlinkGoogleBusy(false);
     }
   };
 
@@ -346,6 +388,94 @@ export function StaffSelfProfilePage() {
                 </span>
                 <ChevronRight className={cn("size-4", mute)} aria-hidden />
               </button>
+
+              <div className={cn("border bg-white p-3 sm:p-4", hair)}>
+                <p className={cn("text-[13px] font-semibold", ink)}>
+                  Connected accounts
+                </p>
+                <p className={cn("mt-1 text-[11px]", mute)}>
+                  Connect the Google account with this same email to sign in
+                  faster — you can keep using your password too.
+                </p>
+                <div className="mt-3">
+                  {googleLinked === null ? (
+                    <p className={cn("text-[12px]", mute)}>Checking…</p>
+                  ) : googleLinked ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className={cn("text-[13px] font-medium", ink)}>
+                          Google
+                        </span>
+                        <span className="text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
+                          Connected
+                        </span>
+                      </div>
+                      {showUnlinkGoogle ? (
+                        <div className="space-y-2">
+                          <input
+                            type="password"
+                            value={unlinkGooglePassword}
+                            onChange={(e) =>
+                              setUnlinkGooglePassword(e.target.value)
+                            }
+                            placeholder="Your account password"
+                            autoComplete="current-password"
+                            className={cn(
+                              "h-10 w-full border bg-white px-3 text-[13px]",
+                              hair,
+                              ink,
+                            )}
+                          />
+                          {unlinkGoogleError ? (
+                            <p className="text-[11px] text-red-700">
+                              {unlinkGoogleError}
+                            </p>
+                          ) : null}
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => void onUnlinkGoogle()}
+                              disabled={
+                                unlinkGoogleBusy || !unlinkGooglePassword
+                              }
+                              className="inline-flex h-9 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-3 text-[12px] font-semibold text-white disabled:opacity-50"
+                            >
+                              {unlinkGoogleBusy
+                                ? "Disconnecting…"
+                                : "Disconnect"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowUnlinkGoogle(false);
+                                setUnlinkGooglePassword("");
+                                setUnlinkGoogleError(null);
+                              }}
+                              className={cn("text-[12px] font-medium", mute)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowUnlinkGoogle(true)}
+                          className={cn("text-[12px] font-medium", mute)}
+                        >
+                          Disconnect Google
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <GoogleAuthButton
+                      intent="sign_in"
+                      next={APP_ROUTES.myProfile}
+                      label="Connect Google"
+                    />
+                  )}
+                </div>
+              </div>
 
               {canReadPay ? (
                 <Link

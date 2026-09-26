@@ -3024,6 +3024,23 @@ export async function resetPasswordWithToken(
   });
 }
 
+export type MyOAuthLinksRecord = {
+  googleLinked: boolean;
+};
+
+/** Social identities connected to the signed-in account (profile → Connected accounts). */
+export async function fetchMyOAuthLinks(): Promise<MyOAuthLinksRecord> {
+  return request<MyOAuthLinksRecord>("/api/v1/me/oauth", { toast: false });
+}
+
+/** Disconnect Google from the signed-in account. Requires the account password. */
+export async function unlinkGoogleAccount(password: string): Promise<void> {
+  await request("/api/v1/me/oauth/google/unlink", {
+    method: "POST",
+    body: { password },
+  });
+}
+
 /**
  * Revokes the current refresh session server-side when possible, then clears ALL local session data.
  * Also disconnects the realtime WebSocket to prevent stale connections from attempting re-auth.
