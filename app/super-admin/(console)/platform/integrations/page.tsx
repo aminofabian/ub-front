@@ -172,6 +172,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [whatsappMetaWebhookVerifyToken, setWhatsappMetaWebhookVerifyToken] =
     useState("");
   const [whatsappMetaAppSecret, setWhatsappMetaAppSecret] = useState("");
+  const [googleOauthEnabled, setGoogleOauthEnabled] = useState(false);
+  const [googleOauthClientId, setGoogleOauthClientId] = useState("");
+  const [googleOauthClientSecret, setGoogleOauthClientSecret] = useState("");
   const [smsProvider, setSmsProvider] = useState("none");
   const [sozuriProject, setSozuriProject] = useState("");
   const [sozuriApiKey, setSozuriApiKey] = useState("");
@@ -204,6 +207,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
     );
     setWhatsappMetaPhoneNumberId(row.whatsappMetaPhoneNumberId ?? "");
     setWhatsappMetaGraphVersion(row.whatsappMetaGraphVersion || "v25.0");
+    setGoogleOauthEnabled(Boolean(row.googleOauthEnabled));
+    setGoogleOauthClientId(row.googleOauthClientId ?? "");
     setSmsProvider(row.smsProvider || "none");
     setSozuriProject(row.sozuriProject ?? "");
     setSozuriFrom(row.sozuriFrom || "Sozuri");
@@ -219,6 +224,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
     setWhatsappMetaAccessToken("");
     setWhatsappMetaWebhookVerifyToken("");
     setWhatsappMetaAppSecret("");
+    setGoogleOauthClientSecret("");
     setSozuriApiKey("");
     setTextsmsApiKey("");
   }, []);
@@ -281,6 +287,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
         rapidApiWhatsappPhoneDigitsOnly,
         whatsappMetaPhoneNumberId: whatsappMetaPhoneNumberId.trim(),
         whatsappMetaGraphVersion: whatsappMetaGraphVersion.trim() || "v25.0",
+        googleOauthEnabled,
+        googleOauthClientId: googleOauthClientId.trim(),
         smsProvider: smsProvider.trim() || "none",
         sozuriProject: sozuriProject.trim(),
         sozuriFrom: sozuriFrom.trim() || "Sozuri",
@@ -306,6 +314,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
       }
       if (whatsappMetaAppSecret.trim()) {
         body.whatsappMetaAppSecret = whatsappMetaAppSecret.trim();
+      }
+      if (googleOauthClientSecret.trim()) {
+        body.googleOauthClientSecret = googleOauthClientSecret.trim();
       }
       if (sozuriApiKey.trim()) body.sozuriApiKey = sozuriApiKey.trim();
       if (textsmsApiKey.trim()) body.textsmsApiKey = textsmsApiKey.trim();
@@ -356,6 +367,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
     settings?.hasWhatsappMetaAccessToken,
     settings?.hasSozuriApiKey,
     settings?.hasTextsmsApiKey,
+    settings?.hasGoogleOauthClientSecret,
   ].filter(Boolean).length;
 
   const metaReady = Boolean(
@@ -363,8 +375,33 @@ export default function SuperAdminPlatformIntegrationsPage() {
       whatsappMetaPhoneNumberId.trim(),
   );
 
+  const googleReady = Boolean(
+    googleOauthEnabled &&
+      googleOauthClientId.trim() &&
+      settings?.hasGoogleOauthClientSecret,
+  );
+
   const sectionSummary = (sectionId: IntegrationsSectionId): ReactNode => {
     switch (sectionId) {
+      case "google":
+        return (
+          <>
+            {googleReady ? (
+              <span className="font-semibold text-[var(--pos-primary,#0f766e)]">
+                Live
+              </span>
+            ) : googleOauthEnabled ? (
+              <span className="font-semibold text-amber-800">Needs secret</span>
+            ) : (
+              <span className="font-semibold">Off</span>
+            )}
+            {" · "}
+            client{" "}
+            <span className="font-semibold">
+              {googleOauthClientId.trim() ? "set" : "missing"}
+            </span>
+          </>
+        );
       case "deepseek":
         return (
           <>
@@ -428,6 +465,105 @@ export default function SuperAdminPlatformIntegrationsPage() {
 
   const drawerBody = (() => {
     if (!activeSection) return null;
+
+    if (activeSection === "google") {
+      const redirectUri =
+        settings?.googleOauthRedirectUri ||
+        "https://kiosk.ke/api/v1/auth/oauth/google/callback";
+      const localRedirect =
+        "http://localhost:3000/api/v1/auth/oauth/google/callback";
+      return (
+        <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            One Google Cloud OAuth web client for merchant{" "}
+            <span className="font-semibold">Continue with Google</span> on apex
+            signup and owner login. Create it in{" "}
+            <a
+              href="https://console.cloud.google.com/apis/credentials?project=full-auth-458108"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+            >
+              Google Cloud Console
+            </a>
+            , then paste the Client ID and secret here.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <KeyStatus ready={googleReady} />
+            <span className={dashboardHintClass()}>
+              {googleReady
+                ? "Merchants can use Google"
+                : "Button stays hidden until enabled + both keys"}
+            </span>
+          </div>
+          <ToggleRow
+            id="sa-google-enabled"
+            label="Enable Google Sign-In"
+            description="Master switch. Off hides Continue with Google everywhere."
+            checked={googleOauthEnabled}
+            onChange={setGoogleOauthEnabled}
+          />
+          <Field id="sa-google-client-id" label="Client ID">
+            <Input
+              id="sa-google-client-id"
+              className={dashboardInputClass()}
+              autoComplete="off"
+              value={googleOauthClientId}
+              onChange={(ev) => setGoogleOauthClientId(ev.target.value)}
+              placeholder="….apps.googleusercontent.com"
+            />
+          </Field>
+          <Field id="sa-google-client-secret" label="Client secret">
+            <Input
+              id="sa-google-client-secret"
+              type="password"
+              autoComplete="off"
+              className={dashboardInputClass()}
+              placeholder={
+                settings?.hasGoogleOauthClientSecret
+                  ? "••••••••  (leave blank to keep)"
+                  : "Paste client secret (shown once in Google Cloud)"
+              }
+              value={googleOauthClientSecret}
+              onChange={(ev) => setGoogleOauthClientSecret(ev.target.value)}
+            />
+            {settings?.hasGoogleOauthClientSecret ? (
+              <ClearKeyButton
+                label="Clear stored secret"
+                disabled={busy}
+                onClick={() =>
+                  clearSecret(
+                    "clear-google-oauth-secret",
+                    "Remove Google client secret?",
+                    "Continue with Google will stop working until you paste a new secret.",
+                    { googleOauthClientSecret: "" },
+                    "Google client secret cleared.",
+                  )
+                }
+              />
+            ) : null}
+          </Field>
+          <div className={cn("space-y-2 border bg-white px-3 py-2.5", HAIRLINE)}>
+            <p className="text-[12px] font-semibold text-foreground">
+              Paste these redirect URIs in Google Cloud
+            </p>
+            <p className="break-all font-mono text-[11px] text-foreground">
+              {redirectUri}
+            </p>
+            <p className="break-all font-mono text-[11px] text-[#666666]">
+              {localRedirect}
+            </p>
+            <p className={dashboardHintClass()}>
+              Also add JS origins{" "}
+              <code className="font-mono text-[10px]">https://kiosk.ke</code> and{" "}
+              <code className="font-mono text-[10px]">http://localhost:3000</code>
+              . Consent screen must leave Testing before real merchants can sign
+              in.
+            </p>
+          </div>
+        </div>
+      );
+    }
 
     if (activeSection === "deepseek") {
       return (

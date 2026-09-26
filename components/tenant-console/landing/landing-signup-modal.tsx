@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import {
+  GoogleAuthButton,
+} from "@/components/auth/google-auth-button";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { onboardBusiness, registerAccount, resendVerificationEmail, verifyEmailAddress, loginWithPassword } from "@/lib/api";
 import {
+  getSessionTenantId,
   persistSessionTenantHost,
   setSessionTenantId,
 } from "@/lib/auth";
@@ -513,7 +517,17 @@ export function LandingSignupModal({
                   </DialogDescription>
                 </DialogHeader>
 
-                <form className="mt-6 space-y-4" onSubmit={onStep2Submit}>
+                <div className="mt-6 space-y-4">
+                  <GoogleAuthButton
+                    intent="sign_up"
+                    businessId={getSessionTenantId()}
+                    next={APP_ROUTES.business}
+                    label="Continue with Google"
+                    withDivider
+                  />
+                </div>
+
+                <form className="space-y-4" onSubmit={onStep2Submit}>
                   <div>
                     <label
                       htmlFor="landing-signup-name"

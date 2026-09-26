@@ -1347,6 +1347,10 @@ export type PlatformIntegrationsRecord = {
   whatsappMetaGraphVersion: string;
   hasWhatsappMetaWebhookVerifyToken: boolean;
   hasWhatsappMetaAppSecret: boolean;
+  googleOauthEnabled: boolean;
+  googleOauthClientId: string;
+  hasGoogleOauthClientSecret: boolean;
+  googleOauthRedirectUri: string;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
@@ -1382,6 +1386,9 @@ export type UpdatePlatformIntegrationsPayload = {
   whatsappMetaGraphVersion?: string | null;
   whatsappMetaWebhookVerifyToken?: string | null;
   whatsappMetaAppSecret?: string | null;
+  googleOauthEnabled?: boolean | null;
+  googleOauthClientId?: string | null;
+  googleOauthClientSecret?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {

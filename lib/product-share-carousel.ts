@@ -9,6 +9,8 @@ import {
   productShareHeading,
   productShareMessage,
   productShareOgImageUrl,
+  productShareSocialCaption,
+  productShareTweetText,
   type ProductShareContact,
   type ProductShareItem,
 } from "@/lib/product-share-seo";
@@ -17,6 +19,9 @@ export type ShareProductResult =
   | "shared-carousel"
   | "shared-link"
   | "opened-whatsapp"
+  | "opened-facebook"
+  | "opened-twitter"
+  | "opened-instagram"
   | "copied"
   | "aborted";
 
@@ -59,6 +64,23 @@ export async function fetchProductShareFiles(
 
 export function whatsAppShareUrl(text: string): string {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+export function facebookShareUrl(productUrl: string): string {
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`;
+}
+
+export function twitterShareUrl(productUrl: string, text: string): string {
+  const params = new URLSearchParams({
+    url: productUrl,
+    text,
+  });
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
+function openShareWindow(url: string): boolean {
+  const opened = window.open(url, "_blank", "noopener,noreferrer,width=640,height=720");
+  return Boolean(opened);
 }
 
 /**
@@ -111,8 +133,7 @@ export async function shareProductToWhatsApp(opts: {
     opts.shopLabel,
   );
   const wa = whatsAppShareUrl(message);
-  const opened = window.open(wa, "_blank", "noopener,noreferrer");
-  if (!opened) {
+  if (!openShareWindow(wa)) {
     try {
       await navigator.clipboard.writeText(message);
       return "copied";
@@ -122,6 +143,94 @@ export async function shareProductToWhatsApp(opts: {
     }
   }
   return "opened-whatsapp";
+}
+
+/** Facebook share dialog — OG card (poster + price) loads from the product URL. */
+export async function shareProductToFacebook(opts: {
+  productUrl: string;
+}): Promise<ShareProductResult> {
+  const url = facebookShareUrl(opts.productUrl);
+  if (!openShareWindow(url)) {
+    try {
+      await navigator.clipboard.writeText(opts.productUrl);
+      return "copied";
+    } catch {
+      window.location.href = url;
+      return "opened-facebook";
+    }
+  }
+  return "opened-facebook";
+}
+
+/** X (Twitter) intent with punchy text + link card. */
+export async function shareProductToTwitter(opts: {
+  item: ProductShareItem;
+  productUrl: string;
+  shopLabel?: string | null;
+}): Promise<ShareProductResult> {
+  const text = productShareTweetText(opts.item, opts.shopLabel);
+  const url = twitterShareUrl(opts.productUrl, text);
+  if (!openShareWindow(url)) {
+    try {
+      await navigator.clipboard.writeText(`${text}\n${opts.productUrl}`);
+      return "copied";
+    } catch {
+      window.location.href = url;
+      return "opened-twitter";
+    }
+  }
+  return "opened-twitter";
+}
+
+/**
+ * Instagram has no web share URL — copy a Stories/caption-ready line, then
+ * hand off the promo poster (+ gallery) via the OS share sheet so the shopper
+ * can pick Instagram.
+ */
+export async function shareProductToInstagram(opts: {
+  item: ProductShareItem;
+  productUrl: string;
+  origin: string;
+  slug: string;
+  shopLabel?: string | null;
+  contact?: ProductShareContact | null;
+}): Promise<ShareProductResult> {
+  const caption = productShareSocialCaption(
+    opts.item,
+    opts.productUrl,
+    opts.shopLabel,
+  );
+  try {
+    await navigator.clipboard.writeText(caption);
+  } catch {
+    /* clipboard optional — still try photo handoff */
+  }
+
+  const title = productShareHeading(opts.item);
+  const urls = productShareAlbumUrls({
+    item: opts.item,
+    origin: opts.origin,
+    slug: opts.slug,
+  });
+
+  try {
+    const files = await fetchProductShareFiles(urls.slice(0, 3), "story");
+    if (files.length > 0) {
+      const shared = await tryWebShare({
+        files,
+        title,
+        text: caption,
+      });
+      if (shared) return "opened-instagram";
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return "aborted";
+    }
+  }
+
+  // Caption already copied — shopper opens IG and pastes.
+  return "opened-instagram";
 }
 
 /** Share promo poster + gallery as a photo album when the OS allows. */

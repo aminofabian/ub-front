@@ -8,6 +8,8 @@ import {
   productShareOgGalleryImages,
   productShareOgImageUrl,
   productShareOgTitle,
+  productShareSocialCaption,
+  productShareTweetText,
   type ProductShareItem,
 } from "@/lib/product-share-seo";
 
@@ -142,5 +144,27 @@ describe("productShareMessage", () => {
     expect(text).toContain("https://palmart.co.ke/products/carrier-bag");
     expect(text).toContain("*0706 683 570*");
     expect(text).toContain("👇 Tap to order:");
+  });
+});
+
+describe("productShareTweetText", () => {
+  it("builds a short X caption with price", () => {
+    const text = productShareTweetText(item(), "Palmart");
+    expect(text).toContain("Palmart");
+    expect(text).toContain("ONLY KSh 50/=");
+    expect(text).toContain("Pay on delivery");
+  });
+});
+
+describe("productShareSocialCaption", () => {
+  it("builds a plain caption for IG / Facebook paste", () => {
+    const text = productShareSocialCaption(
+      item(),
+      "https://palmart.co.ke/products/carrier-bag",
+      "Palmart",
+    );
+    expect(text).toContain("ONLY KSh 50/=");
+    expect(text).not.toContain("*ONLY");
+    expect(text).toContain("https://palmart.co.ke/products/carrier-bag");
   });
 });

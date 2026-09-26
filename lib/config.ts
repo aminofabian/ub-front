@@ -25,6 +25,8 @@ export const APP_ROUTES = {
   /** Shop staff / till / office sign-in (PIN + password). */
   staffLogin: "/login/staff",
   authHandoff: "/auth/handoff",
+  /** Apex-only Google OAuth start (custom domains bounce here). */
+  authGoogleOAuth: "/auth/oauth/google",
   signup: "/signup",
   signupStaff: "/signup/staff",
   verifyEmail: "/verify-email",

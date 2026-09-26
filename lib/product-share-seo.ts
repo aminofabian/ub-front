@@ -240,6 +240,46 @@ export function productShareMessage(
   return lines.join("\n");
 }
 
+/**
+ * Short caption for X / Instagram / Facebook composer — no WhatsApp *bold*.
+ */
+export function productShareSocialCaption(
+  item: ProductShareItem,
+  productUrl: string,
+  shopLabel?: string | null,
+): string {
+  const heading = productShareHeading(item);
+  const price = hasSharePrice(item.price)
+    ? formatSharePrice(item.currency, item.price)
+    : null;
+  const shop = shopLabel?.trim();
+  const head = shop ? `${shop} · ${heading}` : heading;
+  if (price) {
+    return `🔥 NEW IN — ${head}\n💰 ONLY ${price}\n✅ Pay on delivery\n👇 ${productUrl}`;
+  }
+  return `✨ ${head}\n✅ Pay on delivery\n👇 ${productUrl}`;
+}
+
+/** X/Twitter intent text (URL passed separately so X appends the card). */
+export function productShareTweetText(
+  item: ProductShareItem,
+  shopLabel?: string | null,
+): string {
+  const heading = productShareHeading(item);
+  const price = hasSharePrice(item.price)
+    ? formatSharePrice(item.currency, item.price)
+    : null;
+  const shop = shopLabel?.trim();
+  if (price) {
+    return shop
+      ? `🔥 ${shop}: ${heading} — ONLY ${price}. Pay on delivery 👇`
+      : `🔥 ${heading} — ONLY ${price}. Pay on delivery 👇`;
+  }
+  return shop
+    ? `✨ ${shop}: ${heading}. Order online 👇`
+    : `✨ ${heading}. Order online 👇`;
+}
+
 export function buildProductShareMetadata(
   input: ProductShareSeoInput & { slug: string },
 ): Metadata {

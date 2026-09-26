@@ -48,19 +48,24 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
 
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <span
-          className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg",
-            TINTS[kpi.tint ?? "teal"],
-          )}
-        >
-          <Icon className="size-4" aria-hidden />
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-md",
+              TINTS[kpi.tint ?? "teal"],
+            )}
+          >
+            <Icon className="size-3.5" aria-hidden />
+          </span>
+          <p className="truncate text-[11px] font-medium text-[#6F6F6F]">
+            {kpi.label}
+          </p>
+        </div>
         {direction ? (
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
               direction === "down"
                 ? "bg-[#FDECEC] text-[#B4342F]"
                 : "bg-[#E6F4EC] text-[#047857]",
@@ -72,24 +77,21 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
         ) : null}
       </div>
 
-      <p className="mt-3 truncate text-[11px] font-medium text-[#6F6F6F]">
-        {kpi.label}
-      </p>
       <p
-        className="mt-1 truncate text-[20px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:text-[23px]"
+        className="mt-1.5 truncate text-[17px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:text-[19px]"
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {kpi.value}
       </p>
       {kpi.hint || kpi.trendLabel ? (
-        <p className="mt-1.5 truncate text-[11px] text-[#8A8A8A]">
+        <p className="mt-1 truncate text-[10px] text-[#8A8A8A]">
           {kpi.hint ?? kpi.trendLabel}
         </p>
       ) : null}
     </>
   );
 
-  const surface = cn(HUB_SURFACE, "min-w-0 p-3.5 sm:p-4");
+  const surface = cn(HUB_SURFACE, "min-w-0 p-2.5 sm:p-3");
 
   if (kpi.href && !kpi.actions?.length) {
     return (
@@ -115,7 +117,7 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
         body
       )}
       {kpi.actions?.length ? (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {kpi.actions.map((action) => (
             <button
               key={action.label}
@@ -142,7 +144,7 @@ export function HubKpiRow({ items }: { items: HubKpi[] }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
       {items.map((kpi) => (
         <KpiCard key={kpi.id} kpi={kpi} />
       ))}

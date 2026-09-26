@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  GoogleAuthButton,
+} from "@/components/auth/google-auth-button";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import {
   authInputClassName,
@@ -15,6 +18,7 @@ import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
+  getSessionTenantId,
   hasAccessSession,
   hasSessionPresenceCookie,
   persistSessionTenantHost,
@@ -478,7 +482,24 @@ function SignupPageContent() {
           </button>
         </>
       ) : (
-        <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+        <>
+          {(tenant || resumedDraft) ? (
+            <div className="mt-8 space-y-4">
+              <GoogleAuthButton
+                intent="sign_up"
+                businessId={
+                  tenant?.tenantId ??
+                  resumedDraft?.tenantId ??
+                  getSessionTenantId()
+                }
+                next={APP_ROUTES.business}
+                requireTenantSso
+                ssoProviders={tenant?.authConfig?.ssoProviders}
+                withDivider
+              />
+            </div>
+          ) : null}
+        <form className={cn(tenant || resumedDraft ? "space-y-4" : "mt-8 space-y-4")} onSubmit={onSubmit}>
           <div>
             <label
               className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -555,6 +576,7 @@ function SignupPageContent() {
             {isSubmitting ? "Creating account…" : "Submit"}
           </button>
         </form>
+        </>
       )}
 
       {successMessage ? (

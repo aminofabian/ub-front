@@ -86,9 +86,27 @@ function LoginPageContent() {
   );
   const [secret, setSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(
-    () => searchParams.get("error")?.trim() ?? "",
-  );
+  const [errorMessage, setErrorMessage] = useState(() => {
+    const raw = searchParams.get("error")?.trim() ?? "";
+    const google = searchParams.get("googleError")?.trim() ?? "";
+    if (raw) return raw;
+    switch (google) {
+      case "no_account":
+        return "No shop for this Google account yet. Create one first.";
+      case "multi_shop":
+        return "That Google account is on more than one shop. Pick a shop from Sign in, or use email.";
+      case "email_unverified":
+        return "Google did not verify that email. Try another account.";
+      case "disabled":
+        return "Google Sign-In is temporarily unavailable.";
+      case "":
+        return "";
+      default:
+        return google
+          ? "Google sign-in did not complete. Try again."
+          : "";
+    }
+  });
   const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pinSetup, setPinSetup] = useState(false);
@@ -904,7 +922,7 @@ function LoginPageContent() {
       ) : (
         <>
           <form
-            className="mt-6 space-y-5"
+            className={cn(isOffice ? "space-y-5" : "mt-6 space-y-5")}
             action={LOGIN_BRIDGE}
             method="POST"
             noValidate
