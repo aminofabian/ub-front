@@ -32,6 +32,7 @@ import {
   getOrCreateTillDeviceId,
   TILL_DEVICE_HEADER,
 } from "@/lib/till-device";
+import { shareInflight } from "@/lib/share-inflight";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { beginSessionReconnect } from "@/lib/session-reconnect";
 import {
@@ -3348,10 +3349,12 @@ export type StaffNotificationRow = {
 };
 
 export async function fetchStaffNotifications(): Promise<StaffNotificationRow[]> {
-  return request<StaffNotificationRow[]>(API_ROUTES.notifications, {
-    requiresAuth: true,
-    toast: false,
-  });
+  return shareInflight("notifications:list", () =>
+    request<StaffNotificationRow[]>(API_ROUTES.notifications, {
+      requiresAuth: true,
+      toast: false,
+    }),
+  );
 }
 
 export async function markStaffNotificationRead(id: string): Promise<void> {
@@ -3891,11 +3894,13 @@ export async function fetchUsers(
 }
 
 export async function fetchBranches(): Promise<BranchRecord[]> {
-  const path = `${API_ROUTES.branches}?${DEFAULT_PAGE_QUERY}`;
-  const payload = await request<unknown>(path);
-  return parseList(payload).map((row) =>
-    normalizeBranchRecord(row as Record<string, unknown>),
-  );
+  return shareInflight("branches:list", async () => {
+    const path = `${API_ROUTES.branches}?${DEFAULT_PAGE_QUERY}`;
+    const payload = await request<unknown>(path);
+    return parseList(payload).map((row) =>
+      normalizeBranchRecord(row as Record<string, unknown>),
+    );
+  });
 }
 
 export async function createBranch(body: CreateBranchPayload): Promise<void> {
@@ -3918,7 +3923,9 @@ export async function fetchRoles(): Promise<RoleRecord[]> {
 }
 
 export async function fetchItemTypes(): Promise<ItemTypeRecord[]> {
-  return request<ItemTypeRecord[]>(API_ROUTES.itemTypes);
+  return shareInflight("item-types:list", () =>
+    request<ItemTypeRecord[]>(API_ROUTES.itemTypes),
+  );
 }
 
 export async function createItemType(
@@ -4379,7 +4386,9 @@ export async function fetchCategories(): Promise<CategoryRecord[]> {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNodeRecord[]> {
-  return request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`);
+  return shareInflight("categories:tree", () =>
+    request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`),
+  );
 }
 
 export async function fetchCategoryChildren(
@@ -5120,8 +5129,8 @@ export async function fetchItems(
 ): Promise<ItemSummaryRecord[]> {
   const page = await fetchItemsPage(search?.trim() || undefined, {
     ...opts,
-    page: 0,
-    size: 100,
+    page: opts?.page ?? 0,
+    size: opts?.size ?? 100,
   });
   return page.content;
 }
@@ -9821,6 +9830,49 @@ export async function fetchResolvedPrice(
   );
 }
 
+const RESOLVED_PRICES_BATCH_MAX = 200;
+
+/**
+ * Batch discount-aware shelf prices for POS tiles (avoids N× resolved-price).
+ * Chunks requests when {@code itemIds.length} exceeds the server cap (200).
+ */
+export async function fetchResolvedPrices(
+  itemIds: readonly string[],
+  branchId?: string,
+  options?: Pick<RequestOptions, "toast">,
+): Promise<Record<string, ResolvedPriceRecord>> {
+  const ids = Array.from(
+    new Set(
+      itemIds
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0),
+    ),
+  );
+  if (ids.length === 0) {
+    return {};
+  }
+  const out: Record<string, ResolvedPriceRecord> = {};
+  const bid = branchId?.trim() || undefined;
+  for (let i = 0; i < ids.length; i += RESOLVED_PRICES_BATCH_MAX) {
+    const chunk = ids.slice(i, i + RESOLVED_PRICES_BATCH_MAX);
+    const chunkOut = await request<Record<string, ResolvedPriceRecord>>(
+      "/api/v1/pricing/resolved-prices",
+      {
+        method: "POST",
+        body: {
+          itemIds: chunk,
+          ...(bid ? { branchId: bid } : {}),
+        },
+        ...options,
+      },
+    );
+    if (chunkOut && typeof chunkOut === "object") {
+      Object.assign(out, chunkOut);
+    }
+  }
+  return out;
+}
+
 export async function fetchDiscounts(): Promise<DiscountRecord[]> {
   return request<DiscountRecord[]>("/api/v1/discounts");
 }
@@ -10012,9 +10064,12 @@ export async function fetchCurrentShift(
   branchId: string,
   opts?: { toast?: boolean },
 ): Promise<ShiftRecord> {
-  const params = new URLSearchParams({ branchId: branchId.trim() });
-  return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`, {
-    toast: opts?.toast,
+  const bid = branchId.trim();
+  return shareInflight(`shifts/current:${bid}`, () => {
+    const params = new URLSearchParams({ branchId: bid });
+    return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`, {
+      toast: opts?.toast,
+    });
   });
 }
 
@@ -10459,17 +10514,21 @@ export async function fetchPosTopProducts(
   branchId: string,
   opts?: { limit?: number; itemTypeId?: string },
 ): Promise<PosTopProductRecord[]> {
-  const params = new URLSearchParams();
-  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const bid = branchId?.trim() ?? "";
   const limit = opts?.limit ?? 20;
-  params.set("limit", String(Math.max(1, Math.min(limit, 100))));
-  const typeId = opts?.itemTypeId?.trim();
-  if (typeId) params.set("itemTypeId", typeId);
-  const list = await request<PosTopProductRecord[]>(
-    `/api/v1/sales/top-products?${params.toString()}`,
-    { toast: false },
-  );
-  return Array.isArray(list) ? list : [];
+  const typeId = opts?.itemTypeId?.trim() ?? "";
+  const key = `sales/top-products:${bid}:${limit}:${typeId}`;
+  return shareInflight(key, async () => {
+    const params = new URLSearchParams();
+    if (bid) params.set("branchId", bid);
+    params.set("limit", String(Math.max(1, Math.min(limit, 100))));
+    if (typeId) params.set("itemTypeId", typeId);
+    const list = await request<PosTopProductRecord[]>(
+      `/api/v1/sales/top-products?${params.toString()}`,
+      { toast: false },
+    );
+    return Array.isArray(list) ? list : [];
+  });
 }
 
 export async function fetchVariableWeightBarcode(
@@ -11633,8 +11692,25 @@ export type UpdateProfitPocketSettingsPayload = {
   stkPhone?: string | null;
 };
 
-export async function fetchProfitPocketSettings(): Promise<ProfitPocketSettingsRecord> {
-  return request<ProfitPocketSettingsRecord>("/api/v1/payments/profit-pocket");
+export async function fetchProfitPocketSettings(
+  options?: Pick<RequestOptions, "toast">,
+): Promise<ProfitPocketSettingsRecord> {
+  return request<ProfitPocketSettingsRecord>(
+    "/api/v1/payments/profit-pocket",
+    options,
+  );
+}
+
+/** Till-safe margin-guard mode (no pocket destination details). */
+export async function fetchMarginGuardSettings(
+  options?: Pick<RequestOptions, "toast">,
+): Promise<{ marginGuardMode: string }> {
+  return shareInflight("payments/profit-pocket/margin-guard", () =>
+    request<{ marginGuardMode: string }>(
+      "/api/v1/payments/profit-pocket/margin-guard",
+      options,
+    ),
+  );
 }
 
 export async function updateProfitPocketSettings(
@@ -12841,7 +12917,9 @@ export type PosStkRailRecord = {
 
 /** Active STK / custody rails for the cashier M-Pesa lane picker. */
 export async function fetchPosStkRails(): Promise<PosStkRailRecord[]> {
-  return request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails");
+  return shareInflight("payments/mpesa/stk/rails", () =>
+    request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails"),
+  );
 }
 
 export type StkPushStatusRecord = {
@@ -14226,9 +14304,11 @@ export type KioskPayPosAvailabilityRecord = {
 
 /** Cashier: whether to show the Kiosk Pay tender. */
 export async function fetchKioskPayPosAvailability(): Promise<KioskPayPosAvailabilityRecord> {
-  return request<KioskPayPosAvailabilityRecord>(
-    `${API_ROUTES.paymentKioskPay}/pos`,
-    { toast: false },
+  return shareInflight("payments/kiosk-pay/pos", () =>
+    request<KioskPayPosAvailabilityRecord>(
+      `${API_ROUTES.paymentKioskPay}/pos`,
+      { toast: false },
+    ),
   );
 }
 
@@ -14363,9 +14443,11 @@ export type AirtimeSettingsRecord = {
 export async function fetchAirtimeAvailability(
   storefront = false,
 ): Promise<AirtimeAvailabilityRecord> {
-  return request<AirtimeAvailabilityRecord>(
-    `${API_ROUTES.airtime}/availability?storefront=${storefront}`,
-    { toast: false },
+  return shareInflight(`airtime/availability:${storefront}`, () =>
+    request<AirtimeAvailabilityRecord>(
+      `${API_ROUTES.airtime}/availability?storefront=${storefront}`,
+      { toast: false },
+    ),
   );
 }
 

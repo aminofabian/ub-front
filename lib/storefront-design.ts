@@ -16,7 +16,7 @@ import type { StoreThemeId } from "@/lib/storefront-templates";
 import {
   isStorefrontFontPairingId,
   type StorefrontFontPairingId,
-} from "@/lib/storefront-fonts";
+} from "@/lib/storefront-font-pairings-meta";
 import {
   normalizeThemeBlob,
   type ThemeOptionValue,

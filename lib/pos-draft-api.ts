@@ -2,6 +2,7 @@
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
 import type { PostSaleLinePayload, PostSalePaymentPayload, SaleRecord } from "@/lib/api";
+import { shareInflight } from "@/lib/share-inflight";
 
 export const POS_DRAFT_FLAGS = {
   enabled: "pos_drafts.enabled",
@@ -137,8 +138,11 @@ export async function fetchPosDraft(
   draftId: string,
   opts?: { includeDeleted?: boolean },
 ): Promise<PosDraftResponse> {
+  const id = draftId.trim();
   const q = opts?.includeDeleted ? "?includeDeleted=true" : "";
-  return posDraftRequest<PosDraftResponse>(`/api/v1/pos-drafts/${draftId}${q}`);
+  return shareInflight(`pos-drafts:get:${id}:${q}`, () =>
+    posDraftRequest<PosDraftResponse>(`/api/v1/pos-drafts/${id}${q}`),
+  );
 }
 
 export async function listPosDrafts(params: {
@@ -151,8 +155,11 @@ export async function listPosDrafts(params: {
   if (params.status) sp.set("status", params.status);
   if (params.createdBy) sp.set("createdBy", params.createdBy);
   if (params.hoursBack != null) sp.set("hoursBack", String(params.hoursBack));
-  return posDraftRequest<PosDraftListResponse>(
-    `/api/v1/pos-drafts?${sp.toString()}`,
+  const key = `pos-drafts:list:${sp.toString()}`;
+  return shareInflight(key, () =>
+    posDraftRequest<PosDraftListResponse>(
+      `/api/v1/pos-drafts?${sp.toString()}`,
+    ),
   );
 }
 

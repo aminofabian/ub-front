@@ -129,8 +129,8 @@ type NavSection = {
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "overview",
-    title: "Home",
-    shortLabel: "Home",
+    title: "Business",
+    shortLabel: "Business",
     blurb: "Pulse of the business",
     icon: LayoutDashboard,
     entryHref: APP_ROUTES.business,
@@ -911,7 +911,7 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
 const BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "overview",
-    label: "Home",
+    label: "Business",
     icon: LayoutDashboard,
     href: APP_ROUTES.business,
     matchSectionIds: ["overview", "org"],

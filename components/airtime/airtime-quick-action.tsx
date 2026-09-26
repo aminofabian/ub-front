@@ -20,6 +20,11 @@ type Props = {
   onAddToCart?: (payload: AirtimeCartPayload) => boolean;
   /** Fired when the cashier opens airtime (e.g. close a parent menu). */
   onTrigger?: () => void;
+  /**
+   * When true, still listens for `ub:open-airtime` (More menu) but does not
+   * render the chip — avoids mounting two fetchers on phone POS.
+   */
+  hideTrigger?: boolean;
 };
 
 /**
@@ -35,6 +40,7 @@ export function AirtimeQuickAction({
   channel = "POS",
   onAddToCart,
   onTrigger,
+  hideTrigger = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [availability, setAvailability] = useState<AirtimeAvailabilityRecord | null>(null);
@@ -71,28 +77,30 @@ export function AirtimeQuickAction({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          onTrigger?.();
-          setOpen(true);
-        }}
-        className={cn(triggerClassName, "relative")}
-        title={
-          lowWallet
-            ? availability?.reason ?? "Airtime unavailable"
-            : "Sell airtime from your Kiosk Pay wallet"
-        }
-      >
-        <Signal className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        Airtime
-        {lowWallet ? (
-          <span
-            className="size-1.5 rounded-full bg-amber-500"
-            aria-label="Airtime needs attention"
-          />
-        ) : null}
-      </button>
+      {!hideTrigger ? (
+        <button
+          type="button"
+          onClick={() => {
+            onTrigger?.();
+            setOpen(true);
+          }}
+          className={cn(triggerClassName, "relative")}
+          title={
+            lowWallet
+              ? availability?.reason ?? "Airtime unavailable"
+              : "Sell airtime from your Kiosk Pay wallet"
+          }
+        >
+          <Signal className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          Airtime
+          {lowWallet ? (
+            <span
+              className="size-1.5 rounded-full bg-amber-500"
+              aria-label="Airtime needs attention"
+            />
+          ) : null}
+        </button>
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           side="right"

@@ -351,14 +351,23 @@ function AccentSwatch({
 
 type CashierBottomNavProps = {
   activeTab?: "sell" | "cart" | "more" | "admin";
-  /** When set, shows an Admin tab that navigates to the business hub. */
+  /** When set, shows a Business tab that navigates to the business hub. */
   adminHref?: string | null;
+  /** Override the Business tab label (default "Business"). */
+  adminLabel?: string;
+  /**
+   * When set, Business uses this click handler instead of a plain link —
+   * e.g. close the shell Sell drawer, then route to `/business`.
+   */
+  onAdminNavigate?: () => void;
   className?: string;
 };
 
 export function CashierBottomNav({
   activeTab = "sell",
   adminHref = null,
+  adminLabel = "Business",
+  onAdminNavigate,
   className,
 }: CashierBottomNavProps) {
   const chrome = useCashierMobileChrome();
@@ -396,12 +405,18 @@ export function CashierBottomNav({
     },
   ];
 
-  if (adminHref) {
+  if (adminHref || onAdminNavigate) {
     tabs.push({
       id: "admin",
-      label: "Admin",
+      label: adminLabel,
       icon: Building2,
-      href: adminHref,
+      href: onAdminNavigate ? undefined : adminHref ?? undefined,
+      onClick: onAdminNavigate
+        ? () => {
+            chrome?.setMoreOpen(false);
+            onAdminNavigate();
+          }
+        : undefined,
     });
   }
 

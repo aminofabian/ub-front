@@ -124,6 +124,9 @@ export function PendingInvoicesPanel({
 }: PendingInvoicesPanelProps) {
   const { branchId, me } = useDashboard();
   const online = useOnlineStatus();
+  // Permission only — owners inherit grocery.invoices.read even when profile
+  // storeTypes are empty (common for older tenants). Gating on
+  // canAccessGrocery hid the panel and skipped the list call entirely.
   const canListInvoices = hasPermission(
     me?.permissions,
     Permission.GroceryInvoicesRead,
@@ -235,23 +238,33 @@ export function PendingInvoicesPanel({
     }
   }, [branchId, online, canListInvoices]);
 
-  // Fetch on mount, refreshKey changes, and when opened.
+  // One REST load when the till is ready / refreshKey bumps. Live updates
+  // come from WebSocket — closed-panel polling was removed.
   useEffect(() => {
     void fetchInvoices();
   }, [fetchInvoices, refreshKey]);
 
+  // Re-fetch only when the panel *opens* (not when fetchInvoices identity
+  // changes while already open — that was stacking with the mount effect).
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (open) void fetchInvoices();
+    if (open && !wasOpenRef.current) {
+      void fetchInvoices();
+    }
+    wasOpenRef.current = open;
   }, [open, fetchInvoices]);
 
-  // Keep the badge and list fresh even while the dropdown is closed.
+  // While the dropdown is open, light REST poll as a WS backstop — pause when
+  // the tab is hidden.
   useEffect(() => {
-    if (!online) return;
-    const interval = window.setInterval(() => {
+    if (!online || !open || !canListInvoices) return;
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       void fetchInvoices();
-    }, BACKGROUND_POLL_MS);
+    };
+    const interval = window.setInterval(tick, BACKGROUND_POLL_MS);
     return () => window.clearInterval(interval);
-  }, [online, fetchInvoices]);
+  }, [online, open, canListInvoices, fetchInvoices]);
 
   // Realtime updates via WebSocket frames.
   useEffect(() => {

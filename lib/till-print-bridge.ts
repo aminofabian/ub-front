@@ -7,6 +7,8 @@
  * Supports macOS/Linux (CUPS), Windows (PowerShell till bridge), and network ESC/POS (TCP 9100).
  */
 
+import { shareInflight } from "@/lib/share-inflight";
+
 export const TILL_PRINT_BRIDGE_URL =
   (typeof process !== "undefined" &&
     process.env.NEXT_PUBLIC_TILL_PRINT_BRIDGE_URL?.trim()) ||
@@ -103,21 +105,23 @@ export async function isTillPrintBridgeUp(): Promise<boolean> {
 }
 
 export async function fetchTillBridgeHealth(): Promise<TillBridgeHealth | null> {
-  const { signal, done } = bridgeTimeoutSignal(BRIDGE_HEALTH_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/health`, {
-      method: "GET",
-      mode: "cors",
-      cache: "no-store",
-      signal,
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as TillBridgeHealth;
-  } catch {
-    return null;
-  } finally {
-    done();
-  }
+  return shareInflight("till-bridge:health", async () => {
+    const { signal, done } = bridgeTimeoutSignal(BRIDGE_HEALTH_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/health`, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store",
+        signal,
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as TillBridgeHealth;
+    } catch {
+      return null;
+    } finally {
+      done();
+    }
+  });
 }
 
 /** List local printers on this machine via the till bridge. */

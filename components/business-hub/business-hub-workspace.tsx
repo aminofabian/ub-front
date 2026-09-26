@@ -1598,7 +1598,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-3.5 sm:gap-4">
+                <div className="flex flex-col gap-2.5 sm:gap-4">
                   <HubGreeting
                     name={me?.name}
                     subtitle={
@@ -1609,6 +1609,10 @@ export function BusinessHubWorkspace() {
                   />
 
                   {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
+
+                  <div className="flex flex-col gap-2.5 xl:hidden">
+                    <HubQuickActions links={jumpInLinks} />
+                  </div>
 
                   {tenderTotals ? (
                     <HubPaymentSplit
@@ -1659,8 +1663,7 @@ export function BusinessHubWorkspace() {
 
                   <HubWorkSummary cards={workCards} />
 
-                  <div className="flex flex-col gap-3 xl:hidden">
-                    <HubQuickActions links={jumpInLinks} />
+                  <div className="flex flex-col gap-2.5 xl:hidden">
                     {canShowPaymentMethod ? (
                       <ReceiveMpesaSetupCard
                         rail

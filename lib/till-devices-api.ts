@@ -4,6 +4,7 @@ import {
   type CashierTemplateId,
 } from "@/lib/cashier-templates";
 import { DEFAULT_PROBLEM_TITLE } from "@/lib/problem";
+import { shareInflight } from "@/lib/share-inflight";
 import { getOrCreateTillDeviceId } from "@/lib/till-device";
 
 export type TillDeviceRecord = {
@@ -90,12 +91,15 @@ export async function fetchTillDeviceMe(opts: {
   branchId: string;
   toast?: boolean;
 }): Promise<TillDeviceRecord> {
-  const sp = new URLSearchParams({ branchId: opts.branchId });
-  const row = await apiRequest<TillDeviceRecord>(
-    `/api/v1/till-devices/me?${sp.toString()}`,
-    { toast: opts.toast },
-  );
-  return normalizeTillDevice(row);
+  const bid = opts.branchId.trim();
+  return shareInflight(`till-devices/me:${bid}`, async () => {
+    const sp = new URLSearchParams({ branchId: bid });
+    const row = await apiRequest<TillDeviceRecord>(
+      `/api/v1/till-devices/me?${sp.toString()}`,
+      { toast: opts.toast },
+    );
+    return normalizeTillDevice(row);
+  });
 }
 
 export async function patchTillDevice(

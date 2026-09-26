@@ -17,7 +17,7 @@ import {
   type ItemDetailRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
-import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import { fetchPosShelfPrices } from "@/lib/pos-shelf-price";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
@@ -102,20 +102,32 @@ export function PosVariantPicker({
       if (list.length === 0) {
         return;
       }
-      void Promise.all(
-        list.map(async (v) => {
-          const rec = await fetchPosShelfPrice(v.id, bid, {
-            businessId,
-            onStaleItem,
-          }).catch(() => null);
-          if (!rec) {
-            return [v.id, ""] as const;
-          }
-          return [v.id, formatShelfPriceLabel(rec.price, currency) ?? ""] as const;
-        }),
-      ).then((pairs) => {
+      // Instant labels from variant summary rows, then one batch for discounts.
+      const seeded: Record<string, string> = {};
+      for (const v of list) {
+        const label = formatShelfPriceLabel(
+          v.sellingPrice ?? v.bundlePrice,
+          currency,
+        );
+        if (label) seeded[v.id] = label;
+      }
+      if (Object.keys(seeded).length > 0) {
+        setShelfPrices(seeded);
+      }
+      void fetchPosShelfPrices(
+        list.map((v) => v.id),
+        bid,
+        { businessId, onStaleItem },
+      ).then((byId) => {
         if (cancelled) return;
-        setShelfPrices(Object.fromEntries(pairs));
+        const next: Record<string, string> = { ...seeded };
+        for (const v of list) {
+          const r = byId[v.id];
+          if (!r) continue;
+          const label = formatShelfPriceLabel(r.price, currency);
+          if (label) next[v.id] = label;
+        }
+        setShelfPrices(next);
       });
     };
 
