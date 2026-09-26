@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { applyAccessTokenCookie } from "@/lib/access-token-cookie";
 import { proxyToBackend } from "@/lib/backend-proxy";
-import { getServerApiOrigin } from "@/lib/config";
+import { getServerApiOrigin, hostDerivedShopUrl } from "@/lib/config";
 import {
   hostOnlyRefreshCookieClears,
   readSetCookieHeaders,
@@ -14,9 +14,11 @@ type ExchangePayload = {
   accessToken?: string;
   nextPath?: string | null;
   slug?: string | null;
+  returnHost?: string | null;
 };
 
 const OAUTH_NEXT_COOKIE = "ub.oauth_next";
+const OAUTH_RETURN_HOST_COOKIE = "ub.oauth_return_host";
 
 function requestIsHttps(req: NextRequest): boolean {
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -29,6 +31,14 @@ function requestIsHttps(req: NextRequest): boolean {
 function safeNext(value: string | null | undefined): string {
   const t = value?.trim() ?? "";
   return t.startsWith("/") && !t.startsWith("//") ? t : "/";
+}
+
+function safeReturnHost(value: string | null | undefined): string | null {
+  const t = value?.trim().toLowerCase() ?? "";
+  if (!t || t.includes("/") || t.includes(" ") || t.includes("..") || t.includes(":")) {
+    return null;
+  }
+  return t.length > 253 ? null : t;
 }
 
 function readOauthNextCookie(req: NextRequest): string {
@@ -53,6 +63,22 @@ function preferOfficeLogin(nextPath: string): boolean {
     nextPath.startsWith("/grocery") ||
     nextPath.startsWith("/butcher")
   );
+}
+
+function clearOauthHintCookies(
+  res: NextResponse,
+  opts: { secure: boolean; cookieDomain?: string },
+): void {
+  const clear = {
+    path: "/",
+    maxAge: 0,
+    httpOnly: true,
+    secure: opts.secure,
+    sameSite: "lax" as const,
+    ...(opts.cookieDomain ? { domain: opts.cookieDomain } : {}),
+  };
+  res.cookies.set(OAUTH_NEXT_COOKIE, "", clear);
+  res.cookies.set(OAUTH_RETURN_HOST_COOKIE, "", clear);
 }
 
 /**
@@ -82,24 +108,34 @@ export async function handleGoogleOAuthCallback(
     nextPath?: string | null,
   ): NextResponse => {
     const next = safeNext(nextPath || readOauthNextCookie(req));
-    const target = preferOfficeLogin(next)
-      ? new URL("/login/staff", origin)
-      : new URL("/login", origin);
-    if (preferOfficeLogin(next)) {
-      target.searchParams.set("mode", "office");
-      target.searchParams.set("next", next);
+    const returnHost = safeReturnHost(
+      req.cookies.get(OAUTH_RETURN_HOST_COOKIE)?.value,
+    );
+    const shopOrigin = returnHost ? hostDerivedShopUrl(returnHost) : "";
+
+    let target: URL;
+    if (shopOrigin) {
+      // Custom-domain / subdomain storefront sheet — not apex /login.
+      target = new URL(shopOrigin);
+      target.searchParams.set("signin", "1");
+      target.searchParams.set("googleError", code);
+      if (preferOfficeLogin(next)) {
+        target.searchParams.set("door", "staff");
+        target.searchParams.set("next", next);
+      }
+    } else {
+      target = preferOfficeLogin(next)
+        ? new URL("/login/staff", origin)
+        : new URL("/login", origin);
+      if (preferOfficeLogin(next)) {
+        target.searchParams.set("mode", "office");
+        target.searchParams.set("next", next);
+      }
+      target.searchParams.set("googleError", code);
     }
-    target.searchParams.set("googleError", code);
+
     const res = NextResponse.redirect(target, 303);
-    // Drop the short-lived return hint.
-    res.cookies.set(OAUTH_NEXT_COOKIE, "", {
-      path: "/",
-      maxAge: 0,
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      ...(cookieDomain ? { domain: cookieDomain } : {}),
-    });
+    clearOauthHintCookies(res, { secure, cookieDomain });
     return res;
   };
 
@@ -169,6 +205,10 @@ export async function handleGoogleOAuthCallback(
   const slug = payload?.slug?.trim();
   if (slug) {
     handoff.searchParams.set("slug", slug);
+  }
+  const returnHost = payload?.returnHost?.trim();
+  if (returnHost) {
+    handoff.searchParams.set("returnHost", returnHost);
   }
 
   const response = NextResponse.redirect(handoff, 303);

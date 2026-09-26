@@ -22,6 +22,11 @@ type GoogleAuthButtonProps = {
   ssoProviders?: string[] | null;
   /** When true, apply {@link ssoProviders} gate (tenant /login /signup). Apex skips. */
   requireTenantSso?: boolean;
+  /**
+   * Host to return to after Google (custom domain). Defaults to the current
+   * hostname when not already on the platform apex.
+   */
+  returnHost?: string | null;
   className?: string;
   label?: string;
   /** Render the “or use email” divider under the button when shown. */
@@ -83,6 +88,7 @@ function googleOAuthRelayHref(params: {
   intent: GoogleAuthIntent;
   next: string;
   businessId?: string | null;
+  returnHost?: string | null;
 }): string {
   const q = new URLSearchParams();
   q.set("intent", params.intent);
@@ -91,7 +97,22 @@ function googleOAuthRelayHref(params: {
   if (bid) {
     q.set("businessId", bid);
   }
+  const host = params.returnHost?.trim();
+  if (host) {
+    q.set("returnHost", host);
+  }
   return `${platformApexOrigin()}${APP_ROUTES.authGoogleOAuth}?${q.toString()}`;
+}
+
+function defaultReturnHost(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const host = window.location.hostname.toLowerCase();
+  if (canStartGoogleOAuthHere(host)) {
+    return null;
+  }
+  return host;
 }
 
 /** Empty list inherits platform; otherwise `"google"` must be present. */
@@ -142,6 +163,7 @@ export function GoogleAuthButton({
   businessId,
   ssoProviders,
   requireTenantSso = false,
+  returnHost,
   className,
   label,
   withDivider = false,
@@ -164,6 +186,8 @@ export function GoogleAuthButton({
       "/";
     const safeNext =
       nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
+    const host =
+      returnHost?.trim() || defaultReturnHost() || undefined;
 
     try {
       if (
@@ -175,6 +199,7 @@ export function GoogleAuthButton({
             intent,
             next: safeNext,
             businessId,
+            returnHost: host,
           }),
         );
         return;
@@ -191,6 +216,7 @@ export function GoogleAuthButton({
           intent,
           next: safeNext,
           ...(businessId ? { businessId } : {}),
+          ...(host ? { returnHost: host } : {}),
         }),
       });
       const payload = (await res.json().catch(() => null)) as

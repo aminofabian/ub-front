@@ -22,6 +22,7 @@ function GoogleOAuthRelayInner() {
       const intent = intentRaw === "sign_up" ? "sign_up" : "sign_in";
       const next = searchParams.get("next")?.trim() || "/";
       const businessId = searchParams.get("businessId")?.trim() || "";
+      const returnHost = searchParams.get("returnHost")?.trim() || "";
 
       try {
         const res = await fetch("/api/v1/auth/oauth/google/start", {
@@ -35,6 +36,7 @@ function GoogleOAuthRelayInner() {
             intent,
             next: next.startsWith("/") && !next.startsWith("//") ? next : "/",
             ...(businessId ? { businessId } : {}),
+            ...(returnHost ? { returnHost } : {}),
           }),
         });
         const payload = (await res.json().catch(() => null)) as {

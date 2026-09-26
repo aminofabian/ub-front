@@ -46,17 +46,19 @@ function AuthHandoffInner() {
 
       const nextFallback = searchParams.get("next");
       const slug = searchParams.get("slug");
+      const returnHost = searchParams.get("returnHost");
 
       const finishToDestination = async (
         nextPath: string,
         opts?: { accessToken?: string; refreshToken?: string; tenantId?: string },
       ) => {
         const next = nextPath.startsWith("/") ? nextPath : APP_ROUTES.overview;
-        // Same subdomain hop as password signup (apex → {slug}.kiosk.ke).
-        if (slug?.trim()) {
+        // Same subdomain / custom-domain hop as password signup.
+        if (slug?.trim() || returnHost?.trim()) {
           await completeAuthAndNavigate(next, slug, {
             office: isOfficeConsolePath(next),
-            preferAssignedSubdomain: true,
+            preferAssignedSubdomain: !returnHost?.trim(),
+            returnHost,
           });
           return;
         }

@@ -18,6 +18,11 @@ export type CompleteAuthNavigateOptions = {
    * platform apex and never another tenant's custom domain.
    */
   preferAssignedSubdomain?: boolean;
+  /**
+   * Prefer this hostname for the post-auth hop (e.g. custom domain after
+   * Google from the storefront). Wins over slug subdomain when set.
+   */
+  returnHost?: string | null;
 };
 
 const BARE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -107,7 +112,31 @@ async function syncSlugAndNavigate(
     }
   }
 
+  const returnHost = opts?.returnHost?.trim().toLowerCase() || null;
   const currentHost = stripLeadingWww(window.location.hostname);
+
+  if (returnHost) {
+    const shopBase = hostDerivedShopUrl(returnHost);
+    let targetOrigin = "";
+    try {
+      targetOrigin = shopBase ? new URL(shopBase).origin : "";
+    } catch {
+      targetOrigin = "";
+    }
+    if (targetOrigin && targetOrigin !== window.location.origin) {
+      persistTenantHostAfterAuth(slug, returnHost);
+      submitStoreSessionNavigate(nextHint, {
+        office: office || isOfficeConsolePath(nextHint),
+        handoffOrigin: targetOrigin,
+        slug: slug || undefined,
+      });
+      return;
+    }
+    persistTenantHostAfterAuth(slug, returnHost);
+    navigateAfterAuth(nextHint, office);
+    return;
+  }
+
   const handoff = shouldHandoffToAssignedSubdomain({
     currentHost,
     slug,
