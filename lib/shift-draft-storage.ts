@@ -31,6 +31,8 @@ export type CloseShiftDraftPersisted = {
   varianceReason: string;
   quantities: Record<string, number>;
   cashTotalStr: string;
+  /** Amount the cashier is taking out of the till at close. */
+  cashTakenOutStr?: string;
 };
 
 function openKey(businessId: string, userId: string): string {
@@ -130,12 +132,13 @@ export function closeShiftDraftHasProgress(
   draft: Pick<
     CloseShiftDraftPersisted,
     "notes" | "varianceReason" | "quantities" | "cashTotalStr"
-  >,
+  > & { cashTakenOutStr?: string },
 ): boolean {
   if (
     draft.notes.trim() ||
     draft.varianceReason.trim() ||
-    draft.cashTotalStr.trim()
+    draft.cashTotalStr.trim() ||
+    (draft.cashTakenOutStr ?? "").trim()
   ) {
     return true;
   }

@@ -7660,6 +7660,32 @@ export async function fetchFinancePL(
   );
 }
 
+export type DailyProfitPoint = {
+  date: string;
+  revenue: number | string;
+  cogs: number | string;
+  grossProfit: number | string;
+  operatingExpenses: number | string;
+  netOperating: number | string;
+  /** False when the day had no journal activity at all. */
+  hasActivity?: boolean;
+};
+
+/** One ledger-P&L point per calendar day (zero-filled) — drives the daily net strip. */
+export async function fetchFinancePLDaily(
+  from: string,
+  to: string,
+  branchId?: string,
+): Promise<DailyProfitPoint[]> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return request<DailyProfitPoint[]>(
+    `/api/v1/finance/pl/daily?${params.toString()}`,
+  );
+}
+
 export type FinanceExpenseResponse = {
   id: string;
   branchId: string | null;
@@ -7667,6 +7693,8 @@ export type FinanceExpenseResponse = {
   name: string;
   categoryType: string;
   source: string;
+  /** Set when a system flow posted this row (e.g. a cash drawout id). */
+  sourceReference?: string | null;
   categoryCode: string | null;
   amount: number | string;
   paymentMethod: string;
@@ -10135,6 +10163,8 @@ export type ShiftRecord = {
   openingCash: number | string;
   expectedClosingCash: number | string;
   countedClosingCash: number | string | null;
+  /** Cash removed from the till at close. Null on shifts closed before this was recorded. */
+  cashTakenOut?: number | string | null;
   closingVariance: number | string | null;
   openingNotes: string | null;
   closingNotes: string | null;
@@ -10194,11 +10224,15 @@ export async function postCloseShift(
     notes?: string | null;
     varianceReason?: string | null;
     denominations?: DenominationEntry[];
+    cashTakenOut?: number | string | null;
   },
 ): Promise<ShiftRecord> {
   const payload: Record<string, unknown> = {
     countedClosingCash: body.countedClosingCash,
   };
+  if (body.cashTakenOut != null && body.cashTakenOut !== "") {
+    payload.cashTakenOut = body.cashTakenOut;
+  }
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
   }
@@ -10265,6 +10299,7 @@ export type ShiftListItem = {
   totalSales: number | string;
   registerName?: string | null;
   shiftNumber?: string | null;
+  cashTakenOut?: number | string | null;
 };
 
 export type ShiftListResponse = {
@@ -10319,6 +10354,7 @@ type ShiftDetailRaw = {
   expectedCash: number | string;
   actualCountedCash: number | string | null;
   variance: number | string | null;
+  cashTakenOut?: number | string | null;
   openingNotes: string | null;
   closingNotes: string | null;
   varianceReason: string | null;
@@ -10348,6 +10384,7 @@ export async function fetchShiftDetail(shiftId: string): Promise<ShiftRecord> {
     openingCash: raw.openingFloat,
     expectedClosingCash: raw.expectedCash,
     countedClosingCash: raw.actualCountedCash,
+    cashTakenOut: raw.cashTakenOut ?? null,
     closingVariance: raw.variance,
     openingNotes: raw.openingNotes,
     closingNotes: raw.closingNotes,
@@ -10443,6 +10480,17 @@ export async function approveDrawout(
   return request<DrawoutRecord>(
     `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/approve`,
     { method: "POST", body: { approvalMethod: "PIN" } },
+  );
+}
+
+/** Classify a till drawout as operating expense (manager review of `OTHER`). */
+export async function postDrawoutExpense(
+  drawoutId: string,
+  categoryCode: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/expense`,
+    { method: "POST", body: { categoryCode } },
   );
 }
 
@@ -11938,6 +11986,8 @@ export type CashSurplusRecord = {
   defaultFloat: number | string;
   suggestedPocket: number | string;
   grossProfit: number | string;
+  /** Net operating profit (gross − operating expenses). Pocket suggestion is built from this. */
+  netProfit?: number | string;
   openShifts: number;
   destinationConfigured: boolean;
   destinationSummary: string | null;

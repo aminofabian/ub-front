@@ -22,6 +22,25 @@ function toNum(n: number | string | null | undefined): number {
   return Number.isFinite(v) ? v : 0;
 }
 
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function isoDaySpan(from: string, to: string): number {
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 1;
+  return Math.max(1, Math.round((b - a) / 86_400_000) + 1);
+}
+
+function fmtDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 type ProfitPocketDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,6 +66,7 @@ export function ProfitPocketDrawer({
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [surplus, setSurplus] = useState<CashSurplusRecord | null>(null);
+  const [nextSurplus, setNextSurplus] = useState<CashSurplusRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [leaveFloat, setLeaveFloat] = useState("");
@@ -65,12 +85,14 @@ export function ProfitPocketDrawer({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetchCashSurplus({
-      from,
-      to,
-      branchId: branchId ?? undefined,
-    })
-      .then((data) => {
+    setNextSurplus(null);
+    void (async () => {
+      try {
+        const data = await fetchCashSurplus({
+          from,
+          to,
+          branchId: branchId ?? undefined,
+        });
         if (cancelled) return;
         setSurplus(data);
         const seeded =
@@ -79,17 +101,30 @@ export function ProfitPocketDrawer({
             : toNum(data.suggestedPocket);
         setAmount(String(seeded));
         setLeaveFloat(String(toNum(data.defaultFloat)));
-      })
-      .catch((e) => {
+
+        // Preview the next period's profit so the owner can choose how much of
+        // this one to pocket vs keep back for upcoming bills.
+        const span = isoDaySpan(from, to);
+        try {
+          const next = await fetchCashSurplus({
+            from: addDaysIso(to, 1),
+            to: addDaysIso(to, span),
+            branchId: branchId ?? undefined,
+          });
+          if (!cancelled) setNextSurplus(next);
+        } catch {
+          if (!cancelled) setNextSurplus(null);
+        }
+      } catch (e) {
         if (cancelled) return;
         setSurplus(null);
         setError(
           e instanceof Error ? e.message : "Could not load cash surplus.",
         );
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -97,19 +132,25 @@ export function ProfitPocketDrawer({
 
   const amountN = Number(amount);
   const suggested = toNum(surplus?.suggestedPocket);
-  const gp = toNum(surplus?.grossProfit);
+  // Pocket against net profit (bills already taken out), never gross.
+  const net = toNum(surplus?.netProfit ?? surplus?.grossProfit);
   const balance = Math.max(0, toNum(surplus?.profitBalance));
   const pocketingBalance =
     balance > 0 &&
     Number.isFinite(amountN) &&
     Math.abs(amountN - balance) < 0.02 &&
-    amountN <= gp + 0.009;
+    amountN <= net + 0.009;
+  const nextHasData =
+    nextSurplus != null &&
+    (toNum(nextSurplus.grossProfit) !== 0 ||
+      toNum(nextSurplus.cashTakings) !== 0 ||
+      toNum(nextSurplus.mpesaTakings) !== 0);
   const warnings = useMemo(() => {
     const list: { id: string; text: string }[] = [];
-    if (gp < 0) {
+    if (net < 0) {
       list.push({
         id: "negative_gp",
-        text: `Gross profit is negative (${fmtMoney(gp)}). Pocketing may leave less float for suppliers — edit the amount if needed.`,
+        text: `Net profit is negative (${fmtMoney(net)}). Bills are not covered yet — taking money out now may leave the shop short.`,
       });
     }
     if (
@@ -119,35 +160,35 @@ export function ProfitPocketDrawer({
     ) {
       list.push({
         id: "above_surplus",
-        text: `Amount is above suggested profit pocket (${fmtMoney(suggested)}).`,
+        text: `Amount is above the suggested pocket (${fmtMoney(suggested)}).`,
       });
     }
     const liquid = toNum(surplus?.rawSurplus);
     if (Number.isFinite(amountN) && liquid > 0 && amountN > liquid + 0.009) {
       list.push({
         id: "above_liquid",
-        text: `Amount is above available cash surplus (${fmtMoney(liquid)}).`,
+        text: `Amount is above the cash available (${fmtMoney(liquid)}).`,
       });
     }
     if ((surplus?.openShifts ?? 0) > 0) {
       list.push({
         id: "open_shifts",
-        text: `${surplus?.openShifts} open shift(s) — surplus may still change.`,
+        text: `${surplus?.openShifts} open shift(s) — this figure may still change.`,
       });
     }
-    if (gp > 0 && Number.isFinite(amountN) && amountN > gp + 0.009) {
+    if (net > 0 && Number.isFinite(amountN) && amountN > net + 0.009) {
       list.push({
         id: "above_profit",
-        text: `Amount is above gross profit (${fmtMoney(gp)}). Confirm only if this is a separate withdrawal, not a share of this profit.`,
+        text: `Amount is above net profit (${fmtMoney(net)}). Confirm only if this is a separate withdrawal, not a share of this profit.`,
       });
-    } else if (gp <= 0 && Number.isFinite(amountN) && amountN > 0) {
+    } else if (net <= 0 && Number.isFinite(amountN) && amountN > 0) {
       list.push({
         id: "above_profit",
-        text: "There is no profit in this period. Confirm only if this is a separate withdrawal.",
+        text: "There is no net profit in this period. Confirm only if this is a separate withdrawal.",
       });
     }
     return list;
-  }, [gp, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus, pocketingBalance]);
+  }, [net, amountN, suggested, surplus?.openShifts, surplus?.rawSurplus, pocketingBalance]);
 
   const needsHardConfirm =
     !pocketingBalance &&
@@ -155,13 +196,13 @@ export function ProfitPocketDrawer({
       warnings.some((w) => w.id === "above_profit"));
 
   const pocketShare =
-    gp > 0 && Number.isFinite(amountN) && amountN >= 0
-      ? (amountN / gp) * 100
+    net > 0 && Number.isFinite(amountN) && amountN >= 0
+      ? (amountN / net) * 100
       : null;
   const shareWidth =
     pocketShare == null ? 0 : Math.max(0, Math.min(100, pocketShare));
   const remainingProfit =
-    gp - (Number.isFinite(amountN) ? amountN : 0);
+    net - (Number.isFinite(amountN) ? amountN : 0);
 
   const onConfirm = async () => {
     if (!surplus) return;
@@ -266,19 +307,17 @@ export function ProfitPocketDrawer({
           <p className="text-sm text-rose-700">{error}</p>
         ) : surplus ? (
           <>
-            <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-xs sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-xs sm:grid-cols-5">
               {(
                 [
                   ["Gross profit", surplus.grossProfit],
-                  ["Profit balance", surplus.profitBalance ?? 0],
-                  ["Cash surplus", surplus.rawSurplus ?? surplus.suggestedPocket],
+                  ["Net profit", surplus.netProfit ?? surplus.grossProfit],
+                  ["Not yet taken", surplus.profitBalance ?? 0],
                   [
-                    Number(surplus.profitJarPct) > 0 &&
-                    Number(surplus.profitJarPct) < 100
-                      ? `Jar ${Number(surplus.profitJarPct)}%`
-                      : "Suggested",
-                    surplus.suggestedPocket,
+                    "Cash available",
+                    surplus.rawSurplus ?? surplus.suggestedPocket,
                   ],
+                  ["Suggested", surplus.suggestedPocket],
                 ] as const
               ).map(([label, value]) => (
                 <div key={label} className="bg-white px-2.5 py-2">
@@ -290,6 +329,16 @@ export function ProfitPocketDrawer({
                   </p>
                 </div>
               ))}
+              {nextHasData && nextSurplus ? (
+                <div className="bg-white px-2.5 py-2">
+                  <p className="text-[10px] font-medium text-muted-foreground">
+                    Next profit
+                  </p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">
+                    {fmtMoney(toNum(nextSurplus.grossProfit))}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             {!surplus.destinationConfigured ? (
@@ -340,7 +389,7 @@ export function ProfitPocketDrawer({
 
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold text-muted-foreground">
-                Amount to pocket (editable)
+                How much to take out (editable)
               </span>
               <input
                 className="h-10 border border-input bg-background px-3 font-mono text-sm"
@@ -364,19 +413,19 @@ export function ProfitPocketDrawer({
                   setConfirmHigh(false);
                 }}
               >
-                Pocket the profit balance, {fmtMoney(balance)}
+                Take out the rest, {fmtMoney(balance)}
               </button>
             ) : pocketingBalance ? (
               <p className="text-xs text-muted-foreground">
-                This is the profit still not pocketed
+                This is the net profit still not taken
                 {toNum(surplus?.alreadyPocketed) > 0
                   ? ` (${fmtMoney(surplus?.alreadyPocketed)} already taken)`
                   : ""}
                 .
               </p>
-            ) : gp > 0 ? (
+            ) : net > 0 ? (
               <p className="text-xs text-muted-foreground">
-                The profit balance for this period is already pocketed.
+                The profit for this period is already taken.
               </p>
             ) : null}
 
@@ -384,7 +433,7 @@ export function ProfitPocketDrawer({
               <div>
                 <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
                   <span className="font-semibold text-foreground">
-                    {pocketShare.toFixed(1)}% of profit
+                    {pocketShare.toFixed(1)}% of net profit
                   </span>
                   <span className="text-muted-foreground">
                     {remainingProfit >= 0
@@ -428,6 +477,18 @@ export function ProfitPocketDrawer({
             ) : Number.isFinite(amountN) && amountN > 0 ? (
               <p className="text-[11px] text-muted-foreground">
                 No profit in this period to measure a percentage against.
+              </p>
+            ) : null}
+
+            {nextHasData && nextSurplus ? (
+              <p className="text-[11px] text-muted-foreground">
+                Next period ({fmtDay(addDaysIso(to, 1))} –{" "}
+                {fmtDay(addDaysIso(to, isoDaySpan(from, to)))}): gross profit{" "}
+                <span className="font-semibold text-foreground">
+                  {fmtMoney(toNum(nextSurplus.grossProfit))}
+                </span>
+                . To cover those bills, take out less and leave the rest in the
+                business.
               </p>
             ) : null}
 

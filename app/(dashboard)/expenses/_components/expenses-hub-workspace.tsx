@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Plus, RefreshCw, Scale } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -28,17 +28,20 @@ import {
   fetchExpenseSchedules,
   fetchFinanceExpensesRange,
   fetchFinancePL,
+  fetchFinancePLDaily,
   fetchPayrollPeriodPayslips,
   fetchPendingDrawouts,
   fetchShiftDrawouts,
   fetchShifts,
   initiateExpenseKopokopoPay,
+  postDrawoutExpense,
   postExpenseScheduleOccurrence,
   postExpenseScheduleOccurrenceByDate,
   rejectFinanceExpense,
   skipExpenseScheduleOccurrence,
   skipExpenseScheduleOccurrenceByDate,
   type DrawoutRecord,
+  type DailyProfitPoint,
   type ExpenseScheduleOccurrenceRecord,
   type ExpenseScheduleRecord,
   type FinanceExpenseResponse,
@@ -46,11 +49,14 @@ import {
   type ShiftListItem,
 } from "@/lib/api";
 import {
+  DRAWOUT_NATURE_LABEL,
   drawoutCategoryLabel,
+  drawoutNature,
   drawoutStatusLabel,
   hubDrawoutsFromRecords,
   isActiveDrawoutStatus,
   totalDrawoutAmount,
+  type DrawoutNature,
   type HubDrawout,
 } from "@/lib/business-hub/drawouts-for-hub";
 import { APP_ROUTES } from "@/lib/config";
@@ -65,8 +71,11 @@ import {
   categoryTypeLabel,
   expenseCategoryCodeLabel,
   expenseSourceLabel,
+  FIXED_COST_PRESETS,
   formatFixedCostMoney,
   formatFixedCostDate,
+  frequencyLabel,
+  nextDueFromSchedule,
   paymentMethodLabel,
 } from "@/lib/fixed-costs-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -82,6 +91,22 @@ const PRIMARY_BTN =
   "h-9 rounded-none border-0 bg-[var(--pos-primary,#0f766e)] px-3 text-[13px] font-semibold text-white shadow-none hover:bg-[#0d6b63]";
 const OUTLINE_BTN =
   "h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-3 text-[13px] font-semibold text-[var(--order-ink,#15231f)] shadow-none hover:border-[var(--pos-primary,#0f766e)]";
+
+const REGULAR_COST_IDS = [
+  "shop_rent",
+  "stall_rent",
+  "kplc",
+  "water",
+  "internet",
+  "security",
+] as const;
+
+type CloseCashOut = {
+  id: string;
+  cashierName: string;
+  closedAt: string | null;
+  amount: number;
+};
 
 
 export function ExpensesHubWorkspace() {
@@ -122,6 +147,7 @@ export function ExpensesHubWorkspace() {
   const [page, setPage] = useState(0);
 
   const [pl, setPl] = useState<ProfitAndLossResponse | null>(null);
+  const [dailyPl, setDailyPl] = useState<DailyProfitPoint[]>([]);
   const [expenses, setExpenses] = useState<FinanceExpenseResponse[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<
     FinanceExpenseResponse[]
@@ -138,13 +164,19 @@ export function ExpensesHubWorkspace() {
   } | null>(null);
   const [periodDrawouts, setPeriodDrawouts] = useState<HubDrawout[]>([]);
   const [pendingDrawouts, setPendingDrawouts] = useState<HubDrawout[]>([]);
+  const [closeCashOuts, setCloseCashOuts] = useState<CloseCashOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [reviewCategory, setReviewCategory] = useState<Record<string, string>>(
+    {},
+  );
+  const [reviewPostingId, setReviewPostingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [seedPresetId, setSeedPresetId] = useState<string | null>(null);
   const [profitPocketOpen, setProfitPocketOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
@@ -179,7 +211,7 @@ export function ExpensesHubWorkspace() {
       const year = Number(from.slice(0, 4));
       const month = Number(from.slice(5, 7));
 
-      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle] =
+      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle, dailyRes] =
         await Promise.all([
         canReadFinanceReports
           ? fetchFinancePL(from, to, branch).catch((err) => {
@@ -225,11 +257,23 @@ export function ExpensesHubWorkspace() {
               to,
               branchId: branch,
               includePending: canApproveDrawouts,
-            }).catch(() => ({ period: [] as HubDrawout[], pending: [] as HubDrawout[] }))
-          : Promise.resolve({ period: [] as HubDrawout[], pending: [] as HubDrawout[] }),
+            }).catch(() => ({
+              period: [] as HubDrawout[],
+              pending: [] as HubDrawout[],
+              cashOuts: [] as CloseCashOut[],
+            }))
+          : Promise.resolve({
+              period: [] as HubDrawout[],
+              pending: [] as HubDrawout[],
+              cashOuts: [] as CloseCashOut[],
+            }),
+        canReadFinanceReports
+          ? fetchFinancePLDaily(from, to, branch).catch(() => [] as DailyProfitPoint[])
+          : Promise.resolve([] as DailyProfitPoint[]),
       ]);
 
       setPl(plRes);
+      setDailyPl(Array.isArray(dailyRes) ? dailyRes : []);
       if (listRes) {
         setExpenses(listRes.expenses);
         setTotalCount(listRes.totalCount);
@@ -245,9 +289,11 @@ export function ExpensesHubWorkspace() {
       setSchedules(Array.isArray(schedulesRes) ? schedulesRes : []);
       setPeriodDrawouts(drawoutBundle.period);
       setPendingDrawouts(drawoutBundle.pending);
+      setCloseCashOuts(drawoutBundle.cashOuts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
       setPl(null);
+      setDailyPl([]);
       setExpenses([]);
       setOccurrences([]);
       setUnpostedPayroll(null);
@@ -255,6 +301,7 @@ export function ExpensesHubWorkspace() {
       setSchedules([]);
       setPeriodDrawouts([]);
       setPendingDrawouts([]);
+      setCloseCashOuts([]);
     } finally {
       setLoading(false);
     }
@@ -334,12 +381,133 @@ export function ExpensesHubWorkspace() {
     () => totalDrawoutAmount(periodDrawouts),
     [periodDrawouts],
   );
+  // Approved drawouts split by what the cash paid for: operating spend vs
+  // stock/supplier vs uncategorised. Mirrors the "stock ≠ OpEx" rule on the hub.
+  const drawoutByNature = useMemo(() => {
+    const acc: Record<DrawoutNature, number> = {
+      operating: 0,
+      supplier: 0,
+      other: 0,
+    };
+    for (const d of periodDrawouts) {
+      if (d.status !== "APPROVED") continue;
+      acc[drawoutNature(d.category)] += d.amount;
+    }
+    return acc;
+  }, [periodDrawouts]);
+  // Drawouts that already have a finance expense (any loaded page), so the hub
+  // only offers the review action when there is nothing posted yet.
+  const postedDrawoutIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of expenses) {
+      if (e.source === "drawer" && e.sourceReference) {
+        ids.add(e.sourceReference);
+      }
+    }
+    return ids;
+  }, [expenses]);
+
+  // Daily net-profit strip.
+  const dailySeries = useMemo(
+    () =>
+      dailyPl.map((d) => ({
+        date: d.date,
+        net: moneyNumber(d.netOperating),
+        hasActivity: d.hasActivity !== false,
+      })),
+    [dailyPl],
+  );
+  const activeDays = useMemo(
+    () => dailySeries.filter((d) => d.hasActivity),
+    [dailySeries],
+  );
+  const dailyMax = useMemo(
+    () => activeDays.reduce((m, d) => Math.max(m, Math.abs(d.net)), 1),
+    [activeDays],
+  );
+  const dailyNetTotal = useMemo(
+    () => dailySeries.reduce((s, d) => s + d.net, 0),
+    [dailySeries],
+  );
+  const bestDay = useMemo(
+    () =>
+      activeDays.length
+        ? activeDays.reduce((a, b) => (b.net > a.net ? b : a))
+        : null,
+    [activeDays],
+  );
+  const worstDay = useMemo(
+    () =>
+      activeDays.length
+        ? activeDays.reduce((a, b) => (b.net < a.net ? b : a))
+        : null,
+    [activeDays],
+  );
   const recentDrawouts = useMemo(
     () => periodDrawouts.filter((d) => isActiveDrawoutStatus(d.status)).slice(0, 8),
     [periodDrawouts],
   );
+  const cashTakenOutTotal = useMemo(
+    () => closeCashOuts.reduce((sum, row) => sum + row.amount, 0),
+    [closeCashOuts],
+  );
+  const regularPresets = useMemo(
+    () => FIXED_COST_PRESETS.filter((p) =>
+      (REGULAR_COST_IDS as readonly string[]).includes(p.id),
+    ),
+    [],
+  );
+  const activeSchedules = useMemo(
+    () =>
+      schedules.filter(
+        (s) =>
+          s.active &&
+          (!branchFilter || !s.branchId || s.branchId === branchFilter),
+      ),
+    [schedules, branchFilter],
+  );
+  // Recurring bills (rent, power, water) that already hit operating expenses in
+  // this period — lets the section tie straight back to the net profit above.
+  const regularPostedThisPeriod = useMemo(
+    () =>
+      occurrences
+        .filter(
+          (o) =>
+            o.status === "posted" &&
+            o.occurrenceDate >= from &&
+            o.occurrenceDate <= to,
+        )
+        .reduce((sum, o) => sum + moneyNumber(o.amount), 0),
+    [occurrences, from, to],
+  );
+
+  const openRegular = (presetId: string, mode: "recurring" | "once") => {
+    setSeedPresetId(presetId);
+    if (mode === "recurring" && canManageFinanceExpenses) {
+      setRecurringOpen(true);
+      return;
+    }
+    setAddOpen(true);
+  };
 
   const bump = () => setRefreshKey((k) => k + 1);
+
+  const reviewDrawout = async (drawoutId: string) => {
+    const code = reviewCategory[drawoutId] ?? "other";
+    setReviewPostingId(drawoutId);
+    try {
+      await postDrawoutExpense(drawoutId, code);
+      setFeedback({ kind: "success", text: "Drawout posted to expenses" });
+      bump();
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Could not post drawout",
+      });
+    } finally {
+      setReviewPostingId(null);
+    }
+  };
 
   const downloadExpensesCsv = () => {
     const header = [
@@ -572,46 +740,29 @@ export function ExpensesHubWorkspace() {
         </p>
       </div>
 
-      {/* Brand hero — mirrors storefront banner energy */}
-      <section
-        className="relative overflow-hidden text-white"
-        style={{ backgroundColor: brandPrimary }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 78% 35%, color-mix(in srgb, white 35%, transparent), transparent 48%), linear-gradient(135deg, color-mix(in srgb, white 12%, transparent), transparent 55%)",
-          }}
-          aria-hidden
-        />
-        <div className="relative z-10 flex flex-col gap-4 px-3 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-4 sm:py-7">
-          <div className="min-w-0 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-8 items-center justify-center border border-white/35 bg-white/10">
-                <Scale className="size-4" aria-hidden />
-              </span>
-              <h1 className="text-[1.45rem] font-bold leading-none tracking-[-0.03em] sm:text-[1.75rem]">
-                Expenses &amp; profit
-              </h1>
-            </div>
-            <p className="max-w-xl text-sm leading-relaxed text-white/80">
-              Sales, cost of goods, operating expenses, and net operating profit
-              — for {shopName}, in one place.
+      <header className={cn("border-b bg-white px-3 py-4 sm:px-4", HAIRLINE)}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 max-w-xl space-y-1">
+            <h1 className="text-[1.45rem] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] sm:text-[1.7rem]">
+              Expenses &amp; profit
+            </h1>
+            <p className="text-sm leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_68%,transparent)]">
+              Sales, stock cost, and the bills you pay. Net is what is left for{" "}
+              {shopName}.
             </p>
             {canReadFinanceReports && pl && !loading ? (
-              <div className="pt-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
                   Net operating profit
-                </p>
-                <p
+                </span>
+                <span
                   className={cn(
-                    "mt-0.5 text-[1.85rem] font-semibold tabular-nums tracking-tight sm:text-[2.15rem]",
-                    moneyNumber(pl.netOperating) < 0 && "text-[#ffe4e0]",
+                    "text-[1.5rem] font-semibold leading-none tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
+                    moneyNumber(pl.netOperating) < 0 && "text-[#9a2e16]",
                   )}
                 >
                   {formatFixedCostMoney(moneyNumber(pl.netOperating))}
-                </p>
+                </span>
               </div>
             ) : null}
           </div>
@@ -619,7 +770,7 @@ export function ExpensesHubWorkspace() {
             {canPocket ? (
               <Button
                 type="button"
-                className="h-9 rounded-none border-0 bg-[#d8f3ee] px-3 text-[13px] font-semibold text-[#0a4f48] shadow-none hover:bg-white"
+                className={PRIMARY_BTN}
                 onClick={() => setProfitPocketOpen(true)}
               >
                 Pocket cash…
@@ -628,53 +779,41 @@ export function ExpensesHubWorkspace() {
             {canWriteFinanceExpenses ? (
               <Button
                 type="button"
-                className={cn(
-                  "h-9 rounded-none border-0 px-3 text-[13px] font-semibold shadow-none",
-                  canPocket
-                    ? "border border-white/50 bg-transparent text-white hover:bg-white/10"
-                    : "bg-[#d8f3ee] text-[#0a4f48] hover:bg-white",
-                )}
-                onClick={() => setAddOpen(true)}
+                className={canPocket ? OUTLINE_BTN : PRIMARY_BTN}
+                onClick={() => {
+                  setSeedPresetId(null);
+                  setAddOpen(true);
+                }}
               >
                 <Plus className="size-4" />
                 Add expense
-              </Button>
-            ) : null}
-            {canManageFinanceExpenses ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
-                onClick={() => setRecurringOpen(true)}
-              >
-                Recurring
               </Button>
             ) : null}
             {canReadFinanceExpenses ? (
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
+                className={OUTLINE_BTN}
                 onClick={downloadExpensesCsv}
               >
-                CSV expenses
+                CSV
               </Button>
             ) : null}
             {pl ? (
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 rounded-none border-white/50 bg-transparent px-3 text-[13px] font-semibold text-white shadow-none hover:bg-white/10 hover:text-white"
+                className={OUTLINE_BTN}
                 onClick={downloadPlCsv}
               >
-                CSV P&amp;L
+                P&amp;L
               </Button>
             ) : null}
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-9 rounded-none border border-white/40 text-white hover:bg-white/10 hover:text-white"
+              className={cn(OUTLINE_BTN, "size-9 px-0")}
               onClick={() => bump()}
               aria-label="Refresh"
             >
@@ -682,7 +821,7 @@ export function ExpensesHubWorkspace() {
             </Button>
           </div>
         </div>
-      </section>
+      </header>
 
       <div className="space-y-3 px-0 pb-16 pt-0 sm:space-y-3">
       {feedback ? (
@@ -824,33 +963,7 @@ export function ExpensesHubWorkspace() {
       ) : (
         <>
           {canReadFinanceReports && pl ? (
-            <section
-              className={cn(
-                "grid overflow-hidden border border-x-0 bg-white sm:grid-cols-2 sm:border-x lg:grid-cols-5",
-                HAIRLINE,
-              )}
-            >
-              <MetricCard label="Sales" value={pl.revenue} />
-              <MetricCard label="COGS" value={pl.cogs} />
-              <MetricCard
-                label="Gross profit"
-                value={pl.grossProfit}
-                action={
-                  canPocket
-                    ? {
-                        label: "Pocket cash…",
-                        onClick: () => setProfitPocketOpen(true),
-                      }
-                    : undefined
-                }
-              />
-              <MetricCard label="Operating expenses" value={pl.operatingExpenses} />
-              <MetricCard
-                label="Net operating profit"
-                value={pl.netOperating}
-                emphasize
-              />
-            </section>
+            <ProfitStatement pl={pl} periodLabel={periodLabel} />
           ) : canReadFinanceReports ? (
             <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
               No P&amp;L data for this period.
@@ -864,6 +977,86 @@ export function ExpensesHubWorkspace() {
                 {formatFixedCostMoney(otherAdjustments)}
               </span>
             </p>
+          ) : null}
+
+          {canReadFinanceReports && dailySeries.length > 0 ? (
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="max-w-xl">
+                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                    Daily net profit
+                  </h2>
+                  <p className={cn("mt-1", dashboardHintClass())}>
+                    Sales minus stock cost and the bills paid, per day. Tap a day
+                    to filter this page to it.
+                  </p>
+                </div>
+                <p className="text-[15px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                  Net{" "}
+                  <span
+                    className={dailyNetTotal < 0 ? "text-[#9a2e16]" : undefined}
+                  >
+                    {formatFixedCostMoney(dailyNetTotal)}
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-end gap-1 overflow-x-auto pb-1">
+                {dailySeries.map((d) => {
+                  const height = d.hasActivity
+                    ? Math.max(4, Math.round((Math.abs(d.net) / dailyMax) * 64))
+                    : 2;
+                  const active = from === d.date && to === d.date;
+                  return (
+                    <button
+                      key={d.date}
+                      type="button"
+                      title={
+                        d.hasActivity
+                          ? `${formatFixedCostDate(d.date)} · ${formatFixedCostMoney(d.net)}`
+                          : `${formatFixedCostDate(d.date)} · no sales recorded`
+                      }
+                      aria-label={`${d.date} net ${formatFixedCostMoney(d.net)}`}
+                      onClick={() => {
+                        setPreset("custom");
+                        setFrom(d.date);
+                        setTo(d.date);
+                        setPage(0);
+                      }}
+                      className={cn(
+                        "flex h-[72px] min-w-[12px] flex-1 flex-col justify-end rounded-none",
+                        active && "ring-1 ring-[var(--order-ink,#15231f)]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "w-full rounded-none",
+                          !d.hasActivity
+                            ? "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
+                            : d.net < 0
+                              ? "bg-[#9a2e16]"
+                              : "bg-[var(--pos-primary,#0f766e)]",
+                        )}
+                        style={{ height: `${height}px` }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {bestDay && worstDay ? (
+                <p className={dashboardHintClass()}>
+                  {activeDays.length} active days · best{" "}
+                  {formatFixedCostDate(bestDay.date)}{" "}
+                  {formatFixedCostMoney(bestDay.net)} · lowest{" "}
+                  {formatFixedCostDate(worstDay.date)}{" "}
+                  {formatFixedCostMoney(worstDay.net)}
+                </p>
+              ) : null}
+            </section>
           ) : null}
 
           {unpostedPayroll && unpostedPayroll.count > 0 ? (
@@ -919,6 +1112,158 @@ export function ExpensesHubWorkspace() {
             </div>
           ) : null}
 
+          {canReadFinanceReports &&
+          pl &&
+          moneyNumber(pl.revenue) > 0 &&
+          moneyNumber(pl.operatingExpenses) <= 0 ? (
+            <div
+              className={cn(
+                "border border-x-0 border-amber-800/25 bg-[#fff8e8] px-3 py-3 text-sm sm:border-x sm:px-4",
+                HAIRLINE,
+              )}
+            >
+              <p className="font-semibold text-[#5c3d0a]">
+                Net profit looks high — no bills recorded for this period
+              </p>
+              <p className="mt-1 text-[#5c3d0a]/80">
+                Net = sales − stock − bills. With no operating costs posted, this
+                period’s “net” is really gross profit. Add rent, electricity,
+                wages, and other bills so the number is real.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-semibold text-[var(--pos-primary,#0f766e)]">
+                <Link
+                  href={APP_ROUTES.fixedCosts}
+                  className="underline-offset-2 hover:underline"
+                >
+                  Add rent or power
+                </Link>
+                {canWriteFinanceExpenses ? (
+                  <button
+                    type="button"
+                    className="underline-offset-2 hover:underline"
+                    onClick={() => {
+                      setSeedPresetId(null);
+                      setAddOpen(true);
+                    }}
+                  >
+                    Add a one-off bill
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {canReadFinanceExpenses ? (
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <div className="max-w-xl">
+                <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  Regular costs
+                </h2>
+                <p className={cn("mt-1", dashboardHintClass())}>
+                  Rent, electricity, and water. A repeating bill posts each
+                  period and reduces net profit. Record once when it is a
+                  single payment.
+                </p>
+              </div>
+              {activeSchedules.length > 0 ? (
+                <p className={dashboardHintClass()}>
+                  {activeSchedules.length} active{" "}
+                  {activeSchedules.length === 1 ? "bill" : "bills"}
+                  {regularPostedThisPeriod > 0 ? (
+                    <>
+                      {" · posted this period "}
+                      <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                        {formatFixedCostMoney(regularPostedThisPeriod)}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {canWriteFinanceExpenses ? (
+                <>
+                  <ul className="flex flex-wrap gap-2">
+                    {regularPresets.map((preset) => (
+                      <li key={preset.id}>
+                        <button
+                          type="button"
+                          className={OUTLINE_BTN}
+                          onClick={() =>
+                            openRegular(
+                              preset.id,
+                              canManageFinanceExpenses ? "recurring" : "once",
+                            )
+                          }
+                        >
+                          {preset.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {canManageFinanceExpenses ? (
+                    <p className={dashboardHintClass()}>
+                      A chip starts a repeating bill. Use Add expense to post one
+                      payment only.{" "}
+                      <button
+                        type="button"
+                        className="font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                        onClick={() => {
+                          setSeedPresetId(null);
+                          setRecurringOpen(true);
+                        }}
+                      >
+                        Other recurring cost
+                      </button>
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
+              {activeSchedules.length > 0 ? (
+                <ul
+                  className={cn(
+                    "divide-y border-t",
+                    "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                    HAIRLINE,
+                  )}
+                >
+                  {activeSchedules.map((schedule) => {
+                    const due = nextDueFromSchedule(schedule);
+                    return (
+                      <li
+                        key={schedule.id}
+                        className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm"
+                      >
+                        <div>
+                          <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                            {schedule.name}
+                          </p>
+                          <p className={dashboardHintClass()}>
+                            {expenseCategoryCodeLabel(schedule.categoryCode)} ·{" "}
+                            {frequencyLabel(schedule.frequency)}
+                            {due ? ` · next ${formatFixedCostDate(due)}` : ""}
+                          </p>
+                        </div>
+                        <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                          {formatFixedCostMoney(schedule.amount)}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className={dashboardHintClass()}>
+                  {canWriteFinanceExpenses
+                    ? "No repeating bills yet. Add rent or electricity so this month’s profit includes them."
+                    : "No repeating bills set up for this shop yet."}
+                </p>
+              )}
+            </section>
+          ) : null}
+
           {canViewShifts ? (
             <section
               className={cn(
@@ -928,11 +1273,24 @@ export function ExpensesHubWorkspace() {
             >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
+                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                     Till drawouts
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
-                    Cash pulled from the drawer — not operating expenses.
+                    Cash pulled from the drawer during a shift. Petty cash,
+                    casual labour, and recurring bills post to expenses when the
+                    drawout is approved; supplier payments settle stock or a
+                    supplier bill.
+                    {closeCashOuts.length > 0 ? (
+                      <>
+                        {" "}
+                        Taken out at close{" "}
+                        <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                          {formatFixedCostMoney(cashTakenOutTotal)}
+                        </span>
+                        .
+                      </>
+                    ) : null}
                     {periodDrawouts.length > 0 ? (
                       <>
                         {" "}
@@ -961,6 +1319,82 @@ export function ExpensesHubWorkspace() {
                 </Link>
               </div>
 
+              {drawoutApprovedTotal > 0 ? (
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
+                  <li className={dashboardHintClass()}>
+                    <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                      Operating spend
+                    </span>{" "}
+                    {formatFixedCostMoney(drawoutByNature.operating)}
+                  </li>
+                  <li className={dashboardHintClass()}>
+                    <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                      Stock / supplier
+                    </span>{" "}
+                    {formatFixedCostMoney(drawoutByNature.supplier)}
+                  </li>
+                  {drawoutByNature.other > 0 ? (
+                    <li className={dashboardHintClass()}>
+                      <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                        Review
+                      </span>{" "}
+                      {formatFixedCostMoney(drawoutByNature.other)}
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
+
+              {drawoutByNature.supplier > 0 ? (
+                <p className={dashboardHintClass()}>
+                  Supplier payments settle stock or a supplier bill — record the
+                  purchase in{" "}
+                  <Link
+                    href={APP_ROUTES.purchasingApAging}
+                    className="font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                  >
+                    Purchasing
+                  </Link>
+                  .
+                </p>
+              ) : null}
+
+              {closeCashOuts.length > 0 ? (
+                <ul
+                  className={cn(
+                    "divide-y border-t",
+                    "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                    HAIRLINE,
+                  )}
+                >
+                  {closeCashOuts.slice(0, 6).map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                          Taken out at close
+                        </p>
+                        <p className={dashboardHintClass()}>
+                          {row.cashierName}
+                          {row.closedAt
+                            ? ` · ${formatFixedCostDate(row.closedAt.slice(0, 10))}`
+                            : ""}
+                        </p>
+                      </div>
+                      <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                        {formatFixedCostMoney(row.amount)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={dashboardHintClass()}>
+                  Cash taken out at close shows here after a cashier records it.
+                  It is till cash, not an operating expense.
+                </p>
+              )}
+
               {pendingDrawouts.length > 0 ? (
                 <div
                   className={cn(
@@ -980,7 +1414,8 @@ export function ExpensesHubWorkspace() {
                       >
                         <span>
                           {d.recipientName || d.description || "Drawout"} ·{" "}
-                          {drawoutCategoryLabel(d.category)}
+                          {drawoutCategoryLabel(d.category)} ·{" "}
+                          {DRAWOUT_NATURE_LABEL[drawoutNature(d.category)]}
                           {d.shiftCashierName ? ` · ${d.shiftCashierName}` : ""}
                         </span>
                         <span className="font-semibold tabular-nums">
@@ -1011,9 +1446,48 @@ export function ExpensesHubWorkspace() {
                         </p>
                         <p className={dashboardHintClass()}>
                           {drawoutCategoryLabel(d.category)} ·{" "}
+                          {DRAWOUT_NATURE_LABEL[drawoutNature(d.category)]} ·{" "}
                           {drawoutStatusLabel(d.status)}
                           {d.shiftCashierName ? ` · ${d.shiftCashierName}` : ""}
                         </p>
+                        {canApproveDrawouts &&
+                        d.status === "APPROVED" &&
+                        drawoutNature(d.category) === "other" &&
+                        !postedDrawoutIds.has(d.id) ? (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                            <select
+                              className={cn(
+                                dashboardSelectClass(),
+                                "h-8 rounded-none text-[12px]",
+                              )}
+                              value={reviewCategory[d.id] ?? "other"}
+                              onChange={(e) =>
+                                setReviewCategory((m) => ({
+                                  ...m,
+                                  [d.id]: e.target.value,
+                                }))
+                              }
+                              aria-label="Expense category"
+                            >
+                              {EXPENSE_CATEGORY_CODE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className={cn(OUTLINE_BTN, "h-8")}
+                              disabled={reviewPostingId === d.id}
+                              onClick={() => void reviewDrawout(d.id)}
+                            >
+                              {reviewPostingId === d.id
+                                ? "…"
+                                : "Post to expenses"}
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                       <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                         {formatFixedCostMoney(d.amount)}
@@ -1036,7 +1510,7 @@ export function ExpensesHubWorkspace() {
                 HAIRLINE,
               )}
             >
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
+              <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                 Pending approval
               </h2>
               <ul
@@ -1093,8 +1567,8 @@ export function ExpensesHubWorkspace() {
                 HAIRLINE,
               )}
             >
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
-                Upcoming & overdue
+              <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                Upcoming &amp; overdue
               </h2>
               <ul
                 className={cn(
@@ -1154,7 +1628,7 @@ export function ExpensesHubWorkspace() {
             >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--order-ink,#15231f)]">
+                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                     Expenses
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
@@ -1292,7 +1766,7 @@ export function ExpensesHubWorkspace() {
                             size="sm"
                             className={cn(
                               PRIMARY_BTN,
-                              "h-11 flex-1 rounded-2xl text-[13px]",
+                              "h-11 flex-1 text-[13px]",
                             )}
                             disabled={payingId === e.id}
                             onClick={() => void payViaMpesa(e)}
@@ -1303,7 +1777,7 @@ export function ExpensesHubWorkspace() {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-11 rounded-2xl px-3 text-[13px] font-semibold"
+                            className="h-11 rounded-none px-3 text-[13px] font-semibold"
                             disabled={payingId === e.id}
                             onClick={() => void cancelPay(e.id)}
                             title="Stop waiting on a pending Send Money"
@@ -1472,6 +1946,7 @@ export function ExpensesHubWorkspace() {
       <OneOffExpenseDrawer
         open={addOpen}
         onOpenChange={setAddOpen}
+        seedPresetId={seedPresetId}
         expenseDate={to}
         branches={branches}
         canManage={canWriteFinanceExpenses}
@@ -1503,6 +1978,7 @@ export function ExpensesHubWorkspace() {
       <ScheduleFormDrawer
         open={recurringOpen}
         onOpenChange={setRecurringOpen}
+        seedPresetId={seedPresetId}
         branches={branches}
         saving={recurringSaving}
         onSavingChange={setRecurringSaving}
@@ -1535,49 +2011,65 @@ function triggerCsvDownload(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-function MetricCard({
-  label,
-  value,
-  emphasize,
-  action,
+function ProfitStatement({
+  pl,
+  periodLabel,
 }: {
-  label: string;
-  value: number | string;
-  emphasize?: boolean;
-  action?: { label: string; onClick: () => void };
+  pl: ProfitAndLossResponse;
+  periodLabel: string;
 }) {
-  const n = moneyNumber(value);
+  const rows = [
+    { mark: "", label: "Sales", value: pl.revenue, net: false },
+    { mark: "−", label: "Cost of goods", value: pl.cogs, net: false },
+    { mark: "=", label: "Gross profit", value: pl.grossProfit, net: false },
+    { mark: "−", label: "Operating expenses", value: pl.operatingExpenses, net: false },
+    { mark: "=", label: "Net operating profit", value: pl.netOperating, net: true },
+  ] as const;
+
   return (
-    <div
-      className={cn(
-        "border-b px-3 py-3.5 last:border-b-0 sm:border-b-0 sm:border-r sm:px-4 sm:last:border-r-0",
-        "lg:[&:nth-child(2)]:border-r lg:[&:nth-child(5)]:border-r-0",
-        emphasize && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-        HAIRLINE,
-      )}
-    >
-      <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", dashboardHintClass())}>
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-1 tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
-          emphasize ? "text-2xl font-semibold" : "text-xl font-semibold",
-          n < 0 && "text-[#9a2e16]",
-        )}
-      >
-        {formatFixedCostMoney(n)}
-      </p>
-      {action ? (
-        <button
-          type="button"
-          className="mt-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-          onClick={action.onClick}
-        >
-          {action.label}
-        </button>
-      ) : null}
-    </div>
+    <section className={cn("border border-x-0 bg-white sm:border-x", HAIRLINE)}>
+      <p className={cn("px-3 pt-3 sm:px-4", dashboardHintClass())}>{periodLabel}</p>
+      <dl>
+        {rows.map((row) => {
+          const n = moneyNumber(row.value);
+          return (
+            <div
+              key={row.label}
+              className={cn(
+                "flex items-baseline justify-between gap-4 border-t px-3 py-2.5 sm:px-4",
+                HAIRLINE,
+                row.net && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+              )}
+            >
+              <dt
+                className={cn(
+                  "text-[13px] text-[var(--order-ink,#15231f)]",
+                  row.net && "text-base font-semibold",
+                )}
+              >
+                {row.mark ? (
+                  <span className="mr-2 inline-block w-3 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                    {row.mark}
+                  </span>
+                ) : (
+                  <span className="mr-2 inline-block w-3" />
+                )}
+                {row.label}
+              </dt>
+              <dd
+                className={cn(
+                  "tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
+                  row.net ? "text-xl font-semibold" : "text-[15px] font-semibold",
+                  n < 0 && "text-[#9a2e16]",
+                )}
+              >
+                {formatFixedCostMoney(n)}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </section>
   );
 }
 
@@ -1622,7 +2114,11 @@ async function loadDrawoutsForExpensesHub(opts: {
   to: string;
   branchId?: string;
   includePending: boolean;
-}): Promise<{ period: HubDrawout[]; pending: HubDrawout[] }> {
+}): Promise<{
+  period: HubDrawout[];
+  pending: HubDrawout[];
+  cashOuts: CloseCashOut[];
+}> {
   const branchId = opts.branchId;
   const [openRes, recentRes, pendingRaw] = await Promise.all([
     fetchShifts({ branchId, status: "OPEN", page: 0, size: 50 }).catch(() => null),
@@ -1660,8 +2156,25 @@ async function loadDrawoutsForExpensesHub(opts: {
     }),
   );
 
+  const cashOuts: CloseCashOut[] = [...byId.values()]
+    .filter((shift) => {
+      if (!shift.closedAt || shift.cashTakenOut == null || shift.cashTakenOut === "") {
+        return false;
+      }
+      const day = shift.closedAt.slice(0, 10);
+      return day >= opts.from && day <= opts.to;
+    })
+    .map((shift) => ({
+      id: shift.id,
+      cashierName: shift.cashierName,
+      closedAt: shift.closedAt,
+      amount: moneyNumber(shift.cashTakenOut),
+    }))
+    .sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""));
+
   return {
     period: hubDrawoutsFromRecords(drawoutLists.flat()),
     pending: hubDrawoutsFromRecords(pendingRaw),
+    cashOuts,
   };
 }
