@@ -43,6 +43,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.discounts]: "Discounts",
     [APP_ROUTES.shifts]: "Shifts",
     [APP_ROUTES.sales]: "Sales",
+    [APP_ROUTES.salesByHour]: "By the hour",
     [APP_ROUTES.salesTransactions]: "Receipts",
     [APP_ROUTES.salesReports]: "Sales reports",
     [APP_ROUTES.salesQuick]: "Quick sale",

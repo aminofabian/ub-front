@@ -7082,6 +7082,47 @@ export type RecentSaleRow = {
   customerPhoneVerified?: boolean | null;
 };
 
+export type SalesHourSale = {
+  saleId: string;
+  receiptNo?: number | null;
+  soldAt: string;
+  cashierName: string;
+  paymentMethod: string;
+  total: number | string;
+};
+
+export type SalesHourRow = {
+  hour: number;
+  saleCount: number;
+  revenue: number | string;
+  omitted: number;
+  sales: SalesHourSale[];
+};
+
+export type SalesByHourResponse = {
+  timezone: string;
+  saleCount: number;
+  revenue: number | string;
+  hours: SalesHourRow[];
+};
+
+export async function fetchSalesByHour(
+  from?: string,
+  to?: string,
+  branchId?: string,
+  itemTypeId?: string,
+): Promise<SalesByHourResponse> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  const qs = params.toString();
+  return request<SalesByHourResponse>(
+    `/api/v1/sales/intelligence/sales-by-hour${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export async function fetchRecentSales(
   from?: string,
   to?: string,
@@ -7212,11 +7253,13 @@ export async function fetchRecentWebOrderLines(
   from?: string,
   to?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-web-order-lines${qs ? `?${qs}` : ""}`,

@@ -455,6 +455,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.sales, label: "Sales", group: "Reports" },
       {
+        href: APP_ROUTES.salesByHour,
+        label: "By the hour",
+        group: "Reports",
+      },
+      {
         href: APP_ROUTES.salesTransactions,
         label: "Receipts",
         group: "Reports",
@@ -780,6 +785,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.paymentsDayLedger)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesTransactions)
+    return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.salesByHour)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesPendingCarts) return gate.canViewPosDrafts;
   if (item.href === APP_ROUTES.salesReports)

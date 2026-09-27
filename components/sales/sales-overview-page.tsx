@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import {
   BadgeCheck,
+  Clock,
   Download,
   List,
   Pencil,
@@ -472,7 +473,13 @@ function SaleGroup({
 }
 
 export function SalesOverviewPage() {
-  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const {
+    me,
+    business,
+    setBranchId: setHeaderBranchId,
+    itemTypeId,
+    headerScopeReady,
+  } = useDashboard();
   const allowed =
     hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ||
     hasPermission(me?.permissions, Permission.SalesSell);
@@ -553,7 +560,7 @@ export function SalesOverviewPage() {
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!allowed) return;
+      if (!allowed || !headerScopeReady) return;
       const silent = opts?.silent ?? false;
       if (!silent) setLoading(true);
       else setRefreshing(true);
@@ -571,7 +578,10 @@ export function SalesOverviewPage() {
           dateRange.from,
           dateRange.to,
           branchId.trim() || undefined,
-          { includeOnlineStore: canViewWebOrders },
+          {
+            includeOnlineStore: canViewWebOrders,
+            itemTypeId: itemTypeId.trim() || undefined,
+          },
         );
 
         const incomingKeys = new Set<string>();
@@ -598,7 +608,15 @@ export function SalesOverviewPage() {
         setRefreshing(false);
       }
     },
-    [allowed, branchId, canViewWebOrders, dateRange, isLivePeriod],
+    [
+      allowed,
+      branchId,
+      canViewWebOrders,
+      dateRange,
+      headerScopeReady,
+      isLivePeriod,
+      itemTypeId,
+    ],
   );
 
   useEffect(() => {
@@ -1054,6 +1072,20 @@ export function SalesOverviewPage() {
         description={statusLine || "What the till took."}
         showActiveScope
       >
+        {hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-none shadow-none"
+            asChild
+          >
+            <Link href={APP_ROUTES.salesByHour}>
+              <Clock className="size-3.5" aria-hidden />
+              By the hour
+            </Link>
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="outline"

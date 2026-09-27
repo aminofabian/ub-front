@@ -65,7 +65,13 @@ function isRefunded(status: string | undefined): boolean {
 const MUTED = "text-muted-foreground";
 
 export function TransactionsPage() {
-  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const {
+    me,
+    business,
+    setBranchId: setHeaderBranchId,
+    itemTypeId,
+    headerScopeReady,
+  } = useDashboard();
   const allowed = hasPermission(
     me?.permissions,
     Permission.SalesIntelligenceRead,
@@ -153,7 +159,7 @@ export function TransactionsPage() {
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!allowed) return;
+      if (!allowed || !headerScopeReady) return;
       const silent = opts?.silent ?? false;
       if (!silent) setLoading(true);
       else setRefreshing(true);
@@ -171,7 +177,10 @@ export function TransactionsPage() {
           dateRange.from,
           dateRange.to,
           branchId.trim() || undefined,
-          { includeOnlineStore: canViewWebOrders },
+          {
+            includeOnlineStore: canViewWebOrders,
+            itemTypeId: itemTypeId.trim() || undefined,
+          },
         );
         setLines(data);
         setLastUpdated(new Date());
@@ -187,7 +196,7 @@ export function TransactionsPage() {
         setRefreshing(false);
       }
     },
-    [allowed, branchId, canViewWebOrders, dateRange],
+    [allowed, branchId, canViewWebOrders, dateRange, headerScopeReady, itemTypeId],
   );
 
   useEffect(() => {

@@ -171,6 +171,7 @@ export const APP_ROUTES = {
   analyticsActivity: "/analytics/activity",
   analyticsCustomers: "/analytics/customers",
   sales: "/sales",
+  salesByHour: "/sales/by-hour",
   salesTransactions: "/sales/transactions",
   salesPendingCarts: "/sales/pending-carts",
   salesReports: "/sales/reports",

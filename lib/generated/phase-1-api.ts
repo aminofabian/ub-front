@@ -45615,6 +45615,7 @@ export interface operations {
                 from?: string;
                 to?: string;
                 branchId?: string;
+                itemTypeId?: string;
             };
             header?: never;
             path?: never;
