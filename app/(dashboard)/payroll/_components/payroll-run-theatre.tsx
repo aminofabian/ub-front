@@ -108,10 +108,14 @@ function staffInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function monthlyAmount(row: PayrollRunRow): number {
+  return Number(row.monthlySalary ?? row.baseSalary);
+}
+
 function rowNeedsAttention(row: PayrollRunRow): boolean {
   return (
     row.employmentStatus === "on_leave" ||
-    Number(row.baseSalary) <= 0 ||
+    (monthlyAmount(row) <= 0 && row.salaryReleased !== false) ||
     Number(row.advancesOutstanding) > 0 ||
     (row.arrearPeriods?.length ?? 0) > 0
   );
@@ -121,15 +125,14 @@ function rowIsPending(row: PayrollRunRow): boolean {
   return (
     !row.alreadyPaid &&
     row.employmentStatus !== "on_leave" &&
-    Number(row.baseSalary) > 0
+    monthlyAmount(row) > 0
   );
 }
 
 function statusLabel(row: PayrollRunRow, year: number, month: number): string {
   if (row.alreadyPaid) return "Paid";
   if (row.employmentStatus === "on_leave") return "On leave";
-  if (row.salaryReleased === false) return "Unlocks 25th";
-  if (Number(row.baseSalary) <= 0) return "No salary";
+  if (monthlyAmount(row) <= 0) return "No salary";
   if ((row.arrearPeriods?.length ?? 0) > 0) return "Arrears";
   if (Number(row.advancesOutstanding) > 0) return "Advance";
   void year;
@@ -142,7 +145,7 @@ function statusBadgeClass(row: PayrollRunRow): string {
     return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white";
   }
   if (
-    Number(row.baseSalary) <= 0 ||
+    monthlyAmount(row) <= 0 ||
     (row.arrearPeriods?.length ?? 0) > 0 ||
     Number(row.advancesOutstanding) > 0
   ) {
@@ -356,7 +359,11 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
                             .join(" · ") || "—"}
                           {" · "}
                           <span className="tabular-nums">
-                            {formatPayrollMoney(row.suggestedNet)}
+                            {formatPayrollMoney(
+                              monthlyAmount(row) > 0
+                                ? monthlyAmount(row)
+                                : row.suggestedNet,
+                            )}
                           </span>
                         </p>
                       </div>
@@ -369,15 +376,6 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
                         {statusLabel(row, year, month)}
                       </span>
                     </button>
-                    {canManagePayroll ? (
-                      <button
-                        type="button"
-                        className="shrink-0 px-2.5 text-[11px] font-semibold text-[#9a2e16] underline-offset-2 hover:underline"
-                        onClick={() => onRemoveFromPayroll(row)}
-                      >
-                        Remove
-                      </button>
-                    ) : null}
                   </li>
                 );
               })}

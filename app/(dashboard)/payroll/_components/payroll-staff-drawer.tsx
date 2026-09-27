@@ -153,9 +153,9 @@ export function PayrollStaffDrawer({
     ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
     : row.employmentStatus === "on_leave"
       ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] text-[var(--order-ink,#15231f)]"
-      : Number(row.baseSalary) <= 0
+      : Number(row.monthlySalary ?? row.baseSalary) <= 0
         ? "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]"
-        : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]";
+        : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] text-[var(--order-ink,#15231f)]";
 
   return (
     <FormDrawer
@@ -247,9 +247,9 @@ export function PayrollStaffDrawer({
               ? `Paid ${formatPayrollDate(row.paidAt)}`
               : row.employmentStatus === "on_leave"
                 ? "On leave — update status before paying"
-                : Number(row.baseSalary) <= 0
+                : Number(row.monthlySalary ?? row.baseSalary) <= 0
                   ? "Salary not set — add monthly amount first"
-                  : `${employmentStatusLabel(row.employmentStatus)} · ready for ${payrollMonthLabel(year, month)}`}
+                  : `${employmentStatusLabel(row.employmentStatus)} · ${formatPayrollMoney(row.monthlySalary ?? row.baseSalary)} monthly`}
           </div>
         </div>
       </div>
@@ -333,11 +333,9 @@ export function PayrollStaffDrawer({
                   ))}
                 </select>
                 <span className="text-[11px] text-muted-foreground">
-                  {row.salaryReleased === false
-                    ? "This month unlocks on the 25th — payable shows as zero until then."
-                    : (JOIN_PAY_MODES.find(
-                          (o) => o.value === (row.joinPayMode || "half"),
-                        )?.hint ?? "Applied to this month’s payable amount.")}
+                  {JOIN_PAY_MODES.find(
+                    (o) => o.value === (row.joinPayMode || "half"),
+                  )?.hint ?? "Applied to this month’s payable amount."}
                 </span>
               </label>
             ) : null}

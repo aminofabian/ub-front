@@ -149,6 +149,8 @@ export function ExpensesHubWorkspace() {
   );
 
   const canOpen = canReadFinanceExpenses || canReadFinanceReports;
+  const canChangeExpenses =
+    canWriteFinanceExpenses || canManageFinanceExpenses;
 
   const [preset, setPreset] = useState<ExpensesHubPreset>("all");
   const [from, setFrom] = useState(() => expensesHubPresetRange("all").from);
@@ -510,7 +512,7 @@ export function ExpensesHubWorkspace() {
   );
 
   const removeExpense = async (expense: FinanceExpenseResponse) => {
-    if (!canManageFinanceExpenses) return;
+    if (!canChangeExpenses) return;
     const cadence = expenseCadenceLabel(expense, schedules);
     if (
       !window.confirm(
@@ -1872,7 +1874,7 @@ export function ExpensesHubWorkspace() {
                           <p className="text-[15px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
                             {formatFixedCostMoney(moneyNumber(e.amount))}
                           </p>
-                          {canManageFinanceExpenses &&
+                          {canChangeExpenses &&
                           e.approvalStatus !== "rejected" ? (
                             <p className="mt-1 flex justify-end gap-3 text-[12px] font-semibold">
                               <button

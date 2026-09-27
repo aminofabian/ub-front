@@ -235,7 +235,6 @@ export function PayConfirmDrawer({
 
   if (!row) return null;
 
-  const salaryLocked = row.salaryReleased === false;
   const deferredJoinMonth =
     row.joinPayMode === "deferred" &&
     payrollIsJoinMonth(row.startDate, year, month);
@@ -264,7 +263,6 @@ export function PayConfirmDrawer({
             disabled={
               saving ||
               row.employmentStatus === "on_leave" ||
-              salaryLocked ||
               deferredJoinMonth
             }
             onClick={() =>
@@ -294,13 +292,6 @@ export function PayConfirmDrawer({
       {row.employmentStatus === "on_leave" ? (
         <p className="mb-4 rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-sm text-[#9a2e16]">
           This employee is on leave. Update their status before paying.
-        </p>
-      ) : null}
-
-      {salaryLocked ? (
-        <p className="mb-4 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] px-3 py-2 text-sm text-[var(--order-ink,#15231f)]">
-          Salaries for {payrollMonthLabel(year, month)} unlock on the 25th —
-          this month shows zero until then.
         </p>
       ) : null}
 
