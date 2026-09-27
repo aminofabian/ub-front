@@ -24,6 +24,7 @@ export const POS_HARDWARE_ARTICLE: BlogArticle = {
   ],
   author: "Kiosk",
   relatedSlugs: [
+    "how-much-does-a-pos-cost-in-kenya",
     "choosing-the-right-pos-kiosk-vs-odoo",
     "set-up-a-pos-in-30-minutes",
     "how-to-install-receipt-printer-kenya",

@@ -89,6 +89,7 @@ const PILLAR_ARTICLE: BlogArticle = {
   ],
   author: "Kiosk",
   relatedSlugs: [
+    "how-much-does-a-pos-cost-in-kenya",
     ...TOP_10_SPOKE_SLUGS,
     GROW_MINI_MART_SLUG,
     KIOSK_VS_ODOO_SLUG,

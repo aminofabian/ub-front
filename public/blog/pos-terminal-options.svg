@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">POS terminal and desktop options in Kenya</text>
+
+  <!-- Card -->
+  <rect x="16" y="64" width="928" height="392" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="92" y="100" font-size="11" font-weight="700" fill="#1F2937">Option</text>
+  <text x="520" y="100" font-size="11" font-weight="700" fill="#6b7280">Typical cost</text>
+  <text x="700" y="100" font-size="11" font-weight="700" fill="#6b7280">Best for</text>
+  <line x1="40" y1="116" x2="920" y2="116" stroke="#e5e7eb"/>
+
+  <!-- Row 1: phone / tablet -->
+  <rect x="40" y="118" width="880" height="48" rx="8" fill="#f0fdf4"/>
+  <circle cx="64" cy="142" r="14" fill="#15803d"/>
+  <text x="64" y="147" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="92" y="147" font-size="11.5" font-weight="700" fill="#1F2937">Phone or tablet</text>
+  <text x="520" y="147" font-size="11" font-weight="700" fill="#15803d">KSh 0 – 45,000</text>
+  <text x="700" y="147" font-size="10" fill="#6b7280">Most shops; tablet for a fixed counter</text>
+
+  <!-- Row 2: Android all-in-one -->
+  <rect x="40" y="174" width="880" height="48" rx="8" fill="#ffffff"/>
+  <circle cx="64" cy="198" r="14" fill="#A8842C"/>
+  <text x="64" y="203" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="92" y="203" font-size="11.5" font-weight="700" fill="#1F2937">Android all-in-one terminal</text>
+  <text x="520" y="203" font-size="11" font-weight="700" fill="#A8842C">KSh 40,000 – 120,000</text>
+  <text x="700" y="203" font-size="10" fill="#6b7280">Small and medium fixed counters</text>
+
+  <!-- Row 3: Windows all-in-one -->
+  <rect x="40" y="230" width="880" height="48" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="254" r="14" fill="#2563eb"/>
+  <text x="64" y="259" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="92" y="259" font-size="11.5" font-weight="700" fill="#1F2937">Windows all-in-one POS</text>
+  <text x="520" y="259" font-size="11" font-weight="700" fill="#2563eb">KSh 42,000 – 70,000</text>
+  <text x="700" y="259" font-size="10" fill="#6b7280">Supermarkets, complex needs</text>
+
+  <!-- Row 4: mini PC build -->
+  <rect x="40" y="286" width="880" height="48" rx="8" fill="#ffffff"/>
+  <circle cx="64" cy="310" r="14" fill="#7c3aed"/>
+  <text x="64" y="315" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="92" y="315" font-size="11.5" font-weight="700" fill="#1F2937">Mini PC + monitor build</text>
+  <text x="520" y="315" font-size="11" font-weight="700" fill="#7c3aed">KSh 40,000 – 80,000</text>
+  <text x="700" y="315" font-size="10" fill="#6b7280">Modular, upgradeable setups</text>
+
+  <!-- Row 5: Kiosk desktop app -->
+  <rect x="40" y="342" width="880" height="48" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="366" r="14" fill="#1F2937"/>
+  <text x="64" y="371" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="92" y="371" font-size="11.5" font-weight="700" fill="#1F2937">Kiosk desktop app (offline / on-prem)</text>
+  <text x="520" y="371" font-size="11" font-weight="700" fill="#1F2937">Software only</text>
+  <text x="700" y="371" font-size="10" fill="#6b7280">Shops that must sell without internet</text>
+
+  <!-- Footer note -->
+  <text x="480" y="424" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">Start on a phone for KSh 0. Buy a terminal only when a fixed, busy counter genuinely needs one.</text>
+  <text x="480" y="442" font-size="10" fill="#6b7280" text-anchor="middle">Typical Kenyan prices for 2026 (ex-VAT), for planning — confirm with a supplier before you buy.</text>
+</svg>

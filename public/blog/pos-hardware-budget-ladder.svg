@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Buy POS hardware in this order</text>
+
+  <!-- Card -->
+  <rect x="16" y="64" width="928" height="400" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="92" y="100" font-size="11" font-weight="700" fill="#1F2937">What to buy</text>
+  <text x="560" y="100" font-size="11" font-weight="700" fill="#6b7280">Typical cost</text>
+  <text x="700" y="100" font-size="11" font-weight="700" fill="#6b7280">Buy it when</text>
+  <line x1="40" y1="116" x2="920" y2="116" stroke="#e5e7eb"/>
+
+  <!-- Row 1: phone -->
+  <rect x="40" y="126" width="880" height="48" rx="8" fill="#f0fdf4"/>
+  <circle cx="64" cy="150" r="14" fill="#15803d"/>
+  <text x="64" y="155" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="92" y="155" font-size="11.5" font-weight="700" fill="#1F2937">Phone you already own</text>
+  <text x="560" y="155" font-size="11" font-weight="700" fill="#15803d">KSh 0</text>
+  <text x="700" y="155" font-size="10" fill="#6b7280">Start here — it is the whole till</text>
+
+  <!-- Row 2: scanner -->
+  <rect x="40" y="182" width="880" height="48" rx="8" fill="#ffffff"/>
+  <circle cx="64" cy="206" r="14" fill="#A8842C"/>
+  <text x="64" y="211" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="92" y="211" font-size="11.5" font-weight="700" fill="#1F2937">Barcode scanner</text>
+  <text x="560" y="211" font-size="11" font-weight="700" fill="#A8842C">KSh 7,000 – 15,000</text>
+  <text x="700" y="211" font-size="10" fill="#6b7280">When the queue waits on typing</text>
+
+  <!-- Row 3: printer -->
+  <rect x="40" y="238" width="880" height="48" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="262" r="14" fill="#2563eb"/>
+  <text x="64" y="267" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="92" y="267" font-size="11.5" font-weight="700" fill="#1F2937">Receipt printer</text>
+  <text x="560" y="267" font-size="11" font-weight="700" fill="#2563eb">KSh 8,000 – 15,000</text>
+  <text x="700" y="267" font-size="10" fill="#6b7280">When customers expect paper</text>
+
+  <!-- Row 4: cash drawer -->
+  <rect x="40" y="294" width="880" height="48" rx="8" fill="#ffffff"/>
+  <circle cx="64" cy="318" r="14" fill="#7c3aed"/>
+  <text x="64" y="323" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="92" y="323" font-size="11.5" font-weight="700" fill="#1F2937">Cash drawer</text>
+  <text x="560" y="323" font-size="11" font-weight="700" fill="#7c3aed">KSh 5,500 – 12,000</text>
+  <text x="700" y="323" font-size="10" fill="#6b7280">When cash is a daily routine</text>
+
+  <!-- Row 5: terminal -->
+  <rect x="40" y="350" width="880" height="48" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="374" r="14" fill="#1F2937"/>
+  <text x="64" y="379" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="92" y="379" font-size="11.5" font-weight="700" fill="#1F2937">Touch screen terminal</text>
+  <text x="560" y="379" font-size="11" font-weight="700" fill="#1F2937">KSh 40,000 – 120,000</text>
+  <text x="700" y="379" font-size="10" fill="#6b7280">Only for a fixed, busy counter</text>
+
+  <!-- Footer note inside card -->
+  <text x="480" y="440" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">Phone first. Every rung above is an upgrade you earn by getting busy — not a prerequisite to start.</text>
+  <text x="480" y="458" font-size="10" fill="#6b7280" text-anchor="middle">Typical Kenyan prices for 2026 (ex-VAT), for planning — confirm with a local supplier before you buy.</text>
+</svg>

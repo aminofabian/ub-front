@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">What a POS costs by shop size</text>
+
+  <!-- ============ Card 1: kiosk / duka ============ -->
+  <rect x="16" y="64" width="220" height="436" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="64" width="220" height="44" rx="14" fill="#15803d"/>
+  <rect x="16" y="90" width="220" height="18" fill="#15803d"/>
+  <text x="36" y="92" font-size="13" font-weight="700" fill="#ffffff">Kiosk / duka</text>
+  <text x="36" y="140" font-size="9.5" font-weight="800" fill="#15803d" letter-spacing="0.06em">HARDWARE TO START</text>
+  <text x="36" y="162" font-size="10" fill="#374151">The phone you already own</text>
+  <text x="36" y="224" font-size="9.5" font-weight="800" fill="#15803d" letter-spacing="0.06em">SOFTWARE</text>
+  <text x="36" y="246" font-size="10" fill="#374151">Free tier</text>
+  <text x="36" y="306" font-size="9.5" font-weight="800" fill="#15803d" letter-spacing="0.06em">GROWTH TRIGGER</text>
+  <text x="36" y="328" font-size="10" fill="#374151">Scanner once the queue</text>
+  <text x="36" y="344" font-size="10" fill="#374151">beats your fingers.</text>
+  <rect x="36" y="392" width="180" height="94" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="50" y="416" font-size="9.5" font-weight="800" fill="#15803d" letter-spacing="0.05em">STARTING POINT</text>
+  <text x="50" y="442" font-size="10" fill="#166534">KSh 0 — sell today,</text>
+  <text x="50" y="458" font-size="10" fill="#166534">upgrade as you grow.</text>
+
+  <!-- ============ Card 2: mini-mart ============ -->
+  <rect x="252" y="64" width="220" height="436" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="252" y="64" width="220" height="44" rx="14" fill="#A8842C"/>
+  <rect x="252" y="90" width="220" height="18" fill="#A8842C"/>
+  <text x="272" y="92" font-size="13" font-weight="700" fill="#ffffff">Mini-mart</text>
+  <text x="272" y="140" font-size="9.5" font-weight="800" fill="#A8842C" letter-spacing="0.06em">HARDWARE TO START</text>
+  <text x="272" y="162" font-size="10" fill="#374151">Phone + scanner +</text>
+  <text x="272" y="178" font-size="10" fill="#374151">thermal printer</text>
+  <text x="272" y="224" font-size="9.5" font-weight="800" fill="#A8842C" letter-spacing="0.06em">SOFTWARE</text>
+  <text x="272" y="246" font-size="10" fill="#374151">Free tier or entry plan</text>
+  <text x="272" y="306" font-size="9.5" font-weight="800" fill="#A8842C" letter-spacing="0.06em">GROWTH TRIGGER</text>
+  <text x="272" y="328" font-size="10" fill="#374151">A second till as staff</text>
+  <text x="272" y="344" font-size="10" fill="#374151">and shifts grow.</text>
+  <rect x="272" y="392" width="180" height="94" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="286" y="416" font-size="9.5" font-weight="800" fill="#A8842C" letter-spacing="0.05em">STARTING POINT</text>
+  <text x="286" y="442" font-size="10" fill="#854d0e">A modest one-time</text>
+  <text x="286" y="458" font-size="10" fill="#854d0e">hardware spend, added</text>
+  <text x="286" y="474" font-size="10" fill="#854d0e">as the queue speeds up.</text>
+
+  <!-- ============ Card 3: supermarket ============ -->
+  <rect x="488" y="64" width="220" height="436" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="488" y="64" width="220" height="44" rx="14" fill="#2563eb"/>
+  <rect x="488" y="90" width="220" height="18" fill="#2563eb"/>
+  <text x="508" y="92" font-size="13" font-weight="700" fill="#ffffff">Supermarket</text>
+  <text x="508" y="140" font-size="9.5" font-weight="800" fill="#2563eb" letter-spacing="0.06em">HARDWARE TO START</text>
+  <text x="508" y="162" font-size="10" fill="#374151">Tablet or till, scanner,</text>
+  <text x="508" y="178" font-size="10" fill="#374151">printer, cash drawer</text>
+  <text x="508" y="224" font-size="9.5" font-weight="800" fill="#2563eb" letter-spacing="0.06em">SOFTWARE</text>
+  <text x="508" y="246" font-size="10" fill="#374151">Paid plan for more</text>
+  <text x="508" y="262" font-size="10" fill="#374151">products &amp; staff</text>
+  <text x="508" y="306" font-size="9.5" font-weight="800" fill="#2563eb" letter-spacing="0.06em">GROWTH TRIGGER</text>
+  <text x="508" y="328" font-size="10" fill="#374151">A second station and a</text>
+  <text x="508" y="344" font-size="10" fill="#374151">locked cash drawer.</text>
+  <rect x="508" y="392" width="180" height="94" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="522" y="416" font-size="9.5" font-weight="800" fill="#2563eb" letter-spacing="0.05em">STARTING POINT</text>
+  <text x="522" y="442" font-size="10" fill="#1e40af">Budget hardware, plus a</text>
+  <text x="522" y="458" font-size="10" fill="#1e40af">monthly plan sized on</text>
+  <text x="522" y="474" font-size="10" fill="#1e40af">capacity.</text>
+
+  <!-- ============ Card 4: multi-branch ============ -->
+  <rect x="724" y="64" width="220" height="436" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="724" y="64" width="220" height="44" rx="14" fill="#1F2937"/>
+  <rect x="724" y="90" width="220" height="18" fill="#1F2937"/>
+  <text x="744" y="92" font-size="13" font-weight="700" fill="#ffffff">Multi-branch</text>
+  <text x="744" y="140" font-size="9.5" font-weight="800" fill="#1F2937" letter-spacing="0.06em">HARDWARE TO START</text>
+  <text x="744" y="162" font-size="10" fill="#374151">A till per branch, shared</text>
+  <text x="744" y="178" font-size="10" fill="#374151">scanner and printer</text>
+  <text x="744" y="224" font-size="9.5" font-weight="800" fill="#1F2937" letter-spacing="0.06em">SOFTWARE</text>
+  <text x="744" y="246" font-size="10" fill="#374151">Per-branch or per-user plan</text>
+  <text x="744" y="306" font-size="9.5" font-weight="800" fill="#1F2937" letter-spacing="0.06em">GROWTH TRIGGER</text>
+  <text x="744" y="328" font-size="10" fill="#374151">A new licence per</text>
+  <text x="744" y="344" font-size="10" fill="#374151">branch you open.</text>
+  <rect x="744" y="392" width="180" height="94" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
+  <text x="758" y="416" font-size="9.5" font-weight="800" fill="#1F2937" letter-spacing="0.05em">STARTING POINT</text>
+  <text x="758" y="442" font-size="10" fill="#374151">Per-site hardware, plus a</text>
+  <text x="758" y="458" font-size="10" fill="#374151">licence that grows one</text>
+  <text x="758" y="474" font-size="10" fill="#374151">branch at a time.</text>
+
+  <!-- Caption -->
+  <text x="480" y="536" font-size="10.5" fill="#6b7280" text-anchor="middle">Buy for the shop you have today — not the shop you hope to have. Start where you are; add as the queue demands.</text>
+</svg>

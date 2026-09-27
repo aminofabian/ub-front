@@ -269,9 +269,8 @@ export function MarginLeaksDrawer({
           </>
         )}
         <p className="text-[11px] leading-snug text-muted-foreground">
-          A pack can show a healthy margin and still lose money: the margin is
-          the pack price against the pack cost, while profit uses every unit
-          that left the shelf.{" "}
+          Pack profit uses the pack price against the pack cost you set. Stock
+          still leaves the base product&apos;s shelf.{" "}
           <Link
             href={APP_ROUTES.inventoryCostIssues}
             className="font-semibold underline"

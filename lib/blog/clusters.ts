@@ -10,6 +10,10 @@ import {
 } from "./cluster-kopokopo";
 import { KIOSK_VS_ODOO_PILLAR_SLUG } from "./cluster-kiosk-vs-odoo";
 import {
+  POS_COST_PILLAR_SLUG,
+  POS_COST_SPOKE_SLUGS,
+} from "./cluster-pos-cost";
+import {
   TOP_10_POS_KENYA_PILLAR_SLUG,
   TOP_10_SPOKE_SLUGS,
 } from "./cluster-top-10-pos-kenya";
@@ -107,5 +111,15 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "Everything a mini-mart owner in Kenya needs to know about tax — eTIMS, VAT, turnover tax, income tax, PAYE, excise, and the records that keep KRA happy.",
     pillarSlug: ETIMS_TAX_PILLAR_SLUG,
     spokeSlugs: [...ETIMS_TAX_SPOKE_SLUGS],
+  },
+  {
+    id: "pos-cost",
+    code: "07",
+    title: "What a POS Really Costs in Kenya",
+    shortTitle: "POS Cost & TCO",
+    description:
+      "What a POS system costs a Kenyan shop — hardware, software, M-Pesa fees, and the running costs nobody quotes — plus how to compare quotes on three-year total cost.",
+    pillarSlug: POS_COST_PILLAR_SLUG,
+    spokeSlugs: [...POS_COST_SPOKE_SLUGS],
   },
 ];

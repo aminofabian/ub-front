@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Three ways to set up a restaurant till</text>
+
+  <!-- Card -->
+  <rect x="16" y="64" width="928" height="390" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="92" y="100" font-size="11" font-weight="700" fill="#1F2937">Setup</text>
+  <text x="520" y="100" font-size="11" font-weight="700" fill="#6b7280">Typical total</text>
+  <text x="700" y="100" font-size="11" font-weight="700" fill="#6b7280">Best for</text>
+  <line x1="40" y1="116" x2="920" y2="116" stroke="#e5e7eb"/>
+
+  <!-- Row 1: phone-first -->
+  <rect x="40" y="126" width="880" height="48" rx="8" fill="#f0fdf4"/>
+  <circle cx="64" cy="150" r="14" fill="#15803d"/>
+  <text x="64" y="155" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="92" y="155" font-size="11.5" font-weight="700" fill="#1F2937">Phone-first</text>
+  <text x="520" y="155" font-size="11" font-weight="700" fill="#15803d">KSh 0 – 15,000</text>
+  <text x="700" y="155" font-size="10" fill="#6b7280">Food stalls, tiny cafés</text>
+
+  <!-- Row 2: tablet + kitchen printer -->
+  <rect x="40" y="182" width="880" height="48" rx="8" fill="#ffffff"/>
+  <circle cx="64" cy="206" r="14" fill="#A8842C"/>
+  <text x="64" y="211" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="92" y="211" font-size="11.5" font-weight="700" fill="#1F2937">Tablet + kitchen printer</text>
+  <text x="520" y="211" font-size="11" font-weight="700" fill="#A8842C">KSh 30,000 – 70,000</text>
+  <text x="700" y="211" font-size="10" fill="#6b7280">Most small restaurants</text>
+
+  <!-- Row 3: terminal + kitchen display -->
+  <rect x="40" y="238" width="880" height="48" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="262" r="14" fill="#2563eb"/>
+  <text x="64" y="267" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="92" y="267" font-size="11.5" font-weight="700" fill="#1F2937">Terminal + kitchen display</text>
+  <text x="520" y="267" font-size="11" font-weight="700" fill="#2563eb">KSh 80,000 – 200,000</text>
+  <text x="700" y="267" font-size="10" fill="#6b7280">Busy, multi-station kitchens</text>
+
+  <!-- Banner -->
+  <rect x="40" y="308" width="880" height="112" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="64" y="336" font-size="12" font-weight="700" fill="#A8842C">Why a restaurant pays more than a shop</text>
+  <text x="64" y="360" font-size="10.5" fill="#374151">The software must do more — tables, kitchen tickets, modifiers, split bills, and tips. That is where the money</text>
+  <text x="64" y="376" font-size="10.5" fill="#374151">goes: features, not terminals. Start on a phone and add stations as orders start slipping.</text>
+  <text x="64" y="400" font-size="10" fill="#6b7280">Typical Kenyan prices for 2026 (ex-VAT), for planning — confirm with a supplier before you buy.</text>
+</svg>

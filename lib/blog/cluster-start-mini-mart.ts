@@ -30,6 +30,7 @@ export const START_MINI_MART_ARTICLE: BlogArticle = {
   ],
   author: "Kiosk",
   relatedSlugs: [
+    "how-much-does-a-pos-cost-in-kenya",
     "how-to-grow-a-mini-mart-in-kenya",
     "set-up-a-pos-in-30-minutes",
     "top-10-pos-systems-kenya-2026",

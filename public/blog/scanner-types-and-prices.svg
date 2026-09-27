@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Barcode scanner types, and who they're for</text>
+
+  <!-- Card -->
+  <rect x="16" y="64" width="928" height="380" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="92" y="100" font-size="11" font-weight="700" fill="#1F2937">Type</text>
+  <text x="560" y="100" font-size="11" font-weight="700" fill="#6b7280">Typical cost</text>
+  <text x="720" y="100" font-size="11" font-weight="700" fill="#6b7280">Best for</text>
+  <line x1="40" y1="116" x2="920" y2="116" stroke="#e5e7eb"/>
+
+  <!-- Row 1: 1D USB -->
+  <rect x="40" y="116" width="880" height="46" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="139" r="13" fill="#6b7280"/>
+  <text x="64" y="144" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="92" y="144" font-size="11" font-weight="700" fill="#1F2937">1D USB scanner</text>
+  <text x="560" y="144" font-size="11" font-weight="700" fill="#4b5563">KSh 3,500 – 7,000</text>
+  <text x="720" y="144" font-size="10" fill="#6b7280">Kiosks, low volume, price-first</text>
+
+  <!-- Row 2: 2D USB (the pick) -->
+  <rect x="40" y="164" width="880" height="46" rx="8" fill="#f0fdf4"/>
+  <circle cx="64" cy="187" r="13" fill="#15803d"/>
+  <text x="64" y="192" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="92" y="192" font-size="11" font-weight="700" fill="#1F2937">2D USB scanner</text>
+  <text x="560" y="192" font-size="11" font-weight="700" fill="#15803d">KSh 7,000 – 15,000</text>
+  <text x="720" y="192" font-size="10" fill="#6b7280">Most shops — the safe default</text>
+
+  <!-- Row 3: Bluetooth 2D -->
+  <rect x="40" y="212" width="880" height="46" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="235" r="13" fill="#2563eb"/>
+  <text x="64" y="240" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="92" y="240" font-size="11" font-weight="700" fill="#1F2937">Bluetooth 2D scanner</text>
+  <text x="560" y="240" font-size="11" font-weight="700" fill="#2563eb">KSh 7,000 – 18,000</text>
+  <text x="720" y="240" font-size="10" fill="#6b7280">Shops that restock or receive off-till</text>
+
+  <!-- Row 4: Rugged -->
+  <rect x="40" y="260" width="880" height="46" rx="8" fill="#f9fafb"/>
+  <circle cx="64" cy="283" r="13" fill="#1F2937"/>
+  <text x="64" y="288" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="92" y="288" font-size="11" font-weight="700" fill="#1F2937">Rugged 2D scanner</text>
+  <text x="560" y="288" font-size="11" font-weight="700" fill="#1F2937">KSh 30,000 – 70,000</text>
+  <text x="720" y="288" font-size="10" fill="#6b7280">Warehouses, high-abuse counters</text>
+
+  <!-- The pick banner -->
+  <rect x="40" y="324" width="880" height="98" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="64" y="352" font-size="12" font-weight="700" fill="#2563eb">The pick: a 2D USB scanner (KSh 7,000–15,000)</text>
+  <text x="64" y="376" font-size="10.5" fill="#374151">2D reads QR codes, phone screens, and damaged labels — not just clean stripes. It is the one scanner that stays useful as</text>
+  <text x="64" y="392" font-size="10.5" fill="#374151">your catalogue grows. Start with your phone camera for free, and buy this when the queue waits on typing.</text>
+  <text x="64" y="412" font-size="10" fill="#6b7280">Typical Kenyan prices for 2026 (ex-VAT) — brands and models vary. Confirm current pricing with your supplier.</text>
+</svg>

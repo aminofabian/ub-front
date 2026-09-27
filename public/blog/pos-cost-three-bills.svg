@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">A POS is three bills, not one</text>
+
+  <!-- ============ Card 1: pay once (hardware) ============ -->
+  <rect x="16" y="60" width="293" height="350" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="16" y="60" width="293" height="44" rx="14" fill="#2563eb"/>
+  <rect x="16" y="86" width="293" height="18" fill="#2563eb"/>
+  <text x="38" y="88" font-size="13" font-weight="700" fill="#ffffff">Pay once</text>
+  <text x="38" y="132" font-size="10" font-weight="800" fill="#2563eb" letter-spacing="0.06em">HARDWARE · ONE-OFF</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="38" y="164">· Phone or tablet (yours)</text>
+    <text x="38" y="192">· Barcode scanner</text>
+    <text x="38" y="220">· Thermal receipt printer</text>
+    <text x="38" y="248">· Cash drawer</text>
+  </g>
+  <line x1="38" y1="288" x2="287" y2="288" stroke="#e5e7eb"/>
+  <text x="38" y="314" font-size="10" fill="#6b7280">The smallest bill — and the one</text>
+  <text x="38" y="330" font-size="10" fill="#6b7280">you can start without.</text>
+  <rect x="38" y="352" width="249" height="40" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="52" y="377" font-size="10.5" font-weight="700" fill="#2563eb">Start at KSh 0 — a phone is the till.</text>
+
+  <!-- ============ Card 2: pay every month (software) ============ -->
+  <rect x="333" y="60" width="293" height="350" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="333" y="60" width="293" height="44" rx="14" fill="#A8842C"/>
+  <rect x="333" y="86" width="293" height="18" fill="#A8842C"/>
+  <text x="355" y="88" font-size="13" font-weight="700" fill="#ffffff">Pay every month</text>
+  <text x="355" y="132" font-size="10" font-weight="800" fill="#A8842C" letter-spacing="0.06em">SOFTWARE · RECURRING</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="355" y="164">· Software plan (free → paid)</text>
+    <text x="355" y="192">· Compliance &amp; eTIMS effort</text>
+    <text x="355" y="220">· Local support</text>
+  </g>
+  <line x1="355" y1="288" x2="604" y2="288" stroke="#e5e7eb"/>
+  <text x="355" y="314" font-size="10" fill="#6b7280">Scales with capacity — products,</text>
+  <text x="355" y="330" font-size="10" fill="#6b7280">staff, branches — not with sales.</text>
+  <rect x="355" y="352" width="249" height="40" rx="10" fill="#fefce8" stroke="#fde68a"/>
+  <text x="369" y="377" font-size="10.5" font-weight="700" fill="#A8842C">Free tier first; pay for more capacity.</text>
+
+  <!-- ============ Card 3: pay per sale (payments) ============ -->
+  <rect x="650" y="60" width="294" height="350" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <rect x="650" y="60" width="294" height="44" rx="14" fill="#15803d"/>
+  <rect x="650" y="86" width="294" height="18" fill="#15803d"/>
+  <text x="672" y="88" font-size="13" font-weight="700" fill="#ffffff">Pay per sale</text>
+  <text x="672" y="132" font-size="10" font-weight="800" fill="#15803d" letter-spacing="0.06em">PAYMENTS · PER TRANSACTION</text>
+  <g font-size="10.5" fill="#374151">
+    <text x="672" y="164">· M-Pesa transaction fees</text>
+    <text x="672" y="192">· Bank / card fees</text>
+    <text x="672" y="220">· Scales with turnover</text>
+  </g>
+  <line x1="672" y1="288" x2="924" y2="288" stroke="#e5e7eb"/>
+  <text x="672" y="314" font-size="10" fill="#6b7280">Native, not a paid module. Plan</text>
+  <text x="672" y="330" font-size="10" fill="#6b7280">for it — don't be surprised by it.</text>
+  <rect x="672" y="352" width="250" height="40" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="686" y="377" font-size="10.5" font-weight="700" fill="#15803d">Native M-Pesa — no module fee.</text>
+
+  <!-- ============ Bottom banner: the time bill ============ -->
+  <rect x="16" y="430" width="928" height="102" rx="14" fill="#fee2e2" stroke="#fca5a5"/>
+  <text x="40" y="462" font-size="12.5" font-weight="700" fill="#b91c1c">…and the bill no invoice ever shows: time</text>
+  <text x="40" y="486" font-size="10.5" fill="#7f1d1d">Setup that eats a weekend. Training a cashier who then leaves. Ninety minutes every night matching M-Pesa</text>
+  <text x="40" y="504" font-size="10.5" fill="#7f1d1d">messages to sales by hand. A till your team works around costs more in a year than most subscriptions. Free that</text>
+  <text x="40" y="522" font-size="10.5" fill="#7f1d1d">costs hours is dearer than paid that saves them.</text>
+</svg>

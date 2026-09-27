@@ -779,7 +779,7 @@ export function ProductEditDrawer({
                     isWeighed
                       ? "What you paid per kilogram. Profit uses the cost of every unit that leaves the shelf."
                       : sharedStock
-                        ? "What you paid for the pack. Profit still uses the cost of the units that leave the shelf."
+                        ? "What you paid for the pack. Profit for each pack sold uses this pack cost."
                         : undefined
                   }
                 >

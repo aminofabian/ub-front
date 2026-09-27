@@ -1993,6 +1993,7 @@ const SPOKE_ARTICLES: BlogArticle[] = [
     ],
     author: "Kiosk",
     relatedSlugs: [
+      "how-much-does-a-pos-cost-in-kenya",
       PILLAR_SLUG,
       "the-real-cost-of-free-software",
       "kopokopo-buy-goods-vs-till-vs-paybill",
