@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Scale } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -10,6 +10,7 @@ import {
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
+  DashboardPageHero,
   dashboardHintClass,
   dashboardInputClass,
   dashboardSelectClass,
@@ -18,10 +19,12 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
+import { ScheduleEditDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-edit-drawer";
 import { ScheduleFormDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-form-drawer";
 import {
   approveFinanceExpense,
   cancelExpenseKopokopoPay,
+  deactivateExpenseSchedule,
   fetchExpenseKopokopoPayStatus,
   fetchExpensePayOptions,
   fetchExpenseScheduleOccurrences,
@@ -30,6 +33,7 @@ import {
   fetchFinancePL,
   fetchFinancePLDaily,
   fetchPayrollPeriodPayslips,
+  fetchPayrollRun,
   fetchPendingDrawouts,
   fetchShiftDrawouts,
   fetchShifts,
@@ -45,6 +49,7 @@ import {
   type ExpenseScheduleOccurrenceRecord,
   type ExpenseScheduleRecord,
   type FinanceExpenseResponse,
+  type PayrollRunRow,
   type ProfitAndLossResponse,
   type ShiftListItem,
 } from "@/lib/api";
@@ -68,9 +73,7 @@ import {
 } from "@/lib/expenses-hub-utils";
 import {
   EXPENSE_CATEGORY_CODE_OPTIONS,
-  categoryTypeLabel,
   expenseCategoryCodeLabel,
-  expenseSourceLabel,
   FIXED_COST_PRESETS,
   formatFixedCostMoney,
   formatFixedCostDate,
@@ -86,7 +89,6 @@ type Feedback = { kind: "success" | "error"; text: string } | null;
 
 const HAIRLINE =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const PAPER = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,#faf8f4)]";
 const PRIMARY_BTN =
   "h-9 rounded-none border-0 bg-[var(--pos-primary,#0f766e)] px-3 text-[13px] font-semibold text-white shadow-none hover:bg-[#0d6b63]";
 const OUTLINE_BTN =
@@ -106,6 +108,15 @@ type CloseCashOut = {
   cashierName: string;
   closedAt: string | null;
   amount: number;
+};
+
+type SalaryLine = {
+  key: string;
+  displayName: string;
+  year: number;
+  month: number;
+  monthlySalary: number;
+  alreadyPaid: boolean;
 };
 
 
@@ -136,9 +147,9 @@ export function ExpensesHubWorkspace() {
 
   const canOpen = canReadFinanceExpenses || canReadFinanceReports;
 
-  const [preset, setPreset] = useState<ExpensesHubPreset>("month");
-  const [from, setFrom] = useState(() => expensesHubPresetRange("month").from);
-  const [to, setTo] = useState(() => expensesHubPresetRange("month").to);
+  const [preset, setPreset] = useState<ExpensesHubPreset>("today");
+  const [from, setFrom] = useState(() => expensesHubPresetRange("today").from);
+  const [to, setTo] = useState(() => expensesHubPresetRange("today").to);
   const [branchFilter, setBranchFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [categoryCodeFilter, setCategoryCodeFilter] = useState("");
@@ -162,6 +173,7 @@ export function ExpensesHubWorkspace() {
     count: number;
     netTotal: number;
   } | null>(null);
+  const [salaryLines, setSalaryLines] = useState<SalaryLine[]>([]);
   const [periodDrawouts, setPeriodDrawouts] = useState<HubDrawout[]>([]);
   const [pendingDrawouts, setPendingDrawouts] = useState<HubDrawout[]>([]);
   const [closeCashOuts, setCloseCashOuts] = useState<CloseCashOut[]>([]);
@@ -180,6 +192,11 @@ export function ExpensesHubWorkspace() {
   const [profitPocketOpen, setProfitPocketOpen] = useState(false);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<ExpenseScheduleRecord | null>(
+    null,
+  );
+  const [editScheduleOpen, setEditScheduleOpen] = useState(false);
+  const [editScheduleSaving, setEditScheduleSaving] = useState(false);
 
   const pageSize = 50;
 
@@ -236,8 +253,11 @@ export function ExpensesHubWorkspace() {
             }).catch(() => [])
           : Promise.resolve([]),
         canViewPayroll
-          ? loadUnpostedPayrollGap(from, to)
-          : Promise.resolve(null),
+          ? loadPayrollPicture(from, to, branch)
+          : Promise.resolve({
+              unposted: null,
+              salaries: [] as SalaryLine[],
+            }),
         canManageFinanceExpenses
           ? fetchFinanceExpensesRange({
               from,
@@ -284,7 +304,8 @@ export function ExpensesHubWorkspace() {
         setHasMore(false);
       }
       setOccurrences(Array.isArray(occRes) ? occRes : []);
-      setUnpostedPayroll(payrollGap);
+      setUnpostedPayroll(payrollGap.unposted);
+      setSalaryLines(payrollGap.salaries);
       setPendingApprovals(pendingRes?.expenses ?? []);
       setSchedules(Array.isArray(schedulesRes) ? schedulesRes : []);
       setPeriodDrawouts(drawoutBundle.period);
@@ -297,6 +318,7 @@ export function ExpensesHubWorkspace() {
       setExpenses([]);
       setOccurrences([]);
       setUnpostedPayroll(null);
+      setSalaryLines([]);
       setPendingApprovals([]);
       setSchedules([]);
       setPeriodDrawouts([]);
@@ -480,6 +502,27 @@ export function ExpensesHubWorkspace() {
         .reduce((sum, o) => sum + moneyNumber(o.amount), 0),
     [occurrences, from, to],
   );
+
+  const removeSchedule = async (schedule: ExpenseScheduleRecord) => {
+    if (!canManageFinanceExpenses) return;
+    if (
+      !window.confirm(
+        `Stop “${schedule.name}”? Future ${frequencyLabel(schedule.frequency).toLowerCase()} bills will not post. Amounts already posted stay in the books.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deactivateExpenseSchedule(schedule.id);
+      setFeedback({ kind: "success", text: `${schedule.name} removed` });
+      bump();
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Could not delete this cost",
+      });
+    }
+  };
 
   const openRegular = (presetId: string, mode: "recurring" | "once") => {
     setSeedPresetId(presetId);
@@ -719,111 +762,60 @@ export function ExpensesHubWorkspace() {
 
   return (
     <div
-      className={cn(DASHBOARD_MAX_WIDE, "overflow-hidden border", HAIRLINE, PAPER)}
+      className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}
       style={
         {
           "--pos-primary": brandPrimary,
         } as CSSProperties
       }
     >
-      {/* Storefront-style utility strip */}
-      <div
-        className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 text-[11px] font-medium text-white/90 sm:px-4"
-        style={{ backgroundColor: brandPrimary }}
+      <DashboardPageHero
+        icon={Scale}
+        title="Expenses"
+        description={
+          canReadFinanceReports && pl && !loading
+            ? `${periodLabel} · net ${formatFixedCostMoney(moneyNumber(pl.netOperating))}`
+            : `${shopName} · sales, bills, and what’s left.`
+        }
       >
-        <p className="min-w-0 truncate">
-          <span className="font-semibold opacity-100">{shopName}</span>
-          <span className="opacity-80"> · Expenses &amp; profit</span>
-        </p>
-        <p className="shrink-0 opacity-85">
-          Posted books · not proof money left the account
-        </p>
-      </div>
+        {canPocket ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 shadow-none"
+            onClick={() => setProfitPocketOpen(true)}
+          >
+            Pocket
+          </Button>
+        ) : null}
+        {canWriteFinanceExpenses ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 shadow-none"
+            onClick={() => {
+              setSeedPresetId(null);
+              setAddOpen(true);
+            }}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Add expense
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="size-8 shadow-none"
+          onClick={() => bump()}
+          aria-label="Refresh"
+        >
+          <RefreshCw className="size-3.5" />
+        </Button>
+      </DashboardPageHero>
 
-      <header className={cn("border-b bg-white px-3 py-4 sm:px-4", HAIRLINE)}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 max-w-xl space-y-1">
-            <h1 className="text-[1.45rem] font-semibold leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] sm:text-[1.7rem]">
-              Expenses &amp; profit
-            </h1>
-            <p className="text-sm leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_68%,transparent)]">
-              Sales, stock cost, and the bills you pay. Net is what is left for{" "}
-              {shopName}.
-            </p>
-            {canReadFinanceReports && pl && !loading ? (
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-                  Net operating profit
-                </span>
-                <span
-                  className={cn(
-                    "text-[1.5rem] font-semibold leading-none tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
-                    moneyNumber(pl.netOperating) < 0 && "text-[#9a2e16]",
-                  )}
-                >
-                  {formatFixedCostMoney(moneyNumber(pl.netOperating))}
-                </span>
-              </div>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {canPocket ? (
-              <Button
-                type="button"
-                className={PRIMARY_BTN}
-                onClick={() => setProfitPocketOpen(true)}
-              >
-                Pocket cash…
-              </Button>
-            ) : null}
-            {canWriteFinanceExpenses ? (
-              <Button
-                type="button"
-                className={canPocket ? OUTLINE_BTN : PRIMARY_BTN}
-                onClick={() => {
-                  setSeedPresetId(null);
-                  setAddOpen(true);
-                }}
-              >
-                <Plus className="size-4" />
-                Add expense
-              </Button>
-            ) : null}
-            {canReadFinanceExpenses ? (
-              <Button
-                type="button"
-                variant="outline"
-                className={OUTLINE_BTN}
-                onClick={downloadExpensesCsv}
-              >
-                CSV
-              </Button>
-            ) : null}
-            {pl ? (
-              <Button
-                type="button"
-                variant="outline"
-                className={OUTLINE_BTN}
-                onClick={downloadPlCsv}
-              >
-                P&amp;L
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(OUTLINE_BTN, "size-9 px-0")}
-              onClick={() => bump()}
-              aria-label="Refresh"
-            >
-              <RefreshCw className="size-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="space-y-3 px-0 pb-16 pt-0 sm:space-y-3">
+      <div className="flex min-h-0 flex-col gap-1.5">
       {feedback ? (
         <div className="px-0 sm:px-0">
           <DashboardFeedback kind={feedback.kind} text={feedback.text} />
@@ -832,11 +824,11 @@ export function ExpensesHubWorkspace() {
 
       <section
         className={cn(
-          "space-y-3 border border-x-0 border-t-0 bg-white p-3 sm:border-x sm:p-4",
+          "flex flex-wrap items-center gap-2 border bg-white px-2.5 py-2",
           HAIRLINE,
         )}
       >
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-center gap-1.5">
           <div className="flex flex-wrap gap-1">
             {(
               [
@@ -863,60 +855,50 @@ export function ExpensesHubWorkspace() {
               </Button>
             ))}
           </div>
-          <label className="text-sm">
-            <span className={cn("mb-1 block", dashboardHintClass())}>From</span>
-            <input
-              type="date"
-              className={cn(dashboardInputClass(), "rounded-none")}
-              value={from}
-              onChange={(e) => {
-                setPreset("custom");
-                setFrom(e.target.value);
-                setPage(0);
-              }}
-            />
-          </label>
-          <label className="text-sm">
-            <span className={cn("mb-1 block", dashboardHintClass())}>To</span>
-            <input
-              type="date"
-              className={cn(dashboardInputClass(), "rounded-none")}
-              value={to}
-              onChange={(e) => {
-                setPreset("custom");
-                setTo(e.target.value);
-                setPage(0);
-              }}
-            />
-          </label>
-          <label className="text-sm">
-            <span className={cn("mb-1 block", dashboardHintClass())}>Branch</span>
-            <select
-              className={cn(dashboardSelectClass(), "rounded-none")}
-              value={branchFilter}
-              onChange={(e) => {
-                setBranchFilter(e.target.value);
-                setPage(0);
-              }}
-            >
-              <option value="">All branches</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {preset === "custom" ? (
+            <>
+              <input
+                type="date"
+                aria-label="From"
+                className={cn(dashboardInputClass(), "h-8 w-[9.5rem] rounded-none text-[12px]")}
+                value={from}
+                onChange={(e) => {
+                  setPreset("custom");
+                  setFrom(e.target.value);
+                  setPage(0);
+                }}
+              />
+              <input
+                type="date"
+                aria-label="To"
+                className={cn(dashboardInputClass(), "h-8 w-[9.5rem] rounded-none text-[12px]")}
+                value={to}
+                onChange={(e) => {
+                  setPreset("custom");
+                  setTo(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </>
+          ) : null}
+          <select
+            aria-label="Branch"
+            className={cn(dashboardSelectClass(), "h-8 w-auto rounded-none text-[12px]")}
+            value={branchFilter}
+            onChange={(e) => {
+              setBranchFilter(e.target.value);
+              setPage(0);
+            }}
+          >
+            <option value="">All branches</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <p className={dashboardHintClass()}>
-          Stock purchases stay in inventory / COGS — they are not operating
-          expenses. Till drawouts are cash from the drawer — they are{" "}
-          <span className="font-semibold text-[var(--order-ink,#15231f)]">not OpEx</span>.
-          Amounts below are{" "}
-          <span className="font-semibold text-[var(--order-ink,#15231f)]">Posted (books)</span>,
-          not proof that money left the account.
-        </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold text-[var(--pos-primary,#0f766e)]">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
           <Link
             href={APP_ROUTES.fixedCosts}
             className="underline-offset-2 hover:underline"
@@ -961,7 +943,8 @@ export function ExpensesHubWorkspace() {
           onRetry={() => bump()}
         />
       ) : (
-        <>
+        <div className="grid items-start gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,22rem)]">
+          <div className="order-2 flex min-w-0 flex-col gap-1.5 lg:max-h-[min(78dvh,52rem)] lg:overflow-y-auto">
           {canReadFinanceReports && pl ? (
             <ProfitStatement pl={pl} periodLabel={periodLabel} />
           ) : canReadFinanceReports ? (
@@ -1153,6 +1136,76 @@ export function ExpensesHubWorkspace() {
             </div>
           ) : null}
 
+          {canViewPayroll ? (
+            <section
+              className={cn(
+                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                HAIRLINE,
+              )}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="max-w-xl">
+                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                    Salaries
+                  </h2>
+                  <p className={cn("mt-1", dashboardHintClass())}>
+                    Monthly wages from payroll. A paid run that posts an expense
+                    reduces net profit. Change the amount on payroll.
+                  </p>
+                </div>
+                <Link
+                  href={APP_ROUTES.payroll}
+                  className="text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                >
+                  Open payroll
+                </Link>
+              </div>
+              {salaryLines.length > 0 ? (
+                <ul
+                  className={cn(
+                    "divide-y border-t",
+                    "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                    HAIRLINE,
+                  )}
+                >
+                  {salaryLines.map((row) => (
+                    <li
+                      key={row.key}
+                      className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--order-ink,#15231f)]">
+                          {row.displayName}
+                        </p>
+                        <p className={dashboardHintClass()}>
+                          Monthly · {salaryMonthLabel(row.year, row.month)} ·{" "}
+                          {row.alreadyPaid ? "Paid" : "Not paid yet"}
+                        </p>
+                      </div>
+                      <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                        {formatFixedCostMoney(row.monthlySalary)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {salaryLines.length > 0 ? (
+                <p className="flex items-baseline justify-between gap-3 text-sm font-semibold text-[var(--order-ink,#15231f)]">
+                  <span>Wage bill</span>
+                  <span className="tabular-nums">
+                    {formatFixedCostMoney(
+                      salaryLines.reduce((sum, row) => sum + row.monthlySalary, 0),
+                    )}
+                  </span>
+                </p>
+              ) : (
+                <p className={dashboardHintClass()}>
+                  No monthly salaries in this period. Set them on payroll.
+                </p>
+              )}
+            </section>
+          ) : null}
+
           {canReadFinanceExpenses ? (
             <section
               className={cn(
@@ -1242,10 +1295,34 @@ export function ExpensesHubWorkspace() {
                             {schedule.name}
                           </p>
                           <p className={dashboardHintClass()}>
-                            {expenseCategoryCodeLabel(schedule.categoryCode)} ·{" "}
-                            {frequencyLabel(schedule.frequency)}
+                            <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                              {frequencyLabel(schedule.frequency)}
+                            </span>
+                            {" · "}
+                            {expenseCategoryCodeLabel(schedule.categoryCode)}
                             {due ? ` · next ${formatFixedCostDate(due)}` : ""}
                           </p>
+                          {canManageFinanceExpenses ? (
+                            <p className="mt-1 flex gap-3 text-[12px] font-semibold">
+                              <button
+                                type="button"
+                                className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                                onClick={() => {
+                                  setEditSchedule(schedule);
+                                  setEditScheduleOpen(true);
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="text-[#9a2e16] underline-offset-2 hover:underline"
+                                onClick={() => void removeSchedule(schedule)}
+                              >
+                                Delete
+                              </button>
+                            </p>
+                          ) : null}
                         </div>
                         <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
                           {formatFixedCostMoney(schedule.amount)}
@@ -1530,9 +1607,9 @@ export function ExpensesHubWorkspace() {
                         {e.name}
                       </p>
                       <p className={dashboardHintClass()}>
+                        {expenseCadenceLabel(e, schedules)} ·{" "}
                         {formatFixedCostDate(e.expenseDate)} ·{" "}
-                        {formatFixedCostMoney(moneyNumber(e.amount))} ·{" "}
-                        {expenseSourceLabel(e.source)}
+                        {formatFixedCostMoney(moneyNumber(e.amount))}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -1619,16 +1696,18 @@ export function ExpensesHubWorkspace() {
             </section>
           ) : null}
 
+          </div>
+          <div className="order-1 min-w-0 lg:max-h-[min(78dvh,52rem)] lg:overflow-y-auto">
           {canReadFinanceExpenses ? (
             <section
               className={cn(
-                "space-y-4 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                "border bg-white",
                 HAIRLINE,
               )}
             >
-              <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2">
                 <div>
-                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                     Expenses
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
@@ -1689,6 +1768,24 @@ export function ExpensesHubWorkspace() {
                   >
                     Search
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={OUTLINE_BTN}
+                    onClick={downloadExpensesCsv}
+                  >
+                    CSV
+                  </Button>
+                  {pl ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className={OUTLINE_BTN}
+                      onClick={downloadPlCsv}
+                    >
+                      P&amp;L
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
@@ -1705,8 +1802,7 @@ export function ExpensesHubWorkspace() {
                 </ul>
               ) : null}
 
-              {/* Mobile cards */}
-              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border md:hidden">
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
                 {expenses.length === 0 ? (
                   <li
                     className={cn(
@@ -1718,56 +1814,43 @@ export function ExpensesHubWorkspace() {
                   </li>
                 ) : (
                   expenses.map((e) => (
-                    <li key={e.id} className="space-y-2 bg-white px-3 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                    <li key={e.id} className="bg-white px-2.5 py-2.5 sm:px-3">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="grid size-7 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[10px] font-bold uppercase tracking-wide text-muted-foreground"
+                          aria-hidden
+                        >
+                          {(e.name || "?").slice(0, 1)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--order-ink,#15231f)]">
                             {e.name}
                           </p>
-                          <p className={cn("mt-0.5 text-[12px]", dashboardHintClass())}>
+                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                            <span className="font-semibold text-[var(--order-ink,#15231f)]">
+                              {expenseCadenceLabel(e, schedules)}
+                            </span>
+                            {" · "}
                             {formatFixedCostDate(e.expenseDate)}
-                            <span className="mx-1 opacity-40">·</span>
+                            {" · "}
                             {expenseCategoryCodeLabel(e.categoryCode)}
+                            {" · "}
+                            {paymentMethodLabel(e.paymentMethod)}
                           </p>
                         </div>
-                        <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
                           {formatFixedCostMoney(moneyNumber(e.amount))}
                         </p>
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
-                        <span className={dashboardHintClass()}>
-                          {expenseSourceLabel(e.source)}
-                        </span>
-                        <span className={dashboardHintClass()}>
-                          {paymentMethodLabel(e.paymentMethod)}
-                        </span>
-                        <span className={dashboardHintClass()}>
-                          {e.approvalStatus === "pending_approval"
-                            ? "Pending"
-                            : e.approvalStatus === "rejected"
-                              ? "Rejected"
-                              : "Posted"}
-                        </span>
-                        <span className={dashboardHintClass()}>
-                          {e.paidAt
-                            ? "Paid"
-                            : e.paymentMethod === "mpesa_manual"
-                              ? "Unpaid"
-                              : "—"}
-                        </span>
                       </div>
                       {e.approvalStatus === "posted" &&
                       e.paymentMethod === "mpesa_manual" &&
                       !e.paidAt &&
                       canManageFinanceExpenses ? (
-                        <div className="flex gap-2 pt-0.5">
+                        <div className="mt-2 flex gap-2 pl-9">
                           <Button
                             type="button"
                             size="sm"
-                            className={cn(
-                              PRIMARY_BTN,
-                              "h-11 flex-1 text-[13px]",
-                            )}
+                            className={cn(PRIMARY_BTN, "h-8 px-2 text-[12px]")}
                             disabled={payingId === e.id}
                             onClick={() => void payViaMpesa(e)}
                           >
@@ -1777,7 +1860,7 @@ export function ExpensesHubWorkspace() {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-11 rounded-none px-3 text-[13px] font-semibold"
+                            className="h-8 rounded-none px-2 text-[12px] font-semibold"
                             disabled={payingId === e.id}
                             onClick={() => void cancelPay(e.id)}
                             title="Stop waiting on a pending Send Money"
@@ -1791,130 +1874,8 @@ export function ExpensesHubWorkspace() {
                 )}
               </ul>
 
-              <div
-                className={cn(
-                  "hidden overflow-x-auto border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_1.5%,white)] md:block",
-                  HAIRLINE,
-                )}
-              >
-                <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead
-                    className={cn(
-                      "border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)] text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      HAIRLINE,
-                      dashboardHintClass(),
-                    )}
-                  >
-                    <tr>
-                      <th className="px-3 py-2.5">Date</th>
-                      <th className="px-3 py-2.5">Name</th>
-                      <th className="px-3 py-2.5">Category</th>
-                      <th className="px-3 py-2.5">Source</th>
-                      <th className="px-3 py-2.5">Method</th>
-                      <th className="px-3 py-2.5 text-right">Amount</th>
-                      <th className="px-3 py-2.5">Books</th>
-                      <th className="px-3 py-2.5">Paid</th>
-                      <th className="px-3 py-2.5">Pay</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={9}
-                          className={cn("px-3 py-10 text-center", dashboardHintClass())}
-                        >
-                          No expenses in this range.
-                        </td>
-                      </tr>
-                    ) : (
-                      expenses.map((e) => (
-                        <tr
-                          key={e.id}
-                          className={cn(
-                            "border-b last:border-0",
-                            "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
-                          )}
-                        >
-                          <td className="px-3 py-2.5 whitespace-nowrap text-[var(--order-ink,#15231f)]">
-                            {formatFixedCostDate(e.expenseDate)}
-                          </td>
-                          <td className="px-3 py-2.5 font-medium text-[var(--order-ink,#15231f)]">
-                            {e.name}
-                          </td>
-                          <td className="px-3 py-2.5 text-[var(--order-ink,#15231f)]">
-                            {expenseCategoryCodeLabel(e.categoryCode)}{" "}
-                            <span className={dashboardHintClass()}>
-                              ({categoryTypeLabel(e.categoryType)})
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span
-                              className={cn(
-                                "inline-block border px-1.5 py-0.5 text-[11px] font-medium",
-                                HAIRLINE,
-                              )}
-                            >
-                              {expenseSourceLabel(e.source)}
-                            </span>
-                          </td>
-                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
-                            {paymentMethodLabel(e.paymentMethod)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                            {formatFixedCostMoney(moneyNumber(e.amount))}
-                          </td>
-                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
-                            {e.approvalStatus === "pending_approval"
-                              ? "Pending"
-                              : e.approvalStatus === "rejected"
-                                ? "Rejected"
-                                : "Posted"}
-                          </td>
-                          <td className={cn("px-3 py-2.5", dashboardHintClass())}>
-                            {e.paidAt
-                              ? "Paid"
-                              : e.paymentMethod === "mpesa_manual"
-                                ? "Unpaid"
-                                : "—"}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {e.approvalStatus === "posted" &&
-                            e.paymentMethod === "mpesa_manual" &&
-                            !e.paidAt &&
-                            canManageFinanceExpenses ? (
-                              <div className="flex flex-wrap gap-1">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className={cn(PRIMARY_BTN, "h-8 px-2 text-[12px]")}
-                                  disabled={payingId === e.id}
-                                  onClick={() => void payViaMpesa(e)}
-                                >
-                                  {payingId === e.id ? "…" : "Send Money"}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 rounded-none px-2 text-[12px] font-semibold"
-                                  disabled={payingId === e.id}
-                                  onClick={() => void cancelPay(e.id)}
-                                  title="Stop waiting on a pending Send Money"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
 
-              <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 text-sm">
                 <Button
                   type="button"
                   size="sm"
@@ -1940,7 +1901,8 @@ export function ExpensesHubWorkspace() {
               </div>
             </section>
           ) : null}
-        </>
+          </div>
+        </div>
       )}
 
       <OneOffExpenseDrawer
@@ -1974,6 +1936,21 @@ export function ExpensesHubWorkspace() {
           }}
         />
       ) : null}
+
+      <ScheduleEditDrawer
+        open={editScheduleOpen}
+        onOpenChange={setEditScheduleOpen}
+        schedule={editSchedule}
+        branches={branches}
+        saving={editScheduleSaving}
+        onSavingChange={setEditScheduleSaving}
+        onSaved={() => {
+          setFeedback({ kind: "success", text: "Cost updated" });
+          setEditScheduleOpen(false);
+          bump();
+        }}
+        onError={(message) => setFeedback({ kind: "error", text: message })}
+      />
 
       <ScheduleFormDrawer
         open={recurringOpen}
@@ -2073,34 +2050,98 @@ function ProfitStatement({
   );
 }
 
-async function loadUnpostedPayrollGap(
+async function loadPayrollPicture(
   from: string,
   to: string,
-): Promise<{ count: number; netTotal: number } | null> {
+  branchId?: string,
+): Promise<{
+  unposted: { count: number; netTotal: number } | null;
+  salaries: SalaryLine[];
+}> {
   try {
     const months = monthsOverlappingRange(from, to);
-    if (months.length === 0) return null;
-    const batches = await Promise.all(
-      months.map(({ year, month }) =>
-        fetchPayrollPeriodPayslips(year, month).catch(() => []),
+    if (months.length === 0) return { unposted: null, salaries: [] };
+    const [runBatches, slipBatches] = await Promise.all([
+      Promise.all(
+        months.map(({ year, month }) =>
+          fetchPayrollRun(year, month, { branchId })
+            .then((rows) => rows.map((row) => ({ ...row, year, month })))
+            .catch(() => [] as Array<PayrollRunRow & { year: number; month: number }>),
+        ),
       ),
-    );
-    const seen = new Set<string>();
+      Promise.all(
+        months.map(({ year, month }) =>
+          fetchPayrollPeriodPayslips(year, month).catch(() => []),
+        ),
+      ),
+    ]);
+    const seenSlips = new Set<string>();
     let count = 0;
     let netTotal = 0;
-    for (const slips of batches) {
+    for (const slips of slipBatches) {
       for (const slip of slips) {
         if (slip.expenseId) continue;
-        if (seen.has(slip.id)) continue;
-        seen.add(slip.id);
+        if (seenSlips.has(slip.id)) continue;
+        seenSlips.add(slip.id);
         count += 1;
         netTotal += moneyNumber(slip.netPaid);
       }
     }
-    return { count, netTotal };
+    const salaries: SalaryLine[] = [];
+    for (const rows of runBatches) {
+      for (const row of rows) {
+        if (row.employmentStatus === "terminated") continue;
+        const monthly = moneyNumber(row.monthlySalary);
+        if (monthly <= 0) continue;
+        salaries.push({
+          key: `${row.userId}-${row.year}-${row.month}`,
+          displayName: row.displayName,
+          year: row.year,
+          month: row.month,
+          monthlySalary: monthly,
+          alreadyPaid: row.alreadyPaid,
+        });
+      }
+    }
+    salaries.sort((a, b) =>
+      a.displayName.localeCompare(b.displayName) ||
+      b.year - a.year ||
+      b.month - a.month,
+    );
+    return {
+      unposted: count > 0 ? { count, netTotal } : null,
+      salaries,
+    };
   } catch {
-    return null;
+    return { unposted: null, salaries: [] };
   }
+}
+
+function salaryMonthLabel(year: number, month: number): string {
+  return new Date(year, month - 1, 1).toLocaleString(undefined, {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function expenseCadenceLabel(
+  expense: FinanceExpenseResponse,
+  schedules: ExpenseScheduleRecord[],
+): string {
+  if (expense.source === "payroll" || expense.categoryCode === "salaries") {
+    return "Monthly";
+  }
+  if (expense.source === "drawer") return "Till";
+  if (expense.source === "recurring") {
+    const name = expense.name.trim().toLowerCase();
+    const match =
+      schedules.find(
+        (schedule) => schedule.active && schedule.name.trim().toLowerCase() === name,
+      ) ??
+      schedules.find((schedule) => schedule.name.trim().toLowerCase() === name);
+    return match ? frequencyLabel(match.frequency) : "Repeating";
+  }
+  return "One-off";
 }
 
 function shiftOverlapsRange(shift: ShiftListItem, from: string, to: string) {
