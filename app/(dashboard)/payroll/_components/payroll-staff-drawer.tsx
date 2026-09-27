@@ -57,6 +57,7 @@ type Props = {
   onOpenPayslip: () => void;
   onSendSms?: () => void;
   onProrationSettingChanged?: () => void;
+  onRemoveFromPayroll?: () => void;
   /** When set on large layouts, fill the theatre dossier column. */
   dockRoot?: HTMLElement | null;
   docked?: boolean;
@@ -81,6 +82,7 @@ export function PayrollStaffDrawer({
   onOpenPayslip,
   onSendSms,
   onProrationSettingChanged,
+  onRemoveFromPayroll,
   dockRoot = null,
   docked = false,
 }: Props) {
@@ -589,6 +591,20 @@ export function PayrollStaffDrawer({
           </p>
         ) : null}
       </FormDrawerFields>
+      {canManagePayroll && onRemoveFromPayroll ? (
+        <div className="px-1 pb-2">
+          <button
+            type="button"
+            className="text-[13px] font-semibold text-[#9a2e16] underline-offset-2 hover:underline"
+            onClick={onRemoveFromPayroll}
+          >
+            Remove from payroll
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            They stay on the team. Past payslips stay on file.
+          </p>
+        </div>
+      ) : null}
       </div>
     </FormDrawer>
   );

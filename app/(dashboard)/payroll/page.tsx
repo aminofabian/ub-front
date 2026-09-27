@@ -28,6 +28,7 @@ import {
   fetchPayrollRun,
   payAllStaffPayroll,
   payStaffPayroll,
+  updateStaffProfile,
   type PayslipRecord,
   type PayrollRunRow,
 } from "@/lib/api";
@@ -220,6 +221,35 @@ export default function PayrollPage() {
   function clearStaffSelection() {
     setSelectedRow(null);
     setStaffDrawerOpen(false);
+  }
+
+  async function removeFromPayroll(row: PayrollRunRow) {
+    if (!canManagePayroll) return;
+    if (
+      !window.confirm(
+        `Remove ${row.displayName} from payroll? They stay on the team. Past payslips stay on file.`,
+      )
+    ) {
+      return;
+    }
+    setFeedback(null);
+    try {
+      await updateStaffProfile(row.userId, { includeInPayroll: false });
+      if (selectedRow?.userId === row.userId) clearStaffSelection();
+      setFeedback({
+        kind: "success",
+        text: `${row.displayName} removed from payroll`,
+      });
+      await load();
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Could not remove this person from payroll",
+      });
+    }
   }
 
   function openProfile(row: PayrollRunRow) {
@@ -512,6 +542,7 @@ export default function PayrollPage() {
               selectedRow={selectedRow}
               staffDrawerOpen={staffDrawerOpen}
               onSelectRow={openStaffDrawer}
+              onRemoveFromPayroll={(row) => void removeFromPayroll(row)}
               onClearSelection={clearStaffSelection}
               onStaffDrawerOpenChange={setStaffDrawerOpen}
               applyStatutory={applyStatutory}

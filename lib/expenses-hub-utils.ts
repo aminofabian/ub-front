@@ -1,6 +1,9 @@
 /** Period helpers for the Expenses & profit hub (`/expenses`). */
 
-export type ExpensesHubPreset = "today" | "week" | "month" | "custom";
+export type ExpensesHubPreset = "all" | "today" | "week" | "month" | "custom";
+
+/** Earliest day the expenses hub treats as “all”. */
+export const EXPENSES_HUB_ALL_FROM = "2018-01-01";
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -15,6 +18,9 @@ export function expensesHubPresetRange(
   now = new Date(),
 ): { from: string; to: string } {
   const to = toIsoDate(now);
+  if (preset === "all") {
+    return { from: EXPENSES_HUB_ALL_FROM, to };
+  }
   if (preset === "today") {
     return { from: to, to };
   }
@@ -47,9 +53,28 @@ export function monthsOverlappingRange(
       m = 1;
       y += 1;
     }
-    if (out.length > 36) break;
+    if (out.length > 240) {
+      out.shift();
+    }
   }
-  return out;
+  return out.slice(-36);
+}
+
+/** Daily chart window. Long ranges stay on the last 31 days so the strip stays readable. */
+export function expensesHubDailyRange(
+  fromIso: string,
+  toIso: string,
+): { from: string; to: string } {
+  const end = new Date(`${toIso}T12:00:00`);
+  const start = new Date(`${fromIso}T12:00:00`);
+  if (Number.isNaN(end.getTime()) || Number.isNaN(start.getTime())) {
+    return { from: fromIso, to: toIso };
+  }
+  const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
+  if (days <= 45) return { from: fromIso, to: toIso };
+  const capped = new Date(end);
+  capped.setDate(capped.getDate() - 30);
+  return { from: toIsoDate(capped), to: toIso };
 }
 
 function parseIsoMonth(iso: string): { year: number; month: number } | null {

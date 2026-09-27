@@ -61,6 +61,7 @@ export type PayrollRunTheatreProps = {
   selectedRow: PayrollRunRow | null;
   staffDrawerOpen: boolean;
   onSelectRow: (row: PayrollRunRow) => void;
+  onRemoveFromPayroll: (row: PayrollRunRow) => void;
   onClearSelection: () => void;
   onStaffDrawerOpenChange: (open: boolean) => void;
   applyStatutory: boolean;
@@ -161,6 +162,7 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
     selectedRow,
     staffDrawerOpen,
     onSelectRow,
+    onRemoveFromPayroll,
     onClearSelection,
     onStaffDrawerOpenChange,
     applyStatutory,
@@ -314,12 +316,12 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
               {filtered.map((row) => {
                 const active = selectedRow?.userId === row.userId;
                 return (
-                  <li key={row.userId}>
+                  <li key={row.userId} className="flex items-stretch">
                     <button
                       type="button"
                       onClick={() => onSelectRow(row)}
                       className={cn(
-                        "relative flex w-full items-center gap-2.5 text-left transition-colors",
+                        "relative flex min-w-0 flex-1 items-center gap-2.5 text-left transition-colors",
                         denser
                           ? "px-2.5 py-2 sm:px-3"
                           : "min-h-[3.25rem] px-3 py-3",
@@ -367,6 +369,15 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
                         {statusLabel(row, year, month)}
                       </span>
                     </button>
+                    {canManagePayroll ? (
+                      <button
+                        type="button"
+                        className="shrink-0 px-2.5 text-[11px] font-semibold text-[#9a2e16] underline-offset-2 hover:underline"
+                        onClick={() => onRemoveFromPayroll(row)}
+                      >
+                        Remove
+                      </button>
+                    ) : null}
                   </li>
                 );
               })}
@@ -549,6 +560,9 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
         onOpenPayslip={props.onOpenPayslip}
         onSendSms={props.onSendSms}
         onProrationSettingChanged={props.onProrationSettingChanged}
+        onRemoveFromPayroll={() => {
+          if (selectedRow) onRemoveFromPayroll(selectedRow);
+        }}
         docked={isLg}
         dockRoot={dockRoot}
       />

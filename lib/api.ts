@@ -7764,6 +7764,30 @@ export async function fetchFinanceExpensesRange(options: {
   );
 }
 
+export async function patchFinanceExpense(
+  expenseId: string,
+  body: {
+    expenseDate: string;
+    name: string;
+    amount: number;
+    paymentMethod: string;
+    categoryCode: string;
+    categoryType: string;
+  },
+): Promise<FinanceExpenseResponse> {
+  return request<FinanceExpenseResponse>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deleteFinanceExpense(expenseId: string): Promise<void> {
+  await request<unknown>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export type ExpenseScheduleRecord = {
   id: string;
   branchId: string | null;

@@ -19,12 +19,14 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
+import { ExpenseEditDrawer } from "@/app/(dashboard)/expenses/_components/expense-edit-drawer";
 import { ScheduleEditDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-edit-drawer";
 import { ScheduleFormDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-form-drawer";
 import {
   approveFinanceExpense,
   cancelExpenseKopokopoPay,
   deactivateExpenseSchedule,
+  deleteFinanceExpense,
   fetchExpenseKopokopoPayStatus,
   fetchExpensePayOptions,
   fetchExpenseScheduleOccurrences,
@@ -66,6 +68,7 @@ import {
 } from "@/lib/business-hub/drawouts-for-hub";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  expensesHubDailyRange,
   expensesHubPresetRange,
   moneyNumber,
   monthsOverlappingRange,
@@ -147,9 +150,12 @@ export function ExpensesHubWorkspace() {
 
   const canOpen = canReadFinanceExpenses || canReadFinanceReports;
 
-  const [preset, setPreset] = useState<ExpensesHubPreset>("today");
-  const [from, setFrom] = useState(() => expensesHubPresetRange("today").from);
-  const [to, setTo] = useState(() => expensesHubPresetRange("today").to);
+  const [preset, setPreset] = useState<ExpensesHubPreset>("all");
+  const [from, setFrom] = useState(() => expensesHubPresetRange("all").from);
+  const [to, setTo] = useState(() => expensesHubPresetRange("all").to);
+  const [editExpense, setEditExpense] = useState<FinanceExpenseResponse | null>(
+    null,
+  );
   const [branchFilter, setBranchFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [categoryCodeFilter, setCategoryCodeFilter] = useState("");
@@ -198,9 +204,8 @@ export function ExpensesHubWorkspace() {
   const [editScheduleOpen, setEditScheduleOpen] = useState(false);
   const [editScheduleSaving, setEditScheduleSaving] = useState(false);
 
-  const pageSize = 50;
-
   const periodLabel = useMemo(() => {
+    if (preset === "all") return "All";
     if (preset === "week") return "This week";
     if (preset === "month") return "This month";
     if (preset === "today") return "Today";
@@ -236,15 +241,13 @@ export function ExpensesHubWorkspace() {
             })
           : Promise.resolve(null),
         canReadFinanceExpenses
-          ? fetchFinanceExpensesRange({
+          ? fetchEveryExpenseInRange({
               from,
               to,
               branchId: branch,
               categoryType: categoryFilter || undefined,
               categoryCode: categoryCodeFilter || undefined,
               q: searchApplied || undefined,
-              page,
-              size: pageSize,
             })
           : Promise.resolve(null),
         canReadFinanceExpenses && Number.isFinite(year) && Number.isFinite(month)
@@ -288,7 +291,11 @@ export function ExpensesHubWorkspace() {
               cashOuts: [] as CloseCashOut[],
             }),
         canReadFinanceReports
-          ? fetchFinancePLDaily(from, to, branch).catch(() => [] as DailyProfitPoint[])
+          ? fetchFinancePLDaily(
+              expensesHubDailyRange(from, to).from,
+              expensesHubDailyRange(from, to).to,
+              branch,
+            ).catch(() => [] as DailyProfitPoint[])
           : Promise.resolve([] as DailyProfitPoint[]),
       ]);
 
@@ -341,7 +348,6 @@ export function ExpensesHubWorkspace() {
     categoryFilter,
     categoryCodeFilter,
     searchApplied,
-    page,
   ]);
 
   useEffect(() => {
@@ -502,6 +508,28 @@ export function ExpensesHubWorkspace() {
         .reduce((sum, o) => sum + moneyNumber(o.amount), 0),
     [occurrences, from, to],
   );
+
+  const removeExpense = async (expense: FinanceExpenseResponse) => {
+    if (!canManageFinanceExpenses) return;
+    const cadence = expenseCadenceLabel(expense, schedules);
+    if (
+      !window.confirm(
+        `Remove “${expense.name}”? It leaves expenses and net profit. A repeating ${cadence.toLowerCase()} bill can be posted again.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteFinanceExpense(expense.id);
+      setFeedback({ kind: "success", text: `${expense.name} removed` });
+      bump();
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Could not remove this expense",
+      });
+    }
+  };
 
   const removeSchedule = async (schedule: ExpenseScheduleRecord) => {
     if (!canManageFinanceExpenses) return;
@@ -832,6 +860,7 @@ export function ExpensesHubWorkspace() {
           <div className="flex flex-wrap gap-1">
             {(
               [
+                ["all", "All"],
                 ["today", "Today"],
                 ["week", "This week"],
                 ["month", "This month"],
@@ -973,6 +1002,7 @@ export function ExpensesHubWorkspace() {
                 <div className="max-w-xl">
                   <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                     Daily net profit
+                    {preset === "all" ? " · last 31 days" : ""}
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
                     Sales minus stock cost and the bills paid, per day. Tap a day
@@ -1711,7 +1741,7 @@ export function ExpensesHubWorkspace() {
                     Expenses
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
-                    {totalCount} in range · this page{" "}
+                    {totalCount} expense{totalCount === 1 ? "" : "s"} ·{" "}
                     <span className="font-semibold text-[var(--order-ink,#15231f)]">
                       {formatFixedCostMoney(tableSum)}
                     </span>
@@ -1838,9 +1868,30 @@ export function ExpensesHubWorkspace() {
                             {paymentMethodLabel(e.paymentMethod)}
                           </p>
                         </div>
-                        <p className="shrink-0 text-[15px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
-                          {formatFixedCostMoney(moneyNumber(e.amount))}
-                        </p>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[15px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
+                            {formatFixedCostMoney(moneyNumber(e.amount))}
+                          </p>
+                          {canManageFinanceExpenses &&
+                          e.approvalStatus !== "rejected" ? (
+                            <p className="mt-1 flex justify-end gap-3 text-[12px] font-semibold">
+                              <button
+                                type="button"
+                                className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                                onClick={() => setEditExpense(e)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="text-[#9a2e16] underline-offset-2 hover:underline"
+                                onClick={() => void removeExpense(e)}
+                              >
+                                Remove
+                              </button>
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                       {e.approvalStatus === "posted" &&
                       e.paymentMethod === "mpesa_manual" &&
@@ -1875,30 +1926,12 @@ export function ExpensesHubWorkspace() {
               </ul>
 
 
-              <div className="flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 text-sm">
-                <Button
-                  type="button"
-                  size="sm"
-                  className={OUTLINE_BTN}
-                  disabled={page <= 0}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  Previous
-                </Button>
-                <span className={dashboardHintClass()}>
-                  Page {page + 1}
-                  {totalCount > 0 ? ` · ${totalCount} total` : null}
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  className={OUTLINE_BTN}
-                  disabled={!hasMore}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </div>
+              {hasMore ? (
+                <p className={cn("border-t px-2.5 py-2", dashboardHintClass(), HAIRLINE)}>
+                  Showing the latest {expenses.length} of {totalCount}. Narrow
+                  the dates to see the rest.
+                </p>
+              ) : null}
             </section>
           ) : null}
           </div>
@@ -1936,6 +1969,19 @@ export function ExpensesHubWorkspace() {
           }}
         />
       ) : null}
+
+      <ExpenseEditDrawer
+        expense={editExpense}
+        onOpenChange={(open) => {
+          if (!open) setEditExpense(null);
+        }}
+        onSaved={() => {
+          setFeedback({ kind: "success", text: "Expense updated" });
+          setEditExpense(null);
+          bump();
+        }}
+        onError={(message) => setFeedback({ kind: "error", text: message })}
+      />
 
       <ScheduleEditDrawer
         open={editScheduleOpen}
@@ -2048,6 +2094,37 @@ function ProfitStatement({
       </dl>
     </section>
   );
+}
+
+async function fetchEveryExpenseInRange(options: {
+  from: string;
+  to: string;
+  branchId?: string;
+  categoryType?: string;
+  categoryCode?: string;
+  q?: string;
+}): Promise<{
+  expenses: FinanceExpenseResponse[];
+  totalCount: number;
+  hasMore: boolean;
+}> {
+  const expenses: FinanceExpenseResponse[] = [];
+  let page = 0;
+  let totalCount = 0;
+  let hasMore = true;
+  while (hasMore && page < 25) {
+    const batch = await fetchFinanceExpensesRange({
+      ...options,
+      page,
+      size: 200,
+    });
+    expenses.push(...batch.expenses);
+    totalCount = batch.totalCount;
+    hasMore = batch.hasMore;
+    page += 1;
+    if (batch.expenses.length === 0) break;
+  }
+  return { expenses, totalCount, hasMore };
 }
 
 async function loadPayrollPicture(
