@@ -14944,6 +14944,8 @@ export type PayrollArrearPeriod = {
   shifSuggested: number;
   housingLevySuggested: number;
   netBeforeAdvances: number;
+  payableDays?: number;
+  daysInMonth?: number;
 };
 
 export type PayrollRunRow = {

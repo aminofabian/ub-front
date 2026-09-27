@@ -354,7 +354,7 @@ export function PayrollStaffDrawer({
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
               <div className="rounded-none border border-[#9a2e16]/25 bg-[color-mix(in_srgb,#9a2e16_4%,white)] px-3 py-2 text-xs">
                 <div className="flex justify-between gap-3 font-medium text-[#9a2e16]">
-                  <span>Arrears</span>
+                  <span>Unpaid months</span>
                   <span className="tabular-nums">
                     + {formatPayrollMoney(row.arrearsBaseTotal)}
                   </span>
@@ -367,6 +367,11 @@ export function PayrollStaffDrawer({
                     >
                       <span>
                         {payrollShortMonth(period.year, period.month)}
+                        {period.payableDays != null &&
+                        period.daysInMonth != null &&
+                        period.payableDays < period.daysInMonth
+                          ? ` · ${period.payableDays} of ${period.daysInMonth} days`
+                          : ""}
                       </span>
                       <span className="tabular-nums">
                         {formatPayrollMoney(period.baseSalary)}
@@ -376,7 +381,7 @@ export function PayrollStaffDrawer({
                 </ul>
                 {payrollArrearSummary(row) ? (
                   <p className="mt-1.5 text-[10px] text-muted-foreground">
-                    Cleared when you pay {payrollMonthLabel(year, month)}
+                    Added when you pay {payrollMonthLabel(year, month)}
                   </p>
                 ) : null}
               </div>

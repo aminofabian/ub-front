@@ -25,7 +25,7 @@ export const JOIN_PAY_MODES: Array<{
   {
     value: "prorate",
     label: "Prorated by days",
-    hint: "Calculated from their start date and days worked",
+    hint: "From start date to month end — e.g. joined 14 Sep → 17 of 30 days",
   },
   {
     value: "deferred",
@@ -403,14 +403,11 @@ export const PAYROLL_SALARY_UNLOCK_DAY = 25;
 /** From the 25th onward, payroll UI defaults to the next pay period. */
 export const PAYROLL_FOCUS_DAY = 24;
 
-/** Default pay period when opening payroll — next month from the 25th. */
+/** Default pay period when opening payroll — the month you are in. */
 export function defaultPayrollPeriod(from: Date = new Date()): {
   year: number;
   month: number;
 } {
-  if (from.getDate() > PAYROLL_FOCUS_DAY) {
-    return shiftPayrollMonth(from.getFullYear(), from.getMonth() + 1, 1);
-  }
   return { year: from.getFullYear(), month: from.getMonth() + 1 };
 }
 
