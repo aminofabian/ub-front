@@ -30,7 +30,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 

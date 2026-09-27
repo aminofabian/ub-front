@@ -40,7 +40,7 @@ export function HubPaymentSplit({
         <p className="shrink-0 text-[11px] text-[#8A8A8A]">{periodLabel}</p>
       </div>
 
-      <div className="mt-2.5 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-[#F1F3F2]">
+      <div className="mt-2.5 flex h-1.5 w-full gap-px overflow-hidden rounded-none bg-[#F1F3F2]">
         {total > 0
           ? LANES.map((lane) => {
               const share = (totals[lane.id] / total) * 100;
@@ -48,7 +48,7 @@ export function HubPaymentSplit({
               return (
                 <span
                   key={lane.id}
-                  className={cn("h-full rounded-full", lane.bar)}
+                  className={cn("h-full rounded-none", lane.bar)}
                   style={{ width: `${share}%` }}
                   aria-hidden
                 />
@@ -76,7 +76,7 @@ export function HubPaymentSplit({
             >
               <dt className="flex items-center gap-1.5 text-[11px] text-[#6F6F6F]">
                 <span
-                  className={cn("size-1.5 rounded-full", lane.dot)}
+                  className={cn("size-1.5 rounded-none", lane.dot)}
                   aria-hidden
                 />
                 {lane.label}

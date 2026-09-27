@@ -171,6 +171,19 @@ export default function ShopOrderTrackView({ slug }: { slug: string }) {
                 {statusLabel(tracking.fulfillmentStatus)}
               </span>
             </div>
+            {tracking.deliveryStatus || tracking.deliveryReceiptNo ? (
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Delivery</span>
+                <span className="text-right font-medium">
+                  {tracking.deliveryStatus ?? "Booked with the courier"}
+                  {tracking.deliveryReceiptNo ? (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {tracking.deliveryReceiptNo}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           {tracking.receiptVerified ? (

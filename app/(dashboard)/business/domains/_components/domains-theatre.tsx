@@ -7,11 +7,11 @@ import {
   Globe,
   Link2,
   Loader2,
-  Plus,
   RefreshCw,
   Search,
   ShoppingCart,
   Star,
+  Wrench,
 } from "lucide-react";
 
 import { BuyKenyanDomainWizard } from "@/components/business/buy-kenyan-domain-wizard";
@@ -26,6 +26,7 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import type { DomainRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { DomainHelpPanel } from "./domain-help-panel";
 import {
   DomainChip,
   domainInitials,
@@ -33,7 +34,7 @@ import {
   statusMeta,
 } from "./domain-helpers";
 
-export type TabId = "buy" | "manage" | "connect";
+export type TabId = "buy" | "manage" | "connect" | "help";
 
 export type DomainOrderStats = {
   open: number;
@@ -74,7 +75,6 @@ function DomainsBanner({
   orderStats,
   platformDomain,
   onReload,
-  onConnectOpen,
 }: {
   tab: TabId;
   onTabChange: (tab: TabId) => void;
@@ -83,7 +83,6 @@ function DomainsBanner({
   orderStats: DomainOrderStats;
   platformDomain: string | null;
   onReload: () => void;
-  onConnectOpen: () => void;
 }) {
   const tabs: {
     id: TabId;
@@ -93,16 +92,17 @@ function DomainsBanner({
   }[] = [
     {
       id: "buy",
-      label: "Buy",
+      label: "Buy a name",
       icon: ShoppingCart,
       count: orderStats.awaitingPay || undefined,
     },
     {
       id: "manage",
-      label: "Manage",
+      label: "Your domains",
       icon: Globe,
     },
-    { id: "connect", label: "Connect", icon: Link2 },
+    { id: "connect", label: "I already own one", icon: Link2 },
+    { id: "help", label: "Hire a developer", icon: Wrench },
   ];
 
   return (
@@ -114,7 +114,7 @@ function DomainsBanner({
     >
       <div
         role="tablist"
-        aria-label="Domains mode"
+        aria-label="How to add a domain"
         className="flex flex-wrap gap-1"
       >
         {tabs.map(({ id, label, icon: Icon, count }) => {
@@ -159,7 +159,7 @@ function DomainsBanner({
         <span className="font-semibold text-foreground">{liveCount}</span> live
         ·{" "}
         <span className="font-semibold text-foreground">{pendingCount}</span>{" "}
-        pending
+        not live yet
         {orderStats.open > 0 ? (
           <>
             {" "}
@@ -167,7 +167,7 @@ function DomainsBanner({
             <span className="font-semibold text-foreground">
               {orderStats.open}
             </span>{" "}
-            purchase{orderStats.open === 1 ? "" : "s"}
+            purchase{orderStats.open === 1 ? "" : "s"} waiting
           </>
         ) : null}
       </p>
@@ -180,7 +180,7 @@ function DomainsBanner({
           )}
           title={platformDomain}
         >
-          Free URL · {platformDomain}
+          Free address · {platformDomain}
         </p>
       ) : null}
 
@@ -194,15 +194,6 @@ function DomainsBanner({
         >
           <RefreshCw className="size-3" aria-hidden />
           Reload
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          className="h-7 gap-1 px-2 text-[11px]"
-          onClick={onConnectOpen}
-        >
-          <Plus className="size-3" aria-hidden />
-          Connect
         </Button>
       </div>
     </div>
@@ -265,7 +256,7 @@ function DomainPulse({
 
       <article className={cn(card, "left-4 top-4")}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Hostnames
+          Addresses
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button
@@ -286,7 +277,7 @@ function DomainPulse({
             className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] p-2 text-left transition-colors hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)]"
             onClick={() => onTabChange("manage")}
           >
-            <p className="text-[10px] text-muted-foreground">Pending</p>
+            <p className="text-[10px] text-muted-foreground">Not live yet</p>
             <p
               className="mt-0.5 text-xl font-semibold tabular-nums tracking-[-0.03em]"
               style={{ fontFamily: "var(--font-heading)" }}
@@ -304,9 +295,10 @@ function DomainPulse({
             )}
             onClick={() => onTabChange("buy")}
           >
-            {orderStats.open} open purchase
+            {orderStats.open} purchase{orderStats.open === 1 ? "" : "s"}{" "}
+            waiting
             {orderStats.awaitingPay
-              ? ` · ${orderStats.awaitingPay} awaiting pay`
+              ? ` · ${orderStats.awaitingPay} still to pay`
               : ""}
           </button>
         ) : null}
@@ -315,7 +307,7 @@ function DomainPulse({
       {platformRow ? (
         <article className={cn(card, "bottom-4 right-4")}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Free shop URL
+            Free address
           </p>
           <p className="mt-1 truncate font-mono text-[13px] font-semibold">
             {platformRow.domain}
@@ -341,7 +333,7 @@ function DomainPulse({
       {attention.length > 0 ? (
         <article className={cn(card, "bottom-4 left-4 max-h-[40%] overflow-y-auto")}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Needs DNS
+            Not live yet
           </p>
           <ul className="mt-2 space-y-1">
             {attention.slice(0, 5).map((r) => (
@@ -455,24 +447,24 @@ function ConnectCenter({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold tracking-tight">
-              Already own a domain?
+              Connect a domain you already bought
             </h2>
             <p className={cn(dashboardHintClass(), "mt-2")}>
-              Connect a hostname you manage elsewhere. We&apos;ll show DNS
-              records, then you verify when they&apos;ve propagated.
+              Use this only after you have paid another company for the name.
+              We do not sell it in this step.
             </p>
             <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">1.</span>
-                Enter the apex or subdomain you want to map.
+                Enter the domain you already paid for.
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">2.</span>
-                Update DNS at your registrar.
+                Add the DNS records we show, at the company you bought it from.
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">3.</span>
-                Verify from domain details when ready.
+                Choose Check connection after those records are saved.
               </li>
             </ol>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -481,15 +473,15 @@ function ConnectCenter({
                 className="gap-1.5"
                 onClick={onConnectOpen}
               >
-                <Plus className="size-3.5" aria-hidden />
-                Connect domain
+                <Link2 className="size-3.5" aria-hidden />
+                Enter the domain you own
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onTabChange("manage")}
+                onClick={() => onTabChange("buy")}
               >
-                View your domains
+                I need to buy one
               </Button>
             </div>
           </div>
@@ -515,14 +507,12 @@ function BuyCenter({
     >
       <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-4")}>
         <div className="min-w-0 max-w-xl">
-          <p className="font-sans text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            Kenyan TLDs
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Find and buy your .ke name
+          <h2 className="text-lg font-semibold tracking-tight">
+            Search a name to buy
           </h2>
           <p className={cn(dashboardHintClass(), "mt-1.5")}>
-            Search availability, pay with M-Pesa, and we register it for you.
+            Type a shop name. Every free .ke address is KES 2,000 for the first
+            year. After M-Pesa, we register it, connect your shop, and text you.
           </p>
         </div>
         <BuyKenyanDomainWizard embedded onLive={onBuyLive} />
@@ -591,27 +581,27 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
               )}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search domains…"
-              aria-label="Search domains"
+              placeholder="Search addresses"
+              aria-label="Search addresses"
             />
           </label>
           <select
             className={cn(dashboardSelectClass(), "h-8 w-full py-0 text-[11px]")}
             value={sourceFilter}
             onChange={(e) => onSourceFilterChange(e.target.value)}
-            aria-label="Filter by source"
+            aria-label="Filter addresses"
           >
-            <option value="all">All sources</option>
-            <option value="platform_subdomain">Platform</option>
-            <option value="hostafrica_purchase">Purchased</option>
-            <option value="manual_connect">Connected</option>
+            <option value="all">All addresses</option>
+            <option value="platform_subdomain">Free address</option>
+            <option value="hostafrica_purchase">Bought here</option>
+            <option value="manual_connect">Connected by you</option>
           </select>
           <p className={cn(dashboardHintClass(), "tabular-nums")}>
             {filtered.length}
             {query.trim() || sourceFilter !== "all"
               ? ` of ${rows.length}`
               : ""}{" "}
-            {filtered.length === 1 ? "domain" : "domains"}
+            {filtered.length === 1 ? "address" : "addresses"}
           </p>
         </div>
 
@@ -652,29 +642,32 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
                 aria-hidden
               />
               <p className="mt-2 text-[14px] font-semibold text-foreground">
-                No domains yet
+                No addresses yet
               </p>
               <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-[16rem]")}>
-                Buy a .ke name or connect one you own.
+                Buy a .ke name, or connect a domain you already paid for.
               </p>
               <div className="mt-3 flex justify-center gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
                   onClick={() => onTabChange("buy")}
                 >
-                  Buy
+                  Buy a name
                 </Button>
-                <Button size="sm" onClick={onConnectOpen}>
-                  Connect
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onTabChange("connect")}
+                >
+                  I already own one
                 </Button>
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>
               {query.trim()
-                ? `No domains match “${query.trim()}”.`
-                : "No domains match this filter."}
+                ? `No addresses match “${query.trim()}”.`
+                : "No addresses match this filter."}
             </p>
           ) : (
             <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
@@ -752,12 +745,14 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
 
   const room =
     tab === "buy" ? (
-      <BuyCenter onBuyLive={onBuyLive} className="h-full min-h-0" />
+      <BuyCenter onBuyLive={onBuyLive} className="h-auto min-h-0 lg:h-full" />
+    ) : tab === "help" ? (
+      <DomainHelpPanel className="h-auto min-h-0 lg:h-full" />
     ) : tab === "connect" ? (
       <ConnectCenter
         onConnectOpen={onConnectOpen}
         onTabChange={onTabChange}
-        className="h-full min-h-0"
+        className="h-auto min-h-0 lg:h-full"
       />
     ) : selectedRow ? (
       <DomainFocus row={selectedRow} className="h-full min-h-0" />
@@ -776,35 +771,81 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
 
   const centerLabel =
     tab === "buy"
-      ? "Buy a domain"
+      ? "Buy a name"
       : tab === "connect"
-        ? "Connect"
-        : "Your domains";
+        ? "Connect one you own"
+        : tab === "help"
+          ? "Hire a developer"
+          : "Your domains";
+
+  const guide =
+    tab === "buy"
+      ? {
+          title: "How buying works",
+          steps: [
+            "Search a shop name and pick a .ke address that is free.",
+            "Pay KES 2,000 with M-Pesa. We text you, and we tell the Kiosk team.",
+            "We register the name and connect your shop. You don't change DNS.",
+          ],
+        }
+      : tab === "connect"
+        ? {
+            title: "Only if you already paid",
+            steps: [
+              "You bought this domain from another company.",
+              "You can sign in there to add the DNS records we show.",
+              "After those records are saved, choose Check connection.",
+            ],
+          }
+        : tab === "help"
+          ? {
+              title: "What happens when you ask",
+              steps: [
+                "Domain help is a call. Theme and functionality changes are KES 5,000 each.",
+                "We text that phone and call you. The KES 5,000 is confirmed on the call.",
+                "The request also shows up for the Kiosk team in support.",
+              ],
+            }
+        : {
+            title: "What the statuses mean",
+            steps: [
+              "Live means customers can open your shop at that address.",
+              "Setting up means we're still connecting a name you bought here.",
+              "Add records means you own the domain, but it isn't pointing here yet.",
+            ],
+          };
 
   const inspect = (
     <div className="flex h-full flex-col justify-between bg-white px-4 py-6">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Details
-        </p>
         <h3
-          className="mt-2 text-[1.35rem] font-semibold leading-none tracking-[-0.03em]"
+          className="text-[1.35rem] font-semibold leading-none tracking-[-0.03em]"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          Pick a domain
+          {guide.title}
         </h3>
-        <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
-          The center shows your hostname map. The list names what you have
-          mapped.
-        </p>
+        <ol className="mt-4 space-y-2.5">
+          {guide.steps.map((step, index) => (
+            <li
+              key={step}
+              className="flex gap-2 text-[13px] leading-relaxed text-muted-foreground"
+            >
+              <span className="font-semibold text-foreground">{index + 1}.</span>
+              {step}
+            </li>
+          ))}
+        </ol>
       </div>
       {platformRow ? (
         <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
             <CheckCircle2 className="size-3.5" aria-hidden />
-            Free shop URL live
+            Free address, already live
           </p>
           <p className="mt-1 truncate font-mono text-[12px]">{platformRow.domain}</p>
+          <p className={cn(dashboardHintClass(), "mt-1.5")}>
+            Staff sign in here until you make another address the main one.
+          </p>
         </div>
       ) : null}
     </div>
@@ -820,8 +861,80 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
         orderStats={orderStats}
         platformDomain={platformRow?.domain ?? null}
         onReload={onReload}
-        onConnectOpen={onConnectOpen}
       />
+
+      <div
+        className={cn(
+          "border bg-white px-3 py-2.5",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        )}
+      >
+        {tab === "buy" ? (
+          <>
+            <p className="text-[13px] leading-relaxed text-foreground">
+              {platformRow ? (
+                <>
+                  Customers can already open your shop at{" "}
+                  <span className="font-mono text-[12px]">
+                    {platformRow.domain}
+                  </span>
+                  .
+                </>
+              ) : (
+                "Your shop already has a free kiosk.ke address."
+              )}{" "}
+              A custom domain is KES 2,000 for the first year. After M-Pesa, we
+              register it, connect your shop, and text you when it is live.
+            </p>
+            <ol className="mt-2 space-y-1 text-[13px] leading-relaxed text-muted-foreground lg:hidden">
+              <li>1. Search a name and pick one that is free.</li>
+              <li>2. Pay KES 2,000 with M-Pesa.</li>
+              <li>3. We register it and connect your shop. You don&apos;t change DNS.</li>
+            </ol>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <button
+                type="button"
+                className="text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                onClick={() => onTabChange("connect")}
+              >
+                I already own a domain
+              </button>
+              <button
+                type="button"
+                className="text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                onClick={() => onTabChange("help")}
+              >
+                Hire a developer
+              </button>
+            </div>
+          </>
+        ) : tab === "help" ? (
+          <p className="text-[13px] leading-relaxed text-foreground">
+            Ask a developer to call. Theme customization and functionality
+            changes are a flat KES 5,000 each. We text that number and the Kiosk
+            team.
+          </p>
+        ) : tab === "connect" ? (
+          <>
+            <p className="text-[13px] leading-relaxed text-foreground">
+              Use this only if you already paid another company for the domain.
+              This step does not buy a name.
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+              onClick={() => onTabChange("buy")}
+            >
+              Buy a .ke name instead
+            </button>
+          </>
+        ) : (
+          <p className="text-[13px] leading-relaxed text-foreground">
+            These are the addresses that open your shop. Select one to see if
+            customers can use it yet, or if it is still being connected.
+          </p>
+        )}
+      </div>
 
       <div
         className={cn(
@@ -851,9 +964,15 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
       </div>
 
       <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          {roster({ fill: false, denser: false })}
-        </div>
+        {tab === "manage" ? (
+          <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            {roster({ fill: false, denser: false })}
+          </div>
+        ) : (
+          <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]">
+            {room}
+          </div>
+        )}
       </div>
 
     </div>

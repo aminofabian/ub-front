@@ -29,7 +29,7 @@ export function HubMark({
       className={cn(
         "flex shrink-0 items-center justify-center overflow-hidden",
         mark
-          ? "border border-[color-mix(in_srgb,var(--hub-ink)_12%,transparent)] bg-white"
+          ? "border border-[color-mix(in_srgb,var(--hub-ink)_7%,transparent)] bg-white"
           : "bg-[var(--hub-ink)]",
         className,
       )}

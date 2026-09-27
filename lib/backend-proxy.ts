@@ -104,7 +104,23 @@ function resolveTenantHostHeader(req: NextRequest): string | null {
   return host && host.length > 0 ? host : null;
 }
 
+const SESSIONLESS_MAGIC_LINK_PREFIXES = [
+  "/api/v1/public/tills/",
+  "/api/v1/public/drawouts/",
+] as const;
+
+/**
+ * One-tap email links (trust a till, approve a drawout). They carry their own
+ * signed token. Attaching the dashboard session makes the API compare that
+ * session's shop with this host and reject the link when they differ.
+ */
+export function isSessionlessMagicLinkPath(pathname: string): boolean {
+  const path = pathname.split("?")[0] ?? "";
+  return SESSIONLESS_MAGIC_LINK_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 function buildUpstreamHeaders(req: NextRequest): Headers {
+  const sessionless = isSessionlessMagicLinkPath(req.nextUrl.pathname);
   const h = new Headers();
   for (const name of HEADER_ALLOWLIST) {
     const v = req.headers.get(name);
@@ -116,9 +132,13 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
   if (cookie) {
     h.set("cookie", cookie);
   }
-  // Gap G: inject Bearer from httpOnly `ub.access` when the browser did not
-  // send Authorization (storage cleared / future memory-only clients).
-  if (!h.get("authorization")) {
+  if (sessionless) {
+    // Drop a dashboard Bearer (client-sent or about to be injected). The link
+    // token in the query string is the only credential these routes accept.
+    h.delete("authorization");
+  } else if (!h.get("authorization")) {
+    // Gap G: inject Bearer from httpOnly `ub.access` when the browser did not
+    // send Authorization (storage cleared / future memory-only clients).
     const access = readAccessTokenFromCookieHeader(cookie);
     if (access) {
       h.set("authorization", `Bearer ${access}`);

@@ -30,7 +30,7 @@ export function HubDeskStack({
         <div
           className={cn(
             "flex flex-col gap-px overflow-hidden",
-            "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+            "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
             "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
           )}
         >

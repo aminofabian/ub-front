@@ -3852,6 +3852,26 @@ export type PayDomainOrderResult = {
   order: DomainOrder;
 };
 
+export type DomainHelpKind =
+  | "setup_domain"
+  | "connect_owned"
+  | "shop_online"
+  | "theme"
+  | "functionality"
+  | "other_change";
+
+export async function requestDomainHelp(body: {
+  kind: DomainHelpKind;
+  phoneNumber: string;
+  domain?: string;
+  note?: string;
+}): Promise<{ accepted: boolean; message: string }> {
+  return request(`${MY_DOMAIN_ORDERS_PATH}/help`, {
+    method: "POST",
+    body,
+  });
+}
+
 export async function payDomainOrder(orderId: string, phoneNumber: string): Promise<PayDomainOrderResult> {
   return request<PayDomainOrderResult>(
     `${MY_DOMAIN_ORDERS_PATH}/${encodeURIComponent(orderId.trim())}/pay`,
@@ -8147,6 +8167,25 @@ export type WebOrderLineSnapshot = {
   lineIndex: number;
 };
 
+export type WebOrderShipmentSummary = {
+  carrier: string;
+  mode: string;
+  destinationLabel?: string | null;
+  locationDescription?: string | null;
+  quotedFeeKes?: number | string | null;
+  shopperFeeKes?: number | string | null;
+  feeMode?: string | null;
+  bookStatus: string;
+  bookError?: string | null;
+  trackId?: string | null;
+  receiptNo?: string | null;
+  paymentStatus?: string | null;
+  upstreamState?: string | null;
+  lastTrackDescription?: string | null;
+  lastPolledAt?: string | null;
+  bookedAt?: string | null;
+};
+
 export type WebOrderDetail = {
   id: string;
   orderCode?: string | null;
@@ -8167,6 +8206,8 @@ export type WebOrderDetail = {
   notes: string | null;
   createdAt: string;
   lines: WebOrderLineSnapshot[];
+  /** Carrier shipment when the order uses one; null/absent otherwise. */
+  shipment?: WebOrderShipmentSummary | null;
 };
 
 export async function fetchWebOrders(
@@ -8290,6 +8331,36 @@ export async function updateWebOrderFulfillment(
       method: "PATCH",
       body: { fulfillmentStatus },
     },
+  );
+}
+
+/** Manual booking of a paid order's Pickup Mtaani parcel (scope §8). */
+export async function bookPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani`,
+    { method: "POST", toast: false },
+  );
+}
+
+/** Poll the parcel now and return the refreshed order (scope §8, §12). */
+export async function refreshPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani/refresh`,
+    { method: "POST", toast: false },
+  );
+}
+
+/** Cancel the parcel while it is still a request (scope §8, §13). */
+export async function cancelPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani/cancel`,
+    { method: "POST", toast: false },
   );
 }
 

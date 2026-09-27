@@ -52,7 +52,7 @@ export function BusinessHubMenuButton({
         headerDensity="compact"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-3 py-2.5">
+          <div className="flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-3 py-2.5">
             <HubMark
               name={name}
               logoUrl={identity.logoUrl}
@@ -74,7 +74,7 @@ export function BusinessHubMenuButton({
 
           <nav
             aria-label="Your shop pages"
-            className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+            className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white"
           >
             {BUSINESS_HUB_TABS.map((tab) => {
               const copy = hubTabCopy(tab, setupHome);
@@ -99,7 +99,7 @@ export function BusinessHubMenuButton({
                       "flex size-8 shrink-0 items-center justify-center border",
                       active
                         ? "border-[#0f766e] bg-[#0f766e] text-white"
-                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e]",
+                        : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#0f766e]",
                     )}
                   >
                     <Icon className="size-4" aria-hidden />

@@ -39,7 +39,7 @@ export function statusMeta(row: DomainRecord): {
     };
   if (status === "verifying")
     return {
-      text: "Verifying",
+      text: "Checking",
       className:
         "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
     };
@@ -50,12 +50,12 @@ export function statusMeta(row: DomainRecord): {
     };
   if (source === "hostafrica_purchase")
     return {
-      text: "Provisioning",
+      text: "Setting up",
       className:
         "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
     };
   return {
-    text: "Pending DNS",
+    text: "Add records",
     className:
       "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
   };
@@ -63,9 +63,9 @@ export function statusMeta(row: DomainRecord): {
 
 export function sourceLabel(row: DomainRecord): string {
   const source = (row.source || "").toLowerCase();
-  if (source === "platform_subdomain") return "Platform";
-  if (source === "hostafrica_purchase") return "Purchased";
-  if (source === "manual_connect") return "Connected";
+  if (source === "platform_subdomain") return "Free address";
+  if (source === "hostafrica_purchase") return "Bought here";
+  if (source === "manual_connect") return "You connected";
   return "Domain";
 }
 

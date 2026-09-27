@@ -16,12 +16,12 @@ export type ActionItem = {
 
 const TONES = {
   warning: {
-    card: "border-[#F1D9B8] bg-[#FDF8F0] hover:bg-[#FCF3E6]",
+    card: "border-[color-mix(in_srgb,#B45309_16%,transparent)] bg-[#FDF8F0] hover:bg-[#FCF3E6]",
     icon: "bg-[#FBEBD2] text-[#B45309]",
     arrow: "text-[#B45309]",
   },
   info: {
-    card: "border-[#CCE6E2] bg-[#F1F9F8] hover:bg-[#E7F4F2]",
+    card: "border-[color-mix(in_srgb,#0f766e_16%,transparent)] bg-[#F1F9F8] hover:bg-[#E7F4F2]",
     icon: "bg-[#D6EDEA] text-[#0f766e]",
     arrow: "text-[#0f766e]",
   },
@@ -49,14 +49,14 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors",
+                "group flex items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}
             >
               <span
                 className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-md",
+                  "flex size-7 shrink-0 items-center justify-center rounded-none",
                   tone.icon,
                 )}
               >

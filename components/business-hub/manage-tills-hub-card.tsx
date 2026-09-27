@@ -98,8 +98,10 @@ export function ManageTillsHubCard({
           rail && "border-0 shadow-none",
           waiting &&
             !rail &&
-            "border-[color-mix(in_srgb,#F59E0B_45%,transparent)] border-l-[3px] border-l-[#F59E0B]",
-          waiting && rail && "border-l-[3px] border-l-[#F59E0B]",
+            "border-[color-mix(in_srgb,#F59E0B_22%,transparent)]",
+          waiting &&
+            rail &&
+            "border-[color-mix(in_srgb,#F59E0B_22%,transparent)]",
         )}
       >
         <div

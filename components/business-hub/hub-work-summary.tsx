@@ -43,7 +43,7 @@ export function HubWorkSummary({ cards }: { cards: HubWorkCard[] }) {
                 "flex items-center gap-3 p-3.5 transition-colors hover:border-[#0f766e]/30",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#E6F2F0] text-[#0f766e]">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-[#E6F2F0] text-[#0f766e]">
                 <Icon className="size-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">

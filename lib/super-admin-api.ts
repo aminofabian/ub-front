@@ -4177,3 +4177,42 @@ export async function patchSaServingStaff(
     body: JSON.stringify(body),
   });
 }
+
+// ── Pickup Mtaani credential (super-admin-owned) ────────────────────────────
+
+export type SaPickupMtaaniCredential = {
+  hasApiKey: boolean;
+  businessId?: number | null;
+  businessName?: string | null;
+  accountMode?: string | null;
+  lastVerifiedAt?: string | null;
+  status: string;
+  statusDetail?: string | null;
+};
+
+const saPickupMtaaniPath = (businessId: string) =>
+  `${API_ROUTES.superAdminBusinesses}/${encodeURIComponent(businessId)}/integrations/pickup-mtaani`;
+
+export async function fetchSaPickupMtaaniCredential(
+  businessId: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId));
+}
+
+export async function saveSaPickupMtaaniCredential(
+  businessId: string,
+  apiKey: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId), {
+    method: "PUT",
+    body: JSON.stringify({ apiKey }),
+  });
+}
+
+export async function disconnectSaPickupMtaaniCredential(
+  businessId: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId), {
+    method: "DELETE",
+  });
+}

@@ -1644,7 +1644,7 @@ export function BusinessHubWorkspace() {
                           </p>
                         ) : null}
                       </div>
-                      <div className="rounded-xl border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white p-3 shadow-[0_1px_2px_rgba(20,20,20,0.04)]">
+                      <div className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
                         <p
                           className="mb-2 text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums"
                           style={{ fontFamily: "var(--font-heading)" }}

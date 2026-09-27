@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export function HubTipCard() {
   return (
     <section className={cn(HUB_SURFACE, "flex gap-3 bg-[#F1F9F8] p-3.5")}>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#0f766e]">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,#0f766e_14%,transparent)] bg-white text-[#0f766e]">
         <Lightbulb className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">

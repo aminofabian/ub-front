@@ -61,6 +61,8 @@ export const APP_ROUTES = {
   businessDesign: "/business/design",
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",
+  businessIntegrationsPickupMtaani:
+    "/business/integrations/pickup-mtaani",
   businessImport: "/business/import",
   billingRenew: "/business/billing/renew",
   branches: "/branches",

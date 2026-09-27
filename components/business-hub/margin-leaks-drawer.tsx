@@ -93,7 +93,7 @@ function MarginBridgeCard({ data }: { data: MarginLeaksResponse | null }) {
   const refunds = toNum(data.refundsInWindow);
   const net = toNum(data.grossProfit) - refunds;
   return (
-    <div className="space-y-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 text-[11px]">
+    <div className="space-y-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-3 py-2 text-[11px]">
       <BridgeRow label="Gross profit (net of refunds)" value={net} strong />
       <div className="space-y-1 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-1">
         <BridgeRow label="Items" value={toNum(data.listedProfit)} />
@@ -212,7 +212,7 @@ export function MarginLeaksDrawer({
                   {rows.length} loss-making {rows.length === 1 ? "item" : "items"}{" "}
                   · {fmtMoney(totalLoss)} total loss
                 </p>
-                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
                   {rows.map((row) => (
                     <li
                       key={row.itemId}

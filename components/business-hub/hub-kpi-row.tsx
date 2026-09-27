@@ -52,7 +52,7 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
         <div className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-md",
+              "flex size-7 shrink-0 items-center justify-center rounded-none",
               TINTS[kpi.tint ?? "teal"],
             )}
           >
@@ -65,7 +65,7 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
         {direction ? (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-none px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
               direction === "down"
                 ? "bg-[#FDECEC] text-[#B4342F]"
                 : "bg-[#E6F4EC] text-[#047857]",
@@ -124,7 +124,7 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
               type="button"
               onClick={action.onClick}
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors",
+                "rounded-none px-2 py-0.5 text-[10px] font-semibold transition-colors",
                 action.emphasize
                   ? "bg-[#FDECEC] text-[#B4342F] hover:bg-[#FBDDDD]"
                   : "bg-[#F1F3F2] text-[#4A4A4A] hover:bg-[#E6EAE9]",

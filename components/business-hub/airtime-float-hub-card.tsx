@@ -303,7 +303,7 @@ export function AirtimeFloatHubCard({
           "text-left",
           rail && "border-0 shadow-none",
           (phase === "ready" || phase === "try" || phase === "blocked") &&
-            "border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
+            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
         )}
       >
         <div className={cn("flex flex-col gap-2.5", rail ? "p-3" : "p-3.5")}>
@@ -566,7 +566,7 @@ export function AirtimeFloatHubCard({
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-base tabular-nums tracking-wide"
+              className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-3 text-base tabular-nums tracking-wide"
               placeholder="07XX XXX XXX"
               value={testPhone}
               disabled={testBusy}
@@ -584,7 +584,7 @@ export function AirtimeFloatHubCard({
             </p>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-xs">
+          <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-xs">
             <div className="bg-white px-2.5 py-2">
               <p className="text-[10px] font-medium text-muted-foreground">
                 You send

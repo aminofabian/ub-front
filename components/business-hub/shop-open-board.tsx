@@ -85,27 +85,27 @@ export function ShopOpenBoard({
             </span>
 
             <span className="mt-4 flex items-start gap-3">
-              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#8A8A8A] sm:size-[5.25rem]">
+              <span className="flex size-[4.5rem] shrink-0 flex-col items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#8A8A8A] sm:size-[5.25rem]">
                 <ImagePlus className="size-5" aria-hidden />
                 <span className="mt-1 text-[10px] font-medium">Photo</span>
               </span>
               <span className="min-w-0 flex-1 space-y-2">
-                <span className="block h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[13px] leading-9 text-[#8A8A8A]">
+                <span className="block h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-3 text-[13px] leading-9 text-[#8A8A8A]">
                   e.g. Brookside 500ml
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     Buying
                   </span>
-                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     Selling
                   </span>
                 </span>
                 <span className="grid grid-cols-2 gap-2">
-                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 font-mono text-[11px] leading-8 text-[#8A8A8A]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-2.5 font-mono text-[11px] leading-8 text-[#8A8A8A]">
                     Barcode
                   </span>
-                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
+                  <span className="block h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-2.5 text-[11px] leading-8 text-[#8A8A8A]">
                     How many
                   </span>
                 </span>
@@ -147,7 +147,7 @@ export function ShopOpenBoard({
                   "shrink-0 px-2 py-0.5 text-[10px] font-medium",
                   storefrontEnabled
                     ? "bg-emerald-500/10 text-emerald-800"
-                    : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#8A8A8A]",
+                    : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#8A8A8A]",
                 )}
               >
                 {storefrontEnabled ? "Live" : "Off"}
@@ -233,10 +233,10 @@ export function ShopOpenBoard({
           )}
         >
           <span className="flex -space-x-1.5" aria-hidden>
-            <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#0f766e]">
+            <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#0f766e]">
               <User className="size-3.5" />
             </span>
-            <span className="flex size-9 items-center justify-center rounded-none bg-white text-[#8A8A8A] ring-1 ring-[color-mix(in_srgb,#141414_12%,transparent)]">
+            <span className="flex size-9 items-center justify-center rounded-none bg-white text-[#8A8A8A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]">
               <User className="size-3.5" />
             </span>
           </span>

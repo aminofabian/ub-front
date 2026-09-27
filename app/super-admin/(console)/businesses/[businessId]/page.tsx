@@ -7,6 +7,7 @@ import { Check, Copy, CreditCard, ExternalLink, Globe, Inbox, Mail, MessageCircl
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SaSmsCreditsPanel } from "@/components/super-admin/sa-sms-credits-panel";
+import { SaPickupMtaaniPanel } from "@/components/super-admin/sa-pickup-mtaani-panel";
 import { SaSubscriptionPanel } from "@/components/super-admin/sa-subscription-panel";
 import {
   SaShopHeroButton,
@@ -1187,6 +1188,7 @@ function BusinessDetailInner() {
       </SaShopPanel>
 
       {businessId ? <SaSmsCreditsPanel businessId={businessId} /> : null}
+      {businessId ? <SaPickupMtaaniPanel businessId={businessId} /> : null}
     </SaTenantShopFrame>
   );
 }

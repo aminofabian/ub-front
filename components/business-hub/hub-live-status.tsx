@@ -118,12 +118,12 @@ export function HubLiveStatus({
       className={cn(
         "relative inline-flex h-8 items-center gap-1.5 overflow-hidden border px-2 text-[10px] font-semibold tracking-[-0.02em] sm:gap-2 sm:px-2.5",
         view.tone === "live" &&
-          "border-emerald-300/80 bg-[#0B1F17] text-emerald-100",
-        view.tone === "sync" && "border-amber-300 bg-amber-50 text-amber-950",
+          "border-emerald-300/50 bg-[#0B1F17] text-emerald-100",
+        view.tone === "sync" && "border-amber-300/50 bg-amber-50 text-amber-950",
         view.tone === "off" &&
-          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#666666]",
         view.tone === "paused" &&
-          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted text-muted-foreground",
+          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-muted text-muted-foreground",
         justUpdated && view.tone === "live" && "hub-scan-sweep",
         className,
       )}

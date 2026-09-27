@@ -83,7 +83,7 @@ export function FloorTapeDrawer({
           justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         )}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,#141414_12%,transparent)] bg-white text-[#0f766e]">
+        <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white text-[#0f766e]">
           <Receipt className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
@@ -135,7 +135,7 @@ export function FloorTapeDrawer({
                 onClick={() => setOpen(false)}
                 className={cn(
                   HUB_BTN,
-                  "inline-flex h-9 items-center border border-[color-mix(in_srgb,#141414_12%,transparent)] px-3 text-[12px] font-medium text-[#141414]",
+                  "inline-flex h-9 items-center border border-[color-mix(in_srgb,#141414_7%,transparent)] px-3 text-[12px] font-medium text-[#141414]",
                 )}
               >
                 Done
@@ -162,7 +162,7 @@ export function FloorTapeDrawer({
                         "inline-flex h-8 shrink-0 items-center px-3 text-[12px] font-medium",
                         selected
                           ? "border border-[#0f766e] bg-white text-[#0f766e]"
-                          : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_12%,transparent)]",
+                          : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)]",
                       )}
                     >
                       {lane.title}

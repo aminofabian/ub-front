@@ -43,10 +43,10 @@ import {
   type RestockRow,
 } from "./_components/restock-row-item";
 
-/** Stop paging the catalog after this many rows so very large catalogs can't
- * hang the page. The notice tells the user if the cap was hit. */
-const MAX_SCAN_PAGES = 40;
-const PAGE_SIZE = 100;
+/** Cap pages of zero-stock results so a huge out-of-stock list can't hang the
+ * page. Server-side `zeroStock` already filters — we only page that subset. */
+const MAX_SCAN_PAGES = 20;
+const PAGE_SIZE = 200;
 
 function toNum(v: number | string | null | undefined): number | null {
   if (v == null || v === "") return null;
@@ -109,6 +109,11 @@ export default function InventoryRestockPage() {
   const [capped, setCapped] = useState(false);
 
   useEffect(() => {
+    if (!dashboardBranches?.length) return;
+    setBranches((prev) => (prev.length > 0 ? prev : dashboardBranches));
+  }, [dashboardBranches]);
+
+  useEffect(() => {
     if (!canRead) return;
     let cancelled = false;
     fetchBranches()
@@ -152,9 +157,12 @@ export default function InventoryRestockPage() {
       let page = 0;
       let hitCap = false;
       for (;;) {
+        // Ask the API for out-of-stock rows only. Scanning the full catalog
+        // page-by-page (client filter) was taking minutes on large tenants.
         const res = await fetchItemsPage(undefined, {
           branchId: bid,
           catalogScope: "SKUS_ONLY",
+          zeroStock: true,
           aisleUnset: headerAisleId === "__unset__" ? true : undefined,
           aisleId:
             headerAisleId && headerAisleId !== "__unset__"
@@ -384,8 +392,8 @@ export default function InventoryRestockPage() {
 
         {capped ? (
           <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] leading-snug text-muted-foreground">
-            Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for
-            more.
+            Showing the first {MAX_SCAN_PAGES * PAGE_SIZE} out-of-stock
+            products — search Stock levels for the rest.
           </p>
         ) : null}
 

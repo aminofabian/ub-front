@@ -107,10 +107,10 @@ export function ReceiveMpesaSetupCard({
           rail && "border-0 shadow-none",
           needsSetup &&
             !rail &&
-            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_32%,transparent)] border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
+            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
           needsSetup &&
             rail &&
-            "border-l-[3px] border-l-[var(--pos-primary,#0f766e)]",
+            "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",
         )}
       >
         <div

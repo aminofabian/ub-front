@@ -91,10 +91,11 @@ function LockedNotice() {
           <Lock className="size-5" aria-hidden />
         </div>
         <h1 className="mt-4 text-lg font-semibold tracking-tight">
-          Domains are restricted
+          Only an owner can change domains
         </h1>
         <p className={cn(dashboardHintClass(), "mt-2")}>
-          Ask an owner or admin with settings access to map custom hostnames.
+          Ask an owner or admin to buy a .ke address or connect one this shop
+          already owns.
         </p>
         <Button asChild className="mt-6" variant="outline">
           <Link href={APP_ROUTES.business}>Back to business</Link>
@@ -181,7 +182,7 @@ function DomainDetailDrawer({
               onClick={() => onVerify(row)}
             >
               <ShieldCheck className="size-3.5" aria-hidden />
-              Verify DNS
+              Check connection
             </Button>
           ) : null}
           <Button
@@ -192,7 +193,7 @@ function DomainDetailDrawer({
             onClick={() => onMakePrimary(row)}
           >
             <Star className="size-3.5" aria-hidden />
-            Make primary
+            Make main address
           </Button>
           <Button
             variant="outline"
@@ -202,7 +203,7 @@ function DomainDetailDrawer({
             onClick={() => onDelete(row)}
           >
             <Trash2 className="size-3.5" aria-hidden />
-            Remove
+            Remove from shop
           </Button>
         </div>
       }
@@ -222,14 +223,14 @@ function DomainDetailDrawer({
 
         {isPlatform ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Always free. Staff login stays here by default even after you add a
-            custom domain.
+            This free address always works. It stays the main address, including
+            where staff sign in, until you choose a different one.
           </p>
         ) : null}
         {isPurchase && !row.active ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            We&apos;re finishing DNS and SSL for this purchased domain — no
-            manual DNS changes needed.
+            You already paid for this name. We&apos;re registering it and
+            connecting your shop — you don&apos;t change any DNS.
           </p>
         ) : null}
         {row.lastError ? (
@@ -240,7 +241,9 @@ function DomainDetailDrawer({
 
         {needsVerify ? (
           <div className="space-y-3 rounded-none border border-border/60 bg-muted/20 p-4">
-            <p className="text-sm font-semibold">DNS checklist</p>
+            <p className="text-sm font-semibold">
+              Add these records where you bought the domain
+            </p>
             {note ? <p className={dashboardHintClass()}>{note}</p> : null}
             {records.length > 0 ? (
               <ul className="space-y-2">
@@ -270,7 +273,8 @@ function DomainDetailDrawer({
               </ul>
             ) : (
               <p className={dashboardHintClass()}>
-                No recommended records yet — try Verify after DNS propagates.
+                Records aren&apos;t ready yet. After you add them at the company
+                you bought the domain from, choose Check connection.
               </p>
             )}
           </div>
@@ -302,8 +306,8 @@ function ConnectDomainDrawer({
       open={open}
       onOpenChange={onOpenChange}
       contextLabel="Connect"
-      title="Connect a domain you own"
-      description="Point DNS at Vercel, then verify. Your free platform URL stays the default login host."
+      title="Connect a domain you already own"
+      description="Enter an address you already paid for somewhere else. We'll show the DNS records to add at that company. If you don't own a domain yet, buy a .ke name instead."
       icon={<Link2 className="size-4" aria-hidden />}
       appearance="sharp"
       footer={
@@ -327,14 +331,18 @@ function ConnectDomainDrawer({
             ) : (
               <Plus className="size-3.5" aria-hidden />
             )}
-            Connect domain
+            Connect this domain
           </Button>
         </div>
       }
     >
-      <FormDrawerFields legend="Hostname" hint="Example: shop.acme.co.ke">
+      <FormDrawerFields
+        legend="Domain you already own"
+        hint="The address you paid for, without https://. Example: shop.acme.co.ke"
+      >
         <input
           className={dashboardInputClass()}
+          aria-label="Domain you already own"
           placeholder="shop.acme.co.ke"
           autoComplete="off"
           spellCheck={false}
@@ -402,8 +410,8 @@ export default function DomainsPage() {
       setTab("manage");
       toast.success(
         created.active
-          ? `Added ${created.domain}.`
-          : `Added ${created.domain}. Configure DNS, then Verify.`,
+          ? `${created.domain} is connected. Customers can open your shop there.`
+          : `Added ${created.domain}. Add the DNS records, then choose Check connection.`,
       );
       setDetailRow(created);
       setDetailOpen(true);
@@ -419,7 +427,9 @@ export default function DomainsPage() {
     try {
       await setMyPrimaryDomain(row.id);
       await reload();
-      toast.success(`Primary is now ${row.domain}.`);
+      toast.success(
+        `${row.domain} is now the main address, including where staff sign in.`,
+      );
     } catch (e) {
       toast.error(messageFor(e, "Could not promote domain."));
     } finally {
@@ -435,10 +445,13 @@ export default function DomainsPage() {
         previous.map((r) => (r.id === updated.id ? updated : r)),
       );
       setDetailRow(updated);
-      if (updated.active) toast.success(`${updated.domain} is live.`);
+      if (updated.active)
+        toast.success(
+          `${updated.domain} is live. Customers can open your shop there.`,
+        );
       else
         toast.error(
-          `${updated.domain} is not verified yet. Check DNS and try again.`,
+          `${updated.domain} isn't live yet. Check the DNS records, then try Check connection again.`,
         );
     } catch (e) {
       toast.error(messageFor(e, "Could not verify domain."));
@@ -457,7 +470,7 @@ export default function DomainsPage() {
       setRows((previous) => previous.filter((r) => r.id !== deleteRow.id));
       setDetailOpen(false);
       setDetailRow(null);
-      toast.success(`Removed ${deleteRow.domain}.`);
+      toast.success(`Removed ${deleteRow.domain} from this shop.`);
       setDeleteRow(null);
     } catch (e) {
       toast.error(messageFor(e, "Could not delete domain."));
@@ -503,7 +516,7 @@ export default function DomainsPage() {
           icon={Globe}
           eyebrow="Connectivity"
           title="Domains"
-          description="Buy a Kenyan domain, manage mapped hostnames, or connect one you already own — customers shop on custom domains; staff login stays on your free platform URL."
+          description="KES 2,000 to buy a .ke address, connect one you own, or hire a developer."
         />
 
         <DomainsTheatre
@@ -566,10 +579,10 @@ export default function DomainsPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove {deleteRow?.domain}?</DialogTitle>
+            <DialogTitle>Remove {deleteRow?.domain} from this shop?</DialogTitle>
             <DialogDescription>
-              This disconnects the hostname from your shop. You can reconnect it
-              later if needed.
+              Customers will no longer open your shop at this address. This does
+              not cancel the domain registration. You can connect it again later.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -593,7 +606,7 @@ export default function DomainsPage() {
               ) : (
                 <Trash2 className="size-3.5" aria-hidden />
               )}
-              Remove
+              Remove from shop
             </Button>
           </DialogFooter>
         </DialogContent>

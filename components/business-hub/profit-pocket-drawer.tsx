@@ -266,7 +266,7 @@ export function ProfitPocketDrawer({
           <p className="text-sm text-rose-700">{error}</p>
         ) : surplus ? (
           <>
-            <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-xs sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-xs sm:grid-cols-4">
               {(
                 [
                   ["Gross profit", surplus.grossProfit],

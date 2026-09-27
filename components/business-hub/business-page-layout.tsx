@@ -123,7 +123,7 @@ export function BusinessPageLayout({
             "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
             "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
             // Match shell gutters on phone — avoid -mx bleed that fights the nav.
-            "mx-0 rounded-none sm:rounded-xl sm:border",
+            "mx-0 rounded-none sm:border",
           )}
         >
           {/* Tablet up: the hub's own pages. Phones use the identity row's menu. */}

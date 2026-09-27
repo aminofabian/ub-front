@@ -103,7 +103,7 @@ export function WebOrdersRail({
             VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
             {orders.map((order, i) => {
               const newest = i === 0 && justUpdated;
               const fulfillment =

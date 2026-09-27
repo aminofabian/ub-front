@@ -323,6 +323,10 @@ export type PublicOrderTracking = {
   receiptVerified?: boolean;
   /** Phase 5: the order's contact phone — set only on the token path. */
   customerPhone?: string | null;
+  /** Pickup Mtaani carrier receipt number, when the order uses carrier delivery. */
+  deliveryReceiptNo?: string | null;
+  /** Last human carrier track description. */
+  deliveryStatus?: string | null;
 };
 
 /** Guest order tracking by short code + phone last-4 (scope §15). */

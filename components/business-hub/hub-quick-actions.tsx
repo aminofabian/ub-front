@@ -33,12 +33,12 @@ export function HubQuickActions({
               href={link.href}
               title={link.hint}
               className={cn(
-                "group flex min-h-[3.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-[#FBFCFB] px-1.5 py-2 text-center transition-colors sm:min-h-[4.25rem]",
+                "group flex min-h-[3.75rem] flex-col items-center justify-center gap-1.5 rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-[#FBFCFB] px-1.5 py-2 text-center transition-colors sm:min-h-[4.25rem]",
                 "hover:border-[#0f766e]/30 hover:bg-[#F1F9F8]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
               )}
             >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-[#E6F2F0] text-[#0f766e]">
+              <span className="flex size-8 items-center justify-center rounded-none bg-[#E6F2F0] text-[#0f766e]">
                 <Icon className="size-4" aria-hidden />
               </span>
               <span className="w-full truncate text-[11px] font-medium leading-tight text-[#141414]">

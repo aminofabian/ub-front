@@ -93,7 +93,7 @@ export function CashierTillDrawer({
           "animate-in fade-in slide-in-from-bottom duration-300 sm:slide-in-from-right",
         )}
       >
-        <header className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <header className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold tracking-[-0.02em] text-[#0f766e]">
@@ -112,7 +112,7 @@ export function CashierTillDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-9 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[#666666] transition-colors hover:border-[#0f766e] hover:text-[#0f766e]"
+              className="inline-flex size-9 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-[#666666] transition-colors hover:border-[#0f766e] hover:text-[#0f766e]"
               aria-label="Close"
             >
               <X className="size-4" aria-hidden />
@@ -143,7 +143,7 @@ export function CashierTillDrawer({
                     "relative flex min-w-[5.5rem] max-w-[9rem] shrink-0 flex-col items-center gap-1 border bg-white px-3 py-2 transition-colors",
                     active
                       ? "border-[#0f766e] text-[#141414]"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[#666666] hover:border-[#0f766e]",
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-[#666666] hover:border-[#0f766e]",
                   )}
                 >
                   <span
@@ -159,7 +159,7 @@ export function CashierTillDrawer({
                       "flex size-7 items-center justify-center text-[10px] font-semibold",
                       active
                         ? "border border-[#0f766e] bg-[#ffffff] text-[#0f766e]"
-                        : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#8A8A8A]",
+                        : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#8A8A8A]",
                     )}
                   >
                     {initials(name)}

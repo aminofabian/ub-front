@@ -77,7 +77,7 @@ export function BusinessHubSkeleton() {
         </div>
 
         {/* Desk-only lane rail */}
-        <div className="hidden max-h-[min(40rem,72dvh)] space-y-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 shadow-none xl:block">
+        <div className="hidden max-h-[min(40rem,72dvh)] space-y-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white p-3 shadow-none xl:block">
           <div className={cn(BLOCK, "h-8")} />
           {Array.from({ length: 3 }).map((_, i) => (
             <div
