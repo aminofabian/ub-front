@@ -110,28 +110,16 @@ async function performRefresh(): Promise<void> {
       getSessionTokens()?.accessToken,
     );
     if (recovered) {
-      // Restore can succeed from a still-valid access cookie even when the
-      // refresh token is dead. Keep counting rejections so a dead session
-      // reaches the give-up below instead of re-scheduling a refresh that
-      // fails again every few seconds (the "session keeps expiring" loop).
-      const giveUp =
-        outcome.definitive === true ||
-        consecutiveRefreshRejections >= MAX_REFRESH_REJECT_BEFORE_LOGOUT;
-      if (giveUp) {
-        if (isPosSoftAuthActive()) {
-          // Stay on the till; shell shows an explicit reauth dialog.
-          notifyPosSessionExpired(
-            "Please sign in again to keep selling — your cart is saved on this device.",
-          );
-          return;
-        }
-        beginSessionReconnect(
-          "background refresh rejected after restore-recovery",
-          { definitive: true },
-        );
-        return;
-      }
-      scheduleNextRefresh();
+      // /me accepted the access cookie, so the owner is still signed in.
+      // A rejected refresh here used to open the session-ended screen on the
+      // 3-minute renewal even though the dashboard was fine. Retry later
+      // instead of signing them out. Idle expiry fails /me, so it does not
+      // take this branch.
+      consecutiveRefreshRejections = 0;
+      clearRefreshTimer();
+      refreshTimer = setTimeout(() => {
+        void performRefresh();
+      }, 60_000);
       return;
     }
     // Idle (and other definitive) rejections: skip the 3× retry buffer.
