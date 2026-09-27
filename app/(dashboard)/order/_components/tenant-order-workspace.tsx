@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
+import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { useDashboard } from "@/components/dashboard-provider";
 import { SupplierReceiveLinkModal } from "@/components/supplier-receive/supplier-receive-link-modal";
 import {
@@ -47,6 +48,7 @@ import {
   postPathAPurchaseOrderLine,
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
+  dispatchTillPrint,
   type ItemLinkPackOfferRecord,
   type PathAPurchaseOrderDetailRecord,
   type SupplierContactRecord,
@@ -324,7 +326,8 @@ export function TenantOrderWorkspace({
   /** When set, Confirm opens this callback instead of navigating to receive. */
   onOpenConfirm?: () => void;
 } = {}) {
-  const { branchId, me, business, itemTypes, itemTypeId } = useDashboard();
+  const { branchId, me, business, itemTypes, itemTypeId, branches } =
+    useDashboard();
   const { effective: orderTemplate, setTemplate: setOrderTemplate } =
     useOrderTemplate();
   const brandTheme = useMemo(
@@ -366,6 +369,7 @@ export function TenantOrderWorkspace({
   >({});
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
+  const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
   const [whatsapping, setWhatsapping] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositSeed, setDepositSeed] = useState<{
@@ -1136,11 +1140,63 @@ export function TenantOrderWorkspace({
   const placeOrder = async (alsoWhatsApp = false) => {
     setPlacing(true);
     if (alsoWhatsApp) setWhatsapping(true);
+    const printTo = printCashierIds[0]?.trim() || "";
+    const slipLines = cartLines.map((line) => {
+      const total = lineTotal(
+        line.link,
+        line.qty,
+        line.pack,
+        line.priceOverride,
+        line.totalOverride,
+      );
+      const packNote =
+        line.pack && line.pack.size > 1
+          ? ` x${formatPackSize(line.pack.size)}`
+          : "";
+      return {
+        name: `${line.link.itemName || "Item"}${packNote}`,
+        qty: line.qty,
+        unitCost: line.qty > 0 ? total / line.qty : 0,
+        lineTotal: total,
+      };
+    });
+    if (roundingActive && slipLines.length > 0) {
+      const sum = slipLines.reduce((acc, line) => acc + line.lineTotal, 0);
+      const diff = Math.round((effectiveTotal - sum) * 100) / 100;
+      const last = slipLines[slipLines.length - 1];
+      last.lineTotal = Math.round((last.lineTotal + diff) * 100) / 100;
+      if (last.qty > 0) last.unitCost = last.lineTotal / last.qty;
+    }
     try {
       const placedTotal = effectiveTotal;
       const placedSupplierId = supplierId;
       const poNumber = await savePurchaseOrder();
       if (!poNumber) return;
+      if (printTo && slipLines.length > 0) {
+        const branchName =
+          branches.find((branch) => branch.id === branchId)?.name ?? "";
+        try {
+          await dispatchTillPrint({
+            kind: "order",
+            branchId,
+            targetUserIds: [printTo],
+            slip: {
+              reference: poNumber,
+              supplierName: activeSupplier?.name || "Supplier",
+              businessName: business?.name || "",
+              branchName,
+              placedByName: me?.name || "",
+              currency: ORDER_CURRENCY,
+              lines: slipLines,
+            },
+          });
+          toast.message(`${poNumber} will print on the selected till`);
+        } catch {
+          toast.message(
+            `${poNumber} was saved. The selected till did not get the print.`,
+          );
+        }
+      }
       if (alsoWhatsApp) {
         await openWhatsAppOrder({ savedPoNumber: poNumber });
       } else if (activeSupplier?.marketplaceSupplierId?.trim()) {
@@ -1956,6 +2012,13 @@ export function TenantOrderWorkspace({
               </button>
             </div>
           ) : null}
+
+          <CashierPrintPicker
+            mode="single"
+            branchId={branchId}
+            storageKey={`palmart:order-print-cashier:${branchId || "none"}`}
+            onChange={setPrintCashierIds}
+          />
 
           <button
             type="button"

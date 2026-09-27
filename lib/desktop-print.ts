@@ -17,6 +17,11 @@ import {
   type SupplyInvoiceReceiptSnapshot,
 } from "@/lib/supply-invoice-receipt";
 import {
+  buildTillSlipEscPos,
+  type TillSlip,
+  type TillSlipKind,
+} from "@/lib/till-slip";
+import {
   getLocalTillCupsName,
   getLocalTillNetworkTarget,
   isTillPrintBridgeUp,
@@ -434,6 +439,48 @@ export async function printSupplyInvoiceReceipt(
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Could not print supply invoice.";
+    toast.error(msg, { duration: 10_000 });
+    return false;
+  }
+}
+
+/**
+ * Print a purchase order or goods receipt aimed at this till.
+ */
+export async function printTillSlip(
+  slip: TillSlip,
+  kind: TillSlipKind,
+  widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
+): Promise<boolean> {
+  const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim() || "";
+  const host = resolved?.host?.trim() || "";
+  const label = kind === "receipt" ? "Goods receipt" : "Purchase order";
+
+  if (!cupsName && !host) {
+    toast.message(
+      `${label} received, but no receipt printer is configured on this till.`,
+      { duration: 9_000 },
+    );
+    return false;
+  }
+
+  try {
+    const raw = buildTillSlipEscPos(slip, kind, widthMm);
+    const escpos = new Blob([new Uint8Array(raw)], {
+      type: "application/octet-stream",
+    });
+    await printEscPosViaTillBridge(escpos, {
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
+    });
+    toast.success(`${label} ${slip.reference} printed.`);
+    return true;
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : `Could not print ${label.toLowerCase()}.`;
     toast.error(msg, { duration: 10_000 });
     return false;
   }

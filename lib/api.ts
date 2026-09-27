@@ -11169,6 +11169,82 @@ export async function fetchPathBSessions(opts?: {
 }
 
 const PATH_A_PURCHASE_ORDERS = "/api/v1/purchasing/path-a/purchase-orders";
+const TILL_PRINTS = "/api/v1/purchasing/till-prints";
+
+export type TillPrintCashier = {
+  id: string;
+  name: string;
+};
+
+export type TillPrintSlipPayload = {
+  reference: string;
+  supplierName?: string | null;
+  businessName?: string | null;
+  branchName?: string | null;
+  placedByName?: string | null;
+  currency?: string | null;
+  lines: {
+    name: string;
+    qty: number;
+    unitCost: number;
+    lineTotal: number;
+  }[];
+};
+
+export type TillPrintPendingJob = {
+  id: string;
+  kind: "order" | "receipt" | string;
+  reference: string;
+  createdAt?: string | null;
+};
+
+export type TillPrintClaimedJob = {
+  id: string;
+  kind: "order" | "receipt" | string;
+  slip: TillPrintSlipPayload;
+};
+
+export async function fetchTillCashiers(
+  branchId?: string | null,
+): Promise<TillPrintCashier[]> {
+  const params = new URLSearchParams();
+  const bid = branchId?.trim();
+  if (bid) params.set("branchId", bid);
+  const qs = params.toString();
+  return request<TillPrintCashier[]>(`${TILL_PRINTS}/cashiers${qs ? `?${qs}` : ""}`, {
+    toast: false,
+  });
+}
+
+export async function dispatchTillPrint(body: {
+  kind: "order" | "receipt";
+  branchId?: string | null;
+  targetUserIds: string[];
+  slip: TillPrintSlipPayload;
+}): Promise<{ jobIds: string[] }> {
+  return request<{ jobIds: string[] }>(TILL_PRINTS, {
+    method: "POST",
+    body,
+    toast: false,
+  });
+}
+
+export async function fetchPendingTillPrints(): Promise<TillPrintPendingJob[]> {
+  return request<TillPrintPendingJob[]>(`${TILL_PRINTS}/pending`, { toast: false });
+}
+
+export async function claimTillPrint(
+  jobId: string,
+): Promise<TillPrintClaimedJob | null> {
+  try {
+    return await request<TillPrintClaimedJob>(
+      `${TILL_PRINTS}/${encodeURIComponent(jobId)}/claim`,
+      { method: "POST", toast: false },
+    );
+  } catch {
+    return null;
+  }
+}
 
 export async function fetchPathAPurchaseOrders(opts?: {
   supplierId?: string;

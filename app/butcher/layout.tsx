@@ -7,6 +7,7 @@ import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-ga
 import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
 import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
 import { ButcherShell } from "@/components/butcher/butcher-shell";
+import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { ButcheryOnlyRedirects } from "@/components/butcher/butchery-only-redirects";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -80,6 +81,7 @@ function ButcherLayoutInner({ children }: ButcherLayoutProps) {
     <DashboardProvider>
       <PosTillLockProvider>
         <RealtimeProvider>
+          <CashierTillPrintListener />
           <ButcherRoleRedirects />
           <ButcheryOnlyRedirects />
           <ButcherShell>{children}</ButcherShell>

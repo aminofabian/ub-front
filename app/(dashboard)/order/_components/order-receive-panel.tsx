@@ -27,6 +27,7 @@ import {
   type MarketplaceOrderLine,
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { useDashboard } from "@/components/dashboard-provider";
+import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchItemById,
@@ -44,6 +45,7 @@ import {
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   postPathAPurchaseOrderLine,
+  dispatchTillPrint,
   type PathAPurchaseOrderDetailRecord,
   type PathAPurchaseOrderListRowRecord,
   type SupplierContactRecord,
@@ -206,7 +208,7 @@ export function OrderReceivePanel({
   floorMode?: boolean;
 } = {}) {
   const router = useRouter();
-  const { branchId, business, me } = useDashboard();
+  const { branchId, business, me, branches } = useDashboard();
   const isStockFloor =
     floorMode || me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const twoStepDelivery = Boolean(
@@ -245,6 +247,7 @@ export function OrderReceivePanel({
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
   const [markingArrived, setMarkingArrived] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
@@ -1093,15 +1096,52 @@ export function OrderReceivePanel({
         lineTotal: Number((l.qtyReceived * l.unitCost).toFixed(2)),
       }));
 
+      const invoiceNumber = `${po.poNumber}-R${Date.now().toString().slice(-4)}`;
       await postPathAGrnSupplierInvoice(
         grn.goodsReceiptId,
         {
-          invoiceNumber: `${po.poNumber}-R${Date.now().toString().slice(-4)}`,
+          invoiceNumber,
           invoiceDate: todayIsoDate(),
           lines: invoiceLines,
         },
         crypto.randomUUID(),
       );
+
+      if (printCashierIds.length > 0) {
+        const supplierName =
+          suppliers.find((supplier) => supplier.id === po.supplierId)?.name ||
+          "Supplier";
+        const branchName =
+          branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
+        try {
+          await dispatchTillPrint({
+            kind: "receipt",
+            branchId: receiveBranch,
+            targetUserIds: printCashierIds.slice(0, 8),
+            slip: {
+              reference: invoiceNumber,
+              supplierName,
+              businessName: business?.name || "",
+              branchName,
+              placedByName: me?.name || "",
+              currency: ORDER_CURRENCY,
+              lines: lines.map((line) => ({
+                name: itemMeta[line.itemId]?.name || "Item",
+                qty: line.qtyReceived,
+                unitCost: line.unitCost,
+                lineTotal: Number((line.qtyReceived * line.unitCost).toFixed(2)),
+              })),
+            },
+          });
+          toast.message(
+            printCashierIds.length === 1
+              ? "Receipt will print on the selected till"
+              : `Receipt will print on ${printCashierIds.length} tills`,
+          );
+        } catch {
+          toast.message("Stock updated. The selected tills did not get the receipt.");
+        }
+      }
 
       toast.success(
         embedded || isStockFloor
@@ -1937,6 +1977,12 @@ export function OrderReceivePanel({
                     {formatMoney(selectedTotal, ORDER_CURRENCY)}
                   </p>
                 </div>
+                <CashierPrintPicker
+                  mode="multiple"
+                  branchId={detail?.branchId || branchId}
+                  storageKey={`palmart:receive-print-cashiers:${detail?.branchId || branchId || "none"}`}
+                  onChange={setPrintCashierIds}
+                />
                 {twoStepDelivery ? (
                   <>
                     {detail &&

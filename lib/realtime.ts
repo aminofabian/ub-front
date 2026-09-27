@@ -156,6 +156,7 @@ export interface RealtimeClientOptions {
   onSupportConversation?: FrameHandler;
   onSupportPresence?: FrameHandler;
   onSetupProgressUpdated?: FrameHandler;
+  onTillPrint?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -203,6 +204,7 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "support.conversation": "onSupportConversation",
   "support.presence": "onSupportPresence",
   "setup_progress.updated": "onSetupProgressUpdated",
+  "till.print": "onTillPrint",
 };
 
 // ── WS URL Resolution ──
@@ -405,6 +407,7 @@ export type RealtimeListenerOptions = Pick<
   | "onSupportConversation"
   | "onSupportPresence"
   | "onSetupProgressUpdated"
+  | "onTillPrint"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -441,6 +444,7 @@ const LISTENER_HANDLER_KEYS = [
   "onSupportConversation",
   "onSupportPresence",
   "onSetupProgressUpdated",
+  "onTillPrint",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];
