@@ -4,24 +4,52 @@ import { useEffect, useRef } from "react";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getSessionTokens } from "@/lib/auth";
-import { fetchPendingTillPrints } from "@/lib/api";
+import { fetchPendingTillPrints, type BranchRecord } from "@/lib/api";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import {
   announceTillSlip,
   deliverTillSlip,
+  notePendingTillPrintError,
   slipFromJson,
 } from "@/lib/till-remote-print";
 
+function payloadOf(data: Record<string, unknown>): Record<string, unknown> | null {
+  const nested = data.payload;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  return null;
+}
+
 function readField(data: Record<string, unknown>, key: string): string {
-  const nested =
-    data.payload && typeof data.payload === "object" && !Array.isArray(data.payload)
-      ? (data.payload as Record<string, unknown>)
-      : null;
+  const nested = payloadOf(data);
   const fromNested = nested?.[key];
   if (typeof fromNested === "string" && fromNested.trim()) return fromNested.trim();
   const direct = data[key];
   if (typeof direct === "string" && direct.trim()) return direct.trim();
   return "";
+}
+
+function readSlip(data: Record<string, unknown>) {
+  const nested = payloadOf(data);
+  return slipFromJson(nested?.slipJson ?? nested?.slip ?? data.slipJson ?? data.slip);
+}
+
+function printerForTill(
+  branches: BranchRecord[] | undefined,
+  branchId: string | undefined,
+  assignedBranchId: string | undefined,
+): LocalReceiptPrinterTarget {
+  const preferred = branchId?.trim() || assignedBranchId?.trim() || "";
+  const list = branches ?? [];
+  const branch =
+    list.find((row) => row.id === preferred) ??
+    (list.length === 1 ? list[0] : undefined);
+  return {
+    cupsName: branch?.receipt?.printerCupsName ?? null,
+    branchId: branch?.id || preferred || null,
+  };
 }
 
 function notificationType(data: Record<string, unknown>): string {
@@ -30,15 +58,18 @@ function notificationType(data: Record<string, unknown>): string {
 
 /**
  * Remote slips from Order / Receive.
- * Always chimes on this till, then prints when the local printer helper is up.
+ * Chimes on this till, then prints on the same receipt printer Sell uses.
  * Polling covers a till whose live socket is on another server.
  */
 export function CashierTillPrintListener() {
   const dash = useOptionalDashboard();
   const userId = dash?.me?.id?.trim() ?? "";
-  const branchId = dash?.branchId;
-  const branchRef = useRef(branchId);
-  branchRef.current = branchId;
+  const printerRef = useRef<LocalReceiptPrinterTarget | null>(null);
+  printerRef.current = printerForTill(
+    dash?.branches,
+    dash?.branchId,
+    dash?.me?.branchId,
+  );
 
   useEffect(() => {
     if (!userId || !getSessionTokens()) return;
@@ -50,10 +81,10 @@ export function CashierTillPrintListener() {
         const rows = await fetchPendingTillPrints();
         if (cancelled) return;
         for (const row of rows) {
-          void deliverTillSlip(row, branchRef.current);
+          void deliverTillSlip(row, printerRef.current);
         }
       } catch {
-        // next pass retries
+        notePendingTillPrintError();
       }
     };
 
@@ -66,13 +97,13 @@ export function CashierTillPrintListener() {
       const jobId = readField(data, "jobId");
       const kind = readField(data, "kind") || "order";
       const reference = readField(data, "reference");
-      const slip = slipFromJson(readField(data, "slipJson"));
+      const slip = readSlip(data);
       if (jobId) {
         announceTillSlip({ id: jobId, kind, reference });
         if (slip) {
           void deliverTillSlip(
             { id: jobId, kind, reference, slip },
-            branchRef.current,
+            printerRef.current,
           );
           return;
         }

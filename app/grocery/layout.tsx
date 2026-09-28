@@ -9,6 +9,7 @@ import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
+import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, type MeResponse } from "@/lib/api";
@@ -72,6 +73,7 @@ function GroceryLayoutInner({ children }: GroceryLayoutProps) {
       <DashboardProvider>
         <PosTillLockProvider>
           <RealtimeProvider>
+            <CashierTillPrintListener />
             {children}
             <DashboardToaster />
           </RealtimeProvider>

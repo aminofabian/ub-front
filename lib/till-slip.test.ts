@@ -29,4 +29,24 @@ describe("till slip", () => {
     expect(text).toContain("GOODS RECEIPT");
     expect(text).toContain("Received into stock");
   });
+
+  it("prints when the API sends costs as strings", () => {
+    const text = textOf(
+      buildTillSlipEscPos(
+        {
+          ...slip,
+          lines: [
+            {
+              name: "Tomatoes",
+              qty: "3" as unknown as number,
+              unitCost: "80" as unknown as number,
+              lineTotal: "240" as unknown as number,
+            },
+          ],
+        },
+        "order",
+      ),
+    );
+    expect(text).toContain("3 x 80.00 = 240.00");
+  });
 });

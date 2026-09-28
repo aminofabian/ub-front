@@ -4,12 +4,17 @@ import { toast } from "sonner";
 
 import { claimTillPrint, type TillPrintPendingJob, type TillPrintSlipPayload } from "@/lib/api";
 import { playCashierChime } from "@/lib/cashier-chime";
-import { DESKTOP_THERMAL_WIDTH_MM, printTillSlip } from "@/lib/desktop-print";
-import { isTillPrintBridgeUp } from "@/lib/till-print-bridge";
+import {
+  DESKTOP_THERMAL_WIDTH_MM,
+  printTillSlip,
+  type LocalReceiptPrinterTarget,
+} from "@/lib/desktop-print";
 import type { TillSlipKind } from "@/lib/till-slip";
 
 const inflight = new Set<string>();
 const announced = new Set<string>();
+const warned = new Set<string>();
+let pendingErrorTold = false;
 
 export type TillSendStatus = {
   userId: string;
@@ -59,44 +64,102 @@ export function announceTillSlip(job: { id: string; kind: string; reference?: st
   });
 }
 
+function asNumber(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Accept the slip whether the API sent numbers or numeric strings. */
+export function normalizeTillSlip(raw: unknown): TillPrintSlipPayload | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  if (!Array.isArray(row.lines) || row.lines.length === 0) return null;
+  const lines = row.lines.flatMap((line) => {
+    if (!line || typeof line !== "object") return [];
+    const item = line as Record<string, unknown>;
+    const name = typeof item.name === "string" ? item.name.trim() : "";
+    if (!name) return [];
+    return [
+      {
+        name,
+        qty: asNumber(item.qty),
+        unitCost: asNumber(item.unitCost),
+        lineTotal: asNumber(item.lineTotal),
+      },
+    ];
+  });
+  if (lines.length === 0) return null;
+  const text = (key: string) => (typeof row[key] === "string" ? (row[key] as string) : null);
+  return {
+    reference: text("reference")?.trim() || "",
+    supplierName: text("supplierName"),
+    businessName: text("businessName"),
+    branchName: text("branchName"),
+    placedByName: text("placedByName"),
+    currency: text("currency"),
+    lines,
+  };
+}
+
+export function slipFromJson(raw: unknown): TillPrintSlipPayload | null {
+  if (typeof raw === "string") {
+    if (!raw.trim()) return null;
+    try {
+      return normalizeTillSlip(JSON.parse(raw) as unknown);
+    } catch {
+      return null;
+    }
+  }
+  return normalizeTillSlip(raw);
+}
+
+/** One toast when the till cannot load its queue. Polling keeps trying. */
+export function notePendingTillPrintError(): void {
+  if (pendingErrorTold) return;
+  pendingErrorTold = true;
+  toast.error("This till could not load the order slip. It will keep trying.", {
+    duration: 12_000,
+  });
+}
+
 /**
- * Notify first, then print. The job stays queued until paper actually comes out.
+ * Chime, then print on this till's receipt printer.
+ * The job stays queued until the printer accepts the bytes.
  */
 export async function deliverTillSlip(
   job: TillPrintPendingJob,
-  branchId?: string | null,
+  printer?: LocalReceiptPrinterTarget | null,
 ): Promise<void> {
   const id = job.id?.trim();
   if (!id || inflight.has(id)) return;
-  announceTillSlip(job);
-  if (!job.slip?.lines?.length) return;
+  const slip = normalizeTillSlip(job.slip);
+  announceTillSlip({
+    id,
+    kind: job.kind,
+    reference: job.reference || slip?.reference,
+  });
+  if (!slip) return;
   inflight.add(id);
+  const alreadyWarned = warned.has(id);
   try {
-    const bridgeUp = await isTillPrintBridgeUp();
-    if (!bridgeUp) return;
     const kind: TillSlipKind = job.kind === "receipt" ? "receipt" : "order";
     const printed = await printTillSlip(
-      job.slip,
+      slip,
       kind,
       DESKTOP_THERMAL_WIDTH_MM,
-      { branchId: branchId || null },
-      { quiet: true },
+      printer,
+      { quiet: alreadyWarned },
     );
-    if (!printed) return;
+    if (!printed) {
+      warned.add(id);
+      return;
+    }
+    warned.delete(id);
     await claimTillPrint(id);
-    toast.success(`${slipLabel(kind, job.reference || job.slip.reference || "")} printed.`);
+    if (alreadyWarned) {
+      toast.success(`${slipLabel(kind, job.reference || slip.reference)} printed.`);
+    }
   } finally {
     inflight.delete(id);
-  }
-}
-
-export function slipFromJson(raw: string): TillPrintSlipPayload | null {
-  if (!raw.trim()) return null;
-  try {
-    const parsed = JSON.parse(raw) as TillPrintSlipPayload;
-    if (!parsed || !Array.isArray(parsed.lines) || parsed.lines.length === 0) return null;
-    return parsed;
-  } catch {
-    return null;
   }
 }

@@ -70,6 +70,11 @@ function wrap(text: string, width: number): string[] {
   return out;
 }
 
+function asNumber(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function formatQty(n: number): string {
   if (!Number.isFinite(n)) return "0";
   const rounded = Math.round(n * 1000) / 1000;
@@ -105,9 +110,11 @@ export function buildTillSlipEscPos(slip: TillSlip, kind: TillSlipKind, widthMm 
   for (const line of slip.lines) {
     const name = strip(line.name) || "Item";
     for (const row of wrap(name, w)) out.push(row);
-    const lineTotal = Number.isFinite(line.lineTotal) ? line.lineTotal : 0;
+    const unitCost = asNumber(line.unitCost);
+    const lineTotal = asNumber(line.lineTotal);
+    const qty = asNumber(line.qty);
     grand += lineTotal;
-    const detail = `${formatQty(line.qty)} x ${line.unitCost.toFixed(2)} = ${lineTotal.toFixed(2)}`;
+    const detail = `${formatQty(qty)} x ${unitCost.toFixed(2)} = ${lineTotal.toFixed(2)}`;
     out.push(padLeft(strip(detail), w));
   }
 

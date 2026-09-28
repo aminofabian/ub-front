@@ -22,6 +22,7 @@ import {
   type TillSlipKind,
 } from "@/lib/till-slip";
 import {
+  fetchTillCupsPrinters,
   getLocalTillCupsName,
   getLocalTillNetworkTarget,
   isTillPrintBridgeUp,
@@ -456,29 +457,49 @@ export async function printTillSlip(
 ): Promise<boolean> {
   const quiet = Boolean(opts?.quiet);
   const resolved = await resolvePrinterTarget(printer);
-  const cupsName = resolved?.cupsName?.trim() || "";
+  let cupsName = resolved?.cupsName?.trim() || "";
   const host = resolved?.host?.trim() || "";
   const label = kind === "receipt" ? "Goods receipt" : "Purchase order";
+
+  // Same machine as Sell: if the branch name is missing, use the printer
+  // the local helper already detected.
+  if (!cupsName && !host) {
+    try {
+      const detected = await fetchTillCupsPrinters();
+      cupsName =
+        detected.suggested?.trim() || detected.defaultName?.trim() || "";
+    } catch {
+      if (!quiet) {
+        toast.error(
+          `${label} is on this till, but the printer helper is not running. ${TILL_BRIDGE_START_HINT}`,
+          { duration: 14_000 },
+        );
+      }
+      return false;
+    }
+  }
 
   if (!cupsName && !host) {
     if (!quiet) {
       toast.message(
-        `${label} received, but no receipt printer is configured on this till.`,
-        { duration: 9_000 },
+        `${label} is on this till, but no receipt printer is set. Use Detect printers on Sell.`,
+        { duration: 12_000 },
       );
     }
     return false;
   }
 
   try {
-    const raw = buildTillSlipEscPos(slip, kind, widthMm);
-    const escpos = new Blob([new Uint8Array(raw)], {
-      type: "application/octet-stream",
-    });
-    await printEscPosViaTillBridge(escpos, {
-      name: cupsName || null,
-      host: host || null,
-      port: resolved?.port ?? 9100,
+    await withOneRetry(async () => {
+      const raw = buildTillSlipEscPos(slip, kind, widthMm);
+      const escpos = new Blob([new Uint8Array(raw)], {
+        type: "application/octet-stream",
+      });
+      await printEscPosViaTillBridge(escpos, {
+        name: cupsName || null,
+        host: host || null,
+        port: resolved?.port ?? 9100,
+      });
     });
     if (!quiet) toast.success(`${label} ${slip.reference} printed.`);
     return true;
