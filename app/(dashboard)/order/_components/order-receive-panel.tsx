@@ -12,6 +12,7 @@ import {
   Package,
   PackageCheck,
   Plus,
+  Printer,
   Search,
   Trash2,
   ArrowLeft,
@@ -248,6 +249,7 @@ export function OrderReceivePanel({
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
   const [markingArrived, setMarkingArrived] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
@@ -458,6 +460,76 @@ export function OrderReceivePanel({
     }
     return sum;
   }, [openLines, selectedLines, qtyByLine]);
+
+  const buildReceiptSlipLines = useCallback(() => {
+    if (!detail) return [];
+    return openLines
+      .filter((l) => selectedLines[l.id])
+      .map((l) => {
+        const already = roundQty(toNum(l.qtyReceived));
+        const ordered = roundQty(toNum(l.qtyOrdered));
+        const remaining = roundQty(Math.max(0, ordered - already));
+        const qty = roundQty(Math.max(0, qtyByLine[l.id] ?? remaining));
+        const unitCost = priceByLine[l.id] ?? toNum(l.unitEstimatedCost);
+        return {
+          name: itemMeta[l.itemId]?.name || "Item",
+          qty,
+          unitCost,
+          lineTotal: Number((qty * unitCost).toFixed(2)),
+        };
+      })
+      .filter((l) => l.qty > 0);
+  }, [detail, openLines, selectedLines, qtyByLine, priceByLine, itemMeta]);
+
+  const printReceiptNow = async () => {
+    if (!detail) {
+      toast.error("Open an order first");
+      return;
+    }
+    const targets = printCashierIds.slice(0, 8);
+    if (targets.length === 0) {
+      toast.error("Tick at least one cashier to print to");
+      return;
+    }
+    const slipLines = buildReceiptSlipLines();
+    if (slipLines.length === 0) {
+      toast.error("Select at least one line with quantity");
+      return;
+    }
+    const receiveBranch = detail.branchId || branchId;
+    const branchName =
+      branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
+    setPrintingReceipt(true);
+    try {
+      await dispatchTillPrint({
+        kind: "receipt",
+        branchId: receiveBranch,
+        targetUserIds: targets,
+        slip: {
+          reference: `${detail.poNumber}-R`,
+          supplierName: supplierName === "—" ? "Supplier" : supplierName,
+          businessName: business?.name || "",
+          branchName,
+          placedByName: me?.name || "",
+          currency: ORDER_CURRENCY,
+          lines: slipLines,
+        },
+      });
+      toast.success(
+        targets.length === 1
+          ? "Receipt sent to the selected till"
+          : `Receipt sent to ${targets.length} tills`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not send receipt to till",
+      );
+    } finally {
+      setPrintingReceipt(false);
+    }
+  };
 
   const shopName = business?.name?.trim() || "Shop";
 
@@ -1983,6 +2055,30 @@ export function OrderReceivePanel({
                   storageKey={`palmart:receive-print-cashiers:${detail?.branchId || branchId || "none"}`}
                   onChange={setPrintCashierIds}
                 />
+                <button
+                  type="button"
+                  disabled={
+                    printingReceipt ||
+                    confirming ||
+                    !detail ||
+                    printCashierIds.length === 0 ||
+                    selectedUnits <= 0
+                  }
+                  onClick={() => void printReceiptNow()}
+                  className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+                >
+                  {printingReceipt ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Sending to till…
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="size-4" aria-hidden />
+                      Print receipt now
+                    </>
+                  )}
+                </button>
                 {twoStepDelivery ? (
                   <>
                     {detail &&

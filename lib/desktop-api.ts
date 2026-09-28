@@ -249,3 +249,88 @@ export function saveDesktopPrinterConfig(
     body: config,
   });
 }
+
+/** {@code GET /api/v1/desktop/devices/health} — is the local device bridge (printing) up? */
+export type DesktopBridgeHealth = {
+  reachable: boolean;
+  /** Whether the sidecar found a CUPS/spooler tool (null = unknown). */
+  cups: boolean | null;
+  platform: string | null;
+  error: string | null;
+};
+
+export function fetchDesktopBridgeHealth(): Promise<DesktopBridgeHealth> {
+  return apiRequest<DesktopBridgeHealth>("/api/v1/desktop/devices/health", {
+    toast: false,
+  });
+}
+
+/**
+ * {@code POST /api/v1/desktop/devices/restart} — ask the shell to reboot the
+ * till stack (JVM + database). The connection may drop as the till goes down,
+ * so callers should treat a failure as "probably fine".
+ */
+export function restartDesktopBackend(): Promise<void> {
+  return apiRequest<void>("/api/v1/desktop/devices/restart", {
+    method: "POST",
+    toast: false,
+  });
+}
+
+/** {@code POST /api/v1/desktop/devices/open-data-folder} — open APP_DATA in the OS file manager. */
+export function openDesktopDataFolder(): Promise<void> {
+  return apiRequest<void>("/api/v1/desktop/devices/open-data-folder", {
+    method: "POST",
+    toast: false,
+  });
+}
+
+/** {@code POST /api/v1/desktop/devices/print/test} — print a short test slip. */
+export function printDesktopTestSlip(widthMm = 58): Promise<void> {
+  return apiRequest<void>(
+    `/api/v1/desktop/devices/print/test?widthMm=${widthMm}`,
+    { method: "POST" },
+  );
+}
+
+/** {@code GET /api/v1/desktop/diagnostics/storage} — where the till's data lives. */
+export type DesktopStorageStatus = {
+  appDataPath: string;
+  databaseBytes: number;
+  mediaBytes: number;
+  backupsBytes: number;
+  /** Usable space on the data volume (-1 = unknown). */
+  diskFreeBytes: number;
+  diskTotalBytes: number;
+};
+
+export function fetchDesktopStorageStatus(): Promise<DesktopStorageStatus> {
+  return apiRequest<DesktopStorageStatus>(
+    "/api/v1/desktop/diagnostics/storage",
+    { toast: false },
+  );
+}
+
+/** {@code GET /api/v1/desktop/diagnostics/logs} — bounded tails of the till's own logs. */
+export type DesktopLogFile = {
+  name: string;
+  /** File size in bytes (-1 = not present yet). */
+  bytes: number;
+  tail: string;
+};
+
+export function fetchDesktopLogs(): Promise<DesktopLogFile[]> {
+  return apiRequest<DesktopLogFile[]>("/api/v1/desktop/diagnostics/logs", {
+    toast: false,
+  });
+}
+
+/** {@code POST /api/v1/desktop/diagnostics/send-logs} — push the log bundle to support now. */
+export type DesktopLogSendResult = { sent: boolean; message: string };
+
+export function sendDesktopDiagnostics(): Promise<DesktopLogSendResult> {
+  return apiRequest<DesktopLogSendResult>(
+    "/api/v1/desktop/diagnostics/send-logs",
+    { method: "POST", toast: false },
+  );
+}

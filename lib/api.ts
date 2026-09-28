@@ -11382,6 +11382,7 @@ export type TillPrintPendingJob = {
   kind: "order" | "receipt" | string;
   reference: string;
   createdAt?: string | null;
+  slip: TillPrintSlipPayload;
 };
 
 export type TillPrintClaimedJob = {

@@ -9,6 +9,14 @@ const WRITE_WHITELIST_PREFIXES = [
   "/api/v1/auth/",
   "/api/v1/license",
   "/api/v1/desktop/backups/now",
+  // Install recovery — an expired license must not strand a wedged install
+  // (docs/scopes/DESKTOP_APP_AUDIT_SCOPE.md §12). Mirrors the backend
+  // DesktopLicenseReadOnlyFilter so setup/connect/reset and the device-bridge
+  // recovery actions are not blocked before the request leaves the browser.
+  "/api/v1/desktop/setup",
+  "/api/v1/desktop/connect",
+  "/api/v1/desktop/reconnect",
+  "/api/v1/desktop/devices/",
 ];
 
 let readOnly = false;

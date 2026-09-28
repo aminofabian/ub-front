@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
   Copy,
+  FolderOpen,
   HardDrive,
+  Info,
   Loader2,
   Network,
   Printer,
   RefreshCw,
+  RotateCcw,
   Shield,
+  Terminal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,36 +35,48 @@ import { Button } from "@/components/ui/button";
 import { DesktopLanQr } from "@/components/desktop/desktop-lan-qr";
 import {
   fetchDesktopBackups,
+  fetchDesktopBridgeHealth,
   fetchDesktopLanStatus,
+  fetchDesktopLogs,
   fetchDesktopMediaStatus,
   fetchDesktopPrinterConfig,
   fetchDesktopSetupStatus,
+  fetchDesktopStorageStatus,
   fetchDesktopSyncPlan,
   fetchDesktopSyncStatus,
+  openDesktopDataFolder,
+  printDesktopTestSlip,
   reconnectDesktop,
   refreshDesktopCloudSession,
   renewDesktopLicense,
+  restartDesktopBackend,
   restoreDesktopBackup,
   runDesktopBackupNow,
   runDesktopSyncFull,
   saveDesktopPrinterConfig,
+  sendDesktopDiagnostics,
   toggleDesktopLan,
   type DesktopBackupInfo,
+  type DesktopBridgeHealth,
   type DesktopLanStatus,
+  type DesktopLogFile,
   type DesktopMediaStatus,
   type DesktopPrinterConfig,
+  type DesktopStorageStatus,
   type DesktopSyncPlan,
   type DesktopSyncStatus,
 } from "@/lib/desktop-api";
 import { APP_ROUTES } from "@/lib/config";
-import { IS_DESKTOP } from "@/lib/runtime";
+import { CLIENT_BUILD_ID, IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "unknown";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 /** Human label for the live sync phase shown next to the Sync now button. */
@@ -81,6 +100,28 @@ function formatWhen(iso: string): string {
   }
 }
 
+const LAST_SYNC_KEY = "kiosk.desktop.lastSyncAt";
+
+/** One labelled fact in the "This install" block. */
+function InstallFact({
+  label,
+  children,
+  tone,
+}: {
+  label: string;
+  children: React.ReactNode;
+  tone?: "warning";
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className={dashboardLabelClass()}>{label}</dt>
+      <dd className={cn("mt-1 text-sm", tone === "warning" && "text-amber-600")}>
+        {children}
+      </dd>
+    </div>
+  );
+}
+
 export default function DesktopSettingsPage() {
   const router = useRouter();
   const { me } = useDashboard();
@@ -100,6 +141,8 @@ export default function DesktopSettingsPage() {
   const [printerSaving, setPrinterSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<DesktopSyncStatus | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const [cloudReachable, setCloudReachable] = useState<boolean | null>(null);
   const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(
     null,
   );
@@ -111,6 +154,14 @@ export default function DesktopSettingsPage() {
   const [reconnectPassword, setReconnectPassword] = useState("");
   const [reconnecting, setReconnecting] = useState(false);
   const [passwordReconnect, setPasswordReconnect] = useState(false);
+  const [storage, setStorage] = useState<DesktopStorageStatus | null>(null);
+  const [logs, setLogs] = useState<DesktopLogFile[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [bridgeHealth, setBridgeHealth] = useState<DesktopBridgeHealth | null>(
+    null,
+  );
+  const [printerTesting, setPrinterTesting] = useState(false);
+  const [sendingLogs, setSendingLogs] = useState(false);
 
   const pollMediaStatus = useCallback(async () => {
     try {
@@ -130,23 +181,53 @@ export default function DesktopSettingsPage() {
     }
   }, [router]);
 
+  // Remember the last successful sync across reloads so the "This install"
+  // block can show when the till last reconciled — the live /sync/status resets
+  // to IDLE on every page load.
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    try {
+      const raw = window.localStorage.getItem(LAST_SYNC_KEY);
+      const parsed = raw ? Number(raw) : NaN;
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setLastSyncAt(parsed);
+      }
+    } catch {
+      /* storage unavailable — leave the fact unset */
+    }
+  }, []);
+
   const reload = useCallback(async () => {
     setLoadError("");
     setLoading(true);
     try {
-      const [lanStatus, backupList, printerCfg, plan, setup] =
-        await Promise.all([
-          fetchDesktopLanStatus(),
-          fetchDesktopBackups(),
-          fetchDesktopPrinterConfig(),
-          fetchDesktopSyncPlan(),
-          fetchDesktopSetupStatus().catch(() => null),
-        ]);
+      const [
+        lanStatus,
+        backupList,
+        printerCfg,
+        plan,
+        setup,
+        storageStatus,
+        logList,
+        bridge,
+      ] = await Promise.all([
+        fetchDesktopLanStatus(),
+        fetchDesktopBackups(),
+        fetchDesktopPrinterConfig(),
+        fetchDesktopSyncPlan(),
+        fetchDesktopSetupStatus().catch(() => null),
+        fetchDesktopStorageStatus().catch(() => null),
+        fetchDesktopLogs().catch(() => []),
+        fetchDesktopBridgeHealth().catch(() => null),
+      ]);
       await refreshLicense();
       setLan(lanStatus);
       setBackups(backupList);
       setPrinter(printerCfg);
       setCloudPlan(plan);
+      setStorage(storageStatus);
+      setLogs(logList);
+      setBridgeHealth(bridge);
       const origin = setup?.cloudOrigin?.trim() || "";
       if (origin) {
         setCloudOrigin(origin);
@@ -262,6 +343,128 @@ export default function DesktopSettingsPage() {
     }
   }
 
+  async function onPrintTest() {
+    setPrinterTesting(true);
+    try {
+      // Save first so the test uses what's on screen — the sidecar reads
+      // printer.json at print time, not the in-memory form.
+      if (printer) {
+        const saved = await saveDesktopPrinterConfig(printer);
+        setPrinter(saved);
+      }
+      await printDesktopTestSlip();
+      toast.success("Test slip sent — check the printer.");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not print the test slip.",
+      );
+    } finally {
+      setPrinterTesting(false);
+    }
+  }
+
+  async function onSendLogs() {
+    setSendingLogs(true);
+    try {
+      const res = await sendDesktopDiagnostics();
+      if (res.sent) {
+        toast.success(res.message);
+      } else {
+        toast.message(res.message);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send logs.");
+    } finally {
+      setSendingLogs(false);
+    }
+  }
+
+  async function onOpenDataFolder() {
+    try {
+      await openDesktopDataFolder();
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not open the data folder.",
+      );
+    }
+  }
+
+  function onRestartBackend() {
+    showThemedConfirmToast({
+      id: "desktop-restart-backend",
+      title: "Restart the till?",
+      description:
+        "Saved sales are safe. Kiosk restarts in place — the screen returns to the loading page for a few seconds.",
+      confirmLabel: "Restart",
+      onConfirm: async () => {
+        try {
+          await restartDesktopBackend();
+          toast.success("Restarting the till…");
+        } catch {
+          // The backend often drops the connection as it goes down; that is the
+          // expected shape of a successful restart, not a failure.
+          toast.message("Restarting the till…");
+        }
+      },
+    });
+  }
+
+  async function onCopyDiagnostics() {
+    const lines = [
+      "Kiosk Desktop — diagnostics",
+      `App build: ${CLIENT_BUILD_ID}`,
+      cloudOrigin ? `Online shop: ${cloudOrigin}` : "Online shop: not linked",
+      cloudPlan?.tier
+        ? `Shop plan: ${cloudPlan.tier}${
+            cloudPlan.status ? ` (${cloudPlan.status.toLowerCase()})` : ""
+          }`
+        : "Shop plan: unknown",
+      license
+        ? `License: ${license.state}${
+            license.daysRemaining != null
+              ? ` · ${license.daysRemaining} day(s) left`
+              : ""
+          }${license.readOnly ? " · read-only" : ""}`
+        : "License: unavailable",
+      `Machine ID: ${license?.machineId ?? "unavailable"}`,
+      `Cloud connection: ${
+        cloudReachable === false
+          ? "offline"
+          : cloudReachable === true
+            ? "reachable"
+            : "unknown"
+      }`,
+      `Last sync: ${lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "never"}`,
+      backups.length > 0
+        ? `Last backup: ${new Date(
+            backups[0].modifiedAt,
+          ).toLocaleString()} (${formatBytes(backups[0].sizeBytes)}), ${
+            backups.length
+          } kept`
+        : "Last backup: none",
+      `LAN sharing: ${lan?.enabled ? `on (${lan.lanUrl ?? "?"})` : "off"}`,
+      `Receipt printer: ${printer?.mode ?? "unknown"}`,
+      `Device bridge: ${
+        bridgeHealth?.reachable
+          ? "ready"
+          : bridgeHealth
+            ? "not running"
+            : "unknown"
+      }`,
+      storage
+        ? `Data folder: ${storage.appDataPath} — ${formatBytes(
+            storage.databaseBytes + storage.mediaBytes + storage.backupsBytes,
+          )} used, ${formatBytes(storage.diskFreeBytes)} free`
+        : "Data folder: unknown",
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      toast.success("Diagnostics copied — paste them into your support message.");
+    } catch {
+      toast.error("Could not copy diagnostics. Select the details manually.");
+    }
+  }
+
   async function onSyncNow() {
     setSyncing(true);
     setSyncStatus(null);
@@ -269,6 +472,7 @@ export default function DesktopSettingsPage() {
       await runDesktopSyncFull();
     } catch (e) {
       setSyncing(false);
+      setCloudReachable(false);
       toast.error(e instanceof Error ? e.message : "Could not start sync.");
       return;
     }
@@ -288,6 +492,16 @@ export default function DesktopSettingsPage() {
     return () => stopSyncPolling();
   }, []);
 
+  const recordSync = useCallback((at: number) => {
+    setLastSyncAt(at);
+    setCloudReachable(true);
+    try {
+      window.localStorage.setItem(LAST_SYNC_KEY, String(at));
+    } catch {
+      /* storage unavailable — the in-memory value still shows this session */
+    }
+  }, []);
+
   // The full sync runs on a background thread (it can take minutes on a big
   // shop), so poll /sync/status and render the phase while it works. The
   // sync itself is never cancelled by a dropped poll — only DONE/ERROR stop
@@ -299,6 +513,7 @@ export default function DesktopSettingsPage() {
         setSyncStatus(status);
         if (status.phase === "DONE") {
           setSyncing(false);
+          recordSync(Date.now());
           void pollMediaStatus();
           const pull = status.pull;
           if (pull) {
@@ -334,6 +549,7 @@ export default function DesktopSettingsPage() {
         }
         if (status.phase === "ERROR") {
           setSyncing(false);
+          setCloudReachable(false);
           toast.error(status.error || "Sync failed.");
           return false;
         }
@@ -407,6 +623,16 @@ export default function DesktopSettingsPage() {
     );
   }
 
+  const dataBytes = storage
+    ? storage.databaseBytes + storage.mediaBytes + storage.backupsBytes
+    : 0;
+  const diskLow =
+    storage != null &&
+    storage.diskFreeBytes >= 0 &&
+    ((storage.diskTotalBytes > 0 &&
+      storage.diskFreeBytes < storage.diskTotalBytes / 10) ||
+      storage.diskFreeBytes < 1024 * 1024 * 1024);
+
   if (!IS_DESKTOP) {
     return null;
   }
@@ -425,6 +651,158 @@ export default function DesktopSettingsPage() {
       />
 
       {loadError ? <DashboardFeedback kind="error" text={loadError} /> : null}
+
+      {/* This install — support facts and last activity */}
+      <section className={DASHBOARD_SECTION_SURFACE}>
+        <div className="flex items-start gap-3">
+          <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">This install</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  What to quote when you contact support, and when this till
+                  last synced and backed up.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void onCopyDiagnostics()}
+              >
+                <Copy className="size-3.5" />
+                Copy diagnostics
+              </Button>
+            </div>
+
+            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <InstallFact label="App build">
+                <span className="font-mono text-xs sm:text-sm">
+                  {CLIENT_BUILD_ID}
+                </span>
+              </InstallFact>
+              <InstallFact
+                label="Cloud connection"
+                tone={cloudReachable === false ? "warning" : undefined}
+              >
+                {cloudReachable === false
+                  ? "Offline — sales are kept on this PC and sync later"
+                  : cloudReachable === true
+                    ? "Reachable — syncing with your online shop"
+                    : "Not checked yet — use Sync now to test"}
+              </InstallFact>
+              <InstallFact label="Last sync">
+                {lastSyncAt
+                  ? formatWhen(new Date(lastSyncAt).toISOString())
+                  : "Not yet — syncs automatically when online"}
+              </InstallFact>
+              <InstallFact label="Last backup">
+                {backups.length > 0
+                  ? `${formatWhen(backups[0].modifiedAt)} · ${formatBytes(
+                      backups[0].sizeBytes,
+                    )}`
+                  : "None yet — the first nightly run is at 23:00"}
+              </InstallFact>
+              <InstallFact label="Data folder">
+                <span className="break-all font-mono text-xs">
+                  {storage?.appDataPath ?? "Unknown"}
+                </span>
+              </InstallFact>
+              <InstallFact label="Disk space" tone={diskLow ? "warning" : undefined}>
+                {storage && storage.diskFreeBytes >= 0
+                  ? `${formatBytes(storage.diskFreeBytes)} free of ${formatBytes(
+                      storage.diskTotalBytes,
+                    )}`
+                  : "Unknown"}
+              </InstallFact>
+              <InstallFact label="Data size">
+                {storage
+                  ? `${formatBytes(dataBytes)} on disk`
+                  : "Unknown"}
+              </InstallFact>
+            </dl>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void onOpenDataFolder()}
+              >
+                <FolderOpen className="size-3.5" />
+                Open data folder
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onRestartBackend()}
+              >
+                <RotateCcw className="size-3.5" />
+                Restart backend
+              </Button>
+            </div>
+
+            {/* Log tails — a quick look for support without leaving the page;
+                the full files are one click away via Open data folder. */}
+            {logs.some((f) => f.bytes >= 0) ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLogsOpen((v) => !v)}
+                  >
+                    <Terminal className="size-3.5" />
+                    {logsOpen ? "Hide logs" : "Show logs"}
+                    <ChevronDown
+                      className={cn(
+                        "size-3.5 transition-transform",
+                        logsOpen && "rotate-180",
+                      )}
+                    />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={sendingLogs}
+                    onClick={() => void onSendLogs()}
+                  >
+                    {sendingLogs ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : null}
+                    Send logs to support
+                  </Button>
+                </div>
+                {logsOpen ? (
+                  <div className="space-y-3">
+                    {logs.map((f) => (
+                      <div key={f.name}>
+                        <p className="text-xs font-medium">
+                          {f.name}
+                          {f.bytes >= 0 ? ` · ${formatBytes(f.bytes)}` : " · not present"}
+                        </p>
+                        <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-none border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed">
+                          {f.bytes >= 0
+                            ? f.tail.trim() || "(empty)"
+                            : "No such file yet."}
+                        </pre>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">
+                      Showing the last 64 KB of each file. Paste these into a
+                      support message, or use Copy diagnostics.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
 
       {/* Online-shop sync */}
       <section className={DASHBOARD_SECTION_SURFACE}>
@@ -952,16 +1330,56 @@ export default function DesktopSettingsPage() {
                     />
                   </div>
                 ) : null}
-                <Button
-                  type="button"
-                  disabled={printerSaving}
-                  onClick={() => void onSavePrinter()}
-                >
-                  {printerSaving ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : null}
-                  Save printer
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    disabled={printerSaving}
+                    onClick={() => void onSavePrinter()}
+                  >
+                    {printerSaving ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : null}
+                    Save printer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={printerTesting || printer.mode === "none"}
+                    onClick={() => void onPrintTest()}
+                  >
+                    {printerTesting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Printer className="size-4" />
+                    )}
+                    Print test receipt
+                  </Button>
+                </div>
+                <p className="flex items-center gap-2 text-xs">
+                  {bridgeHealth?.reachable ? (
+                    <>
+                      <CheckCircle2 className="size-3.5 text-emerald-600" />
+                      <span className="text-muted-foreground">
+                        Device bridge ready
+                        {bridgeHealth.platform
+                          ? ` (${bridgeHealth.platform})`
+                          : ""}
+                      </span>
+                    </>
+                  ) : bridgeHealth ? (
+                    <>
+                      <AlertTriangle className="size-3.5 text-amber-600" />
+                      <span className="text-muted-foreground">
+                        Device bridge not running — printing is unavailable until
+                        the till restarts.
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Device bridge status unavailable.
+                    </span>
+                  )}
+                </p>
               </div>
             ) : null}
           </div>

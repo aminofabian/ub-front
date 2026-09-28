@@ -14,6 +14,7 @@ import {
   Loader2,
   Package,
   PackagePlus,
+  Printer,
   Save,
   Search,
   ShoppingCart,
@@ -370,6 +371,7 @@ export function TenantOrderWorkspace({
   const [packSheetItemId, setPackSheetItemId] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
+  const [printingOrder, setPrintingOrder] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositSeed, setDepositSeed] = useState<{
@@ -1137,10 +1139,7 @@ export function TenantOrderWorkspace({
     return false;
   };
 
-  const placeOrder = async (alsoWhatsApp = false) => {
-    setPlacing(true);
-    if (alsoWhatsApp) setWhatsapping(true);
-    const printTo = printCashierIds[0]?.trim() || "";
+  const buildOrderSlipLines = () => {
     const slipLines = cartLines.map((line) => {
       const total = lineTotal(
         line.link,
@@ -1167,6 +1166,53 @@ export function TenantOrderWorkspace({
       last.lineTotal = Math.round((last.lineTotal + diff) * 100) / 100;
       if (last.qty > 0) last.unitCost = last.lineTotal / last.qty;
     }
+    return slipLines;
+  };
+
+  const printOrderNow = async () => {
+    const printTo = printCashierIds[0]?.trim() || "";
+    if (!printTo) {
+      toast.error("Pick one cashier to print to");
+      return;
+    }
+    const slipLines = buildOrderSlipLines();
+    if (slipLines.length === 0) {
+      toast.error("Add products to the order");
+      return;
+    }
+    setPrintingOrder(true);
+    try {
+      const branchName =
+        branches.find((branch) => branch.id === branchId)?.name ?? "";
+      await dispatchTillPrint({
+        kind: "order",
+        branchId,
+        targetUserIds: [printTo],
+        slip: {
+          reference: `DRAFT-${Date.now().toString().slice(-6)}`,
+          supplierName: activeSupplier?.name || "Supplier",
+          businessName: business?.name || "",
+          branchName,
+          placedByName: me?.name || "",
+          currency: ORDER_CURRENCY,
+          lines: slipLines,
+        },
+      });
+      toast.success("Order slip sent to the selected till");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not send order to till",
+      );
+    } finally {
+      setPrintingOrder(false);
+    }
+  };
+
+  const placeOrder = async (alsoWhatsApp = false) => {
+    setPlacing(true);
+    if (alsoWhatsApp) setWhatsapping(true);
+    const printTo = printCashierIds[0]?.trim() || "";
+    const slipLines = buildOrderSlipLines();
     try {
       const placedTotal = effectiveTotal;
       const placedSupplierId = supplierId;
@@ -2019,6 +2065,30 @@ export function TenantOrderWorkspace({
             storageKey={`palmart:order-print-cashier:${branchId || "none"}`}
             onChange={setPrintCashierIds}
           />
+
+          <button
+            type="button"
+            disabled={
+              printingOrder ||
+              placing ||
+              cartLines.length === 0 ||
+              printCashierIds.length === 0
+            }
+            onClick={() => void printOrderNow()}
+            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-40"
+          >
+            {printingOrder ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Sending to till…
+              </>
+            ) : (
+              <>
+                <Printer className="size-4" aria-hidden />
+                Print order now
+              </>
+            )}
+          </button>
 
           <button
             type="button"

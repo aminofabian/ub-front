@@ -452,17 +452,21 @@ export async function printTillSlip(
   kind: TillSlipKind,
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
   printer?: LocalReceiptPrinterTarget | null,
+  opts?: { quiet?: boolean },
 ): Promise<boolean> {
+  const quiet = Boolean(opts?.quiet);
   const resolved = await resolvePrinterTarget(printer);
   const cupsName = resolved?.cupsName?.trim() || "";
   const host = resolved?.host?.trim() || "";
   const label = kind === "receipt" ? "Goods receipt" : "Purchase order";
 
   if (!cupsName && !host) {
-    toast.message(
-      `${label} received, but no receipt printer is configured on this till.`,
-      { duration: 9_000 },
-    );
+    if (!quiet) {
+      toast.message(
+        `${label} received, but no receipt printer is configured on this till.`,
+        { duration: 9_000 },
+      );
+    }
     return false;
   }
 
@@ -476,12 +480,16 @@ export async function printTillSlip(
       host: host || null,
       port: resolved?.port ?? 9100,
     });
-    toast.success(`${label} ${slip.reference} printed.`);
+    if (!quiet) toast.success(`${label} ${slip.reference} printed.`);
     return true;
   } catch (e) {
-    const msg =
-      e instanceof Error ? e.message : `Could not print ${label.toLowerCase()}.`;
-    toast.error(msg, { duration: 10_000 });
+    if (!quiet) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : `Could not print ${label.toLowerCase()}.`;
+      toast.error(msg, { duration: 10_000 });
+    }
     return false;
   }
 }
