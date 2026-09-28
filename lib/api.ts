@@ -11408,8 +11408,14 @@ export async function dispatchTillPrint(body: {
   branchId?: string | null;
   targetUserIds: string[];
   slip: TillPrintSlipPayload;
-}): Promise<{ jobIds: string[] }> {
-  return request<{ jobIds: string[] }>(TILL_PRINTS, {
+}): Promise<{
+  jobIds: string[];
+  tills?: { userId: string; name: string; online: boolean }[];
+}> {
+  return request<{
+    jobIds: string[];
+    tills?: { userId: string; name: string; online: boolean }[];
+  }>(TILL_PRINTS, {
     method: "POST",
     body,
     toast: false,

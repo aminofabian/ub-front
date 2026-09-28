@@ -53,6 +53,7 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { describeTillSend } from "@/lib/till-remote-print";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
@@ -501,7 +502,7 @@ export function OrderReceivePanel({
       branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
     setPrintingReceipt(true);
     try {
-      await dispatchTillPrint({
+      const sent = await dispatchTillPrint({
         kind: "receipt",
         branchId: receiveBranch,
         targetUserIds: targets,
@@ -515,11 +516,7 @@ export function OrderReceivePanel({
           lines: slipLines,
         },
       });
-      toast.success(
-        targets.length === 1
-          ? "Receipt sent to the selected till"
-          : `Receipt sent to ${targets.length} tills`,
-      );
+      toast.success(describeTillSend("receipt", sent.tills ?? []));
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -1186,7 +1183,7 @@ export function OrderReceivePanel({
         const branchName =
           branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
         try {
-          await dispatchTillPrint({
+          const sent = await dispatchTillPrint({
             kind: "receipt",
             branchId: receiveBranch,
             targetUserIds: printCashierIds.slice(0, 8),
@@ -1205,11 +1202,7 @@ export function OrderReceivePanel({
               })),
             },
           });
-          toast.message(
-            printCashierIds.length === 1
-              ? "Receipt will print on the selected till"
-              : `Receipt will print on ${printCashierIds.length} tills`,
-          );
+          toast.message(describeTillSend("receipt", sent.tills ?? []));
         } catch {
           toast.message("Stock updated. The selected tills did not get the receipt.");
         }

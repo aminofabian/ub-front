@@ -56,6 +56,7 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { describeTillSend } from "@/lib/till-remote-print";
 import {
   readOrderCartDraft,
   writeOrderCartDraft,
@@ -1184,7 +1185,7 @@ export function TenantOrderWorkspace({
     try {
       const branchName =
         branches.find((branch) => branch.id === branchId)?.name ?? "";
-      await dispatchTillPrint({
+      const sent = await dispatchTillPrint({
         kind: "order",
         branchId,
         targetUserIds: [printTo],
@@ -1198,7 +1199,7 @@ export function TenantOrderWorkspace({
           lines: slipLines,
         },
       });
-      toast.success("Order slip sent to the selected till");
+      toast.success(describeTillSend("order", sent.tills ?? []));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not send order to till",
@@ -1222,7 +1223,7 @@ export function TenantOrderWorkspace({
         const branchName =
           branches.find((branch) => branch.id === branchId)?.name ?? "";
         try {
-          await dispatchTillPrint({
+          const sent = await dispatchTillPrint({
             kind: "order",
             branchId,
             targetUserIds: [printTo],
@@ -1236,7 +1237,7 @@ export function TenantOrderWorkspace({
               lines: slipLines,
             },
           });
-          toast.message(`${poNumber} will print on the selected till`);
+          toast.message(describeTillSend("order", sent.tills ?? []));
         } catch {
           toast.message(
             `${poNumber} was saved. The selected till did not get the print.`,
