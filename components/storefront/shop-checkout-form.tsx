@@ -1399,7 +1399,7 @@ export default function ShopCheckoutForm({
 
           <div className="space-y-2 pb-1.5">
             {showPayControls ? (
-              <div className="pb-2">
+              <div className="px-3 pb-2">
                 <ShopCheckoutPaymentSection
                   variant="floating"
                   manual={paymentOptions.manual}
