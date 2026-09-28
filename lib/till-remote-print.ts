@@ -14,7 +14,14 @@ import type { TillSlipKind } from "@/lib/till-slip";
 const inflight = new Set<string>();
 const announced = new Set<string>();
 const warned = new Set<string>();
+const sent = new Set<string>();
+const attempts = new Map<string, number>();
 let pendingErrorTold = false;
+
+/** A job that already reached the printer must not be sent again, even after a refresh. */
+const SENT_PREFIX = "palmart.till-slip-sent:";
+/** One automatic retry only when nothing was handed to the printer. */
+const MAX_ATTEMPTS = 2;
 
 export type TillSendStatus = {
   userId: string;
@@ -113,6 +120,28 @@ export function slipFromJson(raw: unknown): TillPrintSlipPayload | null {
   return normalizeTillSlip(raw);
 }
 
+function wasSent(id: string): boolean {
+  if (sent.has(id)) return true;
+  try {
+    if (window.localStorage.getItem(SENT_PREFIX + id) === "1") {
+      sent.add(id);
+      return true;
+    }
+  } catch {
+    // private mode
+  }
+  return false;
+}
+
+function rememberSent(id: string): void {
+  sent.add(id);
+  try {
+    window.localStorage.setItem(SENT_PREFIX + id, "1");
+  } catch {
+    // private mode — the in-memory set still blocks this tab
+  }
+}
+
 /** One toast when the till cannot load its queue. Polling keeps trying. */
 export function notePendingTillPrintError(): void {
   if (pendingErrorTold) return;
@@ -123,8 +152,9 @@ export function notePendingTillPrintError(): void {
 }
 
 /**
- * Chime, then print on this till's receipt printer.
- * The job stays queued until the printer accepts the bytes.
+ * Chime, then print one copy on this till.
+ * A second live alert or poll for the same job does not print again.
+ * If the printer helper never accepted the bytes, one later attempt is allowed.
  */
 export async function deliverTillSlip(
   job: TillPrintPendingJob,
@@ -132,6 +162,10 @@ export async function deliverTillSlip(
 ): Promise<void> {
   const id = job.id?.trim();
   if (!id || inflight.has(id)) return;
+  if (wasSent(id)) {
+    await claimTillPrint(id);
+    return;
+  }
   const slip = normalizeTillSlip(job.slip);
   announceTillSlip({
     id,
@@ -139,24 +173,33 @@ export async function deliverTillSlip(
     reference: job.reference || slip?.reference,
   });
   if (!slip) return;
+  const tries = attempts.get(id) ?? 0;
+  if (tries >= MAX_ATTEMPTS) {
+    rememberSent(id);
+    await claimTillPrint(id);
+    return;
+  }
   inflight.add(id);
+  attempts.set(id, tries + 1);
   const alreadyWarned = warned.has(id);
   try {
     const kind: TillSlipKind = job.kind === "receipt" ? "receipt" : "order";
-    const printed = await printTillSlip(
+    const result = await printTillSlip(
       slip,
       kind,
       DESKTOP_THERMAL_WIDTH_MM,
       printer,
       { quiet: alreadyWarned },
     );
-    if (!printed) {
+    if (result === "failed") {
       warned.add(id);
       return;
     }
+    // "printed" and "maybe" (timeout) both mean the spool may already have the slip.
+    rememberSent(id);
     warned.delete(id);
     await claimTillPrint(id);
-    if (alreadyWarned) {
+    if (alreadyWarned && result === "printed") {
       toast.success(`${slipLabel(kind, job.reference || slip.reference)} printed.`);
     }
   } finally {

@@ -446,7 +446,14 @@ export async function printSupplyInvoiceReceipt(
 }
 
 /**
+ * One copy. A timeout counts as sent — the bytes may already be on the spool,
+ * and a second attempt would print the slip again.
+ */
+export type TillSlipPrintResult = "printed" | "failed" | "maybe";
+
+/**
  * Print a purchase order or goods receipt aimed at this till.
+ * Does not retry. The caller decides whether a definite failure may try once more.
  */
 export async function printTillSlip(
   slip: TillSlip,
@@ -454,7 +461,7 @@ export async function printTillSlip(
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
   printer?: LocalReceiptPrinterTarget | null,
   opts?: { quiet?: boolean },
-): Promise<boolean> {
+): Promise<TillSlipPrintResult> {
   const quiet = Boolean(opts?.quiet);
   const resolved = await resolvePrinterTarget(printer);
   let cupsName = resolved?.cupsName?.trim() || "";
@@ -475,7 +482,7 @@ export async function printTillSlip(
           { duration: 14_000 },
         );
       }
-      return false;
+      return "failed";
     }
   }
 
@@ -486,24 +493,25 @@ export async function printTillSlip(
         { duration: 12_000 },
       );
     }
-    return false;
+    return "failed";
   }
 
   try {
-    await withOneRetry(async () => {
-      const raw = buildTillSlipEscPos(slip, kind, widthMm);
-      const escpos = new Blob([new Uint8Array(raw)], {
-        type: "application/octet-stream",
-      });
-      await printEscPosViaTillBridge(escpos, {
-        name: cupsName || null,
-        host: host || null,
-        port: resolved?.port ?? 9100,
-      });
+    const raw = buildTillSlipEscPos(slip, kind, widthMm);
+    const escpos = new Blob([new Uint8Array(raw)], {
+      type: "application/octet-stream",
+    });
+    await printEscPosViaTillBridge(escpos, {
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
     });
     if (!quiet) toast.success(`${label} ${slip.reference} printed.`);
-    return true;
+    return "printed";
   } catch (e) {
+    if (e instanceof Error && e.name === TILL_PRINT_TIMEOUT_ERROR) {
+      return "maybe";
+    }
     if (!quiet) {
       const msg =
         e instanceof Error
@@ -511,6 +519,6 @@ export async function printTillSlip(
           : `Could not print ${label.toLowerCase()}.`;
       toast.error(msg, { duration: 10_000 });
     }
-    return false;
+    return "failed";
   }
 }
