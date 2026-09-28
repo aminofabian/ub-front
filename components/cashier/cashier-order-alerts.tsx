@@ -88,7 +88,7 @@ function showCashierOrderToast(frame: RealtimeFrame) {
   const isNewOrder = notificationType === "storefront.order.placed";
   if (isSlip) {
     const jobId = readPayloadField(data, "jobId");
-    if (jobId && frame.delivery !== "poll") {
+    if (jobId) {
       announceTillSlip({
         id: jobId,
         kind: readPayloadField(data, "kind") || "order",
