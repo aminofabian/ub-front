@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   ExternalLink,
@@ -26,6 +26,10 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import type { DomainRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import {
+  ConnectOwnedPanel,
+  type ConnectOwnedResult,
+} from "./connect-owned-panel";
 import { DomainHelpPanel } from "./domain-help-panel";
 import {
   DomainChip,
@@ -61,7 +65,10 @@ export type DomainsTheatreProps = {
   selectedRow: DomainRecord | null;
   detailOpen: boolean;
   onSelect: (row: DomainRecord) => void;
-  onConnectOpen: () => void;
+  onConnect: (domain: string) => Promise<ConnectOwnedResult>;
+  onVerify: (row: DomainRecord) => Promise<void>;
+  connectSaving: boolean;
+  verifyBusyId: string | null;
   onBuyLive: () => void;
   rowBusyId: string | null;
   dockRef?: (node: HTMLDivElement | null) => void;
@@ -424,73 +431,6 @@ function DomainFocus({
   );
 }
 
-function ConnectCenter({
-  onConnectOpen,
-  onTabChange,
-  className,
-}: {
-  onConnectOpen: () => void;
-  onTabChange: (tab: TabId) => void;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex h-full min-h-0 flex-col items-center justify-center overflow-y-auto p-6",
-        className,
-      )}
-    >
-      <div className={cn(DASHBOARD_SECTION_SURFACE, "max-w-lg w-full")}>
-        <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground">
-            <Link2 className="size-4" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold tracking-tight">
-              Connect a domain you already bought
-            </h2>
-            <p className={cn(dashboardHintClass(), "mt-2")}>
-              Use this only after you have paid another company for the name.
-              We do not sell it in this step.
-            </p>
-            <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground">1.</span>
-                Enter the domain you already paid for.
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground">2.</span>
-                Add the DNS records we show, at the company you bought it from.
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground">3.</span>
-                Choose Check connection after those records are saved.
-              </li>
-            </ol>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                className="gap-1.5"
-                onClick={onConnectOpen}
-              >
-                <Link2 className="size-3.5" aria-hidden />
-                Enter the domain you own
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onTabChange("buy")}
-              >
-                I need to buy one
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BuyCenter({
   onBuyLive,
   className,
@@ -541,13 +481,18 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
     selectedRow,
     detailOpen,
     onSelect,
-    onConnectOpen,
+    onConnect,
+    onVerify,
+    connectSaving,
+    verifyBusyId,
     onBuyLive,
     rowBusyId,
     dockRef,
   } = props;
 
   const isLg = useMediaLg();
+  const [setupId, setSetupId] = useState<string | null>(null);
+  const [checkedSetup, setCheckedSetup] = useState(false);
 
   const setDockRoot = (node: HTMLDivElement | null) => {
     dockRef?.(node);
@@ -680,6 +625,15 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
                     <button
                       type="button"
                       onClick={() => {
+                        const needsDns =
+                          (row.source || "").toLowerCase() === "manual_connect" &&
+                          !row.active;
+                        if (needsDns) {
+                          setSetupId(row.id);
+                          setCheckedSetup(false);
+                          if (tab !== "connect") onTabChange("connect");
+                          return;
+                        }
                         if (tab !== "manage") onTabChange("manage");
                         onSelect(row);
                       }}
@@ -749,9 +703,17 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
     ) : tab === "help" ? (
       <DomainHelpPanel className="h-auto min-h-0 lg:h-full" />
     ) : tab === "connect" ? (
-      <ConnectCenter
-        onConnectOpen={onConnectOpen}
-        onTabChange={onTabChange}
+      <ConnectOwnedPanel
+        rows={rows}
+        saving={connectSaving}
+        verifyingId={verifyBusyId}
+        setupId={setupId}
+        checked={checkedSetup}
+        onSetupId={setSetupId}
+        onChecked={setCheckedSetup}
+        onConnect={onConnect}
+        onVerify={onVerify}
+        onBuyInstead={() => onTabChange("buy")}
         className="h-auto min-h-0 lg:h-full"
       />
     ) : selectedRow ? (
@@ -790,11 +752,11 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
         }
       : tab === "connect"
         ? {
-            title: "Only if you already paid",
+            title: "How to connect one you own",
             steps: [
-              "You bought this domain from another company.",
-              "You can sign in there to add the DNS records we show.",
-              "After those records are saved, choose Check connection.",
+              "Enter the domain you already bought. This step does not sell you a name.",
+              "Sign in where you bought it and add the records we show. Leave nameservers and mail records alone.",
+              "Choose Check connection. When it says live, customers can open your shop there.",
             ],
           }
         : tab === "help"
@@ -915,19 +877,11 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
             team.
           </p>
         ) : tab === "connect" ? (
-          <>
-            <p className="text-[13px] leading-relaxed text-foreground">
-              Use this only if you already paid another company for the domain.
-              This step does not buy a name.
-            </p>
-            <button
-              type="button"
-              className="mt-2 text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-              onClick={() => onTabChange("buy")}
-            >
-              Buy a .ke name instead
-            </button>
-          </>
+          <p className="text-[13px] leading-relaxed text-foreground">
+            Type a domain you already paid for somewhere else. We show the DNS
+            records to add there, then you check when customers can open the
+            shop.
+          </p>
         ) : (
           <p className="text-[13px] leading-relaxed text-foreground">
             These are the addresses that open your shop. Select one to see if
