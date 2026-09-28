@@ -14040,6 +14040,11 @@ export type GatewayConfigRecord = {
   custodyProvider?: string | null;
   /** Last failed connection/rail test as JSON: { code, message, timestamp }. */
   testErrorJson?: string | null;
+  /**
+   * Daraja on the public shop: OFF, PENDING, APPROVED, or REJECTED.
+   * The till does not use this — an active method is available there immediately.
+   */
+  storefrontApproval?: string | null;
 };
 
 export type TestConnectionResult = {
@@ -14248,6 +14253,17 @@ export async function deactivateGateway(
   return request<GatewayConfigRecord>(
     `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/deactivate`,
     { method: "POST" },
+  );
+}
+
+/** Ask to show Daraja on the public shop, or pull it off. On waits for approval. */
+export async function setGatewayStorefront(
+  id: string,
+  enabled: boolean,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/storefront`,
+    { method: "POST", body: { enabled } },
   );
 }
 

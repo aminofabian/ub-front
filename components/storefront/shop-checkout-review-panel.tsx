@@ -151,20 +151,14 @@ export function ShopCheckoutReviewPanel({
       >
         <input
           type="checkbox"
-          className="mt-0.5 size-4 shrink-0 rounded border-border text-primary focus:ring-primary/10"
+          className="mt-0.5 size-4 shrink-0 rounded border-border text-primary accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           checked={termsAccepted}
           onChange={(ev) => onTermsChange(ev.target.checked)}
         />
         <span>
           I agree to the store{" "}
-          <span className="font-medium text-foreground underline underline-offset-2">
-            terms
-          </span>{" "}
-          and{" "}
-          <span className="font-medium text-foreground underline underline-offset-2">
-            privacy policy
-          </span>
-          .
+          <span className="font-medium text-foreground">terms</span> and{" "}
+          <span className="font-medium text-foreground">privacy policy</span>.
         </span>
       </label>
     </section>

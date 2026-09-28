@@ -51,6 +51,7 @@ import {
   fetchMpesaCustodyAvailability,
   type DisplayInstructionRecord,
   type MpesaCustodyAvailabilityRecord,
+  setGatewayStorefront,
   subscribeGatewayWebhookTills,
   testGatewayConnection,
   updateGatewayConfig,
@@ -70,6 +71,10 @@ import {
   isCustodyMpesaGateway,
   isManualGateway,
 } from "./_components/accept-payments-panel";
+import {
+  DarajaStorefrontToggle,
+  darajaShopGated,
+} from "./_components/daraja-storefront-toggle";
 import {
   PAYMENTS_SETTINGS_NAV,
   PaymentsSettingsTheatre,
@@ -468,7 +473,8 @@ export default function PaymentGatewaySettingsPage() {
       next.status !== prev.status ||
       next.label !== prev.label ||
       next.lastTestedAt !== prev.lastTestedAt ||
-      next.isDefault !== prev.isDefault
+      next.isDefault !== prev.isDefault ||
+      next.storefrontApproval !== prev.storefrontApproval
     ) {
       setDrawer({ kind: "manage", config: next });
     }
@@ -922,6 +928,27 @@ export default function PaymentGatewaySettingsPage() {
               </ol>
             ) : null}
 
+            {darajaShopGated(
+              manageConfig.gatewayType,
+              custodyAvailability?.provider,
+            ) ? (
+              <DarajaStorefrontToggle
+                status={manageConfig.storefrontApproval}
+                active={manageConfig.status === "ACTIVE"}
+                canWrite={canWrite}
+                busy={manageBusy}
+                onChange={(enabled) =>
+                  void runRowAction(
+                    manageConfig.id,
+                    () => setGatewayStorefront(manageConfig.id, enabled),
+                    enabled
+                      ? "Request sent. The till already takes Daraja. The shop stays off until we approve."
+                      : "Removed from the online shop. The till is unchanged.",
+                  )
+                }
+              />
+            ) : null}
+
             {(() => {
               if (isCustodyMpesaGateway(manageConfig)) return null;
               const dash = providerDashboardUrl(
@@ -1006,7 +1033,12 @@ export default function PaymentGatewaySettingsPage() {
                     void runRowAction(
                       manageConfig.id,
                       () => activateGateway(manageConfig.id),
-                      "Gateway activated.",
+                      darajaShopGated(
+                        manageConfig.gatewayType,
+                        custodyAvailability?.provider,
+                      )
+                        ? "On at the till. Cash stays the default. The shop stays off until you request it and we approve."
+                        : "Gateway activated.",
                     )
                   }
                 >
@@ -1359,7 +1391,9 @@ function CustodyManagePanel({
             )}
           >
             {availability.available
-              ? "Ready on cashier & storefront"
+              ? darajaShopGated(config.gatewayType, availability.provider)
+                ? "On at the till. Cash stays the default. The shop needs approval."
+                : "Ready on cashier & storefront"
               : availability.message ?? "Platform rail not ready"}
           </span>
         ) : null}

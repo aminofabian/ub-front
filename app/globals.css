@@ -5990,3 +5990,163 @@ html:has([data-store-theme-id="mizu-springs"]) [data-sonner-toast][data-type="su
     animation: none;
   }
 }
+
+/* ── Action buttons: tactile press + travelling light ─────────────
+   One authored motion for the checkout's primary actions. On pointer
+   enter a soft glint crosses the button once; on press the button sinks
+   a hair and an inner ring blooms outward from the tap. Hover motion is
+   gated to fine pointers (touch fires false hovers); reduced motion
+   keeps the colour change and drops the movement. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.action-tap {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    background-color 160ms ease;
+}
+
+/* The glint: a soft highlight that crosses the button once per hover. */
+.action-tap::after {
+  content: "";
+  position: absolute;
+  inset: -30% -20%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 40%,
+    color-mix(in srgb, #fff 42%, transparent) 50%,
+    transparent 60%
+  );
+  transform: translateX(-170%);
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .action-tap::after {
+    transition:
+      transform 300ms var(--ease-out),
+      opacity 220ms ease;
+  }
+  .action-tap:hover::after {
+    transform: translateX(170%);
+    opacity: 1;
+  }
+}
+
+/* The press: sink a hair, then let a ring bloom from the tap. */
+.action-tap:active {
+  transform: scale(0.97) translateY(1px);
+  transition-duration: 90ms;
+}
+
+.action-tap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .action-tap:active::before {
+    animation: action-ring 320ms var(--ease-out);
+  }
+}
+
+@keyframes action-ring {
+  from {
+    opacity: 0.8;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 65%, transparent);
+  }
+  to {
+    opacity: 0;
+    box-shadow: inset 0 0 0 14px color-mix(in srgb, #fff 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-tap,
+  .action-tap:active {
+    transform: none;
+    transition: background-color 160ms ease;
+  }
+  .action-tap::after {
+    display: none;
+  }
+  .action-tap:active::before {
+    animation: none;
+  }
+}
+
+/* ── Payment method selection: the row settles, the check stamps in ──
+   Selecting a payment option is a state change, not a flourish: the row's
+   colour eases in, the radio dot pops as the tick lands, and the panel it
+   opens eases in instead of snapping. */
+.select-option {
+  transition:
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    opacity 160ms ease;
+}
+
+.select-dot {
+  transition:
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.select-option-btn:active .select-dot {
+  transform: scale(0.88);
+}
+
+.select-option-btn[aria-pressed="true"] .select-dot {
+  animation: select-stamp 220ms var(--ease-out);
+}
+
+@keyframes select-stamp {
+  from {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.select-panel {
+  animation: select-panel-in 180ms var(--ease-out) both;
+}
+
+@keyframes select-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select-option-btn:active .select-dot {
+    transform: none;
+  }
+  .select-option-btn[aria-pressed="true"] .select-dot {
+    animation: none;
+  }
+  .select-panel {
+    animation: none;
+  }
+}

@@ -11,16 +11,19 @@ import {
   Store,
   Wallet,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
-import type {
-  TenantPaymentMethodRow,
-  TenantPaymentMethodsOverview,
+import {
+  reviewDarajaStorefront,
+  type TenantPaymentMethodRow,
+  type TenantPaymentMethodsOverview,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -35,10 +38,12 @@ type FilterId =
   | "active"
   | "inactive"
   | "till"
-  | "paybill";
+  | "paybill"
+  | "shop-pending";
 
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "shop-pending", label: "Shop requests" },
   { id: "custody", label: "Lipa / custody" },
   { id: "byo", label: "BYO keys" },
   { id: "manual", label: "Manual" },
@@ -48,17 +53,25 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: "inactive", label: "Not active" },
 ];
 
+function darajaShopRow(m: TenantPaymentMethodRow) {
+  if (m.gatewayType === "DARAJA") return true;
+  return m.gatewayType === "CUSTODY_MPESA" && m.custodyProvider === "DARAJA";
+}
+
 /**
  * Super-admin inventory of tenant payment methods — coverage pulse +
  * destination details (till / paybill / bank) without credentials.
  */
 export function TenantMethodsPanel({
   overview,
+  onReload,
 }: {
   overview: TenantPaymentMethodsOverview | null;
+  onReload?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
 
   const coveragePct = useMemo(() => {
     if (!overview || overview.totalBusinesses <= 0) return 0;
@@ -81,6 +94,12 @@ export function TenantMethodsPanel({
       }
       if (filter === "active" && m.status !== "ACTIVE") return false;
       if (filter === "inactive" && m.status === "ACTIVE") return false;
+      if (
+        filter === "shop-pending" &&
+        !(darajaShopRow(m) && (m.storefrontApproval ?? "OFF") === "PENDING")
+      ) {
+        return false;
+      }
       if (filter === "till" && m.destinationType !== "till") return false;
       if (filter === "paybill" && m.destinationType !== "paybill") return false;
       if (!q) return true;
@@ -102,6 +121,31 @@ export function TenantMethodsPanel({
     });
   }, [overview, query, filter]);
 
+  const pendingShop = useMemo(
+    () =>
+      (overview?.methods ?? []).filter(
+        (m) => darajaShopRow(m) && (m.storefrontApproval ?? "OFF") === "PENDING",
+      ).length,
+    [overview],
+  );
+
+  const review = async (configId: string, decision: "APPROVE" | "REJECT") => {
+    setReviewBusyId(configId);
+    try {
+      await reviewDarajaStorefront(configId, decision);
+      toast.success(
+        decision === "APPROVE"
+          ? "Daraja can show on that shop."
+          : "Shop request declined. The till still takes it.",
+      );
+      onReload?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update the shop request.");
+    } finally {
+      setReviewBusyId(null);
+    }
+  };
+
   if (!overview) {
     return (
       <p className={cn(dashboardHintClass(), "px-1 py-8 text-center")}>
@@ -113,6 +157,15 @@ export function TenantMethodsPanel({
   return (
     <div className="space-y-4">
       <CoveragePulse overview={overview} coveragePct={coveragePct} />
+
+      {pendingShop > 0 ? (
+        <p className="border border-[color-mix(in_srgb,#9a2e16_28%,transparent)] bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-[12px] leading-relaxed text-[#9a2e16]">
+          <span className="font-semibold tabular-nums">{pendingShop}</span>{" "}
+          {pendingShop === 1 ? "shop asked" : "shops asked"} to take Daraja on the
+          storefront. The till already accepts it, with cash as the default. Approve
+          before it appears on the shop.
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative block min-w-0 flex-1">
@@ -164,7 +217,12 @@ export function TenantMethodsPanel({
       ) : (
         <ul className={cn("@container divide-y border bg-white", HAIRLINE)}>
           {filtered.map((m) => (
-            <MethodRow key={m.configId} method={m} />
+            <MethodRow
+              key={m.configId}
+              method={m}
+              busy={reviewBusyId === m.configId}
+              onReview={(decision) => void review(m.configId, decision)}
+            />
           ))}
         </ul>
       )}
@@ -247,10 +305,20 @@ function CoveragePulse({
   );
 }
 
-function MethodRow({ method: m }: { method: TenantPaymentMethodRow }) {
+function MethodRow({
+  method: m,
+  busy,
+  onReview,
+}: {
+  method: TenantPaymentMethodRow;
+  busy: boolean;
+  onReview: (decision: "APPROVE" | "REJECT") => void;
+}) {
   const Icon = methodIcon(m);
   const kindLabel = gatewayKindLabel(m.gatewayType);
   const dest = destinationParts(m);
+  const shopStatus = (m.storefrontApproval ?? "OFF").toUpperCase();
+  const showShop = darajaShopRow(m) && m.status === "ACTIVE";
 
   return (
     <li className="flex flex-col gap-2.5 px-3 py-3 @[28rem]:flex-row @[28rem]:items-stretch @[28rem]:gap-3">
@@ -295,6 +363,36 @@ function MethodRow({ method: m }: { method: TenantPaymentMethodRow }) {
             {m.businessSlug ? ` · ${m.businessSlug}` : ""}
             {m.custodyProvider ? ` · rail ${m.custodyProvider}` : ""}
           </p>
+          {showShop ? (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Shop {shopStatus === "OFF" ? "off" : shopStatus.toLowerCase()}
+              </span>
+              {shopStatus === "PENDING" || shopStatus === "REJECTED" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 rounded-none px-2 text-[11px]"
+                  disabled={busy}
+                  onClick={() => onReview("APPROVE")}
+                >
+                  Approve shop
+                </Button>
+              ) : null}
+              {shopStatus === "PENDING" || shopStatus === "APPROVED" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 rounded-none px-2 text-[11px]"
+                  disabled={busy}
+                  onClick={() => onReview("REJECT")}
+                >
+                  {shopStatus === "APPROVED" ? "Remove from shop" : "Decline"}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           <Link
             href={`${APP_ROUTES.superAdminBusinesses}/${m.businessId}`}
             className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"

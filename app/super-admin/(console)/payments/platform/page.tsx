@@ -622,7 +622,12 @@ export default function SuperAdminPlatformPaymentsPage() {
   const theatreDrawerBody = (() => {
     switch (activeSection) {
       case "tenant-methods":
-        return <TenantMethodsPanel overview={tenantMethods} />;
+        return (
+          <TenantMethodsPanel
+            overview={tenantMethods}
+            onReload={() => void reload()}
+          />
+        );
       case "stk-pushes":
         return (
           <StkPushesPanel

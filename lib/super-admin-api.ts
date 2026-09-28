@@ -771,6 +771,8 @@ export type TenantPaymentMethodRow = {
   destinationSummary: string | null;
   custodyProvider: string | null;
   updatedAt: string | null;
+  /** OFF, PENDING, APPROVED, or REJECTED — Daraja on the public shop. */
+  storefrontApproval?: string | null;
 };
 
 export type TenantPaymentMethodsOverview = {
@@ -790,6 +792,19 @@ export type TenantPaymentMethodsOverview = {
 export async function fetchTenantPaymentMethodsOverview(): Promise<TenantPaymentMethodsOverview> {
   return saRequest<TenantPaymentMethodsOverview>(
     API_ROUTES.superAdminTenantPaymentMethods,
+  );
+}
+
+export async function reviewDarajaStorefront(
+  configId: string,
+  decision: "APPROVE" | "REJECT",
+): Promise<void> {
+  await saRequest(
+    `${API_ROUTES.superAdminTenantPaymentMethods}/${encodeURIComponent(configId)}/storefront`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision }),
+    },
   );
 }
 

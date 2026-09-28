@@ -50,18 +50,13 @@ export function CheckoutProgressSteps({
         aria-valuenow={activeStep}
         aria-label={`Checkout step ${activeStep} of ${STEPS.length}: ${step.label}`}
       >
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[11px] font-semibold text-foreground">
-            Step {activeStep} of {STEPS.length}
-            <span className="font-normal text-muted-foreground">
-              {" "}
-              · {step.label}
-            </span>
-          </p>
-          <span className="shrink-0 text-[10px] font-bold tabular-nums text-primary/80">
-            {pct}%
+        <p className="text-[11px] font-semibold text-foreground">
+          Step {activeStep} of {STEPS.length}
+          <span className="font-normal text-muted-foreground">
+            {" "}
+            · {step.label}
           </span>
-        </div>
+        </p>
         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/60">
           <div
             className="h-full rounded-full bg-linear-to-r from-primary/80 to-primary transition-[width] duration-300 ease-out"
