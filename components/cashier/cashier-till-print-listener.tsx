@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
-import { getSessionTokens } from "@/lib/auth";
+import { hasAccessSession } from "@/lib/auth";
 import { fetchPendingTillPrints, type BranchRecord } from "@/lib/api";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
@@ -59,11 +59,14 @@ function notificationType(data: Record<string, unknown>): string {
 /**
  * Remote slips from Order / Receive.
  * Chimes on this till, then prints on the same receipt printer Sell uses.
- * Polling covers a till whose live socket is on another server.
+ * The till session is the httpOnly cookie, so this must poll even when no
+ * access token is kept in memory. Polling also covers a till whose live
+ * socket is connected to a different API server than the order desk.
  */
 export function CashierTillPrintListener() {
   const dash = useOptionalDashboard();
   const userId = dash?.me?.id?.trim() ?? "";
+  const signedIn = hasAccessSession() || Boolean(userId);
   const printerRef = useRef<LocalReceiptPrinterTarget | null>(null);
   printerRef.current = printerForTill(
     dash?.branches,
@@ -72,7 +75,7 @@ export function CashierTillPrintListener() {
   );
 
   useEffect(() => {
-    if (!userId || !getSessionTokens()) return;
+    if (!signedIn) return;
 
     let cancelled = false;
 
@@ -131,7 +134,7 @@ export function CashierTillPrintListener() {
       window.clearInterval(timer);
       unregister();
     };
-  }, [userId]);
+  }, [signedIn]);
 
   return null;
 }
