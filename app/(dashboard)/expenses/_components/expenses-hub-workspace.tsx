@@ -33,7 +33,6 @@ import {
   fetchExpenseSchedules,
   fetchFinanceExpensesRange,
   fetchFinancePL,
-  fetchFinancePLDaily,
   fetchPayrollPeriodPayslips,
   fetchPayrollRun,
   fetchPendingDrawouts,
@@ -47,7 +46,6 @@ import {
   skipExpenseScheduleOccurrence,
   skipExpenseScheduleOccurrenceByDate,
   type DrawoutRecord,
-  type DailyProfitPoint,
   type ExpenseScheduleOccurrenceRecord,
   type ExpenseScheduleRecord,
   type FinanceExpenseResponse,
@@ -68,7 +66,6 @@ import {
 } from "@/lib/business-hub/drawouts-for-hub";
 import { APP_ROUTES } from "@/lib/config";
 import {
-  expensesHubDailyRange,
   expensesHubPresetRange,
   moneyNumber,
   monthsOverlappingRange,
@@ -166,7 +163,6 @@ export function ExpensesHubWorkspace() {
   const [page, setPage] = useState(0);
 
   const [pl, setPl] = useState<ProfitAndLossResponse | null>(null);
-  const [dailyPl, setDailyPl] = useState<DailyProfitPoint[]>([]);
   const [expenses, setExpenses] = useState<FinanceExpenseResponse[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<
     FinanceExpenseResponse[]
@@ -235,7 +231,7 @@ export function ExpensesHubWorkspace() {
       const year = Number(from.slice(0, 4));
       const month = Number(from.slice(5, 7));
 
-      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle, dailyRes] =
+      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle] =
         await Promise.all([
         canReadFinanceReports
           ? fetchFinancePL(from, to, branch).catch((err) => {
@@ -292,17 +288,9 @@ export function ExpensesHubWorkspace() {
               pending: [] as HubDrawout[],
               cashOuts: [] as CloseCashOut[],
             }),
-        canReadFinanceReports
-          ? fetchFinancePLDaily(
-              expensesHubDailyRange(from, to).from,
-              expensesHubDailyRange(from, to).to,
-              branch,
-            ).catch(() => [] as DailyProfitPoint[])
-          : Promise.resolve([] as DailyProfitPoint[]),
       ]);
 
       setPl(plRes);
-      setDailyPl(Array.isArray(dailyRes) ? dailyRes : []);
       if (listRes) {
         setExpenses(listRes.expenses);
         setTotalCount(listRes.totalCount);
@@ -323,7 +311,6 @@ export function ExpensesHubWorkspace() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
       setPl(null);
-      setDailyPl([]);
       setExpenses([]);
       setOccurrences([]);
       setUnpostedPayroll(null);
@@ -437,42 +424,6 @@ export function ExpensesHubWorkspace() {
     return ids;
   }, [expenses]);
 
-  // Daily net-profit strip.
-  const dailySeries = useMemo(
-    () =>
-      dailyPl.map((d) => ({
-        date: d.date,
-        net: moneyNumber(d.netOperating),
-        hasActivity: d.hasActivity !== false,
-      })),
-    [dailyPl],
-  );
-  const activeDays = useMemo(
-    () => dailySeries.filter((d) => d.hasActivity),
-    [dailySeries],
-  );
-  const dailyMax = useMemo(
-    () => activeDays.reduce((m, d) => Math.max(m, Math.abs(d.net)), 1),
-    [activeDays],
-  );
-  const dailyNetTotal = useMemo(
-    () => dailySeries.reduce((s, d) => s + d.net, 0),
-    [dailySeries],
-  );
-  const bestDay = useMemo(
-    () =>
-      activeDays.length
-        ? activeDays.reduce((a, b) => (b.net > a.net ? b : a))
-        : null,
-    [activeDays],
-  );
-  const worstDay = useMemo(
-    () =>
-      activeDays.length
-        ? activeDays.reduce((a, b) => (b.net < a.net ? b : a))
-        : null,
-    [activeDays],
-  );
   const recentDrawouts = useMemo(
     () => periodDrawouts.filter((d) => isActiveDrawoutStatus(d.status)).slice(0, 8),
     [periodDrawouts],
@@ -792,7 +743,10 @@ export function ExpensesHubWorkspace() {
 
   return (
     <div
-      className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "gap-1.5 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,#f7f5f1)]",
+      )}
       style={
         {
           "--pos-primary": brandPrimary,
@@ -808,22 +762,11 @@ export function ExpensesHubWorkspace() {
             : `${shopName} · sales, bills, and what’s left.`
         }
       >
-        {canPocket ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 shadow-none"
-            onClick={() => setProfitPocketOpen(true)}
-          >
-            Pocket
-          </Button>
-        ) : null}
         {canWriteFinanceExpenses ? (
           <Button
             type="button"
             size="sm"
-            className="h-8 gap-1.5 shadow-none"
+            className="h-8 gap-1.5 rounded-none shadow-none"
             onClick={() => {
               setSeedPresetId(null);
               setAddOpen(true);
@@ -837,7 +780,7 @@ export function ExpensesHubWorkspace() {
           type="button"
           size="icon"
           variant="outline"
-          className="size-8 shadow-none"
+          className="size-8 rounded-none shadow-none"
           onClick={() => bump()}
           aria-label="Refresh"
         >
@@ -854,12 +797,16 @@ export function ExpensesHubWorkspace() {
 
       <section
         className={cn(
-          "flex flex-wrap items-center gap-2 border bg-white px-2.5 py-2",
+          "flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border bg-white px-2.5 py-2",
           HAIRLINE,
         )}
       >
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex flex-wrap gap-1">
+          <div
+            className="flex flex-wrap gap-0.5"
+            role="group"
+            aria-label="Period"
+          >
             {(
               [
                 ["all", "All"],
@@ -873,12 +820,12 @@ export function ExpensesHubWorkspace() {
                 key={key}
                 type="button"
                 size="sm"
-                variant={preset === key ? "default" : "outline"}
+                variant={preset === key ? "default" : "ghost"}
                 className={cn(
                   "h-8 rounded-none px-2.5 text-[12px] font-semibold shadow-none",
                   preset === key
-                    ? "border-0 bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
-                    : OUTLINE_BTN,
+                    ? "border-0 bg-[var(--order-ink,#15231f)] text-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,black)]"
+                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)] hover:text-[var(--order-ink,#15231f)]",
                 )}
                 onClick={() => applyPreset(key)}
               >
@@ -929,40 +876,43 @@ export function ExpensesHubWorkspace() {
             ))}
           </select>
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
+        <nav
+          aria-label="Related finance"
+          className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]"
+        >
           <Link
             href={APP_ROUTES.fixedCosts}
-            className="underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
           >
             Fixed costs
           </Link>
           <Link
             href={APP_ROUTES.payroll}
-            className="underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
           >
             Payroll
           </Link>
           <Link
             href={APP_ROUTES.purchasingApAging}
-            className="underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
           >
             Supplier bills
           </Link>
           <Link
             href={APP_ROUTES.paymentsDayLedger}
-            className="underline-offset-2 hover:underline"
+            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
           >
             Today&apos;s takings
           </Link>
           {canViewShifts ? (
             <Link
               href={APP_ROUTES.shifts}
-              className="underline-offset-2 hover:underline"
+              className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
             >
-              Shifts &amp; drawouts
+              Shifts
             </Link>
           ) : null}
-        </div>
+        </nav>
       </section>
 
       {loading ? (
@@ -975,9 +925,14 @@ export function ExpensesHubWorkspace() {
         />
       ) : (
         <div className="grid items-start gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,22rem)]">
-          <div className="order-2 flex min-w-0 flex-col gap-1.5 lg:max-h-[min(78dvh,52rem)] lg:overflow-y-auto">
+          <div className="order-2 flex min-w-0 flex-col gap-1.5 lg:max-h-[min(78dvh,52rem)] lg:overflow-y-auto lg:pr-0.5">
           {canReadFinanceReports && pl ? (
-            <ProfitStatement pl={pl} periodLabel={periodLabel} />
+            <ProfitStatement
+              pl={pl}
+              periodLabel={periodLabel}
+              canPocket={canPocket}
+              onPocket={() => setProfitPocketOpen(true)}
+            />
           ) : canReadFinanceReports ? (
             <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
               No P&amp;L data for this period.
@@ -991,87 +946,6 @@ export function ExpensesHubWorkspace() {
                 {formatFixedCostMoney(otherAdjustments)}
               </span>
             </p>
-          ) : null}
-
-          {canReadFinanceReports && dailySeries.length > 0 ? (
-            <section
-              className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
-                HAIRLINE,
-              )}
-            >
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="max-w-xl">
-                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                    Daily net profit
-                    {preset === "all" ? " · last 31 days" : ""}
-                  </h2>
-                  <p className={cn("mt-1", dashboardHintClass())}>
-                    Sales minus stock cost and the bills paid, per day. Tap a day
-                    to filter this page to it.
-                  </p>
-                </div>
-                <p className="text-[15px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                  Net{" "}
-                  <span
-                    className={dailyNetTotal < 0 ? "text-[#9a2e16]" : undefined}
-                  >
-                    {formatFixedCostMoney(dailyNetTotal)}
-                  </span>
-                </p>
-              </div>
-              <div className="flex items-end gap-1 overflow-x-auto pb-1">
-                {dailySeries.map((d) => {
-                  const height = d.hasActivity
-                    ? Math.max(4, Math.round((Math.abs(d.net) / dailyMax) * 64))
-                    : 2;
-                  const active = from === d.date && to === d.date;
-                  return (
-                    <button
-                      key={d.date}
-                      type="button"
-                      title={
-                        d.hasActivity
-                          ? `${formatFixedCostDate(d.date)} · ${formatFixedCostMoney(d.net)}`
-                          : `${formatFixedCostDate(d.date)} · no sales recorded`
-                      }
-                      aria-label={`${d.date} net ${formatFixedCostMoney(d.net)}`}
-                      onClick={() => {
-                        setPreset("custom");
-                        setFrom(d.date);
-                        setTo(d.date);
-                        setPage(0);
-                      }}
-                      className={cn(
-                        "flex h-[72px] min-w-[12px] flex-1 flex-col justify-end rounded-none",
-                        active && "ring-1 ring-[var(--order-ink,#15231f)]",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "w-full rounded-none",
-                          !d.hasActivity
-                            ? "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
-                            : d.net < 0
-                              ? "bg-[#9a2e16]"
-                              : "bg-[var(--pos-primary,#0f766e)]",
-                        )}
-                        style={{ height: `${height}px` }}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-              {bestDay && worstDay ? (
-                <p className={dashboardHintClass()}>
-                  {activeDays.length} active days · best{" "}
-                  {formatFixedCostDate(bestDay.date)}{" "}
-                  {formatFixedCostMoney(bestDay.net)} · lowest{" "}
-                  {formatFixedCostDate(worstDay.date)}{" "}
-                  {formatFixedCostMoney(worstDay.net)}
-                </p>
-              ) : null}
-            </section>
           ) : null}
 
           {unpostedPayroll && unpostedPayroll.count > 0 ? (
@@ -1171,27 +1045,24 @@ export function ExpensesHubWorkspace() {
           {canViewPayroll ? (
             <section
               className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                "space-y-2 border border-x-0 bg-white p-3 sm:border-x sm:p-3.5",
                 HAIRLINE,
               )}
             >
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div className="max-w-xl">
-                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                    Salaries
-                  </h2>
-                  <p className={cn("mt-1", dashboardHintClass())}>
-                    Monthly wages from payroll. A paid run that posts an expense
-                    reduces net profit. Change the amount on payroll.
-                  </p>
-                </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  Salaries
+                </h2>
                 <Link
                   href={APP_ROUTES.payroll}
-                  className="text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                  className="text-[12px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
                 >
                   Open payroll
                 </Link>
               </div>
+              <p className={dashboardHintClass()}>
+                Monthly wages. Paid runs that post an expense reduce net.
+              </p>
               {salaryLines.length > 0 ? (
                 <ul
                   className={cn(
@@ -1241,18 +1112,16 @@ export function ExpensesHubWorkspace() {
           {canReadFinanceExpenses ? (
             <section
               className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
+                "space-y-2 border border-x-0 bg-white p-3 sm:border-x sm:p-3.5",
                 HAIRLINE,
               )}
             >
               <div className="max-w-xl">
-                <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
                   Regular costs
                 </h2>
-                <p className={cn("mt-1", dashboardHintClass())}>
-                  Rent, electricity, and water. A repeating bill posts each
-                  period and reduces net profit. Record once when it is a
-                  single payment.
+                <p className={cn("mt-0.5", dashboardHintClass())}>
+                  Rent, power, water — repeating or one payment.
                 </p>
               </div>
               {activeSchedules.length > 0 ? (
@@ -1836,20 +1705,25 @@ export function ExpensesHubWorkspace() {
 
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
                 {expenses.length === 0 ? (
-                  <li
-                    className={cn(
-                      "px-3 py-10 text-center text-sm",
-                      dashboardHintClass(),
-                    )}
-                  >
-                    No expenses in this range.
+                  <li className="px-3 py-12 text-center">
+                    <p className="text-[14px] font-semibold text-[var(--order-ink,#15231f)]">
+                      No expenses in this range
+                    </p>
+                    <p className={cn("mx-auto mt-1 max-w-[16rem]", dashboardHintClass())}>
+                      {canWriteFinanceExpenses
+                        ? "Add a bill, or switch the period above to see older ones."
+                        : "Switch the period above, or ask someone with expense access to add a bill."}
+                    </p>
                   </li>
                 ) : (
                   expenses.map((e) => (
-                    <li key={e.id} className="bg-white px-2.5 py-2.5 sm:px-3">
+                    <li
+                      key={e.id}
+                      className="bg-white px-2.5 py-2.5 transition-colors duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] sm:px-3"
+                    >
                       <div className="flex items-center gap-2.5">
                         <span
-                          className="grid size-7 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[10px] font-bold uppercase tracking-wide text-muted-foreground"
+                          className="grid size-7 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[10px] font-bold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]"
                           aria-hidden
                         >
                           {(e.name || "?").slice(0, 1)}
@@ -1858,7 +1732,7 @@ export function ExpensesHubWorkspace() {
                           <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--order-ink,#15231f)]">
                             {e.name}
                           </p>
-                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                          <p className="mt-0.5 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
                             <span className="font-semibold text-[var(--order-ink,#15231f)]">
                               {expenseCadenceLabel(e, schedules)}
                             </span>
@@ -1879,14 +1753,14 @@ export function ExpensesHubWorkspace() {
                             <p className="mt-1 flex justify-end gap-3 text-[12px] font-semibold">
                               <button
                                 type="button"
-                                className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                                className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--order-ink,#15231f)]"
                                 onClick={() => setEditExpense(e)}
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
-                                className="text-[#9a2e16] underline-offset-2 hover:underline"
+                                className="text-[#9a2e16] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9a2e16]"
                                 onClick={() => void removeExpense(e)}
                               >
                                 Remove
@@ -2039,21 +1913,30 @@ function triggerCsvDownload(filename: string, content: string) {
 function ProfitStatement({
   pl,
   periodLabel,
+  canPocket,
+  onPocket,
 }: {
   pl: ProfitAndLossResponse;
   periodLabel: string;
+  canPocket?: boolean;
+  onPocket?: () => void;
 }) {
+  const net = moneyNumber(pl.netOperating);
   const rows = [
     { mark: "", label: "Sales", value: pl.revenue, net: false },
     { mark: "−", label: "Cost of goods", value: pl.cogs, net: false },
     { mark: "=", label: "Gross profit", value: pl.grossProfit, net: false },
     { mark: "−", label: "Operating expenses", value: pl.operatingExpenses, net: false },
-    { mark: "=", label: "Net operating profit", value: pl.netOperating, net: true },
   ] as const;
 
   return (
     <section className={cn("border border-x-0 bg-white sm:border-x", HAIRLINE)}>
-      <p className={cn("px-3 pt-3 sm:px-4", dashboardHintClass())}>{periodLabel}</p>
+      <div className="flex items-baseline justify-between gap-3 px-3 pt-3 sm:px-4">
+        <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          Profit
+        </h2>
+        <p className={dashboardHintClass()}>{periodLabel}</p>
+      </div>
       <dl>
         {rows.map((row) => {
           const n = moneyNumber(row.value);
@@ -2061,19 +1944,13 @@ function ProfitStatement({
             <div
               key={row.label}
               className={cn(
-                "flex items-baseline justify-between gap-4 border-t px-3 py-2.5 sm:px-4",
+                "flex items-baseline justify-between gap-4 border-t px-3 py-2 sm:px-4",
                 HAIRLINE,
-                row.net && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
               )}
             >
-              <dt
-                className={cn(
-                  "text-[13px] text-[var(--order-ink,#15231f)]",
-                  row.net && "text-base font-semibold",
-                )}
-              >
+              <dt className="text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_72%,transparent)]">
                 {row.mark ? (
-                  <span className="mr-2 inline-block w-3 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                  <span className="mr-2 inline-block w-3 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
                     {row.mark}
                   </span>
                 ) : (
@@ -2083,8 +1960,7 @@ function ProfitStatement({
               </dt>
               <dd
                 className={cn(
-                  "tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
-                  row.net ? "text-xl font-semibold" : "text-[15px] font-semibold",
+                  "text-[14px] font-semibold tabular-nums tracking-tight text-[var(--order-ink,#15231f)]",
                   n < 0 && "text-[#9a2e16]",
                 )}
               >
@@ -2093,6 +1969,49 @@ function ProfitStatement({
             </div>
           );
         })}
+        <div
+          className={cn(
+            "flex flex-col gap-2.5 border-t px-3 py-3 sm:px-4",
+            HAIRLINE,
+            "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3.5%,white)]",
+          )}
+        >
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              <span className="mr-2 inline-block w-3 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                =
+              </span>
+              Net operating profit
+            </dt>
+            <dd
+              className={cn(
+                "text-[20px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--order-ink,#15231f)]",
+                net < 0 && "text-[#9a2e16]",
+              )}
+            >
+              {formatFixedCostMoney(net)}
+            </dd>
+          </div>
+          {canPocket && onPocket ? (
+            <button
+              type="button"
+              onClick={onPocket}
+              className="group flex w-full items-center justify-between gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white px-3 py-2.5 text-left transition-[border-color,background-color] duration-150 ease-out hover:border-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--order-ink,#15231f)]"
+            >
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  Pocket net profit
+                </span>
+                <span className="mt-0.5 block text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+                  Take cash from this period — books stay the same
+                </span>
+              </span>
+              <span className="shrink-0 text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] transition-transform duration-150 ease-out group-hover:translate-x-0.5">
+                {formatFixedCostMoney(net)} →
+              </span>
+            </button>
+          ) : null}
+        </div>
       </dl>
     </section>
   );
