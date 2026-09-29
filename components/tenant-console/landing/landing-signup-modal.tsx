@@ -58,7 +58,7 @@ type LandingSignupModalProps = {
 type SignupStep = 1 | 2;
 
 const landingInputClass =
-  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#8A8782] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
+  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#6E6B66] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
 
 export function LandingSignupModal({
   open,
@@ -338,7 +338,7 @@ export function LandingSignupModal({
       <DialogContent
         className={cn(
           "landing-page max-h-[min(92dvh,760px)] w-[calc(100vw-2rem)] max-w-lg gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none",
-          "[&>button]:right-4 [&>button]:top-4 [&>button]:size-9 [&>button]:rounded-full [&>button]:border [&>button]:border-[rgba(20,20,18,0.1)] [&>button]:bg-white [&>button]:text-[#6B6863] [&>button]:shadow-sm",
+          "[&>button]:right-4 [&>button]:top-4 [&>button]:size-11 [&>button]:rounded-full [&>button]:border [&>button]:border-[rgba(20,20,18,0.1)] [&>button]:bg-white [&>button]:text-[#6B6863] [&>button]:shadow-sm",
           "[&>button]:hover:bg-[#F6F5F2] [&>button]:hover:text-[#141412]",
         )}
         overlayClassName="bg-[rgba(20,20,18,0.62)] backdrop-blur-[3px]"
@@ -398,7 +398,6 @@ export function LandingSignupModal({
                     }}
                     onCountryCodeChange={setCountryCode}
                     onSubmit={onStep1Submit}
-                    onBack={() => onOpenChange(false)}
                   />
                 </div>
               </>
@@ -467,7 +466,7 @@ export function LandingSignupModal({
                   </form>
                   <div className="flex flex-col gap-2 text-center text-sm">
                     {resendCooldown.coolingDown ? (
-                      <p className="text-[#8A8782]">
+                      <p className="text-[#6E6B66]">
                         Resend in {resendCooldown.remaining}s
                       </p>
                     ) : (
@@ -482,7 +481,7 @@ export function LandingSignupModal({
                     )}
                     <a
                       href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
-                      className="text-[#8A8782] underline-offset-2 hover:text-[#5F5D58] hover:underline"
+                      className="text-[#6E6B66] underline-offset-2 hover:text-[#5F5D58] hover:underline"
                     >
                       Open full verification page
                     </a>
@@ -586,7 +585,7 @@ export function LandingSignupModal({
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#8A8782] transition hover:bg-[rgba(20,20,18,0.04)] hover:text-[#141412]"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#6E6B66] transition hover:bg-[rgba(20,20,18,0.04)] hover:text-[#141412]"
                         onClick={() => setShowPassword((s) => !s)}
                         aria-label={
                           showPassword ? "Hide password" : "Show password"
@@ -599,7 +598,7 @@ export function LandingSignupModal({
                         )}
                       </button>
                     </div>
-                    <p className="mt-1.5 text-xs text-[#8A8782]">
+                    <p className="mt-1.5 text-xs text-[#6E6B66]">
                       At least 8 characters.
                     </p>
                   </div>
@@ -615,7 +614,7 @@ export function LandingSignupModal({
 
                 <button
                   type="button"
-                  className="mt-5 w-full text-center text-sm text-[#8A8782] transition-colors hover:text-[#5F5D58]"
+                  className="mt-5 w-full text-center text-sm text-[#6E6B66] transition-colors hover:text-[#5F5D58]"
                   onClick={() => {
                     resetToFreshSignup();
                   }}
@@ -634,7 +633,7 @@ export function LandingSignupModal({
                         >
                           Open verification page
                         </a>
-                        <p className="text-center text-sm text-[#8A8782]">
+                        <p className="text-center text-sm text-[#6E6B66]">
                           Already verified?{" "}
                           <a
                             href={`${APP_ROUTES.staffLogin}?mode=office&email=${encodeURIComponent(email.trim())}&next=${encodeURIComponent(APP_ROUTES.business)}`}

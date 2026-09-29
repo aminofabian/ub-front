@@ -499,7 +499,7 @@ export function LandingNav({
                 className="landing-nav-ticket landing-nav-ticket--ghost landing-nav-ticket--desktop"
                 onClick={onGoogleSignIn}
               >
-                Google
+                Sign in with Google
               </button>
             ) : null}
             <Link

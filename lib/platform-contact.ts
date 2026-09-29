@@ -1,5 +1,6 @@
 /** Public Kiosk platform contact — POS setup, billing, and merchant support. */
 export const KIOSK_PLATFORM_CONTACT = {
+  legalName: "Kiosk Technologies Ltd",
   phoneDisplay: "0714 282 874",
   phoneRaw: "0714282874",
   phoneTel: "+254714282874",
