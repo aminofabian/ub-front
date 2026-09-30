@@ -1363,9 +1363,9 @@ function CustodyManagePanel({
           {destination}
         </p>
         <p className="mt-2 text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-          Lipa Na M-Pesa Express to this Buy Goods till (PIN only). Party B =
-          till under Kiosk&apos;s Head Office. No B2B. Bank paybills cannot use
-          this lane.
+          Customers pay by M-Pesa PIN straight to this Buy Goods till. The till
+          must sit under Kiosk&apos;s Head Office; bank paybills cannot use this
+          lane.
         </p>
       </div>
 

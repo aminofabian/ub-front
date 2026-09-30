@@ -272,10 +272,8 @@ function sortAttentionRows(list: StockRow[]): StockRow[] {
 }
 
 function displayItemName(item: ItemSummaryRecord): string {
-  const base = item.name?.trim() || item.sku?.trim() || "Unnamed item";
-  const suffix = item.size?.trim() || item.variantName?.trim();
-  // name is often already family+option from the API; join without repeating.
-  return joinProductNameParts(base, suffix) || base;
+  // API `name` is already ProductDisplayName.forVariant — do not re-join with variant/size.
+  return item.name?.trim() || item.sku?.trim() || "Unnamed item";
 }
 
 function familyNameFromItem(item: ItemSummaryRecord): string | null {
