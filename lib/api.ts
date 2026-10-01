@@ -14144,7 +14144,7 @@ export type CustodyReceiveTestRecord = {
   destinationSummary: string;
 };
 
-/** Save till/paybill destination and send a KES 1 STK receive test. */
+/** Save till/paybill destination and send a receive-test STK (KES 1 unless an amount is given). */
 export async function runCustodyReceiveTest(
   body: CustodyReceiveTestRequest,
 ): Promise<CustodyReceiveTestRecord> {

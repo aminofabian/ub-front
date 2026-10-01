@@ -102,7 +102,7 @@ const DEST_OPTIONS: {
 
 /**
  * Guided Lipa Na M-Pesa receive setup: pick till / paybill / bank,
- * send KES 1 STK, confirm cash arrived. Shared by onboarding + Business hub.
+ * send a test STK (default KES 1), confirm cash arrived. Shared by onboarding + Business hub.
  */
 export function ReceiveMpesaFlow({
   ownerPhone = "",
@@ -150,6 +150,7 @@ export function ReceiveMpesaFlow({
   const [testResult, setTestResult] = useState<CustodyReceiveTestRecord | null>(
     null,
   );
+  const [testAmount, setTestAmount] = useState("1");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -356,6 +357,12 @@ export function ReceiveMpesaFlow({
             : undefined
         : initial?.label;
 
+    const amount = Math.round(Number(testAmount));
+    if (!Number.isFinite(amount) || amount < 1 || amount > 500) {
+      setError("Enter a test amount between KES 1 and KES 500.");
+      return;
+    }
+
     setPhase("sending");
     try {
       const result = await runCustodyReceiveTest({
@@ -365,7 +372,7 @@ export function ReceiveMpesaFlow({
         accountNumber: kind === "till" ? undefined : accountNumber.trim(),
         label,
         phoneNumber: msisdn,
-        amount: 1,
+        amount,
       });
       setTestResult(result);
       if (!result.accepted || !result.checkoutRequestId) {
@@ -456,8 +463,8 @@ export function ReceiveMpesaFlow({
         }
       : phase === "confirm"
         ? {
-            title: "Did you get the KES 1?",
-            description: `Look for KES 1 on ${testResult?.destinationSummary ?? "the till or account you just set"}.`,
+            title: "Did you get the test payment?",
+            description: `Look for KES ${testResult?.amount ?? testAmount} on ${testResult?.destinationSummary ?? "the till or account you just set"}.`,
           }
         : phase === "done"
           ? {
@@ -469,13 +476,13 @@ export function ReceiveMpesaFlow({
             ? {
                 title: "Change where customers pay",
                 description:
-                  "Pick a till, paybill, or bank — then we’ll send KES 1 to check it.",
+                  "Pick a till, paybill, or bank — then we’ll send a test payment to check it.",
               }
             : mode === "setup"
               ? {
                   title: "Where should customers pay you?",
                   description:
-                    "Choose a till, paybill, or bank. We’ll send KES 1 so you know it works.",
+                    "Choose a till, paybill, or bank. We’ll send a test payment so you know it works.",
                 }
               : {
                   title: "Where should customers pay you?",
@@ -686,7 +693,18 @@ export function ReceiveMpesaFlow({
               ) : null}
 
               <Field
-                label="Your phone (for a KES 1 test)"
+                label="Test amount (KES)"
+                value={testAmount}
+                onChange={(v) => setTestAmount(v.replace(/[^\d]/g, ""))}
+                placeholder="1"
+                inputMode="numeric"
+                inputClass={inputClass}
+                labelClass={labelClass}
+                hint="How much to charge in the test prompt — KES 1 to 500."
+              />
+
+              <Field
+                label="Your phone (for the test)"
                 value={phone}
                 onChange={setPhone}
                 placeholder="07XX XXX XXX"
@@ -760,8 +778,8 @@ export function ReceiveMpesaFlow({
               )}
             >
               {testResult?.destinationSummary
-                ? `KES 1 → ${testResult.destinationSummary}`
-                : "KES 1 test payment"}
+                ? `KES ${testResult?.amount ?? testAmount} → ${testResult?.destinationSummary}`
+                : `KES ${testAmount} test payment`}
             </p>
           </div>
         </div>
@@ -784,7 +802,7 @@ export function ReceiveMpesaFlow({
             type="button"
             onClick={() => {
               setError(
-                "We saved your details, but the KES 1 didn’t show up. Try a till number, or change this later from Business.",
+                "We saved your details, but the test payment didn’t show up. Try a till number, or change this later from Business.",
               );
               setPhase("failed");
             }}
@@ -855,7 +873,7 @@ export function ReceiveMpesaFlow({
               onClick={() => void sendTest()}
               className={ctaPrimary}
             >
-              Save and test with KES 1
+              Save and test with KES {testAmount || "1"}
             </button>
           ) : kind ? (
             <p
