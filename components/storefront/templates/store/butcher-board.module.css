@@ -32,6 +32,13 @@
   min-height: 100%;
 }
 
+.pdp.body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  flex: 1 1 auto;
+}
+
 .root :focus-visible {
   outline: 3px solid var(--bb-gold);
   outline-offset: 3px;
@@ -617,7 +624,21 @@
 /* ---------- product detail ---------- */
 
 .pdp {
-  background: transparent;
+  /* Must not use `background:` shorthand — it would wipe .root's void + sky. */
+  min-height: 100%;
+  flex: 1;
+  background-color: var(--bb-void);
+  background-image:
+    linear-gradient(
+      180deg,
+      rgb(12 7 8 / 0.28) 0%,
+      rgb(12 7 8 / 0.08) 38%,
+      rgb(12 7 8 / 0.55) 100%
+    ),
+    url("/themes/butcher-board/sky.png");
+  background-size: cover;
+  background-position: center 28%;
+  background-attachment: scroll;
 }
 
 .pdpWrap {
