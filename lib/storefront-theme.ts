@@ -10,7 +10,7 @@ import {
   resolveStorefrontDesign,
   type StorefrontDesign,
 } from "@/lib/storefront-design";
-import { storefrontFontPairing } from "@/lib/storefront-fonts";
+import { storefrontFontPairingCssStacks } from "@/lib/storefront-font-pairings-meta";
 
 /** Label on solid primary buttons (always white per storefront UX). */
 export const STOREFRONT_ON_PRIMARY = "#ffffff";
@@ -153,10 +153,10 @@ export function buildStorefrontThemeVars(
     vars["--sf-line-strong"] = tokens.lineStrong;
   }
 
-  const pairing = storefrontFontPairing(resolved.fontPairingId);
-  if (pairing.id !== "default" && pairing.display && pairing.body) {
-    vars["--sf-font-display"] = pairing.display.style.fontFamily;
-    vars["--sf-font-body"] = pairing.body.style.fontFamily;
+  const stacks = storefrontFontPairingCssStacks(resolved.fontPairingId);
+  if (stacks) {
+    vars["--sf-font-display"] = stacks.display;
+    vars["--sf-font-body"] = stacks.body;
   }
 
   vars["--sf-card-radius"] = STOREFRONT_RADIUS_TOKENS[resolved.radius].card;

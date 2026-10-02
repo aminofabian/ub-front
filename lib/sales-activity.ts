@@ -9,14 +9,17 @@ export async function fetchMergedSalesActivity(
   from: string,
   to: string,
   branchId: string | undefined,
-  options: { includeOnlineStore: boolean },
+  options: { includeOnlineStore: boolean; itemTypeId?: string },
 ): Promise<RecentSaleRow[]> {
   const branch = branchId?.trim() || undefined;
+  const itemTypeId = options.itemTypeId?.trim() || undefined;
 
   const [posRows, webRows] = await Promise.all([
-    fetchRecentSales(from, to, branch),
+    fetchRecentSales(from, to, branch, itemTypeId),
     options.includeOnlineStore
-      ? fetchRecentWebOrderLines(from, to, branch).catch(() => [] as RecentSaleRow[])
+      ? fetchRecentWebOrderLines(from, to, branch, itemTypeId).catch(
+          () => [] as RecentSaleRow[],
+        )
       : Promise.resolve([] as RecentSaleRow[]),
   ]);
 

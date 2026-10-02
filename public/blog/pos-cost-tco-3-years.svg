@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Cost it over three years — not one invoice</text>
+
+  <!-- Card -->
+  <rect x="16" y="60" width="928" height="400" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="48" y="100" font-size="11" font-weight="700" fill="#1F2937">Cost line</text>
+  <text x="430" y="100" font-size="11" font-weight="700" fill="#1F2937">Type</text>
+  <text x="700" y="100" font-size="11" font-weight="700" fill="#6b7280" text-anchor="middle">Year 1</text>
+  <text x="792" y="100" font-size="11" font-weight="700" fill="#6b7280" text-anchor="middle">Year 2</text>
+  <text x="884" y="100" font-size="11" font-weight="700" fill="#6b7280" text-anchor="middle">Year 3</text>
+  <line x1="40" y1="116" x2="920" y2="116" stroke="#e5e7eb"/>
+
+  <!-- ===== Row 1: Hardware (one-off) ===== -->
+  <rect x="40" y="130" width="880" height="36" rx="8" fill="#f9fafb"/>
+  <rect x="40" y="130" width="4" height="36" rx="2" fill="#2563eb"/>
+  <text x="60" y="152" font-size="10.5" fill="#374151">Hardware (scanner, printer)</text>
+  <text x="430" y="152" font-size="9.5" fill="#6b7280">One-off</text>
+  <circle cx="700" cy="147" r="9" fill="#2563eb"/>
+  <text x="792" y="152" font-size="16" fill="#d1d5db" text-anchor="middle">–</text>
+  <text x="884" y="152" font-size="16" fill="#d1d5db" text-anchor="middle">–</text>
+
+  <!-- ===== Row 2: Setup & training (one-off) ===== -->
+  <rect x="40" y="178" width="880" height="36" rx="8" fill="#ffffff"/>
+  <rect x="40" y="178" width="4" height="36" rx="2" fill="#2563eb"/>
+  <text x="60" y="200" font-size="10.5" fill="#374151">Setup &amp; staff training</text>
+  <text x="430" y="200" font-size="9.5" fill="#6b7280">One-off</text>
+  <circle cx="700" cy="195" r="9" fill="#2563eb"/>
+  <text x="792" y="200" font-size="16" fill="#d1d5db" text-anchor="middle">–</text>
+  <text x="884" y="200" font-size="16" fill="#d1d5db" text-anchor="middle">–</text>
+
+  <!-- ===== Row 3: Software plan (recurring) ===== -->
+  <rect x="40" y="226" width="880" height="36" rx="8" fill="#f9fafb"/>
+  <rect x="40" y="226" width="4" height="36" rx="2" fill="#A8842C"/>
+  <text x="60" y="248" font-size="10.5" fill="#374151">Software plan</text>
+  <text x="430" y="248" font-size="9.5" fill="#6b7280">Recurring</text>
+  <circle cx="700" cy="243" r="9" fill="#A8842C"/>
+  <circle cx="792" cy="243" r="9" fill="#A8842C"/>
+  <circle cx="884" cy="243" r="9" fill="#A8842C"/>
+
+  <!-- ===== Row 4: Internet / data (recurring) ===== -->
+  <rect x="40" y="274" width="880" height="36" rx="8" fill="#ffffff"/>
+  <rect x="40" y="274" width="4" height="36" rx="2" fill="#A8842C"/>
+  <text x="60" y="296" font-size="10.5" fill="#374151">Internet / data</text>
+  <text x="430" y="296" font-size="9.5" fill="#6b7280">Recurring</text>
+  <circle cx="700" cy="291" r="9" fill="#A8842C"/>
+  <circle cx="792" cy="291" r="9" fill="#A8842C"/>
+  <circle cx="884" cy="291" r="9" fill="#A8842C"/>
+
+  <!-- ===== Row 5: M-Pesa / bank fees (per sale) ===== -->
+  <rect x="40" y="322" width="880" height="36" rx="8" fill="#f9fafb"/>
+  <rect x="40" y="322" width="4" height="36" rx="2" fill="#15803d"/>
+  <text x="60" y="344" font-size="10.5" fill="#374151">M-Pesa / bank fees</text>
+  <text x="430" y="344" font-size="9.5" fill="#6b7280">Per sale</text>
+  <circle cx="700" cy="339" r="9" fill="#15803d"/>
+  <circle cx="792" cy="339" r="9" fill="#15803d"/>
+  <circle cx="884" cy="339" r="9" fill="#15803d"/>
+
+  <!-- ===== Row 6: Reconciliation time (recurring, the big one) ===== -->
+  <rect x="40" y="370" width="880" height="36" rx="8" fill="#fee2e2"/>
+  <rect x="40" y="370" width="4" height="36" rx="2" fill="#b91c1c"/>
+  <text x="60" y="392" font-size="10.5" font-weight="700" fill="#7f1d1d">Reconciliation time</text>
+  <text x="430" y="392" font-size="9.5" font-weight="700" fill="#b91c1c">Recurring</text>
+  <circle cx="700" cy="387" r="9" fill="#b91c1c"/>
+  <circle cx="792" cy="387" r="9" fill="#b91c1c"/>
+  <circle cx="884" cy="387" r="9" fill="#b91c1c"/>
+
+  <!-- Legend -->
+  <circle cx="48" cy="436" r="7" fill="#2563eb"/>
+  <text x="62" y="440" font-size="10" fill="#374151">Pay once (one-off)</text>
+  <circle cx="268" cy="436" r="7" fill="#A8842C"/>
+  <text x="282" y="440" font-size="10" fill="#374151">Pay every month (recurring)</text>
+  <circle cx="508" cy="436" r="7" fill="#15803d"/>
+  <text x="522" y="440" font-size="10" fill="#374151">Pay per sale (per transaction)</text>
+  <circle cx="748" cy="436" r="7" fill="#b91c1c"/>
+  <text x="762" y="440" font-size="10" fill="#374151">Your team's hours</text>
+
+  <!-- Footer note -->
+  <text x="480" y="492" font-size="10.5" font-weight="700" fill="#1F2937" text-anchor="middle">Give every vendor the same rows, then compare the three-year total — not the first invoice.</text>
+  <text x="480" y="512" font-size="10" fill="#6b7280" text-anchor="middle">The cheapest sticker usually carries the heaviest time rows. Dot pattern is illustrative; your figures will differ.</text>
+</svg>

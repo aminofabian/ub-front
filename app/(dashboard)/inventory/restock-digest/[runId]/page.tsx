@@ -629,14 +629,14 @@ export default function RestockDigestReviewPage() {
       ) : null}
 
       {pending.length > 0 && runActive && (canWritePo || canWritePad) ? (
-        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2 dark:bg-background sm:hidden">
-          <span className="text-[11px] tabular-nums text-muted-foreground">
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))] dark:bg-background sm:hidden">
+          <span className="text-[12px] tabular-nums text-muted-foreground">
             {pending.length} pending
           </span>
           <Button
             type="button"
             size="sm"
-            className="h-8 rounded-none"
+            className="h-11 min-w-[9rem] rounded-2xl px-4 text-[13px] font-semibold"
             disabled={busyAction !== null}
             onClick={() =>
               void acceptLines(

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import {
@@ -13,6 +13,8 @@ import {
 import {
   applyAuthSessionPayload,
   ensureSessionPresenceCookie,
+  getSessionClaims,
+  getSessionTenantId,
   hasAccessSession,
   persistTenantHostAfterAuth,
   setSessionTenantId,
@@ -21,11 +23,11 @@ import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { setImpersonationSession } from "@/lib/impersonation-session";
 import { isOfficeConsolePath, loginHrefForDestination } from "@/lib/login-audience";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
 function AuthHandoffInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const nextHint = searchParams.get("next")?.trim() ?? "";
@@ -46,12 +48,56 @@ function AuthHandoffInner() {
 
       const nextFallback = searchParams.get("next");
       const slug = searchParams.get("slug");
+      const returnHost = searchParams.get("returnHost");
+
+      const finishToDestination = async (
+        nextPath: string,
+        opts?: { accessToken?: string; refreshToken?: string; tenantId?: string },
+      ) => {
+        const next = nextPath.startsWith("/") ? nextPath : APP_ROUTES.overview;
+        // Same subdomain / custom-domain hop as password signup.
+        if (slug?.trim() || returnHost?.trim()) {
+          // Ensure store-session has a tenant id before the form POST.
+          if (!getSessionTenantId()) {
+            const fromClaims = getSessionClaims()?.businessId?.trim();
+            if (fromClaims) {
+              setSessionTenantId(fromClaims);
+            }
+            if (opts?.tenantId?.trim()) {
+              setSessionTenantId(opts.tenantId.trim());
+            }
+          }
+          await completeAuthAndNavigate(next, slug, {
+            office: isOfficeConsolePath(next),
+            preferAssignedSubdomain: !returnHost?.trim(),
+            returnHost,
+          });
+          return;
+        }
+        submitStoreSessionNavigate(next, {
+          accessToken: opts?.accessToken,
+          refreshToken: opts?.refreshToken,
+          tenantId: opts?.tenantId,
+          office: isOfficeConsolePath(next),
+        });
+      };
+
+      // Prefer the just-minted httpOnly session over any stale JS claims left on
+      // the apex from an earlier visit — otherwise store-session lacks tenantId
+      // and soft-falls to location.assign(/business) on kiosk.ke.
+      const restored = await restoreClientSessionFromCookie({ force: true });
+      if (cancelled) {
+        return;
+      }
 
       if (!fromHash) {
-        if (hasAccessSession() && nextFallback?.startsWith("/")) {
+        if ((restored || hasAccessSession()) && nextFallback?.startsWith("/")) {
           clearAuthHandoffFragment();
           persistTenantHostAfterAuth(slug ?? undefined);
-          router.replace(nextFallback);
+          if (cancelled) {
+            return;
+          }
+          await finishToDestination(nextFallback);
           return;
         }
       }
@@ -61,14 +107,17 @@ function AuthHandoffInner() {
 
       // Preferred Gap G path: restore from shared refresh cookie (no access in URL).
       if (!data?.accessToken) {
-        const restored = await restoreClientSessionFromCookie();
-        if (cancelled) {
-          return;
-        }
         if (!restored && !hasAccessSession()) {
-          clearAuthHandoffFragment();
-          setError("Could not finish sign-in. Return to sign in and try again.");
-          return;
+          // One more non-forced attempt in case force raced a parallel restore.
+          const again = await restoreClientSessionFromCookie();
+          if (cancelled) {
+            return;
+          }
+          if (!again && !hasAccessSession()) {
+            clearAuthHandoffFragment();
+            setError("Could not finish sign-in. Return to sign in and try again.");
+            return;
+          }
         }
         if (data?.tenantId?.trim()) {
           setSessionTenantId(data.tenantId.trim());
@@ -94,10 +143,7 @@ function AuthHandoffInner() {
 
         const nextRaw =
           searchParams.get("next") ?? data?.nextPath ?? APP_ROUTES.overview;
-        const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.overview;
-        submitStoreSessionNavigate(next, {
-          office: isOfficeConsolePath(next),
-        });
+        await finishToDestination(nextRaw);
         return;
       }
 
@@ -133,19 +179,20 @@ function AuthHandoffInner() {
       }
 
       const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.overview;
-      const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.overview;
-      submitStoreSessionNavigate(next, {
+      if (cancelled) {
+        return;
+      }
+      await finishToDestination(nextRaw, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         tenantId: data.tenantId,
-        office: isOfficeConsolePath(next),
       });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   if (!error) {
     return (
@@ -159,13 +206,12 @@ function AuthHandoffInner() {
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center text-sm">
       <p className="text-destructive">{error}</p>
-      <button
-        type="button"
-        className="text-primary underline underline-offset-2"
-        onClick={() => router.replace(fallbackLogin)}
+      <a
+        href={fallbackLogin}
+        className="font-medium text-[var(--auth-accent,#28a745)] underline-offset-4 hover:underline"
       >
         Back to sign in
-      </button>
+      </a>
     </div>
   );
 }
@@ -174,8 +220,9 @@ export default function AuthHandoffPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[40vh] items-center justify-center p-6 text-sm text-muted-foreground">
-          Loading…
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--auth-accent,#28a745)]" aria-hidden />
+          <p>Finishing sign-in…</p>
         </div>
       }
     >

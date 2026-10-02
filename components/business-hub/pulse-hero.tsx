@@ -134,7 +134,7 @@ export function PulseHero({
                   trendTone === "warning" && "bg-[#C47A5A]/10 text-[#C47A5A]",
                   trendTone === "negative" && "bg-rose-500/10 text-rose-700",
                   trendTone === "muted" &&
-                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#5C5C5C]",
+                    "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#5C5C5C]",
                 )}
               >
                 {trend}

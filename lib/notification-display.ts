@@ -8,6 +8,7 @@ const TYPE_LABELS: Record<string, string> = {
   "batch.expiring": "Expiring stock alert",
   "storefront.order.placed": "New web order",
   "storefront.order.paid": "Web order paid",
+  "till.slip": "Print on this till",
   "order.received": "Order received",
   "order.payment_received": "Payment received",
   "order.confirmed": "Order confirmed",

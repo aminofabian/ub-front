@@ -34,6 +34,10 @@ import {
   getOrCreateTillDeviceId,
   tillDeviceDisplayName,
 } from "@/lib/till-device";
+import {
+  OXANIUM_SURFACE_CLASS,
+  OXANIUM_SURFACE_STYLE,
+} from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
 
 type ButcherShellProps = {
@@ -102,9 +106,10 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
       suppressHydrationWarning
       className={cn(
         "butcher-pos flex h-dvh flex-col overflow-hidden bg-[rgb(var(--bp-bg))] text-[rgb(var(--bp-fg))]",
+        OXANIUM_SURFACE_CLASS,
         isDark && "dark",
       )}
-      style={brandTheme as CSSProperties}
+      style={{ ...OXANIUM_SURFACE_STYLE, ...(brandTheme as CSSProperties) }}
     >
       <header className="shrink-0 border-b border-[rgb(var(--bp-border)/0.9)] bg-[rgb(var(--bp-bg)/0.95)] backdrop-blur-md">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4">

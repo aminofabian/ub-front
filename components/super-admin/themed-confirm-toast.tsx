@@ -44,12 +44,15 @@ function ConfirmToastCard({
     <div className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/30"
+        className="absolute inset-0 bg-black/45 backdrop-blur-md supports-[backdrop-filter]:bg-black/35"
         aria-label="Dismiss"
         onClick={onCancel}
       />
       <div
-        className={cn(toastCardClass, "relative z-10")}
+        className={cn(
+          toastCardClass,
+          "relative z-10 animate-in fade-in-0 zoom-in-95 duration-200",
+        )}
         role="alertdialog"
         aria-labelledby="confirm-toast-title"
         aria-describedby="confirm-toast-desc"
@@ -128,7 +131,8 @@ export function showThemedConfirmToast({
       duration: Infinity,
       position: "top-center",
       unstyled: true,
-      className: "!m-0 !w-full !max-w-none !transform-none",
+      className:
+        "!fixed !inset-0 !m-0 !flex !h-full !w-full !max-w-none !transform-none !items-center !justify-center",
     },
   );
 }

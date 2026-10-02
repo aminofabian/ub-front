@@ -6,6 +6,7 @@ import {
   getSessionTokens,
   hasAccessSession,
 } from "@/lib/auth";
+import { APP_ROUTES } from "@/lib/config";
 
 const STORE_SESSION_PATH = "/api/auth/store-session";
 
@@ -49,6 +50,19 @@ export function submitStoreSessionNavigate(
   const slug = opts?.slug?.trim() || "";
 
   if (!tenantId || (!accessToken && !hasAccessSession())) {
+    // Never soft-land on the current host when a cross-host hop was requested —
+    // that traps Google/office sign-in on https://kiosk.ke/business.
+    if (handoffOrigin) {
+      console.error(
+        "[store-session] missing tenantId/accessToken for handoff; refusing apex soft-landing",
+      );
+      window.location.assign(
+        `${APP_ROUTES.staffLogin}?mode=office&error=${encodeURIComponent(
+          "Session data missing. Please sign in again.",
+        )}`,
+      );
+      return;
+    }
     window.location.assign(nextPath);
     return;
   }

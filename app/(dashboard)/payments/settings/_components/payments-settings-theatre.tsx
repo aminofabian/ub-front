@@ -52,7 +52,7 @@ export const PAYMENTS_SETTINGS_NAV: PaymentsSettingsNavItem[] = [
   {
     id: "profit-pocket",
     label: "Profit Pocket",
-    hint: "Owner / expense destination for pocketing cash surplus.",
+    hint: "Save profits to your bank for expenses, rent, etc. — not customer till.",
     icon: PiggyBank,
   },
   {

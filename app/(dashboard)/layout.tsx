@@ -12,6 +12,7 @@ import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { NewMerchantGuideDrawer } from "@/components/onboarding/new-merchant-guide-drawer";
+import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { NotificationsDrawer } from "@/components/notifications-drawer";
 import { SupportLauncher } from "@/components/support/support-launcher";
@@ -33,6 +34,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
               <AppShell>{children}</AppShell>
             </OnboardingQuestionnaireProvider>
           </Suspense>
+          <CashierTillPrintListener />
           <SupportUnreadWatcher />
           <SupportLauncher />
           <NotificationsDrawer />

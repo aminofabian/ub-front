@@ -239,16 +239,24 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.business);
   });
 
-  it("sends owner/admin to the business hub when the business payload is missing", () => {
+  it("does not force the business hub when the business payload is missing", () => {
+    // A failed `/businesses/me` must not restart setup for a completed owner.
     expect(resolvePostAuthDestination({ role: { key: "owner" } })).toBe(
-      APP_ROUTES.business,
+      APP_ROUTES.overview,
     );
     expect(resolvePostAuthDestination({ role: { key: "admin" } })).toBe(
-      APP_ROUTES.business,
+      APP_ROUTES.overview,
     );
     expect(
       resolvePostAuthDestination({ role: { key: "owner" } }, null, null),
-    ).toBe(APP_ROUTES.business);
+    ).toBe(APP_ROUTES.overview);
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        APP_ROUTES.products,
+        null,
+      ),
+    ).toBe(APP_ROUTES.products);
   });
 
   it("does not let a storefront next pull an unconfigured owner off the hub", () => {

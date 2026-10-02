@@ -1,13 +1,13 @@
-/** Hairline only — no lift. */
+/** Surfaces rely on a hairline edge — no soft lift. */
 export const HUB_SHADOW = "shadow-none";
 
 export const HUB_EDGE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]";
 
 export const HUB_RULE = HUB_EDGE;
 
 export const HUB_CARD =
-  `flex min-h-0 flex-col rounded-none border ${HUB_EDGE} bg-white p-2.5 ` +
+  `flex min-h-0 flex-col rounded-none border ${HUB_EDGE} bg-white p-3 ` +
   HUB_SHADOW;
 
 export const HUB_SURFACE =
@@ -23,9 +23,9 @@ export const HUB_INK = "text-[var(--order-ink,#15231f)]";
 export const HUB_ACCENT = "#0f766e";
 export const HUB_ACCENT_LIGHT = "#ffffff";
 export const HUB_DIVIDE =
-  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+  "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]";
 export const HUB_BORDER =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]";
 
 export const HUB_SECTION =
   "inline-flex items-center gap-2 text-[12px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]";
@@ -35,7 +35,7 @@ export const HUB_BTN =
 
 export const HUB_ICON_BTN =
   HUB_BTN +
-  " inline-flex size-8 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--pos-primary,#0f766e)] hover:border-[var(--pos-primary,#0f766e)] disabled:cursor-not-allowed disabled:opacity-60";
+  " inline-flex size-8 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[var(--pos-primary,#0f766e)] hover:border-[var(--pos-primary,#0f766e)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const HUB_CHIP =
-  "inline-flex shrink-0 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 text-[11px] font-semibold tracking-[-0.02em]";
+  "inline-flex shrink-0 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white px-2 py-0.5 text-[11px] font-semibold tracking-[-0.02em]";

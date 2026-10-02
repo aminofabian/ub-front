@@ -56,7 +56,7 @@ export const DOMAINS_NAV: DomainsNavItem[] = [
   },
   {
     id: "vercel",
-    label: "Vercel",
+    label: "Hosting",
     hint: "DNS zone, project domains, and SSL.",
     icon: Cloud,
   },
@@ -504,7 +504,7 @@ export function DomainsTheatre({
           Pick a section
         </h3>
         <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
-          Registrar, reseller WHOIS, checkout STK, Vercel DNS, and the order
+          Registrar, reseller WHOIS, checkout STK, hosting DNS, and the order
           pipeline.
         </p>
       </div>

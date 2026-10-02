@@ -133,7 +133,7 @@ export function RevenueBarChart({
                     />
                   ) : (
                     <div
-                      className="w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                      className="w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]"
                       style={{ height: 2 }}
                     />
                   )}

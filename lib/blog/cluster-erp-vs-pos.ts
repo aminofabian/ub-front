@@ -23,6 +23,7 @@ export const ERP_VS_POS_ARTICLE: BlogArticle = {
   ],
   author: "Kiosk",
   relatedSlugs: [
+    "how-much-does-a-pos-cost-in-kenya",
     "choosing-the-right-pos-kiosk-vs-odoo",
     "why-kiosk-beats-odoo-for-kenyan-shops",
     "set-up-a-pos-in-30-minutes",

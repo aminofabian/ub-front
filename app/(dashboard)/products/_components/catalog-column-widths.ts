@@ -11,31 +11,38 @@ import {
   type ColumnWidthsConfig,
 } from "@/lib/column-widths";
 
-export const CATALOG_COL_WIDTHS_STORAGE_KEY = "ub_catalog_list_col_widths_v2";
+/** v3: Price split into Buy / Sell / Margin. */
+export const CATALOG_COL_WIDTHS_STORAGE_KEY = "ub_catalog_list_col_widths_v3";
 
 export type CatalogResizableCol =
   | "check"
   | "product"
   | "stock"
+  | "buy"
   | "sell"
+  | "margin"
   | "category";
 
 export type CatalogColumnWidths = Record<CatalogResizableCol, number>;
 
-/** Defaults match the previous Tailwind tracks, with Product as a real column. */
+/** Defaults match a dense shop spreadsheet: money columns stay readable. */
 export const CATALOG_COL_WIDTH_DEFAULTS: CatalogColumnWidths = {
   check: 22,
-  product: 280,
-  stock: 48,
+  product: 240,
+  stock: 44,
+  buy: 64,
   sell: 64,
-  category: 96,
+  margin: 52,
+  category: 88,
 };
 
 export const CATALOG_COL_WIDTH_MIN: CatalogColumnWidths = {
   check: 16,
   product: 120,
   stock: 32,
-  sell: 40,
+  buy: 44,
+  sell: 44,
+  margin: 40,
   category: 56,
 };
 
@@ -43,7 +50,9 @@ export const CATALOG_COL_WIDTH_MAX: CatalogColumnWidths = {
   check: 64,
   product: 720,
   stock: 200,
-  sell: 240,
+  buy: 160,
+  sell: 160,
+  margin: 120,
   category: 360,
 };
 
@@ -51,7 +60,9 @@ export const CATALOG_COL_CSS_VARS: Record<CatalogResizableCol, string> = {
   check: "--cat-col-check",
   product: "--cat-col-product",
   stock: "--cat-col-stock",
+  buy: "--cat-col-buy",
   sell: "--cat-col-sell",
+  margin: "--cat-col-margin",
   category: "--cat-col-category",
 };
 

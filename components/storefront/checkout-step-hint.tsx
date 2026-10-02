@@ -49,7 +49,7 @@ function stepHint(
   }
   if (activeStep === 3) {
     return {
-      message: "Place your order to send the M-Pesa prompt — or switch to pay on delivery.",
+      message: "Placing your order sends the M-Pesa prompt — or switch to pay on delivery.",
       icon: CreditCard,
     };
   }
@@ -73,19 +73,15 @@ export function CheckoutStepHint({
   );
 
   return (
-    <div
+    <p
       className={cn(
-        "flex items-start gap-2 rounded-lg border border-border/50 bg-muted/25 px-2.5 py-2",
+        "flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground",
         className,
       )}
       aria-live="polite"
     >
-      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Icon className="size-3" aria-hidden />
-      </span>
-      <p className="min-w-0 text-[11px] leading-snug text-muted-foreground">
-        {message}
-      </p>
-    </div>
+      <Icon className="mt-0.5 size-3 shrink-0 text-primary/70" aria-hidden />
+      <span className="min-w-0">{message}</span>
+    </p>
   );
 }

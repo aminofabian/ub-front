@@ -86,15 +86,11 @@ export function VoidSaleDialog({
     sale?.status === "voided" ||
     (sale?.voidedAt != null && String(sale.voidedAt).length > 0);
   const hasRefunds = toNum(sale?.refundedTotal) > 0;
-  const canVoid =
-    !!sale &&
-    sale.status === "completed" &&
-    !alreadyVoided &&
-    !hasRefunds &&
-    !saving;
 
   const onVoid = async () => {
-    if (!saleId || !canVoid) return;
+    if (!saleId || !sale) return;
+    if (alreadyVoided || hasRefunds || sale.status !== "completed") return;
+
     setSaving(true);
     setError(null);
     try {
@@ -221,7 +217,13 @@ export function VoidSaleDialog({
           <Button
             type="button"
             variant="destructive"
-            disabled={!canVoid}
+            disabled={
+              !sale ||
+              sale.status !== "completed" ||
+              alreadyVoided ||
+              hasRefunds ||
+              saving
+            }
             onClick={() => void onVoid()}
           >
             {saving ? "Voiding…" : "Void sale"}

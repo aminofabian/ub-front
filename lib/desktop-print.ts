@@ -17,6 +17,12 @@ import {
   type SupplyInvoiceReceiptSnapshot,
 } from "@/lib/supply-invoice-receipt";
 import {
+  buildTillSlipEscPos,
+  type TillSlip,
+  type TillSlipKind,
+} from "@/lib/till-slip";
+import {
+  fetchTillCupsPrinters,
   getLocalTillCupsName,
   getLocalTillNetworkTarget,
   isTillPrintBridgeUp,
@@ -436,5 +442,83 @@ export async function printSupplyInvoiceReceipt(
       e instanceof Error ? e.message : "Could not print supply invoice.";
     toast.error(msg, { duration: 10_000 });
     return false;
+  }
+}
+
+/**
+ * One copy. A timeout counts as sent — the bytes may already be on the spool,
+ * and a second attempt would print the slip again.
+ */
+export type TillSlipPrintResult = "printed" | "failed" | "maybe";
+
+/**
+ * Print a purchase order or goods receipt aimed at this till.
+ * Does not retry. The caller decides whether a definite failure may try once more.
+ */
+export async function printTillSlip(
+  slip: TillSlip,
+  kind: TillSlipKind,
+  widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
+  opts?: { quiet?: boolean },
+): Promise<TillSlipPrintResult> {
+  const quiet = Boolean(opts?.quiet);
+  const resolved = await resolvePrinterTarget(printer);
+  let cupsName = resolved?.cupsName?.trim() || "";
+  const host = resolved?.host?.trim() || "";
+  const label = kind === "receipt" ? "Goods receipt" : "Purchase order";
+
+  // Same machine as Sell: if the branch name is missing, use the printer
+  // the local helper already detected.
+  if (!cupsName && !host) {
+    try {
+      const detected = await fetchTillCupsPrinters();
+      cupsName =
+        detected.suggested?.trim() || detected.defaultName?.trim() || "";
+    } catch {
+      if (!quiet) {
+        toast.error(
+          `${label} is on this till, but the printer helper is not running. ${TILL_BRIDGE_START_HINT}`,
+          { duration: 14_000 },
+        );
+      }
+      return "failed";
+    }
+  }
+
+  if (!cupsName && !host) {
+    if (!quiet) {
+      toast.message(
+        `${label} is on this till, but no receipt printer is set. Use Detect printers on Sell.`,
+        { duration: 12_000 },
+      );
+    }
+    return "failed";
+  }
+
+  try {
+    const raw = buildTillSlipEscPos(slip, kind, widthMm);
+    const escpos = new Blob([new Uint8Array(raw)], {
+      type: "application/octet-stream",
+    });
+    await printEscPosViaTillBridge(escpos, {
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
+    });
+    if (!quiet) toast.success(`${label} ${slip.reference} printed.`);
+    return "printed";
+  } catch (e) {
+    if (e instanceof Error && e.name === TILL_PRINT_TIMEOUT_ERROR) {
+      return "maybe";
+    }
+    if (!quiet) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : `Could not print ${label.toLowerCase()}.`;
+      toast.error(msg, { duration: 10_000 });
+    }
+    return "failed";
   }
 }

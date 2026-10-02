@@ -277,7 +277,11 @@ export function ShellWorkspaceDrawer({
         return (
           <Suspense fallback={<DrawerBodySkeleton />}>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <QuickSaleWorkspace variant="admin" inShellDrawer />
+              <QuickSaleWorkspace
+                variant="admin"
+                inShellDrawer
+                onRequestClose={onClose}
+              />
             </div>
           </Suspense>
         );
@@ -294,11 +298,12 @@ export function ShellWorkspaceDrawer({
       }}
       title={meta?.title ?? "Workspace"}
       description={workspace === "cashier" ? undefined : meta?.description}
-      icon={<Icon className="size-4" aria-hidden />}
+      icon={workspace === "cashier" ? undefined : <Icon className="size-4" aria-hidden />}
       width="full"
       appearance="sharp"
       headerDensity="compact"
       bodyLayout="fill"
+      hideHeader={workspace === "cashier"}
     >
       {body}
     </FormDrawer>

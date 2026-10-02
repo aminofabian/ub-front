@@ -74,6 +74,7 @@ export function TillPrinterStatus({
     let cancelled = false;
 
     const check = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const h = await fetchTillBridgeHealth();
       if (cancelled) return;
       setHealth(h);
@@ -81,10 +82,17 @@ export function TillPrinterStatus({
     };
 
     void check();
-    const id = window.setInterval(() => void check(), 12_000);
+    // Fixed cadence — do not depend on bridgeUp (that restarted the effect
+    // and re-hit /health on every status flip during mount).
+    const id = window.setInterval(() => void check(), 60_000);
+    const onVis = () => {
+      if (!document.hidden) void check();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
 

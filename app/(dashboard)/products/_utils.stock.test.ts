@@ -56,7 +56,7 @@ describe("store stock helpers", () => {
         packagingUnitQty: number;
         currentStock: number;
       }),
-    ).toBe("2 pkg · 60 base");
+    ).toBe("2 packs · 60 units");
     expect(
       effectiveOnHand({
         packageVariant: true,

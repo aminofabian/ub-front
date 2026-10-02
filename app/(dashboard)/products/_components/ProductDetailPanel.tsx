@@ -56,6 +56,7 @@ import {
   formatAmount,
   formatOverallStockLabel,
   formatStockLabel,
+  packEqualsLabel,
   packageUnitsPerSaleFromRow,
   toNumber,
   usesSharedPackageStock,
@@ -70,6 +71,7 @@ import {
   productFormSelectClass,
 } from "./product-form-styles";
 import { ProductItemTimeline } from "./ProductItemTimeline";
+import { PackHowItWorksButton } from "./PackHowItWorks";
 import { ProductPolishDialog } from "./ProductPolishDialog";
 import {
   detailCollapsibleTriggerClass,
@@ -202,6 +204,85 @@ type Props = {
   polishCurrencyCode?: string;
   onProductPolished?: () => void;
 };
+
+function PackSaleEquation({
+  unitsPerPackage,
+  stockSourceName,
+  onEdit,
+  onOpenStock,
+}: {
+  unitsPerPackage: number | null;
+  stockSourceName: string | null;
+  onEdit: () => void;
+  onOpenStock?: () => void;
+}) {
+  const source = stockSourceName?.trim() || "the base product";
+  const units =
+    unitsPerPackage != null
+      ? unitsPerPackage.toLocaleString(undefined, { maximumFractionDigits: 2 })
+      : null;
+
+  return (
+    <div className={cn(detailPackageCardClass, "space-y-2")}>
+      <div className="flex items-stretch gap-2">
+        <div className="min-w-0 flex-1 border border-border/70 bg-background px-2 py-1.5">
+          <p className={detailFieldLabelClass}>You sell</p>
+          <p className="text-sm font-semibold tracking-tight text-foreground">
+            1 pack
+          </p>
+        </div>
+        <div
+          className="flex items-center px-0.5 text-base font-medium text-foreground/35"
+          aria-hidden
+        >
+          =
+        </div>
+        <div className="min-w-0 flex-[1.35] border border-border/70 bg-background px-2 py-1.5">
+          <p className={detailFieldLabelClass}>Leaves the shelf</p>
+          <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+            {units != null ? (
+              <>
+                <span className="tabular-nums">{units}</span> {source}
+              </>
+            ) : (
+              source
+            )}
+          </p>
+        </div>
+      </div>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {units != null
+          ? `One sale takes ${units} of ${source} off the shelf. Price, cost, and margin below are for the pack. Profit uses what those ${units} cost in stock.`
+          : `This sells from ${source}. Price, cost, and margin below are for the pack. Profit uses the cost of the units that leave stock.`}
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <PackHowItWorksButton />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-[10px] shadow-none"
+          onClick={onEdit}
+        >
+          Edit pack
+        </Button>
+        {onOpenStock ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 max-w-[16rem] gap-1 truncate px-2 text-[10px] shadow-none"
+            onClick={onOpenStock}
+          >
+            <PackagePlus className="size-3" aria-hidden />
+            {stockSourceName?.trim()
+              ? `${stockSourceName.trim()} stock`
+              : "Stock"}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function ProductDetailPanel(props: Props) {
   const {
@@ -882,51 +963,13 @@ export function ProductDetailPanel(props: Props) {
         </div>
       ) : null}
 
-      {/* Active package SKU — compact context (not a marketing card) */}
       {sharedStock ? (
-        <div
-          className={cn(
-            detailPackageCardClass,
-            "flex flex-wrap items-center gap-2",
-          )}
-        >
-          <Boxes className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
-          <p className={cn("min-w-0 flex-1 leading-snug", detailMetaClass)}>
-            <span className="font-medium text-foreground/80">Package SKU</span>
-            {unitsPerPackage != null ? (
-              <>
-                {" "}
-                ·{" "}
-                <span className="tabular-nums text-foreground/80">
-                  {unitsPerPackage}
-                </span>{" "}
-                units from {variantParentDisplayName ?? "parent"}
-              </>
-            ) : null}
-          </p>
-          <div className="flex shrink-0 gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-[10px] shadow-none"
-              onClick={() => setActiveDrawer("edit-product")}
-            >
-              Edit
-            </Button>
-            {onOpenBaseStock ? (
-              <Button
-                type="button"
-                size="sm"
-                className="h-7 gap-1 px-2 text-[10px] shadow-none"
-                onClick={onOpenBaseStock}
-              >
-                <PackagePlus className="size-3" aria-hidden />
-                Base stock
-              </Button>
-            ) : null}
-          </div>
-        </div>
+        <PackSaleEquation
+          unitsPerPackage={unitsPerPackage}
+          stockSourceName={variantParentDisplayName}
+          onEdit={() => setActiveDrawer("edit-product")}
+          onOpenStock={onOpenBaseStock}
+        />
       ) : null}
 
       {/* Commerce metrics */}
@@ -950,7 +993,7 @@ export function ProductDetailPanel(props: Props) {
         </header>
         <div className={detailMetricGridClass}>
           {renderPricingStatCell(
-            "Shelf",
+            sharedStock ? "Pack price" : "Shelf",
             shelfDisplay.text,
             "bundlePrice",
             saveQuickBundlePrice,
@@ -975,7 +1018,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            "Cost",
+            sharedStock ? "Pack cost" : "Cost",
             costDisplay.text,
             "buyingPrice",
             saveQuickBuyingPrice,
@@ -999,7 +1042,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            "Margin",
+            sharedStock ? "Pack margin" : "Margin",
             marginDisplay.text,
             "margin",
             saveQuickMargin,
@@ -1014,6 +1057,7 @@ export function ProductDetailPanel(props: Props) {
                 !marginDisplay.empty && marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : undefined,
+              hint: sharedStock ? "Against the pack cost" : undefined,
               editContent: (
                 <>
                   <input
@@ -1196,23 +1240,26 @@ export function ProductDetailPanel(props: Props) {
                     <span className="tabular-nums text-foreground/80">
                       {packageVariants.length}
                     </span>{" "}
-                    package size{packageVariants.length === 1 ? "" : "s"}
+                    pack{packageVariants.length === 1 ? "" : "s"}
                   </>
                 ) : (
-                  <span>No package sizes</span>
+                  <span>No packs yet</span>
                 )}
               </span>
-              {canAddPackageSales && packageVariants.length === 0 ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="ml-auto h-7 shrink-0 gap-1 px-2 text-[10px] shadow-none"
-                  onClick={onOpenPackageSales}
-                >
-                  <PackagePlus className="size-3" aria-hidden />
-                  Add package
-                </Button>
-              ) : null}
+              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                <PackHowItWorksButton />
+                {canAddPackageSales && packageVariants.length === 0 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 shrink-0 gap-1 px-2 text-[10px] shadow-none"
+                    onClick={onOpenPackageSales}
+                  >
+                    <PackagePlus className="size-3" aria-hidden />
+                    Add package
+                  </Button>
+                ) : null}
+              </div>
             </div>
           ) : null}
           {canCatalogWrite && panelKind !== "group" && onToggleWeighed ? (
@@ -1458,8 +1505,12 @@ export function ProductDetailPanel(props: Props) {
                             ) : null}
                           </div>
                           {v.packageVariant ? (
-                            <p className="text-[11px] tabular-nums text-muted-foreground">
-                              {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
+                            <p className="text-[11px] text-muted-foreground">
+                              {packEqualsLabel(
+                                toNumber(v.packageUnitsPerSale),
+                                variantParentDisplayName ?? detail.name,
+                              )}
+                              {" · "}
                               {formatStockLabel(v)}
                             </p>
                           ) : v.variantName &&

@@ -2,11 +2,13 @@
 
 .shell {
   --cat-col-check: 22px;
-  --cat-col-product: 280px;
-  --cat-col-stock: 48px;
+  --cat-col-product: 240px;
+  --cat-col-stock: 44px;
+  --cat-col-buy: 64px;
   --cat-col-sell: 64px;
-  --cat-col-category: 96px;
-  --cat-sheet-min-width: 510px;
+  --cat-col-margin: 52px;
+  --cat-col-category: 88px;
+  --cat-sheet-min-width: 574px;
 }
 
 .shell[data-resizing="true"] {
@@ -24,7 +26,9 @@
     var(--cat-col-check)
     var(--cat-col-product)
     var(--cat-col-stock)
+    var(--cat-col-buy)
     var(--cat-col-sell)
+    var(--cat-col-margin)
     var(--cat-col-category);
   width: 100%;
   align-items: stretch;
@@ -62,4 +66,38 @@
   box-shadow: 0 0 0 1px
     color-mix(in srgb, var(--catalog-primary, #0f766e) 25%, transparent);
   will-change: transform;
+}
+
+/*
+ * Phone catalog: fit the viewport — name + qty + sell.
+ * Buy / margin / category open in the product drawer.
+ */
+@media (max-width: 1023px) {
+  .shell {
+    --cat-col-check: 2.25rem;
+    --cat-col-product: minmax(0, 1fr);
+    --cat-col-stock: 2.75rem;
+    --cat-col-buy: 0px;
+    --cat-col-sell: 4.75rem;
+    --cat-col-margin: 0px;
+    --cat-col-category: 0px;
+    --cat-sheet-min-width: 100%;
+  }
+
+  .sheetScroll {
+    overflow-x: hidden;
+  }
+
+  .sheetInner {
+    min-width: 100%;
+  }
+
+  .grid {
+    grid-template-columns:
+      var(--cat-col-check)
+      var(--cat-col-product)
+      var(--cat-col-stock)
+      var(--cat-col-sell);
+    min-height: 2.85rem;
+  }
 }

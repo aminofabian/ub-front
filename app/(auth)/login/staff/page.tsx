@@ -6,6 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  GoogleAuthButton,
+  usePlatformGoogleOAuthEnabled,
+} from "@/components/auth/google-auth-button";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import { EmailNotVerifiedRecovery } from "@/components/auth/email-not-verified-recovery";
 import { StaffShopPickerDialog } from "@/components/auth/staff-shop-picker-dialog";
@@ -35,6 +39,7 @@ import {
   fetchMe,
   loginWithPassword,
   loginWithPin,
+  lookupAuthEmail,
   onboardBusiness,
   setOwnPin,
   type PublicSignInDestination,
@@ -86,9 +91,31 @@ function LoginPageContent() {
   );
   const [secret, setSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(
-    () => searchParams.get("error")?.trim() ?? "",
-  );
+  const [errorMessage, setErrorMessage] = useState(() => {
+    const raw = searchParams.get("error")?.trim() ?? "";
+    const google = searchParams.get("googleError")?.trim() ?? "";
+    if (raw) return raw;
+    switch (google) {
+      case "no_account":
+        return "No shop for this Google account yet. Create one first.";
+      case "multi_shop":
+        return "That Google account is on more than one shop. Pick a shop from Sign in, or use email.";
+      case "email_unverified":
+        return "Google did not verify that email. Try another account.";
+      case "disabled":
+        return "Google Sign-In is temporarily unavailable.";
+      case "expired_state":
+      case "invalid_state":
+      case "binding_mismatch":
+        return "That Google sign-in expired. Try again.";
+      case "":
+        return "";
+      default:
+        return google
+          ? "Google sign-in did not complete. Try again."
+          : "";
+    }
+  });
   const sessionEndedNotice = searchParams.get("notice")?.trim() === "session-ended";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pinSetup, setPinSetup] = useState(false);
@@ -114,6 +141,11 @@ function LoginPageContent() {
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
   const isOffice = isOfficeLoginMode(searchParams);
+  const platformGoogle = usePlatformGoogleOAuthEnabled();
+  const officePasswordHint =
+    platformGoogle === true
+      ? "Use Google, or your email and office password"
+      : "Use your email and office password";
   useEffect(() => {
     if (searchParams.get("switch") === "1") {
       return;
@@ -422,6 +454,23 @@ function LoginPageContent() {
         // "New business?" affordance stays available as the secondary door.
         setApexNoShopEmail(email.trim().toLowerCase());
       }
+      // Office door: a Google-only owner has a hidden system hash, so even a
+      // correct "I never set a password" attempt lands here. Point them at
+      // Google instead of a misleading credentials error.
+      if (isOffice && !apexHostUnresolved) {
+        const normalized = email.trim().toLowerCase();
+        if (normalized) {
+          const googleAccount = await lookupAuthEmail(normalized)
+            .then((res) => res.usesGoogle === true)
+            .catch(() => false);
+          if (googleAccount) {
+            setErrorMessage(
+              "This account signs in with Google. Use \u201cSign in with Google\u201d above \u2014 or \u201cForgot password?\u201d to set a password.",
+            );
+            return;
+          }
+        }
+      }
       setErrorMessage(
         formatTillAccessDeniedMessage(
           error instanceof Error
@@ -597,8 +646,8 @@ function LoginPageContent() {
               : `You are signing into ${desktopShopName}${desktopShopHost ? ` (${desktopShopHost})` : ""} — use your email and till PIN or office password.`
             : isOffice
               ? tenantGreeting
-                ? `Use your email and office password to run ${shortBrandName(tenantGreeting)}.`
-                : "Use your email and office password to run your shop."
+                ? `${officePasswordHint} to run ${shortBrandName(tenantGreeting)}.`
+                : `${officePasswordHint} to run your shop.`
               : tenantGreeting
                 ? `Sign in with email and your till PIN or office password. Your branch at ${shortBrandName(tenantGreeting)} is applied automatically.`
                 : "Sign in with email and your till PIN or office password. Your branch is applied automatically."
@@ -903,8 +952,21 @@ function LoginPageContent() {
         />
       ) : (
         <>
+          {isOffice ? (
+            <div className="mt-6 space-y-4">
+              <GoogleAuthButton
+                intent="sign_in"
+                businessId={tenant?.tenantId ?? getSessionTenantId()}
+                next={loginNextHint || APP_ROUTES.business}
+                requireTenantSso
+                ssoProviders={tenant?.authConfig?.ssoProviders}
+                label="Sign in with Google"
+                withDivider
+              />
+            </div>
+          ) : null}
           <form
-            className="mt-6 space-y-5"
+            className={cn(isOffice ? "space-y-5" : "mt-6 space-y-5")}
             action={LOGIN_BRIDGE}
             method="POST"
             noValidate

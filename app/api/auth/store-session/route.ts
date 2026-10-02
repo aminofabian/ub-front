@@ -8,7 +8,7 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, isPlatformApexHost, PLATFORM_DOMAIN } from "@/lib/config";
 import { loginHrefForDestination } from "@/lib/login-audience";
 import {
   buildSessionFinalizeHtml,
@@ -152,6 +152,22 @@ export async function POST(request: NextRequest) {
     if (slug) {
       dest.searchParams.set("slug", slug);
     }
+    const redirect = NextResponse.redirect(dest, 303);
+    applySessionCookies(redirect);
+    return redirect;
+  }
+
+  // Safety net: the client could not resolve (or was not allowed to use) a shop
+  // origin. A tenant session must never finalize on the platform apex — recompute
+  // the shop from the JWT's business and 303 to {slug}.kiosk.ke (same-site, so
+  // the parent-domain cookies minted above reach it).
+  const businessRow = bootstrap.business as { slug?: string | null } | null;
+  const businessSlug = businessRow?.slug?.trim() || slug || "";
+  if (businessSlug && isPlatformApexHost(requestHostname(request))) {
+    const targetOrigin = `${new URL(request.url).protocol}//${businessSlug}.${PLATFORM_DOMAIN}`;
+    const dest = new URL(APP_ROUTES.authHandoff, targetOrigin);
+    dest.searchParams.set("next", nextPath);
+    dest.searchParams.set("slug", businessSlug);
     const redirect = NextResponse.redirect(dest, 303);
     applySessionCookies(redirect);
     return redirect;

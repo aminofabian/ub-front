@@ -55,7 +55,7 @@ export function TopMoversPanel({
                   "flex size-4 shrink-0 items-center justify-center font-mono text-[9px] font-medium tabular-nums",
                   i === 0
                     ? "bg-[#0f766e] text-white"
-                    : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[#666666]",
+                    : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#666666]",
                 )}
               >
                 {i + 1}

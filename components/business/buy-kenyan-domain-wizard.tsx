@@ -74,9 +74,9 @@ function resolveStep(order: DomainOrder): { current: StepKey; failed: boolean; l
 const STEPS: { key: StepKey; label: string }[] = [
   { key: "pay", label: "Pay" },
   { key: "register", label: "Register" },
-  { key: "dns", label: "DNS" },
-  { key: "ns", label: "NS" },
-  { key: "ssl", label: "SSL" },
+  { key: "dns", label: "Connect" },
+  { key: "ns", label: "Finish" },
+  { key: "ssl", label: "Secure" },
 ];
 
 function stepIndex(key: StepKey): number {
@@ -88,7 +88,7 @@ function ProvisioningStepper({ order }: { order: DomainOrder }) {
   const currentIdx = stepIndex(current);
 
   return (
-    <ol className="flex items-center gap-0" aria-label="Provisioning progress">
+    <ol className="flex items-center gap-0" aria-label="Steps to buy this domain">
       {STEPS.map((step, idx) => {
         const done = live || (!failed && idx < currentIdx);
         const active = !live && !failed && idx === currentIdx;
@@ -144,7 +144,7 @@ function orderBadge(order: DomainOrder): { text: string; className: string } {
   if (s === "failed")
     return { text: "Failed", className: "border-[#9a2e16]/35 text-[#9a2e16]" };
   if (s === "awaiting_payment" || s === "quoted")
-    return { text: "Awaiting payment", className: "border-[#9a2e16]/35 text-[#9a2e16]" };
+    return { text: "Pay to continue", className: "border-[#9a2e16]/35 text-[#9a2e16]" };
   if (s === "registering")
     return {
       text: "Registering",
@@ -153,7 +153,7 @@ function orderBadge(order: DomainOrder): { text: string; className: string } {
     };
   if (s === "owned" || s === "provisioning")
     return {
-      text: "Provisioning",
+      text: "Setting up",
       className:
         "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
     };
@@ -167,17 +167,17 @@ function orderBadge(order: DomainOrder): { text: string; className: string } {
 function merchantSafeMessage(order: DomainOrder): string {
   if (order.merchantMessage?.trim()) return order.merchantMessage.trim();
   const { current, failed, live } = resolveStep(order);
-  if (live) return "Your shop is live on this domain.";
-  if (failed) return "Something went wrong. Contact support if it persists.";
+  if (live) return "Your shop is live on this address.";
+  if (failed) return "We couldn't finish this purchase. Contact support if it stays failed.";
   if (current === "pay") {
     return order.paymentAvailable
-      ? "Pay with M-Pesa to continue."
-      : "Platform M-Pesa isn’t configured yet.";
+      ? "Pay KES 2,000 with M-Pesa. After you pay, we register the name, connect your shop, and text you."
+      : "M-Pesa isn't set up yet, so you can't pay for a domain here.";
   }
-  if (current === "register") return "Registering your domain…";
-  if (current === "dns") return "Creating DNS…";
-  if (current === "ns") return "Finishing nameservers…";
-  return "Verifying SSL…";
+  if (current === "register") return "We're registering this name. You don't need to do anything.";
+  if (current === "dns") return "We're connecting this name to your shop.";
+  if (current === "ns") return "We're finishing the connection. This usually takes a few minutes.";
+  return "We're turning on https so customers can open the shop.";
 }
 
 function canBuyQuote(q: DomainQuote): boolean {
@@ -239,7 +239,7 @@ function PayDomainModal({
       const result = await payDomainOrder(order.id, next);
       onPaid(result.order);
       if (result.accepted) {
-        toast.success(result.message || "Check your phone to complete M-Pesa payment.");
+        toast.success(result.message || "Check your phone and approve the M-Pesa prompt.");
         onOpenChange(false);
       } else {
         toast.error(result.message || "Payment request declined.");
@@ -259,18 +259,18 @@ function PayDomainModal({
             <span className="flex size-9 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
               <CreditCard className="size-4 text-foreground" aria-hidden />
             </span>
-            Pay for domain
+            Pay with M-Pesa
           </DialogTitle>
           <DialogDescription>
-            Send an M-Pesa STK prompt for{" "}
+            We&apos;ll send an M-Pesa prompt for{" "}
             <span className="font-mono font-medium text-foreground">{order.fqdn}</span>
             {order.priceCents != null ? (
               <>
                 {" "}
-                · <span className="font-medium text-foreground">{formatPrice(order.priceCents, order.currency)}</span>
+                · <span className="font-medium text-foreground">{formatPrice(order.priceCents, order.currency)}</span> for the first year
               </>
             ) : null}
-            . Payment goes to Palmart’s platform till.
+            . After you approve it, we register the name and connect your shop.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
@@ -294,7 +294,9 @@ function PayDomainModal({
                 onChange={(e) => setPhone(e.target.value)}
               />
             </div>
-            <p className={dashboardHintClass()}>The phone that should receive the STK prompt.</p>
+            <p className={dashboardHintClass()}>
+              The Safaricom number that should approve KES 2,000. We text this number when the shop is live.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" disabled={paying} onClick={() => onOpenChange(false)}>
@@ -302,7 +304,7 @@ function PayDomainModal({
             </Button>
             <Button type="submit" disabled={paying || !phone.trim()} className="gap-1.5">
               {paying ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <CreditCard className="size-3.5" aria-hidden />}
-              {order.lastStkStatus?.toLowerCase() === "pending" ? "Resend STK" : "Send STK prompt"}
+              {order.lastStkStatus?.toLowerCase() === "pending" ? "Resend M-Pesa prompt" : "Send M-Pesa prompt"}
             </Button>
           </DialogFooter>
         </form>
@@ -401,7 +403,7 @@ export function BuyKenyanDomainWizard({
       setSearchedQuery(q);
       setUnavailable(false);
       if ((result.results || []).length === 0) {
-        toast.error("No Kenyan TLD matches. Try another name.");
+        toast.error("No .ke names matched. Try another shop name.");
       }
     } catch (e) {
       const msg = e instanceof Error && e.message.trim() ? e.message : "Search failed.";
@@ -434,15 +436,15 @@ export function BuyKenyanDomainWizard({
       const st = order.status.toLowerCase();
       if (st === "awaiting_payment" || st === "quoted") {
         if (order.paymentAvailable) {
-          toast.success(`Order placed for ${domain}. Complete payment to continue.`);
+          toast.success(`Reserved ${domain}. Pay with M-Pesa to buy it.`);
           setPayOrder(order);
           setPayOpen(true);
         } else {
-          toast.error("Platform M-Pesa isn’t configured yet — ask Super Admin under Platform → Domains.");
+          toast.error("M-Pesa isn't set up yet, so this name can't be paid for. Ask a platform admin.");
         }
       } else if (order.paymentSkippedByStub) {
         toast.error(
-          `Test mode: ${domain} skipped M-Pesa (billing stub is on). Turn the stub off for real STK.`,
+          `Test mode: ${domain} was not charged. Turn off the billing stub to send a real M-Pesa prompt.`,
         );
       } else {
         toast.success(`Order started for ${domain}.`);
@@ -492,10 +494,9 @@ export function BuyKenyanDomainWizard({
             <WifiOff className="size-4" aria-hidden />
           </span>
           <div>
-            <h2 className="text-base font-semibold tracking-tight">Kenyan domain purchase isn’t ready</h2>
+            <h2 className="text-base font-semibold tracking-tight">Buying a .ke name isn&apos;t available yet</h2>
             <p className={cn(dashboardHintClass(), "mt-1.5")}>
-              Ask a platform admin to finish setup under Platform → Domains. You can still connect a domain you already
-              own.
+              Ask a platform admin to finish setup. If you already own a domain, you can still connect it.
             </p>
           </div>
         </div>
@@ -515,12 +516,9 @@ export function BuyKenyanDomainWizard({
         {!embedded ? (
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 max-w-xl">
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Buy a Kenyan domain
-              </p>
-              <h2 className="mt-1.5 text-xl font-semibold tracking-tight">Find your .ke name</h2>
+              <h2 className="text-xl font-semibold tracking-tight">Search a name to buy</h2>
               <p className={cn(dashboardHintClass(), "mt-2")}>
-                Search, pay with M-Pesa, and we register it and bring your shop live.
+                We&apos;ll show .co.ke and other Kenyan addresses, with the price you pay for the first year.
               </p>
             </div>
             <div className="hidden items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 text-[11px] font-medium text-muted-foreground sm:inline-flex">
@@ -536,26 +534,31 @@ export function BuyKenyanDomainWizard({
             void runSearch(query);
           }}
         >
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                id="domain-search"
-                className={dashboardInputClass(false, "h-12 pl-10 text-[15px]")}
-                placeholder="Try mama-njeri or mama-njeri.co.ke"
-                autoComplete="off"
-                spellCheck={false}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+          <div className="space-y-1.5">
+            <label htmlFor="domain-search" className="text-sm font-medium">
+              Name you want to buy
+            </label>
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
+              <div className="relative min-w-0 flex-1">
+                <Search
+                  className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  id="domain-search"
+                  className={dashboardInputClass(false, "h-12 pl-10 text-[15px]")}
+                  placeholder="mama-njeri or mama-njeri.co.ke"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={searching || !query.trim()} className="h-12 shrink-0 gap-2 px-6">
+                {searching ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
+                {searching ? "Checking…" : "Check if it's free"}
+              </Button>
             </div>
-            <Button type="submit" disabled={searching || !query.trim()} className="h-12 shrink-0 gap-2 px-6">
-              {searching ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
-              {searching ? "Searching…" : "Search"}
-            </Button>
           </div>
         </form>
 
@@ -576,13 +579,13 @@ export function BuyKenyanDomainWizard({
                 </span>
                 <div>
                   <p className="font-semibold tracking-tight text-[#9a2e16]">
-                    Oops — you were a little late
+                    This name is already taken
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[#9a2e16]/90">
-                    <span className="font-mono font-medium">{primaryQuote.domain}</span> is already taken and in use.
+                    <span className="font-mono font-medium">{primaryQuote.domain}</span> is already registered.
                     {alternativeQuotes.length > 0
-                      ? " These alternatives are still free."
-                      : " Try a different name."}
+                      ? " These other names are free to buy."
+                      : " Try a different shop name."}
                   </p>
                 </div>
               </div>
@@ -592,14 +595,15 @@ export function BuyKenyanDomainWizard({
               <div className="flex flex-col gap-3 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
-                    Available
+                    Free to buy
                   </p>
                   <p className="mt-0.5 font-mono text-base font-semibold">{primaryQuote.domain}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
+                    You pay{" "}
                     <span className="font-medium text-foreground/85">
                       {formatPrice(primaryQuote.priceCents, primaryQuote.currency || currency)}
                     </span>
-                    {" · first year"}
+                    {" for the first year."}
                   </p>
                 </div>
                 <Button
@@ -608,7 +612,7 @@ export function BuyKenyanDomainWizard({
                   onClick={() => void onBuy(primaryQuote.domain)}
                 >
                   {buying === primaryQuote.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-                  Get this domain
+                  Buy this name
                 </Button>
               </div>
             ) : null}
@@ -618,7 +622,7 @@ export function BuyKenyanDomainWizard({
                 <div className="flex items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5">
                   <Sparkles className="size-3.5 text-[var(--pos-primary,#0f766e)]" aria-hidden />
                   <p className="text-sm font-semibold">
-                    {primaryTaken ? "Great alternatives" : "Other Kenyan options"}
+                    {primaryTaken ? "Names you can buy instead" : "Other names you can buy"}
                   </p>
                 </div>
                 <ul className="divide-y divide-border/60">
@@ -630,7 +634,7 @@ export function BuyKenyanDomainWizard({
                       <div>
                         <p className="font-mono text-sm font-semibold">{q.domain}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatPrice(q.priceCents, q.currency || currency)} · first year
+                          You pay {formatPrice(q.priceCents, q.currency || currency)} for the first year
                         </p>
                       </div>
                       <Button
@@ -640,7 +644,7 @@ export function BuyKenyanDomainWizard({
                         onClick={() => void onBuy(q.domain)}
                       >
                         {buying === q.domain ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-                        Get this one
+                        Buy this name
                       </Button>
                     </li>
                   ))}
@@ -652,9 +656,9 @@ export function BuyKenyanDomainWizard({
 
         {showResults && quotes.length === 0 ? (
           <div className="mt-6 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-4 py-10 text-center">
-            <p className="text-sm font-medium">No Kenyan matches</p>
+            <p className="text-sm font-medium">No .ke names matched</p>
             <p className={cn(dashboardHintClass(), "mx-auto mt-1.5 max-w-sm")}>
-              Try a shorter shop name, or include the TLD (e.g. mybrand.co.ke).
+              Try a shorter shop name, or type the full address, such as mybrand.co.ke.
             </p>
           </div>
         ) : null}
@@ -664,11 +668,11 @@ export function BuyKenyanDomainWizard({
         <section className="space-y-3">
           <div className="flex items-end justify-between gap-2 px-0.5">
             <div>
-              <h3 className="text-sm font-semibold tracking-tight">Purchases</h3>
+              <h3 className="text-sm font-semibold tracking-tight">Names you&apos;re buying</h3>
               <p className={dashboardHintClass()}>
                 {openOrders.length > 0
-                  ? `${openOrders.length} in progress — we’ll keep working in the background.`
-                  : "Recent domain orders"}
+                  ? `${openOrders.length} still in progress. You can leave this page — we'll keep going.`
+                  : "Names you have already started buying"}
               </p>
             </div>
           </div>
@@ -707,7 +711,7 @@ export function BuyKenyanDomainWizard({
                             }}
                           >
                             <CreditCard className="size-3.5" aria-hidden />
-                            Pay
+                            Pay with M-Pesa
                           </Button>
                         ) : null}
                         {showRefresh ? (

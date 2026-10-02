@@ -50,7 +50,7 @@ import {
   type ItemSummaryRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
-import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import { fetchPosShelfPrice, fetchPosShelfPrices } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   cashierItemPrimaryLabel,
@@ -537,11 +537,11 @@ function ShelfQtyStepper({
 }) {
   const removing = qty <= 1;
   const stepClass =
-    "flex w-8 shrink-0 items-center justify-center transition-colors hover:bg-white/15 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70";
+    "flex w-11 shrink-0 items-center justify-center transition-colors hover:bg-white/15 active:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70 sm:w-8";
   return (
     <div
       className={cn(
-        "pointer-events-auto absolute inset-x-0 bottom-0 z-[3] flex h-8 items-stretch",
+        "pointer-events-auto absolute inset-x-0 bottom-0 z-[3] flex h-11 items-stretch sm:h-8",
         "bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb] dark:bg-neutral-950 dark:text-white",
       )}
       onPointerDown={(e) => e.stopPropagation()}
@@ -560,13 +560,13 @@ function ShelfQtyStepper({
         }}
       >
         {removing ? (
-          <Trash2 className="size-3.5" aria-hidden />
+          <Trash2 className="size-4 sm:size-3.5" aria-hidden />
         ) : (
-          <Minus className="size-3.5" aria-hidden />
+          <Minus className="size-4 sm:size-3.5" aria-hidden />
         )}
       </button>
       <span
-        className="flex min-w-0 flex-1 items-center justify-center text-[11px] font-semibold leading-none tabular-nums"
+        className="flex min-w-0 flex-1 items-center justify-center text-[13px] font-semibold leading-none tabular-nums sm:text-[11px]"
         aria-label={`${qty} in the sale`}
       >
         {qty}
@@ -581,7 +581,7 @@ function ShelfQtyStepper({
           onStep(1);
         }}
       >
-        <Plus className="size-3.5" aria-hidden />
+        <Plus className="size-4 sm:size-3.5" aria-hidden />
       </button>
     </div>
   );
@@ -1413,6 +1413,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     [topProducts],
   );
 
+  const onStalePosItemRef = useRef(onStalePosItem);
+  onStalePosItemRef.current = onStalePosItem;
+
   const cartQtyByItem = useMemo(() => {
     const map = new Map<string, number>();
     for (const line of cart.lines) {
@@ -1608,29 +1611,41 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
     const fromHits = hitIdsKey ? hitIdsKey.split(",") : [];
     const fromTop = topIdsKey ? topIdsKey.split(",") : [];
-    const ids = Array.from(new Set([...fromHits, ...fromTop]));
+    const ids = Array.from(new Set([...fromHits, ...fromTop].filter(Boolean)));
     if (ids.length === 0) {
       setTileShelfPrices({});
       return;
     }
+
+    // Instant labels from catalog list rows (no network) — batch overlay
+    // below applies discount-aware final prices when the API responds.
+    const seeded: Record<string, string> = {};
+    for (const h of hits) {
+      const label = formatShelfPriceLabel(
+        h.sellingPrice ?? h.bundlePrice,
+        currency,
+      );
+      if (label) seeded[h.id] = label;
+    }
+    if (Object.keys(seeded).length > 0) {
+      setTileShelfPrices((prev) => ({ ...prev, ...seeded }));
+    }
+
     let cancelled = false;
     const bid = branchId?.trim() || undefined;
-    const shelfCtx = { businessId, onStaleItem: onStalePosItem };
-    void Promise.all(
-      ids.map(async (id) => {
-        const r = await fetchPosShelfPrice(id, bid, shelfCtx);
-        if (!r) {
-          return [id, ""] as const;
-        }
-        const label = formatShelfPriceLabel(r.price, currency);
-        return [id, label ?? ""] as const;
-      }),
-    ).then((pairs) => {
+    const shelfCtx = {
+      businessId,
+      onStaleItem: (itemId: string) => onStalePosItemRef.current?.(itemId),
+    };
+    void fetchPosShelfPrices(ids, bid, shelfCtx).then((byId) => {
       if (cancelled) return;
       setTileShelfPrices((prev) => {
         const next = { ...prev };
-        for (const [id, v] of pairs) {
-          next[id] = v;
+        for (const id of ids) {
+          const r = byId[id];
+          if (!r) continue;
+          const label = formatShelfPriceLabel(r.price, currency);
+          if (label) next[id] = label;
         }
         return next;
       });
@@ -1645,7 +1660,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     currency,
     hitIdsKey,
     topIdsKey,
-    onStalePosItem,
   ]);
 
   usePosEvents({
@@ -1655,7 +1669,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       const bid = branchId?.trim() || undefined;
       void fetchPosShelfPrice(itemId, bid, {
         businessId,
-        onStaleItem: onStalePosItem,
+        onStaleItem: (id) => onStalePosItemRef.current?.(id),
       }).then((r) => {
         if (!r) return;
         const label = formatShelfPriceLabel(r.price, currency);
@@ -1812,11 +1826,20 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     );
   };
 
-  // The dashboard page floats the dock above the shell's bottom nav; the
-  // full-screen drawer has no chrome under it, so the dock sits on the edge.
+  // Dashboard page: float above the shell bottom nav. Drawer: pin to the
+  // panel edge (absolute — see dock wrapper; fixed breaks under transforms).
   const cartDockBottomClass = inDrawer
-    ? "bottom-[calc(env(safe-area-inset-bottom,0px)+0.375rem)] sm:bottom-3"
+    ? "bottom-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
     : "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6";
+
+  /** Phone: hide spare empty carts so the tab strip stays one thumb-row. */
+  const phoneCartTabs = mobilePhone
+    ? cartTabs.filter(
+        (t) => t.id === activeCartId || t.kind !== "empty" || cartTabs.length <= 2,
+      )
+    : cartTabs;
+  const showPhoneExtrasOnly =
+    mobilePhone && phoneCartTabs.length <= 1 && Boolean(toolbarExtras || canCreateCart);
 
   return (
     <div
@@ -1824,10 +1847,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
           ? cn(
-              "pos-market-paper max-w-none px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6",
-              // The drawer host does not scroll — the workspace brings its own
-              // scroller, unlike the dashboard page where `main` scrolls.
-              inDrawer && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
+              "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6",
+              // Drawer: flex column host — scroller + absolute dock. Page: scroll
+              // with the dashboard main and keep bottom padding for the fixed dock.
+              inDrawer
+                ? "relative flex min-h-0 flex-1 flex-col overflow-hidden pb-0"
+                : "pb-28",
             )
           : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-0",
       )}
@@ -1837,7 +1862,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         className={cn(
           "flex gap-3 lg:gap-4",
           embeddedInDashboard
-            ? "items-start"
+            ? inDrawer
+              ? "min-h-0 flex-1 items-stretch overflow-hidden"
+              : "items-start"
             : "h-full min-h-0 flex-1 items-stretch overflow-hidden",
         )}
       >
@@ -1849,6 +1876,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               : compactShelf
                 ? "space-y-1.5"
                 : "space-y-3 sm:space-y-4",
+            inDrawer &&
+              "pos-scroll min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] pr-0.5",
             !embeddedInDashboard &&
               // Clearance lives inside the scroller so the shelf scrolls under
               // the bottom nav instead of a dead band sitting above it.
@@ -1983,6 +2012,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 currency={currency}
                 channel="POS"
                 onAddToCart={onAddAirtimeToCart}
+                hideTrigger={mobilePhone}
               />
             ) : null}
             {!online ? (
@@ -2029,17 +2059,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
         </div>
-        {/* Keep airtime mounted on phone so More → Airtime can open it. */}
-        {allowAirtime && mobilePhone ? (
-          <div className="sr-only" aria-hidden>
-            <AirtimeQuickAction
-              triggerClassName={POS_PRIMARY_CHIP_CLASS}
-              currency={currency}
-              channel="POS"
-              onAddToCart={onAddAirtimeToCart}
-            />
-          </div>
-        ) : null}
         {offlineBanner ? (
           <p className="mt-2 text-[10px] leading-snug text-amber-800 dark:text-amber-200">
             {offlineBanner}
@@ -2054,10 +2073,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       <div
         className={cn(
           "sticky z-20 -mx-1 space-y-0.5 sm:-mx-0",
-          embeddedInDashboard ? "top-[3.5rem]" : "top-0",
+          // Drawer Sell has its own header — don't reserve dashboard chrome.
+          inDrawer || !embeddedInDashboard ? "top-0" : "top-[3.5rem]",
         )}
       >
-      {cartTabs.length > 0 ? (
+      {cartTabs.length > 0 && !showPhoneExtrasOnly ? (
           <div
             className={cn(
               "flex items-center gap-1.5 overflow-x-auto px-1 py-1",
@@ -2066,7 +2086,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
             )}
           >
-            {([...cartTabs] as typeof cartTabs)
+            {([...phoneCartTabs] as typeof cartTabs)
               .sort((a, b) => {
                 // Active tab first, then held (stale first), then open, empty last.
                 const rank = (t: (typeof cartTabs)[number]) => {
@@ -2223,15 +2243,33 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <span>New</span>
               </button>
             ) : null}
-            {/* Phone: printer status + Pending/Invoices fold into the tab row
-                so no chip gets a full-width band above the shelf. */}
-            {mobilePhone && tillPrinterStatus ? (
-              <div className="ml-auto flex shrink-0 items-center print:hidden">
-                {tillPrinterStatus}
-              </div>
-            ) : null}
+            {/* Printer setup is a till-PC concern — keep it off the phone sell strip. */}
             {mobilePhone && toolbarExtras ? (
               <div className="ml-auto flex shrink-0 items-center gap-1">
+                {toolbarExtras}
+              </div>
+            ) : null}
+          </div>
+      ) : showPhoneExtrasOnly ? (
+          <div
+            className={cn(
+              "flex items-center gap-1.5 px-1 py-1",
+              "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)]",
+              "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
+            )}
+          >
+            {canCreateCart ? (
+              <button
+                type="button"
+                onClick={onCreateCart}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2.5 text-xs font-semibold text-muted-foreground"
+              >
+                <PlusCircle className="size-3.5" />
+                New sale
+              </button>
+            ) : null}
+            {toolbarExtras ? (
+              <div className="ml-auto flex min-w-0 items-center gap-1 overflow-x-auto">
                 {toolbarExtras}
               </div>
             ) : null}
@@ -2248,7 +2286,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         >
           <div
             className={cn(
-              "group flex items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3 pr-1 transition-colors",
+              "group flex items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3 pr-1 transition-colors",
               "rounded-none",
               "focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
               "dark:border-border/40 dark:bg-card/80",
@@ -2258,18 +2296,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className="size-5 shrink-0 text-muted-foreground/75"
               aria-hidden
             />
-            <button
-              type="button"
-              onClick={() => setShowScanner(true)}
-              className={cn(
-                "flex shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground",
-                mobilePhone ? "size-10" : "size-11",
-              )}
-              aria-label="Scan barcode with phone camera"
-              title="Scan barcode with camera"
-            >
-              <ScanLine className="size-5" />
-            </button>
             <input
               ref={searchInputRef}
               type="text"
@@ -2291,17 +2317,19 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               }}
               placeholder={
                 categoryFilterId
-                  ? "Search within this aisle…"
+                  ? "Search this aisle…"
                   : typeFilterId
-                    ? "Search within this type…"
+                    ? "Search this type…"
                     : catalogHybrid
-                      ? "Search product, SKU or scan barcode…"
-                      : "Search name, SKU, or scan barcode…"
+                      ? "Search product, SKU or barcode…"
+                      : mobilePhone
+                        ? "Search or scan…"
+                        : "Search name, SKU, or scan barcode…"
               }
               className={cn(
                 "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/55",
                 mobilePhone
-                  ? "h-10 text-[15px]"
+                  ? "h-11 text-[16px]"
                   : compactShelf
                     ? "h-9 text-sm"
                     : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
@@ -2322,11 +2350,37 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <X className="size-4" />
               </Button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className={cn(
+                "flex shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground dark:text-muted-foreground",
+                mobilePhone ? "size-11" : "size-11",
+              )}
+              aria-label="Scan barcode with phone camera"
+              title="Scan barcode with camera"
+            >
+              <ScanLine className="size-5" />
+            </button>
           </div>
           {searchBanner ? (
             <p className="mt-2 px-0.5 text-[11px] text-amber-800 dark:text-amber-200">
               {searchBanner}
             </p>
+          ) : null}
+          {categoryFilterId && mobilePhone ? (
+            <div className="mt-1.5 flex items-center gap-2 px-0.5">
+              <span className="min-w-0 truncate rounded-none bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] px-2 py-1 text-[11px] font-semibold text-foreground">
+                {categoryFilterLabel ?? "Aisle"}
+              </span>
+              <button
+                type="button"
+                onClick={clearCategoryFilter}
+                className="shrink-0 text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Clear
+              </button>
+            </div>
           ) : null}
           {categoryFilterId && !mobilePhone ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
@@ -2406,14 +2460,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         disabled={!online}
                         onClick={() => {
                           if (!online) return;
+                          // Always load items for this aisle — phone sellers
+                          // should see products on the first tap, not only
+                          // after drilling to a leaf.
+                          applySubtreeFilter(node.id, node.name);
                           if (drillable) {
                             setCategoryBrowseStack((s) => [...s, node]);
-                            return;
                           }
-                          applySubtreeFilter(node.id, node.name);
                         }}
                         className={cn(
-                          "h-8 shrink-0 border px-2 text-[11px] font-semibold leading-none",
+                          "h-9 max-w-[9.5rem] shrink-0 truncate border px-2.5 text-[12px] font-semibold leading-none",
                           active
                             ? "border-[var(--pos-ink,#1c1915)] bg-card text-foreground"
                             : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent text-[var(--pos-ink,#1c1915)]",
@@ -2578,7 +2634,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             products={topProducts}
             loading={alwaysShowTopProducts && topProductsLoading}
             title="Frequently sold"
-            subtitle="Based on this cashier's recent sales"
+            subtitle="Tap to add · shelf prices"
+            shelfPrices={tileShelfPrices}
+            online={online}
+            priceLoadingLabel={uiCopy.tileShelfLoading}
+            priceEmptyLabel={uiCopy.tileShelfEmpty}
             cartQtyByItem={cartQtyByItem}
             justAddedId={justAddedId}
             onPick={handleTopProductPick}
@@ -2665,6 +2725,23 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           )}
         </section>
         )
+      ) : showCatalog && mobilePhone ? (
+        <section className="space-y-3 px-1 pt-6 pb-4 text-center">
+          <p className="text-[15px] font-semibold tracking-tight text-foreground">
+            Ready to sell
+          </p>
+          <p className="mx-auto max-w-[16rem] text-[13px] leading-snug text-muted-foreground">
+            Search a product, scan a barcode, or tap an aisle above to fill the shelf.
+          </p>
+          <button
+            type="button"
+            onClick={() => focusSearch()}
+            className="mx-auto inline-flex h-11 items-center justify-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card px-4 text-[13px] font-semibold text-foreground"
+          >
+            <Search className="size-4" aria-hidden />
+            Start typing
+          </button>
+        </section>
       ) : null}
 
       {showCatalog && canBrowseCategories && !mobilePhone ? (
@@ -2880,9 +2957,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {embeddedInDashboard ? (
       <div
         className={cn(
-          "fixed inset-x-3 z-30 lg:hidden",
+          "z-30 lg:hidden",
+          // Absolute inside the drawer panel — fixed is trapped by ancestor
+          // transforms and floats mid-viewport on phones.
+          inDrawer ? "absolute inset-x-3" : "fixed inset-x-3",
           cartDockBottomClass,
-          "sm:inset-x-auto sm:right-6 sm:left-auto sm:w-[min(100%-3rem,22rem)]",
+          !inDrawer &&
+            "sm:inset-x-auto sm:right-6 sm:left-auto sm:w-[min(100%-3rem,22rem)]",
         )}
       >
         {(() => {
@@ -2895,7 +2976,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               type="button"
               onClick={() => setCheckoutDrawerOpen(true)}
               className={cn(
-                "flex w-full items-center gap-3 px-4 py-3 transition-transform duration-200",
+                "flex w-full items-center gap-3 px-4 py-3.5 transition-transform duration-200",
                 "active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
                 pulseCart &&
                   "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-[var(--pos-paper,#f1ece3)] dark:ring-offset-background",
@@ -2906,10 +2987,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 boxShadow:
                   "0 8px 24px -10px color-mix(in srgb, var(--pos-primary) 55%, transparent)",
               }}
-              aria-label={`Open cart ${active.label}${hasItems ? ` · ${active.grandTotal.toFixed(2)}` : ""}`}
+              aria-label={
+                hasItems
+                  ? `Checkout · ${active.itemCount} items · ${active.grandTotal.toFixed(2)} ${currency}`
+                  : "Open cart"
+              }
             >
-              <span className="relative inline-flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)]">
-                <ShoppingCart className="size-4" />
+              <span className="relative inline-flex size-10 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)]">
+                <ShoppingCart className="size-5" />
                 {hasItems ? (
                   <span
                     className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center text-[10px] font-bold shadow"
@@ -2923,24 +3008,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 ) : null}
               </span>
               <span className="flex min-w-0 flex-1 flex-col items-stretch leading-none">
-                <span className="truncate text-[10px] font-medium uppercase tracking-wide opacity-80">
-                  {hasItems ? active.label : `${active.label} · empty`}
+                <span className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                  {hasItems ? "Checkout" : "Cart empty"}
                 </span>
                 {hasItems ? (
-                  <span className="mt-1 flex items-end gap-1">
+                  <span className="mt-1.5 flex items-end gap-1">
                     <CashierDottedLeader onPrimary />
-                    <span className="inline-flex shrink-0 items-baseline gap-0.5 text-base font-semibold tabular-nums">
+                    <span className="inline-flex shrink-0 items-baseline gap-0.5 text-lg font-semibold tabular-nums">
                       <span>{active.grandTotal.toFixed(2)}</span>
                       <CashierCurrencySuffix code={currency} onPrimary />
                     </span>
                   </span>
                 ) : (
-                  <span className="mt-1 text-[11px] opacity-70">
-                    Tap products to add · open cart to pay
+                  <span className="mt-1.5 text-[12px] opacity-75">
+                    Search or pick an aisle, then tap here to pay
                   </span>
                 )}
               </span>
-              <ArrowRight className="size-4 shrink-0 opacity-80" aria-hidden />
+              <ArrowRight className="size-5 shrink-0 opacity-90" aria-hidden />
             </button>
           );
         })()}

@@ -13,6 +13,7 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { comilmartFontVariables } from "@/components/storefront/templates/store/comilmart-fonts";
 import { comilmartPaletteVars } from "@/components/storefront/templates/store/comilmart-palette";
@@ -99,6 +100,8 @@ type StorefrontSignInEntry = {
    * for the shopper door — staff signup is its own page, not this sheet.
    */
   initialPhase?: StorefrontSignInPhase | null;
+  /** Prefill error (e.g. Google OAuth bounce back to `?signin=1&googleError=`). */
+  initialError?: string | null;
 };
 
 type StorefrontSignInContextValue = {
@@ -191,6 +194,7 @@ export function StorefrontSignInProvider({
         ? ("staff" as const)
         : ("shopper" as const);
     const nextParam = url.searchParams.get("next");
+    const googleError = url.searchParams.get("googleError")?.trim() || "";
     openSheet({
       reason: "apex",
       initialEmail: email,
@@ -201,11 +205,15 @@ export function StorefrontSignInProvider({
         door,
       ),
       next:
-        nextParam && isShopNextPath(nextParam)
+        nextParam &&
+        (door === "staff" || isShopNextPath(nextParam))
           ? nextParam
           : door === "staff"
             ? APP_ROUTES.business
             : APP_ROUTES.shopAccount,
+      initialError: googleError
+        ? storefrontGoogleErrorMessage(googleError)
+        : null,
     });
     url.searchParams.delete("signin");
     url.searchParams.delete("email");
@@ -213,6 +221,7 @@ export function StorefrontSignInProvider({
     url.searchParams.delete("door");
     url.searchParams.delete("signup");
     url.searchParams.delete("next");
+    url.searchParams.delete("googleError");
     const cleaned = `${url.pathname}${url.search}${url.hash}`;
     router.replace(cleaned);
   }, [hydrated, openSheet, router]);
@@ -519,6 +528,8 @@ function StorefrontSignInSheet({
               initialEmail={entry?.initialEmail ?? ""}
               door={door}
               initialPhase={entry?.initialPhase ?? "credentials"}
+              initialError={entry?.initialError ?? ""}
+              nextPath={safeNext}
               onSignedIn={() => void finishSignedIn()}
             />
           ) : null}
@@ -538,6 +549,8 @@ export function UnifiedSignInForm({
   initialEmail,
   door = "shopper",
   initialPhase = "credentials",
+  initialError = "",
+  nextPath,
   onSignedIn,
 }: {
   initialPhone?: string;
@@ -545,9 +558,14 @@ export function UnifiedSignInForm({
   door?: StorefrontSignInDoor;
   /** `"signup"` opens the create-account form. Ignored for the staff door. */
   initialPhase?: StorefrontSignInPhase;
+  /** Prefill error banner (Google bounce, etc.). */
+  initialError?: string;
+  /** Post-auth destination hint for Google OAuth `next`. */
+  nextPath?: string | null;
   onSignedIn: () => void;
 }) {
   const tenant = useOptionalTenant();
+  const pathname = usePathname();
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const [identity, setIdentity] = useState(() => {
     const email = (initialEmail ?? "").trim();
@@ -569,7 +587,9 @@ export function UnifiedSignInForm({
     signInPhaseForDoor(initialPhase, door),
   );
   const [busy, setBusy] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    () => (initialError ?? "").trim(),
+  );
   /**
    * Email of a just-created account that cannot sign in until it is verified.
    * The password stays in `secret` so the verify step can fall back to
@@ -876,6 +896,31 @@ export function UnifiedSignInForm({
   const ctaClass =
     "inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition hover:opacity-95 disabled:opacity-50";
 
+  const googleNext =
+    (nextPath?.trim() &&
+      (door === "staff" || isShopNextPath(nextPath.trim()))
+      ? nextPath.trim()
+      : null) ||
+    (door === "staff"
+      ? APP_ROUTES.business
+      : pathname && isShopNextPath(pathname)
+        ? pathname
+        : APP_ROUTES.shopAccount);
+  const googleBusinessId = tenant?.tenantId?.trim() || null;
+  const googleBlock =
+    googleBusinessId && phase !== "code" && phase !== "new-pin" && phase !== "verify" ? (
+      <GoogleAuthButton
+        intent={door === "staff" ? "sign_in" : "sign_up"}
+        businessId={googleBusinessId}
+        next={googleNext}
+        requireTenantSso
+        ssoProviders={tenant?.authConfig?.ssoProviders}
+        label={door === "staff" ? "Sign in with Google" : "Continue with Google"}
+        withDivider
+        className="rounded-xl border-border shadow-none"
+      />
+    ) : null;
+
   if (phase === "code") {
     return (
       <form className="space-y-4" onSubmit={(e) => void onCodeSubmit(e)}>
@@ -949,6 +994,7 @@ export function UnifiedSignInForm({
   if (phase === "signup") {
     return (
       <form className="space-y-4" onSubmit={(e) => void onSignupSubmit(e)}>
+        {googleBlock}
         <label className="flex flex-col gap-1.5 text-sm">
           <span className={labelClass}>Name</span>
           <input
@@ -1095,6 +1141,7 @@ export function UnifiedSignInForm({
 
   return (
     <form className="space-y-4" onSubmit={(e) => void onCredentialsSubmit(e)}>
+      {googleBlock}
       <label className="flex flex-col gap-1.5 text-sm">
         <span className={labelClass}>{identityLabel}</span>
         <input
@@ -1199,4 +1246,25 @@ function ErrorBanner({ message }: { message: string }) {
       {message}
     </p>
   );
+}
+
+function storefrontGoogleErrorMessage(code: string): string {
+  switch (code) {
+    case "no_account":
+      return "No account for this Google email yet. Create one first, or use email / phone.";
+    case "multi_shop":
+      return "That Google account is on more than one shop. Open your shop’s link, or use email.";
+    case "email_unverified":
+      return "Google did not verify that email. Try another account.";
+    case "disabled":
+      return "Google Sign-In is temporarily unavailable.";
+    case "expired_state":
+    case "invalid_state":
+    case "binding_mismatch":
+      return "That Google sign-in expired. Try again.";
+    case "cancelled":
+      return "Google sign-in was cancelled.";
+    default:
+      return "Google sign-in did not complete. Try again.";
+  }
 }

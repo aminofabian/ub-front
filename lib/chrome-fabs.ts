@@ -2,8 +2,10 @@
  * Shared placement + suppression for dashboard floating actions
  * (Kiosk Support headset, Ask Guide).
  *
+ * Below 2xl the tablet bottom nav owns the thumb zone — launch FABs are
+ * hidden and both open from More instead. Positions below apply at 2xl+.
+ *
  * Must stay clear of:
- * - tablet bottom nav (below the 2xl breakpoint)
  * - desktop icon rail (2xl+, {@link DESKTOP_NAV_RAIL_REM})
  * - FormDrawer footers (Save / Cancel) while a drawer is open
  */

@@ -953,11 +953,23 @@ export function BusinessConfigurationForm({
         <PolicyPanel
           id="settings-cashier"
           title="Cashier capabilities"
-          hint="What cashiers can do on the POS. Weighted marking is on by default."
+          hint="Override what cashiers may do on the till. Adding products is off until you turn it on."
           accent="emerald"
           fieldsOnly={theatreFieldsOnly}
         >
-          <div className="grid gap-2.5 lg:grid-cols-2">
+          <div className={cn("grid gap-2.5", !theatreFieldsOnly && "lg:grid-cols-2")}>
+            <PolicySwitch
+              checked={cashierCapabilities.createProduct}
+              onChange={(checked) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  createProduct: checked,
+                }))
+              }
+              icon={<Package className="size-4" aria-hidden />}
+              title="Allow cashiers to add products"
+              description="Override the default lock. Cashiers can quick-create a sellable item from the till and drop it on the cart. Leave off to keep new products with owners and admins."
+            />
             <PolicySwitch
               checked={cashierCapabilities.priceEdit}
               onChange={(checked) =>
@@ -969,17 +981,6 @@ export function BusinessConfigurationForm({
               icon={<ShoppingCart className="size-4" aria-hidden />}
               title="Allow cashiers to edit prices"
               description="Change unit prices on cart lines (override shelf price at checkout)."
-            />
-            <PolicySwitch
-              checked={cashierCapabilities.createProduct}
-              onChange={(checked) =>
-                setCashierCapabilities((previous) => ({
-                  ...previous,
-                  createProduct: checked,
-                }))
-              }
-              title="Allow cashiers to add products"
-              description="Quick-create a sellable item from the register and add it to the cart."
             />
             <PolicySwitch
               checked={cashierCapabilities.weighedToggle}

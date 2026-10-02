@@ -64,7 +64,7 @@ import {
 import type { TopProductRecord } from "@/lib/top-products";
 import { APP_ROUTES } from "@/lib/config";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
-import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import { fetchPosShelfPrice, fetchPosShelfPrices } from "@/lib/pos-shelf-price";
 import {
   formatShelfPriceLabel,
   shelfPriceToInputString,
@@ -350,6 +350,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
   );
   const topIdsKey = topProducts.map((p) => p.id).join(",");
   const hitIdsKey = hits.map((h) => h.id).join(",");
+  const onStalePosItemRef = useRef(onStalePosItem);
+  onStalePosItemRef.current = onStalePosItem;
 
   useEffect(() => {
     setTillLabel(tillDeviceDisplayName());
@@ -519,27 +521,42 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       ),
     );
     if (ids.length === 0) return;
+
+    const seeded: Record<string, string> = {};
+    for (const h of hits) {
+      const label = formatShelfPriceLabel(
+        h.sellingPrice ?? h.bundlePrice,
+        currency,
+      );
+      if (label) seeded[h.id] = label;
+    }
+    if (Object.keys(seeded).length > 0) {
+      setShelfPrices((prev) => ({ ...prev, ...seeded }));
+    }
+
     let cancelled = false;
     const bid = branchId?.trim() || undefined;
-    const shelfCtx = { businessId, onStaleItem: onStalePosItem };
-    void Promise.all(
-      ids.map(async (id) => {
-        const r = await fetchPosShelfPrice(id, bid, shelfCtx);
-        if (!r) return [id, ""] as const;
-        return [id, formatShelfPriceLabel(r.price, currency) ?? ""] as const;
-      }),
-    ).then((pairs) => {
+    const shelfCtx = {
+      businessId,
+      onStaleItem: (itemId: string) => onStalePosItemRef.current?.(itemId),
+    };
+    void fetchPosShelfPrices(ids, bid, shelfCtx).then((byId) => {
       if (cancelled) return;
       setShelfPrices((prev) => {
         const next = { ...prev };
-        for (const [id, v] of pairs) next[id] = v;
+        for (const id of ids) {
+          const r = byId[id];
+          if (!r) continue;
+          const label = formatShelfPriceLabel(r.price, currency);
+          if (label) next[id] = label;
+        }
         return next;
       });
     });
     return () => {
       cancelled = true;
     };
-  }, [online, topIdsKey, hitIdsKey, branchId, businessId, currency, onStalePosItem]);
+  }, [online, topIdsKey, hitIdsKey, branchId, businessId, currency]);
 
   const applyBarcodeSearch = useCallback(
     (code: string) => {

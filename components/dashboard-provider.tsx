@@ -33,6 +33,7 @@ import {
   writeSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
 } from "@/lib/session-bootstrap";
+import { shareInflight } from "@/lib/share-inflight";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { toast } from "sonner";
 
@@ -237,7 +238,7 @@ export function DashboardProvider({
 
   const refreshSession = useCallback(async () => {
     const [meData, biz] = await Promise.all([
-      fetchMe({ toast: false }),
+      shareInflight("session/me", () => fetchMe({ toast: false })),
       fetchBusiness({ toast: false }),
     ]);
     setMe(meData);
@@ -425,18 +426,22 @@ export function DashboardProvider({
     (isGroceryClerk || isGroceryOperationsBusiness(effectiveBusiness));
 
   useEffect(() => {
-    if (!effectiveMe) return;
+    if (!effectiveMe?.id) return;
 
     void refreshBranches();
     void refreshItemTypes();
-    if (canViewCatalogItems) {
+    // Cashier / till shells pass defaultAllDepartments — aisle list is unused there.
+    if (canViewCatalogItems && !defaultAllDepartments) {
       void refreshAisles();
     } else {
       setAisles([]);
       setAislesLoading(false);
       setAisleSeeded(true);
     }
-  }, [effectiveMe, refreshBranches, refreshItemTypes, refreshAisles, canViewCatalogItems]);
+    // Depend on me.id only — me object identity changes after bootstrap→refresh
+    // and was re-firing branches/item-types 2–3× per cashier load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [effectiveMe?.id, canViewCatalogItems, defaultAllDepartments]);
 
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {

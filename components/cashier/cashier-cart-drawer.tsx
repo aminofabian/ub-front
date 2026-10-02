@@ -636,7 +636,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           "flex flex-col overflow-hidden bg-[color-mix(in_srgb,var(--background)_92%,var(--pos-primary)_3%)]",
           desktop
             ? "max-w-[min(100%,26rem)] sm:max-w-[26rem]"
-            : "max-h-[min(92dvh,44rem)] rounded-t-none",
+            : "h-[min(96dvh,100%)] max-h-[96dvh] rounded-t-[1.25rem]",
         )}
         style={brandTheme}
         showCloseButton={desktop}

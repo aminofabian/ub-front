@@ -31,6 +31,8 @@ type Props = {
   canManage: boolean;
   onSaved: () => void;
   onError: (message: string) => void;
+  /** Prefill name and category from a regular-cost preset (rent, power, water). */
+  seedPresetId?: string | null;
 };
 
 export function OneOffExpenseDrawer({
@@ -41,6 +43,7 @@ export function OneOffExpenseDrawer({
   canManage,
   onSaved,
   onError,
+  seedPresetId,
 }: Props) {
   const [name, setName] = useState("");
   const [categoryType, setCategoryType] = useState<"fixed" | "variable">("variable");
@@ -64,8 +67,16 @@ export function OneOffExpenseDrawer({
       setIncludeInCashDrawer(true);
       setBranchId("");
       setReceiptFile(null);
+      return;
     }
-  }, [open]);
+    const preset = FIXED_COST_PRESETS.find((p) => p.id === seedPresetId);
+    if (!preset || preset.id === "other") return;
+    setName(preset.name);
+    setCategoryType(preset.categoryType);
+    setCategoryCode(preset.categoryCode);
+    setPaymentMethod("mpesa_manual");
+    setIncludeInCashDrawer(false);
+  }, [open, seedPresetId]);
 
   const save = async () => {
     if (!canManage) return;
@@ -115,8 +126,12 @@ export function OneOffExpenseDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Record expense"
-      description="Petty cash, supplies, or other one-off spend for this day — posts to finance immediately."
+      title={seedPresetId ? "Record this bill" : "Record expense"}
+      description={
+        seedPresetId
+          ? "Posts this period’s bill to the books. It reduces operating expenses and net profit."
+          : "Petty cash, supplies, or a one-off bill — posts to finance immediately."
+      }
     >
       <FormDrawerFields>
         <label className="space-y-1 text-sm">

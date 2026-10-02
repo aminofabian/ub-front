@@ -104,7 +104,23 @@ function resolveTenantHostHeader(req: NextRequest): string | null {
   return host && host.length > 0 ? host : null;
 }
 
+const SESSIONLESS_MAGIC_LINK_PREFIXES = [
+  "/api/v1/public/tills/",
+  "/api/v1/public/drawouts/",
+] as const;
+
+/**
+ * One-tap email links (trust a till, approve a drawout). They carry their own
+ * signed token. Attaching the dashboard session makes the API compare that
+ * session's shop with this host and reject the link when they differ.
+ */
+export function isSessionlessMagicLinkPath(pathname: string): boolean {
+  const path = pathname.split("?")[0] ?? "";
+  return SESSIONLESS_MAGIC_LINK_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 function buildUpstreamHeaders(req: NextRequest): Headers {
+  const sessionless = isSessionlessMagicLinkPath(req.nextUrl.pathname);
   const h = new Headers();
   for (const name of HEADER_ALLOWLIST) {
     const v = req.headers.get(name);
@@ -116,9 +132,13 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
   if (cookie) {
     h.set("cookie", cookie);
   }
-  // Gap G: inject Bearer from httpOnly `ub.access` when the browser did not
-  // send Authorization (storage cleared / future memory-only clients).
-  if (!h.get("authorization")) {
+  if (sessionless) {
+    // Drop a dashboard Bearer (client-sent or about to be injected). The link
+    // token in the query string is the only credential these routes accept.
+    h.delete("authorization");
+  } else if (!h.get("authorization")) {
+    // Gap G: inject Bearer from httpOnly `ub.access` when the browser did not
+    // send Authorization (storage cleared / future memory-only clients).
     const access = readAccessTokenFromCookieHeader(cookie);
     if (access) {
       h.set("authorization", `Bearer ${access}`);
@@ -246,6 +266,10 @@ export async function proxyToBackend(
   const init: RequestInit = {
     method,
     headers,
+    // Never follow upstream redirects. OAuth callbacks (and any auth 302 that
+    // sets ub.refresh / Location) must reach the browser intact — Node's
+    // default redirect:"follow" would consume the 302 and drop Set-Cookie.
+    redirect: "manual",
     signal: controller.signal,
     ...(body !== undefined ? { body } : {}),
   };
@@ -303,11 +327,13 @@ export async function proxyToBackend(
   // 204/205/304 must not carry a body. Passing `upstream.body` here can hang or
   // break the client (e.g. POST /api/v1/auth/resend-verification → 204 No Content).
   const status = upstream.status;
+  const isRedirect = status >= 300 && status < 400;
   const secure = requestIsHttps(req);
   const mintAccess = status === 200 && isAccessTokenMintPath(url.pathname);
   const clearAccess =
     status >= 200 &&
     status < 300 &&
+    !isRedirect &&
     isAccessTokenClearPath(url.pathname);
   const hostname = requestHostname(req);
   const cookieDomain = sessionCookieDomain(req) || undefined;
@@ -343,7 +369,9 @@ export async function proxyToBackend(
   }
 
   const proxyBody =
-    status === 204 || status === 205 || status === 304 ? null : upstream.body;
+    status === 204 || status === 205 || status === 304 || isRedirect
+      ? null
+      : upstream.body;
 
   const out = new NextResponse(proxyBody, {
     status: upstream.status,

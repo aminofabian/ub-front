@@ -8,6 +8,7 @@ import {
   USER_API_UNREACHABLE_MESSAGE,
 } from "@/lib/ops-client-log";
 import { getBranchGuidanceKind } from "@/lib/problem";
+import { shareInflight } from "@/lib/share-inflight";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -261,15 +262,19 @@ export async function listGroceryInvoices(
   status?: GroceryInvoiceStatus,
   options?: { suppressToast?: boolean },
 ): Promise<GroceryInvoiceListResponse> {
-  const params = new URLSearchParams();
-  params.set("branchId", branchId);
-  if (status) {
-    params.set("status", status);
-  }
-  return groceryRequest<GroceryInvoiceListResponse>(
-    `${GROCERY_BASE}?${params.toString()}`,
-    { suppressToast: options?.suppressToast },
-  );
+  const bid = branchId.trim();
+  const statusKey = status ?? "";
+  return shareInflight(`grocery/invoices:${bid}:${statusKey}`, () => {
+    const params = new URLSearchParams();
+    params.set("branchId", bid);
+    if (status) {
+      params.set("status", status);
+    }
+    return groceryRequest<GroceryInvoiceListResponse>(
+      `${GROCERY_BASE}?${params.toString()}`,
+      { suppressToast: options?.suppressToast },
+    );
+  });
 }
 
 /**

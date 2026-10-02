@@ -519,7 +519,141 @@ export default function InventoryMissingBarcodesPage() {
             ) : null}
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <div className="md:hidden">
+            {loading ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                Loading…
+              </p>
+            ) : groups.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                {query
+                  ? "No variants without a barcode match this search."
+                  : "Every variant has a barcode."}
+              </p>
+            ) : (
+              groups.map((group) => {
+                const parentName =
+                  group.parent?.name ??
+                  (group.variants[0]
+                    ? parentLabelFromVariant(group.variants[0])
+                    : "Unknown parent");
+                const parentSku = group.parent?.sku ?? "";
+                const parentSearch =
+                  parentSku || parentName || group.parentId || "";
+                return (
+                  <section
+                    key={`m-parent-${group.parentId ?? "orphan"}`}
+                    className="border-b border-border"
+                  >
+                    <div className="flex items-center justify-between gap-2 bg-[#eef2f7] px-3 py-2.5 dark:bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                          Parent
+                        </p>
+                        <p className="truncate text-[14px] font-semibold text-foreground">
+                          {parentName}
+                        </p>
+                        {parentSku ? (
+                          <p className="font-mono text-[11px] text-muted-foreground">
+                            {parentSku}
+                          </p>
+                        ) : null}
+                      </div>
+                      {parentSearch ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-10 shrink-0 rounded-2xl px-3 text-[12px]"
+                        >
+                          <Link
+                            href={`${APP_ROUTES.products}?search=${encodeURIComponent(parentSearch)}`}
+                          >
+                            Open
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </div>
+                    <ul className="divide-y divide-border">
+                      {group.variants.map((row) => {
+                        const option = variantOptionLabel(row);
+                        const stock = branchFilter ? toNum(row.stockQty) : null;
+                        const draft = barcodeDrafts[row.id] ?? "";
+                        const saving = savingIds.has(row.id);
+                        return (
+                          <li key={row.id} className="space-y-2.5 px-3 py-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-[14px] font-semibold leading-snug text-foreground">
+                                  {option}
+                                </p>
+                                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                                  {row.sku?.trim() || "—"}
+                                  {branchFilter
+                                    ? ` · stock ${fmtQty(stock)}`
+                                    : ""}
+                                </p>
+                              </div>
+                            </div>
+                            {canWrite ? (
+                              <>
+                                <input
+                                  className={cn(
+                                    "h-12 w-full rounded-2xl border border-border bg-background px-3 font-mono text-[16px]",
+                                  )}
+                                  value={draft}
+                                  disabled={saving}
+                                  onChange={(e) =>
+                                    setBarcodeDraft(row.id, e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      void saveBarcode(row);
+                                    }
+                                  }}
+                                  placeholder="Scan or type barcode…"
+                                  aria-label={`Barcode for ${option}`}
+                                  autoComplete="off"
+                                  inputMode="numeric"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-12 w-full rounded-2xl text-[14px] font-semibold"
+                                  disabled={saving || !draft.trim()}
+                                  onClick={() => void saveBarcode(row)}
+                                >
+                                  {saving ? "Saving…" : "Save barcode"}
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="sm"
+                                className="h-11 w-full rounded-2xl text-[13px]"
+                              >
+                                <Link
+                                  href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.sku?.trim() || option)}`}
+                                >
+                                  Open in products
+                                </Link>
+                              </Button>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[48rem] border-collapse border-0 text-left text-xs">
               <thead>
                 <tr className={supTableHead}>

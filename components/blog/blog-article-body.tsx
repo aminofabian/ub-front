@@ -158,15 +158,10 @@ export function BlogArticleBody({ body, faqs }: BlogArticleBodyProps) {
           case "links":
             return (
               <ul key={key} className="space-y-0 border-t border-[var(--kiosk-border-soft)]">
-                {block.items.map((item) => (
-                  <li
-                    key={item.href}
-                    className="border-b border-[var(--kiosk-border-soft)]"
-                  >
-                    <Link
-                      href={item.href}
-                      className="group flex items-baseline justify-between gap-4 py-3.5 no-underline"
-                    >
+                {block.items.map((item) => {
+                  const external = /^https?:\/\//i.test(item.href);
+                  const content = (
+                    <>
                       <span className="min-w-0">
                         <span className="block text-[15px] font-semibold tracking-[-0.015em] text-[var(--kiosk-text)] transition-colors group-hover:text-[var(--kiosk-gold)]">
                           {item.label}
@@ -181,11 +176,34 @@ export function BlogArticleBody({ body, faqs }: BlogArticleBodyProps) {
                         aria-hidden
                         className="shrink-0 font-mono text-[12px] text-[var(--kiosk-text-faint)] transition-colors group-hover:text-[var(--kiosk-gold)]"
                       >
-                        →
+                        {external ? "↗" : "→"}
                       </span>
-                    </Link>
-                  </li>
-                ))}
+                    </>
+                  );
+                  const linkClass =
+                    "group flex items-baseline justify-between gap-4 py-3.5 no-underline";
+                  return (
+                    <li
+                      key={item.href}
+                      className="border-b border-[var(--kiosk-border-soft)]"
+                    >
+                      {external ? (
+                        <a
+                          href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={linkClass}
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <Link href={item.href} className={linkClass}>
+                          {content}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             );
           default:

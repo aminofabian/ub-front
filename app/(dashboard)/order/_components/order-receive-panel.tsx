@@ -12,6 +12,7 @@ import {
   Package,
   PackageCheck,
   Plus,
+  Printer,
   Search,
   Trash2,
   ArrowLeft,
@@ -27,6 +28,7 @@ import {
   type MarketplaceOrderLine,
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { useDashboard } from "@/components/dashboard-provider";
+import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchItemById,
@@ -44,12 +46,14 @@ import {
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
   postPathAPurchaseOrderLine,
+  dispatchTillPrint,
   type PathAPurchaseOrderDetailRecord,
   type PathAPurchaseOrderListRowRecord,
   type SupplierContactRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { describeTillSend } from "@/lib/till-remote-print";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
@@ -206,7 +210,7 @@ export function OrderReceivePanel({
   floorMode?: boolean;
 } = {}) {
   const router = useRouter();
-  const { branchId, business, me } = useDashboard();
+  const { branchId, business, me, branches } = useDashboard();
   const isStockFloor =
     floorMode || me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const twoStepDelivery = Boolean(
@@ -245,6 +249,8 @@ export function OrderReceivePanel({
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
   const [markingArrived, setMarkingArrived] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sharing, setSharing] = useState<"whatsapp" | "pdf" | "copy" | null>(
@@ -455,6 +461,72 @@ export function OrderReceivePanel({
     }
     return sum;
   }, [openLines, selectedLines, qtyByLine]);
+
+  const buildReceiptSlipLines = useCallback(() => {
+    if (!detail) return [];
+    return openLines
+      .filter((l) => selectedLines[l.id])
+      .map((l) => {
+        const already = roundQty(toNum(l.qtyReceived));
+        const ordered = roundQty(toNum(l.qtyOrdered));
+        const remaining = roundQty(Math.max(0, ordered - already));
+        const qty = roundQty(Math.max(0, qtyByLine[l.id] ?? remaining));
+        const unitCost = priceByLine[l.id] ?? toNum(l.unitEstimatedCost);
+        return {
+          name: itemMeta[l.itemId]?.name || "Item",
+          qty,
+          unitCost,
+          lineTotal: Number((qty * unitCost).toFixed(2)),
+        };
+      })
+      .filter((l) => l.qty > 0);
+  }, [detail, openLines, selectedLines, qtyByLine, priceByLine, itemMeta]);
+
+  const printReceiptNow = async () => {
+    if (!detail) {
+      toast.error("Open an order first");
+      return;
+    }
+    const targets = printCashierIds.slice(0, 8);
+    if (targets.length === 0) {
+      toast.error("Tick at least one cashier to print to");
+      return;
+    }
+    const slipLines = buildReceiptSlipLines();
+    if (slipLines.length === 0) {
+      toast.error("Select at least one line with quantity");
+      return;
+    }
+    const receiveBranch = detail.branchId || branchId;
+    const branchName =
+      branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
+    setPrintingReceipt(true);
+    try {
+      const sent = await dispatchTillPrint({
+        kind: "receipt",
+        branchId: receiveBranch,
+        targetUserIds: targets,
+        slip: {
+          reference: `${detail.poNumber}-R`,
+          supplierName: supplierName === "—" ? "Supplier" : supplierName,
+          businessName: business?.name || "",
+          branchName,
+          placedByName: me?.name || "",
+          currency: ORDER_CURRENCY,
+          lines: slipLines,
+        },
+      });
+      toast.success(describeTillSend("receipt", sent.tills ?? []));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not send receipt to till",
+      );
+    } finally {
+      setPrintingReceipt(false);
+    }
+  };
 
   const shopName = business?.name?.trim() || "Shop";
 
@@ -1093,15 +1165,48 @@ export function OrderReceivePanel({
         lineTotal: Number((l.qtyReceived * l.unitCost).toFixed(2)),
       }));
 
+      const invoiceNumber = `${po.poNumber}-R${Date.now().toString().slice(-4)}`;
       await postPathAGrnSupplierInvoice(
         grn.goodsReceiptId,
         {
-          invoiceNumber: `${po.poNumber}-R${Date.now().toString().slice(-4)}`,
+          invoiceNumber,
           invoiceDate: todayIsoDate(),
           lines: invoiceLines,
         },
         crypto.randomUUID(),
       );
+
+      if (printCashierIds.length > 0) {
+        const supplierName =
+          suppliers.find((supplier) => supplier.id === po.supplierId)?.name ||
+          "Supplier";
+        const branchName =
+          branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
+        try {
+          const sent = await dispatchTillPrint({
+            kind: "receipt",
+            branchId: receiveBranch,
+            targetUserIds: printCashierIds.slice(0, 8),
+            slip: {
+              reference: invoiceNumber,
+              supplierName,
+              businessName: business?.name || "",
+              branchName,
+              placedByName: me?.name || "",
+              currency: ORDER_CURRENCY,
+              lines: lines.map((line) => ({
+                name: itemMeta[line.itemId]?.name || "Item",
+                qty: line.qtyReceived,
+                unitCost: line.unitCost,
+                lineTotal: Number((line.qtyReceived * line.unitCost).toFixed(2)),
+              })),
+            },
+          });
+          toast.message(describeTillSend("receipt", sent.tills ?? []));
+        } catch {
+          toast.message("Stock updated. The selected tills did not get the receipt.");
+        }
+      }
 
       toast.success(
         embedded || isStockFloor
@@ -1937,6 +2042,36 @@ export function OrderReceivePanel({
                     {formatMoney(selectedTotal, ORDER_CURRENCY)}
                   </p>
                 </div>
+                <CashierPrintPicker
+                  mode="multiple"
+                  branchId={detail?.branchId || branchId}
+                  storageKey={`palmart:receive-print-cashiers:${detail?.branchId || branchId || "none"}`}
+                  onChange={setPrintCashierIds}
+                />
+                <button
+                  type="button"
+                  disabled={
+                    printingReceipt ||
+                    confirming ||
+                    !detail ||
+                    printCashierIds.length === 0 ||
+                    selectedUnits <= 0
+                  }
+                  onClick={() => void printReceiptNow()}
+                  className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+                >
+                  {printingReceipt ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Sending to till…
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="size-4" aria-hidden />
+                      Print receipt now
+                    </>
+                  )}
+                </button>
                 {twoStepDelivery ? (
                   <>
                     {detail &&

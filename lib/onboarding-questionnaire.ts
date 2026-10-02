@@ -25,6 +25,7 @@ export type StoreTypeChoice =
   | "mixed-shop"
   | "cosmetics"
   | "wines-spirits"
+  | "pharmacy"
   | "other";
 
 export type OnlineStoreChoice = "yes" | "no";
@@ -175,6 +176,11 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "wines-spirits",
     label: "Wines & spirits",
     hint: "Beer, wine, spirits, and mixers",
+  },
+  {
+    value: "pharmacy",
+    label: "Pharmacy / chemist",
+    hint: "Medicines, OTC, first aid, and health supplies",
   },
   {
     value: "other",
@@ -516,7 +522,12 @@ function mapServerOnboarding(
 export async function hydrateOnboardingQuestionnaireFromServer(): Promise<OnboardingQuestionnaireState | null> {
   try {
     const remote = await fetchOnboardingState();
-    if (remote.status === "idle") {
+    const status = remote.status?.trim().toLowerCase() ?? "idle";
+    // Server wins over stale apex/signup localStorage. Leaving local `pending`
+    // alive when the shop is `idle`/`completed` re-opens the questionnaire and
+    // PATCHes the live business back to `active`.
+    if (status === "idle") {
+      clearOnboardingQuestionnaireLocal();
       return null;
     }
     const local = mapServerOnboarding(remote);
@@ -539,20 +550,117 @@ async function persistOnboardingQuestionnaireToServer(patch: {
   }
 }
 
+/**
+ * Flag a brand-new shop for the configure-shop questionnaire.
+ *
+ * Must NOT wipe an already-running or finished shop. Calling this after
+ * `registerAccount` on an existing tenant (second owner, staff invite, accidental
+ * re-signup) previously PATCHed `{pending, step:1, answers:{}}` and sent every
+ * later login back to onboarding step 1.
+ */
 export function markOnboardingQuestionnairePending(): void {
-  const next: OnboardingQuestionnaireState = {
-    status: "pending",
-    step: 1,
-    answers: {},
-    updatedAt: new Date().toISOString(),
-  };
-  writeState(next);
   clearOnboardingQuestionnaireSessionSkip();
-  void persistOnboardingQuestionnaireToServer({
-    status: "pending",
-    step: 1,
-    answers: {},
-  });
+  markFreshSignupSession();
+
+  const current = readState();
+  // Optimistic local pending so shouldStart works before the server round-trip.
+  if (
+    current.status === "idle" ||
+    current.status === "pending" ||
+    !current.status
+  ) {
+    if (current.status !== "pending") {
+      writeState({
+        status: "pending",
+        step: 1,
+        answers: {},
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  void (async () => {
+    try {
+      const remote = await fetchOnboardingState();
+      const status = remote.status?.trim().toLowerCase() ?? "idle";
+      if (
+        status === "completed" ||
+        status === "dismissed" ||
+        status === "active"
+      ) {
+        // Existing shop — never clobber. Drop the fresh-signup auto-open flag.
+        writeState(mapServerOnboarding(remote));
+        clearFreshSignupSession();
+        return;
+      }
+      if (status === "pending") {
+        // Keep existing step/answers — do not reset to empty step 1.
+        writeState(mapServerOnboarding(remote));
+        return;
+      }
+      // idle → first time
+      void persistOnboardingQuestionnaireToServer({
+        status: "pending",
+        step: 1,
+      });
+    } catch {
+      void persistOnboardingQuestionnaireToServer({
+        status: "pending",
+        step: 1,
+      });
+    }
+  })();
+}
+
+const FRESH_SIGNUP_SESSION_KEY =
+  "palmart.onboardingQuestionnaire.freshSignup.v1";
+
+function markFreshSignupSession(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.setItem(FRESH_SIGNUP_SESSION_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearFreshSignupSession(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.removeItem(FRESH_SIGNUP_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function hasFreshSignupSession(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return window.sessionStorage.getItem(FRESH_SIGNUP_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Call before Google `sign_up` redirect from the create-shop flow. */
+export function prepareOnboardingForGoogleSignup(): void {
+  clearOnboardingQuestionnaireSessionSkip();
+  markFreshSignupSession();
+  const current = readState();
+  if (current.status === "idle" || !current.status) {
+    writeState({
+      status: "pending",
+      step: 1,
+      answers: {},
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
 
 export function markOnboardingQuestionnaireSkippedThisSession(): void {
@@ -588,12 +696,56 @@ export function wasOnboardingQuestionnaireSkippedThisSession(): boolean {
   }
 }
 
+/**
+ * True when the overlay should auto-open after auth.
+ *
+ * Only a fresh signup session with server/local `pending` — never on every
+ * password/Google login for a shop that happens to still be `pending`.
+ */
 export function shouldStartOnboardingQuestionnaire(): boolean {
   if (wasOnboardingQuestionnaireSkippedThisSession()) {
     return false;
   }
+  if (!hasFreshSignupSession()) {
+    return false;
+  }
   const { status } = readState();
-  return status === "pending" || status === "active";
+  return status === "pending";
+}
+
+/**
+ * Shop already has real setup — do not force the step-1 overlay (heal instead).
+ */
+export function shopLooksAlreadyConfigured(input?: {
+  onboardingStatus?: string | null;
+  onboardingAnswers?: Record<string, unknown> | null;
+  storeTypes?: string[] | null;
+  storeType?: string | null;
+  catalogueCount?: number | null;
+}): boolean {
+  const status = input?.onboardingStatus?.trim().toLowerCase() ?? "";
+  if (status === "completed" || status === "dismissed") {
+    return true;
+  }
+  if ((input?.catalogueCount ?? 0) > 0) {
+    return true;
+  }
+  const types = input?.storeTypes?.filter((t) => t.trim().length > 0) ?? [];
+  if (types.length > 0 || Boolean(input?.storeType?.trim())) {
+    return true;
+  }
+  const answers = input?.onboardingAnswers ?? {};
+  const answerTypes = answers.storeTypes;
+  if (Array.isArray(answerTypes) && answerTypes.length > 0) {
+    return true;
+  }
+  if (typeof answers.storeType === "string" && answers.storeType.trim()) {
+    return true;
+  }
+  if (typeof answers.displayName === "string" && answers.displayName.trim()) {
+    return true;
+  }
+  return false;
 }
 
 export function isOnboardingQuestionnaireFinished(): boolean {
@@ -652,6 +804,7 @@ export function markOnboardingAwaitingStock(
 export function activateOnboardingQuestionnaire(): void {
   const current = readState();
   clearOnboardingQuestionnaireSessionSkip();
+  clearFreshSignupSession();
   const next: OnboardingQuestionnaireState = {
     status: "active",
     step: current.step || 1,
@@ -766,7 +919,19 @@ export function resumeOnboardingQuestionnaire(): void {
 }
 
 export function resetOnboardingQuestionnaireForDev(): void {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STORAGE_KEY);
+  clearOnboardingQuestionnaireLocal();
+}
+
+/** Drop local questionnaire cache without touching the server. */
+export function clearOnboardingQuestionnaireLocal(): void {
+  if (typeof window === "undefined") {
+    return;
   }
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+  clearOnboardingQuestionnaireSessionSkip();
+  clearFreshSignupSession();
 }

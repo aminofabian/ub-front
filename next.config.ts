@@ -136,6 +136,14 @@ const cloudOnlyConfig: NextConfig = {
     // Do NOT rewrite /api/v1/* here — app/api/v1/[[...path]]/route.ts must handle
     // it so Gap G can set httpOnly ub.access and redact JWTs from JSON. A
     // next.config rewrite bypasses that route handler and breaks store-session.
+    //
+    // The Google OAuth callback (/api/v1/auth/oauth/google/callback) is
+    // special-cased inside that handler: it exchanges the code server-side and
+    // mints ub.access/ub.refresh on this host (lib/google-oauth-callback.server.ts),
+    // so it does not depend on a proxied 302's Set-Cookie surviving the hop. If
+    // /api/v1/* is ever fronted by a rewrite, the backend's own 302 + cookie
+    // callback still completes sign-in — but whatever fetches it must NOT follow
+    // the redirect (see redirect:"manual" in lib/backend-proxy.ts).
     return [
       {
         source: "/webhooks/:path*",

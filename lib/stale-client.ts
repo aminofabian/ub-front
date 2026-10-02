@@ -1,4 +1,5 @@
 import { CLIENT_BUILD_ID, IS_DESKTOP } from "@/lib/runtime";
+import { shareInflight } from "@/lib/share-inflight";
 
 export const STALE_CLIENT_USER_MESSAGE =
   "This till needs a refresh. A new version of the app is ready.";
@@ -120,29 +121,31 @@ export async function checkRemoteClientBuild(): Promise<boolean> {
   if (IS_DESKTOP || typeof window === "undefined") {
     return false;
   }
-  try {
-    const response = await fetch(VERSION_PATH, {
-      method: "GET",
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      if (isHtmlLikeApiBody(response.headers.get("content-type"), text)) {
+  return shareInflight("client-version:check", async () => {
+    try {
+      const response = await fetch(VERSION_PATH, {
+        method: "GET",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        if (isHtmlLikeApiBody(response.headers.get("content-type"), text)) {
+          notifyStaleClient();
+          return true;
+        }
+        return false;
+      }
+      const payload = (await response.json()) as unknown;
+      if (isNewerClientBuild(parseClientVersionPayload(payload))) {
         notifyStaleClient();
         return true;
       }
-      return false;
+    } catch {
+      /* network blip — do not force reload */
     }
-    const payload = (await response.json()) as unknown;
-    if (isNewerClientBuild(parseClientVersionPayload(payload))) {
-      notifyStaleClient();
-      return true;
-    }
-  } catch {
-    /* network blip — do not force reload */
-  }
-  return false;
+    return false;
+  });
 }
 
 export function startStaleClientWatch(): () => void {

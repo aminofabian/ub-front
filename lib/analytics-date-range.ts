@@ -9,7 +9,14 @@ export type DatePreset =
   | "custom";
 
 export function toISODate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  // The Hub/analytics windows are business-day (Africa/Nairobi) windows. Using
+  // toISOString() (UTC) asked for "yesterday" between 00:00–03:00 EAT.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 }
 
 export function parseISODate(s: string): Date {

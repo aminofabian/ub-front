@@ -22,8 +22,14 @@ import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
 } from "@/lib/public-storefront";
+import { formatKenyanPhoneDisplay } from "@/lib/kenyan-phone";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
+
+/** Loose check — enough to gate the card flow, not a full RFC validation. */
+function looksLikeEmail(value: string | null | undefined): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value ?? "").trim());
+}
 
 /** STK send control surfaced in the confirmation dock action row. */
 export type StkDockSendAction = {
@@ -207,6 +213,7 @@ function PaymentMethodOption({
   return (
     <div
       className={cn(
+        "select-option",
         featured ? CHECKOUT_MPESA_FEATURED : CHECKOUT_PAY_SECONDARY,
         selected && !featured && "border-primary/35 bg-primary/[0.04] ring-1 ring-primary/15",
         !selected && featured && "opacity-90",
@@ -217,7 +224,7 @@ function PaymentMethodOption({
         type="button"
         onClick={onSelect}
         className={cn(
-          "flex w-full items-start text-left",
+          "select-option-btn flex w-full items-start text-left",
           compact ? "gap-2.5 p-2.5 sm:p-3" : "gap-3 p-3.5 sm:p-4",
           featured && selected && (compact ? "pb-0" : "pb-0"),
         )}
@@ -270,7 +277,7 @@ function PaymentMethodOption({
         </span>
         <span
           className={cn(
-            "mt-0.5 flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+            "select-dot mt-0.5 flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
             compact ? "size-4" : "size-5",
             selected
               ? "border-primary bg-primary text-white"
@@ -286,6 +293,7 @@ function PaymentMethodOption({
       {selected && children ? (
         <div
           className={cn(
+            "select-panel",
             featured
               ? compact
                 ? "px-2.5 pb-2.5 pt-1.5 sm:px-3"
@@ -344,6 +352,7 @@ function OnlineStkFields({
   const [selectedConfigId, setSelectedConfigId] = useState(
     () => methods[0]?.configId ?? "",
   );
+  const [editingNumber, setEditingNumber] = useState(false);
 
   useEffect(() => {
     setAreaCode(defaultAreaCode);
@@ -406,6 +415,14 @@ function OnlineStkFields({
       : null;
   const custodySelected = selectedMethod.gatewayType === "CUSTODY_MPESA";
 
+  // #6: the M-Pesa number is the shopper's contact phone by default — show it as a
+  // locked summary instead of a second editable entry. Before the prompt is
+  // enabled (pre-order) it stays locked to the contact phone so the auto-sent STK
+  // always targets a number the shopper confirmed; it can be changed at pay time.
+  const hasAccountNumber = isStkPhoneValid(defaultAreaCode, defaultPhone);
+  const showNumberSummary = hasAccountNumber && !editingNumber;
+  const summaryNumber = formatKenyanPhoneDisplay(`${areaCode} ${phone}`);
+
   return (
     <div className={cn("space-y-2", featured && "rounded-lg bg-background/60 p-2.5 ring-1 ring-[#00a651]/10")}>
       <MpesaRailPicker
@@ -447,68 +464,98 @@ function OnlineStkFields({
       ) : promptDisabled ? (
         <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
           <Zap className="mt-0.5 size-3 shrink-0 text-[#00a651]" aria-hidden />
-          {phoneValid
-            ? (promptDisabledHint ??
-              "Number looks good — place your order, then send the M-Pesa prompt.")
-            : (promptDisabledHint ??
-              "Enter your M-Pesa number now — you'll send the prompt right after placing the order.")}
+          {promptDisabledHint ??
+            "We'll send the M-Pesa prompt as soon as you place the order."}
         </p>
       ) : (
         <p className="text-[11px] leading-snug text-muted-foreground">
-          Enter the number that receives the M-Pesa prompt, then tap Click to pay.
+          {showNumberSummary
+            ? "The prompt goes to this number — tap Change to use a different one."
+            : "Enter the number that receives the M-Pesa prompt, then tap Click to pay."}
         </p>
       )}
-      <div
-        className={cn(
-          "gap-2",
-          compact
-            ? "flex min-w-0 flex-wrap items-end"
-            : "grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
-        )}
-      >
-        <label
+      {showNumberSummary ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-2">
+          <span className="flex min-w-0 items-center gap-2">
+            <Smartphone className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+              {summaryNumber}
+            </span>
+          </span>
+          {!promptDisabled ? (
+            <button
+              type="button"
+              className="shrink-0 text-[11px] font-semibold text-primary underline-offset-2 hover:underline disabled:opacity-50"
+              disabled={busy || stkSent}
+              onClick={() => setEditingNumber(true)}
+            >
+              Change
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div
           className={cn(
-            "flex min-w-0 flex-col gap-1",
-            compact ? "w-[3.25rem] shrink-0" : "",
+            "gap-2",
+            compact
+              ? "flex min-w-0 flex-wrap items-end"
+              : "grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
           )}
         >
-          <span className={CHECKOUT_LABEL}>Code</span>
-          <input
-            type="text"
-            inputMode="tel"
-            autoComplete="tel-country-code"
-            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
-            value={areaCode}
-            onChange={(e) => setAreaCode(e.target.value)}
-            placeholder="+254"
-            disabled={busy || stkSent}
-          />
-        </label>
-        <label className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className={CHECKOUT_LABEL}>M-Pesa phone</span>
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="712 345 678"
-            disabled={busy || stkSent}
-          />
-        </label>
-        {compact && !actionsInDock && !promptDisabled ? (
-          <Button
-            type="button"
-            size="sm"
-            className="h-9 shrink-0 rounded-xl bg-[#00a651] px-3 text-xs font-bold text-white shadow-md hover:bg-[#008f47]"
-            disabled={busy || stkSent || !phoneValid}
-            onClick={() => onPay(selectedMethod.configId, fullPhone)}
+          <label
+            className={cn(
+              "flex min-w-0 flex-col gap-1",
+              compact ? "w-[3.25rem] shrink-0" : "",
+            )}
           >
-            {busy ? "Sending…" : stkSent ? "Sent ✓" : "Send prompt"}
-          </Button>
-        ) : null}
-      </div>
+            <span className={CHECKOUT_LABEL}>Code</span>
+            <input
+              type="text"
+              inputMode="tel"
+              autoComplete="tel-country-code"
+              className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
+              value={areaCode}
+              onChange={(e) => setAreaCode(e.target.value)}
+              placeholder="+254"
+              disabled={busy || stkSent}
+            />
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className={CHECKOUT_LABEL}>M-Pesa phone</span>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="712 345 678"
+              disabled={busy || stkSent}
+            />
+          </label>
+          {compact && !actionsInDock && !promptDisabled ? (
+            <Button
+              type="button"
+              size="sm"
+              className="action-tap h-9 shrink-0 rounded-xl bg-[#00a651] px-3 text-xs font-bold text-white shadow-md hover:bg-[#008f47]"
+              disabled={busy || stkSent || !phoneValid}
+              onClick={() => onPay(selectedMethod.configId, fullPhone)}
+            >
+              {busy ? "Sending…" : stkSent ? "Sent ✓" : "Send prompt"}
+            </Button>
+          ) : null}
+        </div>
+      )}
+      {!showNumberSummary && hasAccountNumber ? (
+        <button
+          type="button"
+          className="text-[11px] font-medium text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+          disabled={busy || stkSent}
+          onClick={() => setEditingNumber(false)}
+        >
+          Use the number on my account
+        </button>
+      ) : null}
       {!phoneValid && phone.trim() ? (
         <p className="text-[11px] text-destructive">
           Use 9 digits (712…) or 10 if it starts with 0 (0712…).
@@ -518,7 +565,7 @@ function OnlineStkFields({
         <Button
           type="button"
           size="sm"
-          className="h-10 w-full rounded-xl bg-[#00a651] text-sm font-bold text-white shadow-md hover:bg-[#008f47] sm:w-auto sm:px-6"
+          className="action-tap h-10 w-full rounded-xl bg-[#00a651] text-sm font-bold text-white shadow-md hover:bg-[#008f47] sm:w-auto sm:px-6"
           disabled={busy || stkSent || !phoneValid}
           onClick={() => onPay(selectedMethod.configId, fullPhone)}
         >
@@ -600,6 +647,7 @@ function AlternativePayList({
   redirectBusy,
   redirectMessage,
   onRedirectPay,
+  redirectDisabled = false,
 }: {
   manual: PublicPaymentInstruction[];
   redirectMethods: PublicOnlinePaymentMethod[];
@@ -607,6 +655,7 @@ function AlternativePayList({
   redirectBusy: boolean;
   redirectMessage: string | null;
   onRedirectPay?: (configId: string) => void;
+  redirectDisabled?: boolean;
 }) {
   if (manual.length === 0 && redirectMethods.length === 0) return null;
 
@@ -615,6 +664,11 @@ function AlternativePayList({
       <p className="px-3 pt-2 pb-1.5 text-[11px] font-semibold text-muted-foreground">
         Other ways to pay
       </p>
+      {!orderPlaced && redirectMethods.length > 0 ? (
+        <p className="px-3 pb-1.5 text-[11px] leading-snug text-muted-foreground">
+          Card and bank payment unlock after you place the order.
+        </p>
+      ) : null}
       <ul className="divide-y divide-border/50">
         {redirectMethods.map((method) => {
           const label =
@@ -625,7 +679,7 @@ function AlternativePayList({
             <li key={method.configId}>
               <button
                 type="button"
-                disabled={!orderPlaced || redirectBusy}
+                disabled={!orderPlaced || redirectBusy || redirectDisabled}
                 onClick={() => onRedirectPay?.(method.configId)}
                 className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-background/70 disabled:opacity-60"
               >
@@ -679,6 +733,8 @@ export function ShopCheckoutPaymentSection({
   selectedMethod = "mpesa",
   onSelectMethod,
   payOnDeliveryAvailable = true,
+  email,
+  onCardEmailChange,
 }: {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
@@ -699,6 +755,9 @@ export function ShopCheckoutPaymentSection({
   selectedMethod?: CheckoutPaymentMethod;
   onSelectMethod?: (method: CheckoutPaymentMethod) => void;
   payOnDeliveryAvailable?: boolean;
+  /** Shopper email — needed only for the card/redirect rail (receipts). */
+  email?: string;
+  onCardEmailChange?: (value: string) => void;
 }) {
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
@@ -715,6 +774,28 @@ export function ShopCheckoutPaymentSection({
   const shopCart = useShopCartOptional();
   const whatsappCheckout = shopCart?.whatsappCheckout ?? null;
   const openWhatsAppCheckout = shopCart?.openWhatsAppCheckout;
+
+  const cardEmailMissing = Boolean(onCardEmailChange) && !looksLikeEmail(email);
+  const cardEmailField =
+    hasRedirectMethods && orderPlaced && cardEmailMissing ? (
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/70">
+          Email for your card receipt
+        </span>
+        <input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          value={email ?? ""}
+          onChange={(e) => onCardEmailChange?.(e.target.value)}
+          placeholder="you@example.com"
+          className={cn(CHECKOUT_INPUT, "h-10")}
+        />
+        <span className="text-[11px] leading-snug text-muted-foreground">
+          Card and bank payments need an email for the receipt.
+        </span>
+      </label>
+    ) : null;
 
   if (!hasManual && !hasOnline && !payOnDeliveryAvailable) return null;
 
@@ -774,8 +855,8 @@ export function ShopCheckoutPaymentSection({
             promptDisabledHint={
               stkPromptDisabled
                 ? review
-                  ? "Confirm your number — send the prompt after placing the order."
-                  : "Enter your M-Pesa number now — tap Send prompt right after you place the order."
+                  ? "Confirm your number — we'll send the prompt when you place the order."
+                  : "We'll send the M-Pesa prompt as soon as you place the order."
                 : undefined
             }
             actionsInDock={dockActions}
@@ -813,7 +894,7 @@ export function ShopCheckoutPaymentSection({
             promptDisabled={stkPromptDisabled}
             promptDisabledHint={
               stkPromptDisabled
-                ? "Enter your M-Pesa number now — tap Send prompt right after you place the order."
+                ? "We'll send the M-Pesa prompt as soon as you place the order."
                 : undefined
             }
             actionsInDock={dockActions}
@@ -871,15 +952,16 @@ export function ShopCheckoutPaymentSection({
             Place your order, then continue to payment.
           </p>
         ) : null}
+        {cardEmailField}
         {redirectMethods.map((method) => (
           <Button
             key={method.configId}
             type="button"
             className={cn(
-              "h-10 rounded-xl text-sm font-bold shadow-md",
+              "action-tap h-10 rounded-xl text-sm font-bold shadow-md",
               dense ? "w-full px-4" : "w-full px-6 sm:w-auto",
             )}
-            disabled={!orderPlaced || redirectBusy}
+            disabled={!orderPlaced || redirectBusy || cardEmailMissing}
             onClick={() => onRedirectPay(method.configId)}
           >
             <CreditCard className="size-4" aria-hidden />
@@ -896,21 +978,28 @@ export function ShopCheckoutPaymentSection({
       </div>
     ) : null;
 
-  const collapseAlternatives = floating && orderPlaced && hasStkMethods;
+  // Collapse card/till behind "Other ways to pay" whenever M-Pesa leads the step,
+  // so the default path stays uncluttered (confirm step and post-order floating).
+  const collapseAlternatives =
+    hasStkMethods && ((floating && orderPlaced) || showMethodPicker);
 
   return (
     <div className={cn("min-w-0 max-w-full", dense ? "space-y-1.5" : "space-y-3")}>
       {mpesaBlock}
       {showMethodPicker ? codBlock : null}
       {collapseAlternatives ? (
-        <AlternativePayList
-          manual={selectedMethod === "pay_on_delivery" ? [] : manual}
-          redirectMethods={hasRedirectMethods ? redirectMethods : []}
-          orderPlaced={orderPlaced}
-          redirectBusy={redirectBusy ?? false}
-          redirectMessage={redirectMessage ?? null}
-          onRedirectPay={onRedirectPay}
-        />
+        <>
+          {cardEmailField}
+          <AlternativePayList
+            manual={selectedMethod === "pay_on_delivery" ? [] : manual}
+            redirectMethods={hasRedirectMethods ? redirectMethods : []}
+            orderPlaced={orderPlaced}
+            redirectBusy={redirectBusy ?? false}
+            redirectMessage={redirectMessage ?? null}
+            onRedirectPay={onRedirectPay}
+            redirectDisabled={cardEmailMissing}
+          />
+        </>
       ) : (
         <>
           {redirectBlock}

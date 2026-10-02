@@ -123,12 +123,12 @@ export function readyGroupOptions(
 }
 
 const cellClass = cn(
-  "h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2 text-[13px] text-[var(--catalog-ink,#15231f)] shadow-none",
+  "h-11 w-full rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-3 text-base text-[var(--catalog-ink,#15231f)] shadow-none sm:h-9 sm:rounded-none sm:px-2 sm:text-[13px]",
   "focus:outline-none focus-visible:border-[var(--catalog-primary,#0f766e)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
 );
 
 const optionShellClass = cn(
-  "flex h-9 w-full min-w-0 items-stretch overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white shadow-none",
+  "flex h-11 w-full min-w-0 items-stretch overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white shadow-none sm:h-9 sm:rounded-none",
   "focus-within:border-[var(--catalog-primary,#0f766e)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_22%,transparent)]",
 );
 
@@ -231,7 +231,7 @@ export function CreateGroupOptionsPad({
 
   return (
     <section className="space-y-2">
-      <div className="flex items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-1">
         <p className="text-[13px] font-medium text-[var(--catalog-ink,#15231f)]">
           Options{currency ? ` · ${currency}` : ""}
         </p>
@@ -244,7 +244,7 @@ export function CreateGroupOptionsPad({
       </div>
 
       <div className={styles.pad}>
-        <div className={styles.head}>
+        <div className={styles.head} aria-hidden>
           <span className={styles.headNum}>#</span>
           <span className={styles.headPhoto}>Photo</span>
           <span className={styles.headOpt}>Option</span>
@@ -289,7 +289,10 @@ export function CreateGroupOptionsPad({
             >
               <div className={styles.wash} aria-hidden />
               <div className={styles.num}>
-                <span className={styles.index}>{index + 1}</span>
+                <span className={styles.index}>
+                  <span className={styles.indexMobile}>Option </span>
+                  {index + 1}
+                </span>
                 <Check className={cn(styles.check, "size-3.5")} />
               </div>
               <div className={cn(styles.cell, styles.cellPhoto)}>
@@ -321,22 +324,22 @@ export function CreateGroupOptionsPad({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <ImagePlus className="size-3.5" aria-hidden />
+                    <ImagePlus className="size-4 sm:size-3.5" aria-hidden />
                   )}
                 </button>
               </div>
-              <div className={styles.cell}>
+              <div className={cn(styles.cell, styles.cellOpt)} data-label="Option">
                 {familyPrefix ? (
                   <div className={optionShellClass}>
                     <span
-                      className="flex max-w-[42%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_70%,white)] px-2 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)]"
+                      className="flex max-w-[38%] shrink-0 items-center truncate border-r border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_70%,white)] px-2.5 text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] sm:max-w-[42%] sm:px-2"
                       title={familyPrefix}
                     >
                       {familyPrefix}
                     </span>
                     <input
                       id={`${modeId}-opt-${row.key}`}
-                      className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-[13px] text-[var(--catalog-ink,#15231f)] shadow-none outline-none focus-visible:ring-0"
+                      className="h-full min-w-0 flex-1 border-0 bg-transparent px-2.5 text-base text-[var(--catalog-ink,#15231f)] shadow-none outline-none focus-visible:ring-0 sm:px-2 sm:text-[13px]"
                       value={row.label}
                       disabled={disabled}
                       onChange={(e) =>
@@ -365,7 +368,10 @@ export function CreateGroupOptionsPad({
                   />
                 )}
               </div>
-              <div className={cn(styles.cell, styles.cellSell)}>
+              <div
+                className={cn(styles.cell, styles.cellSell)}
+                data-label="Sell"
+              >
                 <input
                   className={cn(
                     cellClass,
@@ -385,7 +391,10 @@ export function CreateGroupOptionsPad({
                   aria-label={`Option ${index + 1} sell price`}
                 />
               </div>
-              <div className={cn(styles.cell, styles.cellStock)}>
+              <div
+                className={cn(styles.cell, styles.cellStock)}
+                data-label="Stock"
+              >
                 <input
                   className={cn(cellClass, "text-right tabular-nums")}
                   inputMode="decimal"
@@ -397,7 +406,10 @@ export function CreateGroupOptionsPad({
                   aria-label={`Option ${index + 1} stock`}
                 />
               </div>
-              <div className={cn(styles.cell, styles.cellCost)}>
+              <div
+                className={cn(styles.cell, styles.cellCost)}
+                data-label="Cost"
+              >
                 <input
                   className={cn(cellClass, "text-right tabular-nums")}
                   inputMode="decimal"
@@ -411,14 +423,17 @@ export function CreateGroupOptionsPad({
                   aria-label={`Option ${index + 1} cost`}
                 />
               </div>
-              <div className={cn(styles.cell, styles.cellCode)}>
+              <div
+                className={cn(styles.cell, styles.cellCode)}
+                data-label="Barcode"
+              >
                 <input
                   className={cellClass}
                   value={row.barcode}
                   disabled={disabled}
                   onChange={(e) => patch(row.key, { barcode: e.target.value })}
                   onKeyDown={handleEnter}
-                  placeholder="Scan"
+                  placeholder="Scan or type"
                   aria-label={`Option ${index + 1} barcode`}
                 />
               </div>
@@ -431,7 +446,7 @@ export function CreateGroupOptionsPad({
                     disabled={disabled}
                     onClick={() => removeRow(row.key)}
                   >
-                    <Trash2 className="size-3.5" />
+                    <Trash2 className="size-4 sm:size-3.5" />
                   </button>
                 ) : null}
               </div>

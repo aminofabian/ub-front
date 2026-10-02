@@ -498,7 +498,7 @@ export function DarajaPanel({
       </div>
 
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Lipa Na M-Pesa STK with Party A = customer phone and Party B = the shortcode
+        Lipa Na M-Pesa STK prompts the customer and pays into the shortcode
         below. API keys are encrypted in the database, never set in env. Register
         callback URLs on the Daraja portal:{" "}
         <span className="font-mono text-[10px]">/webhooks/daraja/stk</span>,{" "}
@@ -518,7 +518,7 @@ export function DarajaPanel({
             <option value="production">Production</option>
           </select>
         </Field>
-        <Field id="sa-daraja-type" label="Shortcode type (Party B)">
+        <Field id="sa-daraja-type" label="Shortcode type">
           <select
             id="sa-daraja-type"
             className={dashboardSelectClass()}
@@ -692,16 +692,15 @@ export function CustodyPanel({
   return (
     <div className="space-y-4">
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Till-only uses Lipa Na M-Pesa Express with <strong>no B2B</strong>. Request
-        shape (Safaricom FAQ): BusinessShortCode = Go Live shortcode above,
-        PartyB = the shop&apos;s Buy Goods till (or paybill under this Head
-        Office), TransactionType = CustomerBuyGoodsOnline for tills. Money
-        credits PartyB directly.
+        Till-only sends the customer a Lipa Na M-Pesa (STK) prompt and the money
+        credits the shop&apos;s Buy Goods till directly — there is no B2B
+        settlement step.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
         The shop till must sit under this Head Office on the M-Pesa Org portal.
-        Bank paybills (NCBA 880100, Equity, …) are not on this HO — Express
-        cannot PartyB-credit them without B2B. Those shops should use BYO keys.
+        Bank paybills (NCBA 880100, Equity, …) are not on this Head Office, so a
+        prompt can&apos;t credit them — those shops should connect their own keys
+        instead.
       </p>
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
         The Daraja app must be on production with a Go Live shortcode, subscribed
@@ -763,7 +762,7 @@ export function CustodyPanel({
               {
                 value: "DARAJA" as const,
                 title: "Daraja",
-                hint: "M-Pesa Express · PartyB = shop till on this HO",
+                hint: "Lipa Na M-Pesa STK · shop till under this HO",
                 disabled: !mpesaCustody?.darajaReady,
               },
             ]

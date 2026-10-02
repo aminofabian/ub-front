@@ -48,6 +48,11 @@ export type FormDrawerProps = {
    * (e.g. full-viewport Order workspace).
    */
   bodyLayout?: "scroll" | "fill";
+  /**
+   * Hide the title header entirely — used when the child brings its own chrome
+   * (Sell till drawer with CashierBottomNav). A visually-hidden title stays for a11y.
+   */
+  hideHeader?: boolean;
   /** When set, marks the drawer panel for onboarding tour spotlight. */
   onboardingTarget?: OnboardingTargetId;
 };
@@ -139,6 +144,7 @@ export function FormDrawer({
   appearance = "sharp",
   headerDensity = "default",
   bodyLayout = "scroll",
+  hideHeader = false,
   onboardingTarget,
   dockRoot = null,
   docked = false,
@@ -231,9 +237,10 @@ export function FormDrawer({
                 )
               : isFull
                 ? cn(
+                    // No zoom — a transform on this panel traps `position: fixed`
+                    // descendants (e.g. the Sell cart dock) and pins them mid-screen.
                     "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-background shadow-none",
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-                    "data-[state=closed]:zoom-out-[0.99] data-[state=open]:zoom-in-[0.99]",
                   )
                 : sheetBottom
                   ? cn(
@@ -320,6 +327,27 @@ export function FormDrawer({
             {sheetBottom ? (
               <SheetGrabber {...grabberProps} dragging={dragging} />
             ) : null}
+            {hideHeader ? (
+              <>
+                <Dialog.Title className="sr-only">{title}</Dialog.Title>
+                <Dialog.Description className="sr-only">
+                  {typeof description === "string" && description
+                    ? description
+                    : "Form panel. Press Escape to close."}
+                </Dialog.Description>
+                <Dialog.Close asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute right-2 top-2 z-40 size-9 rounded-none border border-border/80 bg-background/90 text-foreground/60 shadow-none hover:bg-muted hover:text-foreground"
+                    aria-label="Close panel"
+                  >
+                    <X className="size-3.5" strokeWidth={2} />
+                  </Button>
+                </Dialog.Close>
+              </>
+            ) : (
             <header
               className={cn(
                 "relative shrink-0 overflow-hidden border-b border-border",
@@ -523,6 +551,7 @@ export function FormDrawer({
                 )}
               </div>
             </header>
+            )}
 
             {banner ? (
               <div

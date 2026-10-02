@@ -28,6 +28,7 @@ import {
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { WebOrderFulfillmentActions } from "@/components/storefront/web-order-fulfillment-actions";
+import { WebOrderShipmentCard } from "@/components/storefront/web-order-shipment-card";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
@@ -644,6 +645,8 @@ export function WebOrdersPage() {
                 order={detail}
                 onUpdated={onDetailUpdated}
               />
+
+              <WebOrderShipmentCard order={detail} onUpdated={onDetailUpdated} />
 
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
                 {detail.lines.map((line) => (

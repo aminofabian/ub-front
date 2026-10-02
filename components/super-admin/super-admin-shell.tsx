@@ -38,6 +38,10 @@ import {
   startSaSessionKeepAlive,
   type SuperAdminMe,
 } from "@/lib/super-admin-api";
+import {
+  OXANIUM_SURFACE_CLASS,
+  OXANIUM_SURFACE_STYLE,
+} from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
 
 type Crumb = { label: string; href?: string };
@@ -380,7 +384,10 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="flex min-h-[100dvh] bg-background">
+      <div
+        className={cn("flex min-h-[100dvh] bg-background", OXANIUM_SURFACE_CLASS)}
+        style={OXANIUM_SURFACE_STYLE}
+      >
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-border/70",

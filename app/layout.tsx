@@ -3,8 +3,6 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { barlowCondensed } from "@/app/fonts/barlow-condensed";
-import { cormorant } from "@/app/fonts/cormorant";
-import { dmSans } from "@/app/fonts/dm-sans";
 import { geistMono } from "@/app/fonts/geist-mono";
 import { inter } from "@/app/fonts/inter";
 import { TenantProvider } from "@/components/providers/tenant-provider";
@@ -85,30 +83,28 @@ export default async function RootLayout({
   return (
     <html
       lang="en-KE"
-      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${dmSans.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         {/*
-          Static ES5 bootstrap — loaded via next/script so Turbopack does not
-          hydrate inline scripts differently. On production hosts the reporter
-          never paints the red banner (see public/client-error-reporter.js).
+          Native <script> tags (not next/script beforeInteractive) — Next's
+          beforeInteractive strategy serializes differently on SSR vs client
+          (blob src vs __next_s queue) and trips a hydration warning in <head>.
+          These must run before paint: error reporter, polyfills, tenant/PWA init.
         */}
-        <Script
-          id="client-error-reporter"
-          src="/client-error-reporter.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          id="client-runtime-polyfills"
-          src="/runtime-polyfills.js"
-          strategy="beforeInteractive"
-        />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts -- early boot; see comment above */}
+        <script src="/client-error-reporter.js" />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts -- early boot; see comment above */}
+        <script src="/runtime-polyfills.js" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <Script id="client-session-init" strategy="beforeInteractive">
-          {`(function(){try{var h=location.hostname.toLowerCase();var p=location.pathname;var local={"localhost":1,"127.0.0.1":1,"::1":1};var apex=${JSON.stringify(platformApexHostname())};var tenantHost=!local[h]&&p.indexOf("/super-admin")!==0&&!!apex&&h!==apex&&h!=="www."+apex;var slug=${JSON.stringify(tenant?.slug ?? "")};if(tenantHost){try{localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);}catch(e){}}if(slug){var href="/pwa/"+encodeURIComponent(slug)+"/manifest.webmanifest";var links=document.querySelectorAll('link[rel="manifest"]');var kept=false;for(var i=0;i<links.length;i++){if(!kept){links[i].setAttribute("href",href);kept=true;}else if(links[i].parentNode){links[i].parentNode.removeChild(links[i]);}}}if(slug||tenantHost||p.indexOf("/shop")===0||p.indexOf("/pwa/")===0){window.addEventListener("beforeinstallprompt",function(ev){ev.preventDefault();window.__kioskShopperPwa=window.__kioskShopperPwa||{};window.__kioskShopperPwa.prompt=ev;});window.addEventListener("appinstalled",function(){window.__kioskShopperPwa=window.__kioskShopperPwa||{};window.__kioskShopperPwa.prompt=null;window.__kioskShopperPwa.installed=true;if(slug){try{localStorage.setItem("ub.shopperPwa."+slug,"installed");}catch(e2){}}});}var keepSw=p.indexOf("/shop")===0||p.indexOf("/pwa/")===0||p==="/app"||p.indexOf("/products")===0||tenantHost;if("serviceWorker" in navigator&&!keepSw){navigator.serviceWorker.getRegistrations().then(function(r){for(var i=0;i<r.length;i++){r[i].unregister();}});}}catch(e){}})();`}
-        </Script>
+        <script
+          id="client-session-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var h=location.hostname.toLowerCase();var p=location.pathname;var local={"localhost":1,"127.0.0.1":1,"::1":1};var apex=${JSON.stringify(platformApexHostname())};var tenantHost=!local[h]&&p.indexOf("/super-admin")!==0&&!!apex&&h!==apex&&h!=="www."+apex;var slug=${JSON.stringify(tenant?.slug ?? "")};if(tenantHost){try{localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);}catch(e){}}if(slug){var href="/pwa/"+encodeURIComponent(slug)+"/manifest.webmanifest";var links=document.querySelectorAll('link[rel="manifest"]');var kept=false;for(var i=0;i<links.length;i++){if(!kept){links[i].setAttribute("href",href);kept=true;}else if(links[i].parentNode){links[i].parentNode.removeChild(links[i]);}}}if(slug||tenantHost||p.indexOf("/shop")===0||p.indexOf("/pwa/")===0){window.addEventListener("beforeinstallprompt",function(ev){ev.preventDefault();window.__kioskShopperPwa=window.__kioskShopperPwa||{};window.__kioskShopperPwa.prompt=ev;});window.addEventListener("appinstalled",function(){window.__kioskShopperPwa=window.__kioskShopperPwa||{};window.__kioskShopperPwa.prompt=null;window.__kioskShopperPwa.installed=true;if(slug){try{localStorage.setItem("ub.shopperPwa."+slug,"installed");}catch(e2){}}});}var keepSw=p.indexOf("/shop")===0||p.indexOf("/pwa/")===0||p==="/app"||p.indexOf("/products")===0||tenantHost;if("serviceWorker" in navigator&&!keepSw){navigator.serviceWorker.getRegistrations().then(function(r){for(var i=0;i<r.length;i++){r[i].unregister();}});}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body
         className="min-h-full flex flex-col font-sans"

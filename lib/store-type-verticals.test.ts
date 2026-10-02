@@ -7,10 +7,11 @@ import {
 } from "./onboarding-questionnaire";
 
 describe("vertical store types", () => {
-  test("options include cosmetics, wines-spirits, and other", () => {
+  test("options include cosmetics, wines-spirits, pharmacy, and other", () => {
     const values = STORE_TYPE_OPTIONS.map((o) => o.value);
     expect(values).toContain("cosmetics");
     expect(values).toContain("wines-spirits");
+    expect(values).toContain("pharmacy");
     expect(values).toContain("other");
   });
 
@@ -29,6 +30,13 @@ describe("vertical store types", () => {
     expect(sections).toContain("Beer");
     expect(sections).toContain("Wine");
     expect(sections).toContain("Spirits");
+  });
+
+  test("pharmacy seeds chemist departments", () => {
+    const sections = storeTypeSectionLabels("pharmacy");
+    expect(sections).toContain("Medicines (OTC)");
+    expect(sections).toContain("Prescription");
+    expect(sections).toContain("First aid & wound care");
   });
 
   test("multi-select merges without duplicates", () => {

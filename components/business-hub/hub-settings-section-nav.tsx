@@ -16,7 +16,7 @@ export function HubSettingsSectionNav({
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex max-w-full flex-wrap gap-0.5 rounded-none border border-[color-mix(in_srgb,#141414_9%,transparent)] bg-white p-0.5",
+        "inline-flex max-w-full flex-wrap gap-0.5 rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-0.5",
         className,
       )}
     >

@@ -199,7 +199,7 @@ export default function ReconciliationPage() {
                 Branch
               </span>
               <select
-                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[15px] disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:rounded-none sm:px-2.5 sm:text-sm"
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
                 disabled={branchLocked}
@@ -220,13 +220,17 @@ export default function ReconciliationPage() {
               </span>
               <input
                 type="date"
-                className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-sm"
+                className="h-11 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[15px] sm:h-8 sm:rounded-none sm:px-2.5 sm:text-sm"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
             </label>
           </div>
-          <Button className="mt-4" disabled={loading} onClick={onGenerate}>
+          <Button
+            className="mt-4 h-12 w-full rounded-2xl text-[14px] sm:h-9 sm:w-auto sm:rounded-none sm:text-sm"
+            disabled={loading}
+            onClick={onGenerate}
+          >
             Generate Report
           </Button>
         </div>
@@ -294,8 +298,75 @@ export default function ReconciliationPage() {
               />
             ) : null}
 
-            {/* Report table */}
-            <div className="overflow-x-auto rounded-none border">
+            {/* Report — cards on phone, table on desktop */}
+            <div className="divide-y divide-border rounded-2xl border border-border bg-white md:hidden">
+              {report.lines.map((line) => {
+                const v = parseNum(line.variance);
+                return (
+                  <article
+                    key={line.itemId}
+                    className={cn("space-y-2 px-3 py-3", varianceBg(v))}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-semibold leading-snug text-foreground">
+                          {getReconLineName(line)}
+                        </p>
+                        {line.sku ? (
+                          <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                            {line.sku}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold tabular-nums",
+                          varianceColor(v),
+                        )}
+                      >
+                        {v > 0 ? (
+                          <TrendingUp className="size-3.5" />
+                        ) : v < 0 ? (
+                          <TrendingDown className="size-3.5" />
+                        ) : (
+                          <CheckCircle2 className="size-3.5 text-emerald-500" />
+                        )}
+                        {v > 0 ? "+" : ""}
+                        {v}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Opening</span>
+                        <span className="font-mono tabular-nums">
+                          {String(line.openingStock)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Sold</span>
+                        <span className="font-mono tabular-nums text-muted-foreground">
+                          {String(line.unitsSold)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Expected</span>
+                        <span className="font-mono tabular-nums">
+                          {String(line.expectedClosing)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Actual</span>
+                        <span className="font-mono tabular-nums font-semibold">
+                          {String(line.actualClosing)}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-none border md:block">
               <table className="w-full min-w-[40rem] text-left text-sm">
                 <thead className="sticky top-0 border-b bg-muted/40">
                   <tr>

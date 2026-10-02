@@ -87,7 +87,7 @@ import {
   formatShelfPriceLabel,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
-import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import { fetchPosShelfPrices } from "@/lib/pos-shelf-price";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import {
   canGroceryEditMinStock,
@@ -800,25 +800,47 @@ export function GroceryWorkspace() {
       setTileShelfPrices({});
       return;
     }
+
+    const seeded: Record<string, string> = {};
+    for (const row of [...hits, ...browseCatalog]) {
+      const label = formatShelfPriceLabel(
+        row.sellingPrice ?? row.bundlePrice,
+        currency,
+      );
+      if (label) seeded[row.id] = label;
+      const n =
+        typeof row.sellingPrice === "string"
+          ? Number(row.sellingPrice)
+          : typeof row.sellingPrice === "number"
+            ? row.sellingPrice
+            : typeof row.bundlePrice === "string"
+              ? Number(row.bundlePrice)
+              : typeof row.bundlePrice === "number"
+                ? row.bundlePrice
+                : null;
+      if (n != null && Number.isFinite(n)) {
+        tileShelfPriceValues.current[row.id] = n;
+      }
+    }
+    if (Object.keys(seeded).length > 0) {
+      setTileShelfPrices((prev) => ({ ...prev, ...seeded }));
+    }
+
     let cancelled = false;
     const bid = branchId?.trim() || undefined;
-    void Promise.all(
-      ids.map(async (id) => {
-        const r = await fetchPosShelfPrice(id, bid, {});
-        if (!r) return [id, "", null] as const;
-        const label = formatShelfPriceLabel(r.price, currency);
-        if (r.price != null) {
-          tileShelfPriceValues.current[id] =
-            typeof r.price === "string" ? Number(r.price) : r.price;
-        }
-        return [id, label ?? ""] as const;
-      }),
-    ).then((pairs) => {
+    void fetchPosShelfPrices(ids, bid, {}).then((byId) => {
       if (cancelled) return;
       setTileShelfPrices((prev) => {
         const next = { ...prev };
-        for (const [id, v] of pairs) {
-          next[id] = v;
+        for (const id of ids) {
+          const r = byId[id];
+          if (!r) continue;
+          const label = formatShelfPriceLabel(r.price, currency);
+          if (label) next[id] = label;
+          if (r.price != null) {
+            tileShelfPriceValues.current[id] =
+              typeof r.price === "string" ? Number(r.price) : r.price;
+          }
         }
         return next;
       });

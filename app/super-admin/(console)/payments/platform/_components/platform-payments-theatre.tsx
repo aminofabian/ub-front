@@ -69,7 +69,7 @@ export const PLATFORM_PAYMENTS_NAV: PlatformPaymentsNavItem[] = [
   {
     id: "daraja",
     label: "Safaricom Daraja",
-    hint: "Paybill STK keys, Party B shortcode, and B2B disburse.",
+    hint: "Paybill STK keys, the receiving shortcode, and disburse.",
     icon: Landmark,
   },
   {

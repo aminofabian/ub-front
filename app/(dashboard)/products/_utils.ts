@@ -130,6 +130,46 @@ export function normalizeItemDetail<T extends ItemDetailRecord>(row: T): T {
   };
 }
 
+/** Short catalog chip: "50/pack". */
+export function packChipLabel(units: number | null | undefined): string {
+  if (units == null || !(units > 0)) return "Pack";
+  const shown = Number.isInteger(units)
+    ? String(units)
+    : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return `${shown}/pack`;
+}
+
+/** "1 pack = 50 Eggs" — the line a shop owner should see for a pack. */
+export function packEqualsLabel(
+  units: number | null | undefined,
+  source?: string | null,
+): string {
+  const name = source?.trim();
+  if (units == null || !(units > 0)) {
+    return name ? `Pack of ${name}` : "Pack";
+  }
+  const shown = Number.isInteger(units)
+    ? units.toLocaleString()
+    : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return name ? `1 pack = ${shown} ${name}` : `1 pack = ${shown}`;
+}
+
+export function packEditHint(unitsRaw: string, source?: string | null): string {
+  const units = toNumber(unitsRaw);
+  const name = source?.trim() || "the product";
+  if (units != null && units > 1) {
+    return `${packEqualsLabel(units, name)}. Each sale takes that many off the shelf.`;
+  }
+  return `Type how many ${name} are in one pack.`;
+}
+
+function countLabel(n: number, one: string, many: string): string {
+  const shown = Number.isInteger(n)
+    ? n.toLocaleString()
+    : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return `${shown} ${n === 1 ? one : many}`;
+}
+
 /**
  * Human-readable **in-store** (branch on-hand) for catalog rows and detail.
  * Uses `stockQty` / `baseStockQty` only — never falls back to business-wide
@@ -155,9 +195,10 @@ export function formatStockLabel(
       toNumber(row.baseStockQty) ??
       (pkgs != null && units != null ? pkgs * units : null);
     if (pkgs == null && base == null) return "—";
-    const pkgPart = pkgs != null ? `${pkgs} pkg` : "—";
+    const pkgPart =
+      pkgs != null ? countLabel(pkgs, "pack", "packs") : "—";
     if (base != null && units != null && units > 0) {
-      return `${pkgPart} · ${base.toLocaleString()} base`;
+      return `${pkgPart} · ${countLabel(base, "unit", "units")}`;
     }
     return pkgPart;
   }

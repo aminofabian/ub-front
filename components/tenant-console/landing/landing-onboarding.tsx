@@ -26,11 +26,10 @@ type LandingOnboardingProps = {
   onShopSlugChange: (value: string) => void;
   onCountryCodeChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  onBack: () => void;
 };
 
 const inputClass =
-  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#8A8782] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
+  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#6E6B66] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
 
 function hostFromSlug(slug: string): string | null {
   const url = slugDerivedShopUrl(slug);
@@ -64,7 +63,6 @@ export function LandingOnboarding({
   onShopSlugChange,
   onCountryCodeChange,
   onSubmit,
-  onBack,
 }: LandingOnboardingProps) {
   const [availability, setAvailability] = useState<Availability>("idle");
   const [checkedSlug, setCheckedSlug] = useState("");
@@ -126,7 +124,7 @@ export function LandingOnboarding({
             </label>
             <button
               type="button"
-              className="text-xs font-medium text-[#20863B] transition-colors hover:text-[#166B2E] disabled:opacity-50"
+              className="-my-3.5 inline-flex min-h-11 items-center text-xs font-medium text-[#20863B] transition-colors hover:text-[#166B2E] disabled:opacity-50"
               onClick={() => void checkAvailability()}
               disabled={isSubmitting || shopSlug.trim().length < 2 || availability === "checking"}
             >
@@ -146,7 +144,7 @@ export function LandingOnboarding({
           >
             <input
               id="landing-shop-slug"
-              className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] tracking-tight text-[#141412] outline-none placeholder:text-[#8A8782]"
+              className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] tracking-tight text-[#141412] outline-none placeholder:text-[#6E6B66]"
               value={shopSlug}
               onChange={(e) =>
                 onShopSlugChange(
@@ -170,7 +168,7 @@ export function LandingOnboarding({
                 ? "text-[#B91C1C]"
                 : availability === "available"
                   ? "text-[#166B2E]"
-                  : "text-[#8A8782]",
+                  : "text-[#6E6B66]",
             )}
           >
             {availability === "checking" ? (
@@ -226,14 +224,6 @@ export function LandingOnboarding({
           )}
         </button>
       </form>
-
-      <button
-        type="button"
-        className="mt-5 w-full text-center text-sm text-[#8A8782] transition-colors hover:text-[#5F5D58]"
-        onClick={onBack}
-      >
-        &larr; Back
-      </button>
 
       {errorMessage ? (
         <div className="mt-4">

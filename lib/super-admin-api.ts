@@ -771,6 +771,8 @@ export type TenantPaymentMethodRow = {
   destinationSummary: string | null;
   custodyProvider: string | null;
   updatedAt: string | null;
+  /** OFF, PENDING, APPROVED, or REJECTED — Daraja on the public shop. */
+  storefrontApproval?: string | null;
 };
 
 export type TenantPaymentMethodsOverview = {
@@ -790,6 +792,19 @@ export type TenantPaymentMethodsOverview = {
 export async function fetchTenantPaymentMethodsOverview(): Promise<TenantPaymentMethodsOverview> {
   return saRequest<TenantPaymentMethodsOverview>(
     API_ROUTES.superAdminTenantPaymentMethods,
+  );
+}
+
+export async function reviewDarajaStorefront(
+  configId: string,
+  decision: "APPROVE" | "REJECT",
+): Promise<void> {
+  await saRequest(
+    `${API_ROUTES.superAdminTenantPaymentMethods}/${encodeURIComponent(configId)}/storefront`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision }),
+    },
   );
 }
 
@@ -1347,6 +1362,10 @@ export type PlatformIntegrationsRecord = {
   whatsappMetaGraphVersion: string;
   hasWhatsappMetaWebhookVerifyToken: boolean;
   hasWhatsappMetaAppSecret: boolean;
+  googleOauthEnabled: boolean;
+  googleOauthClientId: string;
+  hasGoogleOauthClientSecret: boolean;
+  googleOauthRedirectUri: string;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
@@ -1382,6 +1401,9 @@ export type UpdatePlatformIntegrationsPayload = {
   whatsappMetaGraphVersion?: string | null;
   whatsappMetaWebhookVerifyToken?: string | null;
   whatsappMetaAppSecret?: string | null;
+  googleOauthEnabled?: boolean | null;
+  googleOauthClientId?: string | null;
+  googleOauthClientSecret?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
@@ -2865,6 +2887,30 @@ export type SaArchiveCatalogResult = {
 };
 
 /** Archives every product + deactivates every category in the catalog (replace-before-promote). */
+export async function saPublishAllDrafts(
+  catalogId?: string | null,
+): Promise<{ publishedCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/publish-all-drafts${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
+export async function saRestoreAllArchived(
+  catalogId?: string | null,
+): Promise<{ restoredCount: number; skippedCount: number }> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/restore-all-archived${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
 export async function saArchiveCatalogProducts(
   catalogId?: string | null,
 ): Promise<SaArchiveCatalogResult> {
@@ -4144,5 +4190,44 @@ export async function patchSaServingStaff(
   return saRequest(`${API_ROUTES.superAdminServing}/staff/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+// ── Pickup Mtaani credential (super-admin-owned) ────────────────────────────
+
+export type SaPickupMtaaniCredential = {
+  hasApiKey: boolean;
+  businessId?: number | null;
+  businessName?: string | null;
+  accountMode?: string | null;
+  lastVerifiedAt?: string | null;
+  status: string;
+  statusDetail?: string | null;
+};
+
+const saPickupMtaaniPath = (businessId: string) =>
+  `${API_ROUTES.superAdminBusinesses}/${encodeURIComponent(businessId)}/integrations/pickup-mtaani`;
+
+export async function fetchSaPickupMtaaniCredential(
+  businessId: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId));
+}
+
+export async function saveSaPickupMtaaniCredential(
+  businessId: string,
+  apiKey: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId), {
+    method: "PUT",
+    body: JSON.stringify({ apiKey }),
+  });
+}
+
+export async function disconnectSaPickupMtaaniCredential(
+  businessId: string,
+): Promise<SaPickupMtaaniCredential> {
+  return saRequest<SaPickupMtaaniCredential>(saPickupMtaaniPath(businessId), {
+    method: "DELETE",
   });
 }

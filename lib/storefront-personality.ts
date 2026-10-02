@@ -3,7 +3,7 @@ import type {
   StorefrontDesignDensity,
   StorefrontDesignRadius,
 } from "@/lib/storefront-design";
-import type { StorefrontFontPairingId } from "@/lib/storefront-fonts";
+import type { StorefrontFontPairingId } from "@/lib/storefront-font-pairings-meta";
 
 /**
  * Store personalities — "What should your store feel like?"

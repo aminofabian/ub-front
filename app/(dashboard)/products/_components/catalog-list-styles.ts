@@ -186,16 +186,25 @@ export const catalogGridCol = {
     "flex items-center",
   ),
   stock: cn("col-start-3 self-stretch", sheetV, sheetH),
-  sell: cn(
-    "col-start-4 self-stretch",
+  buy: cn(
+    "col-start-4 self-stretch max-lg:hidden",
+    sheetV,
     sheetH,
-    // Flush last column on mobile/sm — money hugs the edge
+  ),
+  sell: cn(
+    "col-start-5 self-stretch max-lg:col-start-4",
+    sheetH,
     "bg-muted/[0.12] xl:border-r xl:border-border/40 xl:bg-transparent",
   ),
-  category: cn(
-    "col-start-5 self-stretch",
+  margin: cn(
+    "col-start-6 self-stretch max-lg:hidden",
+    sheetV,
     sheetH,
-    "max-xl:invisible max-xl:pointer-events-none max-xl:border-0",
+  ),
+  category: cn(
+    "col-start-7 self-stretch",
+    sheetH,
+    "max-xl:invisible max-xl:pointer-events-none max-xl:border-0 max-lg:hidden",
   ),
 } as const;
 

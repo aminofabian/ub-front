@@ -25,6 +25,7 @@ import {
 } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { shareInflight } from "@/lib/share-inflight";
 import { isBillingAccessLocked } from "@/lib/subscription-plan-fit";
 
 /**
@@ -51,18 +52,21 @@ export function SubscriptionRenewalWall() {
   useEffect(() => {
     if (IS_DESKTOP) return;
     let cancelled = false;
-    void (async () => {
-      try {
-        const me = await fetchMe({ toast: false });
+    // Gate sits next to (not under) DashboardProvider — share /me with session bootstrap.
+    void shareInflight("session/me", () => fetchMe({ toast: false }))
+      .then((me) => {
         if (!cancelled) {
           setCanPay(
-            hasPermission(me.permissions, Permission.BusinessManageSubscription),
+            hasPermission(
+              me.permissions,
+              Permission.BusinessManageSubscription,
+            ),
           );
         }
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) setCanPay(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
@@ -79,7 +83,9 @@ export function SubscriptionRenewalWall() {
         }
       }
       try {
-        const row = await fetchSubscriptionBillingStatus();
+        const row = await shareInflight("subscription/billing-status", () =>
+          fetchSubscriptionBillingStatus(),
+        );
         if (!cancelled) setStatus(row);
       } catch {
         if (!cancelled) setStatus(null);

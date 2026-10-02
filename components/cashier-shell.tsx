@@ -743,6 +743,7 @@ export function CashierShell({ children }: CashierShellProps) {
         {!isLedger ? (
           <CashierBottomNav
             adminHref={showAdminBusinessLink ? APP_ROUTES.business : null}
+            adminLabel="Business"
           />
         ) : null}
 

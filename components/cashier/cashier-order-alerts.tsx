@@ -15,10 +15,12 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 import { playCashierChime } from "@/lib/cashier-chime";
+import { announceTillSlip } from "@/lib/till-remote-print";
 
 const CASHIER_ALERT_TYPES = new Set([
   "storefront.order.placed",
   "storefront.order.paid",
+  "till.slip",
 ]);
 
 const PRINT_DONE_PREFIX = "palmart.web-order-printed:";
@@ -82,7 +84,19 @@ function showCashierOrderToast(frame: RealtimeFrame) {
     return;
   }
   const presentation = getNotificationPresentation(data);
+  const isSlip = notificationType === "till.slip";
   const isNewOrder = notificationType === "storefront.order.placed";
+  if (isSlip) {
+    const jobId = readPayloadField(data, "jobId");
+    if (jobId) {
+      announceTillSlip({
+        id: jobId,
+        kind: readPayloadField(data, "kind") || "order",
+        reference: readPayloadField(data, "reference"),
+      });
+    }
+    return;
+  }
   if (isNewOrder) {
     playCashierChime("order");
   }

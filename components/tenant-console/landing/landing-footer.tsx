@@ -62,9 +62,9 @@ const FOOTER_COLS = [
 ] as const;
 
 const LEGAL = [
-  { label: "Privacy", href: "#" },
-  { label: "Terms", href: "#" },
-  { label: "Cookies", href: "#" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+  { label: "Cookies", href: "/cookies" },
 ] as const;
 
 const BARCODE_BARS = [
@@ -149,7 +149,7 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                 <p className="mt-2 normal-case tracking-normal">
                   <a
                     href={`tel:${KIOSK_PLATFORM_CONTACT.phoneTel}`}
-                    className="text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
+                    className="inline-flex min-h-6 items-center text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
                   >
                     {KIOSK_PLATFORM_CONTACT.phoneDisplay}
                   </a>
@@ -157,7 +157,7 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                 <p className="normal-case tracking-normal">
                   <a
                     href={`mailto:${KIOSK_PLATFORM_CONTACT.email}`}
-                    className="text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
+                    className="inline-flex min-h-6 items-center text-[var(--kiosk-text-muted)] transition-colors hover:text-[var(--kiosk-gold)]"
                   >
                     {KIOSK_PLATFORM_CONTACT.email}
                   </a>
@@ -297,7 +297,7 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                     ) : null}
                     <Link
                       href={item.href}
-                      className="text-[12px] text-[var(--kiosk-text-faint)] transition-colors hover:text-[var(--kiosk-text-muted)]"
+                      className="inline-flex min-h-6 items-center text-[12px] text-[var(--kiosk-text-faint)] transition-colors hover:text-[var(--kiosk-text-muted)]"
                     >
                       {item.label}
                     </Link>

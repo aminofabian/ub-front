@@ -427,14 +427,6 @@ function RunStatusBadge({
       </span>
     );
   }
-  if (row.salaryReleased === false) {
-    // New starter before the 25th — zero by design, not a missing salary.
-    return (
-      <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-        Unlocks 25th
-      </span>
-    );
-  }
   if (
     row.joinPayMode === "deferred" &&
     payrollIsJoinMonth(row.startDate, year, month)
@@ -445,7 +437,7 @@ function RunStatusBadge({
       </span>
     );
   }
-  if (row.baseSalary <= 0) {
+  if (Number(row.monthlySalary ?? row.baseSalary) <= 0) {
     return (
       <span className="rounded-none border border-[#9a2e16]/35 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[#9a2e16]">
         No salary

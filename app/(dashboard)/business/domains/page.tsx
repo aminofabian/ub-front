@@ -6,10 +6,8 @@ import {
   Copy,
   ExternalLink,
   Globe,
-  Link2,
   Loader2,
   Lock,
-  Plus,
   ShieldCheck,
   Star,
   Trash2,
@@ -24,9 +22,8 @@ import {
   DASHBOARD_SECTION_SURFACE,
   DashboardPageHero,
   dashboardHintClass,
-  dashboardInputClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -59,6 +56,7 @@ import {
   DomainsTheatre,
   type TabId,
 } from "./_components/domains-theatre";
+import type { ConnectOwnedResult } from "./_components/connect-owned-panel";
 
 type Busy =
   | { kind: "idle" }
@@ -91,10 +89,11 @@ function LockedNotice() {
           <Lock className="size-5" aria-hidden />
         </div>
         <h1 className="mt-4 text-lg font-semibold tracking-tight">
-          Domains are restricted
+          Only an owner can change domains
         </h1>
         <p className={cn(dashboardHintClass(), "mt-2")}>
-          Ask an owner or admin with settings access to map custom hostnames.
+          Ask an owner or admin to buy a .ke address or connect one this shop
+          already owns.
         </p>
         <Button asChild className="mt-6" variant="outline">
           <Link href={APP_ROUTES.business}>Back to business</Link>
@@ -131,10 +130,12 @@ function DomainDetailDrawer({
   const isPurchase = (row.source || "").toLowerCase() === "hostafrica_purchase";
   const needsVerify = !isPlatform && !isPurchase && !row.active;
   const records = recommendedRecords(row);
-  const note =
+  const rawNote =
     typeof row.dnsInstructions?.note === "string"
-      ? row.dnsInstructions.note
-      : null;
+      ? row.dnsInstructions.note.trim()
+      : "";
+  const note =
+    rawNote && !/vercel|click verify/i.test(rawNote) ? rawNote : null;
 
   const copy = async (text: string) => {
     try {
@@ -181,7 +182,7 @@ function DomainDetailDrawer({
               onClick={() => onVerify(row)}
             >
               <ShieldCheck className="size-3.5" aria-hidden />
-              Verify DNS
+              Check connection
             </Button>
           ) : null}
           <Button
@@ -192,7 +193,7 @@ function DomainDetailDrawer({
             onClick={() => onMakePrimary(row)}
           >
             <Star className="size-3.5" aria-hidden />
-            Make primary
+            Make main address
           </Button>
           <Button
             variant="outline"
@@ -202,7 +203,7 @@ function DomainDetailDrawer({
             onClick={() => onDelete(row)}
           >
             <Trash2 className="size-3.5" aria-hidden />
-            Remove
+            Remove from shop
           </Button>
         </div>
       }
@@ -222,14 +223,14 @@ function DomainDetailDrawer({
 
         {isPlatform ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Always free. Staff login stays here by default even after you add a
-            custom domain.
+            This free address always works. It stays the main address, including
+            where staff sign in, until you choose a different one.
           </p>
         ) : null}
         {isPurchase && !row.active ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            We&apos;re finishing DNS and SSL for this purchased domain — no
-            manual DNS changes needed.
+            You already paid for this name. We&apos;re registering it and
+            connecting your shop — you don&apos;t change any DNS.
           </p>
         ) : null}
         {row.lastError ? (
@@ -240,24 +241,44 @@ function DomainDetailDrawer({
 
         {needsVerify ? (
           <div className="space-y-3 rounded-none border border-border/60 bg-muted/20 p-4">
-            <p className="text-sm font-semibold">DNS checklist</p>
+            <p className="text-sm font-semibold">
+              Add these records where you bought the domain
+            </p>
             {note ? <p className={dashboardHintClass()}>{note}</p> : null}
             {records.length > 0 ? (
               <ul className="space-y-2">
                 {records.map((r, i) => {
                   const line = [r.type, r.name, r.value]
                     .filter(Boolean)
-                    .join(" → ");
+                    .join(" ");
                   return (
                     <li
                       key={`${line}-${i}`}
-                      className="flex items-center justify-between gap-2 rounded-none border border-border/50 bg-background px-2.5 py-2 font-mono text-xs"
+                      className="flex items-start justify-between gap-2 border border-border/50 bg-background px-2.5 py-2 text-xs"
                     >
-                      <span className="min-w-0 truncate">{line}</span>
+                      <span className="min-w-0">
+                        <span className="font-semibold">{r.type || "DNS"}</span>
+                        <span className="mt-1 block">
+                          <span className="text-muted-foreground">Host </span>
+                          <span className="font-mono font-semibold">
+                            {r.name || "@"}
+                          </span>
+                        </span>
+                        {r.value ? (
+                          <span className="mt-0.5 block break-all">
+                            <span className="text-muted-foreground">
+                              Points to{" "}
+                            </span>
+                            <span className="font-mono font-semibold">
+                              {r.value}
+                            </span>
+                          </span>
+                        ) : null}
+                      </span>
                       {r.value ? (
                         <button
                           type="button"
-                          className="inline-flex shrink-0 items-center gap-1 text-muted-foreground hover:text-foreground"
+                          className="inline-flex shrink-0 items-center gap-1 text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--pos-primary,#0f766e)]"
                           onClick={() => void copy(r.value!)}
                         >
                           <Copy className="size-3" aria-hidden />
@@ -270,85 +291,13 @@ function DomainDetailDrawer({
               </ul>
             ) : (
               <p className={dashboardHintClass()}>
-                No recommended records yet — try Verify after DNS propagates.
+                Records aren&apos;t ready yet. After you add them at the company
+                you bought the domain from, choose Check connection.
               </p>
             )}
           </div>
         ) : null}
       </div>
-    </FormDrawer>
-  );
-}
-
-function ConnectDomainDrawer({
-  open,
-  onOpenChange,
-  busy,
-  onSubmit,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  busy: boolean;
-  onSubmit: (domain: string) => Promise<void>;
-}) {
-  const [value, setValue] = useState("");
-
-  useEffect(() => {
-    if (!open) setValue("");
-  }, [open]);
-
-  return (
-    <FormDrawer
-      open={open}
-      onOpenChange={onOpenChange}
-      contextLabel="Connect"
-      title="Connect a domain you own"
-      description="Point DNS at Vercel, then verify. Your free platform URL stays the default login host."
-      icon={<Link2 className="size-4" aria-hidden />}
-      appearance="sharp"
-      footer={
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={busy || !value.trim()}
-            className="gap-1.5"
-            onClick={() => void onSubmit(value.trim())}
-          >
-            {busy ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Plus className="size-3.5" aria-hidden />
-            )}
-            Connect domain
-          </Button>
-        </div>
-      }
-    >
-      <FormDrawerFields legend="Hostname" hint="Example: shop.acme.co.ke">
-        <input
-          className={dashboardInputClass()}
-          placeholder="shop.acme.co.ke"
-          autoComplete="off"
-          spellCheck={false}
-          autoFocus
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && value.trim() && !busy) {
-              e.preventDefault();
-              void onSubmit(value.trim());
-            }
-          }}
-        />
-      </FormDrawerFields>
     </FormDrawer>
   );
 }
@@ -368,7 +317,6 @@ export default function DomainsPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [detailRow, setDetailRow] = useState<DomainRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [connectOpen, setConnectOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState<DomainRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
   const orderStats = useDomainOrderStats();
@@ -391,24 +339,16 @@ export default function DomainsPage() {
     if (canManageBusinessSettings) void reload();
   }, [canManageBusinessSettings, reload]);
 
-  const handleAdd = async (domain: string) => {
+  const handleAdd = async (domain: string): Promise<ConnectOwnedResult> => {
     setBusy({ kind: "save" });
     try {
       const created = await addMyDomain(domain);
       setRows((previous) =>
         sortDomains([...previous, created], sortKey, sortDir),
       );
-      setConnectOpen(false);
-      setTab("manage");
-      toast.success(
-        created.active
-          ? `Added ${created.domain}.`
-          : `Added ${created.domain}. Configure DNS, then Verify.`,
-      );
-      setDetailRow(created);
-      setDetailOpen(true);
+      return { ok: true, row: created };
     } catch (e) {
-      toast.error(messageFor(e, "Could not add domain."));
+      return { ok: false, message: messageFor(e, "Could not add that domain.") };
     } finally {
       setBusy({ kind: "idle" });
     }
@@ -419,7 +359,9 @@ export default function DomainsPage() {
     try {
       await setMyPrimaryDomain(row.id);
       await reload();
-      toast.success(`Primary is now ${row.domain}.`);
+      toast.success(
+        `${row.domain} is now the main address, including where staff sign in.`,
+      );
     } catch (e) {
       toast.error(messageFor(e, "Could not promote domain."));
     } finally {
@@ -435,10 +377,13 @@ export default function DomainsPage() {
         previous.map((r) => (r.id === updated.id ? updated : r)),
       );
       setDetailRow(updated);
-      if (updated.active) toast.success(`${updated.domain} is live.`);
+      if (updated.active)
+        toast.success(
+          `${updated.domain} is live. Customers can open your shop there.`,
+        );
       else
         toast.error(
-          `${updated.domain} is not verified yet. Check DNS and try again.`,
+          `${updated.domain} isn't live yet. Check the DNS records, then try Check connection again.`,
         );
     } catch (e) {
       toast.error(messageFor(e, "Could not verify domain."));
@@ -457,7 +402,7 @@ export default function DomainsPage() {
       setRows((previous) => previous.filter((r) => r.id !== deleteRow.id));
       setDetailOpen(false);
       setDetailRow(null);
-      toast.success(`Removed ${deleteRow.domain}.`);
+      toast.success(`Removed ${deleteRow.domain} from this shop.`);
       setDeleteRow(null);
     } catch (e) {
       toast.error(messageFor(e, "Could not delete domain."));
@@ -503,7 +448,7 @@ export default function DomainsPage() {
           icon={Globe}
           eyebrow="Connectivity"
           title="Domains"
-          description="Buy a Kenyan domain, manage mapped hostnames, or connect one you already own — customers shop on custom domains; staff login stays on your free platform URL."
+          description="KES 2,000 to buy a .ke address, connect one you own, or hire a developer."
         />
 
         <DomainsTheatre
@@ -528,7 +473,12 @@ export default function DomainsPage() {
             setDetailRow(row);
             setDetailOpen(true);
           }}
-          onConnectOpen={() => setConnectOpen(true)}
+          onConnect={handleAdd}
+          onVerify={handleVerify}
+          connectSaving={busy.kind === "save"}
+          verifyBusyId={
+            busy.kind === "row" && busy.action === "verify" ? busy.id : null
+          }
           onBuyLive={() => {
             void reload();
             void orderStats.reload().catch(() => undefined);
@@ -553,23 +503,16 @@ export default function DomainsPage() {
         dockRoot={dockRoot}
       />
 
-      <ConnectDomainDrawer
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        busy={busy.kind === "save"}
-        onSubmit={handleAdd}
-      />
-
       <Dialog
         open={!!deleteRow}
         onOpenChange={(open) => !open && !deleting && setDeleteRow(null)}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove {deleteRow?.domain}?</DialogTitle>
+            <DialogTitle>Remove {deleteRow?.domain} from this shop?</DialogTitle>
             <DialogDescription>
-              This disconnects the hostname from your shop. You can reconnect it
-              later if needed.
+              Customers will no longer open your shop at this address. This does
+              not cancel the domain registration. You can connect it again later.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -593,7 +536,7 @@ export default function DomainsPage() {
               ) : (
                 <Trash2 className="size-3.5" aria-hidden />
               )}
-              Remove
+              Remove from shop
             </Button>
           </DialogFooter>
         </DialogContent>

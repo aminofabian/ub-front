@@ -10,6 +10,7 @@ import {
   Loader2,
   MessageCircle,
   Package,
+  Pill,
   ShoppingCart,
   Sparkles,
   Store,
@@ -91,6 +92,7 @@ const STORE_TYPE_ICONS: Record<
   "mixed-shop": LayoutGrid,
   cosmetics: Sparkles,
   "wines-spirits": Wine,
+  pharmacy: Pill,
   other: Shapes,
 };
 
@@ -475,11 +477,27 @@ export function OnboardingQuestionnaire({
   const [productSource, setProductSource] = useState<ProductSourceChoice | "">(
     initialAnswers.productSource ?? "",
   );
+  const isPharmacyShop = storeTypes.includes("pharmacy");
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** When true, skip auto-select-all so Clear stays empty. */
   const departmentsClearedRef = useRef(false);
   /** One-shot note after changing shop types: department picks were reset. */
   const [departmentsResetNote, setDepartmentsResetNote] = useState(false);
+
+  // Stock step: default chemists (and other catalogue shops) to Global catalog.
+  useEffect(() => {
+    if (step !== QUESTIONNAIRE_STOCK_STEP) return;
+    if (productSource) return;
+    if (!canBrowseGlobalCatalog || catalogShellEmpty) return;
+    setProductSource("new");
+    onProductSourceChange?.("new");
+  }, [
+    step,
+    productSource,
+    canBrowseGlobalCatalog,
+    catalogShellEmpty,
+    onProductSourceChange,
+  ]);
   const uploadedLogoUrl = useLogoObjectUrl(logoFile);
   const uploadedLogoDarkUrl = useLogoObjectUrl(logoDarkFile);
   const logoDraftUrl = useLogoObjectUrl(logoDraftPair?.light ?? null);
@@ -1150,8 +1168,8 @@ export function OnboardingQuestionnaire({
                   description={
                     <>
                       Select all that apply — a mini mart can also include a
-                      butchery. Mini mart and mixed shop can import starter
-                      products at the end.
+                      butchery. Mini mart, mixed shop, and pharmacy can import
+                      starter products at the end.
                     </>
                   }
                 />
@@ -1712,13 +1730,17 @@ export function OnboardingQuestionnaire({
                   title={
                     catalogShellEmpty
                       ? "Add products when you’re ready"
-                      : "Stock your shelves"
+                      : isPharmacyShop
+                        ? "Stock your pharmacy"
+                        : "Stock your shelves"
                   }
                   description={
                     catalogShellEmpty ? (
                       catalogLabel
                         ? `${catalogLabel} has no starter pack yet. You can add products yourself anytime.`
                         : "No starter pack for your country yet. You can add products yourself anytime."
+                    ) : isPharmacyShop ? (
+                      "Import the pharmacy catalogue now — medicines and OTC matched to chemists — or bring your own list."
                     ) : (
                       "How do you want to stock? Pick one — we’ll match the tips that follow."
                     )
@@ -1739,7 +1761,26 @@ export function OnboardingQuestionnaire({
                 ) : null}
                 {!catalogShellEmpty ? (
                   <div className="space-y-2">
-                    {PRODUCT_SOURCE_OPTIONS.map((opt) => {
+                    {(isPharmacyShop
+                      ? ([
+                          {
+                            value: "new" as const,
+                            label: "Start from pharmacy catalogue",
+                            hint: "Eastleigh medicines & OTC — pick what you stock",
+                          },
+                          {
+                            value: "spreadsheet" as const,
+                            label: "I have a spreadsheet",
+                            hint: "Import your file, then fill gaps from the catalogue",
+                          },
+                          {
+                            value: "other_pos" as const,
+                            label: "I’m moving from another POS",
+                            hint: "Import your list first — don’t retype products",
+                          },
+                        ] as const)
+                      : PRODUCT_SOURCE_OPTIONS
+                    ).map((opt) => {
                       const selected = productSource === opt.value;
                       return (
                         <button
@@ -1826,7 +1867,9 @@ export function OnboardingQuestionnaire({
                             {suggestedPack.name}
                           </p>
                           <p className="mt-0.5 text-xs text-[#0F766E]/90">
-                            Most shops start here — matched to your shop type
+                            {isPharmacyShop
+                              ? "Matched for chemists — medicines, OTC & supplies"
+                              : "Most shops start here — matched to your shop type"}
                           </p>
                         </div>
                         <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
@@ -1867,21 +1910,27 @@ export function OnboardingQuestionnaire({
                             className="size-3.5 shrink-0 text-[#0D9488]"
                             aria-hidden
                           />
-                          Barcodes &amp; names ready
+                          {isPharmacyShop
+                            ? "Trade prices ready to adjust"
+                            : "Barcodes & names ready"}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check
                             className="size-3.5 shrink-0 text-[#0D9488]"
                             aria-hidden
                           />
-                          Pick what to keep before importing
+                          {isPharmacyShop
+                            ? "Expiry tracking on by default"
+                            : "Pick what to keep before importing"}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check
                             className="size-3.5 shrink-0 text-[#0D9488]"
                             aria-hidden
                           />
-                          Shown on your online store by default
+                          {isPharmacyShop
+                            ? "Pick what you stock before importing"
+                            : "Shown on your online store by default"}
                         </li>
                       </ul>
                     </div>
@@ -1896,7 +1945,9 @@ export function OnboardingQuestionnaire({
                       <Package className="size-6" aria-hidden />
                     </div>
                     <p className="text-sm text-[#6B7280]">
-                      Browse the catalogue and choose products to import.
+                      {isPharmacyShop
+                        ? "Your pharmacy starter pack will appear here once the catalogue is ready. You can also add medicines from Products anytime."
+                        : "Browse the catalogue and choose products to import."}
                     </p>
                   </div>
                 ) : null}

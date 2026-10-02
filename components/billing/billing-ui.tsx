@@ -326,10 +326,16 @@ export function BillingPresetGrid({
   options,
   selected,
   onSelect,
+  formatLabel,
+  formatSubLabel,
 }: {
   options: number[];
   selected: number;
   onSelect: (value: number) => void;
+  /** Optional display label; the raw number is used when omitted. */
+  formatLabel?: (value: number) => ReactNode;
+  /** Optional second line, e.g. the price of the package. */
+  formatSubLabel?: (value: number) => ReactNode;
 }) {
   return (
     <div className={cn(saSegmentWrapClass, "grid grid-cols-4 gap-0.5 p-0.5")}>
@@ -339,11 +345,45 @@ export function BillingPresetGrid({
           type="button"
           className={cn(
             saSegmentButtonClass(selected === p),
-            "justify-center py-2 tabular-nums active:scale-[0.97]",
+            "justify-center active:scale-[0.97]",
+            formatSubLabel ? "h-auto flex-col gap-0.5 py-1.5" : "py-2 tabular-nums",
           )}
           onClick={() => onSelect(p)}
         >
-          {p}
+          <span className="tabular-nums">
+            {formatLabel ? formatLabel(p) : p}
+          </span>
+          {formatSubLabel ? (
+            <span className="text-[9px] leading-none font-normal text-muted-foreground tabular-nums">
+              {formatSubLabel(p)}
+            </span>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Two-option segmented control (e.g. buy by messages vs. by amount). */
+export function BillingChoiceToggle<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: readonly { value: T; label: string }[];
+}) {
+  return (
+    <div className={cn(saSegmentWrapClass, "grid w-full grid-cols-2 gap-0.5 p-0.5")}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={cn(saSegmentButtonClass(value === option.value), "w-full justify-center py-2")}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
         </button>
       ))}
     </div>
@@ -671,30 +711,37 @@ export function BillingDialogHero({
 }
 
 export function BillingTotalLine({
-  credits,
+  messages,
   unitPrice,
 }: {
-  credits: number;
+  messages: number;
   unitPrice: number;
 }) {
-  if (!Number.isFinite(credits) || credits <= 0) {
+  if (!Number.isFinite(messages) || messages <= 0) {
     return (
-      <p className="text-sm text-muted-foreground">Enter credits to see the total.</p>
+      <p className="text-sm text-muted-foreground">
+        Enter how many messages to buy.
+      </p>
     );
   }
-  const total = credits * unitPrice;
+  const total = messages * unitPrice;
   return (
-    <div className="flex items-baseline justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2.5">
-      <span className="text-sm text-muted-foreground">
-        {credits} × KES {unitPrice.toFixed(2)}
-      </span>
-      <span className="font-heading text-base font-semibold tabular-nums">
-        KES{" "}
-        {total.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
-      </span>
+    <div className="rounded-lg bg-muted/30 px-3 py-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-medium tabular-nums">
+          {messages.toLocaleString()} messages
+        </span>
+        <span className="font-heading text-base font-semibold tabular-nums">
+          KES{" "}
+          {total.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        KES {unitPrice.toFixed(2)} per message
+      </p>
     </div>
   );
 }

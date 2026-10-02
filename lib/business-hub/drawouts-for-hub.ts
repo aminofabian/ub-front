@@ -45,6 +45,34 @@ export function drawoutCategoryLabel(category: string): string {
   return HUB_DRAWOUT_CATEGORIES[category] ?? category.replace(/_/g, " ");
 }
 
+export type DrawoutNature = "operating" | "supplier" | "other";
+
+/**
+ * How a till drawout should be read against profit.
+ * Petty cash, casual labour, and recurring bills are operating spend; a
+ * supplier payment settles stock or a supplier bill (COGS / AP), never OpEx;
+ * anything else needs a human look. Till cash stays out of the expense ledger
+ * until it is posted — this only classifies what the money was for.
+ */
+export function drawoutNature(category: string): DrawoutNature {
+  switch (category) {
+    case "PETTY_CASH":
+    case "CASUAL_LABOUR":
+    case "RECURRING":
+      return "operating";
+    case "SUPPLIER_PAYMENT":
+      return "supplier";
+    default:
+      return "other";
+  }
+}
+
+export const DRAWOUT_NATURE_LABEL: Record<DrawoutNature, string> = {
+  operating: "Operating spend",
+  supplier: "Stock / supplier",
+  other: "Review",
+};
+
 export function drawoutStatusLabel(status: string): string {
   if (status === "PENDING_APPROVAL") return "Pending";
   if (status === "APPROVED") return "Approved";

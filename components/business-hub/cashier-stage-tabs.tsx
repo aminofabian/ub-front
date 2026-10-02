@@ -74,7 +74,7 @@ export function CashierStageTabs({
             "inline-flex h-7 shrink-0 items-center px-2.5 text-[12px] font-medium",
             viewingAll
               ? "border border-[#0f766e] bg-white text-[#0f766e]"
-              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_12%,transparent)] hover:text-[#0f766e]",
+              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",
           )}
         >
           Floor
@@ -104,7 +104,7 @@ export function CashierStageTabs({
                 "inline-flex h-7 max-w-[8.5rem] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium",
                 active
                   ? "border border-[#0f766e] bg-white text-[#0f766e]"
-                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_12%,transparent)] hover:text-[#0f766e]",
+                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",
               )}
             >
               <span

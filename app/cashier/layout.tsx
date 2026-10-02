@@ -6,6 +6,7 @@ import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-ga
 import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
 import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
 import { CashierOrderAlerts } from "@/components/cashier/cashier-order-alerts";
+import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { GroceryNotificationListener } from "@/components/grocery/grocery-notification-listener";
 import { CashierShell } from "@/components/cashier-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
@@ -31,6 +32,7 @@ function CashierLayoutInner({ children }: CashierLayoutProps) {
       <PosTillLockProvider>
         <RealtimeProvider>
           <CashierOrderAlerts />
+          <CashierTillPrintListener />
           <GroceryNotificationListener />
           <CashierShell>{children}</CashierShell>
           <DashboardToaster />

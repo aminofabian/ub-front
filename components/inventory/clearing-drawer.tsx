@@ -6,6 +6,7 @@ import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import type { SupplyBatchDetailRecord } from "@/lib/api";
 import { clearSupplyBatch, postStandaloneWastage } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 function formatQty(v: number | string): string {
   const n = typeof v === "number" ? v : Number(v);
@@ -87,7 +88,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={isClear ? "Clear Supply Batch" : "Record Wastage"}
+      title={isClear ? "Clear supply batch" : "Record wastage"}
       description={
         isClear
           ? "Write off remaining stock and close this batch."
@@ -95,13 +96,23 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
       }
       contextLabel={"Batch " + data.batchNumber}
       icon={<Warehouse className="h-5 w-5" />}
-      width="wide"
+      width="full"
       footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <Button
+            variant="outline"
+            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleSubmit} disabled={saving || itemsWithRemaining.length === 0}>
+          <Button
+            variant="destructive"
+            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
+            onClick={handleSubmit}
+            disabled={saving || itemsWithRemaining.length === 0}
+          >
             {saving
               ? "Saving…"
               : isClear
@@ -112,64 +123,128 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
       }
     >
       <div className="space-y-4">
-        {/* Items with remaining stock */}
         {itemsWithRemaining.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             All items are fully accounted for. No remaining stock to write off.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-none border shadow-none">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Item</th>
-                  <th className="px-3 py-2 text-right font-medium">Remaining</th>
-                  <th className="px-3 py-2 text-right font-medium">Unit Cost</th>
-                  <th className="px-3 py-2 text-right font-medium">Write-off value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itemsWithRemaining.map((it) => (
-                  <tr key={it.inventoryBatchId} className="border-b last:border-0">
-                    <td className="px-3 py-2 font-medium">{it.itemName ?? it.itemId}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatQty(it.quantityRemaining)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatMoney(it.unitCost)}</td>
+          <>
+            {/* Mobile cards */}
+            <ul className="space-y-2 sm:hidden">
+              {itemsWithRemaining.map((it) => {
+                const writeOff =
+                  Number(it.quantityRemaining) * Number(it.unitCost);
+                return (
+                  <li
+                    key={it.inventoryBatchId}
+                    className="rounded-2xl border border-border bg-white px-3 py-2.5"
+                  >
+                    <p className="text-[14px] font-semibold leading-snug text-foreground">
+                      {it.itemName ?? it.itemId}
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Remaining</span>
+                        <span className="font-mono tabular-nums font-medium">
+                          {formatQty(it.quantityRemaining)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">Unit cost</span>
+                        <span className="font-mono tabular-nums font-medium">
+                          {formatMoney(it.unitCost)}
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex justify-between gap-2 border-t border-border/60 pt-1.5">
+                        <span className="text-muted-foreground">Write-off</span>
+                        <span className="font-mono tabular-nums font-semibold text-rose-600">
+                          {formatMoney(writeOff)}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              <li className="rounded-2xl border border-rose-200/70 bg-rose-50/80 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/30">
+                <div className="flex items-center justify-between gap-2 text-[13px] font-semibold">
+                  <span>Total write-off</span>
+                  <span className="font-mono tabular-nums text-rose-700 dark:text-rose-300">
+                    {formatMoney(totalWriteOff)}
+                  </span>
+                </div>
+              </li>
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-hidden rounded-none border shadow-none sm:block">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Item</th>
+                    <th className="px-3 py-2 text-right font-medium">Remaining</th>
+                    <th className="px-3 py-2 text-right font-medium">Unit Cost</th>
+                    <th className="px-3 py-2 text-right font-medium">
+                      Write-off value
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemsWithRemaining.map((it) => (
+                    <tr
+                      key={it.inventoryBatchId}
+                      className="border-b last:border-0"
+                    >
+                      <td className="px-3 py-2 font-medium">
+                        {it.itemName ?? it.itemId}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {formatQty(it.quantityRemaining)}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {formatMoney(it.unitCost)}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-rose-600">
+                        {formatMoney(
+                          Number(it.quantityRemaining) * Number(it.unitCost),
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/20 font-medium">
+                    <td className="px-3 py-2" colSpan={3}>
+                      Total write-off
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums text-rose-600">
-                      {formatMoney(Number(it.quantityRemaining) * Number(it.unitCost))}
+                      {formatMoney(totalWriteOff)}
                     </td>
                   </tr>
-                ))}
-                <tr className="bg-muted/20 font-medium">
-                  <td className="px-3 py-2" colSpan={3}>
-                    Total write-off
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-rose-600">
-                    {formatMoney(totalWriteOff)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        {/* Reason + notes */}
-        <div className="rounded-none border p-4 space-y-3">
-          <label className="flex flex-col gap-1 text-sm">
+        <div className="space-y-3 rounded-2xl border p-4 sm:rounded-none">
+          <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Reason</span>
             <select
-              className="rounded border bg-background px-2 py-2"
+              className={cn(
+                "h-12 rounded-2xl border bg-background px-3 text-[15px] sm:h-10 sm:rounded sm:text-sm",
+              )}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             >
               {REASONS.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Notes (optional)</span>
             <textarea
-              className="rounded border bg-background px-2 py-2 text-sm"
+              className="rounded-2xl border bg-background px-3 py-2.5 text-[15px] sm:rounded sm:text-sm"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

@@ -14,6 +14,7 @@ import {
   Settings2,
   SlidersHorizontal,
   Smartphone,
+  Truck,
 } from "lucide-react";
 
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
@@ -140,6 +141,13 @@ export default function BusinessSettingsPage() {
         label: "Domains",
         hint: "Custom hostnames",
         icon: Globe,
+        group: "Storefront",
+      },
+      {
+        href: APP_ROUTES.businessIntegrationsPickupMtaani,
+        label: "Pickup Mtaani",
+        hint: "Pickup-point delivery",
+        icon: Truck,
         group: "Storefront",
       },
       {

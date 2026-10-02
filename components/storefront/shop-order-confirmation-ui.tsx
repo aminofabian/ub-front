@@ -376,7 +376,7 @@ export function OrderPaymentStatusBanner({
       : hasOnlinePay
         ? stkSent
           ? "Approve the prompt on your phone — we'll take you through automatically."
-          : "Tap Click to pay to send the M-Pesa prompt."
+          : "Pay with M-Pesa on your phone — approve the prompt to finish."
         : null;
 
   return (
@@ -753,7 +753,7 @@ export function ConfirmationDockActions({
               type="button"
               size="lg"
               onClick={onReturnToShop}
-              className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
+              className="action-tap h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
             >
               Return to shop
               <ArrowRight className="size-4" aria-hidden />
@@ -770,7 +770,7 @@ export function ConfirmationDockActions({
               {stkSent
                 ? "Approve the prompt on your phone — we'll take you through automatically."
                 : clickToPay
-                  ? "Tap Click to pay to send the M-Pesa prompt."
+                  ? "We send the M-Pesa prompt automatically — tap to send it again if it hasn't arrived."
                   : "Pay the till, then confirm below."}
             </p>
             <div className="flex items-stretch gap-2">
@@ -786,7 +786,7 @@ export function ConfirmationDockActions({
                   onConfirmPayment();
                 }}
                 className={cn(
-                  "h-11 min-w-0 flex-1 gap-1.5 rounded-lg text-[13px] font-semibold shadow-sm",
+                  "action-tap h-11 min-w-0 flex-1 gap-1.5 rounded-lg text-[13px] font-semibold shadow-sm",
                   clickToPay && !stkSent
                     ? "bg-[#00a651] text-white hover:bg-[#008f47] ring-1 ring-[#00a651]/25"
                     : "ring-1 ring-primary/20",

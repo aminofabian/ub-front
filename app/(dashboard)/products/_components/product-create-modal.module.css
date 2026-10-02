@@ -513,6 +513,10 @@
   transition: opacity 160ms var(--ease-out);
 }
 
+.indexMobile {
+  display: none;
+}
+
 .check {
   position: absolute;
   opacity: 0;
@@ -547,6 +551,11 @@
   width: 2.5rem;
   justify-content: center;
   padding: 0.25rem 0.15rem;
+}
+
+.cellOpt {
+  flex: 1;
+  min-width: 0;
 }
 
 .optPhoto {
@@ -770,6 +779,10 @@
     padding-top: 0.35rem;
   }
 
+  .body {
+    padding: 0.85rem 0.9rem 1rem;
+  }
+
   .iconMark,
   .modeTrack,
   .modeThumb,
@@ -785,6 +798,26 @@
     font-size: 0.8125rem;
   }
 
+  .identity {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .photo {
+    width: 100%;
+    height: 5.5rem;
+    border-radius: 1rem;
+  }
+
+  .photoBtn {
+    flex-direction: row;
+    gap: 0.45rem;
+  }
+
+  .photoBtn span {
+    font-size: 13px;
+  }
+
   .create {
     height: 3rem;
     min-width: 0;
@@ -793,6 +826,167 @@
 
   .create[data-armed="true"] {
     background: #0d9488;
+  }
+
+  /* Options: stacked cards instead of a sideways table */
+  .pad {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .head {
+    display: none;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1fr) minmax(0, 1fr) 2.75rem;
+    grid-template-areas:
+      "num num num remove"
+      "photo opt opt opt"
+      "sell sell stock stock"
+      "cost cost code code";
+    gap: 0.55rem 0.5rem;
+    align-items: start;
+    margin-bottom: 0.65rem;
+    padding: 0.85rem;
+    border: 1px solid
+      color-mix(in srgb, var(--catalog-ink, #15231f) 12%, transparent);
+    border-radius: 1rem;
+    background: #fff;
+  }
+
+  .row:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .wash {
+    border-radius: 1rem;
+  }
+
+  .num {
+    grid-area: num;
+    width: auto;
+    min-height: 1.5rem;
+    justify-content: flex-start;
+    font-size: 12px;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--catalog-ink, #15231f) 55%, transparent);
+  }
+
+  .indexMobile {
+    display: inline;
+  }
+
+  .cellPhoto {
+    grid-area: photo;
+    width: auto;
+    flex: none;
+    justify-content: flex-start;
+    padding: 0;
+    padding-top: 1.15rem; /* align with labeled option field */
+  }
+
+  .optPhoto {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.75rem;
+  }
+
+  .cellOpt {
+    grid-area: opt;
+    flex: none;
+    width: auto;
+    padding: 0;
+  }
+
+  .cellSell {
+    grid-area: sell;
+    width: auto;
+    flex: none;
+    padding: 0;
+  }
+
+  .cellStock {
+    grid-area: stock;
+    width: auto;
+    flex: none;
+    padding: 0;
+  }
+
+  .cellCost {
+    grid-area: cost;
+    width: auto;
+    flex: none;
+    padding: 0;
+  }
+
+  .cellCode {
+    grid-area: code;
+    width: auto;
+    min-width: 0;
+    flex: none;
+    padding: 0;
+  }
+
+  .cellRemove {
+    grid-area: remove;
+    width: auto;
+    flex: none;
+    justify-content: flex-end;
+    padding: 0;
+  }
+
+  .cellOpt,
+  .cellSell,
+  .cellStock,
+  .cellCost,
+  .cellCode {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .cellOpt::before,
+  .cellSell::before,
+  .cellStock::before,
+  .cellCost::before,
+  .cellCode::before {
+    content: attr(data-label);
+    color: color-mix(in srgb, var(--catalog-ink, #15231f) 52%, transparent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .remove {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--catalog-shelf, #ffffff) 70%, white);
+  }
+
+  .ghost {
+    margin-top: 0.15rem;
+    min-height: 3rem;
+    border: 1px dashed
+      color-mix(in srgb, var(--catalog-ink, #15231f) 16%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--catalog-primary, #0f766e) 4%, #fff);
+    padding: 0.75rem 1rem;
+    font-size: 14px;
+  }
+
+  .ghostIcon {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.5rem;
+  }
+
+  .tick {
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
   }
 }
 

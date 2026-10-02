@@ -86,6 +86,13 @@ function sectionSummary(
           </span>
         </>
       );
+    case "settings-cashier":
+      return (
+        <>
+          Add products is an override — open this board and turn it on to let
+          cashiers create items from the till.
+        </>
+      );
     case "settings-shifts":
       return (
         <>
@@ -411,10 +418,23 @@ export function ConfigurationTheatre({
     [workspace],
   );
 
+  const allSections = useMemo(() => {
+    const seen = new Set<string>();
+    const items = [
+      ...sectionItemsForWorkspace("inventory"),
+      ...sectionItemsForWorkspace("till"),
+    ];
+    return items.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, []);
+
   const filteredSections = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return sectionItems;
-    return sectionItems.filter((item) => {
+    return allSections.filter((item) => {
       const meta = sectionMeta(item.id);
       return (
         item.label.toLowerCase().includes(q) ||
@@ -422,9 +442,16 @@ export function ConfigurationTheatre({
         meta.hint.toLowerCase().includes(q)
       );
     });
-  }, [sectionItems, query]);
+  }, [allSections, sectionItems, query]);
 
   const selectSection = (id: string) => {
+    const inCurrent = sectionItems.some((entry) => entry.id === id);
+    if (!inCurrent) {
+      const item = allSections.find((entry) => entry.id === id);
+      const nextWorkspace: ConfigurationWorkspace =
+        item?.group === "Till" ? "till" : "inventory";
+      if (nextWorkspace !== workspace) onWorkspaceChange(nextWorkspace);
+    }
     onActiveSectionChange(id);
     history.replaceState(null, "", `#${id}`);
     if (!isLg) setMobileDrawerOpen(true);
@@ -537,6 +564,11 @@ export function ConfigurationTheatre({
                           )}
                         >
                           {item.label}
+                          {query.trim() && item.group !== (workspace === "inventory" ? "Inventory" : "Till") ? (
+                            <span className="ml-1.5 font-medium text-muted-foreground">
+                              · {item.group === "Till" ? "Till & POS" : item.group}
+                            </span>
+                          ) : null}
                         </p>
                         <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
                           {meta.hint}

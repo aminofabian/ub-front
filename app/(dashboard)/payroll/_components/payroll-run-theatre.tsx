@@ -61,6 +61,7 @@ export type PayrollRunTheatreProps = {
   selectedRow: PayrollRunRow | null;
   staffDrawerOpen: boolean;
   onSelectRow: (row: PayrollRunRow) => void;
+  onRemoveFromPayroll: (row: PayrollRunRow) => void;
   onClearSelection: () => void;
   onStaffDrawerOpenChange: (open: boolean) => void;
   applyStatutory: boolean;
@@ -107,10 +108,14 @@ function staffInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function monthlyAmount(row: PayrollRunRow): number {
+  return Number(row.monthlySalary ?? row.baseSalary);
+}
+
 function rowNeedsAttention(row: PayrollRunRow): boolean {
   return (
     row.employmentStatus === "on_leave" ||
-    Number(row.baseSalary) <= 0 ||
+    (monthlyAmount(row) <= 0 && row.salaryReleased !== false) ||
     Number(row.advancesOutstanding) > 0 ||
     (row.arrearPeriods?.length ?? 0) > 0
   );
@@ -120,15 +125,14 @@ function rowIsPending(row: PayrollRunRow): boolean {
   return (
     !row.alreadyPaid &&
     row.employmentStatus !== "on_leave" &&
-    Number(row.baseSalary) > 0
+    monthlyAmount(row) > 0
   );
 }
 
 function statusLabel(row: PayrollRunRow, year: number, month: number): string {
   if (row.alreadyPaid) return "Paid";
   if (row.employmentStatus === "on_leave") return "On leave";
-  if (row.salaryReleased === false) return "Unlocks 25th";
-  if (Number(row.baseSalary) <= 0) return "No salary";
+  if (monthlyAmount(row) <= 0) return "No salary";
   if ((row.arrearPeriods?.length ?? 0) > 0) return "Arrears";
   if (Number(row.advancesOutstanding) > 0) return "Advance";
   void year;
@@ -141,7 +145,7 @@ function statusBadgeClass(row: PayrollRunRow): string {
     return "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[var(--pos-primary,#0f766e)] text-white";
   }
   if (
-    Number(row.baseSalary) <= 0 ||
+    monthlyAmount(row) <= 0 ||
     (row.arrearPeriods?.length ?? 0) > 0 ||
     Number(row.advancesOutstanding) > 0
   ) {
@@ -161,6 +165,7 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
     selectedRow,
     staffDrawerOpen,
     onSelectRow,
+    onRemoveFromPayroll,
     onClearSelection,
     onStaffDrawerOpenChange,
     applyStatutory,
@@ -314,12 +319,12 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
               {filtered.map((row) => {
                 const active = selectedRow?.userId === row.userId;
                 return (
-                  <li key={row.userId}>
+                  <li key={row.userId} className="flex items-stretch">
                     <button
                       type="button"
                       onClick={() => onSelectRow(row)}
                       className={cn(
-                        "relative flex w-full items-center gap-2.5 text-left transition-colors",
+                        "relative flex min-w-0 flex-1 items-center gap-2.5 text-left transition-colors",
                         denser
                           ? "px-2.5 py-2 sm:px-3"
                           : "min-h-[3.25rem] px-3 py-3",
@@ -354,7 +359,11 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
                             .join(" · ") || "—"}
                           {" · "}
                           <span className="tabular-nums">
-                            {formatPayrollMoney(row.suggestedNet)}
+                            {formatPayrollMoney(
+                              monthlyAmount(row) > 0
+                                ? monthlyAmount(row)
+                                : row.suggestedNet,
+                            )}
                           </span>
                         </p>
                       </div>
@@ -549,6 +558,9 @@ export function PayrollRunTheatre(props: PayrollRunTheatreProps) {
         onOpenPayslip={props.onOpenPayslip}
         onSendSms={props.onSendSms}
         onProrationSettingChanged={props.onProrationSettingChanged}
+        onRemoveFromPayroll={() => {
+          if (selectedRow) onRemoveFromPayroll(selectedRow);
+        }}
         docked={isLg}
         dockRoot={dockRoot}
       />

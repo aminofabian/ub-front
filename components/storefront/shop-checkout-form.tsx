@@ -17,11 +17,13 @@ import {
   User,
   Zap,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useShopTillListen } from "@/hooks/use-shop-till-listen";
 
 import { CheckoutDetailsSubSteps } from "@/components/storefront/checkout-details-substeps";
@@ -63,11 +65,11 @@ import {
   OrderPaymentStatusBanner,
   OrderPaymentSummaryCard,
 } from "@/components/storefront/shop-order-confirmation-ui";
-import { ShopCheckoutPhoneModal } from "@/components/storefront/shop-checkout-phone-modal";
+import { ShopCheckoutAccountModal } from "@/components/storefront/shop-checkout-account-modal";
 import {
   dismissCheckoutSignupPrompt,
   isCheckoutSignupDismissed,
-} from "@/components/storefront/shop-checkout-signup-modal";
+} from "@/components/storefront/shop-checkout-signup-prompt";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
 import { ShopCheckoutReviewPanel } from "@/components/storefront/shop-checkout-review-panel";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
@@ -75,7 +77,6 @@ import type {
   CheckoutPaymentMethod,
   StkDockSendAction,
 } from "@/components/storefront/shop-checkout-payment-section";
-import { ShopOrderThankYou } from "@/components/storefront/shop-order-thank-you";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +87,6 @@ import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { APP_ROUTES } from "@/lib/config";
-import { toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   formatDisplayPrice,
   type PublicCheckoutPaymentOptions,
@@ -100,6 +100,7 @@ import {
   initiatePublicWebOrderStkPush,
 } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
+import { cartOrderCode } from "@/lib/whatsapp-order";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -149,6 +150,15 @@ function shopperIsSignedIn(serverAuthenticated = false): boolean {
     Boolean(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)) ||
     serverAuthenticated
   );
+}
+
+/**
+ * Canonical short order code shown to the shopper. Must match the code quoted by
+ * the WhatsApp order, the `/shop/o/{code}` tracking page, and merchant surfaces —
+ * prefer the server's `orderCode`, else derive the same value locally.
+ */
+function checkedOutOrderRef(result: PublicCheckoutResult): string {
+  return result.orderCode?.trim() || cartOrderCode(result.orderId);
 }
 
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
@@ -227,8 +237,7 @@ function saveCheckoutPrefill(data: CheckoutPrefill): void {
 
 function isPrefillComplete(p: CheckoutPrefill): boolean {
   return Boolean(
-    p.customerEmail.trim() &&
-      p.firstName.trim() &&
+    p.firstName.trim() &&
       p.lastName.trim() &&
       p.customerPhone.trim() &&
       p.ward &&
@@ -593,8 +602,9 @@ export default function ShopCheckoutForm({
   const prefilled = useRef(false);
   const serverCheckoutState = useRef(false);
   const serverAuthenticatedRef = useRef(false);
-  const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
+  const autoStkFiredOrder = useRef<string | null>(null);
+  const placedThisSessionRef = useRef(false);
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [serverAuthenticated, setServerAuthenticated] = useState(false);
   const [stepBusy, setStepBusy] = useState(false);
@@ -602,6 +612,9 @@ export default function ShopCheckoutForm({
   const wasShippingLockedBeforeEdit = useRef(false);
   const hasClientSession = useClientHasSession();
   const signedIn = hasClientSession || serverAuthenticated;
+  const shopCart = useShopCartOptional();
+  const whatsappCheckout = shopCart?.whatsappCheckout ?? null;
+  const openWhatsAppCheckout = shopCart?.openWhatsAppCheckout;
 
   useEffect(() => {
     onOrderPlacedChange?.(Boolean(done));
@@ -953,6 +966,13 @@ export default function ShopCheckoutForm({
       });
       return;
     }
+    if (!customerEmail.trim()) {
+      setRedirectMessage("Add an email above so the card receipt can be sent.");
+      toast.error("Email needed for card payment", {
+        description: "Enter an email address, then try paying by card again.",
+      });
+      return;
+    }
     setRedirectBusy(true);
     setRedirectMessage(null);
     try {
@@ -1015,6 +1035,28 @@ export default function ShopCheckoutForm({
       clearTimeout(stop);
     };
   }, [done?.orderId, slug, paymentConfirmed, notifyPaymentConfirmed]);
+
+  // #5: "Place order & pay" is one action. When the order is placed this session
+  // with M-Pesa chosen, send the prompt automatically via the same dock action the
+  // shopper would otherwise tap — so they never place an order and walk away unpaid.
+  const stkAutoPayReady =
+    placedThisSessionRef.current &&
+    Boolean(done?.orderId) &&
+    orderPaymentMethod === "mpesa" &&
+    !paymentConfirmed &&
+    !paymentFailed &&
+    !stkSent &&
+    !stkBusy &&
+    paymentOptions.online.some((m) => m.kind !== "redirect");
+
+  useEffect(() => {
+    if (!stkAutoPayReady || !done?.orderId) return;
+    // Wait until the dock exposes a sendable action (phone valid, not mid-send).
+    if (!stkDockSend || stkDockSend.disabled) return;
+    if (autoStkFiredOrder.current === done.orderId) return;
+    autoStkFiredOrder.current = done.orderId;
+    stkDockSend.onSend();
+  }, [stkAutoPayReady, done?.orderId, stkDockSend]);
 
   const hasOnlinePay = paymentOptions.online.length > 0;
   const hasManualPay = paymentOptions.manual.length > 0;
@@ -1091,7 +1133,6 @@ export default function ShopCheckoutForm({
   }
 
   const contactFieldsComplete = Boolean(
-    customerEmail.trim() &&
     firstName.trim() &&
     lastName.trim() &&
     customerPhone.trim(),
@@ -1147,22 +1188,15 @@ export default function ShopCheckoutForm({
 
   const termsAccepted = agreedToTerms;
 
+  // Clear a stale acceptance if the shopper empties a required field. Consent
+  // is never granted automatically — the shopper must tick the box themselves.
   useEffect(() => {
     if (!requiredCheckoutFieldsComplete) {
-      termsManuallyChanged.current = false;
       setAgreedToTerms(false);
-      return;
     }
   }, [requiredCheckoutFieldsComplete]);
 
-  useEffect(() => {
-    if (shippingLocked && !termsManuallyChanged.current) {
-      setAgreedToTerms(true);
-    }
-  }, [shippingLocked]);
-
   function handleTermsAgreementChange(checked: boolean) {
-    termsManuallyChanged.current = true;
     setAgreedToTerms(checked);
   }
 
@@ -1241,6 +1275,7 @@ export default function ShopCheckoutForm({
       setStkSent(false);
       setStkMessage(null);
       paymentToastShown.current = false;
+      placedThisSessionRef.current = true;
       setOrderPaymentMethod(activePaymentMethod);
       setDone(result);
       persistPlacedOrder(result, receipt);
@@ -1298,45 +1333,10 @@ export default function ShopCheckoutForm({
   const payOnDeliveryOrder =
     Boolean(done) && orderPaymentMethod === "pay_on_delivery";
 
-  if (done && (paymentConfirmed || payOnDeliveryOrder)) {
+  // ── Order placed — one canonical confirmation, whatever the till config ──
+  if (done) {
     const total = formatDisplayPrice(done.currency, done.grandTotal);
-    const orderRef =
-      done.orderId.length > 8
-        ? done.orderId.slice(0, 8).toUpperCase()
-        : done.orderId;
-    const firstName = orderReceipt?.shipping.customerName.trim().split(/\s+/)[0];
-    return (
-      <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
-        <ShopOrderThankYou
-          orderRef={orderRef}
-          branchName={done.catalogBranchName}
-          totalLabel={total}
-          customerFirstName={firstName}
-          payOnDelivery={payOnDeliveryOrder && !paymentConfirmed}
-          lines={
-            orderReceipt?.lines.map((line) => ({
-              itemId: line.itemId,
-              name: line.name,
-              quantity: line.quantity,
-              priceLabel: formatDisplayPrice(
-                orderReceipt.currency,
-                line.lineTotal ?? 0,
-              ),
-            })) ?? []
-          }
-          onContinue={() => router.push(APP_ROUTES.shop)}
-        />
-      </div>
-    );
-  }
-
-  // ── Success (manual-only, still awaiting till) ──
-  if (done && !awaitingOnlinePayment) {
-    const total = formatDisplayPrice(done.currency, done.grandTotal);
-    const orderRef =
-      done.orderId.length > 8
-        ? done.orderId.slice(0, 8).toUpperCase()
-        : done.orderId;
+    const orderRef = checkedOutOrderRef(done);
     const receipt = orderReceipt;
     const receiptSubtotalLabel =
       receipt != null
@@ -1356,12 +1356,13 @@ export default function ShopCheckoutForm({
         formatPrice: formatDisplayPrice,
       })) ?? [];
 
+    // Awaiting an online (M-Pesa) payment: keep the pay controls on this screen.
+    const showPayControls = awaitingOnlinePayment && !paymentConfirmed;
+    const hasStk = paymentOptions.online.some((m) => m.kind !== "redirect");
+
     return (
       <div
-        className={cn(
-          CONFIRMATION_VIEWPORT,
-          "mx-auto h-full w-full max-w-5xl",
-        )}
+        className={cn(CONFIRMATION_VIEWPORT, "mx-auto h-full w-full max-w-5xl")}
       >
         <ConfirmationTopProgress paymentPending={!paymentConfirmed} />
         <div className={CONFIRMATION_SCROLL_ANCHORED}>
@@ -1396,8 +1397,33 @@ export default function ShopCheckoutForm({
             />
           </header>
 
-          {/* COD / paid / manual — no STK prompt (that contradicts pay-on-delivery) */}
           <div className="space-y-2 pb-1.5">
+            {showPayControls ? (
+              <div className="px-3 pb-2">
+                <ShopCheckoutPaymentSection
+                  variant="floating"
+                  manual={paymentOptions.manual}
+                  online={paymentOptions.online}
+                  defaultAreaCode={areaCode}
+                  defaultPhone={customerPhone}
+                  email={customerEmail}
+                  onCardEmailChange={setCustomerEmail}
+                  stkBusy={stkBusy}
+                  stkMessage={stkMessage}
+                  stkSent={stkSent}
+                  onStkPay={handleStkPay}
+                  redirectBusy={redirectBusy}
+                  redirectMessage={redirectMessage}
+                  onRedirectPay={handleRedirectPay}
+                  orderPlaced
+                  selectedMethod="mpesa"
+                  amountDue={total}
+                  actionsInDock
+                  onStkSendActionChange={setStkDockSend}
+                />
+              </div>
+            ) : null}
+
             <ConfirmationPanel className="overflow-hidden p-0">
               <ConfirmationPanelHeader
                 title="Items ordered"
@@ -1424,6 +1450,7 @@ export default function ShopCheckoutForm({
                 deliveryNotes={receipt.shipping.deliveryNotes}
               />
             ) : null}
+
             <OrderPaymentSummaryCard
               subtotalLabel={receiptSubtotalLabel}
               totalLabel={total}
@@ -1442,113 +1469,8 @@ export default function ShopCheckoutForm({
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
           payOnDelivery={payOnDeliveryOrder}
           stkSent={stkSent}
-          anchored
-          fullWidth={embedded}
-        />
-      </div>
-    );
-  }
-
-  // ── Order placed — pay with M-Pesa on the same checkout screen ──
-  if (done && awaitingOnlinePayment && orderReceipt) {
-    const placedTotal = formatDisplayPrice(done.currency, done.grandTotal);
-    const orderRef =
-      done.orderId.length > 8
-        ? done.orderId.slice(0, 8).toUpperCase()
-        : done.orderId;
-
-    const placedLines = orderReceipt.lines.map((line) => ({
-      itemId: line.itemId,
-      name: line.name,
-      variantName: line.variantName,
-      imageUrl: line.imageUrl,
-      quantity: line.quantity,
-      unitPrice: line.unitPrice,
-      lineTotal: line.lineTotal,
-      currency: orderReceipt.currency,
-      formatPrice: formatDisplayPrice,
-    }));
-
-    return (
-      <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
-        <ConfirmationTopProgress paymentPending={!paymentConfirmed} />
-        <div className={CONFIRMATION_SCROLL_ANCHORED}>
-          <header className="space-y-1.5 pb-1.5">
-            <OrderPaymentStatusBanner
-              paymentConfirmed={paymentConfirmed}
-              paymentFailed={paymentFailed}
-              failureMessage={stkMessage}
-              total={placedTotal}
-              hasOnlinePay={hasOnlinePay}
-              hasManualPay={hasManualPay}
-              stkSent={stkSent}
-            />
-            <OrderMetaStrip
-              items={[
-                {
-                  label: "Reference",
-                  value: (
-                    <span className="font-mono text-[13px]">{orderRef}</span>
-                  ),
-                },
-                {
-                  label: "Pickup",
-                  value: (
-                    <span className="text-[13px] font-medium normal-case tracking-normal break-words">
-                      {done.catalogBranchName}
-                    </span>
-                  ),
-                },
-              ]}
-            />
-          </header>
-
-          {!paymentConfirmed ? (
-            <div className="pb-2">
-              <ShopCheckoutPaymentSection
-                variant="floating"
-                manual={paymentOptions.manual}
-                online={paymentOptions.online}
-                defaultAreaCode={areaCode}
-                defaultPhone={customerPhone}
-                stkBusy={stkBusy}
-                stkMessage={stkMessage}
-                stkSent={stkSent}
-                onStkPay={handleStkPay}
-                redirectBusy={redirectBusy}
-                redirectMessage={redirectMessage}
-                onRedirectPay={handleRedirectPay}
-                orderPlaced
-                selectedMethod="mpesa"
-                amountDue={placedTotal}
-                actionsInDock
-                onStkSendActionChange={setStkDockSend}
-              />
-            </div>
-          ) : null}
-
-          <ConfirmationPanel className="overflow-hidden p-0">
-            <ConfirmationPanelHeader
-              title="Order summary"
-              subtitle={`${placedLines.length} ${placedLines.length === 1 ? "item" : "items"}`}
-            />
-            <OrderLinesList lines={placedLines} />
-            <div className="flex items-end justify-between border-t border-border/50 px-3.5 py-3 sm:px-4">
-              <span className="text-xs font-semibold text-foreground">Total due</span>
-              <span className={CHECKOUT_SERIF_AMOUNT}>{placedTotal}</span>
-            </div>
-          </ConfirmationPanel>
-          <CheckoutScrollEndSpacer />
-        </div>
-
-        <ConfirmationDockActions
-          paymentConfirmed={paymentConfirmed}
-          checkingPayment={checkingPayment}
-          onConfirmPayment={() => void handleConfirmPaymentSent()}
-          onReturnToShop={() => router.push(APP_ROUTES.shop)}
-          stkSent={stkSent}
-          stkSendAction={stkDockSend}
-          hasStk={paymentOptions.online.some((m) => m.kind !== "redirect")}
+          stkSendAction={showPayControls ? stkDockSend : null}
+          hasStk={showPayControls && hasStk}
           anchored
           fullWidth={embedded}
         />
@@ -1720,7 +1642,6 @@ export default function ShopCheckoutForm({
     setIsEditingShipping(false);
     setDeliveryEditOpen(false);
     setAgreedToTerms(false);
-    termsManuallyChanged.current = false;
     setReviewAcknowledged(false);
     setShippingLocked(false);
     setDetailsSubStep("delivery");
@@ -1774,7 +1695,7 @@ export default function ShopCheckoutForm({
       return;
     }
     if (!contactFieldsComplete) {
-      setError("Please complete all contact fields.");
+      setError("Add your name and phone to continue.");
       return;
     }
     const phone = customerPhone.trim();
@@ -1874,9 +1795,8 @@ export default function ShopCheckoutForm({
   const floatingCheckout = showShippingForm
     ? showSavedDeliverySummary
       ? {
-          eyebrow: "Ready for the next step",
-          headline: "Tap below to review your order",
-          hint: "We'll show a summary of your bag next.",
+          headline: "Review your order",
+          hint: "Your saved details are ready.",
           actionLabel: "Continue to review",
           actionDisabled: false,
           onAction: () => void lockShippingAndContinue(),
@@ -1885,11 +1805,10 @@ export default function ShopCheckoutForm({
         }
       : detailsSubStep === "contact"
         ? {
-            eyebrow: "Contact details",
             headline: contactFieldsComplete
-              ? "Tap below to add your delivery address"
-              : "Enter how we can reach you",
-            hint: "Email, name, and phone are required.",
+              ? "Add your delivery address"
+              : "Add your contact details",
+            hint: "Name and phone are required.",
             actionLabel: "Continue",
             actionDisabled: !contactFieldsComplete || stepBusy,
             onAction: () => void advanceDetailsStep(),
@@ -1897,11 +1816,12 @@ export default function ShopCheckoutForm({
             pulse: contactFieldsComplete,
           }
         : {
-            eyebrow: "Delivery location",
             headline: shippingComplete
-              ? "Tap below to review your order"
+              ? "Review your order"
               : "Where should we deliver?",
-            hint: "Delivery area and exact location are required.",
+            hint: shippingComplete
+              ? "Area and landmark are set."
+              : "Pick your area, then add a landmark.",
             actionLabel: "Continue to review",
             actionDisabled: !shippingComplete || stepBusy || areaNotListed,
             onAction: () => void advanceDetailsStep(),
@@ -1910,9 +1830,8 @@ export default function ShopCheckoutForm({
           }
     : busy
       ? {
-          eyebrow: "Please wait",
-          headline: "Completing your purchase…",
-          hint: "Keep this page open while we place your order.",
+          headline: "Placing your order…",
+          hint: "Keep this page open for a moment.",
           actionLabel: "Placing order…",
           actionDisabled: true,
           actionType: "submit" as const,
@@ -1920,9 +1839,8 @@ export default function ShopCheckoutForm({
         }
         : showReviewStep && !termsAccepted
         ? {
-            eyebrow: "Review your order",
             headline: "Accept the store terms to continue",
-            hint: "Check your bag above, then tick the terms checkbox.",
+            hint: "Tick the box under your bag.",
             actionLabel: "Go to terms",
             actionDisabled: false,
             onAction: scrollToCheckoutTerms,
@@ -1931,9 +1849,8 @@ export default function ShopCheckoutForm({
           }
         : showReviewStep
           ? {
-              eyebrow: "Review your order",
-              headline: "Looks right? Continue to pay",
-              hint: "This is your bag and delivery. Payment is the next step.",
+              headline: "Ready to pay?",
+              hint: "Review your bag and delivery above.",
               actionLabel: "Continue",
               actionDisabled: false,
               onAction: proceedToConfirmStep,
@@ -1941,15 +1858,14 @@ export default function ShopCheckoutForm({
               pulse: true,
             }
           : {
-            eyebrow: activePaymentMethod === "mpesa" ? "Pay with M-Pesa" : "Pay on delivery",
             headline:
               activePaymentMethod === "mpesa"
-                ? "Place order, then send the prompt"
+                ? "Pay with M-Pesa on your phone"
                 : "Place your order — pay when it arrives",
             hint:
               activePaymentMethod === "mpesa"
-                ? "M-Pesa is selected below. Approve the prompt on your phone after ordering."
-                : "No upfront payment. Have cash or M-Pesa ready for the rider.",
+                ? "We'll send the M-Pesa prompt as soon as you place the order."
+                : "No upfront payment. Pay the rider on arrival.",
             actionLabel:
               activePaymentMethod === "mpesa" ? "Place order & pay" : "Place order",
             actionDisabled: false,
@@ -1960,7 +1876,7 @@ export default function ShopCheckoutForm({
   return (
     <div className={cn(CONFIRMATION_VIEWPORT, "min-w-0 max-w-full")}>
       <form
-        className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+        className="flex h-full min-h-0 flex-1 flex-col overflow-hidden caret-primary selection:bg-primary/20"
         onSubmit={(ev) => void onSubmit(ev)}
       >
         <div className={CONFIRMATION_SCROLL_ANCHORED}>
@@ -2051,13 +1967,14 @@ export default function ShopCheckoutForm({
                 }}
                 className="mt-2"
               />
-            ) : null}
-            <CheckoutStepHint
-              activeStep={activeCheckoutStep}
-              detailsSubStep={detailsSubStep}
-              hasSavedDetails={showSavedDeliverySummary}
-              className="mt-2 max-sm:pr-7"
-            />
+            ) : (
+              <CheckoutStepHint
+                activeStep={activeCheckoutStep}
+                detailsSubStep={detailsSubStep}
+                hasSavedDetails={showSavedDeliverySummary}
+                className="mt-2 max-sm:pr-7"
+              />
+            )}
           </div>
         </div>
         <dl
@@ -2120,6 +2037,33 @@ export default function ShopCheckoutForm({
             />
 
             <FormFieldGroup
+              title="Your phone"
+              description="We'll confirm the order and send delivery updates here."
+            >
+              <div className="flex gap-2.5">
+                <div className="w-[4.75rem] shrink-0 sm:w-[5.5rem]">
+                  <InputField
+                    label="Code"
+                    value={areaCode}
+                    onChange={(ev) => setAreaCode(ev.target.value)}
+                    placeholder="+254"
+                    inputMode="tel"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <InputField
+                    label="Phone number"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={(ev) => setCustomerPhone(ev.target.value)}
+                    placeholder="712 345 678"
+                  />
+                </div>
+              </div>
+            </FormFieldGroup>
+
+            <FormFieldGroup
               title="Who is this for?"
               description="The name shown on your order and receipt."
             >
@@ -2141,42 +2085,16 @@ export default function ShopCheckoutForm({
               </div>
             </FormFieldGroup>
 
-            <FormFieldGroup
-              title="How we reach you"
-              description="Email and phone are required for checkout."
-            >
-              <div className="space-y-3">
-                <InputField
-                  label="Email address"
-                  type="email"
-                  autoComplete="email"
-                  value={customerEmail}
-                  onChange={(ev) => setCustomerEmail(ev.target.value)}
-                  placeholder="you@example.com"
-                />
-                <div className="flex gap-2.5">
-                  <div className="w-[4.75rem] shrink-0 sm:w-[5.5rem]">
-                    <InputField
-                      label="Code"
-                      value={areaCode}
-                      onChange={(ev) => setAreaCode(ev.target.value)}
-                      placeholder="+254"
-                      inputMode="tel"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <InputField
-                      label="Phone number"
-                      autoComplete="tel"
-                      inputMode="tel"
-                      value={customerPhone}
-                      onChange={(ev) => setCustomerPhone(ev.target.value)}
-                      placeholder="712 345 678"
-                    />
-                  </div>
-                </div>
-              </div>
-            </FormFieldGroup>
+            <InputField
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              required={false}
+              value={customerEmail}
+              onChange={(ev) => setCustomerEmail(ev.target.value)}
+              placeholder="you@example.com"
+              hint="Optional — for receipts and updates. Needed only if you pay by card."
+            />
 
             <InputField
               label="WhatsApp"
@@ -2266,9 +2184,24 @@ export default function ShopCheckoutForm({
                 <div className="space-y-2 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                   <p className="font-semibold">We don&apos;t deliver there yet</p>
                   <p className="text-xs leading-relaxed opacity-90">
-                    Pick one of the areas we serve, or message the store if you
-                    need coverage elsewhere.
+                    Pick one of the areas we serve, or order on WhatsApp and the
+                    store will arrange coverage with you.
                   </p>
+                  {whatsappCheckout && openWhatsAppCheckout ? (
+                    <button
+                      type="button"
+                      className="flex w-full items-start gap-2.5 rounded-lg border border-dashed border-amber-300/80 bg-white/60 px-3 py-2.5 text-left transition-colors hover:border-[#25D366]/60 hover:bg-[#25D366]/5 dark:bg-amber-950/20"
+                      onClick={openWhatsAppCheckout}
+                    >
+                      <MessageCircle className="mt-0.5 size-4 shrink-0 text-[#128C4A]" aria-hidden />
+                      <span className="text-xs font-semibold text-foreground">
+                        Order on WhatsApp instead
+                        <span className="mt-0.5 block font-normal leading-snug text-muted-foreground">
+                          The shop confirms stock, delivery, and payment in chat.
+                        </span>
+                      </span>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="text-xs font-semibold underline underline-offset-2"
@@ -2337,7 +2270,7 @@ export default function ShopCheckoutForm({
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3 text-sm text-foreground transition-colors hover:bg-muted/30">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
+                className="mt-0.5 size-4 rounded border-border text-primary accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 checked={isDefaultAddress}
                 onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
               />
@@ -2350,15 +2283,7 @@ export default function ShopCheckoutForm({
             </label>
           </div>
 
-          <Button
-            type="button"
-            size="lg"
-            className="hidden h-11 w-full rounded-xl text-sm font-semibold"
-            onClick={() => void lockShippingAndContinue()}
-            disabled={!shippingComplete}
-          >
-            {isEditingShipping ? "Use these details" : "Continue to review"}
-          </Button>
+
             </>
           ) : null}
         </section>
@@ -2436,6 +2361,8 @@ export default function ShopCheckoutForm({
               online={paymentOptions.online}
               defaultAreaCode={areaCode}
               defaultPhone={customerPhone}
+              email={customerEmail}
+              onCardEmailChange={setCustomerEmail}
               amountDue={totalLabel}
               selectedMethod={activePaymentMethod}
               onSelectMethod={selectPaymentMethod}
@@ -2515,57 +2442,16 @@ export default function ShopCheckoutForm({
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      {floatingCheckout.eyebrow ? (
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
-                          {floatingCheckout.eyebrow}
-                        </p>
-                      ) : null}
-                      {floatingCheckout.headline ? (
-                        <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
-                          {floatingCheckout.headline}
-                        </p>
-                      ) : null}
-                      {floatingCheckout.hint ? (
-                        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                          {floatingCheckout.hint}
-                        </p>
-                      ) : null}
-                    </div>
-                    {detailsSubStep === "contact" && showShippingForm ? (
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
-                          contactFieldsComplete
-                            ? "bg-primary/12 text-primary"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {[
-                          customerEmail.trim(),
-                          firstName.trim(),
-                          lastName.trim(),
-                          customerPhone.trim(),
-                        ].filter(Boolean).length}
-                        /4
-                      </span>
-                    ) : detailsSubStep === "delivery" && showShippingForm ? (
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
-                          shippingComplete
-                            ? "bg-primary/12 text-primary"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {[
-                          subCounty,
-                          ward,
-                          streetAddress.trim(),
-                        ].filter(Boolean).length}
-                        /3
-                      </span>
+                  <div className="min-w-0">
+                    {floatingCheckout.headline ? (
+                      <p className="text-sm font-semibold leading-snug text-foreground">
+                        {floatingCheckout.headline}
+                      </p>
+                    ) : null}
+                    {floatingCheckout.hint ? (
+                      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                        {floatingCheckout.hint}
+                      </p>
                     ) : null}
                   </div>
                   <div className="mt-3 flex items-end gap-2 border-t border-border/50 pt-3">
@@ -2602,19 +2488,13 @@ export default function ShopCheckoutForm({
         </ConfirmationFloatingDock>
       </form>
 
-      <ShopCheckoutPhoneModal
+      <ShopCheckoutAccountModal
         open={phoneModalOpen}
         onOpenChange={setPhoneModalOpen}
         initialPhone={`${areaCode} ${customerPhone}`.trim()}
-        suggestedName={`${firstName} ${lastName}`.trim()}
-        onSignedIn={(tabPhone) => {
+        onSignedIn={() => {
           serverAuthenticatedRef.current = true;
           setServerAuthenticated(true);
-          const local = toKenyanLocal07(tabPhone);
-          if (local && !customerPhone.trim()) {
-            setAreaCode("+254");
-            setCustomerPhone(local.slice(1));
-          }
           if (pendingShippingLock.current) {
             applyShippingLock();
           }
@@ -2647,9 +2527,10 @@ export default function ShopCheckoutForm({
                 label="Email"
                 type="email"
                 autoComplete="email"
+                required={false}
                 value={customerEmail}
                 onChange={(ev) => setCustomerEmail(ev.target.value)}
-                placeholder="you@example.com"
+                placeholder="Optional"
               />
               <div className="grid grid-cols-2 gap-3">
                 <InputField
@@ -2765,7 +2646,7 @@ export default function ShopCheckoutForm({
             <label className="mt-1 flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 shrink-0 rounded border-border text-primary focus:ring-primary/10"
+                className="mt-0.5 size-4 shrink-0 rounded border-border text-primary accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 checked={isDefaultAddress}
                 onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
               />

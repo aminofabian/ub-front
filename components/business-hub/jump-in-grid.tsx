@@ -19,7 +19,7 @@ export type JumpInLink = {
 };
 
 const TILE_EDGE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]";
 const TILE_DIVIDE = "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]";
 const TILE_FILL = "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]";
 

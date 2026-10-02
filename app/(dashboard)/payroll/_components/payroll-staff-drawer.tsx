@@ -57,6 +57,7 @@ type Props = {
   onOpenPayslip: () => void;
   onSendSms?: () => void;
   onProrationSettingChanged?: () => void;
+  onRemoveFromPayroll?: () => void;
   /** When set on large layouts, fill the theatre dossier column. */
   dockRoot?: HTMLElement | null;
   docked?: boolean;
@@ -81,6 +82,7 @@ export function PayrollStaffDrawer({
   onOpenPayslip,
   onSendSms,
   onProrationSettingChanged,
+  onRemoveFromPayroll,
   dockRoot = null,
   docked = false,
 }: Props) {
@@ -151,9 +153,9 @@ export function PayrollStaffDrawer({
     ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
     : row.employmentStatus === "on_leave"
       ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] text-[var(--order-ink,#15231f)]"
-      : Number(row.baseSalary) <= 0
+      : Number(row.monthlySalary ?? row.baseSalary) <= 0
         ? "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]"
-        : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]";
+        : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] text-[var(--order-ink,#15231f)]";
 
   return (
     <FormDrawer
@@ -245,9 +247,9 @@ export function PayrollStaffDrawer({
               ? `Paid ${formatPayrollDate(row.paidAt)}`
               : row.employmentStatus === "on_leave"
                 ? "On leave — update status before paying"
-                : Number(row.baseSalary) <= 0
+                : Number(row.monthlySalary ?? row.baseSalary) <= 0
                   ? "Salary not set — add monthly amount first"
-                  : `${employmentStatusLabel(row.employmentStatus)} · ready for ${payrollMonthLabel(year, month)}`}
+                  : `${employmentStatusLabel(row.employmentStatus)} · ${formatPayrollMoney(row.monthlySalary ?? row.baseSalary)} monthly`}
           </div>
         </div>
       </div>
@@ -331,11 +333,9 @@ export function PayrollStaffDrawer({
                   ))}
                 </select>
                 <span className="text-[11px] text-muted-foreground">
-                  {row.salaryReleased === false
-                    ? "This month unlocks on the 25th — payable shows as zero until then."
-                    : (JOIN_PAY_MODES.find(
-                          (o) => o.value === (row.joinPayMode || "half"),
-                        )?.hint ?? "Applied to this month’s payable amount.")}
+                  {JOIN_PAY_MODES.find(
+                    (o) => o.value === (row.joinPayMode || "half"),
+                  )?.hint ?? "Applied to this month’s payable amount."}
                 </span>
               </label>
             ) : null}
@@ -354,7 +354,7 @@ export function PayrollStaffDrawer({
             {(row.arrearPeriods?.length ?? 0) > 0 ? (
               <div className="rounded-none border border-[#9a2e16]/25 bg-[color-mix(in_srgb,#9a2e16_4%,white)] px-3 py-2 text-xs">
                 <div className="flex justify-between gap-3 font-medium text-[#9a2e16]">
-                  <span>Arrears</span>
+                  <span>Unpaid months</span>
                   <span className="tabular-nums">
                     + {formatPayrollMoney(row.arrearsBaseTotal)}
                   </span>
@@ -367,6 +367,11 @@ export function PayrollStaffDrawer({
                     >
                       <span>
                         {payrollShortMonth(period.year, period.month)}
+                        {period.payableDays != null &&
+                        period.daysInMonth != null &&
+                        period.payableDays < period.daysInMonth
+                          ? ` · ${period.payableDays} of ${period.daysInMonth} days`
+                          : ""}
                       </span>
                       <span className="tabular-nums">
                         {formatPayrollMoney(period.baseSalary)}
@@ -376,7 +381,7 @@ export function PayrollStaffDrawer({
                 </ul>
                 {payrollArrearSummary(row) ? (
                   <p className="mt-1.5 text-[10px] text-muted-foreground">
-                    Cleared when you pay {payrollMonthLabel(year, month)}
+                    Added when you pay {payrollMonthLabel(year, month)}
                   </p>
                 ) : null}
               </div>
@@ -589,6 +594,20 @@ export function PayrollStaffDrawer({
           </p>
         ) : null}
       </FormDrawerFields>
+      {canManagePayroll && onRemoveFromPayroll ? (
+        <div className="px-1 pb-2">
+          <button
+            type="button"
+            className="text-[13px] font-semibold text-[#9a2e16] underline-offset-2 hover:underline"
+            onClick={onRemoveFromPayroll}
+          >
+            Remove from payroll
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            They stay on the team. Past payslips stay on file.
+          </p>
+        </div>
+      ) : null}
       </div>
     </FormDrawer>
   );

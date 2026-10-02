@@ -1171,6 +1171,7 @@ export function CloseShiftModal({
     createEmptyDenominationQuantities(),
   );
   const [cashTotalStr, setCashTotalStr] = useState("");
+  const [cashTakenOutStr, setCashTakenOutStr] = useState("");
   const [notes, setNotes] = useState("");
   const [varianceReason, setVarianceReason] = useState("");
   const [error, setError] = useState("");
@@ -1225,6 +1226,7 @@ export function CloseShiftModal({
         ...persistedQuantitiesToRecord(draft.quantities),
       });
       setCashTotalStr(draft.cashTotalStr ?? "");
+      setCashTakenOutStr(draft.cashTakenOutStr ?? "");
       setNotes(draft.notes ?? "");
       setVarianceReason(draft.varianceReason ?? "");
       setDraftRestoredHint(true);
@@ -1241,6 +1243,7 @@ export function CloseShiftModal({
             ? String(openingTotal)
             : "",
       );
+      setCashTakenOutStr("");
       setNotes("");
       setVarianceReason("");
       setDraftRestoredHint(false);
@@ -1285,6 +1288,7 @@ export function CloseShiftModal({
       varianceReason,
       quantities: quantitiesRecordToPersisted(quantities),
       cashTotalStr,
+      cashTakenOutStr,
     };
     if (closeShiftDraftHasProgress(draft)) {
       saveCloseShiftDraft(draft);
@@ -1300,6 +1304,7 @@ export function CloseShiftModal({
     varianceReason,
     quantities,
     cashTotalStr,
+    cashTakenOutStr,
   ]);
 
   const totalCash = useMemo(() => {
@@ -1312,6 +1317,14 @@ export function CloseShiftModal({
       0,
     );
   }, [useDenomBreakdown, cashTotalStr, quantities]);
+
+  const cashTakenOut = useMemo(() => {
+    if (!cashTakenOutStr.trim()) return null;
+    const n = Number(cashTakenOutStr);
+    return Number.isFinite(n) ? n : null;
+  }, [cashTakenOutStr]);
+  const leftInTill =
+    cashTakenOut != null ? Math.round((totalCash - cashTakenOut) * 100) / 100 : null;
 
   const till = liveShift ?? shift;
   const expected = till
@@ -1344,6 +1357,14 @@ export function CloseShiftModal({
       setError("Please count the closing cash.");
       return;
     }
+    if (cashTakenOut == null || cashTakenOut < 0) {
+      setError("Enter the amount being taken out. Use 0 if nothing leaves the till.");
+      return;
+    }
+    if (cashTakenOut > totalCash + 0.001) {
+      setError("Amount taken out can’t be more than the cash you counted.");
+      return;
+    }
     if (showVarianceReason && !varianceReason.trim()) {
       setError(
         canSeeCashVarianceDetail
@@ -1363,6 +1384,7 @@ export function CloseShiftModal({
         notes: notes.trim() || null,
         varianceReason: varianceReason.trim() || null,
         denominations: entries.length > 0 ? entries : undefined,
+        cashTakenOut,
       });
       clearCloseShiftDraft(businessId, userId, shift.id);
       // Desktop SKU: push the closed shift's sales to the online shop
@@ -1385,6 +1407,7 @@ export function CloseShiftModal({
     quantities,
     useDenomBreakdown,
     varianceReason,
+    cashTakenOut,
     showVarianceReason,
     canSeeCashVarianceDetail,
     businessId,
@@ -1434,7 +1457,7 @@ export function CloseShiftModal({
               <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
                 {staleDuration
                   ? `Open for ${staleDuration} without a close. Count out, or continue this shift.`
-                  : "Count notes, then coins. Closing voids unfinished sales on this shift."}
+                  : "Count the till, then record the cash you are taking out. Closing voids unfinished sales on this shift."}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -1576,6 +1599,35 @@ export function CloseShiftModal({
                     }
                   />
                 )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={dashboardFilterFieldLabelClass()} htmlFor="close-cash-taken-out">
+                  Amount taken out
+                </label>
+                <p className="text-[11px] leading-snug text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+                  Cash you are removing from the till — handed to the owner or dropped to the safe.
+                  Enter 0 if nothing leaves.
+                </p>
+                <input
+                  id="close-cash-taken-out"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  className={shiftFieldClass(loading, "tabular-nums")}
+                  placeholder="0.00"
+                  value={cashTakenOutStr}
+                  onChange={(e) => {
+                    userEditedRef.current = true;
+                    setCashTakenOutStr(e.target.value);
+                  }}
+                />
+                {leftInTill != null ? (
+                  <p className="text-[12px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+                    Left in the till {moneyStr(leftInTill, currency)}
+                  </p>
+                ) : null}
               </div>
 
               {draftRestoredHint ? (

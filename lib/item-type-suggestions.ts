@@ -162,6 +162,22 @@ export const STORE_SECTION_STARTER_KITS: readonly StoreSectionStarterKit[] = [
       "Glassware & accessories",
     ],
   },
+  {
+    id: "pharmacy",
+    label: "Pharmacy / chemist",
+    sections: [
+      "Medicines (OTC)",
+      "Prescription",
+      "Vitamins & supplements",
+      "Syrups & suspensions",
+      "Creams & ointments",
+      "First aid & wound care",
+      "Medical devices",
+      "Baby care",
+      "Personal care",
+      "Antiseptics & hygiene",
+    ],
+  },
 ];
 
 export type PendingSectionCreate = {

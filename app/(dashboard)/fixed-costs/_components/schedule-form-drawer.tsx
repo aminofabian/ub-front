@@ -32,6 +32,8 @@ type Props = {
   onSavingChange: (saving: boolean) => void;
   onCreated: (schedule: ExpenseScheduleRecord) => void;
   onError: (message: string) => void;
+  /** Open already on a regular cost such as rent, power, or water. */
+  seedPresetId?: string | null;
 };
 
 export function ScheduleFormDrawer({
@@ -42,6 +44,7 @@ export function ScheduleFormDrawer({
   onSavingChange,
   onCreated,
   onError,
+  seedPresetId,
 }: Props) {
   const [step, setStep] = useState(0);
   const [presetId, setPresetId] = useState<string>("shop_rent");
@@ -88,8 +91,18 @@ export function ScheduleFormDrawer({
       setVendorPhone("");
       setVendorMpesaNumber("");
       setVendorLeaseNote("");
+      return;
     }
-  }, [open]);
+    if (seedPresetId) {
+      const preset = FIXED_COST_PRESETS.find((p) => p.id === seedPresetId);
+      if (preset) {
+        setPresetId(preset.id);
+        if (preset.name) setName(preset.name);
+        setCategoryType(preset.categoryType);
+        setCategoryCode(preset.categoryCode);
+      }
+    }
+  }, [open, seedPresetId]);
 
   const previewDates = useMemo(() => {
     if (!startDate || Number(amount) <= 0) return [];

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ChevronRight,
+  KeyRound,
   MessageSquare,
   Phone,
   Plug,
@@ -19,6 +20,7 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import { cn } from "@/lib/utils";
 
 export type IntegrationsSectionId =
+  | "google"
   | "deepseek"
   | "meta"
   | "lookup"
@@ -32,6 +34,12 @@ export type IntegrationsNavItem = {
 };
 
 export const INTEGRATIONS_NAV: IntegrationsNavItem[] = [
+  {
+    id: "google",
+    label: "Google Sign-In",
+    hint: "OAuth client ID + secret for merchant Continue with Google.",
+    icon: KeyRound,
+  },
   {
     id: "deepseek",
     label: "Product AI (legacy)",

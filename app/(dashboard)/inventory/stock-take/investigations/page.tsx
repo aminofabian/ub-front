@@ -170,48 +170,99 @@ export default function DailyAuditInvestigationsPage() {
           No escalated items found for these filters.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-none border">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-muted/40 text-xs tracking-[-0.02em] text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Product</th>
-                <th className="px-3 py-2">Morning</th>
-                <th className="px-3 py-2">Evening</th>
-                <th className="px-3 py-2">System</th>
-                <th className="px-3 py-2">Variance</th>
-                <th className="px-3 py-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={`${row.auditId}-${row.itemId}`}
-                  className="border-b last:border-0"
-                >
-                  <td className="px-3 py-3 whitespace-nowrap">
-                    {row.auditDate}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="font-medium">{row.itemName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {row.itemSku}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">{num(row.morningCount)}</td>
-                  <td className="px-3 py-3">{num(row.eveningCount)}</td>
-                  <td className="px-3 py-3">{num(row.systemStock)}</td>
-                  <td className="px-3 py-3 text-red-600">
+        <>
+          <div className="divide-y divide-border rounded-2xl border border-border bg-white md:hidden">
+            {rows.map((row) => (
+              <article
+                key={`${row.auditId}-${row.itemId}`}
+                className="space-y-2 px-3 py-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold leading-snug text-foreground">
+                      {row.itemName}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {row.auditDate}
+                      {row.itemSku ? ` · ${row.itemSku}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[13px] font-semibold tabular-nums text-red-600">
                     {num(row.variance)}
-                  </td>
-                  <td className="px-3 py-3 max-w-xs truncate">
-                    {row.reviewNotes ?? "—"}
-                  </td>
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[12px]">
+                  <div>
+                    <p className="text-muted-foreground">Morning</p>
+                    <p className="font-mono tabular-nums font-medium">
+                      {num(row.morningCount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Evening</p>
+                    <p className="font-mono tabular-nums font-medium">
+                      {num(row.eveningCount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">System</p>
+                    <p className="font-mono tabular-nums font-medium">
+                      {num(row.systemStock)}
+                    </p>
+                  </div>
+                </div>
+                {row.reviewNotes ? (
+                  <p className="text-[12px] text-muted-foreground">
+                    {row.reviewNotes}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-none border md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b bg-muted/40 text-xs tracking-[-0.02em] text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Product</th>
+                  <th className="px-3 py-2">Morning</th>
+                  <th className="px-3 py-2">Evening</th>
+                  <th className="px-3 py-2">System</th>
+                  <th className="px-3 py-2">Variance</th>
+                  <th className="px-3 py-2">Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={`${row.auditId}-${row.itemId}`}
+                    className="border-b last:border-0"
+                  >
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {row.auditDate}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="font-medium">{row.itemName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {row.itemSku}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">{num(row.morningCount)}</td>
+                    <td className="px-3 py-3">{num(row.eveningCount)}</td>
+                    <td className="px-3 py-3">{num(row.systemStock)}</td>
+                    <td className="px-3 py-3 text-red-600">
+                      {num(row.variance)}
+                    </td>
+                    <td className="px-3 py-3 max-w-xs truncate">
+                      {row.reviewNotes ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

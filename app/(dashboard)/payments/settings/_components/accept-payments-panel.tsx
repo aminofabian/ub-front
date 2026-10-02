@@ -19,6 +19,11 @@ import type {
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
+import {
+  darajaShopGated,
+  shopApprovalBadge,
+} from "./daraja-storefront-toggle";
+
 export function isManualGateway(config: GatewayConfigRecord) {
   return config.gatewayType === "MANUAL";
 }
@@ -191,6 +196,14 @@ export function AcceptPaymentsPanel({
                         {config.label}
                       </p>
                       <GatewayStatusBadge status={config.status} />
+                      {darajaShopGated(
+                        config.gatewayType,
+                        custodyAvailability?.provider,
+                      ) ? (
+                        <span className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                          {shopApprovalBadge(config.storefrontApproval)}
+                        </span>
+                      ) : null}
                       {custody ? (
                         <span className="border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]">
                           PIN prompt

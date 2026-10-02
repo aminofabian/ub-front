@@ -25,6 +25,8 @@ export const APP_ROUTES = {
   /** Shop staff / till / office sign-in (PIN + password). */
   staffLogin: "/login/staff",
   authHandoff: "/auth/handoff",
+  /** Apex-only Google OAuth start (custom domains bounce here). */
+  authGoogleOAuth: "/auth/oauth/google",
   signup: "/signup",
   signupStaff: "/signup/staff",
   verifyEmail: "/verify-email",
@@ -59,6 +61,8 @@ export const APP_ROUTES = {
   businessDesign: "/business/design",
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",
+  businessIntegrationsPickupMtaani:
+    "/business/integrations/pickup-mtaani",
   businessImport: "/business/import",
   billingRenew: "/business/billing/renew",
   branches: "/branches",
@@ -71,6 +75,8 @@ export const APP_ROUTES = {
   fixedCosts: "/fixed-costs",
   /** Expenses & net operating profit hub. */
   expenses: "/expenses",
+  /** Daily profit pocketing calendar and month-to-month rate. */
+  profitPocketing: "/business/pocketing",
   /** Staff self-service payslip portal (login required). */
   myPay: "/my-pay",
   /** Staff self-service profile — pay, advances, workplace concern. */
@@ -167,6 +173,7 @@ export const APP_ROUTES = {
   analyticsActivity: "/analytics/activity",
   analyticsCustomers: "/analytics/customers",
   sales: "/sales",
+  salesByHour: "/sales/by-hour",
   salesTransactions: "/sales/transactions",
   salesPendingCarts: "/sales/pending-carts",
   salesReports: "/sales/reports",

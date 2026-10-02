@@ -28,6 +28,7 @@ import {
   fetchPayrollRun,
   payAllStaffPayroll,
   payStaffPayroll,
+  updateStaffProfile,
   type PayslipRecord,
   type PayrollRunRow,
 } from "@/lib/api";
@@ -154,18 +155,17 @@ export default function PayrollPage() {
         (s, r) => s + (applyStatutory ? Number(r.statutoryTotal) : 0),
         0,
       ),
-      // Zero-base rows that are explained by the join-month rules are not
-      // "missing salary": pre-25th unlocks and deferred join months.
+      // Zero-base rows that are explained by deferred join months are not
+      // "missing salary".
       missingSalary: rows.filter(
         (r) =>
-          Number(r.baseSalary) <= 0 &&
-          r.salaryReleased !== false &&
+          Number(r.monthlySalary ?? r.baseSalary) <= 0 &&
           !(
             r.joinPayMode === "deferred" &&
             payrollIsJoinMonth(r.startDate, year, month)
           ),
       ).length,
-      pendingUnlock: rows.filter((r) => r.salaryReleased === false).length,
+      pendingUnlock: 0,
       onLeaveCount: rows.filter((r) => r.employmentStatus === "on_leave")
         .length,
     };
@@ -222,6 +222,35 @@ export default function PayrollPage() {
     setStaffDrawerOpen(false);
   }
 
+  async function removeFromPayroll(row: PayrollRunRow) {
+    if (!canManagePayroll) return;
+    if (
+      !window.confirm(
+        `Remove ${row.displayName} from payroll? They stay on the team. Past payslips stay on file.`,
+      )
+    ) {
+      return;
+    }
+    setFeedback(null);
+    try {
+      await updateStaffProfile(row.userId, { includeInPayroll: false });
+      if (selectedRow?.userId === row.userId) clearStaffSelection();
+      setFeedback({
+        kind: "success",
+        text: `${row.displayName} removed from payroll`,
+      });
+      await load();
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Could not remove this person from payroll",
+      });
+    }
+  }
+
   function openProfile(row: PayrollRunRow) {
     setProfileUserId(row.userId);
     setProfileUserLabel(
@@ -272,13 +301,6 @@ export default function PayrollPage() {
       });
       return;
     }
-    if (row.salaryReleased === false) {
-      setFeedback({
-        kind: "error",
-        text: `Salaries for ${payrollMonthLabel(year, month)} unlock on the 25th — ${row.displayName} shows zero until then.`,
-      });
-      return;
-    }
     if (
       row.joinPayMode === "deferred" &&
       payrollIsJoinMonth(row.startDate, year, month)
@@ -289,7 +311,7 @@ export default function PayrollPage() {
       });
       return;
     }
-    if (row.baseSalary <= 0) {
+    if (Number(row.monthlySalary ?? row.baseSalary) <= 0) {
       setFeedback({
         kind: "error",
         text: `${row.displayName} has no salary yet. Set a salary first.`,
@@ -512,6 +534,7 @@ export default function PayrollPage() {
               selectedRow={selectedRow}
               staffDrawerOpen={staffDrawerOpen}
               onSelectRow={openStaffDrawer}
+              onRemoveFromPayroll={(row) => void removeFromPayroll(row)}
               onClearSelection={clearStaffSelection}
               onStaffDrawerOpenChange={setStaffDrawerOpen}
               applyStatutory={applyStatutory}
@@ -544,13 +567,6 @@ export default function PayrollPage() {
                     <AlertBanner tone="amber">
                       {summary.missingSalary} without salary — open their row to
                       set pay before marking paid.
-                    </AlertBanner>
-                  ) : null}
-                  {summary.pendingUnlock > 0 ? (
-                    <AlertBanner tone="sky">
-                      Salaries for {payrollMonthLabel(year, month)} unlock on
-                      the 25th — {summary.pendingUnlock} staff show zero until
-                      then.
                     </AlertBanner>
                   ) : null}
                 </>

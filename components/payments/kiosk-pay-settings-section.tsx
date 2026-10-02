@@ -36,7 +36,7 @@ export function KioskPaySettingsSection({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [payoutPhone, setPayoutPhone] = useState("");
-  const [storefrontEnabled, setStorefrontEnabled] = useState(true);
+  const [storefrontEnabled, setStorefrontEnabled] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
 

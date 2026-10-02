@@ -1479,6 +1479,18 @@ export function BusinessSettingsForm({
               hint="What cashiers can do on the POS. Weighted marking is on by default."
             >
               <ToggleRow
+                checked={cashierCapabilities.createProduct}
+                onChange={(checked) =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    createProduct: checked,
+                  }))
+                }
+                icon={<Package className="size-4 text-muted-foreground" />}
+                title="Allow cashiers to add products"
+                description="Override the default lock. Cashiers can quick-create a sellable item from the till and drop it on the cart. Leave off to keep new products with owners and admins."
+              />
+              <ToggleRow
                 checked={cashierCapabilities.priceEdit}
                 onChange={(checked) =>
                   setCashierCapabilities((previous) => ({
@@ -1489,17 +1501,6 @@ export function BusinessSettingsForm({
                 icon={<ShoppingCart className="size-4 text-muted-foreground" />}
                 title="Allow cashiers to edit prices"
                 description="Change unit prices on cart lines (override shelf price at checkout)."
-              />
-              <ToggleRow
-                checked={cashierCapabilities.createProduct}
-                onChange={(checked) =>
-                  setCashierCapabilities((previous) => ({
-                    ...previous,
-                    createProduct: checked,
-                  }))
-                }
-                title="Allow cashiers to add products"
-                description="Quick-create a sellable item from the register and add it to the cart."
               />
               <ToggleRow
                 checked={cashierCapabilities.weighedToggle}

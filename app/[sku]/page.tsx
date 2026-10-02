@@ -2,18 +2,19 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { CustomerTabPortalLoader } from "@/components/credits/customer-tab-portal-loader";
-import { joinProductNameParts } from "@/lib/catalog-display";
-import { APP_BASE_URL } from "@/lib/config";
 import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
+import {
+  absoluteOriginFromHost,
+  buildProductShareMetadata,
+} from "@/lib/product-share-seo";
 import {
   fetchPublicItemDetail,
   fetchPublicStorefront,
-  formatDisplayPrice,
-  hasCatalogPrice,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import {
+  getRequestHostname,
   resolveStorefrontSlug,
   resolveTenantContext,
 } from "@/lib/storefront-slug";
@@ -41,7 +42,11 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     };
   }
-  const slug = await resolveStorefrontSlug();
+  const [slug, host, tenant] = await Promise.all([
+    resolveStorefrontSlug(),
+    getRequestHostname(),
+    resolveTenantContext(),
+  ]);
   if (!slug) return { title: "Product" };
   const [item, storefront] = await Promise.all([
     fetchPublicItemDetail(slug, sku),
@@ -49,33 +54,24 @@ export async function generateMetadata({
   ]);
   const shopLabel =
     storefront?.label?.trim() || storefront?.businessName || "Shop";
-  const base = APP_BASE_URL.replace(/\/+$/, "");
+  const origin = absoluteOriginFromHost(host);
   const canonicalPath = item
     ? shopItemPathFromCard(item)
     : `/${encodeURIComponent(sku)}`;
-  const canonical = `${base}${canonicalPath}`;
+  const canonical = `${origin}${canonicalPath}`;
   if (!item) {
     return { title: `Product · ${shopLabel}`, alternates: { canonical } };
   }
-  const heading = item.variantName
-    ? joinProductNameParts(item.name, item.variantName)
-    : item.name;
-  const pricePart = hasCatalogPrice(item.price)
-    ? formatDisplayPrice(item.currency, item.price)
-    : null;
-  return {
-    title: `${heading} · ${shopLabel}`,
-    description:
-      item.description?.trim().slice(0, 160) ||
-      (pricePart ? `${heading} — ${pricePart}` : heading),
-    alternates: { canonical },
-    openGraph: {
-      title: heading,
-      description: item.description?.trim().slice(0, 160),
-      url: canonical,
-      images: item.images[0]?.url ? [{ url: item.images[0].url }] : undefined,
+  return buildProductShareMetadata({
+    item,
+    shopLabel,
+    origin,
+    slug,
+    contact: {
+      phone: tenant?.landingContent?.phone,
+      whatsapp: tenant?.landingContent?.whatsapp,
     },
-  };
+  });
 }
 
 /**

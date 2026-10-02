@@ -1297,6 +1297,11 @@ function ShiftDetail({
   const expected = toNum(detail.expectedClosingCash);
   const counted = toNum(detail.countedClosingCash);
   const variance = toNum(detail.closingVariance);
+  const takenOut = toNum(detail.cashTakenOut);
+  const leftInTill =
+    counted != null && takenOut != null && takenOut > 0
+      ? counted - takenOut
+      : null;
   const drawoutTotals = liveDrawoutTotals(drawouts);
   const cashIn =
     opening != null && expected != null
@@ -1415,6 +1420,19 @@ function ShiftDetail({
                   {counted != null ? (
                     <LeaderRow label="Counted cash" value={moneyStr(counted)} />
                   ) : null}
+                  {takenOut != null ? (
+                    <LeaderRow
+                      label="Taken out at close"
+                      value={moneyStr(takenOut)}
+                    />
+                  ) : null}
+                  {leftInTill != null ? (
+                    <LeaderRow
+                      label="Left in the till"
+                      value={moneyStr(leftInTill)}
+                      strong
+                    />
+                  ) : null}
                   {variance != null ? (
                     <LeaderRow
                       label="Variance"
@@ -1455,6 +1473,18 @@ function ShiftDetail({
                 >
                   {signedMoney(cashMovement)}
                 </p>
+              </div>
+            ) : null}
+
+            {!showTillWalk && takenOut != null ? (
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs">
+                <p className="font-medium text-foreground">Taken out at close</p>
+                <p className={cn("font-semibold", NUM)}>{moneyStr(takenOut)}</p>
+                {leftInTill != null ? (
+                  <p className="w-full text-[11px] text-muted-foreground">
+                    Left in the till {moneyStr(leftInTill)}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

@@ -38,6 +38,7 @@ export function ProductCreatePricingSection({
   const sellLabel = isWeighed
     ? `Selling price / kg${cur}`
     : `Selling price${cur}`;
+  const costLabel = isWeighed ? `Cost / kg${cur}` : `Cost price${cur}`;
   const valid = marginInfo?.valid;
 
   return (
@@ -58,7 +59,7 @@ export function ProductCreatePricingSection({
       </label>
       <label className={cn(productFormFieldClass, "gap-1.5")}>
         <span className="flex items-baseline justify-between gap-2">
-          <span className={productFormLabelClass}>Cost price{cur}</span>
+          <span className={productFormLabelClass}>{costLabel}</span>
           <span className={productFormHintClass}>Optional</span>
         </span>
         <input

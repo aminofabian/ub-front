@@ -13,7 +13,7 @@ export function PeriodToggle({
 }) {
   return (
     <div
-      className="inline-flex h-8 shrink-0 items-stretch gap-px border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[color-mix(in_srgb,#141414_10%,transparent)] p-px"
+      className="inline-flex h-8 shrink-0 items-stretch gap-px rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-[color-mix(in_srgb,#141414_7%,transparent)] p-px"
       role="group"
       aria-label="Time period"
     >
@@ -32,9 +32,9 @@ export function PeriodToggle({
             aria-pressed={active}
             className={cn(
               HUB_BTN,
-              "relative min-w-[3.25rem] bg-white px-2.5 text-[11px] font-semibold sm:min-w-[3.5rem] sm:text-[12px]",
+              "relative min-w-[3.25rem] rounded-none bg-white px-3 text-[11px] font-semibold sm:min-w-[3.5rem] sm:text-[12px]",
               active
-                ? "bg-[#0f766e] text-white"
+                ? "text-[#0f766e]"
                 : "text-[#5C5C5C] hover:text-[#0f766e]",
             )}
           >

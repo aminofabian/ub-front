@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { DrawoutRecord } from "@/lib/api";
 import {
   cashiersFromDrawouts,
+  DRAWOUT_NATURE_LABEL,
+  drawoutNature,
   filterDrawoutsByCashiers,
   hubDrawoutsFromRecords,
   totalDrawoutAmount,
@@ -109,5 +111,23 @@ describe("hubDrawoutsFromRecords", () => {
       record({ id: "d", amount: 20, status: "VOIDED" }),
     ]);
     expect(totalDrawoutAmount(rows)).toBe(150);
+  });
+});
+
+describe("drawoutNature", () => {
+  it("treats petty cash, casual labour, and recurring as operating spend", () => {
+    for (const category of ["PETTY_CASH", "CASUAL_LABOUR", "RECURRING"]) {
+      expect(drawoutNature(category)).toBe("operating");
+    }
+  });
+
+  it("routes supplier payments away from OpEx", () => {
+    expect(drawoutNature("SUPPLIER_PAYMENT")).toBe("supplier");
+    expect(DRAWOUT_NATURE_LABEL.supplier).toBe("Stock / supplier");
+  });
+
+  it("flags anything unknown for review", () => {
+    expect(drawoutNature("OTHER")).toBe("other");
+    expect(drawoutNature("SOMETHING_NEW")).toBe("other");
   });
 });

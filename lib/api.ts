@@ -32,6 +32,7 @@ import {
   getOrCreateTillDeviceId,
   TILL_DEVICE_HEADER,
 } from "@/lib/till-device";
+import { shareInflight } from "@/lib/share-inflight";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { beginSessionReconnect } from "@/lib/session-reconnect";
 import {
@@ -955,6 +956,11 @@ export type ItemSummaryRecord = {
   bundlePrice?: number | string | null;
   /** Reference buying / cost price on the item record. */
   buyingPrice?: number | string | null;
+  /**
+   * Effective shelf sell price for list UIs: open selling-price row when present,
+   * otherwise {@link bundlePrice}. Matches price-cleanup “selling set” semantics.
+   */
+  sellingPrice?: number | string | null;
   /**
    * Live parent item name when this row is a variant. POS uses this so a parent
    * rename shows on till before every child `name` copy is patched.
@@ -2943,8 +2949,8 @@ export async function registerAccount(
 
 export async function lookupAuthEmail(
   email: string,
-): Promise<{ registered: boolean }> {
-  return request<{ registered: boolean }>(API_ROUTES.emailLookup, {
+): Promise<{ registered: boolean; usesGoogle: boolean }> {
+  return request<{ registered: boolean; usesGoogle: boolean }>(API_ROUTES.emailLookup, {
     method: "POST",
     body: { email: email.trim() },
     requiresAuth: false,
@@ -3016,6 +3022,23 @@ export async function resetPasswordWithToken(
     method: "POST",
     body: { token, newPassword },
     requiresAuth: false,
+  });
+}
+
+export type MyOAuthLinksRecord = {
+  googleLinked: boolean;
+};
+
+/** Social identities connected to the signed-in account (profile → Connected accounts). */
+export async function fetchMyOAuthLinks(): Promise<MyOAuthLinksRecord> {
+  return request<MyOAuthLinksRecord>("/api/v1/me/oauth", { toast: false });
+}
+
+/** Disconnect Google from the signed-in account. Requires the account password. */
+export async function unlinkGoogleAccount(password: string): Promise<void> {
+  await request("/api/v1/me/oauth/google/unlink", {
+    method: "POST",
+    body: { password },
   });
 }
 
@@ -3326,10 +3349,12 @@ export type StaffNotificationRow = {
 };
 
 export async function fetchStaffNotifications(): Promise<StaffNotificationRow[]> {
-  return request<StaffNotificationRow[]>(API_ROUTES.notifications, {
-    requiresAuth: true,
-    toast: false,
-  });
+  return shareInflight("notifications:list", () =>
+    request<StaffNotificationRow[]>(API_ROUTES.notifications, {
+      requiresAuth: true,
+      toast: false,
+    }),
+  );
 }
 
 export async function markStaffNotificationRead(id: string): Promise<void> {
@@ -3827,6 +3852,26 @@ export type PayDomainOrderResult = {
   order: DomainOrder;
 };
 
+export type DomainHelpKind =
+  | "setup_domain"
+  | "connect_owned"
+  | "shop_online"
+  | "theme"
+  | "functionality"
+  | "other_change";
+
+export async function requestDomainHelp(body: {
+  kind: DomainHelpKind;
+  phoneNumber: string;
+  domain?: string;
+  note?: string;
+}): Promise<{ accepted: boolean; message: string }> {
+  return request(`${MY_DOMAIN_ORDERS_PATH}/help`, {
+    method: "POST",
+    body,
+  });
+}
+
 export async function payDomainOrder(orderId: string, phoneNumber: string): Promise<PayDomainOrderResult> {
   return request<PayDomainOrderResult>(
     `${MY_DOMAIN_ORDERS_PATH}/${encodeURIComponent(orderId.trim())}/pay`,
@@ -3869,11 +3914,13 @@ export async function fetchUsers(
 }
 
 export async function fetchBranches(): Promise<BranchRecord[]> {
-  const path = `${API_ROUTES.branches}?${DEFAULT_PAGE_QUERY}`;
-  const payload = await request<unknown>(path);
-  return parseList(payload).map((row) =>
-    normalizeBranchRecord(row as Record<string, unknown>),
-  );
+  return shareInflight("branches:list", async () => {
+    const path = `${API_ROUTES.branches}?${DEFAULT_PAGE_QUERY}`;
+    const payload = await request<unknown>(path);
+    return parseList(payload).map((row) =>
+      normalizeBranchRecord(row as Record<string, unknown>),
+    );
+  });
 }
 
 export async function createBranch(body: CreateBranchPayload): Promise<void> {
@@ -3896,7 +3943,9 @@ export async function fetchRoles(): Promise<RoleRecord[]> {
 }
 
 export async function fetchItemTypes(): Promise<ItemTypeRecord[]> {
-  return request<ItemTypeRecord[]>(API_ROUTES.itemTypes);
+  return shareInflight("item-types:list", () =>
+    request<ItemTypeRecord[]>(API_ROUTES.itemTypes),
+  );
 }
 
 export async function createItemType(
@@ -4357,7 +4406,9 @@ export async function fetchCategories(): Promise<CategoryRecord[]> {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNodeRecord[]> {
-  return request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`);
+  return shareInflight("categories:tree", () =>
+    request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`),
+  );
 }
 
 export async function fetchCategoryChildren(
@@ -4606,6 +4657,20 @@ export async function setUserItemTypes(
 export type CatalogListScope =
   "ALL" | "PARENTS_ONLY" | "VARIANTS_ONLY" | "SKUS_ONLY";
 
+export type PriceStatusFilter =
+  | "ALL"
+  | "MISSING_BUYING"
+  | "MISSING_SELLING"
+  | "BOTH_MISSING"
+  | "BOTH_SET";
+
+export type PriceStatusCounts = {
+  missingBuying: number;
+  missingSelling: number;
+  bothMissing: number;
+  bothSet: number;
+};
+
 export type CatalogRowType = "PARENT" | "VARIANT" | "STANDALONE";
 
 export type CatalogListStats = {
@@ -4643,6 +4708,8 @@ export type FetchItemsOpts = {
   inStock?: boolean;
   /** Buy / cost price missing or ≤ 0. */
   noBuyingPrice?: boolean;
+  /** Server-side buying/selling completeness. Pagination stays on the server. */
+  priceStatus?: PriceStatusFilter;
   /** Both prices set and sell &lt; buy. */
   priceLoss?: boolean;
   /** Both prices set, sell ≥ buy, but margin % below poorMarginMaxPct (default 15). */
@@ -4676,6 +4743,8 @@ export type FetchItemsOpts = {
   aisleUnset?: boolean;
   /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
   excludeLinkedSupplierId?: string;
+  /** Only products linked to this supplier (the item or its parent). */
+  linkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
   sort?: Array<{ property: string; direction: "asc" | "desc" }>;
   /**
@@ -4746,6 +4815,9 @@ export async function fetchItemsPage(
   if (opts?.noBuyingPrice) {
     params.set("noBuyingPrice", "true");
   }
+  if (opts?.priceStatus && opts.priceStatus !== "ALL") {
+    params.set("priceStatus", opts.priceStatus);
+  }
   if (opts?.priceLoss) {
     params.set("priceLoss", "true");
   }
@@ -4772,6 +4844,10 @@ export async function fetchItemsPage(
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
+  }
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) {
+    params.set("linkedSupplierId", linkedSup);
   }
   const stockBr = opts?.branchId?.trim();
   if (stockBr) {
@@ -4805,6 +4881,188 @@ export async function fetchItemsPage(
     };
   }
   return { content, ...meta };
+}
+
+export async function fetchPriceStatusCounts(
+  search: string | undefined,
+  opts?: FetchItemsOpts,
+): Promise<PriceStatusCounts> {
+  const params = new URLSearchParams();
+  if (search?.trim()) params.set("search", search.trim());
+  if (opts?.catalogScope && opts.catalogScope !== "ALL") {
+    params.set("catalogScope", opts.catalogScope);
+  }
+  for (const rowType of opts?.catalogRowTypes ?? []) {
+    params.append("catalogRowTypes", rowType);
+  }
+  if (opts?.categoryId?.trim()) {
+    params.set("categoryId", opts.categoryId.trim());
+    if (opts.includeCategoryDescendants) {
+      params.set("includeCategoryDescendants", "true");
+    }
+  }
+  if (opts?.barcode?.trim()) params.set("barcode", opts.barcode.trim());
+  if (opts?.noBarcode) params.set("noBarcode", "true");
+  if (opts?.includeInactive) params.set("includeInactive", "true");
+  if (opts?.inactiveOnly) params.set("inactiveOnly", "true");
+  if (opts?.noPrice) params.set("noPrice", "true");
+  if (opts?.zeroStock) params.set("zeroStock", "true");
+  if (opts?.lowStock) params.set("lowStock", "true");
+  if (opts?.inStock) params.set("inStock", "true");
+  if (opts?.noBuyingPrice) params.set("noBuyingPrice", "true");
+  if (opts?.priceLoss) params.set("priceLoss", "true");
+  if (opts?.poorMargin) {
+    params.set("poorMargin", "true");
+    if (opts.poorMarginMaxPct != null) {
+      params.set("poorMarginMaxPct", String(opts.poorMarginMaxPct));
+    }
+  }
+  if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) params.set("linkedSupplierId", linkedSup);
+  if (opts?.aisleUnset) {
+    params.set("aisleUnset", "true");
+  } else if (opts?.aisleId?.trim()) {
+    params.set("aisleId", opts.aisleId.trim());
+  }
+  const stockBr = opts?.branchId?.trim();
+  if (stockBr) params.set("branchId", stockBr);
+  const raw = await request<Record<string, unknown>>(
+    `${API_ROUTES.items}/price-status-counts?${params.toString()}`,
+  );
+  return {
+    missingBuying: Number(raw?.missingBuying ?? 0),
+    missingSelling: Number(raw?.missingSelling ?? 0),
+    bothMissing: Number(raw?.bothMissing ?? 0),
+    bothSet: Number(raw?.bothSet ?? 0),
+  };
+}
+
+export type BulkPriceMode =
+  | "SET_AMOUNT"
+  | "INCREASE_PERCENT"
+  | "DECREASE_PERCENT"
+  | "PERCENT_OF_COUNTERPART";
+
+export type PriceRounding = "NONE" | "NEAREST_1" | "NEAREST_5" | "NEAREST_10";
+
+export type BulkPriceSide = {
+  mode: BulkPriceMode;
+  value: number;
+  overwriteExisting: boolean;
+};
+
+export type BulkPriceRequest = {
+  itemIds?: string[];
+  selectAllMatching: boolean;
+  excludedItemIds?: string[];
+  search?: string;
+  barcode?: string;
+  categoryId?: string;
+  includeCategoryDescendants?: boolean;
+  noBarcode?: boolean;
+  includeInactive?: boolean;
+  inactiveOnly?: boolean;
+  noPrice?: boolean;
+  zeroStock?: boolean;
+  lowStock?: boolean;
+  inStock?: boolean;
+  noBuyingPrice?: boolean;
+  priceLoss?: boolean;
+  poorMargin?: boolean;
+  poorMarginMaxPct?: number;
+  catalogScope?: CatalogListScope;
+  catalogRowTypes?: CatalogRowType[];
+  branchId?: string;
+  itemTypeId?: string;
+  linkedSupplierId?: string;
+  aisleId?: string;
+  aisleUnset?: boolean;
+  priceStatus?: PriceStatusFilter;
+  buying?: BulkPriceSide | null;
+  selling?: BulkPriceSide | null;
+  rounding: PriceRounding;
+  acknowledgeLosses?: boolean;
+};
+
+export type BulkPricePreviewRow = {
+  id: string;
+  name: string;
+  currentBuying: number | string | null;
+  newBuying: number | string | null;
+  currentSelling: number | string | null;
+  newSelling: number | string | null;
+  buyingChanged: boolean;
+  sellingChanged: boolean;
+  skippedExisting: boolean;
+  loss: boolean;
+  lowMargin: boolean;
+};
+
+export type BulkPricePreview = {
+  matched: number;
+  affected: number;
+  skippedExisting: number;
+  unchanged: number;
+  losses: number;
+  lowMargin: number;
+  lowMarginPct: number | string;
+  truncated: boolean;
+  requiresLossAcknowledgement: boolean;
+  rows: BulkPricePreviewRow[];
+};
+
+export type BulkPriceApplyResult = {
+  updated: number;
+  skippedExisting: number;
+  unchanged: number;
+  losses: number;
+  lowMargin: number;
+};
+
+function bulkPriceBody(body: BulkPriceRequest): BulkPriceRequest {
+  const flag = (value: boolean | null | undefined) => value === true;
+  const side = (value: BulkPriceSide | null | undefined) =>
+    value
+      ? { ...value, overwriteExisting: flag(value.overwriteExisting) }
+      : null;
+  return {
+    ...body,
+    selectAllMatching: flag(body.selectAllMatching),
+    includeCategoryDescendants: flag(body.includeCategoryDescendants),
+    noBarcode: flag(body.noBarcode),
+    includeInactive: flag(body.includeInactive),
+    inactiveOnly: flag(body.inactiveOnly),
+    noPrice: flag(body.noPrice),
+    zeroStock: flag(body.zeroStock),
+    lowStock: flag(body.lowStock),
+    inStock: flag(body.inStock),
+    noBuyingPrice: flag(body.noBuyingPrice),
+    priceLoss: flag(body.priceLoss),
+    poorMargin: flag(body.poorMargin),
+    aisleUnset: flag(body.aisleUnset),
+    acknowledgeLosses: flag(body.acknowledgeLosses),
+    buying: side(body.buying),
+    selling: side(body.selling),
+  };
+}
+
+export async function previewBulkPrices(
+  body: BulkPriceRequest,
+): Promise<BulkPricePreview> {
+  return request<BulkPricePreview>(`${API_ROUTES.items}/bulk-prices/preview`, {
+    method: "POST",
+    body: bulkPriceBody(body),
+  });
+}
+
+export async function applyBulkPrices(
+  body: BulkPriceRequest,
+): Promise<BulkPriceApplyResult> {
+  return request<BulkPriceApplyResult>(`${API_ROUTES.items}/bulk-prices`, {
+    method: "POST",
+    body: bulkPriceBody(body),
+  });
 }
 
 export async function fetchCatalogListStats(
@@ -4851,6 +5109,10 @@ export async function fetchCatalogListStats(
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
   }
+  const linkedSup = opts?.linkedSupplierId?.trim();
+  if (linkedSup) {
+    params.set("linkedSupplierId", linkedSup);
+  }
   const stockBr = opts?.branchId?.trim();
   if (stockBr) {
     params.set("branchId", stockBr);
@@ -4887,8 +5149,8 @@ export async function fetchItems(
 ): Promise<ItemSummaryRecord[]> {
   const page = await fetchItemsPage(search?.trim() || undefined, {
     ...opts,
-    page: 0,
-    size: 100,
+    page: opts?.page ?? 0,
+    size: opts?.size ?? 100,
   });
   return page.content;
 }
@@ -6840,6 +7102,47 @@ export type RecentSaleRow = {
   customerPhoneVerified?: boolean | null;
 };
 
+export type SalesHourSale = {
+  saleId: string;
+  receiptNo?: number | null;
+  soldAt: string;
+  cashierName: string;
+  paymentMethod: string;
+  total: number | string;
+};
+
+export type SalesHourRow = {
+  hour: number;
+  saleCount: number;
+  revenue: number | string;
+  omitted: number;
+  sales: SalesHourSale[];
+};
+
+export type SalesByHourResponse = {
+  timezone: string;
+  saleCount: number;
+  revenue: number | string;
+  hours: SalesHourRow[];
+};
+
+export async function fetchSalesByHour(
+  from?: string,
+  to?: string,
+  branchId?: string,
+  itemTypeId?: string,
+): Promise<SalesByHourResponse> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  const qs = params.toString();
+  return request<SalesByHourResponse>(
+    `/api/v1/sales/intelligence/sales-by-hour${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export async function fetchRecentSales(
   from?: string,
   to?: string,
@@ -6970,11 +7273,13 @@ export async function fetchRecentWebOrderLines(
   from?: string,
   to?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-web-order-lines${qs ? `?${qs}` : ""}`,
@@ -7125,6 +7430,26 @@ export type MarginLeakRow = {
   netProfit: number | string;
   shareOfLossPct: number | string;
   reasons: string[];
+  /** Base units removed per pack. Absent when the SKU is not a pack. */
+  unitsPerPack?: number | string | null;
+  /** Product whose stock the pack draws from. */
+  stockSourceName?: string | null;
+};
+
+/**
+ * “Why negative?” drawer payload. The bridge reconciles the item list with the card:
+ * `grossProfit = listedProfit + refundsInWindow + removedItemsProfit + airtimeProfit`.
+ */
+export type MarginLeaksResponse = {
+  from: string | null;
+  to: string | null;
+  branchId: string | null;
+  grossProfit: number | string;
+  listedProfit: number | string;
+  refundsInWindow: number | string;
+  removedItemsProfit: number | string;
+  airtimeProfit: number | string;
+  rows: MarginLeakRow[];
 };
 
 export async function fetchMarginLeaks(
@@ -7135,7 +7460,7 @@ export async function fetchMarginLeaks(
     itemTypeId?: string;
     limit?: number;
   },
-): Promise<MarginLeakRow[]> {
+): Promise<MarginLeaksResponse> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
@@ -7143,7 +7468,7 @@ export async function fetchMarginLeaks(
   if (opts?.itemTypeId?.trim()) params.set("itemTypeId", opts.itemTypeId.trim());
   if (opts?.limit != null) params.set("limit", String(opts.limit));
   const qs = params.toString();
-  return request<MarginLeakRow[]>(
+  return request<MarginLeaksResponse>(
     `/api/v1/sales/intelligence/margin-leaks${qs ? `?${qs}` : ""}`,
   );
 }
@@ -7335,6 +7660,32 @@ export async function fetchFinancePL(
   );
 }
 
+export type DailyProfitPoint = {
+  date: string;
+  revenue: number | string;
+  cogs: number | string;
+  grossProfit: number | string;
+  operatingExpenses: number | string;
+  netOperating: number | string;
+  /** False when the day had no journal activity at all. */
+  hasActivity?: boolean;
+};
+
+/** One ledger-P&L point per calendar day (zero-filled) — drives the daily net strip. */
+export async function fetchFinancePLDaily(
+  from: string,
+  to: string,
+  branchId?: string,
+): Promise<DailyProfitPoint[]> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return request<DailyProfitPoint[]>(
+    `/api/v1/finance/pl/daily?${params.toString()}`,
+  );
+}
+
 export type FinanceExpenseResponse = {
   id: string;
   branchId: string | null;
@@ -7342,6 +7693,8 @@ export type FinanceExpenseResponse = {
   name: string;
   categoryType: string;
   source: string;
+  /** Set when a system flow posted this row (e.g. a cash drawout id). */
+  sourceReference?: string | null;
   categoryCode: string | null;
   amount: number | string;
   paymentMethod: string;
@@ -7408,6 +7761,30 @@ export async function fetchFinanceExpensesRange(options: {
   if (options.size != null) params.set("size", String(options.size));
   return request<FinanceExpenseListResponse>(
     `/api/v1/finance/expenses?${params.toString()}`,
+  );
+}
+
+export async function patchFinanceExpense(
+  expenseId: string,
+  body: {
+    expenseDate: string;
+    name: string;
+    amount: number;
+    paymentMethod: string;
+    categoryCode: string;
+    categoryType: string;
+  },
+): Promise<FinanceExpenseResponse> {
+  return request<FinanceExpenseResponse>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deleteFinanceExpense(expenseId: string): Promise<void> {
+  await request<unknown>(
+    `/api/v1/finance/expenses/${encodeURIComponent(expenseId)}`,
+    { method: "DELETE" },
   );
 }
 
@@ -7842,6 +8219,25 @@ export type WebOrderLineSnapshot = {
   lineIndex: number;
 };
 
+export type WebOrderShipmentSummary = {
+  carrier: string;
+  mode: string;
+  destinationLabel?: string | null;
+  locationDescription?: string | null;
+  quotedFeeKes?: number | string | null;
+  shopperFeeKes?: number | string | null;
+  feeMode?: string | null;
+  bookStatus: string;
+  bookError?: string | null;
+  trackId?: string | null;
+  receiptNo?: string | null;
+  paymentStatus?: string | null;
+  upstreamState?: string | null;
+  lastTrackDescription?: string | null;
+  lastPolledAt?: string | null;
+  bookedAt?: string | null;
+};
+
 export type WebOrderDetail = {
   id: string;
   orderCode?: string | null;
@@ -7862,6 +8258,8 @@ export type WebOrderDetail = {
   notes: string | null;
   createdAt: string;
   lines: WebOrderLineSnapshot[];
+  /** Carrier shipment when the order uses one; null/absent otherwise. */
+  shipment?: WebOrderShipmentSummary | null;
 };
 
 export async function fetchWebOrders(
@@ -7968,6 +8366,13 @@ export async function cancelNotificationCampaign(
   );
 }
 
+export async function voidWebOrder(orderId: string): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/void`,
+    { method: "POST" },
+  );
+}
+
 export async function updateWebOrderFulfillment(
   orderId: string,
   fulfillmentStatus: "confirmed" | "dispatched" | "completed",
@@ -7978,6 +8383,36 @@ export async function updateWebOrderFulfillment(
       method: "PATCH",
       body: { fulfillmentStatus },
     },
+  );
+}
+
+/** Manual booking of a paid order's Pickup Mtaani parcel (scope §8). */
+export async function bookPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani`,
+    { method: "POST", toast: false },
+  );
+}
+
+/** Poll the parcel now and return the refreshed order (scope §8, §12). */
+export async function refreshPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani/refresh`,
+    { method: "POST", toast: false },
+  );
+}
+
+/** Cancel the parcel while it is still a request (scope §8, §13). */
+export async function cancelPickupMtaaniShipment(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/shipments/pickup-mtaani/cancel`,
+    { method: "POST", toast: false },
   );
 }
 
@@ -9561,6 +9996,49 @@ export async function fetchResolvedPrice(
   );
 }
 
+const RESOLVED_PRICES_BATCH_MAX = 200;
+
+/**
+ * Batch discount-aware shelf prices for POS tiles (avoids N× resolved-price).
+ * Chunks requests when {@code itemIds.length} exceeds the server cap (200).
+ */
+export async function fetchResolvedPrices(
+  itemIds: readonly string[],
+  branchId?: string,
+  options?: Pick<RequestOptions, "toast">,
+): Promise<Record<string, ResolvedPriceRecord>> {
+  const ids = Array.from(
+    new Set(
+      itemIds
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0),
+    ),
+  );
+  if (ids.length === 0) {
+    return {};
+  }
+  const out: Record<string, ResolvedPriceRecord> = {};
+  const bid = branchId?.trim() || undefined;
+  for (let i = 0; i < ids.length; i += RESOLVED_PRICES_BATCH_MAX) {
+    const chunk = ids.slice(i, i + RESOLVED_PRICES_BATCH_MAX);
+    const chunkOut = await request<Record<string, ResolvedPriceRecord>>(
+      "/api/v1/pricing/resolved-prices",
+      {
+        method: "POST",
+        body: {
+          itemIds: chunk,
+          ...(bid ? { branchId: bid } : {}),
+        },
+        ...options,
+      },
+    );
+    if (chunkOut && typeof chunkOut === "object") {
+      Object.assign(out, chunkOut);
+    }
+  }
+  return out;
+}
+
 export async function fetchDiscounts(): Promise<DiscountRecord[]> {
   return request<DiscountRecord[]>("/api/v1/discounts");
 }
@@ -9709,6 +10187,8 @@ export type ShiftRecord = {
   openingCash: number | string;
   expectedClosingCash: number | string;
   countedClosingCash: number | string | null;
+  /** Cash removed from the till at close. Null on shifts closed before this was recorded. */
+  cashTakenOut?: number | string | null;
   closingVariance: number | string | null;
   openingNotes: string | null;
   closingNotes: string | null;
@@ -9752,9 +10232,12 @@ export async function fetchCurrentShift(
   branchId: string,
   opts?: { toast?: boolean },
 ): Promise<ShiftRecord> {
-  const params = new URLSearchParams({ branchId: branchId.trim() });
-  return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`, {
-    toast: opts?.toast,
+  const bid = branchId.trim();
+  return shareInflight(`shifts/current:${bid}`, () => {
+    const params = new URLSearchParams({ branchId: bid });
+    return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`, {
+      toast: opts?.toast,
+    });
   });
 }
 
@@ -9765,11 +10248,15 @@ export async function postCloseShift(
     notes?: string | null;
     varianceReason?: string | null;
     denominations?: DenominationEntry[];
+    cashTakenOut?: number | string | null;
   },
 ): Promise<ShiftRecord> {
   const payload: Record<string, unknown> = {
     countedClosingCash: body.countedClosingCash,
   };
+  if (body.cashTakenOut != null && body.cashTakenOut !== "") {
+    payload.cashTakenOut = body.cashTakenOut;
+  }
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
   }
@@ -9836,6 +10323,7 @@ export type ShiftListItem = {
   totalSales: number | string;
   registerName?: string | null;
   shiftNumber?: string | null;
+  cashTakenOut?: number | string | null;
 };
 
 export type ShiftListResponse = {
@@ -9890,6 +10378,7 @@ type ShiftDetailRaw = {
   expectedCash: number | string;
   actualCountedCash: number | string | null;
   variance: number | string | null;
+  cashTakenOut?: number | string | null;
   openingNotes: string | null;
   closingNotes: string | null;
   varianceReason: string | null;
@@ -9919,6 +10408,7 @@ export async function fetchShiftDetail(shiftId: string): Promise<ShiftRecord> {
     openingCash: raw.openingFloat,
     expectedClosingCash: raw.expectedCash,
     countedClosingCash: raw.actualCountedCash,
+    cashTakenOut: raw.cashTakenOut ?? null,
     closingVariance: raw.variance,
     openingNotes: raw.openingNotes,
     closingNotes: raw.closingNotes,
@@ -10014,6 +10504,17 @@ export async function approveDrawout(
   return request<DrawoutRecord>(
     `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/approve`,
     { method: "POST", body: { approvalMethod: "PIN" } },
+  );
+}
+
+/** Classify a till drawout as operating expense (manager review of `OTHER`). */
+export async function postDrawoutExpense(
+  drawoutId: string,
+  categoryCode: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/expense`,
+    { method: "POST", body: { categoryCode } },
   );
 }
 
@@ -10199,17 +10700,21 @@ export async function fetchPosTopProducts(
   branchId: string,
   opts?: { limit?: number; itemTypeId?: string },
 ): Promise<PosTopProductRecord[]> {
-  const params = new URLSearchParams();
-  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const bid = branchId?.trim() ?? "";
   const limit = opts?.limit ?? 20;
-  params.set("limit", String(Math.max(1, Math.min(limit, 100))));
-  const typeId = opts?.itemTypeId?.trim();
-  if (typeId) params.set("itemTypeId", typeId);
-  const list = await request<PosTopProductRecord[]>(
-    `/api/v1/sales/top-products?${params.toString()}`,
-    { toast: false },
-  );
-  return Array.isArray(list) ? list : [];
+  const typeId = opts?.itemTypeId?.trim() ?? "";
+  const key = `sales/top-products:${bid}:${limit}:${typeId}`;
+  return shareInflight(key, async () => {
+    const params = new URLSearchParams();
+    if (bid) params.set("branchId", bid);
+    params.set("limit", String(Math.max(1, Math.min(limit, 100))));
+    if (typeId) params.set("itemTypeId", typeId);
+    const list = await request<PosTopProductRecord[]>(
+      `/api/v1/sales/top-products?${params.toString()}`,
+      { toast: false },
+    );
+    return Array.isArray(list) ? list : [];
+  });
 }
 
 export async function fetchVariableWeightBarcode(
@@ -10850,6 +11355,89 @@ export async function fetchPathBSessions(opts?: {
 }
 
 const PATH_A_PURCHASE_ORDERS = "/api/v1/purchasing/path-a/purchase-orders";
+const TILL_PRINTS = "/api/v1/purchasing/till-prints";
+
+export type TillPrintCashier = {
+  id: string;
+  name: string;
+};
+
+export type TillPrintSlipPayload = {
+  reference: string;
+  supplierName?: string | null;
+  businessName?: string | null;
+  branchName?: string | null;
+  placedByName?: string | null;
+  currency?: string | null;
+  lines: {
+    name: string;
+    qty: number;
+    unitCost: number;
+    lineTotal: number;
+  }[];
+};
+
+export type TillPrintPendingJob = {
+  id: string;
+  kind: "order" | "receipt" | string;
+  reference: string;
+  createdAt?: string | null;
+  slip: TillPrintSlipPayload;
+};
+
+export type TillPrintClaimedJob = {
+  id: string;
+  kind: "order" | "receipt" | string;
+  slip: TillPrintSlipPayload;
+};
+
+export async function fetchTillCashiers(
+  branchId?: string | null,
+): Promise<TillPrintCashier[]> {
+  const params = new URLSearchParams();
+  const bid = branchId?.trim();
+  if (bid) params.set("branchId", bid);
+  const qs = params.toString();
+  return request<TillPrintCashier[]>(`${TILL_PRINTS}/cashiers${qs ? `?${qs}` : ""}`, {
+    toast: false,
+  });
+}
+
+export async function dispatchTillPrint(body: {
+  kind: "order" | "receipt";
+  branchId?: string | null;
+  targetUserIds: string[];
+  slip: TillPrintSlipPayload;
+}): Promise<{
+  jobIds: string[];
+  tills?: { userId: string; name: string; online: boolean }[];
+}> {
+  return request<{
+    jobIds: string[];
+    tills?: { userId: string; name: string; online: boolean }[];
+  }>(TILL_PRINTS, {
+    method: "POST",
+    body,
+    toast: false,
+  });
+}
+
+export async function fetchPendingTillPrints(): Promise<TillPrintPendingJob[]> {
+  return request<TillPrintPendingJob[]>(`${TILL_PRINTS}/pending`, { toast: false });
+}
+
+export async function claimTillPrint(
+  jobId: string,
+): Promise<TillPrintClaimedJob | null> {
+  try {
+    return await request<TillPrintClaimedJob>(
+      `${TILL_PRINTS}/${encodeURIComponent(jobId)}/claim`,
+      { method: "POST", toast: false },
+    );
+  } catch {
+    return null;
+  }
+}
 
 export async function fetchPathAPurchaseOrders(opts?: {
   supplierId?: string;
@@ -11373,8 +11961,25 @@ export type UpdateProfitPocketSettingsPayload = {
   stkPhone?: string | null;
 };
 
-export async function fetchProfitPocketSettings(): Promise<ProfitPocketSettingsRecord> {
-  return request<ProfitPocketSettingsRecord>("/api/v1/payments/profit-pocket");
+export async function fetchProfitPocketSettings(
+  options?: Pick<RequestOptions, "toast">,
+): Promise<ProfitPocketSettingsRecord> {
+  return request<ProfitPocketSettingsRecord>(
+    "/api/v1/payments/profit-pocket",
+    options,
+  );
+}
+
+/** Till-safe margin-guard mode (no pocket destination details). */
+export async function fetchMarginGuardSettings(
+  options?: Pick<RequestOptions, "toast">,
+): Promise<{ marginGuardMode: string }> {
+  return shareInflight("payments/profit-pocket/margin-guard", () =>
+    request<{ marginGuardMode: string }>(
+      "/api/v1/payments/profit-pocket/margin-guard",
+      options,
+    ),
+  );
 }
 
 export async function updateProfitPocketSettings(
@@ -11412,6 +12017,8 @@ export type CashSurplusRecord = {
   defaultFloat: number | string;
   suggestedPocket: number | string;
   grossProfit: number | string;
+  /** Net operating profit (gross − operating expenses). Pocket suggestion is built from this. */
+  netProfit?: number | string;
   openShifts: number;
   destinationConfigured: boolean;
   destinationSummary: string | null;
@@ -11419,6 +12026,8 @@ export type CashSurplusRecord = {
   customerPayCollisionMessage: string | null;
   profitJarPct: number | string;
   rawSurplus: number | string;
+  alreadyPocketed?: number | string;
+  profitBalance?: number | string;
 };
 
 export async function fetchCashSurplus(opts: {
@@ -11444,6 +12053,7 @@ export type PostProfitPocketPayload = {
   leaveFloat?: number;
   fundingMethod?: "cash" | "mpesa_manual" | "bank";
   acknowledgedWarnings?: string[];
+  note?: string;
 };
 
 export type ProfitPocketRecord = {
@@ -11457,6 +12067,7 @@ export type ProfitPocketRecord = {
   sendMoneyStatus?: string | null;
   kopokopoSendMoneyId?: string | null;
   sendMoneyMessage?: string | null;
+  note?: string | null;
 };
 
 export async function postProfitPocket(
@@ -11484,6 +12095,124 @@ export async function fetchProfitPockets(opts?: {
   const qs = params.toString();
   return request<ProfitPocketRecord[]>(
     `/api/v1/finance/profit-pockets${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ProfitPocketCalendarDay = {
+  date: string;
+  saleCount: number;
+  liveProfit: number | string;
+  profitAmount: number | string;
+  pocketedAmount: number | string;
+  remainingProfit: number | string;
+  pocketingPercentage: number | string | null;
+  status: string;
+  note: string | null;
+  skipReason: string | null;
+  source: string | null;
+  aboveProfit: boolean;
+  profitMoved: boolean;
+  entries: {
+    id: string;
+    amount: number | string;
+    attributedAmount: number | string;
+    periodFrom: string;
+    periodTo: string;
+    destinationSummary: string | null;
+    createdAt: string;
+    note: string | null;
+  }[];
+  revisions: {
+    at: string;
+    pocketedAmount: number | string;
+    note: string | null;
+  }[];
+};
+
+export type ProfitPocketMonthSummary = {
+  month: string;
+  label: string;
+  totalProfit: number | string;
+  totalPocketed: number | string;
+  totalRetained: number | string;
+  averageDailyPercentage: number | string | null;
+  overallPercentage: number | string | null;
+  pocketingDays: number;
+  partialDays: number;
+  fullDays: number;
+  missedDays: number;
+  unreviewedDays: number;
+  skippedDays: number;
+  noProfitDays: number;
+  longestStreak: number;
+  highestPocketDate: string | null;
+  highestPocketAmount: number | string;
+  averagePocketedPerDay: number | string;
+  profitNotPocketed: number | string;
+};
+
+export type ProfitPocketingInsight = {
+  code: string;
+  current: number | string | null;
+  previous: number | string | null;
+  delta: number | string | null;
+};
+
+export type ProfitPocketCalendar = {
+  month: string;
+  branchId: string | null;
+  today: string;
+  currentStreak: number;
+  longestStreak: number;
+  days: ProfitPocketCalendarDay[];
+  summary: ProfitPocketMonthSummary;
+  insights: ProfitPocketingInsight[];
+  months: ProfitPocketMonthSummary[];
+};
+
+export async function fetchProfitPocketCalendar(opts: {
+  month: string;
+  branchId?: string;
+}): Promise<ProfitPocketCalendar> {
+  const params = new URLSearchParams({ month: opts.month });
+  if (opts.branchId?.trim()) params.set("branchId", opts.branchId.trim());
+  return request<ProfitPocketCalendar>(
+    `/api/v1/finance/profit-pocket-calendar?${params.toString()}`,
+  );
+}
+
+export async function recordProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+  pocketedAmount: number;
+  note?: string;
+  allowAboveProfit?: boolean;
+  refreshProfit?: boolean;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>("/api/v1/finance/profit-pocket-days", {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function skipProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+  reason?: string;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>("/api/v1/finance/profit-pocket-days/skip", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function unskipProfitPocketDay(body: {
+  date: string;
+  branchId?: string;
+}): Promise<ProfitPocketCalendar> {
+  return request<ProfitPocketCalendar>(
+    "/api/v1/finance/profit-pocket-days/unskip",
+    { method: "POST", body },
   );
 }
 
@@ -12459,7 +13188,9 @@ export type PosStkRailRecord = {
 
 /** Active STK / custody rails for the cashier M-Pesa lane picker. */
 export async function fetchPosStkRails(): Promise<PosStkRailRecord[]> {
-  return request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails");
+  return shareInflight("payments/mpesa/stk/rails", () =>
+    request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails"),
+  );
 }
 
 export type StkPushStatusRecord = {
@@ -13309,6 +14040,11 @@ export type GatewayConfigRecord = {
   custodyProvider?: string | null;
   /** Last failed connection/rail test as JSON: { code, message, timestamp }. */
   testErrorJson?: string | null;
+  /**
+   * Daraja on the public shop: OFF, PENDING, APPROVED, or REJECTED.
+   * The till does not use this — an active method is available there immediately.
+   */
+  storefrontApproval?: string | null;
 };
 
 export type TestConnectionResult = {
@@ -13408,7 +14144,7 @@ export type CustodyReceiveTestRecord = {
   destinationSummary: string;
 };
 
-/** Save till/paybill destination and send a KES 1 STK receive test. */
+/** Save till/paybill destination and send a receive-test STK (KES 1 unless an amount is given). */
 export async function runCustodyReceiveTest(
   body: CustodyReceiveTestRequest,
 ): Promise<CustodyReceiveTestRecord> {
@@ -13517,6 +14253,17 @@ export async function deactivateGateway(
   return request<GatewayConfigRecord>(
     `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/deactivate`,
     { method: "POST" },
+  );
+}
+
+/** Ask to show Daraja on the public shop, or pull it off. On waits for approval. */
+export async function setGatewayStorefront(
+  id: string,
+  enabled: boolean,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/storefront`,
+    { method: "POST", body: { enabled } },
   );
 }
 
@@ -13844,9 +14591,11 @@ export type KioskPayPosAvailabilityRecord = {
 
 /** Cashier: whether to show the Kiosk Pay tender. */
 export async function fetchKioskPayPosAvailability(): Promise<KioskPayPosAvailabilityRecord> {
-  return request<KioskPayPosAvailabilityRecord>(
-    `${API_ROUTES.paymentKioskPay}/pos`,
-    { toast: false },
+  return shareInflight("payments/kiosk-pay/pos", () =>
+    request<KioskPayPosAvailabilityRecord>(
+      `${API_ROUTES.paymentKioskPay}/pos`,
+      { toast: false },
+    ),
   );
 }
 
@@ -13971,15 +14720,21 @@ export type AirtimeSettingsRecord = {
   walletActive: boolean;
   walletBalance: number;
   blockedReason: string | null;
+  /** True after the one-time Airtime Float starter was credited. */
+  starterSeedGranted?: boolean;
+  /** Face value of the starter seed (KES 10). */
+  starterSeedAmount?: number;
 };
 
 /** Cashier: whether to offer the Airtime action, and within what bounds. */
 export async function fetchAirtimeAvailability(
   storefront = false,
 ): Promise<AirtimeAvailabilityRecord> {
-  return request<AirtimeAvailabilityRecord>(
-    `${API_ROUTES.airtime}/availability?storefront=${storefront}`,
-    { toast: false },
+  return shareInflight(`airtime/availability:${storefront}`, () =>
+    request<AirtimeAvailabilityRecord>(
+      `${API_ROUTES.airtime}/availability?storefront=${storefront}`,
+      { toast: false },
+    ),
   );
 }
 
@@ -14212,6 +14967,8 @@ export type PayrollArrearPeriod = {
   shifSuggested: number;
   housingLevySuggested: number;
   netBeforeAdvances: number;
+  payableDays?: number;
+  daysInMonth?: number;
 };
 
 export type PayrollRunRow = {

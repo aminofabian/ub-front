@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
+import { fetchSuppliers, type SupplierRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import {
@@ -36,6 +37,8 @@ type Props = {
     | "setBarcodeExact"
     | "filterCategoryId"
     | "setFilterCategoryId"
+    | "filterSupplierId"
+    | "setFilterSupplierId"
     | "catalogScope"
     | "setCatalogScope"
     | "sortedCategories"
@@ -69,6 +72,7 @@ function hasActiveFilters(catalog: Props["catalog"]): boolean {
     !!catalog.debouncedSearch.trim() ||
     !!catalog.barcodeExact.trim() ||
     !!catalog.filterCategoryId.trim() ||
+    !!catalog.filterSupplierId.trim() ||
     catalog.catalogScope !== "ALL" ||
     catalog.filterNoBarcode ||
     catalog.filterInactiveOnly ||
@@ -84,6 +88,29 @@ export function ProductFilterSidebar({ catalog }: Props) {
   const searchPending =
     catalog.search.trim() !== catalog.debouncedSearch.trim();
   const categorySelected = !!catalog.filterCategoryId.trim();
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSuppliers()
+      .then((list) => {
+        if (cancelled) return;
+        setSuppliers(
+          list
+            .filter((supplier) => (supplier.status || "").toLowerCase() !== "inactive")
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSuppliers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const supplierOptions = useMemo(
+    () => suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name })),
+    [suppliers],
+  );
   const categoryOptions = useMemo(
     () => categorySelectOptions(catalog.sortedCategories),
     [catalog.sortedCategories],
@@ -226,6 +253,19 @@ export function ProductFilterSidebar({ catalog }: Props) {
               <span className="text-[10px]">Subcats</span>
             </label>
           ) : null}
+        </div>
+
+        <div className={catalogFilterSectionClass}>
+          <span className={catalogFilterLabelClass}>Supplier</span>
+          <SearchableSelect
+            className={catalogFilterInputClass}
+            value={catalog.filterSupplierId}
+            onChange={catalog.setFilterSupplierId}
+            options={supplierOptions}
+            noneLabel="All"
+            placeholder="Type to find…"
+            aria-label="Supplier"
+          />
         </div>
 
         <label className={catalogFilterSectionClass}>

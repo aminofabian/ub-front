@@ -158,7 +158,9 @@ function PlanCard({ plan, onCreateShop, onTalkToUs }: PlanCardProps) {
       <div className="landing-plan-dash" aria-hidden />
 
       <div className="landing-plan-price-block">
-        <p className="landing-plan-price-label">Monthly</p>
+        <p className="landing-plan-price-label">
+          {/^free$/i.test(price.trim()) ? "Free forever" : "Monthly"}
+        </p>
         <div className="flex items-baseline justify-between gap-3">
           <p className="landing-plan-price">{price}</p>
           {unit ? <p className="landing-plan-unit">{unit}</p> : null}
