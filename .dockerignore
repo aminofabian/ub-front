@@ -1,0 +1,11 @@
+.git
+node_modules
+.next
+out
+tmp
+.env*
+!.env.example
+tsconfig.tsbuildinfo
+public/downloads/desktop
+public/downloads/mobile
+/*.png
