@@ -438,6 +438,9 @@ function BuyCenter({
   onBuyLive: () => void;
   className?: string;
 }) {
+  const buyEnabled =
+    (process.env.NEXT_PUBLIC_DOMAINS_BUY_ENABLED || "").trim() === "true";
+
   return (
     <div
       className={cn(
@@ -448,14 +451,17 @@ function BuyCenter({
       <div className={cn(DASHBOARD_SECTION_SURFACE, "space-y-4")}>
         <div className="min-w-0 max-w-xl">
           <h2 className="text-lg font-semibold tracking-tight">
-            Search a name to buy
+            {buyEnabled ? "Search a name to buy" : "Buying a name is paused"}
           </h2>
           <p className={cn(dashboardHintClass(), "mt-1.5")}>
-            Type a shop name. Every free .ke address is KES 2,000 for the first
-            year. After M-Pesa, we register it, connect your shop, and text you.
+            {buyEnabled
+              ? "Type a shop name. Every free .ke address is KES 2,000 for the first year. After M-Pesa, we register it, connect your shop, and text you."
+              : "We are finishing the move off Vercel. Connect a domain you already own for now — buying .ke names will open again once that is done."}
           </p>
         </div>
-        <BuyKenyanDomainWizard embedded onLive={onBuyLive} />
+        {buyEnabled ? (
+          <BuyKenyanDomainWizard embedded onLive={onBuyLive} />
+        ) : null}
       </div>
     </div>
   );
