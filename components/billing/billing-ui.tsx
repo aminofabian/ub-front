@@ -327,12 +327,15 @@ export function BillingPresetGrid({
   selected,
   onSelect,
   formatLabel,
+  formatSubLabel,
 }: {
   options: number[];
   selected: number;
   onSelect: (value: number) => void;
   /** Optional display label; the raw number is used when omitted. */
   formatLabel?: (value: number) => ReactNode;
+  /** Optional second line, e.g. the price of the package. */
+  formatSubLabel?: (value: number) => ReactNode;
 }) {
   return (
     <div className={cn(saSegmentWrapClass, "grid grid-cols-4 gap-0.5 p-0.5")}>
@@ -342,11 +345,19 @@ export function BillingPresetGrid({
           type="button"
           className={cn(
             saSegmentButtonClass(selected === p),
-            "justify-center py-2 tabular-nums active:scale-[0.97]",
+            "justify-center active:scale-[0.97]",
+            formatSubLabel ? "h-auto flex-col gap-0.5 py-1.5" : "py-2 tabular-nums",
           )}
           onClick={() => onSelect(p)}
         >
-          {formatLabel ? formatLabel(p) : p}
+          <span className="tabular-nums">
+            {formatLabel ? formatLabel(p) : p}
+          </span>
+          {formatSubLabel ? (
+            <span className="text-[9px] leading-none font-normal text-muted-foreground tabular-nums">
+              {formatSubLabel(p)}
+            </span>
+          ) : null}
         </button>
       ))}
     </div>

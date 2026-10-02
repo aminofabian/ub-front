@@ -348,9 +348,10 @@ export function SmsCreditsBuyDialog({
                     <BillingField
                       label={
                         mode === "amount"
-                          ? "Quick pick (KES)"
-                          : "Quick pick (messages)"
+                          ? "Package (KES)"
+                          : "Package (messages)"
                       }
+                      hint="Each package shows both what you pay and what you get."
                     >
                       <BillingPresetGrid
                         options={validPresets}
@@ -360,7 +361,14 @@ export function SmsCreditsBuyDialog({
                             : messages
                         }
                         formatLabel={
-                          mode === "amount" ? (p) => kes(p * unitPrice) : undefined
+                          mode === "amount"
+                            ? (p) => kes(p * unitPrice)
+                            : undefined
+                        }
+                        formatSubLabel={
+                          mode === "amount"
+                            ? (p) => `${p} msg`
+                            : (p) => kes(p * unitPrice)
                         }
                         onSelect={(p) => {
                           setMessages(p);

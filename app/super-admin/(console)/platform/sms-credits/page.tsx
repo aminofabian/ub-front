@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Loader2, MessageSquare, Plus, RefreshCw, Save } from "lucide-react";
+import { Loader2, MessageSquare, Package, Plus, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -155,6 +155,13 @@ export default function SuperAdminSmsCreditsPage() {
   });
   const [activeSection, setActiveSection] =
     useState<SmsCreditsSectionId | null>(null);
+  /**
+   * "Work out from a package" helper on the unit-price field: the operator knows a
+   * bundle (e.g. 1,000 units for KES 800) but not the per-unit price.
+   */
+  const [packageOpen, setPackageOpen] = useState(false);
+  const [packageUnits, setPackageUnits] = useState("");
+  const [packagePrice, setPackagePrice] = useState("");
 
   const load = useCallback(async () => {
     setBooting(true);
@@ -266,6 +273,46 @@ export default function SuperAdminSmsCreditsPage() {
     return Number.isFinite(n) ? n : fallback;
   };
 
+  // Package → unit price: unit = package price / units. unit_price_kes is
+  // DECIMAL(12,2), so the stored value is rounded to 2 dp and any drift from that
+  // rounding is surfaced rather than hidden.
+  const packageUnitsNum = Number(packageUnits);
+  const packagePriceNum = Number(packagePrice);
+  const packageEntered =
+    packageUnits.trim() !== "" &&
+    packagePrice.trim() !== "" &&
+    Number.isFinite(packageUnitsNum) &&
+    packageUnitsNum > 0 &&
+    Number.isFinite(packagePriceNum) &&
+    packagePriceNum > 0;
+  const packageUnitPrice = packageEntered
+    ? Math.round((packagePriceNum / packageUnitsNum) * 100) / 100
+    : 0;
+  // unit_price_kes must stay positive, so a package so cheap per unit that it rounds
+  // to KES 0.00 is rejected instead of silently saved as zero.
+  const packageValid = packageEntered && packageUnitPrice > 0;
+  const packageTooCheap = packageEntered && packageUnitPrice <= 0;
+  const packageRoundedTotal =
+    Math.round(packageUnitsNum * packageUnitPrice * 100) / 100;
+  const packageDrifts =
+    packageValid && Math.abs(packageRoundedTotal - packagePriceNum) >= 0.005;
+
+  const resetPackage = () => {
+    setPackageOpen(false);
+    setPackageUnits("");
+    setPackagePrice("");
+  };
+
+  const applyPackageUnitPrice = () => {
+    if (!packageValid || packageUnitPrice <= 0) {
+      toast.error("Enter how many units the package has and what it cost.");
+      return;
+    }
+    setSettings((s) => (s ? { ...s, unitPriceKes: packageUnitPrice } : s));
+    toast.success(`Unit price set to KES ${packageUnitPrice.toFixed(2)} — save to apply.`);
+    resetPackage();
+  };
+
   const sectionSummary = (sectionId: SmsCreditsSectionId): ReactNode => {
     switch (sectionId) {
       case "settings":
@@ -339,19 +386,31 @@ export default function SuperAdminSmsCreditsPage() {
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id="unit-price" label="Unit price (KES per credit)">
-              <Input
-                id="unit-price"
-                type="number"
-                min={0.5}
-                step="0.05"
-                className={dashboardInputClass()}
-                value={settings.unitPriceKes}
-                onChange={(e) =>
-                  setSettings((s) =>
-                    s ? { ...s, unitPriceKes: num(e.target.value, 1) } : s,
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="unit-price"
+                  type="number"
+                  min={0.5}
+                  step="0.05"
+                  className={cn(dashboardInputClass(), "min-w-0 flex-1")}
+                  value={settings.unitPriceKes}
+                  onChange={(e) =>
+                    setSettings((s) =>
+                      s ? { ...s, unitPriceKes: num(e.target.value, 1) } : s,
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-8 shrink-0 gap-1.5 rounded-none px-2.5"
+                  aria-expanded={packageOpen}
+                  onClick={() => setPackageOpen((open) => !open)}
+                >
+                  <Package className="size-3.5" aria-hidden />
+                  Package
+                </Button>
+              </div>
             </Field>
             <Field
               id="low-threshold"
@@ -449,6 +508,99 @@ export default function SuperAdminSmsCreditsPage() {
               />
             </Field>
           </div>
+          {packageOpen ? (
+            <div className={cn("space-y-3 border bg-muted/20 p-3.5", HAIRLINE)}>
+              <div>
+                <p className="text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+                  Work out the unit price from a package
+                </p>
+                <p className={cn(dashboardHintClass(), "mt-0.5")}>
+                  Enter what the bundle contains and what it cost — the division
+                  is done for you.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field id="package-units" label="Units in the package">
+                  <Input
+                    id="package-units"
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    className={dashboardInputClass()}
+                    placeholder="e.g. 1000"
+                    value={packageUnits}
+                    onChange={(e) => setPackageUnits(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  id="package-price"
+                  label="Buying price (KES)"
+                  hint="What the whole package cost"
+                >
+                  <Input
+                    id="package-price"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    className={dashboardInputClass()}
+                    placeholder="e.g. 800"
+                    value={packagePrice}
+                    onChange={(e) => setPackagePrice(e.target.value)}
+                  />
+                </Field>
+              </div>
+              {packageValid ? (
+                <div
+                  className={cn(
+                    "flex items-baseline justify-between gap-3 border bg-white px-3 py-2.5",
+                    HAIRLINE,
+                  )}
+                >
+                  <span className="text-[12px] text-muted-foreground">
+                    Unit price
+                  </span>
+                  <span className="font-heading text-base font-semibold tabular-nums">
+                    KES {packageUnitPrice.toFixed(2)}
+                  </span>
+                </div>
+              ) : (
+                <p className={dashboardHintClass()}>
+                  {packageTooCheap
+                    ? "That package works out below KES 0.01 per unit — raise the price or lower the units."
+                    : "Enter the package size and price to see the unit price."}
+                </p>
+              )}
+              {packageDrifts ? (
+                <p className={dashboardHintClass()}>
+                  Rounded to 2 decimals per unit, {" "}
+                  {packageUnitsNum.toLocaleString()} units bill as KES{" "}
+                  {packageRoundedTotal.toFixed(2)}.
+                </p>
+              ) : null}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-8 rounded-none"
+                  onClick={resetPackage}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className={PRIMARY_BTN}
+                  disabled={!packageValid}
+                  onClick={applyPackageUnitPrice}
+                >
+                  {packageValid
+                    ? `Use KES ${packageUnitPrice.toFixed(2)}`
+                    : "Use this price"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <p className={dashboardHintClass()}>
             After the free AI logos, each brand kit spends purchased credits
             (not the monthly SMS allowance).
