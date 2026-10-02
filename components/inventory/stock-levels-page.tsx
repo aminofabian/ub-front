@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
+  DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -95,17 +96,14 @@ import {
 } from "./stock-column-widths";
 import { useStockColumnWidths } from "./use-stock-column-widths";
 
-const PAGE_SIZE = 50;
+import { StockFilterBar } from "./stock-filter-bar";
+import {
+  describeStockFilter,
+  stockStatusOption,
+  type StockStatusFilter,
+} from "./stock-status-filters";
 
-type StockStatusFilter =
-  | "all"
-  | "in_stock"
-  | "low"
-  | "out"
-  | "loss"
-  | "poor_margin"
-  | "no_buy"
-  | "no_sell";
+const PAGE_SIZE = 50;
 
 /** Sort keys shown in the stock toolbar / column headers. */
 type StockSortKey =
@@ -550,128 +548,6 @@ function stockStatusFetchOpts(
   }
 }
 
-
-type StockStatCardProps = {
-  label: string;
-  value: number;
-  active: boolean;
-  tone?: "default" | "success" | "warning" | "danger" | "loss";
-  onClick: () => void;
-};
-
-function StockStatCard({
-  label,
-  value,
-  active,
-  tone = "default",
-  onClick,
-}: StockStatCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-7 items-center gap-1 px-2 text-[11px] tracking-[-0.01em] transition-colors duration-150",
-        "border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] last:border-r-0",
-        active
-          ? tone === "loss"
-            ? "bg-orange-600 font-semibold text-white"
-            : "bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
-          : cn(
-              "font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-              "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] hover:text-[var(--order-ink,#15231f)]",
-            ),
-      )}
-    >
-      <span>{label}</span>
-      <span
-        className={cn(
-          "font-mono text-[11px] tabular-nums",
-          active ? "text-white/90" : "font-semibold",
-          !active &&
-            tone === "success" &&
-            value > 0 &&
-            "text-emerald-700 dark:text-emerald-400",
-          !active &&
-            tone === "warning" &&
-            value > 0 &&
-            "text-amber-700 dark:text-amber-400",
-          !active &&
-            tone === "danger" &&
-            value > 0 &&
-            "text-rose-700 dark:text-rose-400",
-          !active &&
-            tone === "loss" &&
-            value > 0 &&
-            "text-orange-700 dark:text-orange-300",
-        )}
-      >
-        {value.toLocaleString("en-KE")}
-      </span>
-    </button>
-  );
-}
-
-/** Mobile status chip — compact strip cell; scrolls sideways, never wraps tall. */
-function MobileStatusChip({
-  label,
-  value,
-  active,
-  tone = "default",
-  onClick,
-}: StockStatCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 border px-2.5 text-[11px] tracking-[-0.01em] transition-colors first:border-l last:border-r",
-        "border-y border-r-0 border-l",
-        stockHair,
-        active
-          ? tone === "loss"
-            ? "border-orange-600 bg-orange-600 font-semibold text-white"
-            : tone === "danger"
-              ? "border-rose-600 bg-rose-600 font-semibold text-white"
-              : tone === "warning"
-                ? "border-amber-600 bg-amber-600 font-semibold text-white"
-                : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
-          : cn(
-              "bg-white font-medium",
-              stockMute,
-              "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
-            ),
-      )}
-    >
-      <span className="whitespace-nowrap">{label}</span>
-      <span
-        className={cn(
-          "font-mono text-[12px] tabular-nums",
-          active ? "text-white/95" : "font-semibold",
-          !active &&
-            tone === "success" &&
-            value > 0 &&
-            "text-emerald-700 dark:text-emerald-400",
-          !active &&
-            tone === "warning" &&
-            value > 0 &&
-            "text-amber-700 dark:text-amber-400",
-          !active &&
-            tone === "danger" &&
-            value > 0 &&
-            "text-rose-700 dark:text-rose-400",
-          !active &&
-            tone === "loss" &&
-            value > 0 &&
-            "text-orange-700 dark:text-orange-300",
-          !active && tone === "default" && stockInk,
-        )}
-      >
-        {value.toLocaleString("en-KE")}
-      </span>
-    </button>
-  );
-}
 
 type StockRowItemProps = {
   row: StockRow;
@@ -2536,23 +2412,31 @@ export function StockLevelsPage() {
         </div>
       )}
       {isLevelsView && (rows.length > 0 || loading) ? (
-        <p
-          className={cn(
-            "hidden shrink-0 truncate pl-1 text-[10px] sm:block",
-            stockMute,
-          )}
-        >
-          <span className={cn("font-semibold tabular-nums", stockInk)}>
-            {filteredRows.length.toLocaleString("en-KE")}
-          </span>
-          {hasMore || (totalElements > 0 && rows.length < totalElements)
-            ? ` · ${rows.length.toLocaleString("en-KE")}${
-                totalElements > 0
-                  ? `/${totalElements.toLocaleString("en-KE")}`
-                  : ""
-              }`
-            : " shown"}
-        </p>
+        <>
+          <p
+            className={cn(
+              "hidden shrink-0 truncate pl-1 text-[10px] sm:block",
+              stockMute,
+            )}
+          >
+            <span className={cn("font-semibold tabular-nums", stockInk)}>
+              {filteredRows.length.toLocaleString("en-KE")}
+            </span>
+            {hasMore || (totalElements > 0 && rows.length < totalElements)
+              ? ` · ${rows.length.toLocaleString("en-KE")}${
+                  totalElements > 0
+                    ? `/${totalElements.toLocaleString("en-KE")}`
+                    : ""
+                }`
+              : " shown"}
+          </p>
+          {/* Filter changes are silent on a dense strip; announce the result. */}
+          <p className="sr-only" role="status">
+            {`Showing ${filteredRows.length.toLocaleString("en-KE")} ${
+              stockStatusOption(statusFilter)?.label ?? "items"
+            }`}
+          </p>
+        </>
       ) : null}
     </div>
   );
@@ -2560,6 +2444,14 @@ export function StockLevelsPage() {
   if (!isLevelsView) {
     return (
       <div className={DASHBOARD_MAX}>
+        <DashboardPageHero
+          icon={Warehouse}
+          title="Stock"
+          description={
+            [activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
+            "Choose a branch to see in-store stock"
+          }
+        />
         <div className={cn("rounded-none border bg-white", stockHair)}>
           {departmentRail}
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
@@ -2584,38 +2476,31 @@ export function StockLevelsPage() {
       <div className="flex min-h-0 flex-col gap-0 md:gap-1">
         <header
           className={cn(
-            "sticky top-0 z-20 -mx-3 flex items-center gap-2 border-b bg-white/92 px-2.5 py-1.5 backdrop-blur-xl sm:mx-0 sm:gap-3 sm:border sm:px-3 sm:py-2.5",
-            stockHair,
+            "sticky top-0 z-20 -mx-3 bg-white/95 backdrop-blur-md sm:mx-0",
           )}
         >
-          <button
-            type="button"
-            onClick={closeLevels}
-            className={cn(
-              "inline-flex size-10 items-center justify-center border transition-colors sm:size-9",
-              stockHair,
-              stockMute,
-              "active:border-[var(--pos-primary,#0f766e)] active:text-[var(--pos-primary,#0f766e)]",
-              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-            )}
-            aria-label="Back to Stock"
+          <DashboardPageHero
+            icon={Package}
+            title="Stock levels"
+            description={
+              [activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
+              "Choose a branch to see in-store stock"
+            }
           >
-            <ArrowLeft className="size-4" aria-hidden />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1
+            <button
+              type="button"
+              onClick={closeLevels}
               className={cn(
-                "truncate font-heading text-[1.05rem] font-semibold tracking-[-0.02em] sm:text-[1.2rem]",
-                stockInk,
+                "inline-flex h-8 items-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors",
+                stockHair,
+                stockMute,
+                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
               )}
             >
-              Inventory
-            </h1>
-            <p className={cn("truncate text-[11px] sm:text-[12px]", stockMute)}>
-              {[activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-                "Tap a product · set shelf qty"}
-            </p>
-          </div>
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Stock
+            </button>
+          </DashboardPageHero>
         </header>
 
         <div className={cn("flex min-h-0 flex-1 flex-col rounded-none border bg-white", stockHair)}>
@@ -2744,49 +2629,20 @@ export function StockLevelsPage() {
               </button>
             </div>
 
-            {/* Mobile: one slim scrolling status strip */}
+            {/* Mobile: status filters, same options as desktop */}
             {(rows.length > 0 || loading) && (
-              <div
-                className="flex gap-0 overflow-x-auto px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
-                role="group"
-                aria-label="Stock status"
-              >
-                <MobileStatusChip
-                  label="All"
-                  value={stockCounts.total}
-                  active={statusFilter === "all"}
-                  onClick={() => setStatusFilter("all")}
-                />
-                <MobileStatusChip
-                  label="Out"
-                  value={stockCounts.out}
-                  active={statusFilter === "out"}
-                  tone="danger"
-                  onClick={() => setStatusFilter("out")}
-                />
-                <MobileStatusChip
-                  label="Low"
-                  value={stockCounts.low}
-                  active={statusFilter === "low"}
-                  tone="warning"
-                  onClick={() => setStatusFilter("low")}
-                />
-                <MobileStatusChip
-                  label="In"
-                  value={stockCounts.inStock}
-                  active={statusFilter === "in_stock"}
-                  tone="success"
-                  onClick={() => setStatusFilter("in_stock")}
+              <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-1.5 md:hidden">
+                <StockFilterBar
+                  variant="bar"
+                  value={statusFilter}
+                  counts={stockCounts}
+                  onChange={setStatusFilter}
                 />
               </div>
             )}
 
-            {/* Show active attention filter when Filters panel is closed */}
-            {!mobileFiltersOpen &&
-            (statusFilter === "loss" ||
-              statusFilter === "poor_margin" ||
-              statusFilter === "no_buy" ||
-              statusFilter === "no_sell") ? (
+            {/* Show the active pricing filter when the Filters panel is closed */}
+            {!mobileFiltersOpen && describeStockFilter(statusFilter) ? (
               <div className="flex items-center gap-2 px-2.5 pb-2 md:hidden">
                 <span
                   className={cn(
@@ -2796,13 +2652,7 @@ export function StockLevelsPage() {
                     stockInk,
                   )}
                 >
-                  {statusFilter === "loss"
-                    ? "Showing loss items"
-                    : statusFilter === "poor_margin"
-                      ? "Showing thin margin"
-                      : statusFilter === "no_buy"
-                        ? "Showing no buy price"
-                        : "Showing no sell price"}
+                  {describeStockFilter(statusFilter)}
                   <button
                     type="button"
                     onClick={() => setStatusFilter("all")}
@@ -2816,136 +2666,101 @@ export function StockLevelsPage() {
 
             {/* Mobile: secondary filters panel */}
             {mobileFiltersOpen ? (
-              <div
-                className={cn(
-                  "grid grid-cols-2 gap-2 border-t px-2.5 py-2.5 md:hidden",
-                  stockHair,
-                )}
-              >
-                <div className="col-span-2 min-w-0">
-                  <span
-                    className={cn(
-                      "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      stockMute,
-                    )}
-                  >
-                    Attention
-                  </span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <MobileStatusChip
-                      label="Loss"
-                      value={stockCounts.loss}
-                      active={statusFilter === "loss"}
-                      tone="loss"
-                      onClick={() => setStatusFilter("loss")}
-                    />
-                    <MobileStatusChip
-                      label="Margin"
-                      value={stockCounts.poorMargin}
-                      active={statusFilter === "poor_margin"}
-                      tone="warning"
-                      onClick={() => setStatusFilter("poor_margin")}
-                    />
-                    <MobileStatusChip
-                      label="No buy"
-                      value={stockCounts.noBuy}
-                      active={statusFilter === "no_buy"}
-                      onClick={() => setStatusFilter("no_buy")}
-                    />
-                    <MobileStatusChip
-                      label="No sell"
-                      value={stockCounts.noSell}
-                      active={statusFilter === "no_sell"}
-                      onClick={() => setStatusFilter("no_sell")}
-                    />
-                  </div>
-                </div>
-                {!isBranchLockedRole ? (
-                  <label className="col-span-2 block min-w-0">
+              <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2.5 md:hidden">
+                <StockFilterBar
+                  variant="panels"
+                  value={statusFilter}
+                  counts={stockCounts}
+                  onChange={setStatusFilter}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  {!isBranchLockedRole ? (
+                    <label className="col-span-2 block min-w-0">
+                      <span
+                        className={cn(
+                          "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                          stockMute,
+                        )}
+                      >
+                        Branch
+                      </span>
+                      <select
+                        value={branchId}
+                        onChange={(e) => onChangeBranch(e.target.value)}
+                        className={cn(
+                          "h-12 w-full cursor-pointer rounded-2xl border bg-white px-3 text-[15px]",
+                          stockHair,
+                          stockInk,
+                        )}
+                        aria-label="Branch"
+                      >
+                        <option value="">Choose branch…</option>
+                        {branches
+                          .filter((b) => b.active || b.id === branchId)
+                          .map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  <div className="min-w-0">
                     <span
                       className={cn(
                         "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
                         stockMute,
                       )}
                     >
-                      Branch
+                      Category
                     </span>
-                    <select
-                      value={branchId}
-                      onChange={(e) => onChangeBranch(e.target.value)}
+                    <StockFilterMenu
+                      className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
+                      label="Category"
+                      value={categoryId}
+                      options={categoryFilterOptions}
+                      onChange={setCategoryId}
+                      disabled={!branchId}
+                      wide
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <span
                       className={cn(
-                        "h-12 w-full cursor-pointer rounded-2xl border bg-white px-3 text-[15px]",
-                        stockHair,
-                        stockInk,
+                        "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                        stockMute,
                       )}
-                      aria-label="Branch"
                     >
-                      <option value="">Choose branch…</option>
-                      {branches
-                        .filter((b) => b.active || b.id === branchId)
-                        .map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                ) : null}
-                <div className="min-w-0">
-                  <span
-                    className={cn(
-                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      stockMute,
-                    )}
-                  >
-                    Category
-                  </span>
-                  <StockFilterMenu
-                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
-                    label="Category"
-                    value={categoryId}
-                    options={categoryFilterOptions}
-                    onChange={setCategoryId}
-                    disabled={!branchId}
-                    wide
-                  />
-                </div>
-                <div className="min-w-0">
-                  <span
-                    className={cn(
-                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      stockMute,
-                    )}
-                  >
-                    Supplier
-                  </span>
-                  <StockFilterMenu
-                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
-                    label="Supplier"
-                    value={supplierId}
-                    options={supplierFilterOptions}
-                    onChange={setSupplierId}
-                    disabled={!branchId || suppliers.length === 0}
-                    wide
-                  />
-                </div>
-                <div className="col-span-2 min-w-0">
-                  <span
-                    className={cn(
-                      "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      stockMute,
-                    )}
-                  >
-                    Sort
-                  </span>
-                  <StockFilterMenu
-                    className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
-                    label="Sort"
-                    value={sortKey}
-                    options={sortFilterOptions}
-                    onChange={applySortPreset}
-                    disabled={!branchId}
-                  />
+                      Supplier
+                    </span>
+                    <StockFilterMenu
+                      className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
+                      label="Supplier"
+                      value={supplierId}
+                      options={supplierFilterOptions}
+                      onChange={setSupplierId}
+                      disabled={!branchId || suppliers.length === 0}
+                      wide
+                    />
+                  </div>
+                  <div className="col-span-2 min-w-0">
+                    <span
+                      className={cn(
+                        "mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em]",
+                        stockMute,
+                      )}
+                    >
+                      Sort
+                    </span>
+                    <StockFilterMenu
+                      className="w-full [&_button]:h-12 [&_button]:rounded-2xl [&_button]:text-[13px]"
+                      label="Sort"
+                      value={sortKey}
+                      options={sortFilterOptions}
+                      onChange={applySortPreset}
+                      disabled={!branchId}
+                    />
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -2957,70 +2772,12 @@ export function StockLevelsPage() {
               )}
             >
               {(rows.length > 0 || loading) && (
-                <div
-                  className={cn(
-                    "max-w-full overflow-hidden border bg-white",
-                    stockHair,
-                  )}
-                  role="group"
-                  aria-label="Stock summary"
-                >
-                  <div className="inline-flex">
-                    <StockStatCard
-                      label="All"
-                      value={stockCounts.total}
-                      active={statusFilter === "all"}
-                      onClick={() => setStatusFilter("all")}
-                    />
-                    <StockStatCard
-                      label="In"
-                      value={stockCounts.inStock}
-                      active={statusFilter === "in_stock"}
-                      tone="success"
-                      onClick={() => setStatusFilter("in_stock")}
-                    />
-                    <StockStatCard
-                      label="Low"
-                      value={stockCounts.low}
-                      active={statusFilter === "low"}
-                      tone="warning"
-                      onClick={() => setStatusFilter("low")}
-                    />
-                    <StockStatCard
-                      label="Out"
-                      value={stockCounts.out}
-                      active={statusFilter === "out"}
-                      tone="danger"
-                      onClick={() => setStatusFilter("out")}
-                    />
-                    <StockStatCard
-                      label="Loss"
-                      value={stockCounts.loss}
-                      active={statusFilter === "loss"}
-                      tone="loss"
-                      onClick={() => setStatusFilter("loss")}
-                    />
-                    <StockStatCard
-                      label="Margin"
-                      value={stockCounts.poorMargin}
-                      active={statusFilter === "poor_margin"}
-                      tone="warning"
-                      onClick={() => setStatusFilter("poor_margin")}
-                    />
-                    <StockStatCard
-                      label="No buy"
-                      value={stockCounts.noBuy}
-                      active={statusFilter === "no_buy"}
-                      onClick={() => setStatusFilter("no_buy")}
-                    />
-                    <StockStatCard
-                      label="No sell"
-                      value={stockCounts.noSell}
-                      active={statusFilter === "no_sell"}
-                      onClick={() => setStatusFilter("no_sell")}
-                    />
-                  </div>
-                </div>
+                <StockFilterBar
+                  variant="bar"
+                  value={statusFilter}
+                  counts={stockCounts}
+                  onChange={setStatusFilter}
+                />
               )}
 
               <span className="relative min-w-0 flex-1 basis-[8rem]">
@@ -3195,16 +2952,35 @@ export function StockLevelsPage() {
           ) : loading ? (
             <StockListSkeleton />
           ) : filteredRows.length === 0 ? (
-            <div className={cn("px-4 py-12 text-center text-[13px]", stockMute)}>
+            <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center text-[13px]">
+              <Package
+                className="size-6 text-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]"
+                aria-hidden
+              />
               <p className={cn("font-medium", stockInk)}>
                 {loadingMore || hasMore
                   ? "Loading more products…"
                   : emptyMessage}
               </p>
               {!loadingMore && !hasMore ? (
-                <p className="mt-1 text-[11px]">
-                  Try another filter, category, or search.
-                </p>
+                statusFilter !== "all" ? (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("all")}
+                    className={cn(
+                      "mt-1 rounded-none border bg-white px-2.5 py-1 text-[12px] font-semibold transition-colors",
+                      stockHair,
+                      stockMute,
+                      "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                    )}
+                  >
+                    Show all items
+                  </button>
+                ) : (
+                  <p className="text-[11px]">
+                    Try another category, supplier, or search.
+                  </p>
+                )
               ) : null}
               <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
             </div>
