@@ -21,3 +21,7 @@ export function isDailyGazetteStoreTheme(): boolean {
 export function isMizuSpringsStoreTheme(): boolean {
   return isActiveStoreTheme("mizu-springs");
 }
+
+export function isButcherBoardStoreTheme(): boolean {
+  return isActiveStoreTheme("butcher-board");
+}

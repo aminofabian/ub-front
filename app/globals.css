@@ -2890,6 +2890,59 @@ html:has([data-store-theme-id="mizu-springs"]) [data-sonner-toast][data-type="su
     color: #fff !important;
 }
 
+/* Butcher board — void paper, crimson rail, gold rules on portaled drawers. */
+html:has([data-store-theme-id="butcher-board"]) {
+    background-color: #0c0708;
+    color-scheme: dark;
+    --primary: #e31c23;
+    --primary-hover: #9b1016;
+    --primary-foreground: #f4e6c8;
+    --ring: #f5c518;
+    --background: #0c0708;
+    --foreground: #f4e6c8;
+    --muted: #1a0b12;
+    --muted-foreground: color-mix(in srgb, #f4e6c8 70%, transparent);
+    --border: #c9a227;
+    --input: #c9a227;
+    --card: #1a0b12;
+    --card-foreground: #f4e6c8;
+}
+
+html:has([data-store-theme-id="butcher-board"]) .bb-slide-over > aside[role="dialog"] {
+    border-radius: 0;
+    border: 2px solid #f5c518;
+    background: #0c0708;
+    box-shadow:
+        inset 0 0 0 3px #1a0b0b,
+        -24px 0 48px -16px rgb(0 0 0 / 0.65);
+    backdrop-filter: none;
+}
+
+html:has([data-store-theme-id="butcher-board"]) .bb-slide-over > aside[role="dialog"]::before {
+    display: none;
+}
+
+html:has([data-store-theme-id="butcher-board"]) [data-slot="dialog-content"],
+html:has([data-store-theme-id="butcher-board"]) [role="dialog"].max-w-md {
+    border-color: #c9a227;
+    border-radius: 0;
+    background: #0c0708;
+    color: #f4e6c8;
+}
+
+html:has([data-store-theme-id="butcher-board"]) [data-slot="dialog-content"] button[type="submit"],
+html:has([data-store-theme-id="butcher-board"]) .storefront-browse button.bg-primary {
+    background-color: #e31c23;
+    color: #f4e6c8;
+    border: 2px solid #f5c518;
+    border-radius: 0;
+}
+
+html:has([data-store-theme-id="butcher-board"]) ::selection {
+    background: #e31c23;
+    color: #f4e6c8;
+}
+
 .landing-page {
     overflow: clip;
 }

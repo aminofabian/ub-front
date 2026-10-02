@@ -11,6 +11,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { ShopProductShareButton } from "@/components/storefront/shop-product-share-button";
+import { ButcherBoardProduct } from "@/components/storefront/templates/store/butcher-board-product";
 import { ClimaxFloorProduct } from "@/components/storefront/templates/store/climax-floor-product";
 import { DailyGazetteProduct } from "@/components/storefront/templates/store/daily-gazette-product";
 import { PrintAtelierProduct } from "@/components/storefront/templates/store/print-atelier-product";
@@ -99,6 +100,13 @@ export function ShopProductDetailView({
       slug,
       item,
       <MizuSpringsProduct slug={slug} item={item} />,
+    );
+  }
+  if (theme === "butcher-board") {
+    return withProductShare(
+      slug,
+      item,
+      <ButcherBoardProduct slug={slug} item={item} />,
     );
   }
 
