@@ -184,7 +184,7 @@ function SetupGuide({
   const rawNote =
     typeof row.dnsInstructions?.note === "string" ? row.dnsInstructions.note.trim() : "";
   const note =
-    rawNote && !/vercel|click verify/i.test(rawNote) ? rawNote : null;
+    rawNote && !/click verify/i.test(rawNote) ? rawNote : null;
   const problem = humanLastError(row.lastError);
   const badge = statusMeta(row);
 
@@ -369,6 +369,18 @@ export function ConnectOwnedPanel({
       onChecked(false);
     }
   }, [rows, setupId, onSetupId, onChecked]);
+
+  // While Coolify is issuing the cert (VERIFYING), keep checking every ~20s.
+  useEffect(() => {
+    if (!setup) return;
+    const status = (setup.status || "").toLowerCase();
+    if (status !== "verifying" || setup.active) return;
+    if (verifyingId === setup.id) return;
+    const timer = window.setInterval(() => {
+      void onVerify(setup);
+    }, 20_000);
+    return () => window.clearInterval(timer);
+  }, [setup, verifyingId, onVerify]);
 
   const openSetup = (id: string) => {
     onSetupId(id);

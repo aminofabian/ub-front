@@ -39,7 +39,7 @@ export function statusMeta(row: DomainRecord): {
     };
   if (status === "verifying")
     return {
-      text: "Checking",
+      text: "Securing your domain…",
       className:
         "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
     };
