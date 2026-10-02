@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   BillingBalanceStrip,
+  BillingChoiceToggle,
   BillingField,
   BillingFormPanel,
   BillingInlineAlert,
@@ -39,7 +40,15 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient } from "@/lib/realtime";
 import { cn } from "@/lib/utils";
 
+// Bundles are chosen as a number of messages: 1 message = 1 SMS = 1 credit.
 const PRESETS = [10, 50, 100, 200];
+
+/** How the tenant specifies the top-up: a message count, or a KES amount. */
+type BuyMode = "messages" | "amount";
+
+function kes(value: number): string {
+  return `KES ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
 
 /** Balance that refreshes on mount, after a purchase, on tab refocus, and via WS. */
 export function useSmsCreditBalance() {
@@ -138,16 +147,18 @@ export function SmsCreditsBuyDialog({
   defaultPhone?: string | null;
   onPaid?: () => void;
 }) {
-  const [credits, setCredits] = useState<number>(50);
-  const [customCredits, setCustomCredits] = useState("");
+  const [mode, setMode] = useState<BuyMode>("messages");
+  const [messages, setMessages] = useState<number>(50);
+  const [customMessages, setCustomMessages] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [ledger, setLedger] = useState<SmsCreditLedgerRow[] | null>(null);
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const minCredits = balance?.minPurchaseCredits ?? 10;
-  const maxCredits = balance?.maxPurchaseCredits ?? 500;
+  const minMessages = balance?.minPurchaseCredits ?? 10;
+  const maxMessages = balance?.maxPurchaseCredits ?? 500;
 
   useEffect(() => {
     return () => {
@@ -158,12 +169,13 @@ export function SmsCreditsBuyDialog({
   useEffect(() => {
     if (open) {
       setPhone(defaultPhone ?? "");
-      setCustomCredits("");
+      setCustomMessages("");
+      setCustomAmount("");
       const defaultPreset =
-        PRESETS.find((p) => p >= minCredits && p <= maxCredits) ?? minCredits;
-      setCredits(defaultPreset);
+        PRESETS.find((p) => p >= minMessages && p <= maxMessages) ?? minMessages;
+      setMessages(defaultPreset);
     }
-  }, [open, defaultPhone, minCredits, maxCredits]);
+  }, [open, defaultPhone, minMessages, maxMessages]);
 
   useEffect(() => {
     if (!open || !canViewLedger) {
@@ -185,7 +197,7 @@ export function SmsCreditsBuyDialog({
           const status = await fetchSmsCreditPurchaseStatus(purchaseId);
           if (status.status === "PAID") {
             if (pollTimer.current) clearInterval(pollTimer.current);
-            toast.success("SMS credits added to your balance.");
+            toast.success("Messages added to your balance.");
             setSaving(false);
             onOpenChange(false);
             onPaid?.();
@@ -206,18 +218,40 @@ export function SmsCreditsBuyDialog({
     [onOpenChange, onPaid],
   );
 
-  const effectiveCredits = customCredits.trim() ? Number(customCredits) : credits;
-  const unitPrice = balance?.unitPriceKes ?? 1;
+  const unitPrice = balance?.unitPriceKes ?? 0.8;
+
+  // The purchase API takes a message count, so an amount entry is converted here:
+  // messages = amount / unitPrice, rounded to a whole message.
+  const amountNumber = customAmount.trim() ? Number(customAmount) : NaN;
+  const amountMessages =
+    Number.isFinite(amountNumber) && amountNumber > 0 && unitPrice > 0
+      ? Math.round(amountNumber / unitPrice)
+      : 0;
+
+  const effectiveMessages =
+    mode === "amount"
+      ? amountMessages
+      : customMessages.trim()
+        ? Number(customMessages)
+        : messages;
 
   const onPay = async () => {
     if (!canBuy) return;
-    if (!Number.isFinite(effectiveCredits) || effectiveCredits <= 0) {
-      toast.error("Enter how many credits to buy.");
+    if (!Number.isFinite(effectiveMessages) || effectiveMessages <= 0) {
+      toast.error(
+        mode === "amount"
+          ? "Enter the amount to spend."
+          : "Enter how many messages to buy.",
+      );
       return;
     }
-    const rounded = Math.round(effectiveCredits);
-    if (rounded < minCredits || rounded > maxCredits) {
-      toast.error(`Credits must be between ${minCredits} and ${maxCredits}.`);
+    const rounded = Math.round(effectiveMessages);
+    if (rounded < minMessages || rounded > maxMessages) {
+      toast.error(
+        mode === "amount"
+          ? `Enter between ${kes(minMessages * unitPrice)} and ${kes(maxMessages * unitPrice)}.`
+          : `Messages must be between ${minMessages} and ${maxMessages}.`,
+      );
       return;
     }
     if (!phone.trim()) {
@@ -237,7 +271,7 @@ export function SmsCreditsBuyDialog({
         toast.error(purchase.message || "Payment request was declined.");
         setSaving(false);
       } else {
-        toast.success("SMS credits added to your balance.");
+        toast.success("Messages added to your balance.");
         setSaving(false);
         onOpenChange(false);
         onPaid?.();
@@ -257,7 +291,7 @@ export function SmsCreditsBuyDialog({
       ? Math.min(100, Math.round((used / balance.includedAllowance) * 100))
       : 0;
 
-  const validPresets = PRESETS.filter((p) => p >= minCredits && p <= maxCredits);
+  const validPresets = PRESETS.filter((p) => p >= minMessages && p <= maxMessages);
   const available = balance?.available ?? 0;
   const purchased = balance?.purchasedBalance ?? 0;
   const allowance = balance?.includedAllowance ?? 0;
@@ -269,12 +303,12 @@ export function SmsCreditsBuyDialog({
           <DialogHeader className="space-y-4 text-left">
             <div>
               <DialogTitle className="font-heading text-lg tracking-tight">
-                SMS credits
+                Messages
               </DialogTitle>
               <DialogDescription className="mt-1 text-[13px] leading-snug">
-                Included credits reset each month. Purchased credits roll over
-                and also pay for AI logo kits (50 credits each after the free
-                one).
+                One message is one SMS. Included messages reset each month;
+                purchased messages roll over and also pay for AI logo kits (50
+                messages each after the free one).
               </DialogDescription>
             </div>
             <BillingBalanceStrip
@@ -295,39 +329,94 @@ export function SmsCreditsBuyDialog({
             <>
               <BillingSection title="Top up">
                 <BillingFormPanel>
+                  <BillingField label="Buy by">
+                    <BillingChoiceToggle
+                      value={mode}
+                      onChange={(next) => {
+                        setMode(next);
+                        setCustomMessages("");
+                        setCustomAmount("");
+                      }}
+                      options={[
+                        { value: "messages", label: "Messages" },
+                        { value: "amount", label: "Amount (KES)" },
+                      ]}
+                    />
+                  </BillingField>
+
                   {validPresets.length > 0 ? (
-                    <BillingField label="Quick amount">
+                    <BillingField
+                      label={
+                        mode === "amount"
+                          ? "Quick pick (KES)"
+                          : "Quick pick (messages)"
+                      }
+                    >
                       <BillingPresetGrid
                         options={validPresets}
-                        selected={customCredits.trim() ? -1 : credits}
+                        selected={
+                          (mode === "amount" ? customAmount : customMessages).trim()
+                            ? -1
+                            : messages
+                        }
+                        formatLabel={
+                          mode === "amount" ? (p) => kes(p * unitPrice) : undefined
+                        }
                         onSelect={(p) => {
-                          setCredits(p);
-                          setCustomCredits("");
+                          setMessages(p);
+                          setCustomMessages("");
+                          setCustomAmount("");
                         }}
                       />
                     </BillingField>
                   ) : null}
 
-                  <BillingField
-                    label={`Custom amount (${minCredits}–${maxCredits})`}
-                  >
-                    <input
-                      type="number"
-                      min={minCredits}
-                      max={maxCredits}
-                      step={1}
-                      className={billingPhoneInputClass(saving)}
-                      placeholder={`e.g. ${minCredits}`}
-                      value={customCredits}
-                      disabled={saving}
-                      onChange={(e) => setCustomCredits(e.target.value)}
-                    />
-                  </BillingField>
+                  {mode === "amount" ? (
+                    <BillingField
+                      label={`Custom amount (${kes(minMessages * unitPrice)}–${kes(
+                        maxMessages * unitPrice,
+                      )})`}
+                      hint={
+                        amountMessages > 0
+                          ? `= ${amountMessages.toLocaleString()} messages at KES ${unitPrice.toFixed(
+                              2,
+                            )} each`
+                          : undefined
+                      }
+                    >
+                      <input
+                        type="number"
+                        min={minMessages * unitPrice}
+                        step={1}
+                        className={billingPhoneInputClass(saving)}
+                        placeholder="e.g. 500"
+                        value={customAmount}
+                        disabled={saving}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                      />
+                    </BillingField>
+                  ) : (
+                    <BillingField
+                      label={`Custom messages (${minMessages}–${maxMessages})`}
+                    >
+                      <input
+                        type="number"
+                        min={minMessages}
+                        max={maxMessages}
+                        step={1}
+                        className={billingPhoneInputClass(saving)}
+                        placeholder={`e.g. ${minMessages}`}
+                        value={customMessages}
+                        disabled={saving}
+                        onChange={(e) => setCustomMessages(e.target.value)}
+                      />
+                    </BillingField>
+                  )}
 
                   <BillingTotalLine
-                    credits={
-                      Number.isFinite(effectiveCredits) && effectiveCredits > 0
-                        ? Math.round(effectiveCredits)
+                    messages={
+                      Number.isFinite(effectiveMessages) && effectiveMessages > 0
+                        ? Math.round(effectiveMessages)
                         : 0
                     }
                     unitPrice={unitPrice}
@@ -356,8 +445,8 @@ export function SmsCreditsBuyDialog({
             </>
           ) : (
             <p className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
-              You can view the balance, but only owners or admins can buy top-up
-              credits. Ask someone with billing access to add credits.
+              You can view the balance, but only owners or admins can buy more
+              messages. Ask someone with billing access to add them.
             </p>
           )}
 
@@ -469,7 +558,7 @@ export function SmsCreditsHeader({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="SMS credits — tap for details and top-up"
+        title="Messages — tap for details and top-up"
         className={cn(billingChipClass(health, variant), className)}
       >
         <MessageSquareText
@@ -520,7 +609,7 @@ export function SmsCreditsHeader({
 }
 
 /**
- * Inline depleted banner for screens that send SMS — shows the "Buy credits"
+ * Inline depleted banner for screens that send SMS — shows the "Buy messages"
  * CTA so staff never have to hunt for the header chip.
  */
 export function SmsCreditsDepletedBanner({
@@ -590,8 +679,8 @@ export function SmsCreditsDepletedBanner({
         variant="critical"
         icon={AlertTriangle}
         className={className}
-        title="SMS credits depleted"
-        description="Buy more to continue sending messages to customers and staff."
+        title="Out of messages"
+        description="Buy more messages to keep sending SMS to customers and staff."
         action={
           canBuy ? (
             <Button
@@ -601,7 +690,7 @@ export function SmsCreditsDepletedBanner({
               className="h-8 active:scale-[0.98]"
               onClick={() => setOpen(true)}
             >
-              Buy credits
+              Buy messages
             </Button>
           ) : (
             <span className="text-xs font-medium opacity-80">Ask an owner to top up.</span>
