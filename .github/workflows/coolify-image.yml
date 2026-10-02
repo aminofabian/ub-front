@@ -58,5 +58,9 @@ jobs:
         env:
           WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
           TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
-        if: ${{ env.WEBHOOK != '' && env.TOKEN != '' }}
-        run: curl -fsS -H "Authorization: Bearer $TOKEN" "$WEBHOOK"
+        run: |
+          if [ -z "$WEBHOOK" ] || [ -z "$TOKEN" ]; then
+            echo "Coolify webhook not configured; deploy manually."
+            exit 0
+          fi
+          curl -fsS -H "Authorization: Bearer $TOKEN" "$WEBHOOK"
