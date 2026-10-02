@@ -1,0 +1,62 @@
+# Builds the cloud SKU image off-box and pushes it to GHCR; the Coolify server
+# (148.113.255.170) only pulls and runs it. Building on that server starves the
+# other production apps it hosts.
+name: Coolify image
+
+on:
+  push:
+    branches: [deploy/coolify]
+  workflow_dispatch:
+
+concurrency:
+  group: coolify-image
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/aminofabian/ub-front
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:coolify
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Inlined into the client bundle / rewrites at build time; none are secrets.
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            BACKEND_ORIGIN=https://kiosk.zelisline.com
+            NEXT_PUBLIC_API_BASE_URL=https://kiosk.zelisline.com/
+            NEXT_PUBLIC_REALTIME_WS_ORIGIN=https://kiosk.zelisline.com
+            NEXT_PUBLIC_APP_BASE_URL=https://kiosk.ke
+
+      # Optional: set COOLIFY_DEPLOY_WEBHOOK (Coolify app > Webhooks > Deploy URL)
+      # and COOLIFY_DEPLOY_TOKEN (API token with "deploy" permission) to roll out
+      # automatically after each push.
+      - name: Trigger Coolify deploy
+        env:
+          WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
+        if: ${{ env.WEBHOOK != '' && env.TOKEN != '' }}
+        run: curl -fsS -H "Authorization: Bearer $TOKEN" "$WEBHOOK"
