@@ -4,7 +4,9 @@
 FROM node:24-alpine AS build
 # `zip`: prebuild (scripts/pack-till-print-bridge-downloads.mjs) shells out to it.
 RUN apk add --no-cache zip libc6-compat
-WORKDIR /app
+# Not /app: the repo has an `app/app/` route, and building under /app makes
+# webpack compile `/` from app/app/page.tsx (root URL 404s).
+WORKDIR /srv/kiosk
 
 COPY package.json package-lock.json ./
 # Mirrors vercel.json installCommand so dependency resolution matches Vercel.
@@ -31,7 +33,7 @@ RUN npm run build
 
 FROM node:24-alpine AS run
 RUN apk add --no-cache libc6-compat
-WORKDIR /app
+WORKDIR /srv/kiosk
 ARG SOURCE_COMMIT
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -39,11 +41,11 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     GITHUB_SHA=$SOURCE_COMMIT
 
-COPY --from=build /app/package.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/next.config.ts ./
-COPY --from=build /app/public ./public
-COPY --from=build /app/.next ./.next
+COPY --from=build /srv/kiosk/package.json ./
+COPY --from=build /srv/kiosk/node_modules ./node_modules
+COPY --from=build /srv/kiosk/next.config.ts ./
+COPY --from=build /srv/kiosk/public ./public
+COPY --from=build /srv/kiosk/.next ./.next
 
 EXPOSE 3000
 CMD ["node_modules/.bin/next", "start", "-p", "3000"]
