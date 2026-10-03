@@ -1078,6 +1078,87 @@ export async function issueAndEmailDesktopLicense(
   );
 }
 
+/* ── Desktop installs (Super Admin → Platform → Desktop licenses → Installs) ── */
+
+/** A Kiosk Desktop till that has checked in with its Machine ID. */
+export type DesktopInstallRow = {
+  installId: string;
+  machineId: string;
+  businessName: string;
+  contactEmail: string | null;
+  cloudBusinessId: string | null;
+  appVersion: string | null;
+  platform: string | null;
+  licenseState: string | null;
+  plan: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastIp: string | null;
+  lastLicenseIssueId: string | null;
+  autoIssuedAt: string | null;
+};
+
+export type IssueForInstallPayload = {
+  /** Blank = the install owner / cloud business owner email. */
+  email?: string;
+  /** Blank = 365 days; ignored when perpetual is true. */
+  days?: number;
+  perpetual?: boolean;
+};
+
+export type IssueForInstallResult = {
+  id: string;
+  token: string;
+  businessName: string;
+  plan: string;
+  issuedAt: string;
+  expiresAt: string | null;
+  machineFingerprint: string | null;
+  emailedTo: string | null;
+  emailSent: boolean;
+};
+
+/** One previously issued token for an install (token omitted — resend to re-email). */
+export type InstallIssueRow = {
+  id: string;
+  plan: string;
+  issuedAt: string;
+  expiresAt: string | null;
+  recipientEmail: string | null;
+  emailSent: boolean;
+  createdAt: string;
+};
+
+/** Installs that have checked in, most recently seen first. */
+export async function fetchDesktopInstalls(
+  limit = 50,
+): Promise<DesktopInstallRow[]> {
+  return saRequest<DesktopInstallRow[]>(
+    `${API_ROUTES.superAdminPlatformDesktopInstalls}?limit=${limit}`,
+  );
+}
+
+/** Issue a machine-bound activation key for an install and email it. */
+export async function issueAndEmailForInstall(
+  installId: string,
+  body: IssueForInstallPayload = {},
+): Promise<IssueForInstallResult> {
+  return saRequest<IssueForInstallResult>(
+    `${API_ROUTES.superAdminPlatformDesktopInstalls}/${encodeURIComponent(installId)}/issue-and-email`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+/** License history for an install (matched by Machine ID), newest first. */
+export async function fetchInstallIssues(
+  installId: string,
+  limit = 50,
+): Promise<InstallIssueRow[]> {
+  return saRequest<InstallIssueRow[]>(
+    `${API_ROUTES.superAdminPlatformDesktopInstalls}/${encodeURIComponent(installId)}/issues?limit=${limit}`,
+  );
+}
+
 /* ── Platform request log (Super Admin → Platform → Logs) ───────────── */
 
 export type PlatformRequestLogCategory =
