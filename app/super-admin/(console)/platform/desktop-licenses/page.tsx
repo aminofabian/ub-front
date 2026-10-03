@@ -28,6 +28,7 @@ import {
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
+import { DesktopInstallsPanel } from "@/components/super-admin/desktop-installs-panel";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -938,6 +939,8 @@ export default function SuperAdminPlatformDesktopLicensesPage() {
           text="APP_PAYMENTS_ENCRYPTION_KEY is not set on the server. Console-managed signing keys will be lost on restart until that key is set."
         />
       ) : null}
+
+      <DesktopInstallsPanel />
 
       <DesktopLicensesTheatre
         status={status}

@@ -341,6 +341,7 @@ export const API_ROUTES = {
   superAdminPlatformDesktopLogs: "/api/v1/super-admin/platform/desktop-logs",
   superAdminPlatformRequestLogs: "/api/v1/super-admin/platform/request-logs",
   superAdminPlatformDesktopLicenses: "/api/v1/super-admin/desktop-licenses",
+  superAdminPlatformDesktopInstalls: "/api/v1/super-admin/desktop-installs",
   superAdminLoadTest: "/api/v1/super-admin/load-test",
   platformDesktopLogIngest: "/api/v1/platform/desktop-logs",
   aiStatus: "/api/v1/ai/status",
