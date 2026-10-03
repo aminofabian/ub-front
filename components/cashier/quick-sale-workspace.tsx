@@ -51,6 +51,7 @@ import {
   normalizeMarginGuardMode,
   type MarginGuardMode,
 } from "@/lib/margin-guard";
+import { isPackSellSku } from "@/lib/pack-sell-sku";
 import { isAuthRecoveryUserMessage } from "@/lib/problem";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import {
@@ -2892,9 +2893,16 @@ export function QuickSaleWorkspace({
             toast.error("Airtime is not a weighed item.");
             return;
           }
+          const next = line.item.isWeighed !== true;
+          if (next && isPackSellSku(line.item)) {
+            toast.error(
+              "Pack products sell by the pack, not by weight. Use the base SKU or a separate weighed product.",
+            );
+            return;
+          }
           target = {
             itemId: line.itemId,
-            next: line.item.isWeighed !== true,
+            next,
           };
           break;
         }

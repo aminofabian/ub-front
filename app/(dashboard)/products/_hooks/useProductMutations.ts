@@ -51,6 +51,7 @@ import {
   effectiveOnHand,
   formatMutationError,
   resolveCatalogParentId,
+  usesSharedPackageStock,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -970,6 +971,7 @@ export function useProductMutations(d: Dependencies) {
           body.packagingUnitQty = units;
           body.packagingUnitName = patchDraft.packagingUnitName.trim() || vn;
           body.isStocked = false;
+          body.isWeighed = false;
         }
       }
       const setNum = (
@@ -1686,6 +1688,12 @@ export function useProductMutations(d: Dependencies) {
       return;
     }
     const next = detail.isWeighed !== true;
+    if (next && usesSharedPackageStock(detail)) {
+      setMessage(
+        "Pack products sell by the pack, not by weight. Mark the base product as weighed, or create a separate weighed SKU.",
+      );
+      return;
+    }
     const unit = (detail.unitType ?? "").trim().toLowerCase();
     const weightUnit =
       unit === "kg" || unit === "g" || unit === "lb" ? unit : "kg";
