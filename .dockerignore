@@ -1,4 +1,4 @@
-.git
+git
 node_modules
 .next
 out
@@ -6,6 +6,15 @@ tmp
 .env*
 !.env.example
 tsconfig.tsbuildinfo
-public/downloads/desktop
-public/downloads/mobile
+# Keep the download manifests in the image — the /download page reads them at
+# runtime. Never bake the large installer binaries; they are served from GitHub
+# Releases (see scripts/publish-*-downloads.mjs).
+public/downloads/desktop/*.dmg
+public/downloads/desktop/*.exe
+public/downloads/desktop/*.msi
+public/downloads/desktop/*.AppImage
+public/downloads/desktop/*.deb
+public/downloads/desktop/*.rpm
+public/downloads/mobile/*.apk
+public/downloads/mobile/*.aab
 /*.png
