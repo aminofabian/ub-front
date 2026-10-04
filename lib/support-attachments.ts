@@ -1,6 +1,7 @@
 import {
   getCloudinarySignature,
   uploadToCloudinary,
+  type BackendMediaUpload,
   type CloudinarySignature,
 } from "@/lib/api";
 
@@ -71,20 +72,23 @@ export function supportAttachmentFolder(conversationId: string): string {
   return `ub/support/${conversationId.trim()}`;
 }
 
+/** Uploads to Cloudinary or the backend's R2 store, whichever the signature handshake names. */
 export async function uploadSupportAttachmentToCloudinary(
   conversationId: string,
   file: File,
   getSignature: (folder: string) => Promise<CloudinarySignature> = (folder) =>
     getCloudinarySignature(folder, "auto"),
+  backendUpload?: BackendMediaUpload,
 ): Promise<SupportAttachmentPayload> {
   const error = validateSupportAttachmentFile(file);
   if (error) throw new Error(error);
   const folder = supportAttachmentFolder(conversationId);
   const sig = await getSignature(folder);
-  const result = await uploadToCloudinary(file, {
-    ...sig,
-    resourceType: sig.resourceType || "auto",
-  });
+  const result = await uploadToCloudinary(
+    file,
+    { ...sig, resourceType: sig.resourceType || "auto" },
+    backendUpload,
+  );
   return {
     url: result.secure_url,
     publicId: result.public_id,

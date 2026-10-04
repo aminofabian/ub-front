@@ -1,3 +1,9 @@
+import {
+  buildMediaUploadForm,
+  type BackendMediaUpload,
+  type CloudinarySignature,
+  type MediaUploadResult,
+} from "@/lib/api";
 import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { recordOpsClientError } from "@/lib/ops-client-log";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
@@ -285,7 +291,8 @@ async function saRequest<T>(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
   };
-  if (method !== "GET" && method !== "HEAD") {
+  const isMultipart = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (method !== "GET" && method !== "HEAD" && !isMultipart) {
     headers["Content-Type"] = "application/json";
   }
   if (
@@ -3657,19 +3664,19 @@ export async function sendSaSupportMessage(
 export async function getSaCloudinarySignature(
   folder: string,
   resourceType: "image" | "auto" | "raw" = "auto",
-): Promise<{
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
-  folder: string;
-  resourceType?: string;
-}> {
+): Promise<CloudinarySignature> {
   return saRequest("/api/v1/media/cloudinary-signature", {
     method: "POST",
     body: JSON.stringify({ folder, resourceType }),
   });
 }
+
+/** Backend upload (R2) with the super-admin session, for when the handshake answers `provider: "r2"`. */
+export const saUploadMediaViaBackend: BackendMediaUpload = (file, folder, resourceType) =>
+  saRequest<MediaUploadResult>("/api/v1/media/upload", {
+    method: "POST",
+    body: buildMediaUploadForm(file, folder, resourceType),
+  });
 
 export async function markSaSupportConversationRead(id: string): Promise<void> {
   await saRequest<unknown>(

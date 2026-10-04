@@ -34,6 +34,7 @@ import {
   type GuestThreadPayload,
   ensureGuestId,
   getGuestCloudinarySignature,
+  uploadGuestAttachment,
   getGuestName,
   getGuestPhone,
   guestRealtimeChannel,
@@ -544,6 +545,7 @@ function GuestSupportPanel({
             threadId,
             file,
             async () => getGuestCloudinarySignature(context.ns, threadId!),
+            (upload) => uploadGuestAttachment(context.ns, threadId!, upload),
           );
         }
         const saved = await sendGuestMessage(context.ns, threadId, body, {

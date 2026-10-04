@@ -1,3 +1,4 @@
+import type { CloudinarySignature, MediaUploadResult } from "@/lib/api";
 import { apiUrl } from "@/lib/config";
 
 /**
@@ -351,17 +352,32 @@ export async function sendGuestMessage(
   return (await response.json()) as GuestMessage;
 }
 
+/** Stores a guest's attachment in R2, for when the handshake answers `provider: "r2"`. */
+export async function uploadGuestAttachment(
+  ns: string,
+  conversationId: string,
+  file: File,
+): Promise<MediaUploadResult> {
+  const guestId = ensureGuestId();
+  const session = loadGuestSession(ns);
+  const headers = guestHeaders(guestId, session.token);
+  delete headers["Content-Type"];
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(
+    apiUrl(`/api/v1/public/support/threads/${encodeURIComponent(conversationId)}/attachments`),
+    { method: "POST", credentials: "include", headers, body: form },
+  );
+  if (!response.ok) {
+    throw new Error(`Could not upload file (${response.status})`);
+  }
+  return (await response.json()) as MediaUploadResult;
+}
+
 export async function getGuestCloudinarySignature(
   ns: string,
   conversationId: string,
-): Promise<{
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
-  folder: string;
-  resourceType?: string;
-}> {
+): Promise<CloudinarySignature> {
   const guestId = ensureGuestId();
   const session = loadGuestSession(ns);
   const response = await fetch(
@@ -375,14 +391,7 @@ export async function getGuestCloudinarySignature(
   if (!response.ok) {
     throw new Error(`Could not prepare upload (${response.status})`);
   }
-  return (await response.json()) as {
-    cloudName: string;
-    apiKey: string;
-    timestamp: number;
-    signature: string;
-    folder: string;
-    resourceType?: string;
-  };
+  return (await response.json()) as CloudinarySignature;
 }
 
 export async function markGuestThreadRead(ns: string, conversationId: string): Promise<void> {

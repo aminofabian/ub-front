@@ -5852,15 +5852,30 @@ export type MediaUploadResult = {
   resource_type?: string;
 };
 
-function uploadMediaViaBackend(
+/** Posts the file to the backend store; `resourceType` other than image stores a support attachment. */
+export type BackendMediaUpload = (
   file: File,
   folder: string,
-): Promise<MediaUploadResult> {
+  resourceType?: string,
+) => Promise<MediaUploadResult>;
+
+const IMAGE_RESOURCE_TYPE = "image";
+
+export function buildMediaUploadForm(file: File, folder: string, resourceType?: string): FormData {
   const form = new FormData();
   form.append("file", file);
   form.append("folder", folder);
-  return requestMultipartJson<MediaUploadResult>("/api/v1/media/upload", form);
+  if (resourceType && resourceType.toLowerCase() !== IMAGE_RESOURCE_TYPE) {
+    form.append("resourceType", resourceType);
+  }
+  return form;
 }
+
+const uploadMediaViaBackend: BackendMediaUpload = (file, folder, resourceType) =>
+  requestMultipartJson<MediaUploadResult>(
+    "/api/v1/media/upload",
+    buildMediaUploadForm(file, folder, resourceType),
+  );
 
 export async function getCloudinarySignature(
   folder: string,
@@ -5872,13 +5887,17 @@ export async function getCloudinarySignature(
   });
 }
 
-/** Uploads to wherever the signature handshake points: Cloudinary, or the backend's R2 store. */
+/**
+ * Uploads to wherever the signature handshake points: Cloudinary, or the backend's R2 store.
+ * Pass `backendUpload` when the caller authenticates differently (super-admin, guest chat).
+ */
 export async function uploadToCloudinary(
   file: File,
   signature: CloudinarySignature,
+  backendUpload: BackendMediaUpload = uploadMediaViaBackend,
 ): Promise<MediaUploadResult> {
   if (signature.provider === BACKEND_UPLOAD_PROVIDER) {
-    return uploadMediaViaBackend(file, signature.folder);
+    return backendUpload(file, signature.folder, signature.resourceType);
   }
   const form = new FormData();
   form.append("file", file);

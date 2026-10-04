@@ -51,6 +51,7 @@ import {
   fetchSaSupportPresence,
   fetchSaServingTickets,
   getSaCloudinarySignature,
+  saUploadMediaViaBackend,
   markSaSupportConversationRead,
   organizeSaConversationToTicket,
   promoteSaConversationToTicket,
@@ -956,6 +957,7 @@ export function SaSupportInbox() {
             activeId,
             file,
             (folder) => getSaCloudinarySignature(folder, "auto"),
+            saUploadMediaViaBackend,
           );
         }
         const saved = await sendSaSupportMessage(activeId, body, attachment, replyToMessageId);

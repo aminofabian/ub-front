@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 
-import { uploadToCloudinary, type CloudinarySignature } from "@/lib/api";
+import { buildMediaUploadForm, uploadToCloudinary, type CloudinarySignature } from "@/lib/api";
 
 const realFetch = globalThis.fetch;
 
@@ -70,6 +70,30 @@ describe("uploadToCloudinary", () => {
     expect(String(url)).not.toContain("cloudinary");
     expect((init.body as FormData).get("folder")).toBe("ub/biz/items/1");
     expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+    expect((init.body as FormData).get("resourceType")).toBeNull();
     expect(result).toEqual(STORED);
+  });
+
+  it("forwards attachment resource types and honours a caller-supplied backend uploader", async () => {
+    const fetchMock = stubFetch();
+    const backendUpload = mock(async () => STORED);
+
+    await uploadToCloudinary(
+      pngFile(),
+      { ...CLOUDINARY_SIGNATURE, provider: "r2", folder: "ub/support/t1", resourceType: "auto" },
+      backendUpload,
+    );
+
+    expect(backendUpload).toHaveBeenCalledWith(expect.any(File), "ub/support/t1", "auto");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildMediaUploadForm", () => {
+  it("adds resourceType only for non-image uploads", () => {
+    expect(buildMediaUploadForm(pngFile(), "ub/x", "image").get("resourceType")).toBeNull();
+    expect(buildMediaUploadForm(pngFile(), "ub/x").get("resourceType")).toBeNull();
+    expect(buildMediaUploadForm(pngFile(), "ub/x", "auto").get("resourceType")).toBe("auto");
+    expect(buildMediaUploadForm(pngFile(), "ub/x", "auto").get("folder")).toBe("ub/x");
   });
 });
