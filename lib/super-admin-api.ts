@@ -1500,6 +1500,48 @@ export async function updatePlatformIntegrations(
   });
 }
 
+export type MediaUploadProvider = "cloudinary" | "r2";
+
+export type MediaStorageSettingsRecord = {
+  uploadProvider: MediaUploadProvider;
+  /** Uploads are going to R2 right now (provider r2 and keys readable). */
+  r2Active: boolean;
+  r2AccountId: string;
+  r2Endpoint: string;
+  r2Bucket: string;
+  hasR2AccessKeyId: boolean;
+  hasR2SecretAccessKey: boolean;
+  r2PublicBaseUrl: string;
+  secretsReadable: boolean;
+  secretsError: string | null;
+  encryptionEphemeral: boolean;
+  updatedAt: string | null;
+};
+
+/** Secrets: omit to keep, "" to clear. Switching to r2 is verified server-side with a probe write. */
+export type UpdateMediaStorageSettingsPayload = {
+  uploadProvider?: MediaUploadProvider;
+  r2AccountId?: string;
+  r2Endpoint?: string;
+  r2Bucket?: string;
+  r2AccessKeyId?: string;
+  r2SecretAccessKey?: string;
+  r2PublicBaseUrl?: string;
+};
+
+export async function fetchMediaStorageSettings(): Promise<MediaStorageSettingsRecord> {
+  return saRequest<MediaStorageSettingsRecord>(API_ROUTES.superAdminPlatformMediaStorage);
+}
+
+export async function updateMediaStorageSettings(
+  body: UpdateMediaStorageSettingsPayload,
+): Promise<MediaStorageSettingsRecord> {
+  return saRequest<MediaStorageSettingsRecord>(API_ROUTES.superAdminPlatformMediaStorage, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export type PlatformAuthSettingsRecord = {
   emailVerificationRequired: boolean;
   updatedAt: string | null;
