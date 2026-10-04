@@ -5562,7 +5562,12 @@ export async function patchItemStockThresholds(
   return result;
 }
 
+/** `r2`: the server stores the file itself (POST /api/v1/media/upload); no Cloudinary fields. */
+const BACKEND_UPLOAD_PROVIDER = "r2";
+
 export type CloudinarySignature = {
+  /** Omitted by older servers, which always mean Cloudinary. */
+  provider?: "cloudinary" | typeof BACKEND_UPLOAD_PROVIDER | string;
   cloudName: string;
   apiKey: string;
   timestamp: number;
@@ -5571,6 +5576,29 @@ export type CloudinarySignature = {
   /** Defaults to image when omitted (older servers). */
   resourceType?: "image" | "auto" | "raw" | string;
 };
+
+export type MediaUploadResult = {
+  public_id: string;
+  secure_url: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+  format?: string;
+  version?: number;
+  phash?: string;
+  predominant_color?: string;
+  resource_type?: string;
+};
+
+function uploadMediaViaBackend(
+  file: File,
+  folder: string,
+): Promise<MediaUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("folder", folder);
+  return requestMultipartJson<MediaUploadResult>("/api/v1/media/upload", form);
+}
 
 export async function getCloudinarySignature(
   folder: string,
@@ -5582,21 +5610,14 @@ export async function getCloudinarySignature(
   });
 }
 
+/** Uploads to wherever the signature handshake points: Cloudinary, or the backend's R2 store. */
 export async function uploadToCloudinary(
   file: File,
   signature: CloudinarySignature,
-): Promise<{
-  public_id: string;
-  secure_url: string;
-  width?: number;
-  height?: number;
-  bytes?: number;
-  format?: string;
-  version?: number;
-  phash?: string;
-  predominant_color?: string;
-  resource_type?: string;
-}> {
+): Promise<MediaUploadResult> {
+  if (signature.provider === BACKEND_UPLOAD_PROVIDER) {
+    return uploadMediaViaBackend(file, signature.folder);
+  }
   const form = new FormData();
   form.append("file", file);
   form.append("api_key", signature.apiKey);

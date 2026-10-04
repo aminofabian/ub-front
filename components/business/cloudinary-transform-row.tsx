@@ -32,7 +32,7 @@ export function CloudinaryTransformRow({
   onPick: (url: string) => void;
 }) {
   const base = baseUrl.trim();
-  if (!base) {
+  if (!base || cloudinaryTransformUrl(base, CLOUDINARY_TRANSFORMS.enhance) === null) {
     return null;
   }
   return (
