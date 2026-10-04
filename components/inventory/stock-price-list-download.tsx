@@ -100,7 +100,7 @@ export function StockPriceListDownload({
   };
 
   return (
-    <div ref={rootRef} className={cn("relative", variant === "icon" && "shrink-0")}>
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
         disabled={disabled || busy !== null}

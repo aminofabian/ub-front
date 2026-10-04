@@ -2449,6 +2449,17 @@ export function StockLevelsPage() {
           })}
         </div>
       )}
+      {isLevelsView ? (
+        <StockPriceListDownload
+          variant="bar"
+          disabled={!branchId}
+          currency={currency}
+          businessName={business?.name?.trim() || "Shop"}
+          branchName={activeBranchName}
+          scope={priceListScope}
+          loadPage={loadPriceListPage}
+        />
+      ) : null}
       {isLevelsView && (rows.length > 0 || loading) ? (
         <>
           <p
@@ -2649,15 +2660,6 @@ export function StockLevelsPage() {
                   <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--pos-primary,#0f766e)] ring-2 ring-white" />
                 ) : null}
               </button>
-              <StockPriceListDownload
-                variant="icon"
-                disabled={!branchId}
-                currency={currency}
-                businessName={business?.name?.trim() || "Shop"}
-                branchName={activeBranchName}
-                scope={priceListScope}
-                loadPage={loadPriceListPage}
-              />
               <button
                 type="button"
                 onClick={() => void load()}
@@ -2893,15 +2895,6 @@ export function StockLevelsPage() {
                 align="end"
               />
 
-              <StockPriceListDownload
-                variant="bar"
-                disabled={!branchId}
-                currency={currency}
-                businessName={business?.name?.trim() || "Shop"}
-                branchName={activeBranchName}
-                scope={priceListScope}
-                loadPage={loadPriceListPage}
-              />
               <button
                 type="button"
                 onClick={() => void load()}
