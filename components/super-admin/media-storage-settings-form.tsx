@@ -38,6 +38,15 @@ const SECRET_FIELDS: { key: SecretField; label: string; storedFlag: keyof MediaS
   { key: "r2SecretAccessKey", label: "Secret access key", storedFlag: "hasR2SecretAccessKey" },
 ];
 
+const NO_AUTOFILL = {
+  autoComplete: "off",
+  spellCheck: false,
+  "data-1p-ignore": true,
+  "data-lpignore": "true",
+  "data-bwignore": true,
+  "data-form-type": "other",
+} as const;
+
 function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
@@ -108,6 +117,8 @@ export function MediaStorageSettingsForm({
             <Field key={key} id={`media-${key}`} label={label} hint={hint}>
               <Input
                 id={`media-${key}`}
+                name={`media-${key}`}
+                {...NO_AUTOFILL}
                 className={dashboardInputClass()}
                 placeholder={placeholder}
                 value={form[key]}
@@ -120,8 +131,10 @@ export function MediaStorageSettingsForm({
             <Field key={key} id={`media-${key}`} label={label}>
               <Input
                 id={`media-${key}`}
+                name={`media-${key}`}
                 type="password"
-                autoComplete="off"
+                {...NO_AUTOFILL}
+                autoComplete="new-password"
                 className={dashboardInputClass()}
                 placeholder={record?.[storedFlag] ? "••••••••  (leave blank to keep)" : `Paste ${label.toLowerCase()}`}
                 value={form[key]}
