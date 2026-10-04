@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://*.google-analytics.com https://*.googletagmanager.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://*.r2.dev https://images.unsplash.com https://*.google-analytics.com https://*.googletagmanager.com",
   "font-src 'self' data:",
   // Till Print Bridge runs on the cashier PC (HTTP loopback). Cloud cashier
   // must be allowed to fetch it; upgrade-insecure-requests exempts loopback.
@@ -112,6 +112,11 @@ const cloudOnlyConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.r2.dev",
         pathname: "/**",
       },
       {
