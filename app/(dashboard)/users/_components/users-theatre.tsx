@@ -71,6 +71,10 @@ function isProtectedFromDelete(roleKey?: string): boolean {
   return key === "owner" || key === "admin";
 }
 
+function isSuspendedStatus(status: string): boolean {
+  return status.trim().toLowerCase() === "suspended";
+}
+
 function ActionIconButton({
   label,
   onClick,
@@ -107,6 +111,36 @@ function ActionIconButton({
         aria-hidden
       />
     </button>
+  );
+}
+
+function ReactivateUserButton({
+  busy,
+  disabled = false,
+  onClick,
+  label,
+}: {
+  busy: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      className="h-8 gap-1.5 rounded-none px-3 text-xs shadow-none"
+      disabled={busy || disabled}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {busy ? (
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+      ) : (
+        <UserCheck className="size-3.5" aria-hidden />
+      )}
+      Reactivate
+    </Button>
   );
 }
 
@@ -463,6 +497,11 @@ export function UsersTheatre(props: UsersTheatreProps) {
       branchName={
         props.branchById.get(selectedUser.branchId ?? "")?.name ?? null
       }
+      canReactivate={
+        props.canDeactivate && isSuspendedStatus(selectedUser.status)
+      }
+      reactivating={props.reactivatingId === selectedUser.id}
+      onReactivate={() => props.onReactivate(selectedUser.id)}
       className="h-full min-h-0"
     />
   ) : (
@@ -721,10 +760,16 @@ function UserFocus({
   user,
   branchName,
   className,
+  canReactivate,
+  reactivating,
+  onReactivate,
 }: {
   user: UserRecord;
   branchName: string | null;
   className?: string;
+  canReactivate: boolean;
+  reactivating: boolean;
+  onReactivate: () => void;
 }) {
   return (
     <div
@@ -793,6 +838,18 @@ function UserFocus({
             </span>
           ) : null}
         </div>
+        {canReactivate ? (
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <p className="max-w-[16rem] text-[12px] leading-relaxed text-muted-foreground">
+              This account cannot sign in until it is active again.
+            </p>
+            <ReactivateUserButton
+              busy={reactivating}
+              label={`Reactivate ${user.email}`}
+              onClick={onReactivate}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -924,6 +981,16 @@ function UserInspectPanel({
             </span>
           ) : null}
         </div>
+        {canDeactivate && isSuspendedStatus(user.status) ? (
+          <div className="mt-3">
+            <ReactivateUserButton
+              busy={reactivatingId === user.id}
+              disabled={deletingId === user.id}
+              label={`Reactivate ${user.email}`}
+              onClick={() => onReactivate(user.id)}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-2.5 py-2.5 sm:px-3">
@@ -1323,16 +1390,7 @@ function UserInspectPanel({
                 ) : null}
               </>
             ) : null}
-            {canDeactivate && user.status === "suspended" ? (
-              <ActionIconButton
-                icon={reactivatingId === user.id ? Loader2 : UserCheck}
-                label={`Reactivate ${user.email}`}
-                spinning={reactivatingId === user.id}
-                disabled={reactivatingId === user.id || deletingId === user.id}
-                onClick={() => onReactivate(user.id)}
-              />
-            ) : null}
-            {canDeactivate && user.status !== "suspended" ? (
+            {canDeactivate && !isSuspendedStatus(user.status) ? (
               <ActionIconButton
                 icon={deactivatingId === user.id ? Loader2 : UserX}
                 label={`Deactivate ${user.email}`}

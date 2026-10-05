@@ -395,6 +395,7 @@ export default function UsersPage() {
       description:
         "They can sign in again. This uses a plan seat.",
       confirmLabel: "Reactivate",
+      confirmVariant: "default",
       onConfirm: async () => {
         setReactivatingId(userId);
         setFeedback(null);
