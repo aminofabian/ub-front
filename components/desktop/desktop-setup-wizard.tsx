@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   CloudDownload,
   Loader2,
+  RotateCcw,
   Search,
   Store,
 } from "lucide-react";
@@ -59,6 +60,58 @@ const CLOUD_API = REMOTE_API_ORIGIN.replace(/\/$/, "");
 const inputClass =
   "h-11 w-full rounded-xl border border-black/[0.1] bg-[#fafbfa] px-3 text-sm text-foreground outline-none transition placeholder:text-[#8a968c] focus:border-[#1f7a3a]/50 focus:bg-white focus:ring-2 focus:ring-[#1f7a3a]/15";
 
+/**
+ * Turn a raw connect failure into something a shopkeeper can act on. The
+ * backend's seed can fail mid-copy (e.g. a leftover product from a previous
+ * setup); we must never show the raw SQL error. `offersReset` is true when
+ * resetting this PC and retrying is the right recovery.
+ */
+function friendlyConnectError(
+  status: number,
+  detail: string,
+): { message: string; offersReset: boolean } {
+  const d = (detail || "").toLowerCase();
+  if (
+    d.includes("uq_items_business_sku") ||
+    d.includes("duplicate entry") ||
+    d.includes("could not copy shop data")
+  ) {
+    return {
+      message:
+        "This PC already has shop data saved from a previous setup, so the copy clashed. Reset this PC and connect again \u2014 your online shop is untouched.",
+      offersReset: true,
+    };
+  }
+  if (status === 401) {
+    return {
+      message:
+        detail ||
+        "That email or password didn\u2019t match. Check them and try again.",
+      offersReset: false,
+    };
+  }
+  if (
+    status === 502 ||
+    status === 504 ||
+    d.includes("could not download") ||
+    d.includes("empty snapshot")
+  ) {
+    return {
+      message:
+        "We couldn\u2019t reach kiosk.ke to download your shop. Check the internet, then try again.",
+      offersReset: false,
+    };
+  }
+  if (status >= 500) {
+    return {
+      message:
+        "Something went wrong while copying your shop. Try again \u2014 if it keeps happening, contact support.",
+      offersReset: true,
+    };
+  }
+  return { message: detail || `Could not connect (${status})`, offersReset: false };
+}
+
 export function DesktopSetupWizard() {
   const router = useRouter();
   const [path, setPath] = useState<Path>("choose");
@@ -82,6 +135,8 @@ export function DesktopSetupWizard() {
   const [cloudPassword, setCloudPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [unlockEmail, setUnlockEmail] = useState("");
+  const [needsReset, setNeedsReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const [mediaStatus, setMediaStatus] = useState<DesktopMediaStatus | null>(null);
 
@@ -172,6 +227,11 @@ export function DesktopSetupWizard() {
       });
       return;
     }
+    await runConnect(emailForConnect);
+  }
+
+  async function runConnect(emailForConnect: string) {
+    setNeedsReset(false);
     setSubmitState({ kind: "submitting" });
     try {
       const res = await fetch("/api/v1/desktop/connect", {
@@ -181,10 +241,44 @@ export function DesktopSetupWizard() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          origin: selectedShop.apiOrigin || CLOUD_API,
+          origin: selectedShop?.apiOrigin || CLOUD_API,
           email: emailForConnect,
           password: cloudPassword,
         }),
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { detail?: string; title?: string; message?: string }
+          | null;
+        const detail = body?.detail || body?.message || body?.title || "";
+        const friendly = friendlyConnectError(res.status, detail);
+        setNeedsReset(friendly.offersReset);
+        setSubmitState({ kind: "error", message: friendly.message });
+        return;
+      }
+      setSubmitState({ kind: "success" });
+      setConnectStep("progress");
+      void pollConnectMedia();
+    } catch (err) {
+      setSubmitState({
+        kind: "error",
+        message:
+          err instanceof Error ? err.message : "Could not reach the backend",
+      });
+    }
+  }
+
+  // Recovery for a wedged install: wipe this PC's local copy and connect once
+  // more. The online shop is never touched.
+  async function onResetThisPc() {
+    const emailForConnect = (unlockEmail || lookupEmail).trim().toLowerCase();
+    setResetting(true);
+    setSubmitState({ kind: "idle" });
+    try {
+      const res = await fetch("/api/v1/desktop/setup/reset", {
+        method: "POST",
+        headers: { Accept: "application/json" },
         cache: "no-store",
       });
       if (!res.ok) {
@@ -197,19 +291,19 @@ export function DesktopSetupWizard() {
             body?.detail ||
             body?.message ||
             body?.title ||
-            `Could not connect (${res.status})`,
+            `Could not reset this PC (${res.status})`,
         });
         return;
       }
-      setSubmitState({ kind: "success" });
-      setConnectStep("progress");
-      void pollConnectMedia();
+      await runConnect(emailForConnect);
     } catch (err) {
       setSubmitState({
         kind: "error",
         message:
-          err instanceof Error ? err.message : "Could not reach the backend",
+          err instanceof Error ? err.message : "Could not reset this PC",
       });
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -592,6 +686,28 @@ export function DesktopSetupWizard() {
                   submitState.kind === "error" ? submitState.message : null
                 }
               />
+              {needsReset ? (
+                <button
+                  type="button"
+                  onClick={() => void onResetThisPc()}
+                  disabled={resetting || submitting}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-xl border border-[#1f7a3a]/30 bg-white px-4 py-3 text-sm font-semibold text-[#1f7a3a]",
+                    "transition hover:bg-[#e8f2ea]/60",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a3a]/30",
+                    "disabled:cursor-not-allowed disabled:opacity-60",
+                  )}
+                >
+                  {resetting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <RotateCcw className="size-4" aria-hidden />
+                  )}
+                  {resetting
+                    ? "Resetting this PC\u2026"
+                    : "Reset this PC and try again"}
+                </button>
+              ) : null}
               <PrimaryButton disabled={submitting} busy={submitting}>
                 {submitting ? "Copying your shop\u2026" : "Connect this shop"}
               </PrimaryButton>
@@ -650,7 +766,7 @@ export function DesktopSetupWizard() {
               className="h-10 w-full rounded-xl text-sm font-medium text-[#5a665e] transition hover:text-foreground"
               onClick={() => router.replace("/login/staff")}
             >
-              Skip photos \u2014 sign in now
+              {"Skip photos \u2014 sign in now"}
             </button>
           </Panel>
         ) : null}
