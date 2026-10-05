@@ -498,7 +498,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
         props.branchById.get(selectedUser.branchId ?? "")?.name ?? null
       }
       canReactivate={
-        props.canDeactivate && isSuspendedStatus(selectedUser.status)
+        props.canUpdate && isSuspendedStatus(selectedUser.status)
       }
       reactivating={props.reactivatingId === selectedUser.id}
       onReactivate={() => props.onReactivate(selectedUser.id)}
@@ -981,7 +981,7 @@ function UserInspectPanel({
             </span>
           ) : null}
         </div>
-        {canDeactivate && isSuspendedStatus(user.status) ? (
+        {canUpdate && isSuspendedStatus(user.status) ? (
           <div className="mt-3">
             <ReactivateUserButton
               busy={reactivatingId === user.id}

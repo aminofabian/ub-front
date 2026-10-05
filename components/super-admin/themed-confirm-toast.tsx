@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ export type ThemedConfirmToastOptions = {
 };
 
 const toastCardClass =
-  "pointer-events-auto w-full max-w-md rounded-none border border-border/60 bg-card px-6 py-5 text-center shadow-lg";
+  "pointer-events-auto w-full max-w-[24rem] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white px-7 py-7 text-center shadow-[0_24px_64px_color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]";
 
 const themedToastClassNames = {
   toast:
@@ -25,7 +27,31 @@ const themedToastClassNames = {
   description: "font-sans text-sm !text-center text-muted-foreground",
 };
 
-function ConfirmToastCard({
+function ConfirmToastCard(props: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmVariant: "destructive" | "default";
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const { onCancel } = props;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  if (!mounted) return null;
+  return createPortal(<ConfirmToastOverlay {...props} />, document.body);
+}
+
+function ConfirmToastOverlay({
   title,
   description,
   confirmLabel,
@@ -41,31 +67,28 @@ function ConfirmToastCard({
   onConfirm: () => void;
 }) {
   return (
-    <div className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] grid place-items-center p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-black/45 backdrop-blur-md supports-[backdrop-filter]:bg-black/35"
+        className="absolute inset-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_46%,transparent)]"
         aria-label="Dismiss"
         onClick={onCancel}
       />
       <div
-        className={cn(
-          toastCardClass,
-          "relative z-10 animate-in fade-in-0 zoom-in-95 duration-200",
-        )}
+        className={cn(toastCardClass, "relative z-10")}
         role="alertdialog"
         aria-labelledby="confirm-toast-title"
         aria-describedby="confirm-toast-desc"
       >
         <p
           id="confirm-toast-title"
-          className="font-heading text-xl font-semibold tracking-tight text-foreground"
+          className="font-heading text-[1.35rem] font-semibold leading-none tracking-[-0.03em] text-foreground"
         >
           {title}
         </p>
         <p
           id="confirm-toast-desc"
-          className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-muted-foreground"
+          className="mx-auto mt-3 max-w-[18rem] whitespace-pre-line text-balance font-sans text-[13px] leading-relaxed text-muted-foreground"
         >
           {description}
         </p>
@@ -92,11 +115,21 @@ function ConfirmToastCardActions({
   onConfirm: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+    <div className="mt-6 flex items-center justify-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        className="h-8 rounded-none px-4 text-xs shadow-none"
+        onClick={onCancel}
+      >
         Cancel
       </Button>
-      <Button type="button" variant={confirmVariant} size="sm" onClick={onConfirm}>
+      <Button
+        type="button"
+        variant={confirmVariant}
+        className="h-8 rounded-none px-4 text-xs shadow-none"
+        onClick={onConfirm}
+      >
         {confirmLabel}
       </Button>
     </div>
@@ -132,7 +165,7 @@ export function showThemedConfirmToast({
       position: "top-center",
       unstyled: true,
       className:
-        "!fixed !inset-0 !m-0 !flex !h-full !w-full !max-w-none !transform-none !items-center !justify-center",
+        "!pointer-events-none !m-0 !h-0 !min-h-0 !w-0 !max-w-none !overflow-visible !border-0 !bg-transparent !p-0 !shadow-none",
     },
   );
 }
