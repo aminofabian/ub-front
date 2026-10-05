@@ -80,6 +80,7 @@ import { cn } from "@/lib/utils";
 import { ColumnResizeHandle } from "@/lib/column-resize-handle";
 import { BulkPriceEditor } from "@/app/(dashboard)/products/_components/BulkPriceEditor";
 import { PriceCleanupBar } from "@/app/(dashboard)/products/_components/PriceCleanupBar";
+import { PackagePriceDialog } from "@/components/pricing/package-price-dialog";
 import {
   StockActionHub,
   type FullCountProgress,
@@ -572,6 +573,8 @@ type StockRowItemProps = {
   onSaveShelf: (aisleId: string) => void;
   onSaveBuyPrice: (value: string) => void;
   onSaveSellPrice: (value: string) => void;
+  /** Opens the package → unit-price calculator for this row's buy price. */
+  onOpenPackage: () => void;
 };
 
 function stockStatusMeta(row: StockRow): {
@@ -624,6 +627,8 @@ type StockMobileCardProps = {
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSaveEdit: () => void;
+  /** Opens the package → unit-price calculator for the draft unit cost. */
+  onOpenPackage: () => void;
 };
 
 /** Thumb-first Take stock row — whole row opens qty pad; − / + then Save. */
@@ -640,6 +645,7 @@ function StockMobileCard({
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
+  onOpenPackage,
 }: StockMobileCardProps) {
   const { out, low, loss, label, className: statusClass } = stockStatusMeta(row);
   const target = Number(editQty.trim());
@@ -846,7 +852,7 @@ function StockMobileCard({
           </div>
 
           {showCost ? (
-            <label className="block min-w-0">
+            <div className="block min-w-0">
               <span
                 className={cn(
                   "mb-1.5 block text-[12px] font-semibold",
@@ -860,23 +866,38 @@ function StockMobileCard({
                   </span>
                 ) : null}
               </span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={editCost}
-                disabled={saving}
-                onChange={(e) => onEditCostChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onSaveEdit();
-                  if (e.key === "Escape") onCancelEdit();
-                }}
-                className={cn(mobileFieldInput, "font-mono tabular-nums")}
-                placeholder="0"
-                aria-label={`Unit cost for ${row.name}`}
-              />
-            </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="any"
+                  value={editCost}
+                  disabled={saving}
+                  onChange={(e) => onEditCostChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onSaveEdit();
+                    if (e.key === "Escape") onCancelEdit();
+                  }}
+                  className={cn(
+                    mobileFieldInput,
+                    "min-w-0 flex-1 font-mono tabular-nums",
+                  )}
+                  placeholder="0"
+                  aria-label={`Unit cost for ${row.name}`}
+                />
+                <button
+                  type="button"
+                  onClick={onOpenPackage}
+                  disabled={saving}
+                  title={`Buy ${row.name} in a package`}
+                  aria-label={`Buy ${row.name} in a package`}
+                  className={mobileStepBtn}
+                >
+                  <Package className="size-6" strokeWidth={2.25} aria-hidden />
+                </button>
+              </div>
+            </div>
           ) : null}
 
           <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -938,6 +959,7 @@ function StockRowItem({
   onSaveShelf,
   onSaveBuyPrice,
   onSaveSellPrice,
+  onOpenPackage,
 }: StockRowItemProps) {
   const { out, low, loss, label: statusLabel, className: statusClass } =
     stockStatusMeta(row);
@@ -1132,29 +1154,46 @@ function StockRowItem({
       </td>
       <td className={cn(stockCell, "p-0")}>
         {canCatalogWrite ? (
-          <input
-            key={`buy-${row.id}-${row.buyPrice ?? ""}`}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            defaultValue={priceInputValue(row.buyPrice)}
-            disabled={savingCatalog}
-            onBlur={(e) => onSaveBuyPrice(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "Escape") {
-                e.currentTarget.value = priceInputValue(row.buyPrice);
-                e.currentTarget.blur();
-              }
-            }}
-            className={cn(
-              catalogCellMoneyInput,
-              loss && "font-semibold text-orange-800 dark:text-orange-300",
-            )}
-            placeholder="Buy"
-            aria-label={`Buy price for ${row.name}`}
-          />
+          <div className="flex items-center gap-0.5 pr-0.5">
+            <input
+              key={`buy-${row.id}-${row.buyPrice ?? ""}`}
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              defaultValue={priceInputValue(row.buyPrice)}
+              disabled={savingCatalog}
+              onBlur={(e) => onSaveBuyPrice(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") {
+                  e.currentTarget.value = priceInputValue(row.buyPrice);
+                  e.currentTarget.blur();
+                }
+              }}
+              className={cn(
+                catalogCellMoneyInput,
+                "min-w-0 flex-1",
+                loss && "font-semibold text-orange-800 dark:text-orange-300",
+              )}
+              placeholder="Buy"
+              aria-label={`Buy price for ${row.name}`}
+            />
+            <button
+              type="button"
+              onClick={onOpenPackage}
+              disabled={savingCatalog}
+              title={`Buy ${row.name} in a package`}
+              aria-label={`Buy ${row.name} in a package`}
+              className={cn(
+                "inline-flex size-6 shrink-0 items-center justify-center transition-colors disabled:opacity-40",
+                stockMute,
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] hover:text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              <Package className="size-3" aria-hidden />
+            </button>
+          </div>
         ) : (
           <span
             className={cn(
@@ -1416,6 +1455,13 @@ export function StockLevelsPage() {
   }, [isLevelsView, searchParams]);
 
   const [rows, setRows] = useState<StockRow[]>([]);
+  /**
+   * Package → unit-price calculator target: either the item's reference buy
+   * price (desktop Buy column) or the draft unit cost of a stock increase.
+   */
+  const [packageTarget, setPackageTarget] = useState<
+    { kind: "buyPrice" | "editCost"; row: StockRow } | null
+  >(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
@@ -2960,6 +3006,9 @@ export function StockLevelsPage() {
                     onStartEdit={() => startEdit(row)}
                     onCancelEdit={cancelEdit}
                     onSaveEdit={() => void saveEdit(row)}
+                    onOpenPackage={() =>
+                      setPackageTarget({ kind: "editCost", row })
+                    }
                   />
                 ))}
               </div>
@@ -3115,6 +3164,7 @@ export function StockLevelsPage() {
                         onSaveSellPrice={(value) =>
                           void saveSellPrice(row, value)
                         }
+                        onOpenPackage={() => setPackageTarget({ kind: "buyPrice", row })}
                       />
                     ))}
                   </tbody>
@@ -3163,6 +3213,36 @@ export function StockLevelsPage() {
               ? "No prices changed."
               : `Updated prices on ${updated.toLocaleString("en-KE")} ${updated === 1 ? "item" : "items"}.`,
           );
+        }}
+      />
+      <PackagePriceDialog
+        open={packageTarget != null}
+        onOpenChange={(next) => {
+          if (!next) setPackageTarget(null);
+        }}
+        title={
+          packageTarget
+            ? `${
+                packageTarget.kind === "editCost"
+                  ? "Package cost"
+                  : "Buy in a package"
+              } — ${packageTarget.row.name}`
+            : "Buy in a package"
+        }
+        priceLabel={`Buying price (${currency})`}
+        unitNoun="units"
+        currency={currency}
+        decimals={packageTarget?.kind === "editCost" ? 4 : 2}
+        onApply={async (unitPrice) => {
+          const target = packageTarget;
+          if (!target) return;
+          // Stock-in cost is still a draft until Save, so only the reference buy
+          // price is patched straight away.
+          if (target.kind === "editCost") {
+            setEditCost(String(unitPrice));
+            return;
+          }
+          await saveBuyPrice(target.row, String(unitPrice));
         }}
       />
     </div>
