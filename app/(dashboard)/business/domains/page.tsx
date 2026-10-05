@@ -6,7 +6,6 @@ import {
   Copy,
   ExternalLink,
   Globe,
-  Loader2,
   Lock,
   ShieldCheck,
   Star,
@@ -24,15 +23,8 @@ import {
   dashboardHintClass,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -317,8 +309,6 @@ export default function DomainsPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [detailRow, setDetailRow] = useState<DomainRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [deleteRow, setDeleteRow] = useState<DomainRecord | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const orderStats = useDomainOrderStats();
 
   const reload = useCallback(async () => {
@@ -393,23 +383,28 @@ export default function DomainsPage() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!deleteRow) return;
-    setDeleting(true);
-    setBusy({ kind: "row", id: deleteRow.id, action: "delete" });
-    try {
-      await deleteMyDomain(deleteRow.id);
-      setRows((previous) => previous.filter((r) => r.id !== deleteRow.id));
-      setDetailOpen(false);
-      setDetailRow(null);
-      toast.success(`Removed ${deleteRow.domain} from this shop.`);
-      setDeleteRow(null);
-    } catch (e) {
-      toast.error(messageFor(e, "Could not delete domain."));
-    } finally {
-      setDeleting(false);
-      setBusy({ kind: "idle" });
-    }
+  const askDelete = (row: DomainRecord) => {
+    showConfirmModal({
+      id: `delete-domain-${row.id}`,
+      title: `Remove ${row.domain}?`,
+      description:
+        "Customers will no longer open your shop at this address. This does not cancel the domain registration. You can connect it again later.",
+      confirmLabel: "Remove from shop",
+      onConfirm: async () => {
+        setBusy({ kind: "row", id: row.id, action: "delete" });
+        try {
+          await deleteMyDomain(row.id);
+          setRows((previous) => previous.filter((r) => r.id !== row.id));
+          setDetailOpen(false);
+          setDetailRow(null);
+          toast.success(`Removed ${row.domain} from this shop.`);
+        } catch (e) {
+          toast.error(messageFor(e, "Could not delete domain."));
+        } finally {
+          setBusy({ kind: "idle" });
+        }
+      },
+    });
   };
 
   const filtered = useMemo(() => {
@@ -498,49 +493,10 @@ export default function DomainsPage() {
         busy={!!detailRow && rowBusyId === detailRow.id}
         onMakePrimary={(r) => void handleMakePrimary(r)}
         onVerify={(r) => void handleVerify(r)}
-        onDelete={(r) => setDeleteRow(r)}
+        onDelete={askDelete}
         docked={isLg}
         dockRoot={dockRoot}
       />
-
-      <Dialog
-        open={!!deleteRow}
-        onOpenChange={(open) => !open && !deleting && setDeleteRow(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Remove {deleteRow?.domain} from this shop?</DialogTitle>
-            <DialogDescription>
-              Customers will no longer open your shop at this address. This does
-              not cancel the domain registration. You can connect it again later.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={deleting}
-              onClick={() => setDeleteRow(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleting}
-              className="gap-1.5"
-              onClick={() => void confirmDelete()}
-            >
-              {deleting ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <Trash2 className="size-3.5" aria-hidden />
-              )}
-              Remove from shop
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

@@ -16,6 +16,7 @@ import {
   DirectoryToolbar,
   directoryFrameClass,
 } from "@/components/credits/directory-workspace-ui";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -32,7 +33,6 @@ import { AisleCreateDrawer } from "./aisle-create-drawer";
 import { AisleDetailColumn } from "./aisle-detail-column";
 import { AisleEditDrawer } from "./aisle-edit-drawer";
 import { AisleListColumn } from "./aisle-list-column";
-import { AisleStatusDialog } from "./aisle-status-dialog";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 type FilterMode = "all" | "active" | "inactive";
@@ -71,8 +71,6 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
   const [editCode, setEditCode] = useState("");
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-  const [statusTarget, setStatusTarget] = useState<AisleRecord | null>(null);
-  const [statusBusy, setStatusBusy] = useState(false);
   const [reorderBusy, setReorderBusy] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
@@ -246,31 +244,41 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     }
   };
 
-  const confirmStatus = async () => {
-    if (!statusTarget || !canWrite) return;
-    setStatusBusy(true);
-    setFeedback(null);
-    try {
-      const updated = await updateAisle(statusTarget.id, {
-        active: !statusTarget.active,
-      });
-      setAisles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-      setStatusTarget(null);
-      setFeedback({
-        kind: "success",
-        text: updated.active
-          ? `${updated.name} is active again.`
-          : `${updated.name} deactivated.`,
-      });
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text:
-          err instanceof Error ? err.message : "Could not update shelf zone.",
-      });
-    } finally {
-      setStatusBusy(false);
-    }
+  const askStatusChange = (aisle: AisleRecord) => {
+    if (!canWrite) return;
+    const activating = !aisle.active;
+    showConfirmModal({
+      id: `aisle-status-${aisle.id}`,
+      title: activating ? "Activate shelf zone?" : "Deactivate shelf zone?",
+      description: activating
+        ? `${aisle.name} will appear in pickers and header filters again.`
+        : `${aisle.name} will hide from pickers. ${aisle.productCount.toLocaleString()} assigned products keep their tag until you move them.`,
+      confirmLabel: activating ? "Activate" : "Deactivate",
+      confirmVariant: activating ? "default" : "destructive",
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          const updated = await updateAisle(aisle.id, { active: activating });
+          setAisles((prev) =>
+            prev.map((row) => (row.id === updated.id ? updated : row)),
+          );
+          setFeedback({
+            kind: "success",
+            text: updated.active
+              ? `${updated.name} is active again.`
+              : `${updated.name} deactivated.`,
+          });
+        } catch (err) {
+          setFeedback({
+            kind: "error",
+            text:
+              err instanceof Error
+                ? err.message
+                : "Could not update shelf zone.",
+          });
+        }
+      },
+    });
   };
 
   const listProps = {
@@ -303,7 +311,7 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
     },
     onEdit: openEdit,
     onToggleStatus: () => {
-      if (selected) setStatusTarget(selected);
+      if (selected) askStatusChange(selected);
     },
   };
 
@@ -500,15 +508,6 @@ export function AislesWorkspace({ canWrite }: { canWrite: boolean }) {
         />
       ) : null}
 
-      <AisleStatusDialog
-        aisle={statusTarget}
-        open={statusTarget != null}
-        onOpenChange={(open) => {
-          if (!open) setStatusTarget(null);
-        }}
-        busy={statusBusy}
-        onConfirm={() => void confirmStatus()}
-      />
     </div>
   );
 }

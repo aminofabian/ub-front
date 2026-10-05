@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { showConfirmModal } from "@/components/confirm-modal";
 import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
@@ -1213,7 +1214,6 @@ function SelectedTabWorkspace({
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [purchases, setPurchases] = useState<TabPurchaseRowRecord[]>([]);
   const [suspendBusy, setSuspendBusy] = useState(false);
-  const [confirmSuspend, setConfirmSuspend] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -1221,7 +1221,6 @@ function SelectedTabWorkspace({
     setHistoryError(null);
     setStatement(null);
     setPurchases([]);
-    setConfirmSuspend(false);
     void Promise.all([
       fetchCustomerCreditStatement(tab.customerId),
       fetchCustomerTabPurchases(tab.customerId, { offset: 0, limit: 80 }).catch(
@@ -1280,7 +1279,6 @@ function SelectedTabWorkspace({
         tab.customerId,
         Boolean(updated.credit.creditSuspended),
       );
-      setConfirmSuspend(false);
     } catch (e) {
       onSuspendError(
         e instanceof Error ? e.message : "Could not update this tab.",
@@ -1399,7 +1397,15 @@ function SelectedTabWorkspace({
               size="sm"
               variant="ghost"
               disabled={suspendBusy}
-              onClick={() => setConfirmSuspend(true)}
+              onClick={() =>
+                showConfirmModal({
+                  id: `suspend-credit-${tab.customerId}`,
+                  title: "Suspend credit?",
+                  description: `Stop ${tab.name} from taking more on tab? The balance stays until they pay.`,
+                  confirmLabel: "Suspend tab",
+                  onConfirm: () => toggleSuspend(true),
+                })
+              }
             >
               <Ban className="size-3.5" aria-hidden />
               Suspend credit
@@ -1413,33 +1419,6 @@ function SelectedTabWorkspace({
         ) : null}
       </div>
 
-      {confirmSuspend ? (
-        <div className={styles.confirm}>
-          <p className="text-sm">
-            Stop {tab.name} from taking more on tab? The balance stays until
-            they pay.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={suspendBusy}
-              onClick={() => void toggleSuspend(true)}
-            >
-              Suspend tab
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={suspendBusy}
-              onClick={() => setConfirmSuspend(false)}
-            >
-              Keep credit
-            </Button>
-          </div>
-        </div>
-      ) : null}
 
       <div className={styles.ledger}>
         <div className={styles.ledgerHead}>

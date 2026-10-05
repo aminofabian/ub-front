@@ -21,6 +21,7 @@ import {
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { FormDrawer } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -171,9 +172,6 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   const [editBusy, setEditBusy] = useState(false);
   const [packCatalog, setPackCatalog] = useState<StorePackCatalog | null>(null);
   const [packMode, setPackMode] = useState<SupplyPackMode | null>(null);
-
-  const [deleteRow, setDeleteRow] = useState<StoreItemRecord | null>(null);
-  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const [movementOpen, setMovementOpen] = useState(false);
   const [inheritOpen, setInheritOpen] = useState(false);
@@ -896,25 +894,28 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteRow) return;
-    setDeleteBusy(true);
-    setFeedback(null);
-    try {
-      await deleteStoreItem(deleteRow.id);
-      setRows((prev) => prev.filter((r) => r.id !== deleteRow.id));
-      if (selectedId === deleteRow.id) clearSelection();
-      refreshQuietly();
-      setFeedback({ kind: "success", text: `Removed “${deleteRow.name}”.` });
-      setDeleteRow(null);
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: mutationError(err, "Could not remove store item."),
-      });
-    } finally {
-      setDeleteBusy(false);
-    }
+  const askDelete = (row: StoreItemRecord) => {
+    showConfirmModal({
+      id: `delete-store-item-${row.id}`,
+      title: "Remove store item?",
+      description: `“${row.name}” will be removed from the store room list. Inventory is not affected.`,
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          await deleteStoreItem(row.id);
+          setRows((prev) => prev.filter((item) => item.id !== row.id));
+          if (selectedId === row.id) clearSelection();
+          refreshQuietly();
+          setFeedback({ kind: "success", text: `Removed “${row.name}”.` });
+        } catch (err) {
+          setFeedback({
+            kind: "error",
+            text: mutationError(err, "Could not remove store item."),
+          });
+        }
+      },
+    });
   };
 
   if (loading || !settings) {
@@ -1073,7 +1074,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onPackModeChange={applyPackMode}
         editBusy={editBusy}
         onSave={() => void handleEdit()}
-        onDelete={setDeleteRow}
+        onDelete={askDelete}
         onAddCustom={canWrite ? openCustomCreate : undefined}
       />
 
@@ -1143,45 +1144,6 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         submitLabel="Add item"
         onSubmit={() => void handleCreate()}
       />
-
-      <Dialog
-        open={deleteRow != null}
-        onOpenChange={(open) => {
-          if (!open && !deleteBusy) setDeleteRow(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove store item?</DialogTitle>
-            <DialogDescription>
-              {deleteRow
-                ? `“${deleteRow.name}” will be removed from the store room list. Inventory is not affected.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={deleteBusy}
-              onClick={() => setDeleteRow(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleteBusy}
-              onClick={() => void handleDelete()}
-            >
-              {deleteBusy ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : null}
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={approvalOpen}

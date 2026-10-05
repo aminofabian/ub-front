@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { showConfirmModal } from "@/components/confirm-modal";
 import {
   GoogleAuthButton,
   usePlatformGoogleOAuthEnabled,
@@ -85,7 +86,6 @@ function LoginPageContent() {
   );
   const [desktopStatusReady, setDesktopStatusReady] = useState(!IS_DESKTOP);
   const [desktopResetBusy, setDesktopResetBusy] = useState(false);
-  const [desktopResetConfirm, setDesktopResetConfirm] = useState(false);
   const [email, setEmail] = useState(
     () => searchParams.get("email")?.trim() ?? "",
   );
@@ -263,7 +263,6 @@ function LoginPageContent() {
       clearSessionTenantId();
       window.location.assign("/setup");
     } catch (error) {
-      setDesktopResetConfirm(false);
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -679,57 +678,24 @@ function LoginPageContent() {
               Use the same staff email and password (or PIN) as online.
             </p>
           )}
-          {desktopResetConfirm ? (
-            <div className="mt-3 space-y-2 rounded-xl border border-[#1f7a3a]/15 bg-white/70 px-3 py-2.5">
-              <p className="text-xs leading-relaxed text-[#3d4a40]">
-                This clears the shop on this till so you can connect a different
-                one. Sales already on this device stay offline until you set up
-                again — nothing is deleted from your online shop.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-lg bg-[#1f7a3a] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                  disabled={desktopResetBusy}
-                  aria-busy={desktopResetBusy}
-                  onClick={() => {
-                    void resetDesktopTillSetup();
-                  }}
-                >
-                  {desktopResetBusy ? (
-                    <>
-                      <Loader2
-                        className="mr-1.5 h-3.5 w-3.5 animate-spin"
-                        aria-hidden
-                      />
-                      Resetting…
-                    </>
-                  ) : (
-                    "Yes, set up again"
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-[#3d4a40] transition-colors hover:bg-black/[0.04] disabled:opacity-60"
-                  disabled={desktopResetBusy}
-                  onClick={() => setDesktopResetConfirm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="mt-2.5 text-left text-xs font-medium text-[#1f7a3a] underline-offset-2 hover:underline"
-              onClick={() => {
-                setDesktopResetConfirm(true);
-                setErrorMessage("");
-              }}
-            >
-              Wrong shop? Set up this till again
-            </button>
-          )}
+          <button
+            type="button"
+            className="mt-2.5 text-left text-xs font-medium text-[#1f7a3a] underline-offset-2 hover:underline"
+            onClick={() => {
+              setErrorMessage("");
+              showConfirmModal({
+                id: "desktop-reset-till",
+                title: "Set up this till again?",
+                description:
+                  "This clears the shop on this till so you can connect a different one. Sales already on this device stay offline until you set up again. Nothing is deleted from your online shop.",
+                confirmLabel: "Set up again",
+                confirmVariant: "default",
+                onConfirm: () => resetDesktopTillSetup(),
+              });
+            }}
+          >
+            Wrong shop? Set up this till again
+          </button>
         </div>
       ) : IS_DESKTOP ? (
         <div className="mt-5 rounded-2xl border border-black/[0.08] bg-black/[0.02] px-4 py-3.5 text-left dark:border-white/10 dark:bg-white/[0.04]">
