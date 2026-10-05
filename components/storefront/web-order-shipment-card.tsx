@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, RefreshCw, Truck } from "lucide-react";
 
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import {
   bookPickupMtaaniShipment,
@@ -95,24 +96,28 @@ export function WebOrderShipmentCard({ order, onUpdated }: Props) {
     }
   };
 
-  const cancel = async () => {
-    if (
-      !window.confirm(
-        "Cancel this Pickup Mtaani parcel? Only a parcel that has not started moving can be cancelled here.",
-      )
-    ) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const next = await cancelPickupMtaaniShipment(order.id);
-      onUpdated(next);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not cancel the parcel.");
-    } finally {
-      setBusy(false);
-    }
+  const cancel = () => {
+    showConfirmModal({
+      id: `cancel-parcel-${order.id}`,
+      title: "Cancel this parcel?",
+      description:
+        "Only a Pickup Mtaani parcel that has not started moving can be cancelled here.",
+      confirmLabel: "Cancel parcel",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        try {
+          const next = await cancelPickupMtaaniShipment(order.id);
+          onUpdated(next);
+        } catch (e) {
+          setError(
+            e instanceof Error ? e.message : "Could not cancel the parcel.",
+          );
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   return (

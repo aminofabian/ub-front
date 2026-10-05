@@ -27,6 +27,7 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -692,17 +693,19 @@ export default function InventoryTransfersPage() {
                           className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
                           disabled={busy}
                           onClick={() => {
-                            if (
-                              window.confirm(
-                                "Cancel this transfer? Stock returns to the sending branch.",
-                              )
-                            ) {
-                              void runTransferAction(
-                                t.id,
-                                "cancel",
-                                "Transfer cancelled — stock returned to the sending branch.",
-                              );
-                            }
+                            showConfirmModal({
+                              id: `cancel-transfer-${t.id}`,
+                              title: "Cancel this transfer?",
+                              description:
+                                "Stock returns to the sending branch.",
+                              confirmLabel: "Cancel transfer",
+                              onConfirm: () =>
+                                runTransferAction(
+                                  t.id,
+                                  "cancel",
+                                  "Transfer cancelled — stock returned to the sending branch.",
+                                ),
+                            });
                           }}
                         >
                           <Ban className="size-4 sm:size-3" />

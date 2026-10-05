@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import {
   updateWebOrderFulfillment,
@@ -36,25 +37,30 @@ export function WebOrderFulfillmentActions({ order, onUpdated }: Props) {
   const completed = fulfillment === "completed";
   const canAdvance = order.status === "paid" || isWhatsAppOrder(order);
 
-  const voidOrder = async () => {
+  const voidOrder = () => {
     const who = order.customerName?.trim() || "this order";
     const paidNote =
       order.status === "paid"
-        ? " Stock goes back on the shelf. Settle any payment already received with the customer."
-        : " Stock held for it goes back on the shelf.";
-    if (!window.confirm(`Void ${who}?${paidNote}`)) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const next = await voidWebOrder(order.id);
-      onUpdated(next);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not void this order.");
-    } finally {
-      setBusy(false);
-    }
+        ? "Stock goes back on the shelf. Settle any payment already received with the customer."
+        : "Stock held for it goes back on the shelf.";
+    showConfirmModal({
+      id: `void-web-order-${order.id}`,
+      title: `Void ${who}?`,
+      description: paidNote,
+      confirmLabel: "Void",
+      onConfirm: async () => {
+        setBusy(true);
+        setError("");
+        try {
+          const next = await voidWebOrder(order.id);
+          onUpdated(next);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Could not void this order.");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   if (cancelled || (completed && !canAdvance)) {

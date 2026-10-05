@@ -15,6 +15,8 @@ import {
 import { Check, Pencil, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { showConfirmModal } from "@/components/confirm-modal";
+
 import {
   StorefrontQuickEditDialog,
   type StorefrontQuickEditField,
@@ -443,14 +445,22 @@ export function StorefrontStaffEditProvider({
   const setEditModeSafe = useCallback(
     (on: boolean) => {
       if (!on && dirtyRef.current) {
-        const ok =
-          typeof window === "undefined" ||
-          window.confirm(
-            "You have unpublished changes. Discard them and exit edit mode?",
-          );
-        if (!ok) return;
-        setDesign(publishedDesignRef.current);
-        setDirty(false);
+        showConfirmModal({
+          id: "discard-storefront-edits",
+          title: "Discard unpublished changes?",
+          description: "Discard them and exit edit mode?",
+          confirmLabel: "Discard",
+          onConfirm: () => {
+            setDesign(publishedDesignRef.current);
+            setDirty(false);
+            setEditMode(false);
+            setQuickField(null);
+            setHeroPhotoOpen(false);
+            setSectionsOpen(false);
+            setCategoryPhotosOpen(false);
+          },
+        });
+        return;
       }
       setEditMode(on);
       if (on) {

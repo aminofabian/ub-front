@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { showConfirmModal } from "@/components/confirm-modal";
+
 import {
   buildMarketplaceOrderPdf,
   buildMarketplaceOrderText,
@@ -887,58 +889,63 @@ export function OrderReceivePanel({
     }
     const meta = itemMeta[line.itemId];
     const name = meta?.name ?? "this item";
-    if (
-      !window.confirm(
-        `Remove ${name} from ${detail.poNumber}? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-
-    setDeletingLineId(lineId);
-    try {
-      await deletePathAPurchaseOrderLine(detail.id, lineId);
-      toast.success("Line removed");
-      const po = await fetchPathAPurchaseOrder(detail.id);
-      setDetail(po);
-      const drafts = lineDraftsFromPo(po);
-      setQtyByLine(drafts.nextQty);
-      setOrderQtyByLine(drafts.nextOrderQty);
-      setPriceByLine(drafts.nextPrice);
-      setSelectedLines(drafts.nextSel);
-      await refreshOrders();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not remove line",
-      );
-    } finally {
-      setDeletingLineId(null);
-    }
+    const poNumber = detail.poNumber;
+    const orderId = detail.id;
+    showConfirmModal({
+      id: `remove-po-line-${lineId}`,
+      title: `Remove ${name}?`,
+      description: `This takes it off ${poNumber}. This cannot be undone.`,
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setDeletingLineId(lineId);
+        try {
+          await deletePathAPurchaseOrderLine(orderId, lineId);
+          toast.success("Line removed");
+          const po = await fetchPathAPurchaseOrder(orderId);
+          setDetail(po);
+          const drafts = lineDraftsFromPo(po);
+          setQtyByLine(drafts.nextQty);
+          setOrderQtyByLine(drafts.nextOrderQty);
+          setPriceByLine(drafts.nextPrice);
+          setSelectedLines(drafts.nextSel);
+          await refreshOrders();
+        } catch (error) {
+          toast.error(
+            error instanceof Error ? error.message : "Could not remove line",
+          );
+        } finally {
+          setDeletingLineId(null);
+        }
+      },
+    });
   };
 
-  const removeOrder = async () => {
+  const removeOrder = () => {
     if (!detail) return;
-    if (
-      !window.confirm(
-        `Delete order ${detail.poNumber}? This cancels the purchase order.`,
-      )
-    ) {
-      return;
-    }
-    setDeletingOrder(true);
-    try {
-      await postPathAPurchaseOrderCancel(detail.id);
-      toast.success("Order deleted");
-      setDetail(null);
-      setSelectedId(null);
-      await refreshOrders();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not delete order",
-      );
-    } finally {
-      setDeletingOrder(false);
-    }
+    const poNumber = detail.poNumber;
+    const orderId = detail.id;
+    showConfirmModal({
+      id: `delete-po-${orderId}`,
+      title: `Delete order ${poNumber}?`,
+      description: "This cancels the purchase order.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setDeletingOrder(true);
+        try {
+          await postPathAPurchaseOrderCancel(orderId);
+          toast.success("Order deleted");
+          setDetail(null);
+          setSelectedId(null);
+          await refreshOrders();
+        } catch (error) {
+          toast.error(
+            error instanceof Error ? error.message : "Could not delete order",
+          );
+        } finally {
+          setDeletingOrder(false);
+        }
+      },
+    });
   };
 
   const addItemToOrder = async (link: SupplierItemLinkRecord) => {

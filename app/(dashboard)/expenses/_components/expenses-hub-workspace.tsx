@@ -18,6 +18,7 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-drawer";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditDrawer } from "@/app/(dashboard)/expenses/_components/expense-edit-drawer";
 import { ScheduleEditDrawer } from "@/app/(dashboard)/fixed-costs/_components/schedule-edit-drawer";
@@ -462,47 +463,50 @@ export function ExpensesHubWorkspace() {
     [occurrences, from, to],
   );
 
-  const removeExpense = async (expense: FinanceExpenseResponse) => {
+  const removeExpense = (expense: FinanceExpenseResponse) => {
     if (!canChangeExpenses) return;
     const cadence = expenseCadenceLabel(expense, schedules);
-    if (
-      !window.confirm(
-        `Remove “${expense.name}”? It leaves expenses and net profit. A repeating ${cadence.toLowerCase()} bill can be posted again.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await deleteFinanceExpense(expense.id);
-      setFeedback({ kind: "success", text: `${expense.name} removed` });
-      bump();
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: err instanceof Error ? err.message : "Could not remove this expense",
-      });
-    }
+    showConfirmModal({
+      id: `remove-expense-${expense.id}`,
+      title: `Remove “${expense.name}”?`,
+      description: `It leaves expenses and net profit. A repeating ${cadence.toLowerCase()} bill can be posted again.`,
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        try {
+          await deleteFinanceExpense(expense.id);
+          setFeedback({ kind: "success", text: `${expense.name} removed` });
+          bump();
+        } catch (err) {
+          setFeedback({
+            kind: "error",
+            text:
+              err instanceof Error ? err.message : "Could not remove this expense",
+          });
+        }
+      },
+    });
   };
 
-  const removeSchedule = async (schedule: ExpenseScheduleRecord) => {
+  const removeSchedule = (schedule: ExpenseScheduleRecord) => {
     if (!canManageFinanceExpenses) return;
-    if (
-      !window.confirm(
-        `Stop “${schedule.name}”? Future ${frequencyLabel(schedule.frequency).toLowerCase()} bills will not post. Amounts already posted stay in the books.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await deactivateExpenseSchedule(schedule.id);
-      setFeedback({ kind: "success", text: `${schedule.name} removed` });
-      bump();
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: err instanceof Error ? err.message : "Could not delete this cost",
-      });
-    }
+    showConfirmModal({
+      id: `stop-schedule-${schedule.id}`,
+      title: `Stop “${schedule.name}”?`,
+      description: `Future ${frequencyLabel(schedule.frequency).toLowerCase()} bills will not post. Amounts already posted stay in the books.`,
+      confirmLabel: "Stop",
+      onConfirm: async () => {
+        try {
+          await deactivateExpenseSchedule(schedule.id);
+          setFeedback({ kind: "success", text: `${schedule.name} removed` });
+          bump();
+        } catch (err) {
+          setFeedback({
+            kind: "error",
+            text: err instanceof Error ? err.message : "Could not delete this cost",
+          });
+        }
+      },
+    });
   };
 
   const openRegular = (presetId: string, mode: "recurring" | "once") => {

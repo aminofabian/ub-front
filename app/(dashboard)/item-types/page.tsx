@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { showConfirmModal } from "@/components/confirm-modal";
 import {
   DashboardAccessDenied,
   DashboardFeedback,
@@ -62,14 +63,6 @@ type Feedback = { kind: "success" | "error"; text: string } | null;
 // ─── edit draft ───────────────────────────────────────────────────────────────
 
 type EditDraft = CreateItemTypePayload & { active: boolean };
-
-// ─── confirm-delete dialog ────────────────────────────────────────────────────
-
-type ConfirmDelete = {
-  id: string;
-  key: string;
-  label: string;
-};
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
@@ -131,12 +124,6 @@ export default function ItemTypesPage() {
 
   const [editId, setEditId] = useState<string | null>(null);
   const [editBusy, setEditBusy] = useState(false);
-
-  // delete confirmation
-  const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(
-    null,
-  );
-  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // ─── load ──────────────────────────────────────────────────────────────────
 
@@ -272,27 +259,6 @@ export default function ItemTypesPage() {
     },
     [],
   );
-
-  // ─── delete ────────────────────────────────────────────────────────────────
-
-  const handleDelete = useCallback(async () => {
-    if (!confirmDelete) return;
-    setDeleteBusy(true);
-    setFeedback(null);
-    try {
-      await deleteItemType(confirmDelete.id);
-      setRows((prev) => prev.filter((r) => r.id !== confirmDelete.id));
-      setConfirmDelete(null);
-      setFeedback({
-        kind: "success",
-        text: `Department "${confirmDelete.label}" deleted.`,
-      });
-    } catch {
-      setFeedback({ kind: "error", text: "Failed to delete department." });
-    } finally {
-      setDeleteBusy(false);
-    }
-  }, [confirmDelete]);
 
   // ─── render helpers ────────────────────────────────────────────────────────
 
@@ -600,10 +566,29 @@ export default function ItemTypesPage() {
                                 size="sm"
                                 className="h-8 gap-1 rounded-none px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() =>
-                                  setConfirmDelete({
-                                    id: row.id,
-                                    key: row.key,
-                                    label: row.label,
+                                  showConfirmModal({
+                                    id: `delete-item-type-${row.id}`,
+                                    title: "Delete department?",
+                                    description: `Delete ${row.label}? This cannot be undone.`,
+                                    confirmLabel: "Delete",
+                                    onConfirm: async () => {
+                                      setFeedback(null);
+                                      try {
+                                        await deleteItemType(row.id);
+                                        setRows((prev) =>
+                                          prev.filter((r) => r.id !== row.id),
+                                        );
+                                        setFeedback({
+                                          kind: "success",
+                                          text: `Department "${row.label}" deleted.`,
+                                        });
+                                      } catch {
+                                        setFeedback({
+                                          kind: "error",
+                                          text: "Failed to delete department.",
+                                        });
+                                      }
+                                    },
                                   })
                                 }
                               >
@@ -708,45 +693,6 @@ export default function ItemTypesPage() {
           busy={editBusy}
           feedback={feedback}
         />
-      ) : null}
-
-      {/* Delete confirmation dialog */}
-      {confirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="w-full max-w-sm rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-5"
-            style={PROCUREMENT_VARS}
-          >
-            <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-              Delete department?
-            </h2>
-            <p className="mt-2 text-sm text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-              Delete{" "}
-              <strong className="text-[var(--order-ink,#15231f)]">
-                {confirmDelete.label}
-              </strong>
-              ? This cannot be undone.
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                className="h-8 rounded-none"
-                onClick={() => setConfirmDelete(null)}
-                disabled={deleteBusy}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                className="h-8 rounded-none"
-                onClick={() => void handleDelete()}
-                disabled={deleteBusy}
-              >
-                {deleteBusy ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
-          </div>
-        </div>
       ) : null}
     </>
   );

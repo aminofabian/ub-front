@@ -21,6 +21,7 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -222,33 +223,34 @@ export default function PayrollPage() {
     setStaffDrawerOpen(false);
   }
 
-  async function removeFromPayroll(row: PayrollRunRow) {
+  function removeFromPayroll(row: PayrollRunRow) {
     if (!canManagePayroll) return;
-    if (
-      !window.confirm(
-        `Remove ${row.displayName} from payroll? They stay on the team. Past payslips stay on file.`,
-      )
-    ) {
-      return;
-    }
-    setFeedback(null);
-    try {
-      await updateStaffProfile(row.userId, { includeInPayroll: false });
-      if (selectedRow?.userId === row.userId) clearStaffSelection();
-      setFeedback({
-        kind: "success",
-        text: `${row.displayName} removed from payroll`,
-      });
-      await load();
-    } catch (error) {
-      setFeedback({
-        kind: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Could not remove this person from payroll",
-      });
-    }
+    showConfirmModal({
+      id: `remove-payroll-${row.userId}`,
+      title: "Remove from payroll?",
+      description: `${row.displayName} stays on the team. Past payslips stay on file.`,
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          await updateStaffProfile(row.userId, { includeInPayroll: false });
+          if (selectedRow?.userId === row.userId) clearStaffSelection();
+          setFeedback({
+            kind: "success",
+            text: `${row.displayName} removed from payroll`,
+          });
+          await load();
+        } catch (error) {
+          setFeedback({
+            kind: "error",
+            text:
+              error instanceof Error
+                ? error.message
+                : "Could not remove this person from payroll",
+          });
+        }
+      },
+    });
   }
 
   function openProfile(row: PayrollRunRow) {
