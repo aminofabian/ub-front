@@ -97,6 +97,34 @@ export function isNewerClientBuild(remoteBuildId: string | null): boolean {
   return remoteBuildId !== CLIENT_BUILD_ID;
 }
 
+export const STALE_CHUNK_RELOAD_KEY = "ub.chunkReloadAt";
+export const STALE_CHUNK_RELOAD_WINDOW_MS = 15_000;
+
+/** True when this tab has not already refreshed for a missing chunk. */
+export function shouldReloadStaleClient(now: number, previous: number): boolean {
+  if (!Number.isFinite(previous) || previous <= 0) return true;
+  return now - previous >= STALE_CHUNK_RELOAD_WINDOW_MS;
+}
+
+export function reloadStaleClientOnce(): boolean {
+  if (typeof window === "undefined") return false;
+  let previous = 0;
+  try {
+    previous = Number(sessionStorage.getItem(STALE_CHUNK_RELOAD_KEY) || 0);
+  } catch {
+    previous = 0;
+  }
+  const now = Date.now();
+  if (!shouldReloadStaleClient(now, previous)) return false;
+  try {
+    sessionStorage.setItem(STALE_CHUNK_RELOAD_KEY, String(now));
+  } catch {
+    /* private mode still reloads */
+  }
+  void hardReloadTill();
+  return true;
+}
+
 export async function hardReloadTill(): Promise<void> {
   if (typeof window === "undefined") return;
   try {

@@ -396,6 +396,12 @@ export const STORAGE_KEYS = {
   impersonationSession: "ub.impersonation",
   /** Billing-suspended login gate — cleared after successful renewal. */
   billingGate: "ub.billingGate",
+  /**
+   * Set for this tab when the user explicitly signs out. Blocks cookie restore
+   * until the next intentional sign-in. Session-scoped so a new tab can still
+   * resume a session the user did not sign out of.
+   */
+  explicitSignOut: "ub.explicitSignOut",
   /** Per-shop PWA invite: hide the floating install chip after install or dismiss. */
   shopperPwaInvite: (slug: string) => `ub.shopperPwa.${slug}`,
   /** Client-side ops errors (API unreachable / proxy config) — admin logs page. */

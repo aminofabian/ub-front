@@ -4,6 +4,7 @@ import {
   getSessionClaims,
   getSessionTokens,
   hasAccessSession,
+  isExplicitSignOut,
   subscribeToAuthBroadcasts,
   syncSessionPresenceCookie,
 } from "@/lib/auth";
@@ -96,9 +97,10 @@ function scheduleNextRefresh() {
 }
 
 async function performRefresh(): Promise<void> {
-  if (!hasAccessSession()) return;
+  if (isExplicitSignOut() || !hasAccessSession()) return;
 
   const outcome = await refreshAccessToken();
+  if (isExplicitSignOut()) return;
   if (outcome.kind === "ok") {
     consecutiveRefreshRejections = 0;
     scheduleNextRefresh();
@@ -179,6 +181,9 @@ function clearHeartbeatTimer() {
  * sign the user out — scheduled refresh / 401 recovery still own that.
  */
 async function heartbeat(): Promise<void> {
+  if (isExplicitSignOut()) {
+    return;
+  }
   if (typeof document !== "undefined" && document.visibilityState !== "visible") {
     return;
   }

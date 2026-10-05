@@ -1,6 +1,6 @@
 "use client";
 
-import { applyAuthSessionPayload } from "@/lib/auth";
+import { applyAuthSessionPayload, isExplicitSignOut } from "@/lib/auth";
 
 /**
  * Session recovery state machine.
@@ -83,7 +83,7 @@ export function beginSessionReconnect(
   reason?: string,
   opts?: { definitive?: boolean },
 ): void {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || isExplicitSignOut()) {
     return;
   }
   if (process.env.NODE_ENV === "development") {

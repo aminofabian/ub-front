@@ -150,10 +150,13 @@ function AuthHandoffInner() {
       // Legacy / impersonation fragment with access JWT.
       // Do NOT call refresh first — ub.refresh is not on this host yet; refresh
       // would 401 and leave store-session without a cookie → no_session.
-      applyAuthSessionPayload({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-      });
+      applyAuthSessionPayload(
+        {
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        },
+        { signIn: true },
+      );
 
       if (data.tenantId?.trim()) {
         setSessionTenantId(data.tenantId.trim());

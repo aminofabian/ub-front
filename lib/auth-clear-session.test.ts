@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
 import {
+  __resetExplicitSignOutForTests,
   __resetMemoryAccessTokenForTests,
   applyAuthSessionPayload,
+  beginExplicitSignOut,
   clearAllSessionData,
   clearSessionTokens,
   getSessionTokens,
   hasAccessSession,
+  isExplicitSignOut,
   setSessionTokens,
 } from "@/lib/auth";
 import { STORAGE_KEYS } from "@/lib/config";
@@ -93,6 +96,7 @@ function installStorages(local: Storage, session: Storage): void {
 
 describe("clearSessionTokens / clearAllSessionData", () => {
   beforeEach(() => {
+    __resetExplicitSignOutForTests();
     __resetMemoryAccessTokenForTests();
     installStorages(createMemoryStorage(), createMemoryStorage());
     globalThis.fetch = (async () =>
@@ -155,6 +159,26 @@ describe("clearSessionTokens / clearAllSessionData", () => {
     clearSessionTokens();
     expect(window.sessionStorage.getItem(STORAGE_KEYS.sessionClaims)).toBeNull();
     expect(hasAccessSession()).toBe(false);
+  });
+
+  it("blocks cookie restore after an explicit sign-out until the next sign-in", () => {
+    beginExplicitSignOut();
+    expect(
+      applyAuthSessionPayload({
+        session: { exp: 1_700_000_000, businessId: "biz-1" },
+      }),
+    ).toBe(false);
+    expect(hasAccessSession()).toBe(false);
+    expect(isExplicitSignOut()).toBe(true);
+
+    expect(
+      applyAuthSessionPayload(
+        { session: { exp: 1_700_000_000, businessId: "biz-1" } },
+        { signIn: true },
+      ),
+    ).toBe(true);
+    expect(hasAccessSession()).toBe(true);
+    expect(isExplicitSignOut()).toBe(false);
   });
 
   it("clearAllSessionData clears bootstrap and till unlock context", () => {

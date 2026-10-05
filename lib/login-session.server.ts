@@ -100,6 +100,7 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
   // Non-secret claims stay in sessionStorage so the first paint looks signed in.
   void refreshToken;
   const scriptLines = [
+    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.explicitSignOut)});`,
     `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
     `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
     `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,

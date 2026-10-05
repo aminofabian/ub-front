@@ -180,6 +180,7 @@ describe("access-token-cookie", () => {
       false,
     );
     expect(isAccessTokenClearPath("/api/v1/auth/logout")).toBe(true);
+    expect(isAccessTokenClearPath("/api/v1/auth/logout-all")).toBe(true);
     expect(isAccessTokenClearPath("/api/v1/auth/clear-session-cookie")).toBe(
       true,
     );

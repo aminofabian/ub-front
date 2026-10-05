@@ -2,7 +2,9 @@ import { describe, expect, it } from "bun:test";
 
 import {
   hostOnlyRefreshCookieClears,
+  parentDomainLiveRefreshClear,
   rewriteSetCookieForFrontend,
+  shouldExpireParentDomainRefresh,
 } from "@/lib/rewrite-set-cookie";
 
 describe("rewriteSetCookieForFrontend", () => {
@@ -40,6 +42,29 @@ describe("rewriteSetCookieForFrontend", () => {
       "localhost",
     );
     expect(line).not.toMatch(/Domain=/i);
+  });
+
+  it("expires the parent-domain refresh cookie when logout only deletes it", () => {
+    const cookies = [
+      "ub.refresh=; Path=/api; Max-Age=0; HttpOnly; SameSite=Lax",
+      "ub.refresh=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax",
+    ];
+    expect(shouldExpireParentDomainRefresh(cookies)).toBe(true);
+    const line = parentDomainLiveRefreshClear("shop.palmart.co.ke", true);
+    expect(line).toContain("Domain=.palmart.co.ke");
+    expect(line).toContain("Path=/api");
+    expect(line).toContain("Max-Age=0");
+    expect(line).toContain("Secure");
+  });
+
+  it("keeps the parent-domain refresh cookie when a new token is set", () => {
+    expect(
+      shouldExpireParentDomainRefresh([
+        "ub.refresh=abc; Path=/api; HttpOnly",
+        "ub.refresh=; Path=/api; Max-Age=0; HttpOnly",
+      ]),
+    ).toBe(false);
+    expect(parentDomainLiveRefreshClear("localhost", false)).toBeNull();
   });
 
   it("hostOnlyRefreshCookieClears expires only the legacy path, without Domain", () => {

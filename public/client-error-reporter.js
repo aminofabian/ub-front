@@ -63,8 +63,33 @@
     }
   }
 
+  var CHUNK_RELOAD_KEY = "ub.chunkReloadAt";
+  var CHUNK_RELOAD_WINDOW_MS = 15000;
+
+  function isStaleChunk(text) {
+    return (
+      /ChunkLoadError/i.test(text) ||
+      /Loading chunk [\d]+ failed/i.test(text) ||
+      /Failed to fetch dynamically imported module/i.test(text) ||
+      /MIME type \('text\/plain'\) is not executable/i.test(text)
+    );
+  }
+
+  function reloadStaleChunkOnce() {
+    try {
+      var prev = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
+      var now = Date.now();
+      if (prev && now - prev < CHUNK_RELOAD_WINDOW_MS) return;
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+    } catch (e) {}
+    location.reload();
+  }
+
   function report(text) {
     remember(text);
+    if (isStaleChunk(text)) {
+      reloadStaleChunkOnce();
+    }
 
     if (isProductionHost()) {
       if (isIgnorableProductionError(text)) {

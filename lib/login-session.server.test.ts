@@ -23,6 +23,7 @@ describe("buildSessionFinalizeHtml", () => {
       nextPath: "/overview",
     });
     expect(html).toContain(STORAGE_KEYS.sessionClaims);
+    expect(html).toContain(STORAGE_KEYS.explicitSignOut);
     expect(html).toContain("biz-1");
     expect(html).toContain("user-1");
     expect(html).not.toContain(accessToken);

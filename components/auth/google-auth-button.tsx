@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 
 import {
+  beginExplicitSignOut,
+  endExplicitSignOut,
+  isExplicitSignOut,
+} from "@/lib/auth";
+import {
   APP_ROUTES,
   PLATFORM_DOMAIN,
   platformApexHostname,
@@ -178,6 +183,8 @@ export function GoogleAuthButton({
     platformEnabled === true && tenantOk;
 
   const onClick = async () => {
+    const resumeSignedOutLatch = isExplicitSignOut();
+    endExplicitSignOut();
     setError("");
     setBusy(true);
     const nextPath =
@@ -231,6 +238,9 @@ export function GoogleAuthButton({
       }
       window.location.assign(payload.authorizeUrl);
     } catch (e) {
+      if (resumeSignedOutLatch) {
+        beginExplicitSignOut();
+      }
       setBusy(false);
       setError(e instanceof Error ? e.message : "Could not open Google.");
     }

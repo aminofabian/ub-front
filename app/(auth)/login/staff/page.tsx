@@ -22,10 +22,13 @@ import {
 } from "@/components/auth/auth-split-shell";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
+  clearServerSessionCookies,
   clearSessionTenantId,
+  clearSessionTokens,
   getSessionTenantId,
   hasAccessSession,
   hasSessionPresenceCookie,
+  isExplicitSignOut,
   setSessionTenantId,
 } from "@/lib/auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
@@ -152,6 +155,11 @@ function LoginPageContent() {
     }
     let cancelled = false;
     void (async () => {
+      if (isExplicitSignOut()) {
+        clearSessionTokens();
+        await clearServerSessionCookies();
+        return;
+      }
       if (!hasAccessSession() && !hasSessionPresenceCookie()) {
         return;
       }

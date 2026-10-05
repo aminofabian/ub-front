@@ -14,8 +14,10 @@ import {
 } from "@/lib/auth-session-claims";
 import {
   hostOnlyRefreshCookieClears,
+  parentDomainLiveRefreshClear,
   readSetCookieHeaders,
   rewriteSetCookieForFrontend,
+  shouldExpireParentDomainRefresh,
 } from "@/lib/rewrite-set-cookie";
 import {
   cookieDomainForHost,
@@ -187,7 +189,8 @@ function appendUpstreamSetCookies(
   secure: boolean,
 ): void {
   let wroteRefresh = false;
-  for (const cookie of readSetCookieHeaders(from)) {
+  const rawCookies = readSetCookieHeaders(from);
+  for (const cookie of rawCookies) {
     to.headers.append(
       "Set-Cookie",
       rewriteSetCookieForFrontend(cookie, hostname),
@@ -199,6 +202,12 @@ function appendUpstreamSetCookies(
   if (wroteRefresh && cookieDomainForHost(hostname)) {
     for (const clear of hostOnlyRefreshCookieClears(secure)) {
       to.headers.append("Set-Cookie", clear);
+    }
+  }
+  if (shouldExpireParentDomainRefresh(rawCookies)) {
+    const parentClear = parentDomainLiveRefreshClear(hostname, secure);
+    if (parentClear) {
+      to.headers.append("Set-Cookie", parentClear);
     }
   }
 }

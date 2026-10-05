@@ -260,6 +260,7 @@ export function isAccessTokenMintPath(pathname: string): boolean {
 export function isAccessTokenClearPath(pathname: string): boolean {
   return (
     pathname.endsWith("/auth/logout") ||
+    pathname.endsWith("/auth/logout-all") ||
     pathname.endsWith("/auth/clear-session-cookie")
   );
 }

@@ -4,6 +4,7 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
+import { sessionCookieDomain } from "@/lib/tenant-host";
 
 /** Sets the middleware session hint via Set-Cookie (reliable on Safari / iOS). */
 export async function POST(request: Request) {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
   return response;
 }
 
-/** Clears the session hint cookie on sign-out. */
+/** Clears the session hint cookie on sign-out (host-only and parent domain). */
 export async function DELETE(request: Request) {
   const response = NextResponse.json({ ok: true });
   const secure = new URL(request.url).protocol === "https:";
@@ -34,5 +35,13 @@ export async function DELETE(request: Request) {
     secure,
     httpOnly: false,
   });
+  const domain = sessionCookieDomain(request);
+  if (domain) {
+    const secureAttr = secure ? "; Secure" : "";
+    response.headers.append(
+      "Set-Cookie",
+      `${SESSION_PRESENCE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secureAttr}; Domain=${domain}`,
+    );
+  }
   return response;
 }

@@ -21,7 +21,11 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
 import { clearPersistedTillLock } from "@/lib/till-lock-persist";
 import { clearTillUnlockContext } from "@/lib/till-unlock-context";
-import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
+import {
+  cookieDomainForHost,
+  stripLeadingWww,
+  tenantHostsMatch,
+} from "@/lib/tenant-host";
 
 export type SessionTokens = {
   accessToken: string;
@@ -49,7 +53,7 @@ export type { AuthSessionClaims };
 type AuthBroadcastMessage =
   | { type: "tokens"; accessToken: string; refreshToken?: string }
   | { type: "session"; session: AuthSessionClaims }
-  | { type: "logout" };
+  | { type: "logout"; explicit?: boolean };
 
 const AUTH_CHANNEL_NAME = "ub-auth";
 
@@ -216,6 +220,12 @@ function getAuthChannel(): BroadcastChannel | null {
     authChannel.addEventListener("message", (event) => {
       const data = event.data as AuthBroadcastMessage | undefined;
       if (!data || typeof data.type !== "string") return;
+      if (data.type === "logout" && data.explicit) {
+        beginExplicitSignOut();
+      }
+      if (data.type === "tokens" || data.type === "session") {
+        if (isExplicitSignOut()) return;
+      }
       if (data.type === "tokens") {
         applyMemoryAccessToken(data.accessToken);
         applyMemorySessionClaims(claimsFromAccessToken(data.accessToken));
@@ -304,8 +314,8 @@ function postAuthBroadcast(msg: AuthBroadcastMessage): void {
 }
 
 /** Notifies other tabs to sign out (e.g. after explicit logout in this tab). */
-export function broadcastAuthLogout(): void {
-  postAuthBroadcast({ type: "logout" });
+export function broadcastAuthLogout(explicit = false): void {
+  postAuthBroadcast({ type: "logout", explicit });
 }
 
 export function getSessionTokens(): SessionTokens | null {
@@ -356,7 +366,13 @@ function clearSessionPresenceCookie(): void {
   if (typeof document === "undefined") {
     return;
   }
-  document.cookie = `${SESSION_PRESENCE_COOKIE}=; ${sessionPresenceCookieAttrs(0)}`;
+  const expired = `${SESSION_PRESENCE_COOKIE}=; ${sessionPresenceCookieAttrs(0)}`;
+  document.cookie = expired;
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const domain = cookieDomainForHost(host);
+  if (domain) {
+    document.cookie = `${expired}; domain=${domain}`;
+  }
   void fetch(SESSION_HINT_API, { method: "DELETE", credentials: "include" }).catch(
     () => {},
   );
@@ -399,6 +415,9 @@ export function syncSessionPresenceCookie(): void {
 }
 
 export function setSessionTokens(tokens: SessionTokens): void {
+  if (isExplicitSignOut()) {
+    return;
+  }
   const access = tokens.accessToken?.trim();
   if (!access) {
     return;
@@ -424,6 +443,9 @@ export function setSessionTokens(tokens: SessionTokens): void {
 
 /** Gap G3: establish a cookie-only session (no JWT in JS). */
 export function setSessionClaims(claims: AuthSessionClaims): void {
+  if (isExplicitSignOut()) {
+    return;
+  }
   applyMemorySessionClaims(claims);
   applyMemoryAccessToken(null);
   purgeLegacyAccessTokenStorage();
@@ -498,13 +520,31 @@ export function clearLoginBillingGate(): void {
   window.sessionStorage.removeItem(STORAGE_KEYS.billingGate);
 }
 
-export function applyAuthSessionPayload(payload: {
-  accessToken?: string;
-  refreshToken?: string;
-  session?: AuthSessionClaims;
-  billing?: AuthBillingGate | null;
-}): boolean {
+export type ApplyAuthSessionOptions = {
+  /** Intentional sign-in — drop the explicit-logout latch before writing. */
+  signIn?: boolean;
+};
+
+export function applyAuthSessionPayload(
+  payload: {
+    accessToken?: string;
+    refreshToken?: string;
+    session?: AuthSessionClaims;
+    billing?: AuthBillingGate | null;
+  },
+  options?: ApplyAuthSessionOptions,
+): boolean {
   const access = payload.accessToken?.trim();
+  const hasClaims = Boolean(payload.session);
+  if (!access && !hasClaims) {
+    return false;
+  }
+  if (!options?.signIn && isExplicitSignOut()) {
+    return false;
+  }
+  if (options?.signIn) {
+    endExplicitSignOut();
+  }
   if (access) {
     setSessionTokens({
       accessToken: access,
@@ -588,6 +628,57 @@ export function clearAllSessionData(): void {
  * mutations / extra broadcasts.
  */
 let signOutInProgress = false;
+let explicitSignOut = false;
+let clientSignOutFinalized = false;
+
+/**
+ * User chose Log out. Cookie restore and in-flight refresh must not sign them
+ * back in. Cleared only by the next intentional sign-in.
+ */
+export function beginExplicitSignOut(): void {
+  explicitSignOut = true;
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.setItem(STORAGE_KEYS.explicitSignOut, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+export function endExplicitSignOut(): void {
+  explicitSignOut = false;
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEYS.explicitSignOut);
+  } catch {
+    /* private mode */
+  }
+}
+
+export function isExplicitSignOut(): boolean {
+  if (explicitSignOut) {
+    return true;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return window.sessionStorage.getItem(STORAGE_KEYS.explicitSignOut) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Test helper — drops the explicit-logout latch between cases. */
+export function __resetExplicitSignOutForTests(): void {
+  explicitSignOut = false;
+  signOutInProgress = false;
+  clientSignOutFinalized = false;
+}
 
 function disconnectRealtimeClient(): void {
   try {
@@ -602,23 +693,29 @@ function disconnectRealtimeClient(): void {
   }
 }
 
-function clearRefreshSessionCookie(): void {
-  void fetch(apiUrl(API_ROUTES.clearSessionCookie), {
+export function clearServerSessionCookies(): Promise<void> {
+  return fetch(apiUrl(API_ROUTES.clearSessionCookie), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-  }).catch(() => {});
+  })
+    .then(() => undefined)
+    .catch(() => undefined);
 }
 
 /** Clears session storage and notifies other tabs; does not redirect. */
-export function finalizeClientSignOut(): void {
-  if (typeof window === "undefined") {
+export function finalizeClientSignOut(options?: { explicit?: boolean }): void {
+  if (typeof window === "undefined" || clientSignOutFinalized) {
     return;
   }
+  clientSignOutFinalized = true;
+  if (options?.explicit) {
+    beginExplicitSignOut();
+  }
   disconnectRealtimeClient();
-  clearRefreshSessionCookie();
+  void clearServerSessionCookies();
   clearAllSessionData();
-  broadcastAuthLogout();
+  broadcastAuthLogout(options?.explicit === true);
 }
 
 /** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */

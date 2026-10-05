@@ -12,8 +12,11 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import {
+  beginExplicitSignOut,
+  clearServerSessionCookies,
   finalizeClientSignOut,
   getSessionClaims,
+  isExplicitSignOut,
   getSessionTenantHost,
   getSessionTenantId,
   getSessionTokens,
@@ -2138,6 +2141,10 @@ async function postRefreshRequest(): Promise<Response> {
 }
 
 async function applyRefreshResponse(response: Response): Promise<RefreshOutcome> {
+  if (isExplicitSignOut()) {
+    await clearServerSessionCookies();
+    return { kind: "rejected", definitive: true };
+  }
   let payload: LoginResponse;
   try {
     payload = (await readApiJson(response)) as LoginResponse;
@@ -2155,6 +2162,10 @@ async function applyRefreshResponse(response: Response): Promise<RefreshOutcome>
 }
 
 async function performRefreshOnce(): Promise<RefreshOutcome> {
+  if (isExplicitSignOut()) {
+    await clearServerSessionCookies();
+    return { kind: "rejected", definitive: true };
+  }
   const baselineAccessToken = getSessionTokens()?.accessToken;
   const baselineClaimsExp = getSessionClaims()?.exp;
   const baseline = sessionAdvanceFingerprint(
@@ -2178,6 +2189,10 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
   }
 
   if (response.ok) {
+    if (isExplicitSignOut()) {
+      await clearServerSessionCookies();
+      return { kind: "rejected", definitive: true };
+    }
     return applyRefreshResponse(response);
   }
 
@@ -2281,6 +2296,9 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 if (typeof window !== "undefined") {
   subscribeToAuthBroadcasts((msg) => {
     if (msg.type === "logout") {
+      if (msg.explicit) {
+        beginExplicitSignOut();
+      }
       signOutClientAndRedirectToLogin("cross-tab logout broadcast");
     }
   });
@@ -2801,7 +2819,7 @@ export async function loginWithPassword(
     requiresAuth: false,
     toast: options?.toast,
   });
-  if (!applyAuthSessionPayload(payload)) {
+  if (!applyAuthSessionPayload(payload, { signIn: true })) {
     throw new ApiRequestError("Login failed: no session returned.", 502, payload);
   }
 }
@@ -2827,7 +2845,7 @@ export async function loginWithPin(
     requiresAuth: false,
     toast: false,
   });
-  if (!applyAuthSessionPayload(payload)) {
+  if (!applyAuthSessionPayload(payload, { signIn: true })) {
     throw new ApiRequestError("Login failed: no session returned.", 502, payload);
   }
 }
@@ -2972,7 +2990,7 @@ export async function verifyEmailAddress(
     requiresAuth: false,
     toast: options?.toast,
   });
-  return applyAuthSessionPayload(payload);
+  return applyAuthSessionPayload(payload, { signIn: true });
 }
 
 export async function resendVerificationEmail(
@@ -3046,21 +3064,24 @@ export async function unlinkGoogleAccount(password: string): Promise<void> {
  * Revokes the current refresh session server-side when possible, then clears ALL local session data.
  * Also disconnects the realtime WebSocket to prevent stale connections from attempting re-auth.
  */
-export async function logoutRemote(): Promise<void> {
+async function revokeServerSession(): Promise<void> {
   const session = getSessionTokens();
-  if (session) {
-    try {
-      await fetch(apiUrl(API_ROUTES.logout), {
-        method: "POST",
-        credentials: AUTH_FETCH_CREDENTIALS,
-        headers: buildRequestHeaders(true, session.accessToken, "POST"),
-      });
-    } catch {
-      /* network errors — still clear client */
-    }
+  try {
+    await fetch(apiUrl(API_ROUTES.logout), {
+      method: "POST",
+      credentials: AUTH_FETCH_CREDENTIALS,
+      headers: buildRequestHeaders(true, session?.accessToken, "POST"),
+    });
+  } catch {
+    /* network errors — still clear client */
   }
+}
 
-  finalizeClientSignOut();
+export async function logoutRemote(): Promise<void> {
+  beginExplicitSignOut();
+  await revokeServerSession();
+  await clearServerSessionCookies();
+  finalizeClientSignOut({ explicit: true });
 }
 
 /**
@@ -3276,7 +3297,7 @@ export async function completeShopperPhoneSession(params: {
     },
     requiresAuth: false,
   });
-  if (!applyAuthSessionPayload(payload)) {
+  if (!applyAuthSessionPayload(payload, { signIn: true })) {
     throw new ApiRequestError("Sign-in failed: no session returned.", 502, payload);
   }
   return {

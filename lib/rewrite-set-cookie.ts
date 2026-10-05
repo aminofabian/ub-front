@@ -48,6 +48,59 @@ export function rewriteSetCookieForFrontend(
   return out;
 }
 
+function refreshCookieValue(setCookie: string): string {
+  const first = (setCookie.split(";")[0] ?? "").trim();
+  const prefix = `${REFRESH_COOKIE_NAME}=`;
+  if (!first.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return "";
+  }
+  return first.slice(prefix.length).trim();
+}
+
+function refreshCookiePath(setCookie: string): string {
+  return /;\s*Path=([^;]*)/i.exec(setCookie)?.[1]?.trim() || "/";
+}
+
+/**
+ * Logout sends a live-path {@code Max-Age=0} and nothing else. That deletion
+ * must also target the parent-domain cookie login wrote. A refresh response
+ * that both sets a new token and emits a live-path deletion must NOT — re-homing
+ * that deletion would erase the cookie just minted.
+ */
+export function shouldExpireParentDomainRefresh(setCookies: string[]): boolean {
+  let liveClear = false;
+  let liveSet = false;
+  for (const cookie of setCookies) {
+    const path = refreshCookiePath(cookie);
+    const livePath = path === "/api" || path === "/api/";
+    if (!livePath) {
+      continue;
+    }
+    if (isLiveRefreshDeletion(cookie)) {
+      liveClear = true;
+      continue;
+    }
+    if (refreshCookieValue(cookie)) {
+      liveSet = true;
+    }
+  }
+  return liveClear && !liveSet;
+}
+
+/** Parent-domain deletion for the live {@code ub.refresh} cookie. */
+export function parentDomainLiveRefreshClear(
+  hostname: string | null | undefined,
+  secure: boolean,
+): string | null {
+  const host = hostname?.split(":")[0]?.trim() ?? "";
+  const domain = host ? cookieDomainForHost(host) : "";
+  if (!domain) {
+    return null;
+  }
+  const secureAttr = secure ? "; Secure" : "";
+  return `${REFRESH_COOKIE_NAME}=; Path=/api; Max-Age=0; HttpOnly; SameSite=Lax; Domain=${domain}${secureAttr}`;
+}
+
 /**
  * Expire host-only {@code ub.refresh} on the legacy path only.
  * A {@code Path=/api} deletion in the same response as the live cookie is

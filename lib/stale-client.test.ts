@@ -5,6 +5,8 @@ import {
   isNewerClientBuild,
   isStaleAssetError,
   parseClientVersionPayload,
+  shouldReloadStaleClient,
+  STALE_CHUNK_RELOAD_WINDOW_MS,
 } from "@/lib/stale-client";
 
 describe("stale client detection", () => {
@@ -35,6 +37,15 @@ describe("stale client detection", () => {
   it("parses version payloads", () => {
     expect(parseClientVersionPayload({ buildId: "abc" })).toBe("abc");
     expect(parseClientVersionPayload({})).toBeNull();
+  });
+
+  it("reloads once for a missing chunk, then waits", () => {
+    const now = 1_000_000;
+    expect(shouldReloadStaleClient(now, 0)).toBe(true);
+    expect(shouldReloadStaleClient(now, now - 1_000)).toBe(false);
+    expect(
+      shouldReloadStaleClient(now, now - STALE_CHUNK_RELOAD_WINDOW_MS),
+    ).toBe(true);
   });
 
   it("does not treat matching or dev builds as newer", () => {

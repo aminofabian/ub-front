@@ -1,6 +1,11 @@
 "use client";
 
-import { applyAuthSessionPayload, hasAccessSession } from "@/lib/auth";
+import {
+  applyAuthSessionPayload,
+  clearServerSessionCookies,
+  hasAccessSession,
+  isExplicitSignOut,
+} from "@/lib/auth";
 import type { AuthSessionClaims } from "@/lib/auth-session-claims";
 import { STORAGE_KEYS } from "@/lib/config";
 import { withAuthRefreshLock } from "@/lib/cross-tab-lock";
@@ -36,7 +41,7 @@ export type RestoreClientSessionOptions = {
 
 /** Read exp/businessId from httpOnly `ub.access` without rotating refresh. */
 export async function hydrateSessionClaimsFromAccessCookie(): Promise<boolean> {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || isExplicitSignOut()) {
     return false;
   }
   try {
@@ -64,6 +69,10 @@ export function restoreClientSessionFromCookie(
   options: RestoreClientSessionOptions = {},
 ): Promise<boolean> {
   if (typeof window === "undefined") {
+    return Promise.resolve(false);
+  }
+  if (isExplicitSignOut()) {
+    void clearServerSessionCookies();
     return Promise.resolve(false);
   }
   const force = options.force === true;
