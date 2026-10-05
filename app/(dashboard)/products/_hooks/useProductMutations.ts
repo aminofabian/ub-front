@@ -94,6 +94,21 @@ type Dependencies = {
   headerBranchId: string;
 };
 
+async function patchItemsActive(
+  ids: string[],
+  nameFor: (id: string) => string,
+): Promise<string[]> {
+  const failed: string[] = [];
+  for (const id of ids) {
+    try {
+      await patchItem(id, { active: true });
+    } catch {
+      failed.push(nameFor(id));
+    }
+  }
+  return failed;
+}
+
 export function useProductMutations(d: Dependencies) {
   const {
     selectedId,
@@ -1127,51 +1142,78 @@ export function useProductMutations(d: Dependencies) {
   ]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // BULK ACTIVATE
+  // ACTIVATE
   // ══════════════════════════════════════════════════════════════════════════
-  const onBulkActivateSelected = useCallback(() => {
-    if (rowSelection.size === 0 || !canCatalogWrite) return;
-    const ids = [...rowSelection];
-    const byId = new Map(listRows.map((r) => [r.id, r]));
-    showThemedConfirmToast({
-      id: "products-bulk-activate",
-      title: `Mark ${ids.length} item(s) as active?`,
-      description:
-        "Inactive items stop appearing at the till and storefront. Activating restores them everywhere.",
-      confirmLabel: "Activate",
-      confirmVariant: "default",
-      onConfirm: async () => {
-        setBulkActivateBusy(true);
-        setMessage("");
-        const failed: string[] = [];
-        for (const id of ids) {
-          try {
-            await patchItem(id, { active: true });
-          } catch {
-            failed.push(byId.get(id)?.name ?? id);
-          }
-        }
-        await refreshFullCatalog();
-        if (rowSelection.has(selectedId ?? "")) selectProduct(null);
-        setRowSelection(new Set());
-        setBulkActivateBusy(false);
-        setMessage(
-          failed.length === 0
-            ? `Activated ${ids.length} item(s).`
-            : `Partial success. Failed: ${failed.join(", ")}`,
-        );
-      },
-    });
+  const onActivateSelectedItem = useCallback(async () => {
+    if (!selectedId) return;
+    if (!canCatalogWrite) {
+      setMessage("You do not have permission to edit products.");
+      return;
+    }
+    setMessage("");
+    try {
+      await patchItem(selectedId, { active: true });
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
+      await refreshFullCatalog();
+      setMessage("Active. Cashiers can search for it now.");
+    } catch (err) {
+      setMessage(formatMutationError(err, "Could not activate this product."));
+    }
   }, [
-    rowSelection,
-    canCatalogWrite,
-    listRows,
     selectedId,
+    canCatalogWrite,
+    refreshSelectedDetail,
+    syncListRowFromDetail,
     refreshFullCatalog,
-    selectProduct,
-    setRowSelection,
     setMessage,
   ]);
+
+  const confirmBulkActivate = useCallback(
+    async (resolveIds: () => Promise<string[]>) => {
+      setBulkActivateBusy(true);
+      setMessage("");
+      try {
+        const ids = await resolveIds();
+        const byId = new Map(listRows.map((row) => [row.id, row]));
+        const failed = await patchItemsActive(
+          ids,
+          (id) => byId.get(id)?.name ?? id,
+        );
+        await refreshFullCatalog();
+        if (selectedId && ids.includes(selectedId)) {
+          await refreshSelectedDetail(selectedId);
+        }
+        const done = ids.length - failed.length;
+        setMessage(
+          failed.length === 0
+            ? `Activated ${done.toLocaleString()} ${done === 1 ? "product" : "products"}.`
+            : `Activated ${done.toLocaleString()}. Failed: ${failed.join(", ")}`,
+        );
+      } catch (err) {
+        setMessage(formatMutationError(err, "Could not activate these products."));
+      } finally {
+        setBulkActivateBusy(false);
+      }
+    },
+    [listRows, refreshFullCatalog, refreshSelectedDetail, selectedId, setMessage],
+  );
+
+  const onBulkActivateIds = useCallback(
+    (resolveIds: () => Promise<string[]>, count: number) => {
+      if (count <= 0 || !canCatalogWrite) return;
+      const label = count === 1 ? "product" : "products";
+      showThemedConfirmToast({
+        id: "products-bulk-activate",
+        title: `Activate ${count.toLocaleString()} ${label}?`,
+        description: "They will show up when cashiers search.",
+        confirmLabel: "Activate",
+        confirmVariant: "default",
+        onConfirm: () => confirmBulkActivate(resolveIds),
+      });
+    },
+    [canCatalogWrite, confirmBulkActivate],
+  );
 
   // ══════════════════════════════════════════════════════════════════════════
   // BULK STOCK ADJUST
@@ -2033,7 +2075,8 @@ export function useProductMutations(d: Dependencies) {
     onPatchItem,
     onDeleteItem,
     onBulkDeleteSelected,
-    onBulkActivateSelected,
+    onActivateSelectedItem,
+    onBulkActivateIds,
     onBulkAdjustStock,
     onAddVariant,
     onUploadCatalogImage,

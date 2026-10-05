@@ -15,6 +15,7 @@ import {
   Save,
   Search,
   Trash2,
+  UserCheck,
   UserPlus,
   Users as UsersIcon,
   UserX,
@@ -196,10 +197,12 @@ export type UsersTheatreProps = {
 
   signingOutId: string | null;
   deactivatingId: string | null;
+  reactivatingId: string | null;
   deletingId: string | null;
   onOpenProfile: (user: UserRecord) => void;
   onForceLogout: (userId: string, email: string) => void;
   onDeactivate: (userId: string) => void;
+  onReactivate: (userId: string) => void;
   onDelete: (userId: string, email: string) => void;
   onInvite: () => void;
 };
@@ -850,10 +853,12 @@ function UserInspectPanel({
     onClearPinView,
     signingOutId,
     deactivatingId,
+    reactivatingId,
     deletingId,
     onOpenProfile,
     onForceLogout,
     onDeactivate,
+    onReactivate,
     onDelete,
   } = props;
 
@@ -1318,7 +1323,16 @@ function UserInspectPanel({
                 ) : null}
               </>
             ) : null}
-            {canDeactivate ? (
+            {canDeactivate && user.status === "suspended" ? (
+              <ActionIconButton
+                icon={reactivatingId === user.id ? Loader2 : UserCheck}
+                label={`Reactivate ${user.email}`}
+                spinning={reactivatingId === user.id}
+                disabled={reactivatingId === user.id || deletingId === user.id}
+                onClick={() => onReactivate(user.id)}
+              />
+            ) : null}
+            {canDeactivate && user.status !== "suspended" ? (
               <ActionIconButton
                 icon={deactivatingId === user.id ? Loader2 : UserX}
                 label={`Deactivate ${user.email}`}
@@ -1336,7 +1350,11 @@ function UserInspectPanel({
                 label={`Delete ${user.email}`}
                 tone="danger"
                 spinning={deletingId === user.id}
-                disabled={deletingId === user.id || deactivatingId === user.id}
+                disabled={
+                  deletingId === user.id ||
+                  deactivatingId === user.id ||
+                  reactivatingId === user.id
+                }
                 onClick={() => onDelete(user.id, user.email)}
               />
             ) : null}

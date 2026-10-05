@@ -25,6 +25,7 @@ import {
   createUser,
   deactivateUser,
   deleteUser,
+  reactivateUser,
   fetchBranches,
   fetchRoles,
   fetchStaffProfiles,
@@ -93,6 +94,7 @@ export default function UsersPage() {
   const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [signingOutId, setSigningOutId] = useState<string | null>(null);
   const [branchChange, setBranchChange] = useState<Record<string, string>>({});
@@ -381,6 +383,33 @@ export default function UsersPage() {
           });
         } finally {
           setDeactivatingId(null);
+        }
+      },
+    });
+  };
+
+  const onReactivate = (userId: string) => {
+    showThemedConfirmToast({
+      id: `reactivate-user-${userId}`,
+      title: "Reactivate this user?",
+      description:
+        "They can sign in again. This uses a plan seat.",
+      confirmLabel: "Reactivate",
+      onConfirm: async () => {
+        setReactivatingId(userId);
+        setFeedback(null);
+        try {
+          await reactivateUser(userId);
+          await loadData();
+          await refreshSession();
+          setFeedback({ kind: "success", text: "User reactivated." });
+        } catch (error) {
+          setFeedback({
+            kind: "error",
+            text: error instanceof Error ? error.message : "Reactivate failed.",
+          });
+        } finally {
+          setReactivatingId(null);
         }
       },
     });
@@ -900,6 +929,7 @@ export default function UsersPage() {
           onClearPinView={clearPinView}
           signingOutId={signingOutId}
           deactivatingId={deactivatingId}
+          reactivatingId={reactivatingId}
           deletingId={deletingId}
           onOpenProfile={(user) => {
             setProfileUserId(user.id);
@@ -907,6 +937,7 @@ export default function UsersPage() {
           }}
           onForceLogout={onForceLogout}
           onDeactivate={onDeactivate}
+          onReactivate={onReactivate}
           onDelete={onDelete}
           onInvite={() => {
             skipInviteDrawerResetAfterCreate.current = false;

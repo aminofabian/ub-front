@@ -47,6 +47,7 @@ type Props = {
   onBulkChangeDepartment?: () => void;
   onBulkChangeAisle?: () => void;
   onBulkActivate?: () => void;
+  onActivateAllMatching?: () => void;
   onBulkAdjustStock?: () => void;
   onBulkRegroup?: () => void;
   onBulkEditPrices?: () => void;
@@ -85,6 +86,7 @@ export function CatalogListColumn({
   onBulkChangeDepartment,
   onBulkChangeAisle,
   onBulkActivate,
+  onActivateAllMatching,
   onBulkAdjustStock,
   onBulkRegroup,
   onBulkEditPrices,
@@ -216,6 +218,31 @@ export function CatalogListColumn({
         onStatus={catalog.setPriceStatus}
         onSelectAll={catalog.selectAllMatching}
       />
+      {catalog.filterInactiveOnly &&
+      canCatalogWrite &&
+      onActivateAllMatching &&
+      !catalog.listLoadingInitial &&
+      catalog.listTotalElements > 0 ? (
+        <div className={catalogListToolbarClass}>
+          <span className="text-xs font-medium text-destructive">
+            {catalog.listTotalElements.toLocaleString()} hidden from the till
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 gap-1 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
+            disabled={selectionBusy}
+            onClick={onActivateAllMatching}
+          >
+            {bulkActivateBusy ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Power className="size-3.5" aria-hidden />
+            )}
+            Activate all
+          </Button>
+        </div>
+      ) : null}
       {hasSelection ? (
         <div
           className={cn(
@@ -245,6 +272,23 @@ export function CatalogListColumn({
                   : `Select all ${catalog.listTotalElements.toLocaleString()}`}
               </Button>
             ) : null}
+            {canCatalogWrite && onBulkActivate ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1 rounded-none border px-2 text-xs"
+                disabled={selectionBusy}
+                onClick={onBulkActivate}
+              >
+                {bulkActivateBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Power className="size-3.5" aria-hidden />
+                )}
+                Activate
+              </Button>
+            ) : null}
             {canCatalogWrite && onBulkEditPrices ? (
               <Button
                 type="button"
@@ -272,24 +316,6 @@ export function CatalogListColumn({
                 )}
                 <span className="sm:hidden">Family</span>
                 <span className="hidden sm:inline">{bulkRegroupLabel}</span>
-              </Button>
-            ) : null}
-            {!catalog.matchAll && canCatalogWrite && onBulkActivate ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 gap-1 border px-2 text-xs"
-                disabled={selectionBusy}
-                onClick={onBulkActivate}
-              >
-                {bulkActivateBusy ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                ) : (
-                  <Power className="size-3.5" aria-hidden />
-                )}
-                <span className="sm:hidden">Active</span>
-                <span className="hidden sm:inline">Mark active</span>
               </Button>
             ) : null}
             {!catalog.matchAll && canInventoryWrite && onBulkAdjustStock ? (

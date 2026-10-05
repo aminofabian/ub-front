@@ -4559,6 +4559,11 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
+/** Restores a suspended user to active so they can sign in again. */
+export async function reactivateUser(userId: string): Promise<void> {
+  await request(`${API_ROUTES.users}/${userId}/reactivate`, { method: "POST" });
+}
+
 /**
  * Soft-deletes a user (removed from directory and payroll). Owner/admin
  * accounts are rejected by the API.

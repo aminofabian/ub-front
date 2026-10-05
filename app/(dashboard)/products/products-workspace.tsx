@@ -527,6 +527,9 @@ export function ProductsWorkspace() {
     onToggleWeighed: canCatalogWrite
       ? () => void m.onToggleWeighed()
       : undefined,
+    onActivateItem: canCatalogWrite
+      ? () => m.onActivateSelectedItem()
+      : undefined,
     weighedBusy: m.weighedBusy,
     polishCategories: catalog.sortedCategories,
     polishItemTypes: catalog.itemTypes,
@@ -722,7 +725,29 @@ export function ProductsWorkspace() {
                     bulkActivateBusy={m.bulkActivateBusy}
                     onBulkDelete={m.onBulkDeleteSelected}
                     onBulkActivate={
-                      canCatalogWrite ? m.onBulkActivateSelected : undefined
+                      canCatalogWrite
+                        ? () => {
+                            const count = catalog.selectedCount;
+                            const matchAll = catalog.matchAll;
+                            const selected = [...catalog.rowSelection];
+                            m.onBulkActivateIds(
+                              () =>
+                                matchAll
+                                  ? catalog.collectMatchingItemIds(true)
+                                  : Promise.resolve(selected),
+                              count,
+                            );
+                          }
+                        : undefined
+                    }
+                    onActivateAllMatching={
+                      canCatalogWrite
+                        ? () =>
+                            m.onBulkActivateIds(
+                              () => catalog.collectMatchingItemIds(false),
+                              catalog.listTotalElements,
+                            )
+                        : undefined
                     }
                     onBulkAdjustStock={
                       canInventoryWrite

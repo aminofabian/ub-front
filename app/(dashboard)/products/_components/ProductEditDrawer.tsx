@@ -155,7 +155,7 @@ export function ProductEditDrawer({
       package: true,
       pricing: true,
       inventory: true,
-      visibility: true,
+      visibility: false,
       media: false,
     },
   );
@@ -174,12 +174,13 @@ export function ProductEditDrawer({
       package: isVariant,
       pricing: true,
       inventory: sharedStock || d.isStocked === false,
-      visibility: false,
+      visibility: d.active === false,
       media: false,
     });
   }, [
     open,
     d?.id,
+    d?.active,
     d?.buyingPrice,
     d?.isStocked,
     headerBranchId,
@@ -458,6 +459,75 @@ export function ProductEditDrawer({
               </Button>
             ) : null}
           </div>
+
+          <ProductFormSectionToggle
+            icon={Settings2}
+            label="On till & online"
+            hint="Cashiers and the online shop"
+            expanded={openSections.visibility}
+            onToggle={() => toggleSection("visibility")}
+          />
+          {openSections.visibility ? (
+            <div className={cn(productFormSectionBodyClass, "space-y-2")}>
+              <label className={productFormToggleCardClass}>
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 rounded-none border-input"
+                  checked={dr.active ?? true}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      active: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="text-sm font-medium text-foreground">
+                  Active
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Cashiers can search and sell it. Off hides it from the till.
+                </span>
+              </label>
+              <label className={productFormToggleCardClass}>
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 rounded-none border-input"
+                  checked={dr.webPublished ?? true}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      webPublished: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="text-sm font-medium text-foreground">
+                  Show on online shop
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Listed on your public storefront when published.
+                </span>
+              </label>
+              <label className={productFormToggleCardClass}>
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 rounded-none border-input"
+                  checked={dr.isClearance === true}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      isClearance: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="text-sm font-medium text-foreground">
+                  Clearance (allow below cost)
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  Margin Guard approve/hard will not block selling under cost.
+                </span>
+              </label>
+            </div>
+          ) : null}
 
           <ProductFormSectionToggle
             icon={FileText}
@@ -940,75 +1010,6 @@ export function ProductEditDrawer({
                   )}
                 </>
               )}
-            </div>
-          ) : null}
-
-          <ProductFormSectionToggle
-            icon={Settings2}
-            label="On till & online"
-            hint="Can cashiers sell it? Show in the shop?"
-            expanded={openSections.visibility}
-            onToggle={() => toggleSection("visibility")}
-          />
-          {openSections.visibility ? (
-            <div className={cn(productFormSectionBodyClass, "space-y-2")}>
-              <label className={productFormToggleCardClass}>
-                <input
-                  type="checkbox"
-                  className="size-4 shrink-0 rounded-none border-input"
-                  checked={dr.active ?? true}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      active: e.target.checked,
-                    }))
-                  }
-                />
-                <span className="text-sm font-medium text-foreground">
-                  Active
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Inactive SKUs are hidden from sale flows.
-                </span>
-              </label>
-              <label className={productFormToggleCardClass}>
-                <input
-                  type="checkbox"
-                  className="size-4 shrink-0 rounded-none border-input"
-                  checked={dr.webPublished ?? true}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      webPublished: e.target.checked,
-                    }))
-                  }
-                />
-                <span className="text-sm font-medium text-foreground">
-                  Show on online shop
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Listed on your public storefront when published.
-                </span>
-              </label>
-              <label className={productFormToggleCardClass}>
-                <input
-                  type="checkbox"
-                  className="size-4 shrink-0 rounded-none border-input"
-                  checked={dr.isClearance === true}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      isClearance: e.target.checked,
-                    }))
-                  }
-                />
-                <span className="text-sm font-medium text-foreground">
-                  Clearance (allow below cost)
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Margin Guard approve/hard will not block selling under cost.
-                </span>
-              </label>
             </div>
           ) : null}
 

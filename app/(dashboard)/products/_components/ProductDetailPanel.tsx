@@ -19,6 +19,7 @@ import {
   PackagePlus,
   Pencil,
   PencilLine,
+  Power,
   Save,
   Scale,
   Sparkles,
@@ -198,6 +199,8 @@ type Props = {
   showMobileStickyActions?: boolean;
   /** Full-screen mobile app layout: tighter hero, no inline action strip. */
   mobileAppLayout?: boolean;
+  /** One-click restore so cashiers can search this SKU. */
+  onActivateItem?: () => Promise<void>;
   /** When provided, the panel shows a "Polish with AI" quick action. */
   polishCategories?: CategoryRecord[];
   polishItemTypes?: ItemTypeRecord[];
@@ -284,6 +287,35 @@ function PackSaleEquation({
   );
 }
 
+function InactiveTillNotice({
+  busy,
+  onActivate,
+}: {
+  busy: boolean;
+  onActivate: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border bg-[color-mix(in_srgb,var(--destructive)_12%,var(--background))] px-2.5 py-2">
+      <p className="min-w-0 text-[12px] font-medium leading-snug text-destructive">
+        Hidden from the till. Cashiers can&apos;t find it in search.
+      </p>
+      <button
+        type="button"
+        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2.5 text-[11px] font-semibold tracking-tight text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--catalog-primary,#0f766e)] focus-visible:ring-offset-2 disabled:opacity-60"
+        disabled={busy}
+        onClick={onActivate}
+      >
+        {busy ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        ) : (
+          <Power className="size-3.5" aria-hidden />
+        )}
+        Activate
+      </button>
+    </div>
+  );
+}
+
 export function ProductDetailPanel(props: Props) {
   const {
     detail,
@@ -364,6 +396,7 @@ export function ProductDetailPanel(props: Props) {
     onToggleFeatured,
     onToggleWeighed,
     weighedBusy = false,
+    onActivateItem,
     showMobileStickyActions = true,
     mobileAppLayout = false,
     polishCategories,
@@ -372,6 +405,7 @@ export function ProductDetailPanel(props: Props) {
     onProductPolished,
   } = props;
 
+  const [activating, setActivating] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [polishOpen, setPolishOpen] = useState(false);
@@ -842,6 +876,17 @@ export function ProductDetailPanel(props: Props) {
           </div>
         </div>
       </div>
+
+      {detail.active === false && canCatalogWrite && onActivateItem ? (
+        <InactiveTillNotice
+          busy={activating}
+          onActivate={() => {
+            if (activating) return;
+            setActivating(true);
+            void onActivateItem().finally(() => setActivating(false));
+          }}
+        />
+      ) : null}
 
       {/* Quick actions */}
       {!mobileAppLayout ? (

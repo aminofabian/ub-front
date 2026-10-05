@@ -39,6 +39,9 @@ const DISPLAY_TYPE_TO_API: Record<CatalogListDisplayType, CatalogRowType> = {
   standalone: "STANDALONE",
 };
 
+const MATCHING_IDS_PAGE_SIZE = 200;
+const MATCHING_IDS_MAX_PAGES = 250;
+
 function catalogRowTypesForApi(
   filter: ReadonlySet<CatalogListDisplayType>,
 ): CatalogRowType[] | null | undefined {
@@ -650,6 +653,32 @@ export function useCatalogList(
     setRowSelection(new Set(catalogRowsRef.current.map((row) => row.id)));
   }, []);
 
+  const collectMatchingItemIds = useCallback(
+    async (respectExclusions: boolean) => {
+      const rowTypes = catalogRowTypesForApi(rowTypeFilter);
+      if (rowTypes === null) return [];
+      const ids: string[] = [];
+      let pageIndex = 0;
+      let last = false;
+      while (!last && pageIndex < MATCHING_IDS_MAX_PAGES) {
+        const page = await fetchItemsPage(debouncedSearch || undefined, {
+          ...listFetchOpts,
+          catalogRowTypes: rowTypes,
+          page: pageIndex,
+          size: MATCHING_IDS_PAGE_SIZE,
+        });
+        for (const row of page.content) {
+          if (respectExclusions && excludedRef.current.has(row.id)) continue;
+          ids.push(row.id);
+        }
+        last = page.last;
+        pageIndex += 1;
+      }
+      return ids;
+    },
+    [debouncedSearch, listFetchOpts, rowTypeFilter],
+  );
+
   const selectedCount = matchAll
     ? Math.max(0, listTotalElements - excludedIds.size)
     : rowSelection.size;
@@ -809,6 +838,7 @@ export function useCatalogList(
     selectedCount,
     selectLoadedPage,
     selectAllMatching,
+    collectMatchingItemIds,
     clearRowSelection,
     bulkPriceTarget,
     commitListBuyingPrice,
