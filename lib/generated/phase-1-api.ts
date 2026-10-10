@@ -10740,6 +10740,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admin/platform/crm-webhook-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_45"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admin/payments/tenant-methods": {
         parameters: {
             query?: never;
@@ -10763,7 +10779,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_45"];
+        get: operations["list_46"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10859,7 +10875,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_46"];
+        get: operations["list_47"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10907,7 +10923,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_47"];
+        get: operations["list_48"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11083,7 +11099,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_48"];
+        get: operations["list_49"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11115,7 +11131,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_49"];
+        get: operations["list_50"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11147,7 +11163,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_50"];
+        get: operations["list_51"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12011,7 +12027,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_51"];
+        get: operations["list_52"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13389,7 +13405,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_52"];
+        get: operations["list_53"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13437,7 +13453,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_53"];
+        get: operations["list_54"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13709,7 +13725,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_54"];
+        get: operations["list_55"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14045,7 +14061,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_55"];
+        get: operations["list_56"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14845,7 +14861,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_56"];
+        get: operations["list_57"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14909,7 +14925,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_57"];
+        get: operations["list_58"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14973,7 +14989,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_58"];
+        get: operations["list_59"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15133,7 +15149,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_59"];
+        get: operations["list_60"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24125,6 +24141,18 @@ export interface components {
             sizeBytes?: number;
             /** Format: date-time */
             uploadedAt?: string;
+        };
+        EventRow: {
+            id?: string;
+            wamid?: string;
+            phoneNumberId?: string;
+            businessId?: string;
+            businessName?: string;
+            /** Format: date-time */
+            processedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            rawPreview?: string;
         };
         TenantPaymentMethodRow: {
             configId?: string;
@@ -47878,6 +47906,29 @@ export interface operations {
             };
         };
     };
+    list_45: {
+        parameters: {
+            query?: {
+                limit?: number;
+                unroutedOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EventRow"][];
+                };
+            };
+        };
+    };
     overview_1: {
         parameters: {
             query?: never;
@@ -47898,7 +47949,7 @@ export interface operations {
             };
         };
     };
-    list_45: {
+    list_46: {
         parameters: {
             query?: {
                 status?: string;
@@ -48027,7 +48078,7 @@ export interface operations {
             };
         };
     };
-    list_46: {
+    list_47: {
         parameters: {
             query?: {
                 businessId?: string;
@@ -48094,7 +48145,7 @@ export interface operations {
             };
         };
     };
-    list_47: {
+    list_48: {
         parameters: {
             query?: {
                 limit?: number;
@@ -48340,7 +48391,7 @@ export interface operations {
             };
         };
     };
-    list_48: {
+    list_49: {
         parameters: {
             query?: {
                 limit?: number;
@@ -48382,7 +48433,7 @@ export interface operations {
             };
         };
     };
-    list_49: {
+    list_50: {
         parameters: {
             query?: {
                 limit?: number;
@@ -48428,7 +48479,7 @@ export interface operations {
             };
         };
     };
-    list_50: {
+    list_51: {
         parameters: {
             query: {
                 pageable: components["schemas"]["Pageable"];
@@ -49691,7 +49742,7 @@ export interface operations {
             };
         };
     };
-    list_51: {
+    list_52: {
         parameters: {
             query?: {
                 branchId?: string;
@@ -51634,7 +51685,7 @@ export interface operations {
             };
         };
     };
-    list_52: {
+    list_53: {
         parameters: {
             query?: never;
             header?: never;
@@ -51699,7 +51750,7 @@ export interface operations {
             };
         };
     };
-    list_53: {
+    list_54: {
         parameters: {
             query?: {
                 limit?: number;
@@ -52106,7 +52157,7 @@ export interface operations {
             };
         };
     };
-    list_54: {
+    list_55: {
         parameters: {
             query?: {
                 branchId?: string;
@@ -52625,7 +52676,7 @@ export interface operations {
             };
         };
     };
-    list_55: {
+    list_56: {
         parameters: {
             query?: {
                 branchId?: string;
@@ -53750,7 +53801,7 @@ export interface operations {
             };
         };
     };
-    list_56: {
+    list_57: {
         parameters: {
             query?: {
                 status?: string;
@@ -53842,7 +53893,7 @@ export interface operations {
             };
         };
     };
-    list_57: {
+    list_58: {
         parameters: {
             query?: never;
             header?: never;
@@ -53927,7 +53978,7 @@ export interface operations {
             };
         };
     };
-    list_58: {
+    list_59: {
         parameters: {
             query: {
                 pageable: components["schemas"]["Pageable"];
@@ -54139,7 +54190,7 @@ export interface operations {
             };
         };
     };
-    list_59: {
+    list_60: {
         parameters: {
             query: {
                 filter: components["schemas"]["AuditEventFilterRequest"];

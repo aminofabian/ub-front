@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   fetchAllSaBusinesses,
   fetchPlatformIntegrations,
+  fetchSaCrmWebhookEvents,
   fetchSaWhatsAppNumbers,
   fetchSaWhatsAppSettings,
   routeSaWhatsAppNumber,
@@ -23,6 +24,7 @@ import {
   updateSaWhatsAppSettings,
   type PlatformIntegrationsRecord,
   type SaBusinessRow,
+  type SaCrmWebhookEventRow,
   type SaWhatsAppNumberRow,
   type SaWhatsAppNumbersResponse,
   type SaWhatsAppSettings,
@@ -52,6 +54,9 @@ export default function SuperAdminWhatsAppNumbersPage() {
   const [businessId, setBusinessId] = useState("");
   const [displayNumber, setDisplayNumber] = useState("");
   const [label, setLabel] = useState("");
+  const [events, setEvents] = useState<SaCrmWebhookEventRow[]>([]);
+  const [eventsBusy, setEventsBusy] = useState(false);
+  const [eventsUnroutedOnly, setEventsUnroutedOnly] = useState(false);
 
   const load = useCallback(async () => {
     setBooting(true);
@@ -182,6 +187,26 @@ export default function SuperAdminWhatsAppNumbersPage() {
       setBusy(false);
     }
   };
+
+  const loadEvents = useCallback(async () => {
+    setEventsBusy(true);
+    try {
+      setEvents(
+        await fetchSaCrmWebhookEvents({
+          limit: 60,
+          unroutedOnly: eventsUnroutedOnly,
+        }),
+      );
+    } catch {
+      // surfaced by the api layer
+    } finally {
+      setEventsBusy(false);
+    }
+  }, [eventsUnroutedOnly]);
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const rows = data?.numbers ?? [];
 
@@ -525,6 +550,86 @@ export default function SuperAdminWhatsAppNumbersPage() {
                 )}
               </tbody>
             </table>
+          </section>
+
+          <section className={cn("border bg-white p-3", HAIRLINE)}>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h2 className="text-[13px] font-semibold">Recent inbound webhooks</h2>
+              <Button
+                type="button"
+                variant={eventsUnroutedOnly ? "default" : "ghost"}
+                size="sm"
+                className="h-7 rounded-none"
+                disabled={eventsBusy}
+                onClick={() => setEventsUnroutedOnly((v) => !v)}
+              >
+                Unrouted only: {eventsUnroutedOnly ? "on" : "off"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 rounded-none"
+                disabled={eventsBusy}
+                onClick={() => void loadEvents()}
+              >
+                {eventsBusy ? (
+                  <Loader2 className="mr-1 size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1 size-3.5" />
+                )}
+                Refresh
+              </Button>
+            </div>
+            <p className={dashboardHintClass()}>
+              Raw Meta envelopes. Rows marked <b>unrouted</b> have no shop — the
+              message never reaches an inbox. Copy the phone number ID into
+              “Route a number to a shop” above to fix.
+            </p>
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <th className="px-2 py-1.5">When</th>
+                    <th className="px-2 py-1.5">Phone number ID</th>
+                    <th className="px-2 py-1.5">Shop</th>
+                    <th className="px-2 py-1.5">wamid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.length === 0 ? (
+                    <tr>
+                      <td className="px-2 py-3 text-muted-foreground" colSpan={4}>
+                        {eventsUnroutedOnly
+                          ? "No unrouted webhooks."
+                          : "No inbound webhooks yet."}
+                      </td>
+                    </tr>
+                  ) : (
+                    events.map((e) => (
+                      <tr key={e.id} className="border-b last:border-0">
+                        <td className="whitespace-nowrap px-2 py-1.5">
+                          {e.createdAt ? new Date(e.createdAt).toLocaleString() : "—"}
+                        </td>
+                        <td className="px-2 py-1.5 font-mono">
+                          {e.phoneNumberId ?? "—"}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {e.businessId ? (
+                            e.businessName ?? e.businessId
+                          ) : (
+                            <span className="text-amber-800">unrouted</span>
+                          )}
+                        </td>
+                        <td className="max-w-[16rem] truncate px-2 py-1.5 font-mono text-[11px]">
+                          {e.wamid ?? "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
         </>
       )}

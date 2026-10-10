@@ -1268,6 +1268,34 @@ export async function fetchPlatformRequestLogSummary(
   );
 }
 
+export type SaCrmWebhookEventRow = {
+  id: string;
+  wamid: string | null;
+  phoneNumberId: string | null;
+  businessId: string | null;
+  businessName: string | null;
+  processedAt: string | null;
+  createdAt: string | null;
+  rawPreview: string | null;
+};
+
+/**
+ * Raw inbound WhatsApp envelopes. Rows with no `businessId` are unrouted — the message never
+ * reaches a merchant inbox until the phone number ID is routed to a shop.
+ */
+export async function fetchSaCrmWebhookEvents(opts?: {
+  limit?: number;
+  unroutedOnly?: boolean;
+}): Promise<SaCrmWebhookEventRow[]> {
+  const params = new URLSearchParams();
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.unroutedOnly) params.set("unroutedOnly", "true");
+  const qs = params.toString();
+  return saRequest<SaCrmWebhookEventRow[]>(
+    `${API_ROUTES.superAdminCrmWebhookEvents}${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export async function requerySaAirtimeOrder(orderId: string): Promise<SaAirtimeOrderRow> {
   return saRequest<SaAirtimeOrderRow>(
     `${API_ROUTES.superAdminAirtime}/orders/${encodeURIComponent(orderId)}/requery`,

@@ -350,6 +350,7 @@ export const API_ROUTES = {
   superAdminGlobalCatalog: "/api/v1/super-admin/global-catalog",
   superAdminPlatformDesktopLogs: "/api/v1/super-admin/platform/desktop-logs",
   superAdminPlatformRequestLogs: "/api/v1/super-admin/platform/request-logs",
+  superAdminCrmWebhookEvents: "/api/v1/super-admin/platform/crm-webhook-events",
   superAdminPlatformDesktopLicenses: "/api/v1/super-admin/desktop-licenses",
   superAdminPlatformDesktopInstalls: "/api/v1/super-admin/desktop-installs",
   superAdminLoadTest: "/api/v1/super-admin/load-test",
