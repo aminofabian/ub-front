@@ -1575,6 +1575,23 @@ export async function deletePlatformWhatsAppAppSecret(id: string): Promise<void>
   );
 }
 
+export type ProvisionMetaWhatsAppResult = {
+  ok: boolean;
+  wabaId: string | null;
+  steps: string[];
+};
+
+/**
+ * Subscribe the platform app to the WABA (so inbound webhooks arrive) and register the platform
+ * number when a registration PIN is configured. Idempotent.
+ */
+export async function provisionMetaWhatsApp(): Promise<ProvisionMetaWhatsAppResult> {
+  return saRequest<ProvisionMetaWhatsAppResult>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/meta-whatsapp/provision`,
+    { method: "POST" },
+  );
+}
+
 export type MediaUploadProvider = "cloudinary" | "r2";
 
 export type MediaStorageSettingsRecord = {
