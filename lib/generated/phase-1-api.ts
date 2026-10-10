@@ -17747,12 +17747,20 @@ export interface components {
         VerifyMetaWhatsAppAppSecretRequest: {
             candidateAppSecret?: string;
         };
+        SubscribedApp: {
+            id?: string;
+            name?: string;
+        };
         VerifyMetaWhatsAppAppSecretResponse: {
             verified?: boolean;
             status?: string;
             usedCandidate?: boolean;
             configuredSecretPresent?: boolean;
+            configuredSecretFingerprint?: string;
             detail?: string;
+            wabaId?: string;
+            wabaName?: string;
+            subscribedApps?: components["schemas"]["SubscribedApp"][];
         };
         DomainOrderResponse: {
             id?: string;
@@ -23411,8 +23419,8 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
         };
         SortObject: {
-            sorted?: boolean;
             unsorted?: boolean;
+            sorted?: boolean;
             empty?: boolean;
         };
         PageUserResponse: {

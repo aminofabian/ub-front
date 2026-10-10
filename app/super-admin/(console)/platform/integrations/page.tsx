@@ -198,6 +198,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [appSecretCheck, setAppSecretCheck] = useState<{
     ok: boolean;
     message: string;
+    fingerprint: string | null;
+    subscribedApps: { id: string | null; name: string | null }[];
   } | null>(null);
 
   const applySettings = useCallback((row: PlatformIntegrationsRecord) => {
@@ -380,11 +382,15 @@ export default function SuperAdminPlatformIntegrationsPage() {
             ? "That app secret is valid for the platform app."
             : "Stored app secret is valid for the platform app."
           : result.detail,
+        fingerprint: result.configuredSecretFingerprint,
+        subscribedApps: result.subscribedApps ?? [],
       });
     } catch (err) {
       setAppSecretCheck({
         ok: false,
         message: err instanceof Error ? err.message : "Verification failed.",
+        fingerprint: null,
+        subscribedApps: [],
       });
     } finally {
       setVerifyingAppSecret(false);
@@ -830,6 +836,28 @@ export default function SuperAdminPlatformIntegrationsPage() {
                 </span>
               ) : null}
             </div>
+            {appSecretCheck &&
+            (appSecretCheck.fingerprint ||
+              appSecretCheck.subscribedApps.length > 0) ? (
+              <div className="space-y-0.5">
+                {appSecretCheck.fingerprint ? (
+                  <p className={dashboardHintClass()}>
+                    Stored secret ends {appSecretCheck.fingerprint}. Compare it with
+                    Meta → App Settings → Basic → App secret.
+                  </p>
+                ) : null}
+                {appSecretCheck.subscribedApps.length > 0 ? (
+                  <p className={dashboardHintClass()}>
+                    Apps subscribed to this WABA:{" "}
+                    {appSecretCheck.subscribedApps
+                      .map((app) => `${app.name ?? "unnamed"} (${app.id ?? "?"})`)
+                      .join(", ")}
+                    . Every subscribed app secret must match, or remove the extra
+                    subscription.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <p className={dashboardHintClass()}>
               Asks Meta to validate the secret against the platform access token
               (appsecret_proof) — the same secret that signs

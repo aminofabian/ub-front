@@ -1513,7 +1513,11 @@ export type VerifyMetaWhatsAppAppSecretResult = {
   status: "VALID" | "INVALID" | "UNCONFIGURED" | "ERROR";
   usedCandidate: boolean;
   configuredSecretPresent: boolean;
+  configuredSecretFingerprint: string | null;
   detail: string;
+  wabaId: string | null;
+  wabaName: string | null;
+  subscribedApps: { id: string | null; name: string | null }[];
 };
 
 /**
