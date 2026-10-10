@@ -1173,6 +1173,7 @@ export type PlatformRequestLogCategory =
   | "MPESA"
   | "AIRTIME"
   | "KPLC"
+  | "WHATSAPP"
   | "OTHER";
 
 export type PlatformRequestLogRow = {
@@ -1505,6 +1506,32 @@ export async function updatePlatformIntegrations(
     method: "PUT",
     body: JSON.stringify(body),
   });
+}
+
+export type VerifyMetaWhatsAppAppSecretResult = {
+  verified: boolean;
+  status: "VALID" | "INVALID" | "UNCONFIGURED" | "ERROR";
+  usedCandidate: boolean;
+  configuredSecretPresent: boolean;
+  detail: string;
+};
+
+/**
+ * Ask Meta to validate the app secret against the platform access token
+ * (`appsecret_proof`). Pass `candidateAppSecret` to test a value before saving it,
+ * otherwise the stored secret is checked. Catches a wrong secret here instead of
+ * as 403s on `/webhooks/whatsapp`.
+ */
+export async function verifyMetaWhatsAppAppSecret(
+  candidateAppSecret?: string,
+): Promise<VerifyMetaWhatsAppAppSecretResult> {
+  return saRequest<VerifyMetaWhatsAppAppSecretResult>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/meta-whatsapp/verify-app-secret`,
+    {
+      method: "POST",
+      body: JSON.stringify({ candidateAppSecret: candidateAppSecret ?? null }),
+    },
+  );
 }
 
 export type MediaUploadProvider = "cloudinary" | "r2";

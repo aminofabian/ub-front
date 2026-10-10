@@ -100,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admin/platform/integrations/meta-whatsapp/verify-app-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verifyMetaAppSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admin/platform/domains": {
         parameters: {
             query?: never;
@@ -14743,6 +14759,16 @@ export interface components {
         TiersResponse: {
             tiers?: components["schemas"]["TierAllowanceResponse"][];
         };
+        VerifyMetaWhatsAppAppSecretRequest: {
+            candidateAppSecret?: string;
+        };
+        VerifyMetaWhatsAppAppSecretResponse: {
+            verified?: boolean;
+            status?: string;
+            usedCandidate?: boolean;
+            configuredSecretPresent?: boolean;
+            detail?: string;
+        };
         UpdatePlatformIntegrationsRequest: {
             deepseekApiKey?: string;
             deepseekHost?: string;
@@ -22279,7 +22305,7 @@ export interface components {
             method?: string;
             path?: string;
             /** @enum {string} */
-            category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "OTHER";
+            category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "WHATSAPP" | "OTHER";
             businessId?: string;
             businessName?: string;
             userId?: string;
@@ -22303,7 +22329,7 @@ export interface components {
         };
         CategorySummary: {
             /** @enum {string} */
-            category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "OTHER";
+            category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "WHATSAPP" | "OTHER";
             /** Format: int64 */
             total?: number;
             /** Format: int64 */
@@ -26439,6 +26465,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PlatformIntegrationsResponse"];
+                };
+            };
+        };
+    };
+    verifyMetaAppSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VerifyMetaWhatsAppAppSecretRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VerifyMetaWhatsAppAppSecretResponse"];
                 };
             };
         };
@@ -44307,7 +44357,7 @@ export interface operations {
     list_36: {
         parameters: {
             query?: {
-                category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "OTHER";
+                category?: "CASHIER" | "MPESA" | "AIRTIME" | "KPLC" | "WHATSAPP" | "OTHER";
                 success?: boolean;
                 sinceMinutes?: number;
                 ip?: string;
@@ -45653,7 +45703,6 @@ export interface operations {
                 from?: string;
                 to?: string;
                 branchId?: string;
-                itemTypeId?: string;
             };
             header?: never;
             path?: never;

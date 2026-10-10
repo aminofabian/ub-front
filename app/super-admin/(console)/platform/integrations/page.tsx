@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   fetchPlatformIntegrations,
   updatePlatformIntegrations,
+  verifyMetaWhatsAppAppSecret,
   type PlatformIntegrationsRecord,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
@@ -193,6 +194,11 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [verifyingAppSecret, setVerifyingAppSecret] = useState(false);
+  const [appSecretCheck, setAppSecretCheck] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const applySettings = useCallback((row: PlatformIntegrationsRecord) => {
     setSettings(row);
@@ -359,6 +365,30 @@ export default function SuperAdminPlatformIntegrationsPage() {
         }
       },
     });
+  };
+
+  const verifyAppSecret = async () => {
+    setVerifyingAppSecret(true);
+    setAppSecretCheck(null);
+    try {
+      const candidate = whatsappMetaAppSecret.trim();
+      const result = await verifyMetaWhatsAppAppSecret(candidate || undefined);
+      setAppSecretCheck({
+        ok: result.verified,
+        message: result.verified
+          ? result.usedCandidate
+            ? "That app secret is valid for the platform app."
+            : "Stored app secret is valid for the platform app."
+          : result.detail,
+      });
+    } catch (err) {
+      setAppSecretCheck({
+        ok: false,
+        message: err instanceof Error ? err.message : "Verification failed.",
+      });
+    } finally {
+      setVerifyingAppSecret(false);
+    }
   };
 
   const keysReady = [
@@ -776,6 +806,38 @@ export default function SuperAdminPlatformIntegrationsPage() {
                 }
               />
             ) : null}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-none"
+                disabled={busy || verifyingAppSecret}
+                onClick={() => void verifyAppSecret()}
+              >
+                {verifyingAppSecret ? "Verifying…" : "Verify app secret"}
+              </Button>
+              {appSecretCheck ? (
+                <span
+                  className={cn(
+                    "text-[11px] font-medium",
+                    appSecretCheck.ok
+                      ? "text-[var(--pos-primary,#0f766e)]"
+                      : "text-[#9a2e16]",
+                  )}
+                >
+                  {appSecretCheck.message}
+                </span>
+              ) : null}
+            </div>
+            <p className={dashboardHintClass()}>
+              Asks Meta to validate the secret against the platform access token
+              (appsecret_proof) — the same secret that signs
+              {" "}
+              <code className="font-mono text-[10px]">X-Hub-Signature-256</code>.
+              Checks the value above if you typed one, otherwise the stored
+              secret. Needs the access token and phone number ID saved.
+            </p>
           </Field>
           <p className={dashboardHintClass()}>
             Callback URL:{" "}

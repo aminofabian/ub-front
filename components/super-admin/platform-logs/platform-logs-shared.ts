@@ -1,7 +1,8 @@
 import {
   Layers,
-  Signal,
+  MessageCircle,
   ShoppingCart,
+  Signal,
   Smartphone,
   Zap,
   type LucideIcon,
@@ -14,6 +15,7 @@ export const CATEGORY_LABELS: Record<PlatformRequestLogCategory, string> = {
   MPESA: "M-Pesa",
   AIRTIME: "Airtime",
   KPLC: "KPLC tokens",
+  WHATSAPP: "WhatsApp",
   OTHER: "Other",
 };
 
@@ -22,6 +24,7 @@ export const CATEGORY_ORDER: PlatformRequestLogCategory[] = [
   "MPESA",
   "AIRTIME",
   "KPLC",
+  "WHATSAPP",
   "OTHER",
 ];
 
@@ -30,6 +33,7 @@ export const CATEGORY_ICONS: Record<PlatformRequestLogCategory, LucideIcon> = {
   MPESA: Smartphone,
   AIRTIME: Signal,
   KPLC: Zap,
+  WHATSAPP: MessageCircle,
   OTHER: Layers,
 };
 
@@ -38,6 +42,7 @@ export const CATEGORY_BADGE: Record<PlatformRequestLogCategory, string> = {
   MPESA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   AIRTIME: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   KPLC: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  WHATSAPP: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
   OTHER: "bg-slate-500/10 text-slate-500 dark:text-slate-400",
 };
 
@@ -46,6 +51,7 @@ export const CATEGORY_BAR: Record<PlatformRequestLogCategory, string> = {
   MPESA: "bg-emerald-500",
   AIRTIME: "bg-violet-500",
   KPLC: "bg-amber-500",
+  WHATSAPP: "bg-teal-500",
   OTHER: "bg-slate-400",
 };
 
@@ -54,6 +60,7 @@ export const CATEGORY_TILE: Record<PlatformRequestLogCategory, string> = {
   MPESA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
   AIRTIME: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25",
   KPLC: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+  WHATSAPP: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25",
   OTHER: "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/25",
 };
 
