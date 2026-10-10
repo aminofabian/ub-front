@@ -16712,6 +16712,7 @@ export interface components {
             rapidApiPhoneField?: string;
             rapidApiPhoneDigitsOnly?: boolean;
             whatsappMetaPhoneNumberId?: string;
+            whatsappMetaDisplayNumber?: string;
             whatsappMetaAccessToken?: string;
             whatsappMetaGraphVersion?: string;
             whatsappMetaAppSecret?: string;
@@ -16735,6 +16736,7 @@ export interface components {
             paymentAccountUrl?: string;
             suggestedPaymentAccountUrl?: string;
             whatsappMetaPhoneNumberId?: string;
+            whatsappMetaDisplayNumber?: string;
             whatsappMetaGraphVersion?: string;
             smsProvider?: string;
             smsAfricasTalkingUsername?: string;

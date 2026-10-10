@@ -47,7 +47,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [rapidApiLookupUrl, setRapidApiLookupUrl] = useState("");
   const [rapidApiPhoneField, setRapidApiPhoneField] = useState("phone");
   const [rapidApiPhoneDigitsOnly, setRapidApiPhoneDigitsOnly] = useState(false);
-  const [whatsappPhoneId, setWhatsappPhoneId] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappToken, setWhatsappToken] = useState("");
   const [whatsappAppSecret, setWhatsappAppSecret] = useState("");
   const [whatsappVerifyToken, setWhatsappVerifyToken] = useState("");
@@ -86,7 +86,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setRapidApiLookupUrl(data.rapidApiLookupUrl ?? "");
       setRapidApiPhoneField(data.rapidApiPhoneField || "phone");
       setRapidApiPhoneDigitsOnly(Boolean(data.rapidApiPhoneDigitsOnly));
-      setWhatsappPhoneId(data.whatsappMetaPhoneNumberId ?? "");
+      setWhatsappNumber(data.whatsappMetaDisplayNumber ?? "");
       setWhatsappVersion(data.whatsappMetaGraphVersion || "v25.0");
       setSmsProvider(data.smsProvider || "none");
       setSmsUsername(data.smsAfricasTalkingUsername ?? "");
@@ -163,7 +163,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         rapidApiLookupUrl: rapidApiLookupUrl.trim() || null,
         rapidApiPhoneField: rapidApiPhoneField.trim() || null,
         rapidApiPhoneDigitsOnly,
-        whatsappMetaPhoneNumberId: whatsappPhoneId.trim() || null,
+        whatsappMetaDisplayNumber: whatsappNumber.trim() || null,
         whatsappMetaGraphVersion: whatsappVersion.trim() || "v25.0",
         smsProvider,
         smsAfricasTalkingUsername:
@@ -409,14 +409,18 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             </label>
           </div>
           <label className="flex flex-col gap-1.5">
-            <span className={dashboardLabelClass()}>Meta phone number ID</span>
+            <span className={dashboardLabelClass()}>WhatsApp number</span>
             <input
               className={dashboardInputClass()}
-              value={whatsappPhoneId}
-              onChange={(e) => setWhatsappPhoneId(e.target.value)}
-              placeholder="From Meta Business / Graph API"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              placeholder="e.g. 0712 345 678"
               disabled={!canEdit}
             />
+            <span className="text-xs text-muted-foreground">
+              The number you added to the Palmart WhatsApp account. We look it
+              up automatically — no Meta ID needed.
+            </span>
           </label>
           <label className="flex flex-col gap-1.5">
             <span className={dashboardLabelClass()}>Meta access token</span>
@@ -453,13 +457,11 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                         paymentAccountUrl: paymentUrl.trim(),
                         remoteInvoiceStkAutoSettle,
                         whatsappMetaAccessToken: "",
-                        whatsappMetaPhoneNumberId: "",
                       });
                       setSettings(updated);
                       setWhatsappToken("");
-                      setWhatsappPhoneId("");
                       setMessage({
-                        text: "Tenant Meta token and phone ID cleared — platform settings will be used.",
+                        text: "Tenant Meta token cleared — platform settings will be used.",
                         kind: "success",
                       });
                     } catch (err) {

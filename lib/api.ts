@@ -13695,6 +13695,7 @@ export type CreditSaleReminderSettingsRecord = {
   paymentAccountUrl: string;
   suggestedPaymentAccountUrl: string;
   whatsappMetaPhoneNumberId: string | null;
+  whatsappMetaDisplayNumber: string | null;
   whatsappMetaGraphVersion: string;
   smsProvider: string;
   smsAfricasTalkingUsername: string | null;
@@ -13731,6 +13732,7 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   rapidApiPhoneField?: string | null;
   rapidApiPhoneDigitsOnly?: boolean | null;
   whatsappMetaPhoneNumberId?: string | null;
+  whatsappMetaDisplayNumber?: string | null;
   whatsappMetaAccessToken?: string | null;
   whatsappMetaGraphVersion?: string | null;
   whatsappMetaAppSecret?: string | null;
