@@ -87,10 +87,36 @@ export default function SuperAdminWhatsAppNumbersPage() {
     void load();
   }, [load]);
 
+  const loadEvents = useCallback(async () => {
+    setEventsBusy(true);
+    try {
+      setEvents(
+        await fetchSaCrmWebhookEvents({
+          limit: 60,
+          unroutedOnly: eventsUnroutedOnly,
+        }),
+      );
+    } catch {
+      // surfaced by the api layer
+    } finally {
+      setEventsBusy(false);
+    }
+  }, [eventsUnroutedOnly]);
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
+
   const businessOptions = useMemo(
     () => businesses.slice().sort((a, b) => a.name.localeCompare(b.name)),
     [businesses],
   );
+
+  const prefillRoute = (pnid: string) => {
+    setPhoneNumberId(pnid);
+    setError("");
+    setNotice("Phone number ID filled in — pick a shop and press Assign.");
+  };
 
   const onRoute = async () => {
     if (!phoneNumberId.trim() || !businessId) {
@@ -111,6 +137,7 @@ export default function SuperAdminWhatsAppNumbersPage() {
       setDisplayNumber("");
       setLabel("");
       await load();
+      await loadEvents();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not route the number.");
     } finally {
@@ -187,26 +214,6 @@ export default function SuperAdminWhatsAppNumbersPage() {
       setBusy(false);
     }
   };
-
-  const loadEvents = useCallback(async () => {
-    setEventsBusy(true);
-    try {
-      setEvents(
-        await fetchSaCrmWebhookEvents({
-          limit: 60,
-          unroutedOnly: eventsUnroutedOnly,
-        }),
-      );
-    } catch {
-      // surfaced by the api layer
-    } finally {
-      setEventsBusy(false);
-    }
-  }, [eventsUnroutedOnly]);
-
-  useEffect(() => {
-    void loadEvents();
-  }, [loadEvents]);
 
   const rows = data?.numbers ?? [];
 
@@ -583,8 +590,8 @@ export default function SuperAdminWhatsAppNumbersPage() {
             </div>
             <p className={dashboardHintClass()}>
               Raw Meta envelopes. Rows marked <b>unrouted</b> have no shop — the
-              message never reaches an inbox. Copy the phone number ID into
-              “Route a number to a shop” above to fix.
+              message never reaches an inbox. Press <b>Route</b> to prefill the phone
+              number ID in “Route a number to a shop” above, pick the shop, and Assign.
             </p>
             <div className="mt-2 overflow-x-auto">
               <table className="w-full text-[12px]">
@@ -594,12 +601,13 @@ export default function SuperAdminWhatsAppNumbersPage() {
                     <th className="px-2 py-1.5">Phone number ID</th>
                     <th className="px-2 py-1.5">Shop</th>
                     <th className="px-2 py-1.5">wamid</th>
+                    <th className="px-2 py-1.5" />
                   </tr>
                 </thead>
                 <tbody>
                   {events.length === 0 ? (
                     <tr>
-                      <td className="px-2 py-3 text-muted-foreground" colSpan={4}>
+                      <td className="px-2 py-3 text-muted-foreground" colSpan={5}>
                         {eventsUnroutedOnly
                           ? "No unrouted webhooks."
                           : "No inbound webhooks yet."}
@@ -623,6 +631,20 @@ export default function SuperAdminWhatsAppNumbersPage() {
                         </td>
                         <td className="max-w-[16rem] truncate px-2 py-1.5 font-mono text-[11px]">
                           {e.wamid ?? "—"}
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          {e.phoneNumberId ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 rounded-none"
+                              disabled={eventsBusy}
+                              onClick={() => prefillRoute(e.phoneNumberId as string)}
+                            >
+                              Route
+                            </Button>
+                          ) : null}
                         </td>
                       </tr>
                     ))
