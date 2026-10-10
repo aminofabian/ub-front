@@ -49,6 +49,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [rapidApiPhoneDigitsOnly, setRapidApiPhoneDigitsOnly] = useState(false);
   const [whatsappPhoneId, setWhatsappPhoneId] = useState("");
   const [whatsappToken, setWhatsappToken] = useState("");
+  const [whatsappAppSecret, setWhatsappAppSecret] = useState("");
+  const [whatsappVerifyToken, setWhatsappVerifyToken] = useState("");
   const [whatsappVersion, setWhatsappVersion] = useState("v25.0");
   const [smsProvider, setSmsProvider] = useState("none");
   const [smsUsername, setSmsUsername] = useState("");
@@ -193,6 +195,12 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       }
       if (whatsappToken.trim()) {
         body.whatsappMetaAccessToken = whatsappToken.trim();
+      }
+      if (whatsappAppSecret.trim()) {
+        body.whatsappMetaAppSecret = whatsappAppSecret.trim();
+      }
+      if (whatsappVerifyToken.trim()) {
+        body.whatsappMetaWebhookVerifyToken = whatsappVerifyToken.trim();
       }
       if (smsApiKey.trim()) {
         body.smsAfricasTalkingApiKey = smsApiKey.trim();
@@ -471,6 +479,43 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                 Clear tenant Meta token (use platform)
               </button>
             ) : null}
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>Meta app secret</span>
+            <input
+              type="password"
+              className={dashboardInputClass()}
+              value={whatsappAppSecret}
+              onChange={(e) => setWhatsappAppSecret(e.target.value)}
+              placeholder={
+                settings?.hasWhatsappMetaAppSecret
+                  ? "•••••••• (leave blank to keep)"
+                  : "Only if this number is on your own Meta app"
+              }
+              disabled={!canEdit}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>Meta webhook verify token</span>
+            <input
+              type="password"
+              className={dashboardInputClass()}
+              value={whatsappVerifyToken}
+              onChange={(e) => setWhatsappVerifyToken(e.target.value)}
+              placeholder={
+                settings?.hasWhatsappMetaWebhookVerifyToken
+                  ? "•••••••• (leave blank to keep)"
+                  : "Only if this number is on your own Meta app"
+              }
+              disabled={!canEdit}
+              autoComplete="off"
+            />
+            <span className="text-xs text-muted-foreground">
+              Enter these only when the number belongs to your own Meta app —
+              they let our webhook verify your app&apos;s messages. Leave blank
+              to use the platform app.
+            </span>
           </label>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Graph API version</span>

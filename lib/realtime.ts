@@ -88,6 +88,9 @@ export type RealtimeEventType =
   | "support.conversation"
   | "support.presence"
   | "setup_progress.updated"
+  | "crm.message.created"
+  | "crm.conversation.updated"
+  | "crm.message.status"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -204,6 +207,9 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "support.conversation": "onSupportConversation",
   "support.presence": "onSupportPresence",
   "setup_progress.updated": "onSetupProgressUpdated",
+  "crm.message.created": "onNotification",
+  "crm.conversation.updated": "onNotification",
+  "crm.message.status": "onNotification",
   "till.print": "onTillPrint",
 };
 

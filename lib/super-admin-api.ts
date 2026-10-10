@@ -4361,3 +4361,78 @@ export async function disconnectSaPickupMtaaniCredential(
     method: "DELETE",
   });
 }
+
+// ── WhatsApp numbers (platform → shop routing) ──────────────────────────
+
+export type SaWhatsAppNumberRow = {
+  phoneNumberId: string;
+  displayNumber: string | null;
+  label: string | null;
+  status: string;
+  qualityRating: string | null;
+  businessId: string | null;
+  businessName: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  /** True when this number rides the shop's own Meta app (Model B). */
+  ownCredentials: boolean;
+};
+
+export type SaWhatsAppNumbersResponse = {
+  platformConfigured: boolean;
+  defaultPhoneNumberId: string | null;
+  numbers: SaWhatsAppNumberRow[];
+};
+
+export type RouteSaWhatsAppNumberPayload = {
+  businessId: string;
+  displayNumber?: string;
+  label?: string;
+};
+
+export async function fetchSaWhatsAppNumbers(): Promise<SaWhatsAppNumbersResponse> {
+  return saRequest<SaWhatsAppNumbersResponse>("/api/v1/super-admin/whatsapp/numbers");
+}
+
+export async function routeSaWhatsAppNumber(
+  phoneNumberId: string,
+  body: RouteSaWhatsAppNumberPayload,
+): Promise<SaWhatsAppNumberRow> {
+  return saRequest<SaWhatsAppNumberRow>(
+    "/api/v1/super-admin/whatsapp/numbers/" + encodeURIComponent(phoneNumberId),
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export async function setSaWhatsAppNumberStatus(
+  phoneNumberId: string,
+  action: "pause" | "resume",
+): Promise<SaWhatsAppNumberRow> {
+  return saRequest<SaWhatsAppNumberRow>(
+    "/api/v1/super-admin/whatsapp/numbers/" + encodeURIComponent(phoneNumberId) + "/" + action,
+    { method: "POST" },
+  );
+}
+
+export type SaWhatsAppSettings = {
+  inboundEnabled: boolean;
+  outboundEnabled: boolean;
+  /** Whether each switch is still inheriting the deployment flag. */
+  inboundEnvDefault: boolean;
+  outboundEnvDefault: boolean;
+  metaConfigured: boolean;
+};
+
+export async function fetchSaWhatsAppSettings(): Promise<SaWhatsAppSettings> {
+  return saRequest<SaWhatsAppSettings>("/api/v1/super-admin/whatsapp/settings");
+}
+
+export async function updateSaWhatsAppSettings(body: {
+  inboundEnabled: boolean;
+  outboundEnabled: boolean;
+}): Promise<SaWhatsAppSettings> {
+  return saRequest<SaWhatsAppSettings>("/api/v1/super-admin/whatsapp/settings", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}

@@ -13711,6 +13711,8 @@ export type CreditSaleReminderSettingsRecord = {
   rapidApiPhoneField: string;
   rapidApiPhoneDigitsOnly: boolean;
   hasWhatsappMetaAccessToken: boolean;
+  hasWhatsappMetaAppSecret: boolean;
+  hasWhatsappMetaWebhookVerifyToken: boolean;
   hasSmsAfricasTalkingApiKey: boolean;
   hasSmsSozuriApiKey: boolean;
   hasSmsTextsmsApiKey: boolean;
@@ -13731,6 +13733,8 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   whatsappMetaPhoneNumberId?: string | null;
   whatsappMetaAccessToken?: string | null;
   whatsappMetaGraphVersion?: string | null;
+  whatsappMetaAppSecret?: string | null;
+  whatsappMetaWebhookVerifyToken?: string | null;
   smsProvider?: string;
   smsAfricasTalkingUsername?: string | null;
   smsAfricasTalkingApiKey?: string | null;

@@ -75,6 +75,14 @@ export const Permission = {
   /** Talk to Us inbox */
   MessagesRead: "messages.read",
   MessagesReply: "messages.reply",
+  /** WhatsApp CRM inbox. */
+  CrmInboxRead: "crm.inbox.read",
+  CrmInboxSend: "crm.inbox.send",
+  CrmInboxManage: "crm.inbox.manage",
+  /** No-code automation rules for the WhatsApp inbox. */
+  CrmAutomationManage: "crm.automation.manage",
+  /** Send WhatsApp broadcasts to customers. */
+  CrmBroadcastSend: "crm.broadcast.send",
   /** Staff profiles + monthly payroll */
   StaffProfileRead: "staff.profile.read",
   StaffHrRead: "staff.hr.read",

@@ -40,6 +40,7 @@ export const APP_ROUTES = {
   superAdminCampaignNew: "/super-admin/campaigns/new",
   superAdminSettings: "/super-admin/settings",
   superAdminPlatformIntegrations: "/super-admin/platform/integrations",
+  superAdminPlatformWhatsApp: "/super-admin/platform/whatsapp",
   superAdminPlatformSignup: "/super-admin/platform/signup",
   superAdminPlatformMediaStorage: "/super-admin/platform/media-storage",
   superAdminPlatformSmsCredits: "/super-admin/platform/sms-credits",
@@ -135,6 +136,13 @@ export const APP_ROUTES = {
     `/customers/email-campaigns/${encodeURIComponent(id)}`,
   claimTab: "/claim-tab",
   messages: "/messages",
+  inbox: "/inbox",
+  /** WhatsApp inbox settings: AI auto-reply + knowledge base. */
+  inboxSettings: "/inbox/settings",
+  /** WhatsApp inbox automation rules (M3). */
+  inboxAutomations: "/inbox/automations",
+  /** WhatsApp inbox broadcasts (M4). */
+  inboxBroadcasts: "/inbox/broadcasts",
   /** Live support chat with the Kiosk platform team. */
   support: "/support",
   superAdminMessages: "/super-admin/messages",

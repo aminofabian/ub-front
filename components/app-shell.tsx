@@ -209,6 +209,26 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Access and locations",
       },
       {
+        href: APP_ROUTES.inbox,
+        label: "WhatsApp inbox",
+        group: "Inbox",
+      },
+      {
+        href: APP_ROUTES.inboxSettings,
+        label: "WhatsApp settings",
+        group: "Inbox",
+      },
+      {
+        href: APP_ROUTES.inboxAutomations,
+        label: "Automations",
+        group: "Inbox",
+      },
+      {
+        href: APP_ROUTES.inboxBroadcasts,
+        label: "Broadcasts",
+        group: "Inbox",
+      },
+      {
         href: APP_ROUTES.messages,
         label: "Messages",
         group: "Inbox",
@@ -557,6 +577,9 @@ type NavGate = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canViewStoreRoom: boolean;
+  canManageCrmInbox: boolean;
+  canManageCrmAutomation: boolean;
+  canSendCrmBroadcast: boolean;
   canQuickSale: boolean;
   canViewPosDrafts: boolean;
   canAccessGrocery: boolean;
@@ -734,6 +757,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerSegments) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.messages) return gate.canViewMessages;
+  if (item.href === APP_ROUTES.inboxSettings) return gate.canManageCrmInbox;
+  if (item.href === APP_ROUTES.inboxAutomations)
+    return gate.canManageCrmAutomation;
+  if (item.href === APP_ROUTES.inboxBroadcasts) return gate.canSendCrmBroadcast;
   if (item.href === APP_ROUTES.businessLogs) return gate.canViewAuditLog;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
@@ -1093,6 +1120,18 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.CatalogItemsRead,
   );
+  const canManageCrmInbox = hasPermission(
+    me?.permissions,
+    Permission.CrmInboxManage,
+  );
+  const canManageCrmAutomation = hasPermission(
+    me?.permissions,
+    Permission.CrmAutomationManage,
+  );
+  const canSendCrmBroadcast = hasPermission(
+    me?.permissions,
+    Permission.CrmBroadcastSend,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const canPathAOrder = canPathARead || canPathAWrite;
@@ -1151,6 +1190,9 @@ export function AppShell({ children }: AppShellProps) {
       canManageImports,
       canViewPaymentGateways,
       canViewAirtime,
+      canManageCrmInbox,
+      canManageCrmAutomation,
+      canSendCrmBroadcast,
       roleKey: me?.role?.key?.trim().toLowerCase(),
       groceryClerkStockAccess,
       stockManagerStockPage,
@@ -1212,6 +1254,9 @@ export function AppShell({ children }: AppShellProps) {
     canManageImports,
     canViewPaymentGateways,
     canViewAirtime,
+    canManageCrmInbox,
+    canManageCrmAutomation,
+    canSendCrmBroadcast,
     me?.role?.key,
     groceryClerkStockAccess,
     stockManagerStockPage,
