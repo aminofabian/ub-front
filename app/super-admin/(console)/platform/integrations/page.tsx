@@ -23,6 +23,7 @@ import {
   deletePlatformWhatsAppAppSecret,
   fetchPlatformIntegrations,
   fetchPlatformWhatsAppAppSecrets,
+  provisionMetaWhatsApp,
   updatePlatformIntegrations,
   verifyMetaWhatsAppAppSecret,
   type PlatformIntegrationsRecord,
@@ -209,6 +210,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [newAppSecret, setNewAppSecret] = useState("");
   const [newAppSecretLabel, setNewAppSecretLabel] = useState("");
   const [appSecretBusy, setAppSecretBusy] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionSteps, setProvisionSteps] = useState<string[] | null>(null);
 
   const applySettings = useCallback((row: PlatformIntegrationsRecord) => {
     setSettings(row);
@@ -455,6 +458,26 @@ export default function SuperAdminPlatformIntegrationsPage() {
         }
       },
     });
+  };
+
+  const provisionWhatsApp = async () => {
+    setProvisioning(true);
+    setProvisionSteps(null);
+    setError("");
+    setSuccess("");
+    try {
+      const result = await provisionMetaWhatsApp();
+      setProvisionSteps(result.steps);
+      if (result.ok) {
+        setSuccess("WhatsApp webhooks enabled.");
+      } else {
+        setError("Could not enable WhatsApp webhooks — see the steps below.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Provisioning failed.");
+    } finally {
+      setProvisioning(false);
+    }
   };
 
   const keysReady = [
@@ -984,6 +1007,29 @@ export default function SuperAdminPlatformIntegrationsPage() {
               </Button>
             </div>
           </Field>
+          <div className="space-y-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-none"
+              disabled={busy || provisioning}
+              onClick={() => void provisionWhatsApp()}
+            >
+              {provisioning ? "Enabling…" : "Enable WhatsApp webhooks"}
+            </Button>
+            <p className={dashboardHintClass()}>
+              Subscribes the platform app to your WhatsApp account and registers the
+              number, so inbound webhooks arrive. Idempotent — safe to re-run.
+            </p>
+            {provisionSteps ? (
+              <ul className={cn("list-disc pl-4", dashboardHintClass())}>
+                {provisionSteps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
           <p className={dashboardHintClass()}>
             Callback URL:{" "}
             <code className="font-mono text-[10px]">
