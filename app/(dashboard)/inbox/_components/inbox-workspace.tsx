@@ -19,6 +19,7 @@ import {
   draftCrmAiReply,
   fetchCrmConversation,
   fetchCrmConversations,
+  fetchCrmInboxStatus,
   fetchCrmNotes,
   fetchCrmQuickReplies,
   requestCrmPayment,
@@ -26,6 +27,7 @@ import {
   setCrmContactTags,
   type CrmConversationDetail,
   type CrmConversationRow,
+  type CrmInboxStatus,
   type CrmNoteRow,
   type CrmQuickReplyRow,
 } from "@/lib/crm";
@@ -63,6 +65,7 @@ export function InboxWorkspace() {
   const [filter, setFilter] = useState<StatusFilter>("open");
   const [rows, setRows] = useState<CrmConversationRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
+  const [status, setStatus] = useState<CrmInboxStatus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CrmConversationDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -121,6 +124,18 @@ export function InboxWorkspace() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchCrmInboxStatus()
+      .then((next) => {
+        if (alive) setStatus(next);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     void fetchCrmQuickReplies()
@@ -281,7 +296,13 @@ export function InboxWorkspace() {
           ) : listError ? (
             <p className="p-3 text-[13px] text-red-600">{listError}</p>
           ) : rows.length === 0 ? (
-            <p className="p-3 text-[13px] text-muted-foreground">No conversations yet.</p>
+            <p className="p-3 text-[13px] text-muted-foreground">
+              {status && !status.hasActiveNumber
+                ? "No WhatsApp number is connected to this shop yet. Add it under Business → Configuration → WhatsApp."
+                : status && status.hasActiveNumber && !status.inboundEnabled
+                  ? `Incoming messages are paused for ${status.whatsappNumber ?? "your number"}. Contact support to enable them.`
+                  : "No conversations yet."}
+            </p>
           ) : (
             rows.map((row) => (
               <button

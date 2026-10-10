@@ -96,6 +96,18 @@ export async function fetchCrmConversation(
   return apiRequest(`/api/v1/crm/conversations/${encodeURIComponent(id)}`);
 }
 
+export type CrmInboxStatus = {
+  inboundEnabled: boolean;
+  hasActiveNumber: boolean;
+  whatsappNumber: string | null;
+  platformConfigured: boolean;
+};
+
+/** Why the inbox may be quiet: channel switch + whether this shop has an active number. */
+export async function fetchCrmInboxStatus(): Promise<CrmInboxStatus> {
+  return apiRequest("/api/v1/crm/inbox/status");
+}
+
 export async function sendCrmMessage(
   id: string,
   body: string,
