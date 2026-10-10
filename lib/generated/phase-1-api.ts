@@ -2100,6 +2100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admin/platform/integrations/meta-whatsapp/app-secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMetaAppSecrets"];
+        put?: never;
+        post: operations["addMetaAppSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admin/platform/domain-orders/{orderId}/sync": {
         parameters: {
             query?: never;
@@ -15318,6 +15334,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admin/platform/integrations/meta-whatsapp/app-secrets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteMetaAppSecret"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admin/global-catalog/products/{productId}/suppliers/{templateId}": {
         parameters: {
             query?: never;
@@ -17761,6 +17793,17 @@ export interface components {
             wabaId?: string;
             wabaName?: string;
             subscribedApps?: components["schemas"]["SubscribedApp"][];
+        };
+        AddAppSecretRequest: {
+            appSecret: string;
+            label?: string;
+        };
+        AppSecretRow: {
+            id?: string;
+            label?: string;
+            fingerprint?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         DomainOrderResponse: {
             id?: string;
@@ -23419,8 +23462,8 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
         };
         SortObject: {
-            unsorted?: boolean;
             sorted?: boolean;
+            unsorted?: boolean;
             empty?: boolean;
         };
         PageUserResponse: {
@@ -31981,6 +32024,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["VerifyMetaWhatsAppAppSecretResponse"];
+                };
+            };
+        };
+    };
+    listMetaAppSecrets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppSecretRow"][];
+                };
+            };
+        };
+    };
+    addMetaAppSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddAppSecretRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppSecretRow"];
                 };
             };
         };
@@ -54293,6 +54380,26 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+        };
+    };
+    deleteMetaAppSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

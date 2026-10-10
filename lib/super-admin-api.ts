@@ -1538,6 +1538,43 @@ export async function verifyMetaWhatsAppAppSecret(
   );
 }
 
+export type PlatformWhatsAppAppSecretRow = {
+  id: string;
+  label: string | null;
+  /** Last 4 characters only — the secret itself is write-only. */
+  fingerprint: string | null;
+  createdAt: string;
+};
+
+/**
+ * Additional Meta app secrets accepted for inbound webhook verification. Add a secret for every
+ * Meta app subscribed to the WABA, since Meta signs each delivery with the sending app's secret.
+ */
+export async function fetchPlatformWhatsAppAppSecrets(): Promise<
+  PlatformWhatsAppAppSecretRow[]
+> {
+  return saRequest<PlatformWhatsAppAppSecretRow[]>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/meta-whatsapp/app-secrets`,
+  );
+}
+
+export async function addPlatformWhatsAppAppSecret(body: {
+  appSecret: string;
+  label?: string | null;
+}): Promise<PlatformWhatsAppAppSecretRow> {
+  return saRequest<PlatformWhatsAppAppSecretRow>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/meta-whatsapp/app-secrets`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function deletePlatformWhatsAppAppSecret(id: string): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/meta-whatsapp/app-secrets/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
 export type MediaUploadProvider = "cloudinary" | "r2";
 
 export type MediaStorageSettingsRecord = {

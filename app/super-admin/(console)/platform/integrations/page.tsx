@@ -19,10 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  addPlatformWhatsAppAppSecret,
+  deletePlatformWhatsAppAppSecret,
   fetchPlatformIntegrations,
+  fetchPlatformWhatsAppAppSecrets,
   updatePlatformIntegrations,
   verifyMetaWhatsAppAppSecret,
   type PlatformIntegrationsRecord,
+  type PlatformWhatsAppAppSecretRow,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -201,6 +205,10 @@ export default function SuperAdminPlatformIntegrationsPage() {
     fingerprint: string | null;
     subscribedApps: { id: string | null; name: string | null }[];
   } | null>(null);
+  const [appSecrets, setAppSecrets] = useState<PlatformWhatsAppAppSecretRow[]>([]);
+  const [newAppSecret, setNewAppSecret] = useState("");
+  const [newAppSecretLabel, setNewAppSecretLabel] = useState("");
+  const [appSecretBusy, setAppSecretBusy] = useState(false);
 
   const applySettings = useCallback((row: PlatformIntegrationsRecord) => {
     setSettings(row);
@@ -241,7 +249,12 @@ export default function SuperAdminPlatformIntegrationsPage() {
     setBooting(true);
     setLoadError("");
     try {
-      applySettings(await fetchPlatformIntegrations());
+      const [integrations, secrets] = await Promise.all([
+        fetchPlatformIntegrations(),
+        fetchPlatformWhatsAppAppSecrets().catch(() => []),
+      ]);
+      applySettings(integrations);
+      setAppSecrets(secrets);
     } catch (e) {
       setLoadError(
         e instanceof Error ? e.message : "Could not load integrations.",
@@ -395,6 +408,53 @@ export default function SuperAdminPlatformIntegrationsPage() {
     } finally {
       setVerifyingAppSecret(false);
     }
+  };
+
+  const addAppSecret = async () => {
+    const secret = newAppSecret.trim();
+    if (!secret) return;
+    setAppSecretBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const row = await addPlatformWhatsAppAppSecret({
+        appSecret: secret,
+        label: newAppSecretLabel.trim() || null,
+      });
+      setAppSecrets((prev) => [...prev, row]);
+      setNewAppSecret("");
+      setNewAppSecretLabel("");
+      setSuccess("App secret added.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add app secret.");
+    } finally {
+      setAppSecretBusy(false);
+    }
+  };
+
+  const removeAppSecret = (id: string) => {
+    showThemedConfirmToast({
+      id: `delete-app-secret-${id}`,
+      title: "Remove app secret?",
+      description: "Deliveries signed by this app will be rejected again.",
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        setAppSecretBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+          await deletePlatformWhatsAppAppSecret(id);
+          setAppSecrets((prev) => prev.filter((s) => s.id !== id));
+          setSuccess("App secret removed.");
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : "Could not remove app secret.",
+          );
+        } finally {
+          setAppSecretBusy(false);
+        }
+      },
+    });
   };
 
   const keysReady = [
@@ -866,6 +926,63 @@ export default function SuperAdminPlatformIntegrationsPage() {
               Checks the value above if you typed one, otherwise the stored
               secret. Needs the access token and phone number ID saved.
             </p>
+          </Field>
+          <Field label="Additional app secrets">
+            <p className={dashboardHintClass()}>
+              Meta signs each webhook with the secret of the app that sent it. Add a
+              secret for every Meta app subscribed to your WABA — use Verify above to
+              see the subscribed apps. Without this, deliveries from a second app keep
+              returning 403.
+            </p>
+            {appSecrets.length > 0 ? (
+              <ul className={cn("divide-y border", HAIRLINE)}>
+                {appSecrets.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex items-center justify-between gap-2 px-3 py-1.5"
+                  >
+                    <span className="min-w-0 truncate text-[12px] text-foreground">
+                      {row.label ?? "Extra app"}
+                      <span className="text-muted-foreground"> · ends </span>
+                      <span className="font-mono">{row.fingerprint ?? "—"}</span>
+                    </span>
+                    <ClearKeyButton
+                      label="Remove"
+                      disabled={appSecretBusy}
+                      onClick={() => removeAppSecret(row.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={dashboardHintClass()}>No extra app secrets.</p>
+            )}
+            <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+              <Input
+                className={dashboardInputClass()}
+                value={newAppSecretLabel}
+                onChange={(ev) => setNewAppSecretLabel(ev.target.value)}
+                placeholder="Label (optional)"
+              />
+              <Input
+                type="password"
+                autoComplete="off"
+                className={dashboardInputClass()}
+                value={newAppSecret}
+                onChange={(ev) => setNewAppSecret(ev.target.value)}
+                placeholder="Meta app secret"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-none"
+                disabled={appSecretBusy || !newAppSecret.trim()}
+                onClick={() => void addAppSecret()}
+              >
+                Add
+              </Button>
+            </div>
           </Field>
           <p className={dashboardHintClass()}>
             Callback URL:{" "}
