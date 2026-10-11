@@ -90,9 +90,14 @@ describe("inventory-access", () => {
   it("lets owners and admins sell one item that is out of stock", () => {
     expect(canOverrideOutOfStockSale("owner", [])).toBe(true);
     expect(canOverrideOutOfStockSale("Admin", undefined)).toBe(true);
+    expect(canOverrideOutOfStockSale("cashier", [], "Administrator")).toBe(true);
     expect(canOverrideOutOfStockSale("manager", ["inventory.write"])).toBe(true);
+    expect(canOverrideOutOfStockSale("cashier", ["business.manage_settings"])).toBe(
+      true,
+    );
     expect(canOverrideOutOfStockSale("cashier", ["sales.sell"])).toBe(false);
     expect(canOverrideOutOfStockSale("cashier", undefined)).toBe(false);
+    expect(canOverrideOutOfStockSale("stock_manager", [])).toBe(false);
   });
 
   it("blocks selling when out of stock when the admin override is off", () => {

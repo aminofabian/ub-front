@@ -405,6 +405,7 @@ export type CashierPosLayoutProps = {
     | "onOpenShift"
     | "stockOverrideError"
     | "onOverrideStock"
+    | "onEnableOutOfStockSales"
     | "phoneVerificationOverrideError"
     | "canOverridePhoneVerification"
     | "onOverridePhoneVerification"

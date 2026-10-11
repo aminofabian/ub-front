@@ -234,6 +234,8 @@ export type CashierCartDrawerProps = {
   stockOverrideError?: string | null;
   /** Admin-only: retry the blocked sale allowing stock to go negative. */
   onOverrideStock?: () => void;
+  /** Turns on the shop setting, then completes this sale. */
+  onEnableOutOfStockSales?: () => Promise<void> | void;
   /**
    * Admin-only: set when a tab registration was blocked on the phone code.
    * Renders an override prompt that registers the customer unverified.
@@ -416,6 +418,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onOpenShift,
     stockOverrideError,
     onOverrideStock,
+    onEnableOutOfStockSales,
     phoneVerificationOverrideError,
     canOverridePhoneVerification,
     onOverridePhoneVerification,
@@ -1760,7 +1763,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 {notice ? (
                   <DashboardFeedback kind="success" text={notice} />
                 ) : null}
-                {stockOverrideError && onOverrideStock ? null : phoneVerificationOverrideError &&
+                {stockOverrideError && onOverrideStock ? (
+                  <CashierStockOverrideAction
+                    message={stockOverrideError}
+                    disabled={loading}
+                    onSellThisSale={onOverrideStock}
+                    onAllowForEverySale={onEnableOutOfStockSales}
+                  />
+                ) : phoneVerificationOverrideError &&
                   onOverridePhoneVerification &&
                   registerNeedsOtp ? (
                   <div className="rounded-none border border-sky-300/70 bg-gradient-to-br from-sky-50 to-sky-100/50 px-3 py-2.5 text-[11px] text-sky-950 dark:border-sky-900/50 dark:from-sky-950/40 dark:to-sky-900/20 dark:text-sky-100">
@@ -1821,15 +1831,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 <p className="mb-1.5 rounded-none bg-muted/40 px-2.5 py-1.5 text-[11px] text-muted-foreground">
                   {completeBlockedHint}
                 </p>
-              ) : null}
-              {stockOverrideError && onOverrideStock ? (
-                <div className="mb-1.5">
-                  <CashierStockOverrideAction
-                    message={stockOverrideError}
-                    disabled={loading}
-                    onConfirm={onOverrideStock}
-                  />
-                </div>
               ) : null}
               <div className="flex items-stretch gap-1.5">
                 {allowClearSale &&

@@ -37,6 +37,7 @@ import {
   sendCustomerPhoneVerification,
   setPosItemWeighed,
   tryPostSaleWithRetries,
+  updateBusiness,
   verifyCustomerPhoneVerification,
   type CategoryTreeNodeRecord,
   type CustomerRecord,
@@ -406,10 +407,18 @@ export function QuickSaleWorkspace({
   const allowNegativeStock = allowNegativeStockForSales(business);
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   /**
-   * One-sale override when the shop blocks selling at zero. Owners and admins
-   * always can; anyone else needs inventory.write (the API enforces that too).
+   * Owners, admins, and managers can sell one out-of-stock line from checkout.
+   * Cashiers cannot.
    */
-  const canOverrideStock = canOverrideOutOfStockSale(roleKey, me?.permissions);
+  const tillOnlyRole =
+    roleKey === "cashier" ||
+    roleKey === "grocery_clerk" ||
+    roleKey === "butcher_cashier" ||
+    roleKey === "viewer";
+  const canOverrideStock =
+    !tillOnlyRole &&
+    (roleKey.length === 0 ||
+      canOverrideOutOfStockSale(roleKey, me?.permissions, me?.role?.name));
   /**
    * Admin override: a manager can register a tab customer without the 4-digit
    * phone code when the customer can't receive it. The backend accepts an
@@ -5398,6 +5407,24 @@ export function QuickSaleWorkspace({
               skipBelowCostConfirm: true,
               allowOutOfStock: true,
             }).catch(() => undefined),
+          onEnableOutOfStockSales: async () => {
+            try {
+              await updateBusiness({
+                inventory: { stockLevels: { allowNegativeStock: true } },
+              });
+              await refreshSession();
+              toast.success("Selling when out of stock is on.");
+              await onComplete({
+                skipBranchConfirm: true,
+                skipBelowCostConfirm: true,
+                allowOutOfStock: true,
+              });
+            } catch (e) {
+              toast.error(
+                e instanceof Error ? e.message : "Could not turn that on.",
+              );
+            }
+          },
           phoneVerificationOverrideError,
           canOverridePhoneVerification,
           onOverridePhoneVerification: () =>

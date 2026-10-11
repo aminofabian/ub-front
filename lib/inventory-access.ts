@@ -383,14 +383,27 @@ export function allowNegativeStockForSales(
   return stockLevelsSettings(business)?.allowNegativeStock !== false;
 }
 
+const SHOP_LEAD_ROLES = new Set(["owner", "admin", "administrator", "manager"]);
+
+function isShopLeadRole(value: string | null | undefined): boolean {
+  const role = value?.trim().toLowerCase() ?? "";
+  return SHOP_LEAD_ROLES.has(role);
+}
+
 /** One-sale override when the shop blocks selling at zero on-hand. */
 export function canOverrideOutOfStockSale(
   roleKey: string | null | undefined,
   permissions: string[] | undefined,
+  roleName?: string | null,
 ): boolean {
-  const role = roleKey?.trim().toLowerCase() ?? "";
-  if (role === "owner" || role === "admin") return true;
-  return hasPermission(permissions, Permission.InventoryWrite);
+  if (isShopLeadRole(roleKey) || isShopLeadRole(roleName)) return true;
+  const keys = new Set(
+    (permissions ?? []).map((permission) => permission.trim().toLowerCase()),
+  );
+  return (
+    keys.has(Permission.InventoryWrite) ||
+    keys.has(Permission.BusinessManageSettings)
+  );
 }
 
 export function canStockManagerSeeSystemStockDuringCount(

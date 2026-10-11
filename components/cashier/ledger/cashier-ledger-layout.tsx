@@ -1558,7 +1558,14 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             }
           />
 
-          {cart.stockOverrideError && cart.onOverrideStock ? null : cart.phoneVerificationOverrideError &&
+          {cart.stockOverrideError && cart.onOverrideStock ? (
+            <CashierStockOverrideAction
+              message={cart.stockOverrideError}
+              disabled={cart.loading || tillLocked}
+              onSellThisSale={cart.onOverrideStock}
+              onAllowForEverySale={cart.onEnableOutOfStockSales}
+            />
+          ) : cart.phoneVerificationOverrideError &&
             cart.onOverridePhoneVerification ? (
             <div className="rounded-none border border-sky-400 bg-sky-50 p-2.5 text-[11px] text-sky-950 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
               <p className="flex items-center gap-1.5 font-bold">
@@ -1607,15 +1614,6 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 ? `Clear all sales (${clearableSaleCount})`
                 : "Clear sale"}
             </button>
-          ) : null}
-          {cart.stockOverrideError && cart.onOverrideStock ? (
-            <div className="mb-2">
-              <CashierStockOverrideAction
-                message={cart.stockOverrideError}
-                disabled={cart.loading || tillLocked}
-                onConfirm={cart.onOverrideStock}
-              />
-            </div>
           ) : null}
           <button
             type="button"
