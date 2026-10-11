@@ -143,7 +143,7 @@ export const SETUP_GUIDES: Record<string, SetupGuide | Record<string, SetupGuide
       {
         src: `${SP}/cashier-01-invite.png`,
         alt: "Invite user form",
-        caption: "Open **Users** → **Invite user**.",
+        caption: "Open **Users** → **Add user**.",
       },
       {
         src: `${SP}/cashier-02-pin.png`,

@@ -46,29 +46,13 @@ import { JOIN_PAY_MODES } from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 import { UsersTheatre } from "./_components/users-theatre";
-
-type CredentialMethod = "invite" | "pin";
-
-type UserDraft = {
-  name: string;
-  email: string;
-  roleId: string;
-  credentialMethod: CredentialMethod;
-  pin: string;
-  branchId: string;
-  /** How their first month is paid once salaries unlock on the 25th. */
-  joinPayMode: JoinPayMode;
-};
-
-const DEFAULT_DRAFT: UserDraft = {
-  name: "",
-  email: "",
-  roleId: "",
-  credentialMethod: "invite",
-  pin: "",
-  branchId: "",
-  joinPayMode: "half",
-};
+import {
+  buildCreateUserPayload,
+  DEFAULT_USER_DRAFT,
+  MIN_PASSWORD_LENGTH,
+  type CredentialMethod,
+  type UserDraft,
+} from "./_lib/create-user-draft";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
@@ -82,7 +66,7 @@ export default function UsersPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterRoleId, setFilterRoleId] = useState("");
   const [filterBranchId, setFilterBranchId] = useState("");
-  const [draft, setDraft] = useState<UserDraft>(DEFAULT_DRAFT);
+  const [draft, setDraft] = useState<UserDraft>(DEFAULT_USER_DRAFT);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [editingName, setEditingName] = useState<Record<string, string>>({});
   const [roleChange, setRoleChange] = useState<Record<string, string>>({});
@@ -238,7 +222,7 @@ export default function UsersPage() {
 
   const resetInviteDraft = useCallback(() => {
     setDraft({
-      ...DEFAULT_DRAFT,
+      ...DEFAULT_USER_DRAFT,
       roleId: roles[0]?.id ?? "",
       branchId: isOwner ? "" : (me?.branchId ?? ""),
     });
@@ -257,42 +241,21 @@ export default function UsersPage() {
 
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const usePin = draft.credentialMethod === "pin";
-    if (usePin && !/^\d{4,6}$/.test(draft.pin.trim())) {
-      setFeedback({ kind: "error", text: "PIN must be 4 to 6 digits." });
-      return;
-    }
-    if (usePin && !draft.branchId) {
-      setFeedback({
-        kind: "error",
-        text: "Select a branch — PIN login requires a branch.",
-      });
+    const built = buildCreateUserPayload(draft);
+    if (!built.ok) {
+      setFeedback({ kind: "error", text: built.error });
       return;
     }
     setCreating(true);
     setFeedback(null);
     try {
-      await createUser({
-        name: draft.name,
-        email: draft.email,
-        roleId: draft.roleId,
-        pin: usePin ? draft.pin.trim() : undefined,
-        sendInvite: usePin ? undefined : true,
-        status: usePin ? "active" : "invited",
-        branchId: draft.branchId || undefined,
-        joinPayMode: draft.joinPayMode,
-      });
-      setDraft((previous) => ({ ...DEFAULT_DRAFT, roleId: previous.roleId }));
+      await createUser(built.payload);
+      setDraft((previous) => ({ ...DEFAULT_USER_DRAFT, roleId: previous.roleId }));
       await loadData();
       await refreshSession();
       skipInviteDrawerResetAfterCreate.current = true;
       setInviteDrawerOpen(false);
-      setFeedback({
-        kind: "success",
-        text: usePin
-          ? "User created with a PIN."
-          : "Invitation sent. The user will get an email to set their password.",
-      });
+      setFeedback({ kind: "success", text: built.success });
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -616,10 +579,10 @@ export default function UsersPage() {
     const draft = passwordDraft[userId];
     const password = draft?.password ?? "";
     const confirm = draft?.confirm ?? "";
-    if (password.length < 8) {
+    if (password.length < MIN_PASSWORD_LENGTH) {
       setFeedback({
         kind: "error",
-        text: "Password must be at least 8 characters.",
+        text: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
       });
       return;
     }
@@ -808,7 +771,7 @@ export default function UsersPage() {
         <DashboardPageHero
           icon={UsersIcon}
           title="Users"
-          description="Invite staff, assign roles, and manage sign-in credentials."
+          description="Add staff, assign roles, and manage sign-in credentials."
         >
           {canCreate ? (
             <Button
@@ -822,7 +785,7 @@ export default function UsersPage() {
               }}
             >
               <UserPlus className="size-3.5" aria-hidden />
-              Invite user
+              Add user
             </Button>
           ) : null}
         </DashboardPageHero>
@@ -951,8 +914,8 @@ export default function UsersPage() {
         <FormDrawer
           open={inviteDrawerOpen}
           onOpenChange={onInviteDrawerOpenChange}
-          title="Invite user"
-          description="Creates the account and sends them through your configured onboarding flow."
+          title="Add user"
+          description="Create the account with a password you choose, an email invite, or a till PIN."
           contextLabel="Team"
           icon={<UserPlus className="size-5 text-primary" aria-hidden />}
           width="wide"
@@ -994,7 +957,7 @@ export default function UsersPage() {
           >
             <FormDrawerFields
               legend="Account"
-              hint="Email must be unique in your workspace. Choose an email invite (user sets their own password) or a PIN for kiosk/cashier access."
+              hint="Email must be unique in your workspace. Set a password now, email an invite, or give them a PIN for kiosk access."
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -1084,17 +1047,64 @@ export default function UsersPage() {
                         ...previous,
                         credentialMethod: event.target
                           .value as CredentialMethod,
-                        pin: event.target.value === "pin" ? previous.pin : "",
+                        pin: "",
+                        password: "",
+                        passwordConfirm: "",
                       }))
                     }
                     aria-label="Sign-in method for new user"
                   >
+                    <option value="password">Password (they can sign in now)</option>
                     <option value="invite">
                       Email invite (sets own password)
                     </option>
                     <option value="pin">PIN (kiosk / cashier)</option>
                   </select>
                 </label>
+                {draft.credentialMethod === "password" ? (
+                  <>
+                    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                      Password
+                      <span className="font-normal text-muted-foreground/80">
+                        At least {MIN_PASSWORD_LENGTH} characters. They can
+                        sign in with this right away.
+                      </span>
+                      <input
+                        className={dashboardInputClass()}
+                        type="password"
+                        autoComplete="new-password"
+                        value={draft.password}
+                        onChange={(event) =>
+                          setDraft((previous) => ({
+                            ...previous,
+                            password: event.target.value,
+                          }))
+                        }
+                        required
+                        minLength={MIN_PASSWORD_LENGTH}
+                        aria-label="Password for new user"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                      Confirm password
+                      <input
+                        className={dashboardInputClass()}
+                        type="password"
+                        autoComplete="new-password"
+                        value={draft.passwordConfirm}
+                        onChange={(event) =>
+                          setDraft((previous) => ({
+                            ...previous,
+                            passwordConfirm: event.target.value,
+                          }))
+                        }
+                        required
+                        minLength={MIN_PASSWORD_LENGTH}
+                        aria-label="Confirm password for new user"
+                      />
+                    </label>
+                  </>
+                ) : null}
                 {draft.credentialMethod === "pin" ? (
                   <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                     PIN{" "}
@@ -1116,12 +1126,13 @@ export default function UsersPage() {
                       aria-label="PIN for cashier-style user"
                     />
                   </label>
-                ) : (
+                ) : null}
+                {draft.credentialMethod === "invite" ? (
                   <p className="sm:col-span-2 rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                     We&apos;ll email this person a secure link to set their own
                     password. They can sign in once they&apos;ve set it.
                   </p>
-                )}
+                ) : null}
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
                   First month salary
                   <select

@@ -395,7 +395,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
               </p>
               <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-[16rem]")}>
                 {canCreate
-                  ? "Invite someone to get the team started."
+                  ? "Add someone to get the team started."
                   : "Ask an admin to invite staff."}
               </p>
             </div>
@@ -484,7 +484,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
             )}
             onClick={onInvite}
           >
-            Invite someone new
+            Add someone new
           </button>
         ) : null}
       </div>
@@ -693,7 +693,7 @@ function TeamPulse({
             onClick={onInvite}
           >
             <UserPlus className="size-3.5" aria-hidden />
-            Invite
+            Add user
           </Button>
         </div>
       ) : null}

@@ -2659,12 +2659,12 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       {
         type: "steps",
         items: [
-          "Open Users in the dashboard and tap Invite user.",
+          "Open Users in the dashboard and tap Add user.",
           "Enter the full name and a unique work email.",
           "Pick the Role — owner, manager, cashier, stock manager, grocery clerk, and more.",
           "Pick the Branch, or leave it blank for someone who works everywhere (owners and managers usually).",
-          "Choose the sign-in method: Email invite sends them a secure link to set their own password, or PIN creates a 4–6 digit till code for cashier-style access.",
-          "Tap Create user. Email-invited people show as Invited until they finish setup; PIN users are active right away.",
+          "Choose the sign-in method: Password lets them sign in immediately with a password you set, Email invite sends a secure link so they choose their own, or PIN creates a 4–6 digit till code for cashier-style access.",
+          "Tap Create user. People with a password or PIN are active right away. Email-invited people show as Invited until they finish setup.",
         ],
       },
       {
