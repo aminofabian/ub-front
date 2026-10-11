@@ -383,6 +383,16 @@ export function allowNegativeStockForSales(
   return stockLevelsSettings(business)?.allowNegativeStock !== false;
 }
 
+/** One-sale override when the shop blocks selling at zero on-hand. */
+export function canOverrideOutOfStockSale(
+  roleKey: string | null | undefined,
+  permissions: string[] | undefined,
+): boolean {
+  const role = roleKey?.trim().toLowerCase() ?? "";
+  if (role === "owner" || role === "admin") return true;
+  return hasPermission(permissions, Permission.InventoryWrite);
+}
+
 export function canStockManagerSeeSystemStockDuringCount(
   me: MeResponse | null | undefined,
   business: BusinessRecord | null | undefined,

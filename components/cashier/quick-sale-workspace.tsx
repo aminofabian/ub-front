@@ -95,7 +95,10 @@ import {
   tillListenFromFlags,
 } from "@/lib/till-listen-settings";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
-import { allowNegativeStockForSales } from "@/lib/inventory-access";
+import {
+  allowNegativeStockForSales,
+  canOverrideOutOfStockSale,
+} from "@/lib/inventory-access";
 import {
   canLinkSupplierProducts,
   canWriteSuppliers,
@@ -401,15 +404,12 @@ export function QuickSaleWorkspace({
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
   const allowNegativeStock = allowNegativeStockForSales(business);
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   /**
-   * Admin override: with `inventory.write` you can force a sale through when an
-   * item is short on hand (records negative stock) even if the tenant has
-   * "allow selling when out of stock" turned off.
+   * One-sale override when the shop blocks selling at zero. Owners and admins
+   * always can; anyone else needs inventory.write (the API enforces that too).
    */
-  const canOverrideStock = hasPermission(
-    me?.permissions,
-    Permission.InventoryWrite,
-  );
+  const canOverrideStock = canOverrideOutOfStockSale(roleKey, me?.permissions);
   /**
    * Admin override: a manager can register a tab customer without the 4-digit
    * phone code when the customer can't receive it. The backend accepts an
@@ -450,7 +450,6 @@ export function QuickSaleWorkspace({
   const allowWeighedToggle =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     weighedToggleFlagEnabled;
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
   /** Setting on + owner/admin with catalog write — not exposed to cashiers. */
   const allowAddPhoto =

@@ -585,10 +585,23 @@ export function BusinessConfigurationForm({
         <PolicyPanel
           id="settings-stock-levels"
           title="Stock levels"
-          hint="Who can change quantities, and whether the till may oversell."
+          hint="Who can change quantities, and whether the till may sell when an item is out of stock."
           accent="amber"
           fieldsOnly={theatreFieldsOnly}
         >
+          <PolicySwitch
+            checked={inventory.allowNegativeStock}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowNegativeStock: checked,
+              }))
+            }
+            tone="warning"
+            icon={<ShoppingCart className="size-4" aria-hidden />}
+            title="Allow selling when out of stock"
+            description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more. Owners and admins can also allow one sale from the checkout drawer."
+          />
           <PolicySwitch
             checked={inventory.allowStockEditForStockManager}
             onChange={(checked) =>
@@ -696,19 +709,6 @@ export function BusinessConfigurationForm({
             icon={<Warehouse className="size-4" aria-hidden />}
             title="Allow grocery clerks to Confirm orders"
             description="Shows Confirm on the grocery counter so clerks can mark Path A purchase orders as received."
-          />
-          <PolicySwitch
-            checked={inventory.allowNegativeStock}
-            onChange={(checked) =>
-              setInventory((previous) => ({
-                ...previous,
-                allowNegativeStock: checked,
-              }))
-            }
-            tone="warning"
-            icon={<ShoppingCart className="size-4" aria-hidden />}
-            title="Allow selling when out of stock"
-            description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more."
           />
         </PolicyPanel>
       ) : null}
@@ -953,10 +953,23 @@ export function BusinessConfigurationForm({
         <PolicyPanel
           id="settings-cashier"
           title="Cashier capabilities"
-          hint="Override what cashiers may do on the till. Adding products is off until you turn it on."
+          hint="Sell when out of stock, then the rest of what cashiers may do on the till. Adding products is off until you turn it on."
           accent="emerald"
           fieldsOnly={theatreFieldsOnly}
         >
+          <PolicySwitch
+            checked={inventory.allowNegativeStock}
+            onChange={(checked) =>
+              setInventory((previous) => ({
+                ...previous,
+                allowNegativeStock: checked,
+              }))
+            }
+            tone="warning"
+            icon={<ShoppingCart className="size-4" aria-hidden />}
+            title="Allow selling when out of stock"
+            description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more. Owners and admins can also allow one sale from the checkout drawer."
+          />
           <div className={cn("grid gap-2.5", !theatreFieldsOnly && "lg:grid-cols-2")}>
             <PolicySwitch
               checked={cashierCapabilities.createProduct}

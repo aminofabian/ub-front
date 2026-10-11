@@ -89,8 +89,11 @@ function sectionSummary(
     case "settings-cashier":
       return (
         <>
-          Add products is an override — open this board and turn it on to let
-          cashiers create items from the till.
+          Oversell{" "}
+          <span className="font-semibold">
+            {inventory.allowNegativeStock ? "allowed" : "blocked"}
+          </span>
+          . Add products stays off until you turn it on.
         </>
       );
     case "settings-shifts":
@@ -126,6 +129,7 @@ function ConfigurationContextBanner({
   inventory,
   shiftSettings,
   posDrafts,
+  onOpenOversell,
 }: {
   workspace: ConfigurationWorkspace;
   onWorkspaceChange: (workspace: ConfigurationWorkspace) => void;
@@ -134,6 +138,7 @@ function ConfigurationContextBanner({
   inventory: InventoryForm;
   shiftSettings: ShiftSettingsForm;
   posDrafts: PosDraftsForm;
+  onOpenOversell: () => void;
 }) {
   return (
     <div
@@ -183,12 +188,22 @@ function ConfigurationContextBanner({
       </p>
 
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-muted-foreground">
-          Oversell{" "}
-          <span className="font-semibold text-foreground">
+        <button
+          type="button"
+          onClick={onOpenOversell}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-none border px-2 text-[11px] font-semibold transition-colors",
+            inventory.allowNegativeStock
+              ? "border-amber-500/40 bg-amber-500/10 text-amber-900 hover:bg-amber-500/15"
+              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white text-foreground hover:border-amber-500/40",
+          )}
+        >
+          <ShoppingCart className="size-3 shrink-0" aria-hidden />
+          Allow selling when out of stock
+          <span className="font-semibold tabular-nums">
             {inventory.allowNegativeStock ? "on" : "off"}
           </span>
-        </span>
+        </button>
         <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-muted-foreground">
           <Banknote className="size-3" aria-hidden />
           Prefill{" "}
@@ -647,6 +662,7 @@ export function ConfigurationTheatre({
         inventory={inventory}
         shiftSettings={shiftSettings}
         posDrafts={posDrafts}
+        onOpenOversell={() => selectSection("settings-cashier")}
       />
 
       <div

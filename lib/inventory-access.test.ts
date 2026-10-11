@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { APP_ROUTES } from "@/lib/config";
 import {
   allowNegativeStockForSales,
+  canOverrideOutOfStockSale,
   canEditStockLevels,
   canStockManagerSeeSystemStockDuringCount,
   canViewStockLevels,
@@ -84,6 +85,14 @@ describe("inventory-access", () => {
         inventory: { stockLevels: { allowNegativeStock: true } },
       }),
     ).toBe(true);
+  });
+
+  it("lets owners and admins sell one item that is out of stock", () => {
+    expect(canOverrideOutOfStockSale("owner", [])).toBe(true);
+    expect(canOverrideOutOfStockSale("Admin", undefined)).toBe(true);
+    expect(canOverrideOutOfStockSale("manager", ["inventory.write"])).toBe(true);
+    expect(canOverrideOutOfStockSale("cashier", ["sales.sell"])).toBe(false);
+    expect(canOverrideOutOfStockSale("cashier", undefined)).toBe(false);
   });
 
   it("blocks selling when out of stock when the admin override is off", () => {

@@ -107,7 +107,7 @@ export const CONFIGURATION_SECTION_META: Record<
   },
   "settings-stock-levels": {
     title: "Stock levels",
-    hint: "Who can change quantities, and whether the till may oversell.",
+    hint: "Who can change quantities, and whether the till may sell when an item is out of stock.",
   },
   "settings-catalog": {
     title: "Product names",
@@ -135,7 +135,7 @@ export const CONFIGURATION_SECTION_META: Record<
   },
   "settings-cashier": {
     title: "Cashier capabilities",
-    hint: "Override what cashiers may do on the till — add products, edit prices, sell by weight, drawouts, and clear sale. Weighted marking is on by default. Adding products is off until you turn it on.",
+    hint: "Sell when out of stock, add products, edit prices, sell by weight, drawouts, and clear sale. Weighted marking is on by default. Adding products is off until you turn it on.",
   },
   "settings-pos-drafts": {
     title: "Live pending carts",

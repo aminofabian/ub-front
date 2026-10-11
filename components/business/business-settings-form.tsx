@@ -1121,8 +1121,20 @@ export function BusinessSettingsForm({
             <FormDrawerFields
             compact
               legend="Stock levels"
-              hint="Who can edit on-hand quantities, and whether overselling is allowed."
+              hint="Who can edit on-hand quantities, and whether the till may sell when an item is out of stock."
             >
+              <ToggleRow
+                checked={inventory.allowNegativeStock}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowNegativeStock: checked,
+                  }))
+                }
+                icon={<ShoppingCart className="size-4 text-muted-foreground" />}
+                title="Allow selling when out of stock"
+                description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more. Owners and admins can also allow one sale from the checkout drawer."
+              />
               <ToggleRow
                 checked={inventory.allowStockEditForStockManager}
                 onChange={(checked) =>
@@ -1230,18 +1242,6 @@ export function BusinessSettingsForm({
                 icon={<Warehouse className="size-4 text-muted-foreground" />}
                 title="Allow grocery clerks to Confirm orders"
                 description="Shows Confirm on the grocery counter so clerks can mark Path A purchase orders as received."
-              />
-              <ToggleRow
-                checked={inventory.allowNegativeStock}
-                onChange={(checked) =>
-                  setInventory((previous) => ({
-                    ...previous,
-                    allowNegativeStock: checked,
-                  }))
-                }
-                icon={<ShoppingCart className="size-4 text-muted-foreground" />}
-                title="Allow selling when out of stock"
-                description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more."
               />
             </FormDrawerFields>
           </SettingsAnchor>
@@ -1476,8 +1476,20 @@ export function BusinessSettingsForm({
             <FormDrawerFields
             compact
               legend="Cashier permissions"
-              hint="What cashiers can do on the POS. Weighted marking is on by default."
+              hint="Sell when out of stock, then the rest of what cashiers can do on the POS. Weighted marking is on by default."
             >
+              <ToggleRow
+                checked={inventory.allowNegativeStock}
+                onChange={(checked) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowNegativeStock: checked,
+                  }))
+                }
+                icon={<ShoppingCart className="size-4 text-muted-foreground" />}
+                title="Allow selling when out of stock"
+                description="Cashiers can complete sales when on-hand is zero. Stock goes negative until you receive more. Owners and admins can also allow one sale from the checkout drawer."
+              />
               <ToggleRow
                 checked={cashierCapabilities.createProduct}
                 onChange={(checked) =>

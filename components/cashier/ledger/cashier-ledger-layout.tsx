@@ -26,7 +26,6 @@ import {
   RotateCcw,
   ScanLine,
   Settings2,
-  ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   Smartphone,
@@ -48,6 +47,7 @@ import { TenantOrderDrawer } from "@/components/order/tenant-order-drawer";
 import { OrderPadDrawer } from "@/components/order-pad/order-pad-drawer";
 import { PosVariantPicker } from "@/components/cashier/pos-variant-picker";
 import { CashierCartDrawer } from "@/components/cashier/cashier-cart-drawer";
+import { CashierStockOverrideAction } from "@/components/cashier/cashier-stock-override-action";
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
 import { CashierCreditTabsModal } from "@/components/cashier/cashier-credit-tabs-modal";
 import { CashierOrderConfirmDrawer } from "@/components/cashier/cashier-order-confirm-drawer";
@@ -1558,29 +1558,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             }
           />
 
-          {cart.stockOverrideError && cart.onOverrideStock ? (
-            <div className="rounded-none border border-amber-400 bg-amber-50 p-2.5 text-[11px] text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
-              <p className="flex items-center gap-1.5 font-bold">
-                <ShieldAlert
-                  className="size-4 shrink-0 text-amber-600 dark:text-amber-400"
-                  aria-hidden
-                />
-                Out of stock — sell anyway?
-              </p>
-              <p className="mt-0.5 leading-snug text-amber-900/90 dark:text-amber-100/85">
-                {cart.stockOverrideError}
-              </p>
-              <button
-                type="button"
-                disabled={cart.loading || tillLocked}
-                onClick={cart.onOverrideStock}
-                className="mt-1.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-amber-500 text-[12px] font-bold text-white hover:bg-amber-600 disabled:opacity-50"
-              >
-                <ShieldAlert className="size-4" aria-hidden />
-                Sell anyway — allow negative stock
-              </button>
-            </div>
-          ) : cart.phoneVerificationOverrideError &&
+          {cart.stockOverrideError && cart.onOverrideStock ? null : cart.phoneVerificationOverrideError &&
             cart.onOverridePhoneVerification ? (
             <div className="rounded-none border border-sky-400 bg-sky-50 p-2.5 text-[11px] text-sky-950 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
               <p className="flex items-center gap-1.5 font-bold">
@@ -1629,6 +1607,15 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 ? `Clear all sales (${clearableSaleCount})`
                 : "Clear sale"}
             </button>
+          ) : null}
+          {cart.stockOverrideError && cart.onOverrideStock ? (
+            <div className="mb-2">
+              <CashierStockOverrideAction
+                message={cart.stockOverrideError}
+                disabled={cart.loading || tillLocked}
+                onConfirm={cart.onOverrideStock}
+              />
+            </div>
           ) : null}
           <button
             type="button"

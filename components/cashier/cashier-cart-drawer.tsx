@@ -8,7 +8,6 @@ import {
   Gift,
   Search,
   Send,
-  ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   Smartphone,
@@ -42,6 +41,7 @@ import {
 } from "@/lib/cashier-item-display";
 import { isSellBelowCost } from "@/lib/margin-guard";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
+import { CashierStockOverrideAction } from "./cashier-stock-override-action";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { TillLastBasketHint } from "@/components/cashier/till-last-basket-hint";
 import {
@@ -1760,37 +1760,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 {notice ? (
                   <DashboardFeedback kind="success" text={notice} />
                 ) : null}
-                {stockOverrideError && onOverrideStock ? (
-                  <div className="rounded-none border border-amber-300/70 bg-gradient-to-br from-amber-50 to-amber-100/50 px-3 py-2.5 text-[11px] text-amber-950 dark:border-amber-900/50 dark:from-amber-950/40 dark:to-amber-900/20 dark:text-amber-100">
-                    <div className="flex items-start gap-2">
-                      <ShieldAlert
-                        className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold leading-snug">
-                          Out of stock — admin override
-                        </p>
-                        <p className="mt-0.5 leading-snug text-amber-900/85 dark:text-amber-100/80">
-                          {stockOverrideError}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={onOverrideStock}
-                          disabled={loading}
-                          className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-amber-500 px-2.5 text-[12px] font-bold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <ShieldAlert className="size-4" aria-hidden />
-                          Sell anyway — allow negative stock
-                        </button>
-                        <p className="mt-1.5 text-[10px] leading-snug text-amber-900/70 dark:text-amber-100/60">
-                          Completes this sale with stock below zero and flags the
-                          item for restock. Recorded in Stock movements.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : phoneVerificationOverrideError &&
+                {stockOverrideError && onOverrideStock ? null : phoneVerificationOverrideError &&
                   onOverridePhoneVerification &&
                   registerNeedsOtp ? (
                   <div className="rounded-none border border-sky-300/70 bg-gradient-to-br from-sky-50 to-sky-100/50 px-3 py-2.5 text-[11px] text-sky-950 dark:border-sky-900/50 dark:from-sky-950/40 dark:to-sky-900/20 dark:text-sky-100">
@@ -1851,6 +1821,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 <p className="mb-1.5 rounded-none bg-muted/40 px-2.5 py-1.5 text-[11px] text-muted-foreground">
                   {completeBlockedHint}
                 </p>
+              ) : null}
+              {stockOverrideError && onOverrideStock ? (
+                <div className="mb-1.5">
+                  <CashierStockOverrideAction
+                    message={stockOverrideError}
+                    disabled={loading}
+                    onConfirm={onOverrideStock}
+                  />
+                </div>
               ) : null}
               <div className="flex items-stretch gap-1.5">
                 {allowClearSale &&
