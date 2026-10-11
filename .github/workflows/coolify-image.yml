@@ -5,7 +5,7 @@ name: Coolify image
 
 on:
   push:
-    branches: [deploy/coolify]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
