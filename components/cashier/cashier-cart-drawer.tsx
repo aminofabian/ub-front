@@ -8,6 +8,7 @@ import {
   Gift,
   Search,
   Send,
+  ShieldAlert,
   ShoppingBag,
   Smartphone,
   Trash2,
@@ -225,6 +226,13 @@ export type CashierCartDrawerProps = {
   onClearSale?: () => void;
   /** Opens the Open-shift flow when a sale is blocked by a closed till. */
   onOpenShift?: () => void;
+  /**
+   * Admin-only: set when checkout failed because stock is short. Renders an
+   * override prompt that retries the sale allowing negative stock.
+   */
+  stockOverrideError?: string | null;
+  /** Admin-only: retry the blocked sale allowing stock to go negative. */
+  onOverrideStock?: () => void;
   /** Show Clear sale in checkout (tenant setting). */
   allowClearSale?: boolean;
   /** Clear voids every open till tab (admin override). */
@@ -396,6 +404,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onStartNewSale,
     onClearSale,
     onOpenShift,
+    stockOverrideError,
+    onOverrideStock,
     allowClearSale = true,
     allowClearAllSales = false,
     clearableSaleCount = 0,
@@ -1719,7 +1729,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 {notice ? (
                   <DashboardFeedback kind="success" text={notice} />
                 ) : null}
-                {error ? (
+                {stockOverrideError && onOverrideStock ? (
+                  <div className="rounded-none border border-amber-300/70 bg-gradient-to-br from-amber-50 to-amber-100/50 px-3 py-2.5 text-[11px] text-amber-950 dark:border-amber-900/50 dark:from-amber-950/40 dark:to-amber-900/20 dark:text-amber-100">
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert
+                        className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold leading-snug">
+                          Stock short — admin override
+                        </p>
+                        <p className="mt-0.5 leading-snug text-amber-900/85 dark:text-amber-100/80">
+                          {stockOverrideError}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={onOverrideStock}
+                          disabled={loading}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-none border border-amber-500/60 bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-800 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-200"
+                        >
+                          <ShieldAlert className="size-3.5" aria-hidden />
+                          Sell anyway — record negative stock
+                        </button>
+                        <p className="mt-1.5 text-[10px] leading-snug text-amber-900/70 dark:text-amber-100/60">
+                          Completes this sale with stock below zero and flags the
+                          item for restock. Recorded in Stock movements.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : error ? (
                   /open a shift/i.test(error) && onOpenShift ? (
                     <div className="flex items-center justify-between gap-2 rounded-none border border-destructive/35 bg-destructive/5 px-2.5 py-1.5 text-[11px] text-destructive">
                       <span className="min-w-0 flex-1 leading-snug">{error}</span>

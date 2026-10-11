@@ -403,6 +403,8 @@ export type CashierPosLayoutProps = {
     | "onStartNewSale"
     | "onClearSale"
     | "onOpenShift"
+    | "stockOverrideError"
+    | "onOverrideStock"
     | "receiptPrinter"
     | "whatsappReceiptEnabled"
   >;

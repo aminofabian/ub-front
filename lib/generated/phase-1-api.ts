@@ -18928,6 +18928,7 @@ export interface components {
             clientSoldAt?: string;
             customerId?: string;
             cashReceived?: number;
+            allowOutOfStock?: boolean;
         };
         SaleItemResponse: {
             id?: string;

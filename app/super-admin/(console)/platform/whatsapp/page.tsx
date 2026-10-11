@@ -18,6 +18,7 @@ import {
   fetchSaCrmWebhookEvents,
   fetchSaWhatsAppNumbers,
   fetchSaWhatsAppSettings,
+  provisionMetaWhatsApp,
   routeSaWhatsAppNumber,
   setSaWhatsAppNumberStatus,
   updatePlatformIntegrations,
@@ -57,6 +58,7 @@ export default function SuperAdminWhatsAppNumbersPage() {
   const [events, setEvents] = useState<SaCrmWebhookEventRow[]>([]);
   const [eventsBusy, setEventsBusy] = useState(false);
   const [eventsUnroutedOnly, setEventsUnroutedOnly] = useState(false);
+  const [webhookBusy, setWebhookBusy] = useState(false);
 
   const load = useCallback(async () => {
     setBooting(true);
@@ -116,6 +118,24 @@ export default function SuperAdminWhatsAppNumbersPage() {
     setPhoneNumberId(pnid);
     setError("");
     setNotice("Phone number ID filled in — pick a shop and press Assign.");
+  };
+
+  const onEnableWebhooks = async () => {
+    setWebhookBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await provisionMetaWhatsApp();
+      setNotice(
+        `${result.ok ? "Webhooks enabled" : "Could not enable webhooks"}${
+          result.wabaId ? ` (WABA ${result.wabaId})` : ""
+        }: ${result.steps.join(" · ")}`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not enable webhooks.");
+    } finally {
+      setWebhookBusy(false);
+    }
   };
 
   const onRoute = async () => {
@@ -245,6 +265,17 @@ export default function SuperAdminWhatsAppNumbersPage() {
             {data.defaultPhoneNumberId ? " · default " + data.defaultPhoneNumberId : ""}
           </span>
         ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-none"
+          disabled={busy || webhookBusy}
+          onClick={() => void onEnableWebhooks()}
+        >
+          {webhookBusy ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
+          Enable webhooks
+        </Button>
         <Button
           type="button"
           variant="ghost"

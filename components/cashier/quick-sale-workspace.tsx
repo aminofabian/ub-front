@@ -401,6 +401,15 @@ export function QuickSaleWorkspace({
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
   const allowNegativeStock = allowNegativeStockForSales(business);
+  /**
+   * Admin override: with `inventory.write` you can force a sale through when an
+   * item is short on hand (records negative stock) even if the tenant has
+   * "allow selling when out of stock" turned off.
+   */
+  const canOverrideStock = hasPermission(
+    me?.permissions,
+    Permission.InventoryWrite,
+  );
   const featureFlags = useFeatureFlags();
   const tillListenSettings = useMemo(
     () => tillListenFromFlags(featureFlags),
@@ -507,6 +516,13 @@ export function QuickSaleWorkspace({
   // ── Page-level UI state (declared early because cart/draft callbacks reference them)
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  /**
+   * Admin-only nudge in checkout: the last attempt was blocked because stock is
+   * short, but this user may override and sell anyway. Derived (not stored) so
+   * it clears itself the moment the error stops being a stock shortage.
+   */
+  const stockOverrideError =
+    canOverrideStock && /out of stock/i.test(error) ? error : null;
   const [loading, setLoading] = useState(false);
   const [marginGuardMode, setMarginGuardMode] =
     useState<MarginGuardMode>("warn");
@@ -3344,6 +3360,8 @@ export function QuickSaleWorkspace({
   const onComplete = useCallback(async (opts?: {
     skipBranchConfirm?: boolean;
     skipBelowCostConfirm?: boolean;
+    /** Admin override — allow this sale to drive stock negative. */
+    allowOutOfStock?: boolean;
   }) => {
     const bid = branchId.trim();
     if (!bid) {
@@ -3789,6 +3807,8 @@ export function QuickSaleWorkspace({
       ...(cashTendered != null && !creditChangeToWallet
         ? { cashReceived: cashTendered }
         : {}),
+      // Admin override: force this sale through even when stock is short.
+      ...(opts?.allowOutOfStock ? { allowOutOfStock: true } : {}),
     };
 
     const linesSnapshot = lines.map((line) => ({
@@ -5336,6 +5356,13 @@ export function QuickSaleWorkspace({
           onStartNewSale,
           onClearSale,
           onOpenShift: () => onPosShiftShortcut("open-shift"),
+          stockOverrideError,
+          onOverrideStock: () =>
+            void onComplete({
+              skipBranchConfirm: true,
+              skipBelowCostConfirm: true,
+              allowOutOfStock: true,
+            }).catch(() => undefined),
           receiptPrinter: {
             cupsName:
               branches.find((b) => b.id === branchId.trim())?.receipt

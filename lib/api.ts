@@ -10822,6 +10822,11 @@ export type PostSalePayload = {
   clientSoldAt?: string | null;
   /** Cash handed over by customer (full cash sales) — printed as Received / Change. */
   cashReceived?: number | string | null;
+  /**
+   * Admin-only override: allow this sale to drive stock negative when an item is
+   * short on hand. Requires `inventory.write`; ignored otherwise.
+   */
+  allowOutOfStock?: boolean;
 };
 
 export type SaleItemResponseRecord = {
@@ -10958,6 +10963,9 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   }
   if (body.cashReceived != null && body.cashReceived !== "") {
     payload.cashReceived = body.cashReceived;
+  }
+  if (body.allowOutOfStock) {
+    payload.allowOutOfStock = true;
   }
   return payload;
 }
