@@ -101,14 +101,7 @@ import {
   type StockResizableCol,
 } from "./stock-column-widths";
 import { useStockColumnWidths } from "./use-stock-column-widths";
-
-import { StockFilterBar } from "./stock-filter-bar";
 import { StockPriceListDownload } from "./stock-price-list-download";
-import {
-  describeStockFilter,
-  stockStatusOption,
-  type StockStatusFilter,
-} from "./stock-status-filters";
 
 const PAGE_SIZE = 50;
 
