@@ -70,6 +70,7 @@ import {
   cashierItemPrimaryLabel,
   posCartLineSuffix,
 } from "@/lib/cashier-item-display";
+import { isPackSellSku } from "@/lib/pack-sell-sku";
 import {
   formatCartQtyValue,
 } from "@/components/cashier/cashier-qty-control";
@@ -970,6 +971,9 @@ export function GroceryWorkspace() {
           unitPrice: tileShelfPriceValues.current[item.id] ?? 0,
           unitName: weighed ? "kg" : "",
           isWeighed: weighed,
+          packageVariant: item.packageVariant === true,
+          variantOfItemId: item.variantOfItemId ?? null,
+          packageUnitsPerSale: item.packageUnitsPerSale ?? null,
           unitCost,
         };
         setLines((prev) => [...prev, newLine]);
@@ -1018,6 +1022,12 @@ export function GroceryWorkspace() {
       const line = lines.find((l) => l.key === lineKey);
       if (!line) return;
       const next = line.isWeighed !== true;
+      if (next && isPackSellSku(line)) {
+        toast.error(
+          "Pack products sell by the pack, not by weight. Use the base SKU or a separate weighed product.",
+        );
+        return;
+      }
       setWeighedToggleBusyItemId(line.itemId);
       try {
         const updated = await setPosItemWeighed(line.itemId, next);

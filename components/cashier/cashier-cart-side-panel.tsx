@@ -10,6 +10,7 @@ import {
   cashierItemTitleParts,
 } from "@/lib/cashier-item-display";
 import { isSellBelowCost } from "@/lib/margin-guard";
+import { isPackSellSku } from "@/lib/pack-sell-sku";
 import { cn } from "@/lib/utils";
 
 import {
@@ -180,7 +181,13 @@ export function CashierCartSidePanel({
                             </p>
                           ) : null}
                         </div>
-                        {!airtime && allowWeighedToggle && onToggleWeighed ? (
+                        {!airtime &&
+                        allowWeighedToggle &&
+                        onToggleWeighed &&
+                        // Pack SKUs sell whole packs — hide mark-as-weighted.
+                        // Still show if already wrongly weighed so cashiers can clear it.
+                        (!isPackSellSku(line.item) ||
+                          line.item.isWeighed === true) ? (
                           <CashierWeighedToggle
                             weighed={line.item.isWeighed === true}
                             busy={weighedToggleBusyItemId === line.itemId}

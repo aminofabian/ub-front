@@ -22,12 +22,13 @@ type CrateSpec = {
   scatterY: number;
 };
 
+/** Solid fills first so crates stay visible if `color-mix` / CSS chunks fail. */
 const STAGE: CrateSpec[] = [
   {
     x: 50,
     y: 28,
     rot: -6,
-    fill: "color-mix(in srgb, var(--primary) 82%, #3d2a14)",
+    fill: "#6b4a28",
     delay: "0ms",
     scatterX: -18,
     scatterY: -52,
@@ -36,7 +37,7 @@ const STAGE: CrateSpec[] = [
     x: 32,
     y: 48,
     rot: 5,
-    fill: "color-mix(in srgb, #c4a574 78%, var(--primary))",
+    fill: "#b8955c",
     delay: "180ms",
     scatterX: -72,
     scatterY: -12,
@@ -45,7 +46,7 @@ const STAGE: CrateSpec[] = [
     x: 68,
     y: 50,
     rot: -3,
-    fill: "color-mix(in srgb, var(--primary) 55%, #e8d9b8)",
+    fill: "#c9b089",
     delay: "320ms",
     scatterX: 74,
     scatterY: -18,
@@ -54,7 +55,7 @@ const STAGE: CrateSpec[] = [
     x: 20,
     y: 72,
     rot: 8,
-    fill: "color-mix(in srgb, #d7b07a 88%, #6b4a2b)",
+    fill: "#c4a06a",
     delay: "90ms",
     scatterX: -88,
     scatterY: 28,
@@ -63,7 +64,7 @@ const STAGE: CrateSpec[] = [
     x: 50,
     y: 74,
     rot: -2,
-    fill: "color-mix(in srgb, var(--primary) 70%, #1f3d28)",
+    fill: "#4a6b3a",
     delay: "240ms",
     scatterX: 8,
     scatterY: 46,
@@ -72,7 +73,7 @@ const STAGE: CrateSpec[] = [
     x: 80,
     y: 72,
     rot: 4,
-    fill: "color-mix(in srgb, #e4c9a0 70%, var(--primary))",
+    fill: "#d4b88a",
     delay: "400ms",
     scatterX: 92,
     scatterY: 22,
@@ -249,7 +250,16 @@ export function WaitingBoxes({
   return (
     <div
       ref={rootRef}
-      className={cn(styles.root, className)}
+      className={cn(
+        // Tailwind sizes as a safety net when the CSS module chunk is stale.
+        size === "mini"
+          ? "mx-auto h-[2.4rem] w-[6.75rem]"
+          : size === "compact"
+            ? "mx-auto h-[4.75rem] w-[11.5rem]"
+            : "mx-auto h-[11.5rem] w-[17.5rem]",
+        styles.root,
+        className,
+      )}
       data-size={size}
       aria-hidden="true"
       onDoubleClick={scatter}

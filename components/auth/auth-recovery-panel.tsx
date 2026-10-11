@@ -52,7 +52,7 @@ export function AuthRecoveryPanel() {
           : "Drag a crate if you like. We're reconnecting in the background."
       }
       footer={
-        <Button asChild variant="ghost" className="w-full">
+        <Button asChild variant="ghost" className="w-full text-muted-foreground">
           <Link href={`${APP_ROUTES.staffLogin}?switch=1`}>
             Sign in with a different account
           </Link>

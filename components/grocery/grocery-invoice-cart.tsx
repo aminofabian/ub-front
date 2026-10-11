@@ -15,6 +15,7 @@ import {
 import { CashierWeighedToggle } from "@/components/cashier/cashier-weighed-toggle";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
+import { isPackSellSku } from "@/lib/pack-sell-sku";
 
 export type GroceryCartLine = {
   key: string;
@@ -27,6 +28,10 @@ export type GroceryCartLine = {
   unitName: string;
   /** When true, fractional qty (½ watermelon, etc.) is allowed — matches sale API. */
   isWeighed?: boolean;
+  /** Pack / shared-stock SKU — cannot be marked weighed. */
+  packageVariant?: boolean;
+  variantOfItemId?: string | null;
+  packageUnitsPerSale?: number | string | null;
   /** Reference cost for spoils write-off (from catalog buyingPrice). */
   unitCost?: number;
 };
@@ -160,7 +165,9 @@ function CartLineItem({
           >
             {line.label}
           </p>
-          {allowWeighedToggle && onToggleWeighed ? (
+          {allowWeighedToggle &&
+          onToggleWeighed &&
+          (!isPackSellSku(line) || weighed) ? (
             <CashierWeighedToggle
               weighed={weighed}
               busy={weighedToggleBusy}

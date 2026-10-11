@@ -1,6 +1,7 @@
 "use client";
 
 import { BlankDropCartPanel } from "@/components/storefront/templates/store/blank-drop-cart";
+import { ButcherBoardCartPanel } from "@/components/storefront/templates/store/butcher-board-cart-panel";
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
 import { DailyGazetteCartPanel } from "@/components/storefront/templates/store/daily-gazette-cart-panel";
 import { MizuSpringsCartPanel } from "@/components/storefront/templates/store/mizu-springs-cart-panel";
@@ -11,6 +12,7 @@ import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import {
   isBlankDropStoreTheme,
+  isButcherBoardStoreTheme,
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
   isMizuSpringsStoreTheme,
@@ -19,12 +21,13 @@ import {
 /**
  * After add-to-cart on desktop: compact floating card, then full drawer.
  * Mobile web skips the overlay and uses the cart dock instead.
- * Blank-drop, Comilmart, Daily gazette, and Mizu Springs use theme-specific bag panels.
+ * Blank-drop, Butcher board, Comilmart, Daily gazette, and Mizu Springs use theme-specific bag panels.
  */
 export function ShopCartDrawer() {
   const isMd = useMediaMd();
   const { drawerOpen, closeDrawer, cartViewMode } = useShopCart();
   const blankDrop = isBlankDropStoreTheme();
+  const butcher = isButcherBoardStoreTheme();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
   const mizu = isMizuSpringsStoreTheme();
@@ -93,6 +96,23 @@ export function ShopCartDrawer() {
         className="ms-slide-over"
       >
         <MizuSpringsCartPanel onClose={closeDrawer} />
+      </ShopSlideOver>
+    );
+  }
+
+  if (butcher) {
+    if (!isMd || cartViewMode === "focus") {
+      return <ShopCartMobileFloat themed="butcher-board" />;
+    }
+    return (
+      <ShopSlideOver
+        variant="floating"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        ariaLabel="Your slip"
+        className="bb-slide-over"
+      >
+        <ButcherBoardCartPanel onClose={closeDrawer} />
       </ShopSlideOver>
     );
   }

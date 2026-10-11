@@ -27,6 +27,7 @@ import {
   type SmsTierAllowanceRecord,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
+import { unitPriceFromPackage } from "@/components/pricing/unit-price-from-package";
 
 import {
   SMS_CREDITS_NAV,
@@ -286,7 +287,7 @@ export default function SuperAdminSmsCreditsPage() {
     Number.isFinite(packagePriceNum) &&
     packagePriceNum > 0;
   const packageUnitPrice = packageEntered
-    ? Math.round((packagePriceNum / packageUnitsNum) * 100) / 100
+    ? unitPriceFromPackage(packageUnitsNum, packagePriceNum)
     : 0;
   // unit_price_kes must stay positive, so a package so cheap per unit that it rounds
   // to KES 0.00 is rejected instead of silently saved as zero.

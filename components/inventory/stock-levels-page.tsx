@@ -102,6 +102,14 @@ import {
 } from "./stock-column-widths";
 import { useStockColumnWidths } from "./use-stock-column-widths";
 
+import { StockFilterBar } from "./stock-filter-bar";
+import { StockPriceListDownload } from "./stock-price-list-download";
+import {
+  describeStockFilter,
+  stockStatusOption,
+  type StockStatusFilter,
+} from "./stock-status-filters";
+
 const PAGE_SIZE = 50;
 
 /** Sort keys shown in the stock toolbar / column headers. */
@@ -2103,6 +2111,18 @@ export function StockLevelsPage() {
     void loadPage({ reset: true });
   }, [loadPage]);
 
+  const loadPriceListPage = useCallback(
+    (page: number, size: number) =>
+      fetchItemsPage(debouncedSearch || undefined, {
+        ...priceListOpts,
+        branchId: branchId.trim() || undefined,
+        page,
+        size,
+        listSort: "NAME_ASC",
+      }),
+    [branchId, debouncedSearch, priceListOpts],
+  );
+
   const loadMore = useCallback(() => {
     void loadPage({ reset: false });
   }, [loadPage]);
@@ -2286,6 +2306,31 @@ export function StockLevelsPage() {
   const activeBranchName =
     branches.find((b) => b.id === branchId)?.name?.trim() || "";
 
+  const priceListScope = useMemo(() => {
+    const category = categoryId
+      ? categories.find((categoryRow) => categoryRow.id === categoryId)?.name?.trim()
+      : "";
+    const supplier = supplierId
+      ? suppliers.find((supplier) => supplier.id === supplierId)?.name?.trim()
+      : "";
+    const status =
+      statusFilter === "all" ? "" : (stockStatusOption(statusFilter)?.label ?? "");
+    const department = headerItemTypeId?.trim() ? itemTypeLabel : "";
+    return [department, category, supplier, status, debouncedSearch]
+      .map((part) => part?.trim())
+      .filter((part): part is string => Boolean(part))
+      .join("   ·   ");
+  }, [
+    categoryId,
+    categories,
+    supplierId,
+    suppliers,
+    statusFilter,
+    headerItemTypeId,
+    itemTypeLabel,
+    debouncedSearch,
+  ]);
+
   const fullCountPct =
     fullCountProgress && fullCountProgress.total > 0
       ? Math.min(
@@ -2410,6 +2455,17 @@ export function StockLevelsPage() {
           })}
         </div>
       )}
+      {isLevelsView ? (
+        <StockPriceListDownload
+          variant="bar"
+          disabled={!branchId}
+          currency={currency}
+          businessName={business?.name?.trim() || "Shop"}
+          branchName={activeBranchName}
+          scope={priceListScope}
+          loadPage={loadPriceListPage}
+        />
+      ) : null}
       {isLevelsView && (rows.length > 0 || loading) ? (
         <>
           <p

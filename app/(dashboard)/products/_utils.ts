@@ -301,6 +301,7 @@ export function buildCreatePackageVariantBody(
     packagingUnitName: name,
     packagingUnitQty: units,
     bundleQty: 1,
+    isWeighed: false,
   };
   if (draft.sku.trim()) body.sku = draft.sku.trim();
   if (draft.barcode.trim()) body.barcode = draft.barcode.trim();
@@ -331,6 +332,7 @@ export function buildCreateVariantBody(
       packagingUnitName: variantName,
       packagingUnitQty: units,
       bundleQty: 1,
+      isWeighed: false,
     };
     if (draft.sku.trim()) body.sku = draft.sku.trim();
     if (draft.barcode.trim()) body.barcode = draft.barcode.trim();
