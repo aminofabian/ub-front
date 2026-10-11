@@ -5,13 +5,17 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  Check,
   Loader2,
   MessageCircle,
+  MessagesSquare,
   Package,
   PhoneCall,
   Printer,
@@ -45,7 +49,16 @@ import {
 } from "@/lib/desktop-print";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
-import { cartOrderCode, normalizeWhatsApp } from "@/lib/whatsapp-order";
+import { normalizeWhatsApp } from "@/lib/whatsapp-order";
+import {
+  isDoorstepOrder,
+  isWhatsAppWebOrder,
+  orderCodeOf,
+  orderMatchesCode,
+  orderStatusLine,
+  whatsAppChatHref,
+  type OrderTone,
+} from "@/lib/web-order-desk";
 import { cn } from "@/lib/utils";
 
 const OPEN_FULFILLMENT = new Set([
@@ -85,40 +98,12 @@ function formatWhen(iso: string): string {
   });
 }
 
-function shortId(id: string): string {
-  const t = id.trim();
-  if (t.length <= 8) return t.toUpperCase();
-  return t.slice(-8).toUpperCase();
-}
-
-/** V1 channel marker lives in order notes (scope D5). */
-function isWhatsAppOrder(notes: string | null | undefined): boolean {
-  return (notes ?? "").toLowerCase().includes("channel: whatsapp");
-}
-
-/** One-tap merchant reply — the highest-value affordance in this feature (§12). */
-function waReplyHref(
-  phone: string,
-  name: string | null | undefined,
-  orderId: string,
-  grandTotal: number | string,
-  currency: string,
-): string {
-  const digits = normalizeWhatsApp(phone);
-  if (!digits) return "https://wa.me/";
-  const text = `Hi ${(name ?? "").trim() || "there"}, thanks for order ${cartOrderCode(orderId)}. Everything is available — total ${fmtMoney(grandTotal, currency || "KES")}. Pay by …`;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-}
-
 /** "Chat not confirmed" hint (§12): opened long ago but nothing moved, or expired. */
 function whatsAppHint(
   detail: WebOrderDetail | null,
 ): { tone: "stale" | "expired"; text: string } | null {
   if (!detail) return null;
-  const isWa =
-    detail.channel === "WHATSAPP" ||
-    (detail.notes ?? "").toLowerCase().includes("channel: whatsapp");
-  if (!isWa) return null;
+  if (!isWhatsAppWebOrder(detail)) return null;
   const fulfillment = (detail.fulfillmentStatus ?? "").trim().toLowerCase();
   const unconfirmed = !fulfillment || fulfillment === "awaiting_confirmation";
   if (!unconfirmed) return null;
@@ -129,7 +114,7 @@ function whatsAppHint(
   if (expired) {
     return {
       tone: "expired",
-      text: "This order was never confirmed — its stock reservation was released. Confirm it to reserve again, or call the shopper.",
+      text: "This order was never confirmed, so its stock reservation was released. Collect payment, then confirm it to reserve again.",
     };
   }
   const openedAt = detail.handoffOpenedAt
@@ -138,16 +123,10 @@ function whatsAppHint(
   if (openedAt && now - openedAt >= 60 * 60 * 1000) {
     return {
       tone: "stale",
-      text: "The shopper opened WhatsApp but may not have sent it — worth a call.",
+      text: "The shopper opened WhatsApp but may not have sent it. Worth a call.",
     };
   }
   return null;
-}
-
-function labelStatus(raw: string | null | undefined): string {
-  const s = (raw ?? "").trim();
-  if (!s) return "—";
-  return s.replace(/_/g, " ");
 }
 
 function isOpenOrder(order: WebOrderSummary): boolean {
@@ -163,7 +142,7 @@ function StatusPill({
   tone,
   children,
 }: {
-  tone: "amber" | "emerald" | "muted" | "blue";
+  tone: OrderTone;
   children: ReactNode;
 }) {
   return (
@@ -174,6 +153,7 @@ function StatusPill({
         tone === "emerald" &&
           "bg-emerald-500/15 text-emerald-900 dark:text-emerald-200",
         tone === "blue" && "bg-sky-500/15 text-sky-900 dark:text-sky-200",
+        tone === "rose" && "bg-rose-500/15 text-rose-900 dark:text-rose-200",
         tone === "muted" && "bg-muted text-muted-foreground",
       )}
     >
@@ -182,32 +162,77 @@ function StatusPill({
   );
 }
 
-function paymentTone(
-  status: string,
-): "amber" | "emerald" | "muted" | "blue" {
-  const s = status.toLowerCase();
-  if (s === "paid") return "emerald";
-  if (s === "pending" || s === "awaiting_payment") return "amber";
-  if (s === "cancelled" || s === "failed") return "muted";
-  return "blue";
-}
-
-function fulfillmentTone(
-  status: string,
-): "amber" | "emerald" | "muted" | "blue" {
-  const s = status.toLowerCase();
-  if (s === "completed") return "emerald";
-  if (s === "dispatched") return "blue";
-  if (s === "confirmed") return "blue";
-  if (s === "awaiting_confirmation") return "amber";
-  return "muted";
-}
-
 function notificationType(frame: RealtimeFrame): string {
   const data = frame.data as Record<string, unknown>;
   return typeof data.notificationType === "string"
     ? data.notificationType
     : "";
+}
+
+/** Open orders only a merchant can move on — used to flag the row. */
+function needsMerchantAction(order: WebOrderSummary): boolean {
+  if ((order.status ?? "").toLowerCase() === "cancelled") return false;
+  if (order.status !== "paid") return true;
+  const f = (order.fulfillmentStatus ?? "awaiting_confirmation").toLowerCase();
+  return f === "awaiting_confirmation" || f === "confirmed";
+}
+
+/** Compact lifecycle: Placed → Paid → Confirmed → Ready/Dispatched → Complete. */
+function OrderLifecycle({
+  status,
+  fulfillmentStatus,
+  isDelivery,
+}: {
+  status: string;
+  fulfillmentStatus?: string | null;
+  isDelivery: boolean;
+}) {
+  if ((status ?? "").toLowerCase() === "cancelled") {
+    return <StatusPill tone="muted">Cancelled</StatusPill>;
+  }
+  const paid = status === "paid";
+  const f = (fulfillmentStatus ?? "").toLowerCase();
+  const confirmed =
+    paid && (f === "confirmed" || f === "dispatched" || f === "completed");
+  const dispatched = paid && (f === "dispatched" || f === "completed");
+  const completed = paid && f === "completed";
+  const reached = [true, paid, confirmed, dispatched, completed];
+  const current = reached.lastIndexOf(true);
+  const stages = isDelivery
+    ? ["Placed", "Paid", "Confirmed", "Dispatched", "Delivered"]
+    : ["Placed", "Paid", "Confirmed", "Ready", "Complete"];
+  return (
+    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      {stages.map((stage, i) => {
+        const done = reached[i] && i !== current;
+        const active = i === current;
+        return (
+          <li key={stage} className="flex items-center gap-1.5">
+            {i > 0 ? (
+              <span
+                aria-hidden
+                className="h-px w-3 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
+              />
+            ) : null}
+            {done ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                <Check className="size-3" aria-hidden />
+                {stage}
+              </span>
+            ) : active ? (
+              <StatusPill tone={i === reached.length - 1 ? "emerald" : "blue"}>
+                {stage}
+              </StatusPill>
+            ) : (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                {stage}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 export function WebOrdersPage() {
@@ -222,6 +247,7 @@ export function WebOrdersPage() {
     me?.permissions,
     Permission.StorefrontOrdersRead,
   );
+  const canInbox = hasPermission(me?.permissions, Permission.CrmInboxRead);
   const currency = business?.currency?.trim() || "KES";
 
   const [orders, setOrders] = useState<WebOrderSummary[]>([]);
@@ -234,8 +260,15 @@ export function WebOrdersPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"open" | "all">("open");
   const [channelTab, setChannelTab] = useState<"all" | "whatsapp">("all");
+  const [codeMiss, setCodeMiss] = useState<string | null>(null);
+  const [detailTick, setDetailTick] = useState(0);
+  const dismissedCode = useRef<string | null>(null);
+  const quietDetailRefresh = useRef(false);
 
   const deepLinkId = searchParams.get("orderId")?.trim() || null;
+  // Support deep links by short code (`?q=43A175DD`) as well as by id — the
+  // support chat and AI guide order cards link with `?q=<orderCode>`.
+  const deepLinkCode = searchParams.get("q")?.trim() || null;
 
   const loadOrders = useCallback(async (opts?: { soft?: boolean }) => {
     if (!canRead) return;
@@ -262,8 +295,22 @@ export function WebOrdersPage() {
     if (deepLinkId) {
       setSelectedId(deepLinkId);
       setTab("all");
+      setChannelTab("all");
+      setCodeMiss(null);
+      return;
     }
-  }, [deepLinkId]);
+    if (!deepLinkCode || loading) return;
+    if (dismissedCode.current === deepLinkCode) return;
+    const match = orders.find((order) => orderMatchesCode(order, deepLinkCode));
+    if (!match) {
+      setCodeMiss(orders.length > 0 ? deepLinkCode : null);
+      return;
+    }
+    setCodeMiss(null);
+    setSelectedId(match.id);
+    setTab("all");
+    setChannelTab("all");
+  }, [deepLinkId, deepLinkCode, orders, loading]);
 
   useEffect(() => {
     if (!canRead) return;
@@ -276,6 +323,8 @@ export function WebOrdersPage() {
         if (frame.delivery === "poll") return;
         if (!STOREFRONT_ORDER_TYPES.has(notificationType(frame))) return;
         void loadOrders({ soft: true });
+        quietDetailRefresh.current = true;
+        setDetailTick((tick) => tick + 1);
       },
     });
     client.connect().catch(() => {});
@@ -288,7 +337,9 @@ export function WebOrdersPage() {
       return;
     }
     let cancelled = false;
-    setDetailLoading(true);
+    const silent = quietDetailRefresh.current;
+    quietDetailRefresh.current = false;
+    if (!silent) setDetailLoading(true);
     void fetchWebOrderDetail(selectedId)
       .then((next) => {
         if (!cancelled) setDetail(next);
@@ -302,7 +353,7 @@ export function WebOrdersPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedId, canRead]);
+  }, [selectedId, canRead, detailTick]);
 
   const scopedOrders = useMemo(() => {
     const scope = branchId?.trim();
@@ -391,13 +442,19 @@ export function WebOrdersPage() {
       <DashboardPageHero
         icon={ShoppingBag}
         eyebrow="Storefront"
-        title="Pickup orders (web)"
-        description="Incoming online orders for packing and counter pickup."
+        title="Online orders"
+        description="Storefront and WhatsApp orders for packing, pickup, or delivery."
         showActiveScope
         compact
       />
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {codeMiss ? (
+        <DashboardFeedback
+          kind="error"
+          text={`No order #${codeMiss} in this list.`}
+        />
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -457,7 +514,7 @@ export function WebOrdersPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <section className={DASHBOARD_TABLE_SURFACE}>
+        <section className={cn(DASHBOARD_TABLE_SURFACE, selectedId && "max-lg:hidden")}>
           <div className={DASHBOARD_TABLE_HEAD}>
             <p className="text-sm font-semibold text-foreground">Orders</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -481,8 +538,7 @@ export function WebOrdersPage() {
             <ul className="divide-y divide-border/50">
               {visibleOrders.map((order) => {
                 const selected = order.id === selectedId;
-                const fulfillment =
-                  order.fulfillmentStatus ?? "awaiting_confirmation";
+                const badge = orderStatusLine(order);
                 return (
                   <li key={order.id}>
                     <button
@@ -497,15 +553,18 @@ export function WebOrdersPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
+                          {needsMerchantAction(order) ? (
+                            <span
+                              role="img"
+                              aria-label="Needs your action"
+                              title="Needs your action"
+                              className="size-1.5 shrink-0 rounded-full bg-[#0f766e]"
+                            />
+                          ) : null}
                           <p className="truncate text-sm font-semibold text-foreground">
                             {order.customerName?.trim() || "Customer"}
                           </p>
-                          <StatusPill tone={paymentTone(order.status)}>
-                            {labelStatus(order.status)}
-                          </StatusPill>
-                          <StatusPill tone={fulfillmentTone(fulfillment)}>
-                            {labelStatus(fulfillment)}
-                          </StatusPill>
+                          <StatusPill tone={badge.tone}>{badge.label}</StatusPill>
                           {order.channel === "WHATSAPP" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#25D366]/15 px-2 py-0.5 text-[11px] font-semibold text-[#128C4A]">
                               <MessageCircle className="size-3" aria-hidden />
@@ -516,7 +575,7 @@ export function WebOrdersPage() {
                         <p className="mt-1 truncate text-xs text-muted-foreground">
                           {order.customerPhone || "—"} ·{" "}
                           {order.catalogBranchName || "Branch"} · #
-                          {order.orderCode ?? shortId(order.id)}
+                          {orderCodeOf(order)}
                         </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           {formatWhen(order.createdAt)}
@@ -533,15 +592,33 @@ export function WebOrdersPage() {
           )}
         </section>
 
-        <aside className={DASHBOARD_TABLE_SURFACE}>
+        <aside
+          className={cn(
+            DASHBOARD_TABLE_SURFACE,
+            !selectedId && "max-lg:hidden",
+            "lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5.5rem)] lg:self-start lg:overflow-y-auto",
+          )}
+        >
           <div className={DASHBOARD_TABLE_HEAD}>
             <div className="flex items-start justify-between gap-2">
               <div>
+                {selectedId ? (
+                  <button
+                    type="button"
+                    className="mb-1 text-xs font-semibold text-[#0f766e] lg:hidden"
+                    onClick={() => {
+                      if (deepLinkCode) dismissedCode.current = deepLinkCode;
+                      setSelectedId(null);
+                    }}
+                  >
+                    Back to orders
+                  </button>
+                ) : null}
                 <p className="text-sm font-semibold text-foreground">
-                  Order detail
+                  {detail ? orderStatusLine(detail).label : "Order"}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Lines, notes, and fulfillment
+                  {detail ? `#${orderCodeOf(detail)}` : "Select an order"}
                 </p>
               </div>
               {selectedId ? (
@@ -568,7 +645,7 @@ export function WebOrdersPage() {
             <div className="flex flex-col items-start gap-2 px-5 py-10">
               <Package className="size-5 text-muted-foreground" aria-hidden />
               <p className="text-sm text-muted-foreground">
-                Select an order to review items and advance pickup.
+                Select an order to review and act on it.
               </p>
             </div>
           ) : detailLoading ? (
@@ -577,8 +654,18 @@ export function WebOrdersPage() {
               Loading detail…
             </div>
           ) : !detail ? (
-            <div className="px-5 py-10 text-sm text-muted-foreground">
-              Could not load this order.
+            <div className="flex flex-col items-start gap-3 px-5 py-10">
+              <p className="text-sm text-muted-foreground">
+                Could not load this order.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setDetailTick((tick) => tick + 1)}
+              >
+                Try again
+              </Button>
             </div>
           ) : (
             <div className="space-y-4 px-4 py-4 sm:px-5">
@@ -592,21 +679,38 @@ export function WebOrdersPage() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {detail.catalogBranchName} · {formatWhen(detail.createdAt)} · #
-                  {detail.notes?.toLowerCase().includes("channel: whatsapp")
-                    ? cartOrderCode(detail.id)
-                    : shortId(detail.id)}
+                  {orderCodeOf(detail)}
                 </p>
-                {isWhatsAppOrder(detail.notes) ? (
-                  <a
-                    href={waReplyHref(detail.customerPhone, detail.customerName, detail.id, detail.grandTotal, detail.currency)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-none bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
-                  >
-                    <MessageCircle className="size-3.5" aria-hidden />
-                    Reply on WhatsApp
-                  </a>
-                ) : null}
+                {(() => {
+                  const digits = normalizeWhatsApp(detail.customerPhone);
+                  if (!digits) return null;
+                  return (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={whatsAppChatHref(
+                          detail.customerPhone,
+                          detail.customerName,
+                          orderCodeOf(detail),
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-none bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
+                      >
+                        <MessageCircle className="size-3.5" aria-hidden />
+                        Message on WhatsApp
+                      </a>
+                      {canInbox ? (
+                        <Link
+                          href={`${APP_ROUTES.inbox}?phone=${encodeURIComponent(digits)}`}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/40"
+                        >
+                          <MessagesSquare className="size-3.5" aria-hidden />
+                          Inbox
+                        </Link>
+                      ) : null}
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const hint = whatsAppHint(detail);
                   if (!hint) return null;
@@ -626,24 +730,15 @@ export function WebOrdersPage() {
                 })()}
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <StatusPill tone={paymentTone(detail.status)}>
-                  {labelStatus(detail.status)}
-                </StatusPill>
-                <StatusPill
-                  tone={fulfillmentTone(
-                    detail.fulfillmentStatus ?? "awaiting_confirmation",
-                  )}
-                >
-                  {labelStatus(
-                    detail.fulfillmentStatus ?? "awaiting_confirmation",
-                  )}
-                </StatusPill>
-              </div>
-
               <WebOrderFulfillmentActions
                 order={detail}
                 onUpdated={onDetailUpdated}
+              />
+
+              <OrderLifecycle
+                status={detail.status}
+                fulfillmentStatus={detail.fulfillmentStatus}
+                isDelivery={isDoorstepOrder(detail)}
               />
 
               <WebOrderShipmentCard order={detail} onUpdated={onDetailUpdated} />

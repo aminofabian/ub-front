@@ -8439,6 +8439,54 @@ export async function voidWebOrder(orderId: string): Promise<WebOrderDetail> {
   );
 }
 
+/**
+ * Record that payment was received off-platform (cash, send-money, till).
+ * Unlocks the fulfilment path for a previously `pending_payment` order.
+ */
+export async function markWebOrderPaid(orderId: string): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/payment/mark-paid`,
+    { method: "POST", toast: false },
+  );
+}
+
+export type WebOrderStkResult = {
+  accepted: boolean;
+  checkoutRequestId?: string | null;
+  message?: string | null;
+};
+
+/** M-Pesa prompt registered against this order, so a PIN marks it paid. */
+export async function requestWebOrderStk(
+  orderId: string,
+): Promise<WebOrderStkResult> {
+  return request<WebOrderStkResult>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/payment/stk`,
+    { method: "POST", toast: false },
+  );
+}
+
+export type WebOrderMessageResult = {
+  sent: boolean;
+  channel?: string | null;
+  detail?: string | null;
+};
+
+/**
+ * Merchant-initiated customer message for an order. `kind: "payment_request"`
+ * sends the standard payment nudge; `kind: "custom"` sends the given text.
+ * WhatsApp first with SMS fallback.
+ */
+export async function sendWebOrderMessage(
+  orderId: string,
+  body: { kind: "payment_request" | "custom"; text?: string },
+): Promise<WebOrderMessageResult> {
+  return request<WebOrderMessageResult>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/message`,
+    { method: "POST", body, toast: false },
+  );
+}
+
 export async function updateWebOrderFulfillment(
   orderId: string,
   fulfillmentStatus: "confirmed" | "dispatched" | "completed",

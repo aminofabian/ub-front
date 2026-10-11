@@ -121,7 +121,7 @@ export function WebOrderShipmentCard({ order, onUpdated }: Props) {
   };
 
   return (
-    <div className="rounded-lg border border-border px-4 py-3">
+    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
       <p className="flex items-center gap-1.5 text-sm font-medium">
         <Truck className="size-4" aria-hidden />
         Pickup Mtaani delivery
@@ -157,7 +157,7 @@ export function WebOrderShipmentCard({ order, onUpdated }: Props) {
       ) : null}
 
       {shipment.paymentStatus === "Not Paid" && shipment.bookStatus === "booked" ? (
-        <p className="mt-2 rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="mt-2 rounded-none border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           Pickup Mtaani has not been paid for this delivery. Pay it in Pickup Mtaani,
           then it will be collected.
         </p>

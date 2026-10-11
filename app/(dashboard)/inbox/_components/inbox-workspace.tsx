@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Banknote,
   Loader2,
@@ -59,10 +60,13 @@ function formatWhen(iso: string | null): string {
 
 export function InboxWorkspace() {
   const { me } = useDashboard();
+  const couldDeepLink = useSearchParams();
+  // Deep link from an order (`/inbox?phone=2547…`): open that customer's thread.
+  const phoneParam = (couldDeepLink.get("phone") ?? "").trim();
   const canSend = hasPermission(me?.permissions, Permission.CrmInboxSend);
   const canManage = hasPermission(me?.permissions, Permission.CrmInboxManage);
 
-  const [filter, setFilter] = useState<StatusFilter>("open");
+  const [filter, setFilter] = useState<StatusFilter>(phoneParam ? "all" : "open");
   const [rows, setRows] = useState<CrmConversationRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [status, setStatus] = useState<CrmInboxStatus | null>(null);
@@ -124,6 +128,17 @@ export function InboxWorkspace() {
   useEffect(() => {
     void loadList();
   }, [loadList]);
+
+  // Auto-select the conversation for a deep-linked phone once the list loads.
+  useEffect(() => {
+    if (!phoneParam || selectedId || rows.length === 0) return;
+    const needle = phoneParam.replace(/\D/g, "").slice(-9);
+    if (!needle) return;
+    const match = rows.find((row) =>
+      (row.contactPhone ?? "").replace(/\D/g, "").endsWith(needle),
+    );
+    if (match) setSelectedId(match.id);
+  }, [phoneParam, rows, selectedId]);
 
   useEffect(() => {
     let alive = true;

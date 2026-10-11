@@ -31,12 +31,23 @@ import { cn } from "@/lib/utils";
 const TRIGGER_OPTIONS = [
   { value: "KEYWORD_MATCH", label: "Keyword match" },
   { value: "FIRST_INBOUND_MESSAGE", label: "First inbound message" },
+  { value: "SHOP_EVENT", label: "Shop event (orders)" },
 ];
 
 const TRIGGER_LABELS: Record<string, string> = {
   KEYWORD_MATCH: "Keyword",
   FIRST_INBOUND_MESSAGE: "First message",
+  SHOP_EVENT: "Shop event",
 };
+
+/** Events a SHOP_EVENT rule can react to (mirrors WebOrderLifecycleEvent). */
+const SHOP_EVENT_OPTIONS = [
+  { value: "ORDER_PLACED", label: "Order placed" },
+  { value: "ORDER_PAID", label: "Order paid" },
+  { value: "ORDER_CONFIRMED", label: "Order confirmed" },
+  { value: "ORDER_DISPATCHED", label: "Order ready / dispatched" },
+  { value: "ORDER_DELIVERED", label: "Order completed / delivered" },
+];
 
 const STEP_OPTIONS = [
   { value: "SEND_MESSAGE", label: "Send message" },
@@ -98,7 +109,11 @@ function keywordsFromConfig(raw: string | null): string {
   return Array.isArray(keywords) ? keywords.join(", ") : "";
 }
 
-function triggerConfigJson(triggerType: string, keywords: string): string {
+function triggerConfigJson(
+  triggerType: string,
+  keywords: string,
+  event: string,
+): string {
   if (triggerType === "KEYWORD_MATCH") {
     const list = keywords
       .split(",")
@@ -106,7 +121,17 @@ function triggerConfigJson(triggerType: string, keywords: string): string {
       .filter((k) => k.length > 0);
     return JSON.stringify({ keywords: list });
   }
+  if (triggerType === "SHOP_EVENT") {
+    return JSON.stringify({ event: event || "ORDER_PLACED" });
+  }
   return "{}";
+}
+
+function eventFromConfig(raw: string | null): string {
+  const config = readJson(raw);
+  return typeof config.event === "string" && config.event.trim()
+    ? config.event.trim()
+    : "ORDER_PLACED";
 }
 
 function formatWhen(iso: string | null): string {
@@ -132,6 +157,7 @@ export function AutomationsWorkspace() {
   const [name, setName] = useState("");
   const [triggerType, setTriggerType] = useState("KEYWORD_MATCH");
   const [keywords, setKeywords] = useState("");
+  const [triggerEvent, setTriggerEvent] = useState("ORDER_PLACED");
   const [steps, setSteps] = useState<EditorStep[]>([]);
   const [active, setActive] = useState(true);
   const [editorLoading, setEditorLoading] = useState(false);
@@ -175,6 +201,7 @@ export function AutomationsWorkspace() {
     setName("");
     setTriggerType("KEYWORD_MATCH");
     setKeywords("");
+    setTriggerEvent("ORDER_PLACED");
     setSteps([]);
     setActive(true);
     setEditorError(null);
@@ -189,6 +216,7 @@ export function AutomationsWorkspace() {
       setName(detail.automation.name);
       setTriggerType(detail.automation.triggerType);
       setKeywords(keywordsFromConfig(detail.automation.triggerConfigJson));
+      setTriggerEvent(eventFromConfig(detail.automation.triggerConfigJson));
       setActive(detail.automation.active);
       setSteps(
         detail.steps.map((s) => ({
@@ -219,7 +247,7 @@ export function AutomationsWorkspace() {
     const input: CrmAutomationInput = {
       name: name.trim(),
       triggerType,
-      triggerConfigJson: triggerConfigJson(triggerType, keywords),
+      triggerConfigJson: triggerConfigJson(triggerType, keywords, triggerEvent),
       active,
       steps: steps.map<CrmAutomationStepInput>((s) => ({
         type: s.type,
@@ -237,7 +265,7 @@ export function AutomationsWorkspace() {
     } finally {
       setSaving(false);
     }
-  }, [canManage, name, triggerType, keywords, active, steps, selectedId, loadList]);
+  }, [canManage, name, triggerType, keywords, triggerEvent, active, steps, selectedId, loadList]);
 
   const onDelete = useCallback(
     async (id: string) => {
@@ -419,6 +447,26 @@ export function AutomationsWorkspace() {
                   />
                   <p className={cn(dashboardHintClass(), "mt-1")}>
                     Fires when an incoming message contains any of these.
+                  </p>
+                </div>
+              ) : triggerType === "SHOP_EVENT" ? (
+                <div>
+                  <label className={dashboardLabelClass()}>Shop event</label>
+                  <select
+                    value={triggerEvent}
+                    onChange={(e) => setTriggerEvent(e.target.value)}
+                    disabled={!canManage}
+                    className={cn(dashboardSelectClass(!canManage), "mt-1")}
+                  >
+                    {SHOP_EVENT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className={cn(dashboardHintClass(), "mt-1")}>
+                    Fires when an online order reaches this stage. Outside the 24-hour
+                    service window a WhatsApp reply needs an approved template.
                   </p>
                 </div>
               ) : (
