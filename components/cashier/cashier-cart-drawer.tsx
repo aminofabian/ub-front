@@ -1260,8 +1260,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                     !customerRegisterName.trim()
                                   }
                                   onClick={onOverridePhoneVerification}
-                                  className="text-[10px] font-medium text-sky-700 underline underline-offset-2 hover:text-sky-800 disabled:opacity-40 dark:text-sky-400 dark:hover:text-sky-300"
+                                  className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-sky-500 px-2.5 text-[12px] font-bold text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
+                                  <ShieldCheck className="size-4" aria-hidden />
                                   Manager: register without the code
                                 </button>
                               ) : null}
