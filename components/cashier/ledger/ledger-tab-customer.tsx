@@ -34,6 +34,10 @@ type LedgerTabCustomerProps = {
   phoneVerificationCooldownUntil: number;
   requirePhoneVerificationForNewTabCustomers?: boolean;
   allowSearchCustomersByName?: boolean;
+  /** Admin-only: may register a tab customer without the phone code. */
+  canOverridePhoneVerification?: boolean;
+  /** Admin-only: register the tab customer without the phone code. */
+  onOverridePhoneVerification?: () => void;
   /**
    * Cash / M-Pesa history capture — skippable, no OTP, never blocks Complete.
    * Tab checkout stays required and uses the existing credit copy.
@@ -67,6 +71,8 @@ export function LedgerTabCustomer({
   phoneVerificationCooldownUntil,
   requirePhoneVerificationForNewTabCustomers = true,
   allowSearchCustomersByName = false,
+  canOverridePhoneVerification = false,
+  onOverridePhoneVerification,
   optional = false,
   onSearchCustomers,
   onSendPhoneVerification,
@@ -334,6 +340,20 @@ export function LedgerTabCustomer({
                       ? "Add customer"
                       : "Register"}
               </button>
+              {registerNeedsOtp &&
+              canOverridePhoneVerification &&
+              onOverridePhoneVerification ? (
+                <button
+                  type="button"
+                  disabled={
+                    !online || customerRegisterBusy || !customerRegisterName.trim()
+                  }
+                  onClick={onOverridePhoneVerification}
+                  className="text-[10px] font-medium text-sky-700 underline underline-offset-2 hover:text-sky-800 disabled:opacity-40 dark:text-sky-400 dark:hover:text-sky-300"
+                >
+                  Manager: register without the code
+                </button>
+              ) : null}
             </>
           ) : (
             <p className="text-[11px] text-muted-foreground">

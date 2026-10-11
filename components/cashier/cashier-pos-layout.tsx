@@ -405,6 +405,9 @@ export type CashierPosLayoutProps = {
     | "onOpenShift"
     | "stockOverrideError"
     | "onOverrideStock"
+    | "phoneVerificationOverrideError"
+    | "canOverridePhoneVerification"
+    | "onOverridePhoneVerification"
     | "receiptPrinter"
     | "whatsappReceiptEnabled"
   >;

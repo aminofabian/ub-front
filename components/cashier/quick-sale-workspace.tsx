@@ -410,6 +410,15 @@ export function QuickSaleWorkspace({
     me?.permissions,
     Permission.InventoryWrite,
   );
+  /**
+   * Admin override: a manager can register a tab customer without the 4-digit
+   * phone code when the customer can't receive it. The backend accepts an
+   * unverified customer; the number stays flagged unverified for follow-up.
+   */
+  const canOverridePhoneVerification = hasPermission(
+    me?.permissions,
+    Permission.CreditsCustomersWrite,
+  );
   const featureFlags = useFeatureFlags();
   const tillListenSettings = useMemo(
     () => tillListenFromFlags(featureFlags),
@@ -1014,6 +1023,14 @@ export function QuickSaleWorkspace({
   const [phoneVerificationChannel, setPhoneVerificationChannel] = useState("");
   const [phoneVerificationCooldownUntil, setPhoneVerificationCooldownUntil] =
     useState(0);
+  /** True when a tab registration was blocked on the phone code (admin may skip). */
+  const [phoneVerificationBlocked, setPhoneVerificationBlocked] = useState(false);
+  /**
+   * Admin-only panel in checkout: a tab registration could not clear the phone
+   * code, but a manager may register the customer unverified.
+   */
+  const phoneVerificationOverrideError =
+    canOverridePhoneVerification && phoneVerificationBlocked ? error : null;
   const stkConfirmedToastKey = useRef<string | null>(null);
   const lastStkLinkedPhoneRef = useRef<string | null>(null);
   const stkPushCheckoutIdRef = useRef(stkPushCheckoutId);
@@ -1032,6 +1049,7 @@ export function QuickSaleWorkspace({
     setPhoneVerificationCode("");
     setPhoneVerificationChannel("");
     setPhoneVerificationCooldownUntil(0);
+    setPhoneVerificationBlocked(false);
   }, []);
 
   const notifyStkPaymentConfirmed = useCallback((checkoutId: string) => {
@@ -2017,6 +2035,7 @@ export function QuickSaleWorkspace({
     }
     setCustomerRegisterBusy(true);
     setError("");
+    setPhoneVerificationBlocked(false);
     try {
       const sent = await sendCustomerPhoneVerification(phone);
       setPhoneVerificationSent(true);
@@ -2038,6 +2057,7 @@ export function QuickSaleWorkspace({
       setError(
         e instanceof Error ? e.message : "Could not send verification code.",
       );
+      setPhoneVerificationBlocked(true);
     } finally {
       setCustomerRegisterBusy(false);
     }
@@ -2050,14 +2070,18 @@ export function QuickSaleWorkspace({
     phoneVerificationCooldownUntil,
   ]);
 
-  const onRegisterCustomer = useCallback(async () => {
+  const onRegisterCustomer = useCallback(async (opts?: {
+    skipPhoneVerification?: boolean;
+  }) => {
     const name = customerRegisterName.trim();
     const code = phoneVerificationCode.trim();
+    const skipPhoneVerification = opts?.skipPhoneVerification === true;
     // OTP stays reserved for credit / wallet registration; cash and M-Pesa
     // capture registers silently so the till is never blocked.
     const registerNeedsOtp =
       requirePhoneVerification &&
       (payMethod === "customer_credit" || creditChangeToWallet);
+    const otpRequired = registerNeedsOtp && !skipPhoneVerification;
     // Capture flow may register a customer with a name only — phone optional.
     const captureRegister =
       !registerNeedsOtp &&
@@ -2085,14 +2109,16 @@ export function QuickSaleWorkspace({
         return;
       }
     }
-    if (registerNeedsOtp) {
+    if (otpRequired) {
       if (!phoneVerificationSent) {
         setError("Send a verification code first.");
+        setPhoneVerificationBlocked(true);
         setNotice("");
         return;
       }
       if (!/^\d{4}$/.test(code)) {
         setError("Enter the 4-digit verification code.");
+        setPhoneVerificationBlocked(true);
         setNotice("");
         return;
       }
@@ -2109,12 +2135,16 @@ export function QuickSaleWorkspace({
     }
     setCustomerRegisterBusy(true);
     setError("");
+    setPhoneVerificationBlocked(false);
+    // Distinguish a failed code check (admin may skip) from a failed create.
+    let verifyPhase = otpRequired;
     try {
       let phoneVerificationToken: string | undefined;
-      if (registerNeedsOtp) {
+      if (otpRequired) {
         const verified = await verifyCustomerPhoneVerification(phone, code);
         phoneVerificationToken = verified.phoneVerificationToken;
       }
+      verifyPhase = false;
       const created = await createCustomer({
         name,
         phones: phone ? [{ phone, primary: true }] : [],
@@ -2128,15 +2158,21 @@ export function QuickSaleWorkspace({
         customerRegisterPhone: "",
       });
       resetPhoneVerification();
+      const skippedNote = skipPhoneVerification
+        ? " (code skipped — number unverified)"
+        : "";
       setNotice(
         creditChangeToWallet
-          ? `${created.name} registered — wallet ready (tab credit considered if they owe).`
+          ? `${created.name} registered — wallet ready (tab credit considered if they owe).${skippedNote}`
           : payMethod === "customer_credit"
-            ? `${created.name} registered — tab ready for credit.`
-            : `${created.name} added — purchase history will be linked to them.`,
+            ? `${created.name} registered — tab ready for credit.${skippedNote}`
+            : `${created.name} added — purchase history will be linked to them.${skippedNote}`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not register customer.");
+      if (verifyPhase) {
+        setPhoneVerificationBlocked(true);
+      }
     } finally {
       setCustomerRegisterBusy(false);
     }
@@ -5363,6 +5399,12 @@ export function QuickSaleWorkspace({
               skipBelowCostConfirm: true,
               allowOutOfStock: true,
             }).catch(() => undefined),
+          phoneVerificationOverrideError,
+          canOverridePhoneVerification,
+          onOverridePhoneVerification: () =>
+            void onRegisterCustomer({ skipPhoneVerification: true }).catch(
+              () => undefined,
+            ),
           receiptPrinter: {
             cupsName:
               branches.find((b) => b.id === branchId.trim())?.receipt

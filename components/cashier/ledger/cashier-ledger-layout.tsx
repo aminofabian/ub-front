@@ -26,6 +26,8 @@ import {
   RotateCcw,
   ScanLine,
   Settings2,
+  ShieldAlert,
+  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Table2,
@@ -1410,6 +1412,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
               }
               allowSearchCustomersByName={cart.allowSearchCustomersByName}
               optional={captureCustomerSimple}
+              canOverridePhoneVerification={cart.canOverridePhoneVerification}
+              onOverridePhoneVerification={cart.onOverridePhoneVerification}
               onSearchCustomers={cart.onSearchCustomers}
               onSendPhoneVerification={cart.onSendPhoneVerification}
               onRegisterCustomer={cart.onRegisterCustomer}
@@ -1554,7 +1558,54 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             }
           />
 
-          {cart.error ? <p className="text-[11px] text-red-700">{cart.error}</p> : null}
+          {cart.stockOverrideError && cart.onOverrideStock ? (
+            <div className="rounded-none border border-amber-400 bg-amber-50 p-2.5 text-[11px] text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
+              <p className="flex items-center gap-1.5 font-bold">
+                <ShieldAlert
+                  className="size-4 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden
+                />
+                Out of stock — sell anyway?
+              </p>
+              <p className="mt-0.5 leading-snug text-amber-900/90 dark:text-amber-100/85">
+                {cart.stockOverrideError}
+              </p>
+              <button
+                type="button"
+                disabled={cart.loading || tillLocked}
+                onClick={cart.onOverrideStock}
+                className="mt-1.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-amber-500 text-[12px] font-bold text-white hover:bg-amber-600 disabled:opacity-50"
+              >
+                <ShieldAlert className="size-4" aria-hidden />
+                Sell anyway — allow negative stock
+              </button>
+            </div>
+          ) : cart.phoneVerificationOverrideError &&
+            cart.onOverridePhoneVerification ? (
+            <div className="rounded-none border border-sky-400 bg-sky-50 p-2.5 text-[11px] text-sky-950 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
+              <p className="flex items-center gap-1.5 font-bold">
+                <ShieldCheck
+                  className="size-4 shrink-0 text-sky-600 dark:text-sky-400"
+                  aria-hidden
+                />
+                Phone code not verified
+              </p>
+              <p className="mt-0.5 leading-snug text-sky-900/90 dark:text-sky-100/85">
+                {cart.phoneVerificationOverrideError}
+              </p>
+              <button
+                type="button"
+                disabled={cart.customerRegisterBusy || tillLocked}
+                onClick={cart.onOverridePhoneVerification}
+                className="mt-1.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-sky-500 text-[12px] font-bold text-white hover:bg-sky-600 disabled:opacity-50"
+              >
+                <ShieldCheck className="size-4" aria-hidden />
+                Register on tab without the code
+              </button>
+            </div>
+          ) : cart.error ? (
+            <p className="text-[11px] text-red-700">{cart.error}</p>
+          ) : null}
           {cart.notice ? <p className="text-[11px] text-emerald-800">{cart.notice}</p> : null}
           </div>
 

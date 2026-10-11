@@ -9,6 +9,7 @@ import {
   Search,
   Send,
   ShieldAlert,
+  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Trash2,
@@ -233,6 +234,15 @@ export type CashierCartDrawerProps = {
   stockOverrideError?: string | null;
   /** Admin-only: retry the blocked sale allowing stock to go negative. */
   onOverrideStock?: () => void;
+  /**
+   * Admin-only: set when a tab registration was blocked on the phone code.
+   * Renders an override prompt that registers the customer unverified.
+   */
+  phoneVerificationOverrideError?: string | null;
+  /** Admin-only: register the tab customer without the phone code. */
+  onOverridePhoneVerification?: () => void;
+  /** Admin-only: whether this user may register a tab customer without the code. */
+  canOverridePhoneVerification?: boolean;
   /** Show Clear sale in checkout (tenant setting). */
   allowClearSale?: boolean;
   /** Clear voids every open till tab (admin override). */
@@ -406,6 +416,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onOpenShift,
     stockOverrideError,
     onOverrideStock,
+    phoneVerificationOverrideError,
+    canOverridePhoneVerification,
+    onOverridePhoneVerification,
     allowClearSale = true,
     allowClearAllSales = false,
     clearableSaleCount = 0,
@@ -1235,6 +1248,23 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       ? "Add customer"
                                       : "Register"}
                               </Button>
+                              {registerNeedsOtp &&
+                              !phoneVerificationOverrideError &&
+                              canOverridePhoneVerification &&
+                              onOverridePhoneVerification ? (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    !online ||
+                                    customerRegisterBusy ||
+                                    !customerRegisterName.trim()
+                                  }
+                                  onClick={onOverridePhoneVerification}
+                                  className="text-[10px] font-medium text-sky-700 underline underline-offset-2 hover:text-sky-800 disabled:opacity-40 dark:text-sky-400 dark:hover:text-sky-300"
+                                >
+                                  Manager: register without the code
+                                </button>
+                              ) : null}
                             </>
                           ) : (
                             <p className="text-[10px] text-muted-foreground">
@@ -1738,7 +1768,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold leading-snug">
-                          Stock short — admin override
+                          Out of stock — admin override
                         </p>
                         <p className="mt-0.5 leading-snug text-amber-900/85 dark:text-amber-100/80">
                           {stockOverrideError}
@@ -1747,14 +1777,46 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           type="button"
                           onClick={onOverrideStock}
                           disabled={loading}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-none border border-amber-500/60 bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-800 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-200"
+                          className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-amber-500 px-2.5 text-[12px] font-bold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <ShieldAlert className="size-3.5" aria-hidden />
-                          Sell anyway — record negative stock
+                          <ShieldAlert className="size-4" aria-hidden />
+                          Sell anyway — allow negative stock
                         </button>
                         <p className="mt-1.5 text-[10px] leading-snug text-amber-900/70 dark:text-amber-100/60">
                           Completes this sale with stock below zero and flags the
                           item for restock. Recorded in Stock movements.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : phoneVerificationOverrideError &&
+                  onOverridePhoneVerification &&
+                  registerNeedsOtp ? (
+                  <div className="rounded-none border border-sky-300/70 bg-gradient-to-br from-sky-50 to-sky-100/50 px-3 py-2.5 text-[11px] text-sky-950 dark:border-sky-900/50 dark:from-sky-950/40 dark:to-sky-900/20 dark:text-sky-100">
+                    <div className="flex items-start gap-2">
+                      <ShieldCheck
+                        className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold leading-snug">
+                          Phone verification blocked — admin override
+                        </p>
+                        <p className="mt-0.5 leading-snug text-sky-900/85 dark:text-sky-100/80">
+                          {phoneVerificationOverrideError}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={onOverridePhoneVerification}
+                          disabled={loading || customerRegisterBusy}
+                          className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none bg-sky-500 px-2.5 text-[12px] font-bold text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <ShieldCheck className="size-4" aria-hidden />
+                          Register on tab without the code
+                        </button>
+                        <p className="mt-1.5 text-[10px] leading-snug text-sky-900/70 dark:text-sky-100/60">
+                          Registers this customer unverified and puts the sale on
+                          their tab. The number stays flagged for follow-up.
                         </p>
                       </div>
                     </div>
