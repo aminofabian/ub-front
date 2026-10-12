@@ -7,7 +7,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ClipboardList,
+  Copy,
+  FileDown,
   Loader2,
+  MessageCircle,
   Minus,
   Package,
   PackageCheck,
@@ -1238,13 +1241,46 @@ export function OrderReceivePanel({
     }
   };
 
+  // Single "next step" action, reused by the desktop footer and the phone's
+  // sticky thumb bar so both stay in sync.
+  const notArrived =
+    (detail?.deliveryStatus ?? "not_shipped").toLowerCase() !== "delivered";
+  const stickyCta = twoStepDelivery
+    ? notArrived
+      ? {
+          label: "1 · Mark arrived",
+          busyLabel: "Marking arrived…",
+          icon: PackageCheck,
+          busy: markingArrived,
+          disabled: markingArrived || confirming,
+          onClick: () => void markArrived(),
+        }
+      : {
+          label: "2 · Unpack & add to stock",
+          busyLabel: "Adding to stock…",
+          icon: Check,
+          busy: confirming,
+          disabled:
+            confirming || markingArrived || !detail || openLines.length === 0,
+          onClick: () => void confirmSelected(),
+        }
+    : {
+        label: isStockFloor ? "Unpack & add to stock" : "Confirm supply",
+        busyLabel: isStockFloor ? "Adding to stock…" : "Posting supply…",
+        icon: Check,
+        busy: confirming,
+        disabled: confirming || !detail || openLines.length === 0,
+        onClick: () => void confirmSelected(),
+      };
+  const StickyCtaIcon = stickyCta.icon;
+
   return (
     <div
       className={cn(
-        "relative flex min-h-[28rem] flex-col overflow-hidden bg-white font-sans text-[var(--order-ink,#15231f)] lg:flex-row",
+        "relative flex flex-col bg-white font-sans text-[var(--order-ink,#15231f)]",
         embedded
-          ? "h-[min(82dvh,52rem)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
-          : "min-h-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          ? "h-[min(82dvh,52rem)] min-h-[28rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:flex-row"
+          : "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
@@ -1360,7 +1396,10 @@ export function OrderReceivePanel({
 
       <div
         className={cn(
-          "relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          "relative z-[1] flex min-w-0 flex-col",
+          embedded
+            ? "min-h-0 flex-1 overflow-hidden"
+            : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
           !selectedId && "hidden lg:flex",
         )}
       >
@@ -1446,7 +1485,12 @@ export function OrderReceivePanel({
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
+        <div
+          className={cn(
+            "min-h-0 flex-1 [scrollbar-width:thin]",
+            embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
+          )}
+        >
           {detailLoading ? (
             <p className="flex items-center justify-center gap-2 py-20 text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
               <Loader2 className="size-4 animate-spin" />
@@ -1989,7 +2033,7 @@ export function OrderReceivePanel({
 
         <div className="relative z-[2] shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] lg:shadow-none">
           <div className="grid gap-3 p-3 lg:grid-cols-[1fr_17.5rem] lg:items-start lg:gap-4">
-            <div className={cn("space-y-2", isStockFloor && "hidden lg:block")}>
+            <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -2036,7 +2080,12 @@ export function OrderReceivePanel({
 
             <div>
               <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
-                <div className="flex items-end justify-between gap-3">
+                <div
+                  className={cn(
+                    "flex items-end justify-between gap-3",
+                    !embedded && "hidden lg:flex",
+                  )}
+                >
                   <div>
                     <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                       {isStockFloor ? "This unpack" : "Selected total"}
@@ -2081,59 +2130,61 @@ export function OrderReceivePanel({
                 </button>
                 {twoStepDelivery ? (
                   <>
-                    {detail &&
-                    (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
-                      "delivered" ? (
+                    <div className={cn(!embedded && "hidden lg:block")}>
+                      {detail &&
+                      (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                        "delivered" ? (
+                        <button
+                          type="button"
+                          disabled={markingArrived || confirming}
+                          onClick={() => void markArrived()}
+                          className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                        >
+                          {markingArrived ? (
+                            <>
+                              <Loader2 className="size-4 animate-spin" />
+                              Marking arrived…
+                            </>
+                          ) : (
+                            <>
+                              <PackageCheck className="size-4" />
+                              1 · Mark arrived
+                            </>
+                          )}
+                        </button>
+                      ) : detail ? (
+                        <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+                          <PackageCheck className="size-3.5" />
+                          Arrived — ready to unpack
+                        </p>
+                      ) : null}
                       <button
                         type="button"
-                        disabled={markingArrived || confirming}
-                        onClick={() => void markArrived()}
-                        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                        disabled={
+                          confirming ||
+                          markingArrived ||
+                          !detail ||
+                          openLines.length === 0 ||
+                          (detail &&
+                            (detail.deliveryStatus ??
+                              "not_shipped").toLowerCase() !== "delivered")
+                        }
+                        onClick={() => void confirmSelected()}
+                        className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
                       >
-                        {markingArrived ? (
+                        {confirming ? (
                           <>
                             <Loader2 className="size-4 animate-spin" />
-                            Marking arrived…
+                            Adding to stock…
                           </>
                         ) : (
                           <>
-                            <PackageCheck className="size-4" />
-                            1 · Mark arrived
+                            <Check className="size-4" />
+                            2 · Unpack &amp; add to stock
                           </>
                         )}
                       </button>
-                    ) : detail ? (
-                      <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800">
-                        <PackageCheck className="size-3.5" />
-                        Arrived — ready to unpack
-                      </p>
-                    ) : null}
-                    <button
-                      type="button"
-                      disabled={
-                        confirming ||
-                        markingArrived ||
-                        !detail ||
-                        openLines.length === 0 ||
-                        (detail &&
-                          (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
-                            "delivered")
-                      }
-                      onClick={() => void confirmSelected()}
-                      className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                    >
-                      {confirming ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Adding to stock…
-                        </>
-                      ) : (
-                        <>
-                          <Check className="size-4" />
-                          2 · Unpack &amp; add to stock
-                        </>
-                      )}
-                    </button>
+                    </div>
                     {detail &&
                     (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
                       "delivered" ? (
@@ -2165,26 +2216,30 @@ export function OrderReceivePanel({
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      disabled={
-                        confirming || !detail || openLines.length === 0
-                      }
-                      onClick={() => void confirmSelected()}
-                      className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                    >
-                      {confirming ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Posting supply…
-                        </>
-                      ) : (
-                        <>
-                          <Check className="size-4" />
-                          {isStockFloor ? "Unpack & add to stock" : "Confirm supply"}
-                        </>
-                      )}
-                    </button>
+                    <div className={cn(!embedded && "hidden lg:block")}>
+                      <button
+                        type="button"
+                        disabled={
+                          confirming || !detail || openLines.length === 0
+                        }
+                        onClick={() => void confirmSelected()}
+                        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                      >
+                        {confirming ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Posting supply…
+                          </>
+                        ) : (
+                          <>
+                            <Check className="size-4" />
+                            {isStockFloor
+                              ? "Unpack & add to stock"
+                              : "Confirm supply"}
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                       {Object.keys(savingLines).length > 0
                         ? "Saving to order…"
@@ -2198,22 +2253,18 @@ export function OrderReceivePanel({
                 )}
               </div>
 
-              <div
-                className={cn(
-                  "mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]",
-                  isStockFloor && "hidden lg:flex",
-                )}
-              >
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:gap-x-3 lg:gap-y-1">
                 <button
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void sendOrderWhatsApp()}
-                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
+                  <MessageCircle className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "whatsapp" ? "Opening…" : "WhatsApp"}
                 </button>
                 <span
-                  className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+                  className="hidden text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] lg:inline"
                   aria-hidden
                 >
                   ·
@@ -2222,12 +2273,13 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void copyOrderList()}
-                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
+                  <Copy className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "copy" ? "Copying…" : "Copy"}
                 </button>
                 <span
-                  className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+                  className="hidden text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] lg:inline"
                   aria-hidden
                 >
                   ·
@@ -2236,14 +2288,46 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void downloadOrderPdf()}
-                  className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
+                  <FileDown className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "pdf" ? "Preparing…" : "PDF"}
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Phone: keep the primary action in thumb reach while the lines scroll.
+            Sits directly above the fixed bottom tab bar. */}
+        {!embedded ? (
+          <div className="sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[3] mt-2 flex items-stretch gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                {isStockFloor ? "This unpack" : "Selected total"}
+              </p>
+              <p className="mt-0.5 truncate font-heading text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--order-ink,#15231f)]">
+                {formatMoney(selectedTotal, ORDER_CURRENCY)}
+                <span className="ml-1.5 font-sans text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                  {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={stickyCta.disabled}
+              onClick={stickyCta.onClick}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+            >
+              {stickyCta.busy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <StickyCtaIcon className="size-4" aria-hidden />
+              )}
+              {stickyCta.busy ? stickyCta.busyLabel : stickyCta.label}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

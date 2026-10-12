@@ -18,6 +18,7 @@ export function OrderReceivePageClient() {
   return (
     <>
       <OrderPageLayout
+        mobileScroll
         header={
           <div className={isStockFloor ? "space-y-1.5" : "space-y-2"}>
             <ReceivePathSwitcher

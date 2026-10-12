@@ -140,6 +140,7 @@ function PulseCard({
   tone,
   className,
   children,
+  static: inFlow = false,
 }: {
   label: string;
   value: string;
@@ -147,11 +148,16 @@ function PulseCard({
   tone?: "ink" | "ok" | "warn" | "owed";
   className?: string;
   children?: ReactNode;
+  /** Normal-flow card (phone stack) instead of the desktop absolute collage. */
+  static?: boolean;
 }) {
   return (
     <article
       className={cn(
-        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
+        "z-[1] border bg-white p-3.5",
+        inFlow
+          ? "relative w-full"
+          : "absolute w-[min(17.5rem,calc(100%-1.5rem))] shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
         INK_RULE,
         className,
       )}
@@ -339,6 +345,37 @@ export default function ApAgingPage() {
       </div>
     ) : null;
 
+  const ageList = (
+    <>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Age
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {aging?.buckets ? (
+          BUCKETS.map((def) => {
+            const amount = n(aging.buckets[def.key]);
+            const tone = TONE[def.tone];
+            return (
+              <li
+                key={def.key}
+                className="flex items-baseline justify-between gap-2 text-[11px]"
+              >
+                <span className={cn("font-medium", tone.amount)}>
+                  {def.label}
+                </span>
+                <span className={cn("tabular-nums font-semibold", tone.amount)}>
+                  {money(amount)}
+                </span>
+              </li>
+            );
+          })
+        ) : (
+          <li className="text-muted-foreground">Aging buckets unavailable.</li>
+        )}
+      </ul>
+    </>
+  );
+
   const pulse = (
     <div className="relative h-full min-h-[22rem] overflow-hidden">
       <svg
@@ -427,44 +464,62 @@ export default function ApAgingPage() {
               INK_RULE,
             )}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Age
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              {aging?.buckets
-                ? BUCKETS.map((def) => {
-                    const amount = n(aging.buckets[def.key]);
-                    const tone = TONE[def.tone];
-                    return (
-                      <li
-                        key={def.key}
-                        className="flex items-baseline justify-between gap-2 text-[11px]"
-                      >
-                        <span className={cn("font-medium", tone.amount)}>
-                          {def.label}
-                        </span>
-                        <span
-                          className={cn(
-                            "tabular-nums font-semibold",
-                            tone.amount,
-                          )}
-                        >
-                          {money(amount)}
-                        </span>
-                      </li>
-                    );
-                  })
-                : (
-                  <li className="text-muted-foreground">
-                    Aging buckets unavailable.
-                  </li>
-                )}
-            </ul>
+            {ageList}
           </div>
         </>
       )}
     </div>
   );
+
+  // Phone: the desktop collage positions its cards with percentages, which
+  // overlap on a narrow screen. Stack the same figures full-width instead.
+  const pulseStack =
+    loading && !aging ? (
+      <div className="flex flex-col gap-2 p-2.5">
+        <div className="h-28 animate-pulse bg-white" />
+        <div className="h-24 animate-pulse bg-white" />
+        <div className="h-24 animate-pulse bg-white" />
+        <div className="h-36 animate-pulse bg-white" />
+      </div>
+    ) : (
+      <div className="flex flex-col gap-2 p-2.5">
+        <PulseCard
+          static
+          label="Still owing"
+          value={`${currency} ${money(totalOpen)}`}
+          hint={
+            billCount === 0
+              ? "Nothing open"
+              : `${billCount} bill${billCount === 1 ? "" : "s"} · ${supplierCount} vendor${supplierCount === 1 ? "" : "s"}`
+          }
+          tone={totalOpen > 0.009 ? "owed" : "ok"}
+        >
+          {agingBars}
+        </PulseCard>
+
+        <PulseCard
+          static
+          label="Past due"
+          value={`${currency} ${money(overdueTotal)}`}
+          hint={
+            overdueTotal > 0.009
+              ? "Outside payment terms"
+              : "Everything still current"
+          }
+          tone={overdueTotal > 0.009 ? "warn" : "ok"}
+        />
+
+        <PulseCard
+          static
+          label="Supplier credit"
+          value={`${currency} ${money(credit)}`}
+          hint="Prepayments you can apply"
+          tone={credit > 0.009 ? "ok" : "ink"}
+        />
+
+        <div className={cn("border bg-white p-3", INK_RULE)}>{ageList}</div>
+      </div>
+    );
 
   const feed = (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -645,7 +700,7 @@ export default function ApAgingPage() {
 
   return (
     <div
-      className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5"
+      className="relative mx-auto flex w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5 lg:h-full lg:min-h-0"
       style={PROCUREMENT_VARS}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
@@ -769,12 +824,34 @@ export default function ApAgingPage() {
           </div>
 
           <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-            <div className={cn("min-h-[22rem] border", INK_RULE, PAPER)}>
-              {pulse}
-            </div>
+            <div className={cn("border", INK_RULE, PAPER)}>{pulseStack}</div>
             <div className={cn("border", INK_RULE)}>{feed}</div>
           </div>
         </div>
+
+        {/* Phone: keep the settle-up action in thumb reach while the roster scrolls. */}
+        {unpaid.length > 0 ? (
+          <div className="sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[3] mt-1.5 flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                Still owing
+              </p>
+              <p
+                className="mt-0.5 truncate text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {currency} {money(totalOpen)}
+              </p>
+            </div>
+            <Link
+              href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0d6b63]"
+            >
+              <CreditCard className="size-4" aria-hidden />
+              Pay bills
+            </Link>
+          </div>
+        ) : null}
       </div>
     </div>
   );

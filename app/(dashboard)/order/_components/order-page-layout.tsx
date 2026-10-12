@@ -16,6 +16,7 @@ export function OrderPageLayout({
   showHeader = false,
   header,
   className,
+  mobileScroll = false,
 }: {
   children: ReactNode;
   title?: string;
@@ -24,6 +25,13 @@ export function OrderPageLayout({
   /** Replaces the default title/description header block. */
   header?: ReactNode;
   className?: string;
+  /**
+   * Phones/tablets: let the page grow and scroll in the shell instead of
+   * locking to the viewport height. Needed when a child panel's own footer is
+   * taller than a phone screen, so the primary actions stay reachable.
+   * Height-locked split panes resume at `lg`.
+   */
+  mobileScroll?: boolean;
 }) {
   const { me } = useDashboard();
   const isStockManager =
@@ -32,7 +40,10 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[1400px] flex-col overflow-hidden bg-white px-2.5 pt-1 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-white px-2.5 pt-1 sm:px-5 sm:pt-1.5",
+        mobileScroll
+          ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
+          : "h-full min-h-0 overflow-hidden",
         isStockManager &&
           "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
         className,

@@ -95,7 +95,7 @@ export function ReceivePathSwitcher({
           <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
             Against an order
           </span>
-          <span className="mt-0.5 block text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+          <span className="mt-0.5 hidden text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] sm:block">
             China PO, marketplace, or any open order — mark arrived, then unpack
             into stock.
           </span>
@@ -126,7 +126,7 @@ export function ReceivePathSwitcher({
           <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
             Walk-in · no order
           </span>
-          <span className="mt-0.5 block text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
+          <span className="mt-0.5 hidden text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] sm:block">
             Direct supply — supplier shows up, you count, stock rises when you
             post.
           </span>
