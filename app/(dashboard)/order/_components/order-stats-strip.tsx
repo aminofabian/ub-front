@@ -21,8 +21,7 @@ export function OrderStatsStrip() {
   const sentActive = sentStats.count > 0;
   const confirmActive = sentStats.awaitingUnits > 0;
 
-  if (isStockFloor) {
-    return (
+  const compactPulse = (
       <section
         aria-label="Order pulse"
         className="flex items-stretch gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
@@ -70,11 +69,16 @@ export function OrderStatsStrip() {
           </Link>
         ) : null}
       </section>
-    );
-  }
+  );
+
+  if (isStockFloor) return compactPulse;
 
   return (
-    <section aria-label="Order stats" className="space-y-1">
+    <>
+      {/* Phones: the full lifetime + pipeline strip eats too much of a short
+          viewport, so show the one-line pulse; the full strip returns at lg+. */}
+      <div className="lg:hidden">{compactPulse}</div>
+      <section aria-label="Order stats" className="hidden space-y-1 lg:block">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
       <div className="flex items-stretch gap-1">
@@ -140,6 +144,7 @@ export function OrderStatsStrip() {
           </Link>
         ) : null}
       </div>
-    </section>
+      </section>
+    </>
   );
 }

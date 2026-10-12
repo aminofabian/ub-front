@@ -35,6 +35,10 @@ const COLS_DEFAULT_ACTIONS =
 const COLS_COMPACT = "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)]";
 const COLS_COMPACT_ACTIONS =
   "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)_minmax(4.5rem,auto)]";
+/** Phones: name + status (+ actions) — the code column is dropped for width. */
+const COLS_MOBILE = "max-sm:grid-cols-[minmax(0,1fr)_minmax(4rem,auto)]";
+const COLS_MOBILE_ACTIONS =
+  "max-sm:grid-cols-[minmax(0,1fr)_minmax(4rem,auto)_minmax(4.5rem,auto)]";
 
 export type VirtualizedSupplierListProps = {
   rows: SupplierRecord[];
@@ -72,13 +76,16 @@ export function VirtualizedSupplierList({
   const parentRef = useRef<HTMLDivElement>(null);
   const rowPx = compact ? ROW_PX_COMPACT : ROW_PX_DEFAULT;
   const showActions = canWrite && Boolean(onEdit || onDelete);
-  const cols = compact
-    ? showActions
-      ? COLS_COMPACT_ACTIONS
-      : COLS_COMPACT
-    : showActions
-      ? COLS_DEFAULT_ACTIONS
-      : COLS_DEFAULT;
+  const cols = cn(
+    compact
+      ? showActions
+        ? COLS_COMPACT_ACTIONS
+        : COLS_COMPACT
+      : showActions
+        ? COLS_DEFAULT_ACTIONS
+        : COLS_DEFAULT,
+    showActions ? COLS_MOBILE_ACTIONS : COLS_MOBILE,
+  );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual list
   const virtualizer = useVirtualizer({
@@ -144,7 +151,7 @@ export function VirtualizedSupplierList({
       >
         <span className={cn(supTableCell, "flex items-center py-1")}>Name</span>
         {!compact ? (
-          <span className={cn(supTableCell, "flex items-center py-1")}>
+          <span className={cn(supTableCell, "flex items-center py-1 max-sm:hidden")}>
             Code
           </span>
         ) : null}
@@ -211,7 +218,7 @@ export function VirtualizedSupplierList({
                   className={cn(
                     "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-left",
                     cols,
-                    compact ? "h-[34px] text-[12px]" : "h-9 text-[13px]",
+                    compact ? "h-[34px] text-[12px]" : "h-9 text-[13px] max-sm:h-12 max-sm:text-[14px]",
                     "cursor-pointer",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     active
@@ -252,7 +259,7 @@ export function VirtualizedSupplierList({
                       role="cell"
                       className={cn(
                         supTableCell,
-                        "flex min-w-0 items-center truncate font-mono text-[11px] text-muted-foreground",
+                        "flex min-w-0 items-center truncate font-mono text-[11px] text-muted-foreground max-sm:hidden",
                       )}
                     >
                       {isSystem ? "—" : code || "—"}
@@ -286,11 +293,11 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-none text-muted-foreground hover:text-foreground"
+                          className="size-6 rounded-none text-muted-foreground hover:text-foreground max-sm:size-9"
                           aria-label={`Edit ${displayName}`}
                           onClick={() => onEdit(row.id)}
                         >
-                          <Pencil className="size-3" aria-hidden />
+                          <Pencil className="size-3 max-sm:size-4" aria-hidden />
                         </Button>
                       ) : null}
                       {onDelete && !isSystem ? (
@@ -298,12 +305,12 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="size-6 rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-sm:size-9"
                           aria-label={`Delete ${displayName}`}
                           disabled={deletingId === row.id}
                           onClick={() => onDelete(row)}
                         >
-                          <Trash2 className="size-3" aria-hidden />
+                          <Trash2 className="size-3 max-sm:size-4" aria-hidden />
                         </Button>
                       ) : null}
                     </span>

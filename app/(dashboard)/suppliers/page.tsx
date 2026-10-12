@@ -31,10 +31,6 @@ import { APP_ROUTES } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { supplierReceivePath } from "@/lib/supplier-slug";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
-import {
-  displaySupplierName,
-  isSystemUnassignedSupplier,
-} from "@/lib/supplier-display";
 import { toast } from "sonner";
 import {
   addItemSupplierLink,
@@ -978,7 +974,7 @@ export default function SuppliersPage() {
     <SupplierPageLayout>
       <div
         className={cn(
-          "relative flex min-h-0 w-full min-w-0 flex-col gap-1.5 pb-20",
+          "relative flex min-h-0 w-full min-w-0 flex-col gap-1.5 pb-4",
           isLg && "h-full min-h-0 flex-1 overflow-hidden pb-0",
         )}
       >
@@ -1117,76 +1113,6 @@ export default function SuppliersPage() {
                 onLoadMore={loadMoreDirectory}
               />
 
-              {!isLg && detail ? (
-                <div className="border-t border-border/50 p-3">
-                  <SupMobileSelectionBar
-                    name={
-                      <SupplierDisplayName
-                        name={detail.name}
-                        code={detail.code}
-                      />
-                    }
-                  >
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                      onClick={() => setEditDrawerOpen(true)}
-                    >
-                      <Building2 className="size-3.5" aria-hidden />
-                      Profile
-                    </Button>
-                    {canReadCatalog ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                        onClick={() => setCatalogDrawerOpen(true)}
-                      >
-                        <Link2 className="size-3.5" aria-hidden />
-                        Catalog
-                      </Button>
-                    ) : null}
-                    {canOpenNewSupply && detail ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                        onClick={() => router.push(supplierReceivePath(detail))}
-                      >
-                        <PackagePlus className="size-3.5" aria-hidden />
-                        Till
-                      </Button>
-                    ) : null}
-                    {canOpenNewSupply ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none"
-                        onClick={() => setNewSupplyOpen(true)}
-                      >
-                        <PackagePlus className="size-3.5" aria-hidden />
-                        Supply
-                      </Button>
-                    ) : null}
-                    {canDeposit ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                        onClick={() => setAdvanceOpen(true)}
-                      >
-                        <Wallet className="size-3.5" aria-hidden />
-                        Deposit
-                      </Button>
-                    ) : null}
-                  </SupMobileSelectionBar>
-                </div>
-              ) : null}
             </div>
 
             {isLg ? (
@@ -1368,6 +1294,71 @@ export default function SuppliersPage() {
             ) : null}
           </div>
         </div>
+
+        {!isLg && detail ? (
+          <SupMobileSelectionBar
+            sticky
+            name={<SupplierDisplayName name={detail.name} code={detail.code} />}
+          >
+            <Button
+              type="button"
+              size="sm"
+              className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+              onClick={() => setEditDrawerOpen(true)}
+            >
+              <Building2 className="size-4" aria-hidden />
+              Profile
+            </Button>
+            {canReadCatalog ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                onClick={() => setCatalogDrawerOpen(true)}
+              >
+                <Link2 className="size-4" aria-hidden />
+                Catalog
+              </Button>
+            ) : null}
+            {canOpenNewSupply ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                onClick={() => router.push(supplierReceivePath(detail))}
+              >
+                <PackagePlus className="size-4" aria-hidden />
+                Till
+              </Button>
+            ) : null}
+            {canOpenNewSupply ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                onClick={() => setNewSupplyOpen(true)}
+              >
+                <PackagePlus className="size-4" aria-hidden />
+                Supply
+              </Button>
+            ) : null}
+            {canDeposit ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                onClick={() => setAdvanceOpen(true)}
+              >
+                <Wallet className="size-4" aria-hidden />
+                Deposit
+              </Button>
+            ) : null}
+          </SupMobileSelectionBar>
+        ) : null}
 
         {!isLg && !detail ? (
           <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">

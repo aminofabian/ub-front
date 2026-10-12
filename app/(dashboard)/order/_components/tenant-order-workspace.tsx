@@ -1653,11 +1653,11 @@ export function TenantOrderWorkspace({
                       <button
                         type="button"
                         onClick={() => setQty(link.itemId, 0)}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:border-destructive/40 hover:bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] hover:text-destructive active:scale-[0.97]"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] transition-colors hover:border-destructive/40 hover:bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] hover:text-destructive active:scale-[0.97] max-sm:size-9"
                         aria-label={`Remove ${link.itemName}`}
                         title="Remove from order"
                       >
-                        <X className="size-3.5" strokeWidth={2.25} aria-hidden />
+                        <X className="size-3.5 max-sm:size-4" strokeWidth={2.25} aria-hidden />
                       </button>
                     </div>
                   </div>
@@ -2114,17 +2114,17 @@ export function TenantOrderWorkspace({
 
       {!pendingDeposit ? (
         <>
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:gap-x-3 lg:gap-y-1">
         <button
           type="button"
           disabled={placing || whatsapping || cartLines.length === 0}
           onClick={() => void placeOrder(true)}
-          className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+          className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
         >
           Save & WhatsApp
         </button>
         <span
-          className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+          className="hidden text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] lg:inline"
           aria-hidden
         >
           ·
@@ -2133,12 +2133,12 @@ export function TenantOrderWorkspace({
           type="button"
           disabled={whatsapping || cartLines.length === 0}
           onClick={() => void whatsappOnly()}
-          className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+          className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
         >
           WhatsApp
         </button>
         <span
-          className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]"
+          className="hidden text-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] lg:inline"
           aria-hidden
         >
           ·
@@ -2147,7 +2147,7 @@ export function TenantOrderWorkspace({
           type="button"
           disabled={cartLines.length === 0}
           onClick={() => void copyOrderTicket()}
-          className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40"
+          className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
         >
           Copy ticket
         </button>
@@ -2200,10 +2200,10 @@ export function TenantOrderWorkspace({
   return (
     <div
       className={cn(
-        "relative flex w-full flex-col overflow-hidden font-sans text-[var(--order-ink,#15231f)]",
+        "relative flex w-full flex-col font-sans text-[var(--order-ink,#15231f)]",
         embedded
-          ? "h-full min-h-0 flex-1 border-0"
-          : "min-h-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          ? "h-full min-h-0 flex-1 overflow-hidden border-0"
+          : "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:min-h-0 lg:flex-1 lg:overflow-hidden",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
@@ -2240,6 +2240,7 @@ export function TenantOrderWorkspace({
         <div
           className={cn(
             "flex shrink-0 items-stretch gap-1 overflow-x-auto py-1.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            "max-sm:[&_button]:min-h-10 max-sm:[&_a]:min-h-10",
             embedded && "max-w-[55%]",
           )}
         >
@@ -2315,7 +2316,10 @@ export function TenantOrderWorkspace({
 
       <div
         className={cn(
-          "relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          "relative z-[1] flex min-w-0 flex-col",
+          embedded
+            ? "min-h-0 flex-1 overflow-hidden"
+            : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
           !embedded &&
             "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(17rem,20rem)]",
         )}
@@ -2372,7 +2376,14 @@ export function TenantOrderWorkspace({
           </nav>
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={cn(
+            "flex min-w-0 flex-col",
+            embedded
+              ? "min-h-0 flex-1 overflow-hidden"
+              : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
+          )}
+        >
           <div className="flex shrink-0 items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
@@ -2443,7 +2454,12 @@ export function TenantOrderWorkspace({
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 [scrollbar-width:thin]">
+          <div
+            className={cn(
+              "min-h-0 flex-1 overscroll-contain p-3 sm:p-4 [scrollbar-width:thin]",
+              embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
+            )}
+          >
             {!supplierId ? (
               <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-6 text-center">
                 <Package
@@ -2557,7 +2573,8 @@ export function TenantOrderWorkspace({
           "relative z-[1] flex w-full shrink-0 items-center justify-between gap-3 rounded-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3 text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
           flashItemId &&
             "ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
-          !embedded && "xl:hidden",
+          !embedded &&
+            "sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[2] xl:hidden",
         )}
       >
         <span className="text-left">
@@ -2581,7 +2598,8 @@ export function TenantOrderWorkspace({
       {supplierPickerOpen ? (
         <div
           className={cn(
-            "absolute inset-0 z-50 flex flex-col",
+            "inset-0 z-50 flex flex-col",
+            embedded ? "absolute" : "fixed",
             !embedded && "xl:hidden",
           )}
         >
@@ -2643,7 +2661,8 @@ export function TenantOrderWorkspace({
       {mobileOrderOpen ? (
         <div
           className={cn(
-            "absolute inset-0 z-50 flex flex-col",
+            "inset-0 z-50 flex flex-col",
+            embedded ? "absolute" : "fixed",
             !embedded && "xl:hidden",
           )}
         >

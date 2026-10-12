@@ -204,21 +204,34 @@ export function SupDrawerFooter({
 export function SupMobileSelectionBar({
   name,
   children,
+  sticky = false,
 }: {
   name: React.ReactNode;
   children: React.ReactNode;
+  /** Pin just above the shell's bottom tab bar on phones; actions scroll sideways. */
+  sticky?: boolean;
 }) {
   return (
-    <div className="shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-      <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
-        <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-          Selected
-        </p>
-        <p className="truncate text-sm font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
-          {name}
-        </p>
+    <div
+      className={cn(
+        "shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+        sticky &&
+          "sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-20 mt-1.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden",
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+            Selected
+          </p>
+          <p className="truncate text-[13px] font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
+            {name}
+          </p>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2 p-2.5">{children}</div>
+      <div className="flex gap-2 overflow-x-auto p-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {children}
+      </div>
     </div>
   );
 }

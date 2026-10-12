@@ -478,7 +478,7 @@ export default function PurchasingIntelligencePage() {
 
   return (
     <div
-      className="relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5"
+      className="relative mx-auto flex w-full max-w-[1400px] flex-col bg-white px-3 pt-1 sm:px-5 sm:pt-1.5 lg:h-full lg:min-h-0"
       style={PROCUREMENT_VARS}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-1">
@@ -552,7 +552,7 @@ export default function PurchasingIntelligencePage() {
                 <CalendarRange className="size-3.5" aria-hidden />
                 Window · {rangeLabel}
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
                 {RANGE_PRESETS.map((p) => (
                   <button
                     key={p.id}
@@ -568,7 +568,7 @@ export default function PurchasingIntelligencePage() {
                       );
                     }}
                     className={cn(
-                      "h-8 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
+                      "h-8 shrink-0 rounded-none border px-2.5 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
                       activePreset === p.id
                         ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
                         : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
@@ -640,7 +640,7 @@ export default function PurchasingIntelligencePage() {
           </form>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto pb-4">
+        <div className="flex min-w-0 flex-col pb-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
           {!data && loading ? (
@@ -659,46 +659,48 @@ export default function PurchasingIntelligencePage() {
                 </PanelShell>
 
                 <PanelShell title="Pulse" icon={Banknote}>
-                  <MetricRow
-                    label="Total spend"
-                    value={formatMoneyShort(data.summary.totalSpend)}
-                  />
-                  <MetricRow
-                    label="Exact"
-                    value={formatMoney(data.summary.totalSpend)}
-                  />
-                  <MetricRow
-                    label="Suppliers"
-                    value={String(data.summary.supplierCount)}
-                  />
-                  <MetricRow
-                    label="Invoice lines"
-                    value={String(data.summary.invoiceLineCount)}
-                  />
-                  <MetricRow
-                    label="Items"
-                    value={String(data.summary.itemCount)}
-                  />
-                  <MetricRow
-                    label="Avg variance"
-                    value={formatPct(data.summary.avgVariancePercent)}
-                    tone={avgVar > 0 ? "warn" : "good"}
-                  />
-                  <MetricRow
-                    label="Above primary"
-                    value={String(data.summary.abovePrimaryCount)}
-                    tone={aboveCount > 0 ? "warn" : "good"}
-                  />
-                  <MetricRow
-                    label="Below primary"
-                    value={String(data.summary.belowPrimaryCount)}
-                    tone="good"
-                  />
-                  <MetricRow
-                    label="Single-source"
-                    value={String(data.summary.singleSourceRiskCount)}
-                    tone={riskCount > 0 ? "bad" : "good"}
-                  />
+                  <div className="grid grid-cols-2 gap-x-5 lg:grid-cols-1">
+                    <MetricRow
+                      label="Total spend"
+                      value={formatMoneyShort(data.summary.totalSpend)}
+                    />
+                    <MetricRow
+                      label="Exact"
+                      value={formatMoney(data.summary.totalSpend)}
+                    />
+                    <MetricRow
+                      label="Suppliers"
+                      value={String(data.summary.supplierCount)}
+                    />
+                    <MetricRow
+                      label="Invoice lines"
+                      value={String(data.summary.invoiceLineCount)}
+                    />
+                    <MetricRow
+                      label="Items"
+                      value={String(data.summary.itemCount)}
+                    />
+                    <MetricRow
+                      label="Avg variance"
+                      value={formatPct(data.summary.avgVariancePercent)}
+                      tone={avgVar > 0 ? "warn" : "good"}
+                    />
+                    <MetricRow
+                      label="Above primary"
+                      value={String(data.summary.abovePrimaryCount)}
+                      tone={aboveCount > 0 ? "warn" : "good"}
+                    />
+                    <MetricRow
+                      label="Below primary"
+                      value={String(data.summary.belowPrimaryCount)}
+                      tone="good"
+                    />
+                    <MetricRow
+                      label="Single-source"
+                      value={String(data.summary.singleSourceRiskCount)}
+                      tone={riskCount > 0 ? "bad" : "good"}
+                    />
+                  </div>
                 </PanelShell>
               </aside>
 
