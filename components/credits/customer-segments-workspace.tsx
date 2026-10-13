@@ -543,6 +543,79 @@ export function CustomerSegmentsWorkspace() {
               </p>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
+                {/* Mobile cards */}
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+                  {canManageCustomers ? (
+                    <li className="flex min-h-11 items-center gap-3 px-4">
+                      <label className="flex min-h-11 flex-1 items-center gap-3 text-[13px] font-medium text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={rows.length > 0 && selectedIds.size === rows.length}
+                          onChange={toggleAll}
+                          className={customerTableCheckboxClass("size-5")}
+                          aria-label="Select all"
+                        />
+                        Select all
+                      </label>
+                      <span className="text-[12px] text-muted-foreground">
+                        {selectedIds.size} selected
+                      </span>
+                    </li>
+                  ) : null}
+                  {rows.map((row) => {
+                    const selected = selectedIds.has(row.customerId);
+                    return (
+                      <li
+                        key={row.customerId}
+                        className={cn(
+                          "space-y-1.5 px-4 py-3",
+                          selected &&
+                            "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          {canManageCustomers ? (
+                            <label className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleRow(row.customerId)}
+                                className={customerTableCheckboxClass("size-5")}
+                                aria-label={`Select ${row.name}`}
+                              />
+                            </label>
+                          ) : null}
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                href={APP_ROUTES.customer(row.customerId)}
+                                className="inline-flex min-h-11 min-w-0 items-center text-[15px] font-semibold leading-snug hover:underline"
+                              >
+                                {row.customerNo != null
+                                  ? `C-${row.customerNo} · `
+                                  : ""}
+                                {row.name}
+                              </Link>
+                              <p className="shrink-0 font-mono text-[15px] font-semibold tabular-nums">
+                                {formatKes(row.spendOnItem)}
+                              </p>
+                            </div>
+                            <p className="text-[12px] text-muted-foreground">
+                              {row.primaryPhone || "—"}
+                              <span className="mx-1 opacity-40">·</span>
+                              {row.purchaseCount} buys
+                              <span className="mx-1 opacity-40">·</span>
+                              {new Date(row.lastPurchaseAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {/* Desktop table */}
+                <div className="hidden md:block">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="sticky top-0 z-[1] border-b border-border/60 bg-card/95 backdrop-blur-sm">
                     <tr>
@@ -624,6 +697,7 @@ export function CustomerSegmentsWorkspace() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </main>

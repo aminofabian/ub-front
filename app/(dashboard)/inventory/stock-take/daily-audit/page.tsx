@@ -498,7 +498,7 @@ export default function DailyAuditPage() {
       className={cn(
         /* Fill the shell main (incl. padding box) so one item fits on screen */
         "absolute inset-0 z-0 mx-auto flex min-h-0 w-full max-w-lg flex-col overflow-hidden",
-        "px-3 pt-3 pb-[calc(5.35rem+env(safe-area-inset-bottom,0px))]",
+        "px-3 pt-3 pb-[calc(var(--shell-bottom-inset)+1.5rem)]",
         "2xl:static 2xl:h-full 2xl:max-w-lg 2xl:overflow-visible 2xl:p-0",
       )}
     >

@@ -37,7 +37,7 @@ export function BusinessHubMenuButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn(HUB_ICON_BTN, "max-sm:size-9 sm:hidden")}
+        className={cn(HUB_ICON_BTN, "sm:hidden")}
         aria-label="Open the shop menu"
         title="Shop menu"
       >

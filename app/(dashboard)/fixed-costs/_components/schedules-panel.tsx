@@ -197,7 +197,95 @@ export function SchedulesPanel({
       </div>
 
       <section className={cn(DASHBOARD_TABLE_SURFACE)}>
-        <div className="overflow-x-auto">
+        {/* Mobile cards */}
+        <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+          {enriched.length === 0 ? (
+            <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+              No fixed costs yet. Add shop rent, KPLC, or other repeating bills.
+            </li>
+          ) : (
+            enriched.map((row) => (
+              <li key={row.id} className="space-y-1.5 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold leading-snug text-foreground">
+                      {row.name}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {categoryTypeLabel(row.categoryType)}
+                      {row.includeInCashDrawer ? " · Till cash" : ""}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-mono text-[15px] font-semibold tabular-nums text-foreground">
+                    {formatFixedCostMoney(Number(row.amount))}
+                  </p>
+                </div>
+                <p className="text-[12px] text-muted-foreground">
+                  {row.branchName}
+                  <span className="mx-1 opacity-40">·</span>
+                  {frequencyLabel(row.frequency)}
+                  <span className="mx-1 opacity-40">·</span>
+                  {paymentMethodLabel(row.paymentMethod)}
+                </p>
+                <p className="text-[12px] text-muted-foreground">
+                  {automationModeLabel(row.automationMode)}
+                  <span className="mx-1 opacity-40">·</span>
+                  Next {row.nextDue ? formatFixedCostDate(row.nextDue) : "—"}
+                  <span className="mx-1 opacity-40">·</span>
+                  This month {formatFixedCostMoney(row.commitment)}
+                </p>
+                {row.lastGeneratedOn ? (
+                  <p className="text-[12px] text-muted-foreground">
+                    Last posted {formatFixedCostDate(row.lastGeneratedOn)}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-11 min-w-[6.5rem] flex-1"
+                    onClick={() => {
+                      setHistorySchedule(row);
+                      setHistoryOpen(true);
+                    }}
+                    aria-label={`History for ${row.name}`}
+                  >
+                    <History className="mr-1.5 size-4" aria-hidden />
+                    History
+                  </Button>
+                  {canManage ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-11 min-w-[6.5rem] flex-1"
+                        onClick={() => onEdit(row)}
+                        aria-label={`Edit ${row.name}`}
+                      >
+                        <Pencil className="mr-1.5 size-4" aria-hidden />
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="h-11 min-w-[6.5rem] flex-1"
+                        disabled={busyId === row.id}
+                        onClick={() => void deactivate(row)}
+                        aria-label={`Deactivate ${row.name}`}
+                      >
+                        <Trash2 className="mr-1.5 size-4" aria-hidden />
+                        Deactivate
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/30 text-xs tracking-[-0.02em] text-muted-foreground">
               <tr>

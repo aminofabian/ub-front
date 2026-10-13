@@ -159,7 +159,38 @@ export function CustomerEmailCampaignDetailView({
               Delivery outcome for each customer in this send
             </p>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+            {campaign.recipients.map((row) => (
+              <li key={row.id} className="space-y-1.5 px-4 py-3 sm:px-5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold leading-snug text-foreground">
+                      {row.customerName ?? "—"}
+                    </p>
+                    <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                      {row.email}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1",
+                      mailStatusTone(row.status),
+                    )}
+                  >
+                    {row.status}
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted-foreground">
+                  {row.skipReason
+                    ? mailSkipLabel(row.skipReason)
+                    : row.error || "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-muted/25 text-[11px] tracking-[-0.02em] text-muted-foreground">

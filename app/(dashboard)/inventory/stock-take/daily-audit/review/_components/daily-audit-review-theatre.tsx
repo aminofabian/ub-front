@@ -1028,7 +1028,7 @@ export function DailyAuditReviewTheatre(props: DailyAuditReviewTheatreProps) {
       </FormDrawer>
 
       {selectedIds.size > 0 && !isLg ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div className="fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">
             <div className="text-sm">
               <span className="font-medium">{selectedIds.size}</span> item

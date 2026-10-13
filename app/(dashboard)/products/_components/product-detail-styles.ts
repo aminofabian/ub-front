@@ -96,7 +96,7 @@ export const detailSellingStripClass = cn(
 );
 
 export const detailStickyBarClass = cn(
-  "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-2 shadow-none",
+  "fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-30 border-t border-border bg-background p-2 shadow-none",
   "lg:hidden",
 );
 

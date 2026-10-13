@@ -25,6 +25,7 @@ import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { StatStrip } from "@/components/dashboard/stat-strip";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -1274,8 +1275,95 @@ export function DayLedgerPage() {
         </div>
 
         <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-          <div className={cn("min-h-[22rem] border", INK_RULE, PAPER)}>
-            {pulse}
+          <div className={cn("space-y-2 border p-2", INK_RULE, PAPER)}>
+            <div className="flex flex-wrap items-center gap-2">{dayNav}</div>
+            {loading ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-[4.75rem] animate-pulse border bg-white/70",
+                      INK_RULE,
+                    )}
+                  />
+                ))}
+              </div>
+            ) : rows.length === 0 ? (
+              <p className={cn(dashboardHintClass(), "px-1 py-4 text-center")}>
+                Nothing on the ledger for this day yet.
+              </p>
+            ) : (
+              <>
+                <StatStrip
+                  items={[
+                    {
+                      id: "taken",
+                      label: "Taken",
+                      value: fmtKes(grandTotal),
+                      hint: `${rows.length} payment${rows.length === 1 ? "" : "s"} · ${formatDayShort(day)}`,
+                      tone: "teal",
+                      children:
+                        mixChips.length > 0 ? (
+                          <TenderMixBars
+                            chips={mixChips}
+                            totals={chipTotals}
+                            grand={grandTotal}
+                            methodFilters={methodFilters}
+                            onSelect={selectOnlyMethod}
+                          />
+                        ) : undefined,
+                    },
+                    {
+                      id: "reviewed",
+                      label: "Reviewed",
+                      value: `${progress}%`,
+                      hint:
+                        flaggedCount > 0
+                          ? `${reviewedCount}/${rows.length} · ${flaggedCount} flagged`
+                          : `${reviewedCount} of ${rows.length} checked`,
+                      tone: "emerald",
+                      children: (
+                        <div className="h-1.5 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+                          <div
+                            className="h-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {PRIMARY_CHIPS.map((id) => {
+                    const chip = METHOD_CHIPS.find((c) => c.id === id)!;
+                    const stats = chipTotals[id];
+                    if (stats.count === 0) return null;
+                    const selected = methodFilters.has(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => toggleMethod(id)}
+                        aria-pressed={selected}
+                        className={cn(
+                          "inline-flex h-9 shrink-0 items-center gap-1.5 border px-2.5 text-[12px] font-semibold",
+                          INK_RULE,
+                          selected
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--order-ink,#15231f)]"
+                            : "bg-white text-muted-foreground",
+                        )}
+                      >
+                        {chip.label}
+                        <span className="tabular-nums text-muted-foreground">
+                          {fmtKes(stats.total)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
           <div className={cn("border", INK_RULE)}>{feed}</div>
         </div>

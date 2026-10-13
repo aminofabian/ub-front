@@ -2574,7 +2574,7 @@ export function TenantOrderWorkspace({
           flashItemId &&
             "ring-1 ring-inset ring-[var(--pos-primary,#0f766e)]",
           !embedded &&
-            "sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[2] xl:hidden",
+            "sticky bottom-[var(--shell-bottom-inset)] z-[2] xl:hidden",
         )}
       >
         <span className="text-left">

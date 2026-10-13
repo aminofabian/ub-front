@@ -441,7 +441,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
             <>
               {mobilePane === "list" ? (
                 <DirectoryColumn
-                  className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]"
+                  className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] pb-[var(--shell-bottom-inset)]"
                   title="Directory"
                   hint="Search and pick"
                   badge={visibleRows.length}

@@ -58,7 +58,7 @@ export const DASHBOARD_FILTER_WELL = cn(
 
 export function dashboardInputClass(disabled?: boolean, className?: string) {
   return cn(
-    "h-8 w-full rounded-none border bg-white px-2.5 text-sm leading-snug",
+    "h-11 w-full rounded-none border bg-white px-2.5 text-sm leading-snug sm:h-8",
     HAIRLINE,
     "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
     "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
@@ -75,6 +75,22 @@ export function dashboardTextareaClass(disabled?: boolean, className?: string) {
   return cn(
     dashboardInputClass(disabled, className),
     "min-h-[4rem] h-auto resize-y py-2",
+  );
+}
+
+/**
+ * Touch-sized icon button: 44px on phones, compact on tablet/desktop.
+ * Prefer this over ad-hoc `size-7`/`size-8` for icon-only controls.
+ */
+export function dashboardIconButtonClass(className?: string) {
+  return cn(
+    "inline-flex size-11 items-center justify-center rounded-none border bg-white sm:size-8",
+    HAIRLINE,
+    INK,
+    "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+    "disabled:cursor-not-allowed disabled:opacity-60",
+    className,
   );
 }
 
@@ -178,7 +194,7 @@ export function DashboardQuickLinks({
             key={href}
             href={href}
             className={cn(
-              "inline-flex h-7 items-center gap-1 rounded-none border bg-white px-1.5 text-[11px] font-semibold tracking-[-0.02em]",
+              "inline-flex h-9 items-center gap-1 rounded-none border bg-white px-2 text-[11px] font-semibold tracking-[-0.02em] sm:h-7 sm:px-1.5",
               HAIRLINE,
               MUTED,
               "hover:text-[var(--order-ink,#15231f)]",
@@ -351,7 +367,7 @@ export function DashboardLoadError({
         </p>
         {onRetry ? (
           <Button
-            className="mt-6 h-8 gap-2 rounded-none"
+            className="mt-6 h-11 gap-2 rounded-none sm:h-8"
             variant="outline"
             type="button"
             onClick={onRetry}
@@ -400,7 +416,7 @@ export function DashboardAccessDenied({
         </h1>
         <div className={cn("mt-2 text-sm", MUTED)}>{description}</div>
         {backHref ? (
-          <Button asChild className="mt-6 h-8 rounded-none" variant="outline">
+          <Button asChild className="mt-6 h-11 rounded-none sm:h-8" variant="outline">
             <Link href={backHref}>{backLabel ?? "Go back"}</Link>
           </Button>
         ) : null}

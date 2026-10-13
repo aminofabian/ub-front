@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   HUB_ACCENT,
   HUB_MUTED,
@@ -35,6 +37,7 @@ export function RevenueBarChart({
   bare?: boolean;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
+  const [picked, setPicked] = useState<string | null>(null);
   const max = Math.max(...points.map((p) => p.value), 1);
   const stats = chartWindowStats(points);
   const peakDay = stats.best?.day ?? null;
@@ -82,7 +85,7 @@ export function RevenueBarChart({
         ))}
       </div>
 
-      <div className="px-2.5 py-2 sm:px-3" role="img" aria-label={ariaLabel}>
+      <div className="px-2.5 py-2 sm:px-3" role="group" aria-label={ariaLabel}>
         <div
           className="grid items-end gap-px"
           style={{
@@ -98,12 +101,22 @@ export function RevenueBarChart({
             const isPeak = point.day === peakDay && point.value > 0 && !isToday;
 
             return (
-              <div
+              <button
                 key={point.day}
+                type="button"
+                onClick={() =>
+                  setPicked((prev) => (prev === point.day ? null : point.day))
+                }
+                aria-pressed={picked === point.day}
+                aria-label={`${point.label}: ${formatMoneyCompact(point.value)}`}
                 className="group relative flex min-w-0 flex-col items-stretch gap-0.5 px-px"
-                title={`${point.label} · ${formatMoneyCompact(point.value)}`}
               >
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[10px] text-[#0f766e] group-hover:block">
+                <div
+                  className={cn(
+                    "pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[10px] text-[#0f766e]",
+                    picked === point.day ? "block" : "hidden group-hover:block",
+                  )}
+                >
                   <span className="whitespace-nowrap font-medium">
                     {point.label}
                   </span>
@@ -142,7 +155,7 @@ export function RevenueBarChart({
                 <div className="flex items-center justify-center gap-0.5">
                   <span
                     className={cn(
-                      "text-[8px] font-medium tabular-nums leading-none sm:text-[9px]",
+                      "text-[9px] font-medium tabular-nums leading-none",
                       isToday ? "text-[#0f766e]" : "text-[#666666]",
                     )}
                   >
@@ -150,14 +163,14 @@ export function RevenueBarChart({
                   </span>
                   <span
                     className={cn(
-                      "hidden text-[8px] uppercase leading-none sm:inline",
+                      "hidden text-[9px] uppercase leading-none sm:inline",
                       isToday ? "text-[#0f766e]" : "text-[#B0A898]",
                     )}
                   >
                     {weekdayInitial(point.day)}
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

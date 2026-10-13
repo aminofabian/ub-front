@@ -581,7 +581,7 @@ export default function SuppliesPage() {
           aria-label="Walk-in supply"
           className={cn(
             "fixed z-40 flex items-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 py-3 text-sm font-semibold text-white",
-            "right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]",
+            "right-4 bottom-[calc(var(--shell-bottom-inset)+1rem)]",
             "active:scale-95 touch-manipulation sm:hidden",
           )}
         >

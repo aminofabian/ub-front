@@ -216,7 +216,7 @@ export function SupMobileSelectionBar({
       className={cn(
         "shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         sticky &&
-          "sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-20 mt-1.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden",
+          "sticky bottom-[var(--shell-bottom-inset)] z-20 mt-1.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden",
       )}
     >
       <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">

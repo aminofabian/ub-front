@@ -227,6 +227,31 @@ export default function ItemTypesPage() {
     setFeedback(null);
   }, []);
 
+  const handleDelete = useCallback((row: ItemTypeRecord) => {
+    showConfirmModal({
+      id: `delete-item-type-${row.id}`,
+      title: "Delete department?",
+      description: `Delete ${row.label}? This cannot be undone.`,
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          await deleteItemType(row.id);
+          setRows((prev) => prev.filter((r) => r.id !== row.id));
+          setFeedback({
+            kind: "success",
+            text: `Department "${row.label}" deleted.`,
+          });
+        } catch {
+          setFeedback({
+            kind: "error",
+            text: "Failed to delete department.",
+          });
+        }
+      },
+    });
+  }, []);
+
   const handleUpdate = useCallback(
     async (
       e: React.FormEvent<HTMLFormElement>,
@@ -432,7 +457,112 @@ export default function ItemTypesPage() {
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full border-collapse text-left text-[13px]">
+                {/* Mobile cards */}
+                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] md:hidden">
+                  {rows.map((row) => (
+                    <li key={row.id} className="space-y-2.5 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-2.5">
+                          {categoryIconImageUrl(row.icon) ? (
+                            <span className="relative mt-0.5 size-9 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                              <Image
+                                src={categoryIconImageUrl(row.icon)!}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="36px"
+                                unoptimized
+                              />
+                            </span>
+                          ) : row.icon ? (
+                            <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white font-mono text-sm text-[var(--order-ink,#15231f)]">
+                              {row.icon}
+                            </span>
+                          ) : null}
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-semibold leading-snug tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                              {row.label}
+                            </p>
+                            {row.key ? (
+                              <p className="mt-0.5 font-mono text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                                {row.key}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                        <span className="shrink-0 font-mono text-[13px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                          #{row.sortOrder}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px]">
+                        {row.color ? (
+                          <span className="inline-flex items-center gap-1.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                            <span
+                              className="inline-block size-3.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+                              style={{ backgroundColor: row.color }}
+                            />
+                            <span className="font-mono uppercase">
+                              {row.color}
+                            </span>
+                          </span>
+                        ) : null}
+                        {row.active ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[var(--pos-primary,#0f766e)]">
+                            <CheckCircle2
+                              className="size-3.5 shrink-0"
+                              aria-hidden
+                            />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                            <X className="size-3.5 shrink-0" aria-hidden />
+                            Inactive
+                          </span>
+                        )}
+                        {row.isDefault ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[var(--pos-primary,#0f766e)]">
+                            <CheckCircle2
+                              className="size-3.5 shrink-0"
+                              aria-hidden
+                            />
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {canWrite ? (
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-11 flex-1 basis-32 gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-[13px]"
+                            onClick={() => openEdit(row)}
+                          >
+                            <Save className="size-4" aria-hidden />
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-11 flex-1 basis-32 gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-[13px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleDelete(row)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                            Delete
+                          </Button>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Desktop table */}
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full border-collapse text-left text-[13px]">
                   <thead className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-semibold">
@@ -565,32 +695,7 @@ export default function ItemTypesPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 gap-1 rounded-none px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() =>
-                                  showConfirmModal({
-                                    id: `delete-item-type-${row.id}`,
-                                    title: "Delete department?",
-                                    description: `Delete ${row.label}? This cannot be undone.`,
-                                    confirmLabel: "Delete",
-                                    onConfirm: async () => {
-                                      setFeedback(null);
-                                      try {
-                                        await deleteItemType(row.id);
-                                        setRows((prev) =>
-                                          prev.filter((r) => r.id !== row.id),
-                                        );
-                                        setFeedback({
-                                          kind: "success",
-                                          text: `Department "${row.label}" deleted.`,
-                                        });
-                                      } catch {
-                                        setFeedback({
-                                          kind: "error",
-                                          text: "Failed to delete department.",
-                                        });
-                                      }
-                                    },
-                                  })
-                                }
+                                onClick={() => handleDelete(row)}
                               >
                                 <Trash2 className="size-3.5" aria-hidden />
                                 Delete
@@ -601,7 +706,8 @@ export default function ItemTypesPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             )}
           </div>

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ChevronDown,
   ClipboardCheck,
   Package,
   PackagePlus,
@@ -122,6 +124,8 @@ export function ProcurementHubNav({
     me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const steps = isStockManager ? STOCK_FLOOR_STEPS : HUB_STEPS;
   const activeIndex = steps.findIndex((step) => step.match(pathname));
+  // Phones collapse the journey to one summary row so the supplier list leads.
+  const [open, setOpen] = useState(false);
 
   if (isStockManager) {
     return (
@@ -223,7 +227,31 @@ export function ProcurementHubNav({
       aria-label="Buying journey"
       style={PROCUREMENT_VARS}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-2.5 py-1.5">
+      {/* Phone: one summary row the supplier list can lead past. */}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-2.5 py-2.5 text-left sm:hidden"
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+          Buying journey
+        </span>
+        <span className="ml-auto text-[11px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)]">
+          {activeIndex >= 0
+            ? `${steps[activeIndex]?.label} · ${activeIndex + 1}/${steps.length}`
+            : `${steps.length} stops`}
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] transition-transform duration-200",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </button>
+
+      <div className="hidden items-center justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-2.5 py-1.5 sm:flex">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
           Buying journey
         </p>
@@ -234,7 +262,12 @@ export function ProcurementHubNav({
         </p>
       </div>
 
-      <ol className="m-0 grid list-none grid-cols-2 p-0 sm:grid-cols-4">
+      <ol
+        className={cn(
+          "m-0 grid list-none grid-cols-2 p-0 sm:grid-cols-4",
+          !open && "hidden sm:grid",
+        )}
+      >
         {steps.map((step, index) => {
           const active = index === activeIndex;
           const past = activeIndex > index;

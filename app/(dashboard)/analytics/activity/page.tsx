@@ -462,7 +462,7 @@ export default function AnalyticsActivityPage() {
       <div
         className={cn(
           DASHBOARD_MAX_WIDE,
-          "!space-y-1 !pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:!pb-8",
+          "!space-y-1 !pb-[calc(var(--shell-bottom-inset)+1.65rem)] md:!pb-8",
         )}
       >
         <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
@@ -1089,7 +1089,7 @@ export default function AnalyticsActivityPage() {
 
       {/* Thumb-zone view dock — phone only */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 pb-1.5 pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden"
         aria-label="Activity views"
       >
         <div className="mx-auto grid max-w-lg grid-cols-3 gap-1">

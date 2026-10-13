@@ -95,7 +95,7 @@ export default function SupportPage() {
       </DashboardPageHero>
       <div className="min-h-0 flex-1">
         {tab === "platform" ? (
-          <div className="h-[calc(100dvh-13.25rem)] min-h-[440px]">
+          <div className="flex min-h-[440px] flex-1 flex-col">
             <SupportChat />
           </div>
         ) : tab === "tickets" ? (

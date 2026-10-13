@@ -1081,7 +1081,7 @@ export function AppShell({ children }: AppShellProps) {
   // Phone/tablet: edge-flush canvas + clearance for the fixed tab bar only.
   // Desktop (2xl): classic inset padding; sidebar replaces the tab bar.
   const mainContentPadding =
-    "px-3 pt-2 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:pt-3 2xl:p-6 2xl:pb-6";
+    "px-3 pt-2 pb-[var(--shell-bottom-inset)] sm:px-4 sm:pt-3 2xl:p-6 2xl:pb-6";
   const homeHref = resolvePostAuthDestination(me, null, business);
   const canViewPaymentGateways = hasPermission(
     me?.permissions,
@@ -2100,6 +2100,23 @@ export function AppShell({ children }: AppShellProps) {
             myPayHref={canViewPayrollSelf ? APP_ROUTES.myPay : null}
             profileHref={APP_ROUTES.myProfile}
             quickLinks={moreQuickLinks}
+            walletTools={
+              <>
+                {showOwnerKioskPay ? (
+                  <KioskPayHeaderBalance
+                    canWithdraw={canWritePaymentGateways}
+                    currencyFallback={business?.currency?.trim() || "KES"}
+                    variant="desktop"
+                  />
+                ) : null}
+                <SmsCreditsHeader
+                  canBuy={canBuySmsCredits}
+                  canViewLedger={canViewSmsCreditLedger}
+                  defaultPhone={me?.phone}
+                  variant="desktop"
+                />
+              </>
+            }
             onOpenWorkspace={setShellWorkspace}
           />
         </div>

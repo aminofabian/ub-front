@@ -83,9 +83,16 @@ export function InboxWorkspace() {
   const [payAmount, setPayAmount] = useState("");
   const [payNotice, setPayNotice] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  // Phone-only: show the list OR the thread, never both (the lg grid shows both).
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
 
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selectedId;
+
+  const openConversation = useCallback((id: string) => {
+    setSelectedId(id);
+    setMobileView("detail");
+  }, []);
 
   const loadList = useCallback(
     async (soft = false) => {
@@ -137,8 +144,8 @@ export function InboxWorkspace() {
     const match = rows.find((row) =>
       (row.contactPhone ?? "").replace(/\D/g, "").endsWith(needle),
     );
-    if (match) setSelectedId(match.id);
-  }, [phoneParam, rows, selectedId]);
+    if (match) openConversation(match.id);
+  }, [phoneParam, rows, selectedId, openConversation]);
 
   useEffect(() => {
     let alive = true;
@@ -285,9 +292,14 @@ export function InboxWorkspace() {
   const contactTags = conversation?.contactTags ?? [];
 
   return (
-    <div className="grid min-h-[60vh] grid-cols-1 gap-3 lg:grid-cols-[320px_1fr]">
+    <div className="flex h-[calc(100dvh-16rem)] min-h-[440px] flex-col gap-3 overflow-hidden lg:grid lg:grid-cols-[320px_1fr]">
       {/* List */}
-      <aside className="flex flex-col rounded-none border bg-white">
+      <aside
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-white",
+          mobileView === "detail" && "hidden lg:flex",
+        )}
+      >
         <div className="flex flex-wrap gap-1 border-b p-2">
           {FILTERS.map((f) => (
             <button
@@ -323,7 +335,7 @@ export function InboxWorkspace() {
               <button
                 key={row.id}
                 type="button"
-                onClick={() => setSelectedId(row.id)}
+                onClick={() => openConversation(row.id)}
                 className={cn(
                   "flex w-full flex-col gap-0.5 border-b px-3 py-2 text-left",
                   row.id === selectedId
@@ -356,15 +368,28 @@ export function InboxWorkspace() {
       </aside>
 
       {/* Thread */}
-      <section className="flex min-h-[60vh] flex-col rounded-none border bg-white">
+      <section
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-white",
+          mobileView === "list" && "hidden lg:flex",
+        )}
+      >
         {!selectedId ? (
           <div className="flex flex-1 items-center justify-center p-6 text-[13px] text-muted-foreground">
             Select a conversation.
           </div>
         ) : (
           <>
-            <header className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
-              <div className="min-w-0">
+            <header className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setMobileView("list")}
+                aria-label="Back to conversations"
+                className="inline-flex min-h-11 items-center gap-1 rounded-none border px-3 text-[13px] lg:hidden"
+              >
+                ← Inbox
+              </button>
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold">
                   {conversation?.contactName || conversation?.contactPhone || "Conversation"}
                 </p>
@@ -378,14 +403,14 @@ export function InboxWorkspace() {
                   <button
                     type="button"
                     onClick={() => onAssign(selectedId, me?.id ?? null)}
-                    className="inline-flex items-center gap-1 rounded-none border px-2 py-1 text-[12px]"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-none border px-2 py-1 text-[12px] lg:min-h-0"
                   >
                     <UserCheck className="size-3.5" /> Assign to me
                   </button>
                   <button
                     type="button"
                     onClick={() => onAssign(selectedId, null)}
-                    className="inline-flex items-center gap-1 rounded-none border px-2 py-1 text-[12px]"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-none border px-2 py-1 text-[12px] lg:min-h-0"
                   >
                     <UserX className="size-3.5" /> Unassign
                   </button>
@@ -432,13 +457,13 @@ export function InboxWorkspace() {
             </div>
 
             {canSend ? (
-              <div className="border-t p-2">
+              <div className="border-t p-2 pb-3 lg:pb-2">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void onAiDraft()}
                     disabled={aiBusy}
-                    className="inline-flex items-center gap-1 rounded-none border px-2 py-1 text-[12px] disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-none border px-2 py-1 text-[12px] disabled:opacity-50 lg:min-h-0"
                   >
                     {aiBusy ? (
                       <Loader2 className="size-3.5 animate-spin" />
@@ -458,7 +483,7 @@ export function InboxWorkspace() {
                   <button
                     type="button"
                     onClick={() => void onRequestPayment()}
-                    className="inline-flex items-center gap-1 rounded-none border px-2 py-1 text-[12px]"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-none border px-2 py-1 text-[12px] lg:min-h-0"
                   >
                     <Banknote className="size-3.5" /> Request M-Pesa
                   </button>
@@ -500,7 +525,7 @@ export function InboxWorkspace() {
                     type="button"
                     disabled={sending || !draft.trim()}
                     onClick={() => void onSend()}
-                    className="inline-flex items-center gap-1 rounded-none border bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[13px] text-white disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center gap-1 rounded-none border bg-[var(--pos-primary,#0f766e)] px-3 py-2 text-[13px] text-white disabled:opacity-50 lg:min-h-0"
                   >
                     {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                     Send
@@ -530,7 +555,7 @@ export function InboxWorkspace() {
                   <button
                     type="button"
                     onClick={() => void onSaveTags()}
-                    className="rounded-none border px-2 py-1.5 text-[12px]"
+                    className="min-h-11 rounded-none border px-2 py-1.5 text-[12px] lg:min-h-0"
                   >
                     Save
                   </button>
@@ -565,7 +590,7 @@ export function InboxWorkspace() {
                     type="button"
                     disabled={!noteDraft.trim()}
                     onClick={() => void onAddNote()}
-                    className="rounded-none border px-2 py-1.5 text-[12px] disabled:opacity-50"
+                    className="min-h-11 rounded-none border px-2 py-1.5 text-[12px] disabled:opacity-50 lg:min-h-0"
                   >
                     Add
                   </button>

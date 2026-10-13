@@ -219,7 +219,7 @@ export function DirectoryMobileTabs({
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 flex border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+        "fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-30 flex border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
         className,
       )}
     >

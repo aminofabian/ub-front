@@ -1498,7 +1498,7 @@ export function BusinessHubWorkspace() {
             type="button"
             onClick={() => void load()}
             disabled={refreshing}
-            className={cn(HUB_ICON_BTN, "max-sm:size-9")}
+            className={cn(HUB_ICON_BTN)}
             aria-label="Refresh business hub"
           >
             <RefreshCw

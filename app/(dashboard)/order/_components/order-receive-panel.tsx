@@ -2301,7 +2301,7 @@ export function OrderReceivePanel({
         {/* Phone: keep the primary action in thumb reach while the lines scroll.
             Sits directly above the fixed bottom tab bar. */}
         {!embedded ? (
-          <div className="sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[3] mt-2 flex items-stretch gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-2 flex items-stretch gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
             <div className="flex min-w-0 flex-1 flex-col justify-center">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                 {isStockFloor ? "This unpack" : "Selected total"}

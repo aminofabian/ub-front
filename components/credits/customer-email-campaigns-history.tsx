@@ -85,7 +85,58 @@ export function CustomerEmailCampaignsHistory() {
         <EmptyCampaigns shopName={brand.displayName} logoUrl={brand.logoUrl} />
       ) : (
         <div className={MAIL_PANEL}>
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <Link
+                  href={APP_ROUTES.customerEmailCampaign(row.id)}
+                  className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-[color-mix(in_srgb,var(--mail-brand)_5%,transparent)] sm:px-5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="block text-[15px] font-semibold leading-snug text-foreground">
+                        {row.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
+                        {row.subject}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1",
+                        mailStatusTone(row.status),
+                      )}
+                    >
+                      {row.status}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-muted-foreground">
+                    <span className="capitalize">
+                      {String(row.recipientMethod).replace("_", " ")}
+                    </span>
+                    <span className="mx-1 opacity-40">·</span>
+                    <span className="font-medium tabular-nums text-foreground">
+                      {row.recipientsSent}
+                    </span>
+                    <span className="text-border"> / </span>
+                    <span className="tabular-nums">{row.recipientsTargeted}</span>{" "}
+                    sent
+                  </p>
+                  <p className="text-[12px] text-muted-foreground">
+                    {row.createdAt
+                      ? new Date(row.createdAt).toLocaleString("en-KE", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
+                      : "—"}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[40rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30 text-[11px] tracking-[-0.02em] text-muted-foreground">

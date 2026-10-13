@@ -49,7 +49,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors",
+                "group flex min-h-11 items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors sm:min-h-0",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}

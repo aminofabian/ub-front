@@ -135,30 +135,37 @@ export default function PaymentClaimsReviewPage() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[72rem] text-left text-sm">
-            <thead className="border-b bg-muted/40">
-              <tr>
-                <th className="px-3 py-2 font-medium">Submitted</th>
-                <th className="px-3 py-2 font-medium">Source</th>
-                <th className="px-3 py-2 font-medium">Customer</th>
-                <th className="px-3 py-2 font-medium">Amount</th>
-                <th className="px-3 py-2 font-medium">Channel</th>
-                <th className="px-3 py-2 font-medium">Reference</th>
-                <th className="px-3 py-2 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
+          {/* Mobile cards */}
+          <ul className="divide-y divide-border md:hidden">
+            {rows.length === 0 ? (
+              <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+                No submitted claims right now.
+              </li>
+            ) : (
+              rows.map((r) => {
                 const proposed =
                   r.proposedChannel === "mpesa" || r.proposedChannel === "cash"
                     ? r.proposedChannel
                     : null;
                 return (
-                  <tr key={r.id} className="border-b last:border-0">
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {fmtInstant(r.updatedAt)}
-                    </td>
-                    <td className="px-3 py-2">
+                  <li key={r.id} className="space-y-2.5 px-4 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-semibold leading-snug text-foreground">
+                          {r.customerName?.trim() || "Customer"}
+                        </p>
+                        <p className="mt-0.5 text-[12px] text-muted-foreground">
+                          {r.customerPhone?.trim() || "—"}
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-mono text-[15px] font-semibold tabular-nums">
+                        {r.submittedAmount != null
+                          ? `${currency} ${Number(r.submittedAmount).toFixed(2)}`
+                          : "—"}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-muted-foreground">
                       <span
                         className={
                           r.source === "cashier"
@@ -170,84 +177,186 @@ export default function PaymentClaimsReviewPage() {
                       >
                         {sourceLabel(r.source)}
                       </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="font-medium">
-                        {r.customerName?.trim() || "Customer"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {r.customerPhone?.trim() || "—"}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 tabular-nums">
-                      {r.submittedAmount != null
-                        ? `${currency} ${Number(r.submittedAmount).toFixed(2)}`
-                        : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-xs tracking-[-0.02em] text-muted-foreground">
-                      {proposed ?? "—"}
-                    </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {r.submittedReference ?? "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1.5">
+                      <span className="capitalize">{proposed ?? "—"}</span>
+                      <span aria-hidden className="opacity-40">
+                        ·
+                      </span>
+                      <span className="min-w-0 truncate">
+                        {r.submittedReference ?? "—"}
+                      </span>
+                    </div>
+
+                    <p className="text-[12px] text-muted-foreground">
+                      {fmtInstant(r.updatedAt)}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 pt-0.5">
+                      <Button
+                        type="button"
+                        className="h-11 flex-1 basis-32"
+                        disabled={busyId === r.id}
+                        onClick={() => void onApprove(r.id, proposed ?? "cash")}
+                      >
+                        {busyId === r.id
+                          ? "…"
+                          : proposed === "mpesa"
+                            ? "Approve M-Pesa"
+                            : "Approve cash"}
+                      </Button>
+                      {proposed !== "mpesa" ? (
                         <Button
                           type="button"
-                          size="sm"
+                          variant="outline"
+                          className="h-11"
                           disabled={busyId === r.id}
-                          onClick={() =>
-                            void onApprove(r.id, proposed ?? "cash")
+                          onClick={() => void onApprove(r.id, "mpesa")}
+                        >
+                          M-Pesa
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11"
+                          disabled={busyId === r.id}
+                          onClick={() => void onApprove(r.id, "cash")}
+                        >
+                          Cash
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="h-11"
+                        disabled={busyId === r.id}
+                        onClick={() => void onReject(r.id)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[72rem] text-left text-sm">
+              <thead className="border-b bg-muted/40">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Submitted</th>
+                  <th className="px-3 py-2 font-medium">Source</th>
+                  <th className="px-3 py-2 font-medium">Customer</th>
+                  <th className="px-3 py-2 font-medium">Amount</th>
+                  <th className="px-3 py-2 font-medium">Channel</th>
+                  <th className="px-3 py-2 font-medium">Reference</th>
+                  <th className="px-3 py-2 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const proposed =
+                    r.proposedChannel === "mpesa" ||
+                    r.proposedChannel === "cash"
+                      ? r.proposedChannel
+                      : null;
+                  return (
+                    <tr key={r.id} className="border-b last:border-0">
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        {fmtInstant(r.updatedAt)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={
+                            r.source === "cashier"
+                              ? "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-100"
+                              : r.source === "tab_portal"
+                                ? "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-900 dark:text-emerald-100"
+                                : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
                           }
                         >
-                          {busyId === r.id
-                            ? "…"
-                            : proposed === "mpesa"
-                              ? "Approve M-Pesa"
-                              : "Approve cash"}
-                        </Button>
-                        {proposed !== "mpesa" ? (
+                          {sourceLabel(r.source)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">
+                          {r.customerName?.trim() || "Customer"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.customerPhone?.trim() || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">
+                        {r.submittedAmount != null
+                          ? `${currency} ${Number(r.submittedAmount).toFixed(2)}`
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs tracking-[-0.02em] text-muted-foreground">
+                        {proposed ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        {r.submittedReference ?? "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1.5">
                           <Button
                             type="button"
                             size="sm"
-                            variant="outline"
                             disabled={busyId === r.id}
-                            onClick={() => void onApprove(r.id, "mpesa")}
+                            onClick={() =>
+                              void onApprove(r.id, proposed ?? "cash")
+                            }
                           >
-                            M-Pesa
+                            {busyId === r.id
+                              ? "…"
+                              : proposed === "mpesa"
+                                ? "Approve M-Pesa"
+                                : "Approve cash"}
                           </Button>
-                        ) : (
+                          {proposed !== "mpesa" ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busyId === r.id}
+                              onClick={() => void onApprove(r.id, "mpesa")}
+                            >
+                              M-Pesa
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busyId === r.id}
+                              onClick={() => void onApprove(r.id, "cash")}
+                            >
+                              Cash
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             disabled={busyId === r.id}
-                            onClick={() => void onApprove(r.id, "cash")}
+                            onClick={() => void onReject(r.id)}
                           >
-                            Cash
+                            Reject
                           </Button>
-                        )}
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          disabled={busyId === r.id}
-                          onClick={() => void onReject(r.id)}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {rows.length === 0 ? (
-            <p className="px-3 py-6 text-sm text-muted-foreground">
-              No submitted claims right now.
-            </p>
-          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {rows.length === 0 ? (
+              <p className="px-3 py-6 text-sm text-muted-foreground">
+                No submitted claims right now.
+              </p>
+            ) : null}
+          </div>
         </div>
       )}
     </section>

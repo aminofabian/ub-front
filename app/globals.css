@@ -87,6 +87,12 @@
     --sidebar-accent-foreground: rgb(23, 23, 23);
     --sidebar-border: rgb(229, 229, 229);
     --sidebar-ring: rgba(40, 167, 69, 0.35);
+
+    /* Dashboard shell chrome. The fixed bottom tab bar renders at every viewport
+       below 2xl (see AppShell `tabletChromeVisible`). Any page-level sticky or
+       fixed bottom element must sit on this inset, or it collides with the bar. */
+    --shell-tab-bar: 3.85rem;
+    --shell-bottom-inset: calc(var(--shell-tab-bar) + env(safe-area-inset-bottom, 0px));
 }
 
 .dark {

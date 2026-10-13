@@ -38,6 +38,8 @@ export function TenantServingTickets() {
   const [creating, setCreating] = React.useState(false);
   const [newSubject, setNewSubject] = React.useState("");
   const [newBody, setNewBody] = React.useState("");
+  // Phone-only: show the ticket list OR the selected ticket, never both (the md grid shows both).
+  const [mobileView, setMobileView] = React.useState<"list" | "detail">("list");
 
   const reloadList = React.useCallback(async () => {
     const payload = await fetchTenantServingTickets();
@@ -91,6 +93,7 @@ export function TenantServingTickets() {
       setCreating(false);
       await reloadList();
       setActiveId(created.id);
+      setMobileView("detail");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not open ticket");
     } finally {
@@ -99,13 +102,30 @@ export function TenantServingTickets() {
   };
 
   return (
-    <div className={cn(SERVING_THEATRE, "grid min-h-[520px] md:grid-cols-[220px_minmax(0,1fr)]")}>
-      <aside className={cn("border-b md:border-b-0 md:border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>
+    <div
+      className={cn(
+        SERVING_THEATRE,
+        "flex h-[calc(100dvh-16rem)] min-h-[440px] flex-col md:grid md:grid-cols-[220px_minmax(0,1fr)]",
+      )}
+    >
+      <aside
+        className={cn(
+          "flex min-h-0 flex-1 flex-col border-b md:border-b-0 md:border-r",
+          SERVING_COL_RULE,
+          SERVING_PAPER_COL,
+          mobileView === "detail" && "hidden md:flex",
+        )}
+      >
         <div className={cn("border-b p-3", SERVING_COL_RULE)}>
           <p className={cn("mb-2 text-[13px] font-semibold tracking-[-0.02em]", SERVING_INK)}>
             Numbered with Palmart
           </p>
-          <Button type="button" size="sm" className={cn(SERVING_SHARP_BTN, "w-full")} onClick={() => setCreating((v) => !v)}>
+          <Button
+            type="button"
+            size="sm"
+            className={cn(SERVING_SHARP_BTN, "w-full min-h-11 md:min-h-0")}
+            onClick={() => setCreating((v) => !v)}
+          >
             {creating ? "Cancel" : "New ticket"}
           </Button>
         </div>
@@ -124,55 +144,81 @@ export function TenantServingTickets() {
               onChange={(e) => setNewBody(e.target.value)}
               placeholder="What do you need Palmart to look at?"
             />
-            <Button type="submit" size="sm" className={SERVING_SHARP_BTN} disabled={busy || !newSubject.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              className={cn(SERVING_SHARP_BTN, "min-h-11 md:min-h-0")}
+              disabled={busy || !newSubject.trim()}
+            >
               Open ticket
             </Button>
           </form>
         ) : null}
-        <ol className={cn("divide-y", SERVING_DIVIDE)}>
-          {tickets.map((ticket) => {
-            const done = ticket.doneCount ?? 0;
-            const total = ticket.pointCount ?? 0;
-            return (
-              <li key={ticket.id}>
-                <button
-                  type="button"
-                  onClick={() => setActiveId(ticket.id)}
-                  className={cn(
-                    "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors",
-                    activeId === ticket.id
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                      : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
-                  )}
-                >
-                  <span
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ol className={cn("divide-y", SERVING_DIVIDE)}>
+            {tickets.map((ticket) => {
+              const done = ticket.doneCount ?? 0;
+              const total = ticket.pointCount ?? 0;
+              return (
+                <li key={ticket.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveId(ticket.id);
+                      setMobileView("detail");
+                    }}
                     className={cn(
-                      "grid size-7 shrink-0 place-items-center border text-[10px] font-bold tabular-nums",
-                      ticket.status === "RESOLVED" || ticket.status === "CLOSED"
-                        ? cn(SERVING_HAIRLINE, "text-muted-foreground")
-                        : "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+                      "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors",
+                      activeId === ticket.id
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                     )}
                   >
-                    {shopTicketLabel(ticket)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-[13px] font-semibold tracking-[-0.015em] text-foreground">
-                      {ticket.subject}
+                    <span
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center border text-[10px] font-bold tabular-nums",
+                        ticket.status === "RESOLVED" || ticket.status === "CLOSED"
+                          ? cn(SERVING_HAIRLINE, "text-muted-foreground")
+                          : "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+                      )}
+                    >
+                      {shopTicketLabel(ticket)}
                     </span>
-                    <span className={cn(dashboardHintClass(), "mt-0.5 block")}>
-                      {total > 0 ? `${done}/${total} points` : ticket.status.toLowerCase()}
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-2 text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+                        {ticket.subject}
+                      </span>
+                      <span className={cn(dashboardHintClass(), "mt-0.5 block")}>
+                        {total > 0 ? `${done}/${total} points` : ticket.status.toLowerCase()}
+                      </span>
                     </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-        {tickets.length === 0 ? (
-          <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>No numbered tickets yet.</p>
-        ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          {tickets.length === 0 ? (
+            <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>No numbered tickets yet.</p>
+          ) : null}
+        </div>
       </aside>
-      <section className="flex min-h-0 flex-col bg-white">
+      <section
+        className={cn(
+          "flex min-h-0 flex-1 flex-col bg-white",
+          mobileView === "list" && "hidden md:flex",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileView("list")}
+          aria-label="Back to tickets"
+          className={cn(
+            "inline-flex min-h-11 items-center gap-1 border-b px-3 text-[13px] md:hidden",
+            SERVING_COL_RULE,
+          )}
+        >
+          ← Tickets
+        </button>
         {error ? <p className="px-3 pt-3 text-sm text-destructive">{error}</p> : null}
         {!detail ? (
           <p className={cn(dashboardHintClass(), "m-auto max-w-[18rem] px-6 text-center")}>
@@ -217,14 +263,20 @@ export function TenantServingTickets() {
                 </div>
               ))}
             </div>
-            <form onSubmit={send} className={cn("flex gap-2 border-t p-3", SERVING_COL_RULE)}>
-              <input
-                className={cn(dashboardInputClass(), "flex-1")}
+            <form onSubmit={send} className={cn("flex items-end gap-2 border-t p-3", SERVING_COL_RULE)}>
+              <textarea
+                className={cn(dashboardTextareaClass(), "flex-1")}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                rows={1}
                 placeholder="Reply to Palmart…"
               />
-              <Button type="submit" size="sm" className={SERVING_SHARP_BTN} disabled={busy || !draft.trim()}>
+              <Button
+                type="submit"
+                size="sm"
+                className={cn(SERVING_SHARP_BTN, "min-h-11 md:min-h-0")}
+                disabled={busy || !draft.trim()}
+              >
                 Send
               </Button>
             </form>

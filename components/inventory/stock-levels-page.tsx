@@ -901,7 +901,7 @@ function StockMobileCard({
             </div>
           ) : null}
 
-          <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[calc(3.85rem+env(safe-area-inset-bottom,0px))] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[var(--shell-bottom-inset)] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onSaveEdit}

@@ -78,7 +78,7 @@ export function SupplierPageHeader({
           </span>
           <div className="min-w-0">
             <h1
-              className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+              className="hidden truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground 2xl:block"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               Suppliers
@@ -99,7 +99,7 @@ export function SupplierPageHeader({
 
         <nav
           aria-label="Related pages"
-          className="flex min-w-0 flex-wrap items-center gap-0.5"
+          className="hidden min-w-0 flex-wrap items-center gap-0.5 lg:flex"
         >
           {RELATED_LINKS.map(({ href, label, icon: Icon }) => (
             <Link
@@ -123,9 +123,10 @@ export function SupplierPageHeader({
                   "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
                 )}
                 title="The complete supplier flow — summary + full guide"
+                aria-label="Supplier guide"
               >
                 <BookOpen className="size-3 shrink-0 opacity-70" aria-hidden />
-                Guide
+                <span className="hidden sm:inline">Guide</span>
               </button>
             }
           />

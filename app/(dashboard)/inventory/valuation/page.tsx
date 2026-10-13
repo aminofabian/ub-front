@@ -354,7 +354,39 @@ export default function InventoryValuationPage() {
             ) : null}
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+            {loading ? (
+              <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+                Loading…
+              </li>
+            ) : !data ? (
+              <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+                Choose a branch or refresh to load the report.
+              </li>
+            ) : data.byBranch.length === 0 ? (
+              <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+                No stock on hand for this filter.
+              </li>
+            ) : (
+              data.byBranch.map((row) => (
+                <li
+                  key={row.branchId}
+                  className="flex items-center justify-between gap-3 px-3 py-3"
+                >
+                  <span className="min-w-0 truncate text-[14px] font-medium">
+                    {row.branchName}
+                  </span>
+                  <span className="shrink-0 font-mono text-[15px] font-semibold tabular-nums">
+                    {formatMoney(moneyValue(row.extensionValue), currency)}
+                  </span>
+                </li>
+              ))
+            )}
+          </ul>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[24rem] text-left text-sm">
               <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-background text-[11px] tracking-[-0.02em] text-muted-foreground">
                 <tr>

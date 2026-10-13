@@ -208,8 +208,8 @@ export function TabletAppHeader({
     >
       {/* Phone: flat app bar. Sm+: market fascia. */}
       <div className="relative border-b border-[var(--tablet-header-ink)]/12 bg-white sm:hidden">
-        <div className="flex h-12 items-center gap-2.5 px-3">
-          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-leaf)]">
+        <div className="flex h-14 items-center gap-2.5 px-3 sm:h-12">
+          <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden bg-[var(--tablet-header-leaf)]">
             <TenantLogo
               brand={tenantTitle}
               logoUrl={logoUrl}
@@ -233,13 +233,14 @@ export function TabletAppHeader({
             )}
           </div>
           <div className="flex shrink-0 items-center">
-            {headerTools}
+            {/* Phone keeps only the badge + menu. Kiosk Pay / SMS credits move
+                into the More sheet's Wallet band so the title is never squeezed. */}
             <NotificationBell />
             <button
               type="button"
               onClick={onOpenMore}
               aria-label="Open menu"
-              className="ml-1 inline-flex size-9 items-center justify-center bg-[var(--tablet-header-ink)] font-mono text-xs font-bold text-white"
+              className="ml-1 inline-flex size-11 items-center justify-center bg-[var(--tablet-header-ink)] font-mono text-xs font-bold text-white"
             >
               {userInitial}
             </button>
@@ -355,6 +356,8 @@ export function TabletBottomNav({
       aria-label="Main navigation"
       className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 pointer-events-none"
     >
+      {/* Height here must equal `--shell-tab-bar` in globals.css, which the
+          `--shell-bottom-inset` token and all page bottom bars key off. */}
       <div
         className={cn(
           "tablet-bottom-nav-dock pointer-events-auto w-full",
@@ -533,6 +536,8 @@ type TabletMoreSheetProps = {
   profileHref?: string | null;
   /** Owner shortcuts shown above section browse. */
   quickLinks?: readonly MoreQuickLink[];
+  /** Wallet chips (Kiosk Pay / SMS credits) surfaced on phones, where the app bar stays minimal. */
+  walletTools?: ReactNode;
   /** Open Order / Credits / Settings as drawers instead of pages. */
   onOpenWorkspace?: (workspace: ShellWorkspaceId) => void;
 };
@@ -840,6 +845,7 @@ export function TabletMoreSheet({
   myPayHref,
   profileHref,
   quickLinks = [],
+  walletTools,
   onOpenWorkspace,
 }: TabletMoreSheetProps) {
   const accent = primaryColor?.trim() || "#0f766e";
@@ -1029,6 +1035,27 @@ export function TabletMoreSheet({
           </button>
         </div>
       </header>
+
+      {walletTools ? (
+        <div className="shrink-0 px-4 pt-3 sm:px-5">
+          <p
+            className={cn(
+              "mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.14em]",
+              mute,
+            )}
+          >
+            Wallet
+          </p>
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-2 border bg-white p-2.5",
+              hair,
+            )}
+          >
+            {walletTools}
+          </div>
+        </div>
+      ) : null}
 
       {profileHref || myPayHref ? (
         <div className="shrink-0 px-4 pt-3 sm:px-5">

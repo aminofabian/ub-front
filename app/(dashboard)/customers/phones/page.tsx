@@ -181,7 +181,31 @@ export default function CustomerPhonesPage() {
             {filter.trim() ? ` · filtered from ${phoneRows.length}` : ""}
           </p>
         </div>
-        <div className="overflow-x-auto">
+        {/* Mobile cards */}
+        <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] md:hidden">
+          {visibleRows.map((row) => (
+            <li key={row.key}>
+              <Link
+                href={`${APP_ROUTES.customers}/${encodeURIComponent(row.customerId)}`}
+                className="flex flex-col gap-1.5 px-4 py-3.5 transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] sm:px-5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 text-[15px] font-semibold leading-snug text-primary">
+                    {row.customerName}
+                  </span>
+                  <span className="shrink-0 font-mono text-[15px] font-semibold tabular-nums text-foreground">
+                    {row.phone}
+                  </span>
+                </div>
+                <span className="text-[12px] text-muted-foreground">
+                  {row.primary ? "Primary number" : "Additional number"}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[28rem] text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/20">
               <tr>

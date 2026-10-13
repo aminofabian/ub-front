@@ -29,6 +29,7 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { StatStrip, type StatItem } from "@/components/dashboard/stat-strip";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -821,6 +822,53 @@ export function SalesOverviewPage() {
       />
     ) : null;
 
+  const pulseStats: StatItem[] = [
+    {
+      id: "taken",
+      label: "Taken",
+      value: fmtKes(summary.revenue),
+      hint: statusLine || "Sold this period.",
+      tone: "teal",
+    },
+    {
+      id: "tickets",
+      label: "Tickets",
+      value: summary.transactions.toLocaleString("en-KE"),
+      hint:
+        summary.transactions > 0
+          ? `${fmtKes(summary.avgTicket)} average`
+          : "No tickets yet",
+      tone: "emerald",
+    },
+    {
+      id: "units",
+      label: "Units",
+      value: summary.units.toLocaleString("en-KE", {
+        maximumFractionDigits: 1,
+      }),
+      hint:
+        summary.lineCount > 0
+          ? `${summary.lineCount.toLocaleString("en-KE")} lines`
+          : undefined,
+      tone: "violet",
+    },
+    {
+      id: "top",
+      label: summary.refundLines > 0 ? "Refunds" : "Top product",
+      tone: summary.refundLines > 0 ? "owed" : "amber",
+      value:
+        summary.refundLines > 0
+          ? fmtKes(summary.refundTotal)
+          : summary.topItem || "—",
+      hint:
+        summary.refundLines > 0
+          ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
+          : summary.topItem
+            ? "Highest revenue"
+            : "Nothing sold yet",
+    },
+  ];
+
   const pulse = (
     <div className="relative h-full min-h-[22rem] overflow-hidden">
       <svg
@@ -1150,8 +1198,53 @@ export function SalesOverviewPage() {
         </div>
 
         <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-          <div className={cn("min-h-[22rem] border", INK_RULE, PAPER)}>
-            {pulse}
+          <div className={cn("space-y-2 border p-2", INK_RULE, PAPER)}>
+            <div className="flex flex-wrap items-center gap-1">
+              {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setDatePreset(id)}
+                  aria-pressed={datePreset === id}
+                  className={cn(
+                    "inline-flex h-9 items-center px-3 text-[12px] font-semibold",
+                    datePreset === id
+                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "bg-white text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+              {isLivePeriod ? (
+                <span className="ml-auto inline-flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground">
+                  <span
+                    className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
+                    aria-hidden
+                  />
+                  Live
+                </span>
+              ) : null}
+            </div>
+            {!dateRange ? (
+              <p className={cn(dashboardHintClass(), "px-1 py-4 text-center")}>
+                Pick a period to see what the till took.
+              </p>
+            ) : loading ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-[4.75rem] animate-pulse border bg-white/70",
+                      INK_RULE,
+                    )}
+                  />
+                ))}
+              </div>
+            ) : (
+              <StatStrip items={pulseStats} />
+            )}
           </div>
           <div className={cn("border", INK_RULE)}>{feed}</div>
         </div>

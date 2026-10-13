@@ -831,7 +831,7 @@ export default function ApAgingPage() {
 
         {/* Phone: keep the settle-up action in thumb reach while the roster scrolls. */}
         {unpaid.length > 0 ? (
-          <div className="sticky bottom-[calc(3.85rem+env(safe-area-inset-bottom,0px))] z-[3] mt-1.5 flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-1.5 flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Still owing
