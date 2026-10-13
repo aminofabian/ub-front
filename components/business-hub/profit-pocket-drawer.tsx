@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { FormDrawer } from "@/components/form-drawer";
@@ -266,38 +266,47 @@ export function ProfitPocketDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Pocket profit"
-      description={`${periodLabel} · We suggest min(gross profit, cash surplus) × jar % — editable before you confirm.`}
+      icon={<Wallet className="size-5" aria-hidden />}
+      contextLabel={periodLabel}
+      description="Move profit out of the business"
       width="default"
-      appearance="sharp"
-      headerDensity="compact"
+      appearance="default"
+      presentation="center"
       footer={
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-none"
-            disabled={busy}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="rounded-none bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
-            disabled={busy || loading || !surplus?.destinationConfigured}
-            onClick={() => void onConfirm()}
-          >
-            {busy ? (
-              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-            ) : null}
-            {confirmHigh && needsHardConfirm
-              ? `Pocket ${fmtMoney(amountN)} anyway`
-              : "Confirm pocket"}
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] font-medium text-[#d92d20]">
+            {!loading && surplus && !surplus.destinationConfigured
+              ? "Choose a destination to continue"
+              : null}
+          </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={busy}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]"
+              disabled={busy || loading || !surplus?.destinationConfigured}
+              onClick={() => void onConfirm()}
+            >
+              {busy ? (
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : null}
+              {confirmHigh && needsHardConfirm
+                ? `Pocket ${fmtMoney(amountN)} anyway`
+                : "Confirm pocket"}
+            </Button>
+          </div>
         </div>
       }
     >
-      <div className="space-y-4 px-1 pb-2">
+      <div className="space-y-4">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -307,7 +316,7 @@ export function ProfitPocketDrawer({
           <p className="text-sm text-rose-700">{error}</p>
         ) : surplus ? (
           <>
-            <div className="grid grid-cols-2 gap-px overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-xs sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {(
                 [
                   ["Gross profit", surplus.grossProfit],
@@ -317,32 +326,28 @@ export function ProfitPocketDrawer({
                     "Cash available",
                     surplus.rawSurplus ?? surplus.suggestedPocket,
                   ],
-                  ["Suggested", surplus.suggestedPocket],
                 ] as const
               ).map(([label, value]) => (
-                <div key={label} className="bg-white px-2.5 py-2">
-                  <p className="text-[10px] font-medium text-muted-foreground">
-                    {label}
-                  </p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">
+                <div key={label} className="rounded-xl bg-[#f1f5f4] px-3 py-2.5">
+                  <p className="text-[11px] text-[#667085]">{label}</p>
+                  <p className="mt-1 text-[15px] font-semibold tabular-nums text-[#101828]">
                     {fmtMoney(toNum(value))}
                   </p>
                 </div>
               ))}
-              {nextHasData && nextSurplus ? (
-                <div className="bg-white px-2.5 py-2">
-                  <p className="text-[10px] font-medium text-muted-foreground">
-                    Next profit
-                  </p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">
-                    {fmtMoney(toNum(nextSurplus.grossProfit))}
-                  </p>
-                </div>
-              ) : null}
+            </div>
+
+            <div className="rounded-xl bg-[#e9f5f1] px-3 py-2.5">
+              <p className="text-[11px] font-semibold text-[#0f766e]">
+                Suggested
+              </p>
+              <p className="mt-1 text-[18px] font-semibold tabular-nums text-[#0f766e]">
+                {fmtMoney(toNum(surplus.suggestedPocket))}
+              </p>
             </div>
 
             {!surplus.destinationConfigured ? (
-              <p className="flex items-start gap-2 border border-[#9a2e16]/35 bg-white px-3 py-2.5 text-sm text-[#9a2e16]">
+              <p className="flex items-start gap-2 rounded-2xl bg-[#fdecec] px-4 py-3 text-[13px] leading-relaxed text-[#9a2e16]">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <span>
                   {surplus.collidesWithCustomerPay &&
@@ -387,12 +392,17 @@ export function ProfitPocketDrawer({
               </p>
             )}
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">
-                How much to take out (editable)
+            <label className="flex flex-col gap-2">
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-[13px] font-semibold text-[#101828]">
+                  How much to take out
+                </span>
+                <span className="rounded-full bg-[#e6f4f0] px-2.5 py-0.5 text-[11px] font-semibold text-[#0f766e]">
+                  Editable
+                </span>
               </span>
               <input
-                className="h-10 border border-input bg-background px-3 font-mono text-sm"
+                className="h-14 rounded-xl border border-transparent bg-[#f1f5f4] px-4 text-[28px] font-semibold leading-none tabular-nums text-[#101828] outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40"
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -442,7 +452,7 @@ export function ProfitPocketDrawer({
                   </span>
                 </div>
                 <div
-                  className="h-2 bg-[#e7e5e4]"
+                  className="h-2 overflow-hidden rounded-full bg-[#e7e5e4]"
                   role="meter"
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -450,7 +460,7 @@ export function ProfitPocketDrawer({
                   aria-label="Share of profit being pocketed"
                 >
                   <div
-                    className="h-full"
+                    className="h-full rounded-full"
                     style={{
                       width: `${shareWidth}%`,
                       background:
@@ -493,11 +503,11 @@ export function ProfitPocketDrawer({
             ) : null}
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">
+              <span className="text-[13px] font-semibold text-[#101828]">
                 Note (optional)
               </span>
               <input
-                className="h-10 border border-input bg-background px-3 text-sm"
+                className="h-11 rounded-xl border border-transparent bg-[#f1f5f4] px-3.5 text-[15px] text-[#101828] outline-none placeholder:text-[#98a2b3] focus-visible:ring-2 focus-visible:ring-[#0f766e]/40"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Took money home, restock, rent…"
@@ -506,45 +516,47 @@ export function ProfitPocketDrawer({
               />
             </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Leave float (KES)
-              </span>
-              <input
-                className="h-10 border border-input bg-background px-3 font-mono text-sm"
-                value={leaveFloat}
-                onChange={(e) => setLeaveFloat(e.target.value)}
-                inputMode="decimal"
-                disabled={busy}
-              />
-            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-semibold text-[#101828]">
+                  Leave float
+                </span>
+                <input
+                  className="h-11 rounded-xl border border-transparent bg-[#f1f5f4] px-3.5 text-[15px] font-semibold tabular-nums text-[#101828] outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40"
+                  value={leaveFloat}
+                  onChange={(e) => setLeaveFloat(e.target.value)}
+                  inputMode="decimal"
+                  disabled={busy}
+                />
+              </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Fund from
-              </span>
-              <select
-                className="h-10 border border-input bg-background px-3 text-sm"
-                value={fundingMethod}
-                onChange={(e) =>
-                  setFundingMethod(
-                    e.target.value as "cash" | "mpesa_manual" | "bank",
-                  )
-                }
-                disabled={busy}
-              >
-                <option value="cash">Operating cash (till)</option>
-                <option value="mpesa_manual">M-Pesa clearing</option>
-                <option value="bank">Bank account (books)</option>
-              </select>
-            </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-semibold text-[#101828]">
+                  Fund from
+                </span>
+                <select
+                  className="h-11 rounded-xl border border-transparent bg-[#f1f5f4] px-3.5 text-[15px] font-medium text-[#101828] outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40"
+                  value={fundingMethod}
+                  onChange={(e) =>
+                    setFundingMethod(
+                      e.target.value as "cash" | "mpesa_manual" | "bank",
+                    )
+                  }
+                  disabled={busy}
+                >
+                  <option value="cash">Operating cash (till)</option>
+                  <option value="mpesa_manual">M-Pesa clearing</option>
+                  <option value="bank">Bank account (books)</option>
+                </select>
+              </label>
+            </div>
 
             {warnings.map((w) => (
               <p
                 key={w.id}
                 className={cn(
-                  "flex items-start gap-2 border px-3 py-2.5 text-xs leading-relaxed",
-                  "border-[#9a2e16]/35 bg-white text-[#9a2e16]",
+                  "flex items-start gap-2 rounded-xl bg-[#fdf6ec] px-3.5 py-2.5 text-[13px] leading-relaxed",
+                  "text-[#b45309]",
                 )}
               >
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />

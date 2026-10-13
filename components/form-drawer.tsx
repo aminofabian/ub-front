@@ -40,6 +40,11 @@ export type FormDrawerProps = {
   docked?: boolean;
   /** Square panels and crisp borders — buttons keep their default radius */
   appearance?: "default" | "sharp";
+  /**
+   * `sheet` (default) slides in from the right (bottom on phones).
+   * `center` renders a centred, rounded modal instead.
+   */
+  presentation?: "sheet" | "center";
   /** Tighter header row — icon, kicker, and title on one line */
   headerDensity?: "default" | "compact";
   /**
@@ -142,6 +147,7 @@ export function FormDrawer({
   footer,
   width = "default",
   appearance = "sharp",
+  presentation = "sheet",
   headerDensity = "default",
   bodyLayout = "scroll",
   hideHeader = false,
@@ -154,6 +160,7 @@ export function FormDrawer({
   const fillBody = bodyLayout === "fill";
   const isFull = width === "full";
   const inColumn = docked && !!dockRoot;
+  const centered = presentation === "center" && !inColumn;
   const [phone, setPhone] = React.useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(max-width: 639px)").matches
@@ -170,7 +177,7 @@ export function FormDrawer({
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
-  const sheetBottom = !inColumn && !isFull && phone;
+  const sheetBottom = !inColumn && !isFull && !centered && phone;
   const { panelRef, grabberProps, dragging } = useSheetDragDismiss({
     enabled: sheetBottom,
     onDismiss: () => onOpenChange(false),
@@ -235,7 +242,15 @@ export function FormDrawer({
                   "rounded-none border-0 bg-background shadow-none",
                   "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 )
-              : isFull
+              : centered
+                ? cn(
+                    "fixed inset-0 m-auto h-fit max-h-[min(92dvh,46rem)] w-[calc(100%-1.5rem)]",
+                    "sm:w-[min(48rem,calc(100vw-4rem))]",
+                    "rounded-2xl border border-border/70 bg-background",
+                    "shadow-[0_24px_64px_-24px_rgba(15,23,42,0.35)] dark:border-border/60 dark:shadow-[0_24px_64px_-24px_rgba(0,0,0,0.6)]",
+                    "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+                  )
+                : isFull
                 ? cn(
                     // No zoom — a transform on this panel traps `position: fixed`
                     // descendants (e.g. the Sell cart dock) and pins them mid-screen.
@@ -289,7 +304,7 @@ export function FormDrawer({
           )}
         >
           {/* Accent rail — thin when sharp, soft brand bar otherwise */}
-          {!inColumn && !sheetBottom && brandStops ? (
+          {!inColumn && !sheetBottom && !centered && brandStops ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0 opacity-[0.92]",
@@ -302,7 +317,7 @@ export function FormDrawer({
               }}
               aria-hidden
             />
-          ) : !inColumn && !sheetBottom ? (
+          ) : !inColumn && !sheetBottom && !centered ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0",
@@ -313,7 +328,7 @@ export function FormDrawer({
               aria-hidden
             />
           ) : null}
-          {!inColumn && !sharp && !sheetBottom ? (
+          {!inColumn && !sharp && !sheetBottom && !centered ? (
             <div
               className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
               aria-hidden
@@ -323,7 +338,7 @@ export function FormDrawer({
           <div
             className={cn(
               "relative flex min-h-0 flex-1 flex-col",
-              !inColumn && !sheetBottom && (sharp ? "pl-0.5" : "pl-[5px]"),
+              !inColumn && !sheetBottom && !centered && (sharp ? "pl-0.5" : "pl-[5px]"),
             )}
           >
             {sheetBottom ? (
