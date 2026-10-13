@@ -58,14 +58,14 @@ function Card({
   };
 
   return (
-    <div className={`rounded-none border p-4 shadow-none transition-shadow hover:shadow-none ${variantStyles[variant]}`}>
+    <div className={`rounded-2xl border p-4 shadow-none transition-shadow hover:shadow-none ${variantStyles[variant]}`}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
           <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
           {trend ? <p className="text-[11px] text-muted-foreground">{trend}</p> : null}
         </div>
-        <div className={`flex size-7 shrink-0 items-center justify-center rounded-none ${iconStyles[variant]}`}>
+        <div className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${iconStyles[variant]}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>

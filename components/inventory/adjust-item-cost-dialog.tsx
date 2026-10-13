@@ -34,7 +34,7 @@ export function AdjustItemCostDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-none border border-border p-0 sm:max-w-lg">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-border p-0 sm:max-w-lg">
         <DialogHeader className="space-y-1 border-b border-border bg-[#e8eef5] px-4 py-3 dark:bg-muted/40">
           <DialogTitle className="text-base font-semibold tracking-tight">
             Adjust cost
@@ -63,7 +63,7 @@ export function AdjustItemCostDialog({
             <Button
               type="button"
               variant="outline"
-              className="rounded-none"
+              className="rounded-xl"
               onClick={() => onOpenChange(false)}
             >
               Close

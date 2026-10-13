@@ -1,13 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Check,
-  ChevronDown,
   ClipboardCheck,
-  Flag,
   Package,
   PackagePlus,
   ShoppingCart,
@@ -127,8 +123,6 @@ export function ProcurementHubNav({
     me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const steps = isStockManager ? STOCK_FLOOR_STEPS : HUB_STEPS;
   const activeIndex = steps.findIndex((step) => step.match(pathname));
-  // Phones collapse the journey to one summary row so the supplier list leads.
-  const [open, setOpen] = useState(false);
 
   if (isStockManager) {
     return (

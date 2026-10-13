@@ -170,7 +170,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
         {message ? <DashboardNotice text={message} /> : null}
 
         {clearResult && (
-          <div className="rounded-none border bg-emerald-50 p-4 text-sm text-emerald-800">
+          <div className="rounded-xl border bg-emerald-50 p-4 text-sm text-emerald-800">
             <div className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="h-4 w-4" />
               Batch cleared successfully
@@ -197,7 +197,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
 
         {data ? (
           <>
-            <div className="space-y-4 rounded-none border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                             {it.itemName ?? it.itemId}
                           </p>
                           {it.itemSku ? (
-                            <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
                               {it.itemSku}
                             </p>
                           ) : null}
@@ -429,31 +429,31 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Received</span>
-                          <span className="font-mono tabular-nums font-medium">
+                          <span className="tabular-nums font-medium">
                             {formatQty(it.initialQuantity)}
                           </span>
                         </div>
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Sold</span>
-                          <span className="font-mono tabular-nums font-medium">
+                          <span className="tabular-nums font-medium">
                             {formatQty(it.quantitySold)}
                           </span>
                         </div>
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Waste</span>
-                          <span className="font-mono tabular-nums font-medium">
+                          <span className="tabular-nums font-medium">
                             {formatQty(it.quantityWasted)}
                           </span>
                         </div>
                         <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Left</span>
-                          <span className="font-mono tabular-nums font-semibold">
+                          <span className="tabular-nums font-semibold">
                             {formatQty(it.quantityRemaining)}
                           </span>
                         </div>
                         <div className="col-span-2 flex justify-between gap-2 border-t border-border/60 pt-1.5">
                           <span className="text-muted-foreground">Unit cost</span>
-                          <span className="font-mono tabular-nums font-medium">
+                          <span className="tabular-nums font-medium">
                             {formatQty(it.unitCost)}
                           </span>
                         </div>
@@ -464,7 +464,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
               </div>
 
               {/* Desktop table */}
-              <div className="hidden overflow-x-auto rounded-none border md:block">
+              <div className="hidden overflow-x-auto rounded-2xl border md:block">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="border-b bg-muted/40">
                     <tr>

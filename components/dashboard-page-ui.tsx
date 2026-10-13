@@ -34,13 +34,13 @@ export const DASHBOARD_MAX_WIDE =
 
 /** Primary content card (CTA blocks, filter panels, etc.) */
 export const DASHBOARD_SECTION_SURFACE = cn(
-  "rounded-none border bg-white p-3",
+  "rounded-2xl border bg-white p-3",
   HAIRLINE,
 );
 
 /** Table / list outer shell */
 export const DASHBOARD_TABLE_SURFACE = cn(
-  "overflow-hidden rounded-none border bg-white",
+  "overflow-hidden rounded-2xl border bg-white",
   HAIRLINE,
 );
 
@@ -52,13 +52,13 @@ export const DASHBOARD_TABLE_HEAD = cn(
 
 /** Inset well for grouped controls (e.g. filter fields) */
 export const DASHBOARD_FILTER_WELL = cn(
-  "mt-1 rounded-none border bg-white p-3",
+  "mt-1 rounded-xl border bg-white p-3",
   HAIRLINE,
 );
 
 export function dashboardInputClass(disabled?: boolean, className?: string) {
   return cn(
-    "h-11 w-full rounded-none border bg-white px-2.5 text-sm leading-snug sm:h-8",
+    "h-11 w-full rounded-xl border bg-white px-2.5 text-sm leading-snug sm:h-8",
     HAIRLINE,
     "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
     "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
@@ -84,7 +84,7 @@ export function dashboardTextareaClass(disabled?: boolean, className?: string) {
  */
 export function dashboardIconButtonClass(className?: string) {
   return cn(
-    "inline-flex size-11 items-center justify-center rounded-none border bg-white sm:size-8",
+    "inline-flex size-11 items-center justify-center rounded-xl border bg-white sm:size-8",
     HAIRLINE,
     INK,
     "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
@@ -122,7 +122,7 @@ export function DashboardFeedback({
     <div
       role="status"
       className={cn(
-        "flex items-start gap-2 rounded-none border bg-white px-3 py-2 text-sm leading-relaxed",
+        "flex items-start gap-2 rounded-xl border bg-white px-3 py-2 text-sm leading-relaxed",
         kind === "success" &&
           "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
         kind === "error" && "border-destructive/40 text-destructive",
@@ -157,7 +157,7 @@ export function DashboardNotice({ text }: { text: string }) {
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-none border bg-white px-3 py-2 text-sm",
+        "flex items-start gap-2 rounded-xl border bg-white px-3 py-2 text-sm",
         HAIRLINE,
         INK,
       )}
@@ -194,7 +194,7 @@ export function DashboardQuickLinks({
             key={href}
             href={href}
             className={cn(
-              "inline-flex h-9 items-center gap-1 rounded-none border bg-white px-2 text-[11px] font-semibold tracking-[-0.02em] sm:h-7 sm:px-1.5",
+              "inline-flex h-9 items-center gap-1 rounded-full border bg-white px-2 text-[11px] font-semibold tracking-[-0.02em] sm:h-7 sm:px-1.5",
               HAIRLINE,
               MUTED,
               "hover:text-[var(--order-ink,#15231f)]",
@@ -215,7 +215,7 @@ export function DashboardQuickLinks({
           key={href}
           href={href}
           className={cn(
-            "group flex items-center gap-2 rounded-none border bg-white px-3 py-2",
+            "group flex items-center gap-2 rounded-xl border bg-white px-3 py-2",
             HAIRLINE,
             "hover:border-[var(--pos-primary,#0f766e)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
@@ -223,7 +223,7 @@ export function DashboardQuickLinks({
         >
           <span
             className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-none border bg-white",
+              "flex size-7 shrink-0 items-center justify-center rounded-lg border bg-white",
               HAIRLINE,
               TEAL,
             )}
@@ -277,7 +277,7 @@ export function DashboardPageHero({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border bg-white px-2.5 py-1 sm:px-3",
+        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1 sm:px-3",
         HAIRLINE,
       )}
     >
@@ -285,7 +285,7 @@ export function DashboardPageHero({
         <div className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              "inline-flex size-7 shrink-0 items-center justify-center rounded-none border bg-white",
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border bg-white",
               "border-[var(--pos-primary,#0f766e)]",
               TEAL,
             )}
@@ -347,7 +347,7 @@ export function DashboardLoadError({
     <div className="mx-auto w-full max-w-lg py-16">
       <div
         className={cn(
-          "rounded-none border bg-white p-6 text-center",
+          "rounded-2xl border bg-white p-6 text-center",
           "border-destructive/40",
         )}
       >

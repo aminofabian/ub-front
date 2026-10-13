@@ -92,7 +92,7 @@ function statusBadge(status: string): { label: string; className: string } {
     return {
       label: "Sold out",
       className:
-        "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]",
+        "rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]",
     };
   }
   if (s === "partial" || s === "clearing") {
@@ -119,7 +119,7 @@ function soldPct(pct: number | string) {
   return (
     <span
       className={cn(
-        "font-mono tabular-nums text-xs",
+        "tabular-nums text-xs",
         val >= 90
           ? "font-semibold text-[var(--pos-primary,#0f766e)]"
           : val >= 50
@@ -152,7 +152,7 @@ function StatusFilterBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center gap-2 rounded-none px-2.5 text-left text-[11px] font-semibold tracking-[-0.02em] transition-colors",
+        "inline-flex h-8 items-center gap-2 rounded-full px-2.5 text-left text-[11px] font-semibold tracking-[-0.02em] transition-colors",
         active
           ? "bg-[var(--pos-primary,#0f766e)] text-white"
           : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
@@ -161,7 +161,7 @@ function StatusFilterBtn({
       <span>{label}</span>
       <span
         className={cn(
-          "font-mono tabular-nums",
+          "tabular-nums",
           active
             ? "text-white/85"
             : tone === "success"
@@ -568,7 +568,7 @@ export function SupplyBatchListPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none px-2.5 text-[12px]"
+              className="h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[12px]"
               disabled={loading}
               onClick={load}
             >
@@ -580,7 +580,7 @@ export function SupplyBatchListPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 gap-1.5 rounded-none px-2.5 text-[12px]"
+              className="h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[12px]"
               onClick={exportCSV}
               disabled={filtered.length === 0}
             >
@@ -692,7 +692,7 @@ export function SupplyBatchListPage() {
                 variant="outline"
                 size="sm"
                 type="button"
-                className="h-8 shrink-0 gap-1 rounded-none px-2.5 text-xs"
+                className="h-8 shrink-0 gap-1 rounded-lg px-2.5 text-xs"
                 onClick={() => {
                   setBranchFilter("");
                   setSupplierFilter("");
@@ -721,7 +721,7 @@ export function SupplyBatchListPage() {
               variant="ghost"
               size="sm"
               type="button"
-              className="h-7 shrink-0 rounded-none px-2 text-xs"
+              className="h-7 shrink-0 rounded-lg px-2 text-xs"
               onClick={() => setClearResult(null)}
             >
               Dismiss
@@ -942,7 +942,7 @@ export function SupplyBatchListPage() {
                       {b.supplierName ?? "—"}
                     </td>
 
-                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums text-muted-foreground md:table-cell")}>
+                    <td className={cn(supTableCell, "hidden text-right tabular-nums text-muted-foreground md:table-cell")}>
                       {b.itemCount}
                     </td>
 
@@ -950,19 +950,19 @@ export function SupplyBatchListPage() {
                       {soldPct(b.soldPercentage)}
                     </td>
 
-                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums lg:table-cell")}>
+                    <td className={cn(supTableCell, "hidden text-right tabular-nums lg:table-cell")}>
                       {formatMoneyShort(b.totalCost)}
                     </td>
 
-                    <td className={cn(supTableCell, "text-right font-mono tabular-nums font-medium text-[var(--pos-primary,#0f766e)]")}>
+                    <td className={cn(supTableCell, "text-right tabular-nums font-medium text-[var(--pos-primary,#0f766e)]")}>
                       {formatMoneyShort(b.totalRevenue)}
                     </td>
 
-                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums text-muted-foreground lg:table-cell")}>
+                    <td className={cn(supTableCell, "hidden text-right tabular-nums text-muted-foreground lg:table-cell")}>
                       {formatMoneyShort(b.totalAssociatedCosts)}
                     </td>
 
-                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums md:table-cell")}>
+                    <td className={cn(supTableCell, "hidden text-right tabular-nums md:table-cell")}>
                       <span
                         className={cn(
                           Number(b.totalRemainingQuantity) <= 0
@@ -998,7 +998,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 rounded-none px-2 text-xs"
+                            className="h-7 gap-1 rounded-lg px-2 text-xs"
                           >
                             <Eye className="size-3.5" />
                             View
@@ -1009,7 +1009,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 rounded-none px-2 text-xs"
+                            className="h-7 gap-1 rounded-lg px-2 text-xs"
                             onClick={() => handleRecalculate(b.id)}
                             disabled={recalcId === b.id}
                           >
@@ -1027,7 +1027,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 rounded-none px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
+                            className="h-7 gap-1 rounded-lg px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
                             onClick={() =>
                               setClearDialog({
                                 id: b.id,
@@ -1103,7 +1103,7 @@ export function SupplyBatchListPage() {
                   </div>
 
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="font-mono tabular-nums font-medium text-[var(--pos-primary,#0f766e)]">
+                    <span className="tabular-nums font-medium text-[var(--pos-primary,#0f766e)]">
                       {formatMoneyShort(b.totalRevenue)}
                     </span>
                     {soldPct(b.soldPercentage)}
@@ -1115,7 +1115,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 rounded-none px-2 text-xs"
+                        className="h-8 gap-1 rounded-lg px-2 text-xs"
                       >
                         <Eye className="size-3.5" />
                         View
@@ -1126,7 +1126,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 rounded-none px-2 text-xs"
+                        className="h-8 gap-1 rounded-lg px-2 text-xs"
                         onClick={() => handleRecalculate(b.id)}
                         disabled={recalcId === b.id}
                       >
@@ -1144,7 +1144,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 rounded-none px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
+                        className="h-8 gap-1 rounded-lg px-2 text-xs text-[#9a2e16] hover:text-[#7a2412]"
                         onClick={() =>
                           setClearDialog({
                             id: b.id,
@@ -1190,7 +1190,7 @@ export function SupplyBatchListPage() {
           <div
             className={cn(
               "max-h-[92dvh] w-full overflow-y-auto border bg-white shadow-lg",
-              "rounded-t-[1.25rem] pb-[env(safe-area-inset-bottom)] sm:max-w-lg sm:rounded-none sm:pb-0",
+              "rounded-t-[1.25rem] pb-[env(safe-area-inset-bottom)] sm:max-w-lg sm:rounded-xl sm:pb-0",
               HAIRLINE,
             )}
           >
@@ -1242,14 +1242,14 @@ export function SupplyBatchListPage() {
             <div className={cn("flex justify-end gap-2 border-t bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-4 py-3", HAIRLINE)}>
               <Button
                 variant="outline"
-                className="rounded-none"
+                className="rounded-lg"
                 onClick={() => setClearDialog(null)}
                 disabled={clearing}
               >
                 Cancel
               </Button>
               <Button
-                className="rounded-none bg-[#9a2e16] text-white hover:bg-[#7a2412]"
+                className="rounded-lg bg-[#9a2e16] text-white hover:bg-[#7a2412]"
                 onClick={handleClear}
                 disabled={clearing}
               >

@@ -599,6 +599,21 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     }
 }
 
+.order-phone-rise {
+    animation: tablet-dock-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.order-phone-sheet {
+    animation: tablet-sheet-in 0.28s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .order-phone-rise,
+    .order-phone-sheet {
+        animation: none;
+    }
+}
+
 .tablet-more-aurora {
     animation: none;
 }

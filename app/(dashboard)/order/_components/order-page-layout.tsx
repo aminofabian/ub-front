@@ -40,7 +40,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-3 pt-1 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-0 pt-0 sm:px-5 sm:pt-1.5",
         mobileScroll
           ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
           : "h-full min-h-0 overflow-hidden",
@@ -53,7 +53,7 @@ export function OrderPageLayout({
       <div className="relative flex min-h-0 flex-1 flex-col gap-1">
         <div
           className={cn(
-            "shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-white",
+            "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-white sm:rounded-2xl sm:border",
             isStockManager &&
               "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}
@@ -61,7 +61,9 @@ export function OrderPageLayout({
           <ProcurementHubNav />
         </div>
 
-        {header ? <div className="shrink-0">{header}</div> : null}
+        {header ? (
+          <div className="shrink-0 px-3 sm:px-0">{header}</div>
+        ) : null}
 
         {showHeader && title && !header ? (
           <header className="shrink-0 px-0.5 sm:px-1">

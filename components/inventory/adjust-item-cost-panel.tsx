@@ -129,7 +129,7 @@ export function AdjustItemCostPanel({
               <td
                 className={cn(
                   supKvValue,
-                  "font-mono tabular-nums font-semibold",
+                  "tabular-nums font-semibold",
                 )}
               >
                 {fmtMoney(currentCost, currency)}
@@ -140,7 +140,7 @@ export function AdjustItemCostPanel({
               <td
                 className={cn(
                   supKvValue,
-                  "font-mono tabular-nums font-semibold",
+                  "tabular-nums font-semibold",
                 )}
               >
                 {fmtMoney(currentSell, currency)}
@@ -148,7 +148,7 @@ export function AdjustItemCostPanel({
             </tr>
             <tr>
               <th className={supKvLabel}>Stock</th>
-              <td className={cn(supKvValue, "font-mono tabular-nums")}>
+              <td className={cn(supKvValue, "tabular-nums")}>
                 {toNum(row.activeQty)?.toLocaleString() ?? "—"}
               </td>
             </tr>
@@ -258,7 +258,7 @@ export function AdjustItemCostPanel({
             <Button
               type="button"
               variant="outline"
-              className="rounded-none"
+              className="rounded-xl"
               onClick={onCancel}
               disabled={saving}
             >
@@ -268,7 +268,7 @@ export function AdjustItemCostPanel({
           <Button
             type="button"
             className={cn(
-              "rounded-none bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
+              "rounded-xl bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
               onCancel ? "flex-1" : "w-full",
             )}
             onClick={() => void onSave()}

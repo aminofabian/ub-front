@@ -101,7 +101,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
         <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
           <Button
             variant="outline"
-            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
+            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-xl sm:text-sm"
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
@@ -109,7 +109,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
           </Button>
           <Button
             variant="destructive"
-            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-none sm:text-sm"
+            className="h-12 rounded-2xl text-[14px] sm:h-9 sm:rounded-xl sm:text-sm"
             onClick={handleSubmit}
             disabled={saving || itemsWithRemaining.length === 0}
           >
@@ -145,19 +145,19 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
                     <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
                       <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">Remaining</span>
-                        <span className="font-mono tabular-nums font-medium">
+                        <span className="tabular-nums font-medium">
                           {formatQty(it.quantityRemaining)}
                         </span>
                       </div>
                       <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">Unit cost</span>
-                        <span className="font-mono tabular-nums font-medium">
+                        <span className="tabular-nums font-medium">
                           {formatMoney(it.unitCost)}
                         </span>
                       </div>
                       <div className="col-span-2 flex justify-between gap-2 border-t border-border/60 pt-1.5">
                         <span className="text-muted-foreground">Write-off</span>
-                        <span className="font-mono tabular-nums font-semibold text-rose-600">
+                        <span className="tabular-nums font-semibold text-rose-600">
                           {formatMoney(writeOff)}
                         </span>
                       </div>
@@ -168,7 +168,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
               <li className="rounded-2xl border border-rose-200/70 bg-rose-50/80 px-3 py-2.5 dark:border-rose-900/40 dark:bg-rose-950/30">
                 <div className="flex items-center justify-between gap-2 text-[13px] font-semibold">
                   <span>Total write-off</span>
-                  <span className="font-mono tabular-nums text-rose-700 dark:text-rose-300">
+                  <span className="tabular-nums text-rose-700 dark:text-rose-300">
                     {formatMoney(totalWriteOff)}
                   </span>
                 </div>
@@ -176,7 +176,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
             </ul>
 
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-none border shadow-none sm:block">
+            <div className="hidden overflow-hidden rounded-2xl border shadow-none sm:block">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/50">
                   <tr>
@@ -224,7 +224,7 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
           </>
         )}
 
-        <div className="space-y-3 rounded-2xl border p-4 sm:rounded-none">
+        <div className="space-y-3 rounded-2xl border p-4">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Reason</span>
             <select
