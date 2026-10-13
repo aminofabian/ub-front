@@ -263,7 +263,7 @@ export function FormDrawer({
                     "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
                     sharp ? "rounded-none" : "sm:rounded-l-2xl",
                     width === "third"
-                      ? "w-full min-w-0 sm:w-[33vw] sm:min-w-[22rem] sm:max-w-[34rem]"
+                      ? "w-full min-w-0 sm:w-[38vw] sm:min-w-[22rem] sm:max-w-[40rem]"
                       : width === "half"
                         ? "w-full min-w-0 sm:w-[50vw] sm:max-w-[50vw]"
                         : width === "extraWide"
