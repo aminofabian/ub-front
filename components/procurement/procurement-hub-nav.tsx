@@ -65,7 +65,8 @@ const HUB_STEPS: HubStep[] = [
     match: (p) =>
       p === APP_ROUTES.purchasingAddSupplies ||
       p.startsWith(`${APP_ROUTES.purchasingAddSupplies}?`) ||
-      p.startsWith(`${APP_ROUTES.purchasingAddSupplies}/`),
+      p.startsWith(`${APP_ROUTES.purchasingAddSupplies}/`) ||
+      p.startsWith(APP_ROUTES.purchasingApAging),
   },
   {
     href: APP_ROUTES.suppliers,
@@ -232,118 +233,84 @@ export function ProcurementHubNav({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-2.5 py-2.5 text-left sm:hidden"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left sm:hidden"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
           Buying journey
         </span>
-        <span className="ml-auto text-[11px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)]">
+        <span className="ml-auto text-[12px] font-semibold tabular-nums text-[#0f766e]">
           {activeIndex >= 0
-            ? `${steps[activeIndex]?.label} · ${activeIndex + 1}/${steps.length}`
+            ? `Step ${activeIndex + 1} of ${steps.length}`
             : `${steps.length} stops`}
         </span>
         <ChevronDown
           className={cn(
-            "size-4 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] transition-transform duration-200",
+            "size-4 shrink-0 text-[#98a2b3] transition-transform duration-200",
             open && "rotate-180",
           )}
           aria-hidden
         />
       </button>
 
-      <div className="hidden items-center justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] px-2.5 py-1.5 sm:flex">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-          Buying journey
-        </p>
-        <p className="text-[10px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)]">
-          {activeIndex >= 0
-            ? `Step ${activeIndex + 1} of ${steps.length}`
-            : `${steps.length} stops`}
-        </p>
-      </div>
-
       <ol
         className={cn(
-          "m-0 grid list-none grid-cols-2 p-0 sm:grid-cols-4",
-          !open && "hidden sm:grid",
+          "m-0 list-none gap-1.5 px-4 pb-3 sm:flex sm:flex-wrap sm:items-center sm:py-3 sm:pb-3",
+          open ? "grid grid-cols-2" : "hidden sm:flex",
         )}
       >
+        <li className="hidden sm:block">
+          <p className="pr-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
+            Buying journey
+          </p>
+        </li>
         {steps.map((step, index) => {
           const active = index === activeIndex;
           const past = activeIndex > index;
-          const Icon = step.icon;
-          const isLast = index === steps.length - 1;
-
           return (
-            <li
-              key={step.href}
-              className={cn(
-                "relative min-w-0 border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
-                index < 2 && "border-b sm:border-b-0",
-                !isLast && "sm:border-r",
-                index % 2 === 0 && "border-r sm:border-r",
-              )}
-            >
+            <li key={step.href} className="min-w-0">
               <Link
                 href={step.href}
                 title={`${step.label}: ${step.hint}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group flex h-full min-h-[3.25rem] flex-col justify-center gap-0.5 px-2.5 py-2 transition-colors duration-150",
+                  "flex items-center gap-2 rounded-full px-3 py-2 text-[13px] transition-colors sm:py-1.5",
                   active
-                    ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
-                    : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                    ? "bg-[#e6f4f0]"
+                    : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
                 )}
               >
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "inline-flex size-5 shrink-0 items-center justify-center text-[10px] font-bold tabular-nums",
-                      active
-                        ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                        : past
-                          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,white)] text-[var(--pos-primary,#0f766e)]"
-                          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
-                    )}
-                    aria-hidden
-                  >
-                    {index + 1}
-                  </span>
-                  <Icon
-                    className={cn(
-                      "size-3.5 shrink-0",
-                      active
-                        ? "text-[var(--pos-primary,#0f766e)]"
-                        : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
-                    )}
-                    aria-hidden
-                  />
-                  <span
-                    className={cn(
-                      "truncate text-[13px] tracking-[-0.02em]",
-                      active
-                        ? "font-semibold text-[var(--order-ink,#15231f)]"
-                        : "font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_68%,transparent)]",
-                    )}
-                  >
-                    {step.label}
-                  </span>
+                <span
+                  className={cn(
+                    "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums",
+                    active
+                      ? "bg-[#0f766e] text-white"
+                      : past
+                        ? "bg-[#d9f0eb] text-[#0f766e]"
+                        : "border border-[#e6eaec] text-[#98a2b3]",
+                  )}
+                  aria-hidden
+                >
+                  {index + 1}
                 </span>
                 <span
                   className={cn(
-                    "pl-[1.625rem] text-[10px] leading-tight",
+                    "truncate tracking-[-0.01em]",
                     active
-                      ? "text-[var(--pos-primary,#0f766e)]"
-                      : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]",
+                      ? "font-semibold text-[#0f766e]"
+                      : "font-medium text-[#667085]",
                   )}
                 >
-                  {step.beat}
-                  <span className="hidden lg:inline"> · {step.hint}</span>
+                  {step.label}
                 </span>
               </Link>
             </li>
           );
         })}
+        <li className="ml-auto hidden self-center sm:block">
+          <p className="text-[12px] font-medium tabular-nums text-[#0f766e]">
+            {activeIndex >= 0 ? `Step ${activeIndex + 1} of ${steps.length}` : `${steps.length} stops`}
+          </p>
+        </li>
       </ol>
     </nav>
   );

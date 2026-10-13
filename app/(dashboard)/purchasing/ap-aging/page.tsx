@@ -17,13 +17,11 @@ import {
 import {
   DashboardAccessDenied,
   DashboardFeedback,
-  dashboardHintClass,
 } from "@/components/dashboard-page-ui";
 import {
   PROCUREMENT_VARS,
   ProcurementHubNav,
 } from "@/components/procurement/procurement-hub-nav";
-import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
@@ -39,10 +37,10 @@ import { cn } from "@/lib/utils";
 
 const INK_RULE =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const PAPER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
-const ROSTER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
+
+const OWED = "text-[#d92d20]";
+const CARD =
+  "rounded-2xl bg-white ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)]";
 
 function money(n: number | string): string {
   const val = typeof n === "number" ? n : Number(n);
@@ -102,29 +100,6 @@ const BUCKETS: BucketDef[] = [
   },
 ];
 
-const TONE = {
-  ok: {
-    bar: "bg-[var(--pos-primary,#0f766e)]",
-    chip: "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] text-[var(--pos-primary,#0f766e)]",
-    amount: "text-[var(--pos-primary,#0f766e)]",
-  },
-  watch: {
-    bar: "bg-amber-800",
-    chip: "border-amber-700/30 text-amber-900",
-    amount: "text-amber-900",
-  },
-  late: {
-    bar: "bg-[#9a2e16]",
-    chip: "border-[#9a2e16]/35 text-[#9a2e16]",
-    amount: "text-[#9a2e16]",
-  },
-  critical: {
-    bar: "bg-[#9a2e16]",
-    chip: "border-[#9a2e16]/45 text-[#9a2e16]",
-    amount: "text-[#9a2e16]",
-  },
-} as const;
-
 function statusLabel(status: string): string {
   const s = status.trim().toUpperCase();
   if (s === "UNPAID" || s === "OPEN") return "Unpaid";
@@ -138,51 +113,39 @@ function PulseCard({
   value,
   hint,
   tone,
-  className,
+  size = "lg",
   children,
-  static: inFlow = false,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: "ink" | "ok" | "warn" | "owed";
-  className?: string;
+  size?: "lg" | "sm";
   children?: ReactNode;
-  /** Normal-flow card (phone stack) instead of the desktop absolute collage. */
-  static?: boolean;
 }) {
   return (
-    <article
-      className={cn(
-        "z-[1] border bg-white p-3.5",
-        inFlow
-          ? "relative w-full"
-          : "absolute w-[min(17.5rem,calc(100%-1.5rem))] shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-        INK_RULE,
-        className,
-      )}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <article className={cn(CARD, "p-4")}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
         {label}
       </p>
       <p
         className={cn(
-          "mt-2 font-semibold leading-none tracking-[-0.04em] tabular-nums",
+          "mt-2 font-semibold leading-none tracking-[-0.03em] tabular-nums",
           tone === "owed"
-            ? "text-[#9a2e16]"
+            ? OWED
             : tone === "warn"
-              ? "text-amber-900"
+              ? "text-[#b45309]"
               : tone === "ok"
-                ? "text-[var(--pos-primary,#0f766e)]"
-                : "text-foreground",
-          value.length > 18 ? "text-[1.25rem]" : "text-[1.85rem]",
+                ? "text-[#0f766e]"
+                : "text-[#101828]",
+          size === "sm" ? "text-[1.5rem]" : "text-[2rem]",
         )}
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {value}
       </p>
       {hint ? (
-        <p className={cn(dashboardHintClass(), "mt-2")}>{hint}</p>
+        <p className="mt-1.5 text-[12px] text-[#667085]">{hint}</p>
       ) : null}
       {children}
     </article>
@@ -319,172 +282,133 @@ export default function ApAgingPage() {
   const billCount = unpaid.length;
   const supplierCount = bySupplier.length;
 
-  const agingBars =
-    aging?.buckets && bucketMax > 0 ? (
-      <div
-        className="mt-2 flex h-8 items-end gap-px"
-        role="img"
-        aria-label="Aging mix"
-      >
-        {BUCKETS.map((def) => {
-          const amount = n(aging.buckets[def.key]);
-          const share = amount / bucketMax;
-          if (amount <= 0) return null;
+  const legendColors = ["#0f766e", "#12b76a", "#7ecbb8", "#cbd2d9"];
+  const supplierLegend = bySupplier.slice(0, 4);
+
+  const stillOwingBar =
+    totalOpen > 0 && supplierLegend.length > 0 ? (
+      <div className="mt-3 flex h-2.5 w-full gap-[3px] overflow-hidden">
+        {supplierLegend.map((group, index) => {
+          const share = (group.total / totalOpen) * 100;
+          if (share <= 0) return null;
           return (
-            <div
-              key={def.key}
-              title={`${def.label}: ${currency} ${money(amount)}`}
-              className={cn("min-w-0 flex-1", TONE[def.tone].bar)}
+            <span
+              key={group.supplierId}
+              className="h-full rounded-full"
               style={{
-                height: `${Math.max(18, share * 100)}%`,
-                opacity: 0.35 + share * 0.65,
+                width: `${share}%`,
+                backgroundColor: legendColors[index % legendColors.length],
               }}
+              aria-hidden
             />
           );
         })}
       </div>
     ) : null;
 
+  const stillOwingLegend =
+    supplierLegend.length > 0 ? (
+      <ul className="mt-3 flex flex-col gap-2">
+        {supplierLegend.map((group, index) => {
+          const share =
+            totalOpen > 0 ? Math.round((group.total / totalOpen) * 100) : 0;
+          return (
+            <li
+              key={group.supplierId}
+              className="flex items-center justify-between gap-3"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-[13px] text-[#344054]">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: legendColors[index % legendColors.length],
+                  }}
+                  aria-hidden
+                />
+                <span className="truncate">{group.supplierName}</span>
+              </span>
+              <span className="flex shrink-0 items-baseline gap-2 text-[13px] tabular-nums">
+                <span className="font-semibold text-[#101828]">
+                  {money(group.total)}
+                </span>
+                <span className="w-8 text-right text-[12px] text-[#98a2b3]">
+                  {share}%
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    ) : null;
+
   const ageList = (
-    <>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        Age
-      </p>
-      <ul className="mt-2 space-y-1.5">
+    <div className={cn(CARD, "p-4")}>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
+          How old it is
+        </h3>
+        <span className="text-[12px] text-[#98a2b3]">Payables by age</span>
+      </div>
+      <ul className="mt-3.5 space-y-3">
         {aging?.buckets ? (
           BUCKETS.map((def) => {
             const amount = n(aging.buckets[def.key]);
-            const tone = TONE[def.tone];
+            const share = bucketMax > 0 ? (amount / bucketMax) * 100 : 0;
+            const has = amount > 0.009;
             return (
               <li
                 key={def.key}
-                className="flex items-baseline justify-between gap-2 text-[11px]"
+                className="flex flex-col gap-1.5 sm:grid sm:grid-cols-[8.5rem_minmax(0,1fr)_5.5rem] sm:items-center sm:gap-3"
               >
-                <span className={cn("font-medium", tone.amount)}>
-                  {def.label}
-                </span>
-                <span className={cn("tabular-nums font-semibold", tone.amount)}>
-                  {money(amount)}
+                <div className="flex items-baseline justify-between gap-3 sm:contents">
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium",
+                      has ? "text-[#0f766e]" : "text-[#667085]",
+                    )}
+                  >
+                    {def.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-right text-[13px] font-semibold tabular-nums sm:order-last",
+                      has ? "text-[#101828]" : "text-[#98a2b3]",
+                    )}
+                  >
+                    {money(amount)}
+                  </span>
+                </div>
+                <span className="h-2 overflow-hidden rounded-full bg-[#eef1f0]">
+                  <span
+                    className="block h-full rounded-full bg-[#0f766e]"
+                    style={{ width: `${share}%` }}
+                  />
                 </span>
               </li>
             );
           })
         ) : (
-          <li className="text-muted-foreground">Aging buckets unavailable.</li>
+          <li className="text-[12px] text-[#98a2b3]">
+            Aging buckets unavailable.
+          </li>
         )}
       </ul>
-    </>
-  );
-
-  const pulse = (
-    <div className="relative h-full min-h-[22rem] overflow-hidden">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          d="M22 42 C 38 28, 58 22, 72 28"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M28 48 C 48 58, 62 52, 74 62"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M24 52 C 30 72, 48 78, 38 86"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-
-      <p
-        className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
-        aria-hidden
-      >
-        Payables
-      </p>
-
-      {loading && !aging ? (
-        <>
-          <div className="absolute left-[8%] top-[24%] h-36 w-56 animate-pulse bg-white/80" />
-          <div className="absolute right-[7%] top-[14%] h-24 w-40 animate-pulse bg-white/70" />
-        </>
-      ) : (
-        <>
-          <PulseCard
-            className="left-[8%] top-[22%]"
-            label="Still owing"
-            value={`${currency} ${money(totalOpen)}`}
-            hint={
-              billCount === 0
-                ? "Nothing open"
-                : `${billCount} bill${billCount === 1 ? "" : "s"} · ${supplierCount} vendor${supplierCount === 1 ? "" : "s"}`
-            }
-            tone={totalOpen > 0.009 ? "owed" : "ok"}
-          >
-            {agingBars}
-          </PulseCard>
-
-          <PulseCard
-            className="right-[7%] top-[14%] !w-[min(13.5rem,calc(100%-1.5rem))]"
-            label="Past due"
-            value={`${currency} ${money(overdueTotal)}`}
-            hint={
-              overdueTotal > 0.009
-                ? "Outside payment terms"
-                : "Everything still current"
-            }
-            tone={overdueTotal > 0.009 ? "warn" : "ok"}
-          />
-
-          <PulseCard
-            className="right-[10%] top-[46%] !w-[min(13.5rem,calc(100%-1.5rem))]"
-            label="Supplier credit"
-            value={`${currency} ${money(credit)}`}
-            hint="Prepayments you can apply"
-            tone={credit > 0.009 ? "ok" : "ink"}
-          />
-
-          <div
-            className={cn(
-              "absolute bottom-[8%] left-[10%] z-[1] w-[min(18rem,calc(100%-2rem))] border bg-white p-3 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-              INK_RULE,
-            )}
-          >
-            {ageList}
-          </div>
-        </>
-      )}
     </div>
   );
 
-  // Phone: the desktop collage positions its cards with percentages, which
-  // overlap on a narrow screen. Stack the same figures full-width instead.
   const pulseStack =
     loading && !aging ? (
-      <div className="flex flex-col gap-2 p-2.5">
-        <div className="h-28 animate-pulse bg-white" />
-        <div className="h-24 animate-pulse bg-white" />
-        <div className="h-24 animate-pulse bg-white" />
-        <div className="h-36 animate-pulse bg-white" />
+      <div className="flex flex-col gap-2.5">
+        <div className={cn(CARD, "h-32 animate-pulse")} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className={cn(CARD, "h-24 animate-pulse")} />
+          <div className={cn(CARD, "h-24 animate-pulse")} />
+        </div>
+        <div className={cn(CARD, "h-40 animate-pulse")} />
       </div>
     ) : (
-      <div className="flex flex-col gap-2 p-2.5">
+      <div className="flex flex-col gap-2.5">
         <PulseCard
-          static
           label="Still owing"
           value={`${currency} ${money(totalOpen)}`}
           hint={
@@ -494,171 +418,137 @@ export default function ApAgingPage() {
           }
           tone={totalOpen > 0.009 ? "owed" : "ok"}
         >
-          {agingBars}
+          {stillOwingBar}
+          {stillOwingLegend}
         </PulseCard>
 
-        <PulseCard
-          static
-          label="Past due"
-          value={`${currency} ${money(overdueTotal)}`}
-          hint={
-            overdueTotal > 0.009
-              ? "Outside payment terms"
-              : "Everything still current"
-          }
-          tone={overdueTotal > 0.009 ? "warn" : "ok"}
-        />
-
-        <PulseCard
-          static
-          label="Supplier credit"
-          value={`${currency} ${money(credit)}`}
-          hint="Prepayments you can apply"
-          tone={credit > 0.009 ? "ok" : "ink"}
-        />
-
-        <div className={cn("border bg-white p-3", INK_RULE)}>{ageList}</div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <PulseCard
+            size="sm"
+            label="Past due"
+            value={`${currency} ${money(overdueTotal)}`}
+            hint={
+              overdueTotal > 0.009 ? "Outside terms" : "Everything current"
+            }
+            tone={overdueTotal > 0.009 ? "warn" : "ok"}
+          />
+          <PulseCard
+            size="sm"
+            label="Supplier credit"
+            value={`${currency} ${money(credit)}`}
+            hint="Prepayments you can apply"
+            tone="ink"
+          />
+        </div>
       </div>
     );
 
   const feed = (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className={cn("shrink-0 space-y-2 border-b px-3 py-2 sm:px-3.5", INK_RULE)}>
+    <div className={cn(CARD, "flex h-full min-h-0 flex-col overflow-hidden")}>
+      <div className="shrink-0 space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2
-              className="text-[15px] font-semibold tracking-[-0.02em]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
               Open invoices
             </h2>
-            <p className={dashboardHintClass()}>
+            <p className="mt-0.5 text-[12px] text-[#667085]">
               {loading && unpaid.length === 0
                 ? "Loading…"
                 : `${filteredUnpaid.length} bill${filteredUnpaid.length === 1 ? "" : "s"} · largest first`}
             </p>
           </div>
-          <Button
-            asChild
-            size="sm"
-            className="h-8 gap-1.5 rounded-none shadow-none"
+          <Link
+            href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7]"
           >
-            <Link href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}>
-              <CreditCard className="size-3.5" aria-hidden />
-              Pay
-            </Link>
-          </Button>
+            <CreditCard className="size-4" aria-hidden />
+            Pay
+          </Link>
         </div>
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]"
             aria-hidden
           />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Vendor or invoice…"
-            className={cn(
-              "h-8 w-full border bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
-              INK_RULE,
-            )}
+            placeholder="Vendor or invoice"
+            className="h-11 w-full rounded-full bg-[#f1f5f4] pl-10 pr-3 text-[14px] outline-none placeholder:text-[#98a2b3] focus:ring-2 focus:ring-[#0f766e]/40"
             aria-label="Search unpaid bills"
           />
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {loading && unpaid.length === 0 ? (
-          <div className="space-y-1 p-2">
+          <div className="space-y-2.5">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-16 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]"
+                className="h-20 animate-pulse rounded-2xl bg-[#eef1f0]"
               />
             ))}
           </div>
         ) : filteredUnpaid.length === 0 ? (
           <div className="flex flex-col items-center px-4 py-16 text-center">
             <CheckCircle2
-              className="mb-3 size-7 text-[var(--pos-primary,#0f766e)]"
+              className="mb-3 size-8 text-[#0f766e]"
               aria-hidden
             />
-            <p
-              className="text-sm font-semibold tracking-[-0.02em]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
               {query.trim()
                 ? "No matching unpaid bills"
                 : "You are clear — nothing unpaid"}
             </p>
-            <p className={cn(dashboardHintClass(), "mt-1 max-w-sm")}>
+            <p className="mt-1 max-w-sm text-[12px] leading-snug text-[#667085]">
               {query.trim()
                 ? "Try another supplier or invoice number."
                 : "When deliveries post with a balance, they show up here so you can settle them on Supplies."}
             </p>
             {!query.trim() ? (
-              <Button
-                asChild
-                variant="outline"
-                className="mt-4 h-8 gap-1.5 rounded-none shadow-none"
+              <Link
+                href={APP_ROUTES.purchasingAddSupplies}
+                className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-xl bg-white px-3.5 text-[13px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5]"
               >
-                <Link href={APP_ROUTES.purchasingAddSupplies}>
-                  View supplies
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
-              </Button>
+                View supplies
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
             ) : null}
           </div>
         ) : (
-          <ul>
+          <ul className="space-y-2.5">
             {bySupplier.map((group) => (
-              <li
-                key={group.supplierId}
-                className={cn("border-b p-3 last:border-0", INK_RULE)}
-              >
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <li key={group.supplierId} className={cn(CARD, "p-3.5")}>
+                <div className="flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
-                    <p
-                      className="truncate text-sm font-semibold tracking-[-0.02em]"
-                      style={{ fontFamily: "var(--font-heading)" }}
-                    >
+                    <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
                       {group.supplierName}
                     </p>
-                    <p className={dashboardHintClass()}>
-                      {group.count} open bill
-                      {group.count === 1 ? "" : "s"}
+                    <p className="mt-0.5 text-[12px] text-[#667085]">
+                      {group.count} open bill{group.count === 1 ? "" : "s"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <p
-                      className="text-base font-semibold tabular-nums tracking-[-0.02em] text-[#9a2e16]"
-                      style={{ fontFamily: "var(--font-heading)" }}
-                    >
-                      {currency} {money(group.total)}
-                    </p>
-                    <Link
-                      href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-                      className="inline-flex h-7 items-center gap-1 bg-[var(--pos-primary,#0f766e)] px-2 text-[11px] font-semibold text-white"
-                    >
-                      Pay
-                      <ArrowRight className="size-3" aria-hidden />
-                    </Link>
-                  </div>
+                  <p
+                    className={cn(
+                      "shrink-0 text-[15px] font-semibold tabular-nums",
+                      OWED,
+                    )}
+                  >
+                    {currency} {money(group.total)}
+                  </p>
                 </div>
-                <ul className="space-y-1">
+                <ul className="mt-2.5 space-y-2">
                   {group.bills.map((bill) => (
                     <li
                       key={bill.supplierInvoiceId}
-                      className={cn(
-                        "flex flex-wrap items-center justify-between gap-2 border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_1.5%,white)] px-2.5 py-1.5",
-                        INK_RULE,
-                      )}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-[#f6f8f7] px-3 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
+                        <p className="truncate text-[13px] font-medium text-[#101828]">
                           {bill.invoiceNumber}
                         </p>
-                        <p className={dashboardHintClass()}>
+                        <p className="mt-0.5 truncate text-[11px] text-[#667085]">
                           {statusLabel(bill.paymentStatus)}
                           {bill.createdAt
                             ? ` · ${new Date(bill.createdAt).toLocaleDateString(
@@ -674,18 +564,33 @@ export default function ApAgingPage() {
                           {bill.lineCount} line
                           {bill.lineCount === 1 ? "" : "s"}
                         </p>
+                        <p className="mt-0.5 text-[11px] tabular-nums text-[#98a2b3] sm:hidden">
+                          {money(bill.balanceOpen)} of {money(bill.grandTotal)} ·
+                          paid {money(bill.amountPaid)}
+                        </p>
                       </div>
-                      <div className="text-right">
-                        <p
-                          className="text-sm font-semibold tabular-nums text-[#9a2e16]"
-                          style={{ fontFamily: "var(--font-heading)" }}
+                      <div className="flex shrink-0 items-center gap-3">
+                        <div className="hidden text-right sm:block">
+                          <p
+                            className={cn(
+                              "text-[13px] font-semibold tabular-nums",
+                              OWED,
+                            )}
+                          >
+                            {money(bill.balanceOpen)}
+                          </p>
+                          <p className="text-[11px] tabular-nums text-[#98a2b3]">
+                            of {money(bill.grandTotal)} · paid{" "}
+                            {money(bill.amountPaid)}
+                          </p>
+                        </div>
+                        <Link
+                          href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#0f766e] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
                         >
-                          {money(bill.balanceOpen)}
-                        </p>
-                        <p className={cn(dashboardHintClass(), "tabular-nums")}>
-                          of {money(bill.grandTotal)} · paid{" "}
-                          {money(bill.amountPaid)}
-                        </p>
+                          Pay
+                          <ArrowRight className="size-4" aria-hidden />
+                        </Link>
                       </div>
                     </li>
                   ))}
@@ -703,141 +608,109 @@ export default function ApAgingPage() {
       className="relative mx-auto flex w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5 lg:h-full lg:min-h-0"
       style={PROCUREMENT_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
-        <div className={cn("shrink-0 border bg-white", INK_RULE)}>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-3 lg:overflow-y-auto">
+        <div className={cn(CARD, "shrink-0 overflow-hidden")}>
           <ProcurementHubNav />
         </div>
 
-        <header
-          className={cn(
-            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-            INK_RULE,
-          )}
-        >
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex size-7 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-white">
-                <Receipt className="size-3.5" aria-hidden />
+        <header className={cn(CARD, "p-4")}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
+                <Receipt className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <h1
-                  className="truncate text-[15px] font-semibold tracking-[-0.02em]"
-                  style={{ fontFamily: "var(--font-heading)" }}
-                >
+                <h1 className="truncate text-[18px] font-semibold tracking-[-0.02em] text-[#101828]">
                   Unpaid bills
                 </h1>
-                <p className={dashboardHintClass()}>
+                <p className="mt-0.5 text-[13px] text-[#667085]">
                   What you still owe
-                  {branchName ? (
-                    <>
-                      {" "}
-                      ·{" "}
-                      <span className="font-medium text-foreground">
-                        {branchName}
-                      </span>
-                    </>
-                  ) : null}
+                  {branchName ? <> · {branchName}</> : null}
                   {aging?.asOf ? ` · as of ${aging.asOf}` : null}
                 </p>
               </div>
             </div>
             <nav
               aria-label="Related"
-              className="flex min-w-0 flex-wrap items-center gap-0.5"
+              className="flex flex-wrap items-center gap-2"
             >
               <Link
                 href={APP_ROUTES.purchasingIntelligence}
-                className="inline-flex h-8 items-center gap-1 px-2 text-[12px] font-semibold text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7]"
               >
-                <LineChart className="size-3" aria-hidden />
+                <LineChart className="size-4" aria-hidden />
                 Compare
               </Link>
               <Link
                 href={APP_ROUTES.suppliers}
-                className="inline-flex h-8 items-center gap-1 px-2 text-[12px] font-semibold text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7]"
               >
-                <Truck className="size-3" aria-hidden />
+                <Truck className="size-4" aria-hidden />
                 Suppliers
               </Link>
+              <label className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#f1f5f4] px-3.5 text-[13px]">
+                <CalendarClock
+                  className="size-4 text-[#98a2b3]"
+                  aria-hidden
+                />
+                <span className="font-semibold text-[#667085]">As of</span>
+                <input
+                  type="date"
+                  className="border-0 bg-transparent text-[13px] tabular-nums outline-none"
+                  value={asOf}
+                  onChange={(e) => setAsOf(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void load()}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#f1f5f4] px-3.5 text-[13px] font-semibold text-[#344054] transition-colors hover:bg-[#e6eae9] disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={cn("size-4", loading && "animate-spin")}
+                  aria-hidden
+                />
+                Refresh
+              </button>
             </nav>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-            <label
-              className={cn(
-                "flex h-8 items-center gap-1.5 border bg-white px-2 text-[12px]",
-                INK_RULE,
-              )}
-            >
-              <CalendarClock
-                className="size-3.5 text-muted-foreground"
-                aria-hidden
-              />
-              <span className="font-semibold text-muted-foreground">As of</span>
-              <input
-                type="date"
-                className="border-0 bg-transparent text-sm tabular-nums outline-none"
-                value={asOf}
-                onChange={(e) => setAsOf(e.target.value)}
-              />
-            </label>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-8 gap-1.5 rounded-none shadow-none"
-              disabled={loading}
-              onClick={() => void load()}
-            >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
-                aria-hidden
-              />
-              Refresh
-            </Button>
-            <Button
-              asChild
-              className="h-8 gap-1.5 rounded-none shadow-none"
-            >
-              <Link href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}>
-                <CreditCard className="size-3.5" aria-hidden />
-                Pay on Supplies
-              </Link>
-            </Button>
-          </div>
+          <Link
+            href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
+            className="mt-3 inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
+          >
+            <CreditCard className="size-4" aria-hidden />
+            Pay on Supplies
+          </Link>
         </header>
 
         {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
-        <div className="flex min-h-0 flex-col gap-1.5">
-          <div
-            className={cn(
-              "hidden overflow-hidden border lg:grid",
-              "h-[min(80dvh,52rem)]",
-              INK_RULE,
-              PAPER,
-              "lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]",
-            )}
-          >
-            <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE, ROSTER)}>
-              {feed}
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)] lg:items-start lg:gap-4">
+            <div className="min-w-0">{feed}</div>
+            <div className="flex min-w-0 flex-col gap-2.5">
+              {pulseStack}
+              {ageList}
             </div>
-            <div className="relative min-h-0 overflow-hidden">{pulse}</div>
           </div>
 
-          <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-            <div className={cn("border", INK_RULE, PAPER)}>{pulseStack}</div>
-            <div className={cn("border", INK_RULE)}>{feed}</div>
+          <div className="flex min-h-0 flex-col gap-3 lg:hidden">
+            {pulseStack}
+            {feed}
+            {ageList}
           </div>
         </div>
 
         {/* Phone: keep the settle-up action in thumb reach while the roster scrolls. */}
         {unpaid.length > 0 ? (
-          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-1.5 flex items-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-1 flex items-center gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 shadow-[0_-10px_28px_-16px_color-mix(in_srgb,var(--order-ink,#15231f)_30%,transparent)] lg:hidden">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
                 Still owing
               </p>
               <p
-                className="mt-0.5 truncate text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums"
+                className="mt-1 truncate text-[18px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[#101828]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {currency} {money(totalOpen)}
@@ -845,7 +718,7 @@ export default function ApAgingPage() {
             </div>
             <Link
               href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0d6b63]"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
             >
               <CreditCard className="size-4" aria-hidden />
               Pay bills
