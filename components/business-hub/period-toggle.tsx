@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { HUB_BTN } from "@/lib/business-hub/constants";
 import type { Period } from "@/lib/business-hub/types";
 
 export function PeriodToggle({
@@ -13,7 +12,7 @@ export function PeriodToggle({
 }) {
   return (
     <div
-      className="inline-flex h-9 shrink-0 items-stretch gap-px rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-[color-mix(in_srgb,#141414_7%,transparent)] p-px sm:h-8"
+      className="inline-flex h-9 shrink-0 items-center gap-0.5 rounded-full bg-[#eef1f0] p-0.5"
       role="group"
       aria-label="Time period"
     >
@@ -31,11 +30,11 @@ export function PeriodToggle({
             onClick={() => onChange(id)}
             aria-pressed={active}
             className={cn(
-              HUB_BTN,
-              "relative min-w-[2.75rem] rounded-none px-2 text-[12px] font-semibold sm:min-w-[3.5rem] sm:px-3",
+              "h-full min-w-[3.25rem] rounded-full px-3 text-[12px] font-semibold transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]",
               active
-                ? "bg-[#0f766e] text-white"
-                : "bg-white text-[#5C5C5C] hover:text-[#0f766e]",
+                ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+                : "text-[#667085] hover:text-[#101828]",
             )}
           >
             {label}

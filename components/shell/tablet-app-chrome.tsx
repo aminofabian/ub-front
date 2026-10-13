@@ -52,6 +52,8 @@ export type TabletBottomTab = {
   matchSectionIds: string[];
   /** Open as a shell FormDrawer instead of navigating. */
   workspace?: ShellWorkspaceId;
+  /** Raised, filled center affordance (e.g. "Sell"). */
+  primary?: boolean;
 };
 
 export type MoreQuickLink = {
@@ -240,7 +242,7 @@ export function TabletAppHeader({
               type="button"
               onClick={onOpenMore}
               aria-label="Open menu"
-              className="ml-1 inline-flex size-11 items-center justify-center bg-[var(--tablet-header-ink)] font-mono text-xs font-bold text-white"
+              className="ml-1 inline-flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_12%,white)] text-[13px] font-semibold text-[var(--tablet-header-accent,#0f766e)]"
             >
               {userInitial}
             </button>
@@ -314,7 +316,7 @@ export function TabletAppHeader({
                 type="button"
                 onClick={onOpenMore}
                 aria-label="Open menu"
-                className="tablet-header-avatar inline-flex size-11 shrink-0 items-center justify-center border-l border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-ink)] font-mono text-sm font-bold text-[var(--tablet-header-paper)] transition-[letter-spacing,background-color] hover:tracking-widest"
+                className="tablet-header-avatar inline-flex size-11 shrink-0 cursor-pointer items-center justify-center self-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_12%,white)] text-sm font-semibold text-[var(--tablet-header-accent,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_20%,white)]"
               >
                 {userInitial}
               </button>
@@ -346,15 +348,26 @@ export function TabletBottomNav({
   onOpenWorkspace,
   layout: _layout = "default",
 }: TabletBottomNavProps) {
-  const linkTabs = tabs.filter((tab) => tab.id !== "more");
-  const moreTab = tabs.find((tab) => tab.id === "more");
-  const tabCount = linkTabs.length + (moreTab ? 1 : 0);
   void _layout;
+
+  // Full ordered tab list (including "more"), with the primary tab relocated to
+  // the middle so the raised "Sell" affordance sits centered in the bar.
+  const orderedTabs = useMemo(() => {
+    const all = [...tabs];
+    const primaryIndex = all.findIndex((tab) => tab.primary);
+    if (primaryIndex === -1) return all;
+    const rest = all.filter((_, index) => index !== primaryIndex);
+    const middle = Math.floor(all.length / 2);
+    rest.splice(Math.min(middle, rest.length), 0, all[primaryIndex]);
+    return rest;
+  }, [tabs]);
+
+  const tabCount = orderedTabs.length;
 
   return (
     <nav
       aria-label="Main navigation"
-      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 pointer-events-none"
+      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 overflow-visible pointer-events-none"
     >
       {/* Height here must equal `--shell-tab-bar` in globals.css, which the
           `--shell-bottom-inset` token and all page bottom bars key off. */}
@@ -365,15 +378,77 @@ export function TabletBottomNav({
           "pb-[max(0.35rem,env(safe-area-inset-bottom,0px))] pt-1",
           "backdrop-blur-xl supports-[backdrop-filter]:bg-background/88",
           "dark:border-border/50 dark:bg-background/92",
-          "grid gap-0",
+          "grid gap-0 overflow-visible",
         )}
         style={{
           gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
         }}
       >
-        {linkTabs.map((tab) => {
+        {orderedTabs.map((tab) => {
+          if (tab.id === "more") {
+            return (
+              <CompactMoreTab
+                key={tab.id}
+                tab={tab}
+                isActive={activeTabId === tab.id}
+                onMore={onMore}
+              />
+            );
+          }
+
           const Icon = tab.icon;
           const isActive = activeTabId === tab.id;
+
+          if (tab.primary) {
+            const primaryClass = cn(
+              "tablet-nav-tab-primary relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
+              "active:opacity-90",
+            );
+            const primaryBody = (
+              <>
+                <span className="relative flex size-[1.35rem] items-center justify-center">
+                  <span className="absolute inset-0 m-auto flex size-[3.25rem] -translate-y-3 items-center justify-center rounded-full bg-[#0f766e] text-white shadow-[0_8px_20px_-8px_rgba(15,118,110,0.55)]">
+                    <Icon
+                      className="size-[1.45rem]"
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                  </span>
+                </span>
+                <span className="w-full truncate text-center text-[11px] font-semibold leading-none tracking-[-0.01em] text-[#0f766e]">
+                  {tab.label}
+                </span>
+              </>
+            );
+
+            if (tab.workspace && onOpenWorkspace) {
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => onOpenWorkspace(tab.workspace!)}
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={tab.label}
+                  className={primaryClass}
+                >
+                  {primaryBody}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href ?? "#"}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={tab.label}
+                className={primaryClass}
+              >
+                {primaryBody}
+              </Link>
+            );
+          }
+
           const tabClass = cn(
             "tablet-nav-tab relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors duration-150",
             "active:bg-muted/60",
@@ -432,14 +507,6 @@ export function TabletBottomNav({
             </Link>
           );
         })}
-
-        {moreTab ? (
-          <CompactMoreTab
-            tab={moreTab}
-            isActive={activeTabId === moreTab.id}
-            onMore={onMore}
-          />
-        ) : null}
       </div>
     </nav>
   );

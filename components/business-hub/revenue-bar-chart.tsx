@@ -2,113 +2,83 @@
 
 import { useState } from "react";
 
-import {
-  HUB_ACCENT,
-  HUB_MUTED,
-  HUB_SURFACE,
-} from "@/lib/business-hub/constants";
-import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
-import { chartWindowStats } from "@/lib/business-hub/pulse-insights";
 import { useFormatMoney } from "@/hooks/use-format-money";
+import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
 import { cn } from "@/lib/utils";
 
-const METER_TRACK_PX = 26;
+const TRACK_PX = 68;
+
+const BAR_MUTED = "#cfeee3";
+const BAR_PICKED = "#7ecbb8";
+const BAR_TODAY = "#0f766e";
 
 function dayOfMonth(isoDay: string): string {
   const day = isoDay.slice(8, 10);
   return day.startsWith("0") ? day.slice(1) : day;
 }
 
-function weekdayInitial(isoDay: string): string {
+function weekdayNarrow(isoDay: string): string {
   const date = new Date(`${isoDay}T12:00:00`);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("en-GB", { weekday: "narrow" });
 }
 
+/**
+ * The revenue shape: mint bars with today picked out in the accent, a faint
+ * baseline to sit them on, and a readout for the tapped (or latest) day so the
+ * exact figure is always legible instead of a clipped tooltip.
+ */
 export function RevenueBarChart({
   points,
   ariaLabel,
-  bare = false,
-  dense = false,
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
-  caption?: string;
-  /** Drop the panel chrome when the meter is nested inside another surface. */
-  bare?: boolean;
-  /** Sparkline scale: shorter bars, no summary strip (compact revenue block). */
-  dense?: boolean;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
   const [picked, setPicked] = useState<string | null>(null);
-  const trackPx = dense ? 18 : METER_TRACK_PX;
-  const max = Math.max(...points.map((p) => p.value), 1);
-  const stats = chartWindowStats(points);
-  const peakDay = stats.best?.day ?? null;
-  const todayDay = points[points.length - 1]?.day ?? null;
 
-  const summary = [
-    {
-      id: "window",
-      label: "Window",
-      value: formatMoneyCompact(stats.total),
-      hint: `${points.length} days`,
-    },
-    {
-      id: "avg",
-      label: "Avg",
-      value: formatMoneyCompact(stats.average),
-      hint: "Daily",
-    },
-    {
-      id: "best",
-      label: "Best",
-      value: stats.best ? stats.best.label : "—",
-      hint: stats.best ? formatMoneyCompact(stats.best.value) : "No sales",
-    },
-    {
-      id: "active",
-      label: "Active",
-      value: String(stats.activeDays),
-      hint: stats.activeDays === 1 ? "day" : "days",
-    },
-  ] as const;
+  if (points.length === 0) return null;
+
+  const max = Math.max(...points.map((point) => point.value), 1);
+  const todayDay = points[points.length - 1]?.day ?? null;
+  const selected =
+    points.find((point) => point.day === picked) ??
+    points[points.length - 1] ??
+    null;
+  const isTodaySelected = selected?.day === todayDay;
+  const showWeekday = points.length <= 8;
+  const columns = {
+    gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))`,
+  } as const;
 
   return (
-    <section className={cn(!bare && HUB_SURFACE, "overflow-hidden")}>
-      <div
-        className={cn(
-          "flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:justify-end",
-          dense && "max-sm:hidden",
-        )}
-      >
-        {summary.map((item) => (
-          <p
-            key={item.id}
-            className="flex items-baseline gap-1 text-[11px] tabular-nums sm:text-xs"
-            title={`${item.label}: ${item.value} · ${item.hint}`}
-          >
-            <span className={HUB_MUTED}>{item.label}</span>
-            <span className="font-semibold text-[#141414]">{item.value}</span>
-          </p>
-        ))}
-      </div>
+    <div role="group" aria-label={ariaLabel}>
+      {selected ? (
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <span className="text-[11px] text-[#667085]">
+            {selected.label}
+            {isTodaySelected ? " · Today" : ""}
+          </span>
+          <span className="text-[12px] font-semibold tabular-nums text-[#101828]">
+            {formatMoneyCompact(selected.value)}
+          </span>
+        </div>
+      ) : null}
 
-      <div className="px-2.5 py-2 sm:px-3" role="group" aria-label={ariaLabel}>
-        <div
-          className="grid items-end gap-px"
-          style={{
-            gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(0, 1fr))`,
-          }}
-        >
+      <div className="relative mt-2.5">
+        <span
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#e6eaec]"
+          aria-hidden
+        />
+        <div className="grid items-end gap-1" style={columns}>
           {points.map((point) => {
             const heightPx =
               point.value <= 0
-                ? 0
-                : Math.max(2, Math.round((point.value / max) * trackPx));
+                ? 3
+                : Math.max(6, Math.round((point.value / max) * TRACK_PX));
             const isToday = point.day === todayDay;
-            const isPeak = point.day === peakDay && point.value > 0 && !isToday;
-
+            const isPicked = selected?.day === point.day;
             return (
               <button
                 key={point.day}
@@ -116,74 +86,46 @@ export function RevenueBarChart({
                 onClick={() =>
                   setPicked((prev) => (prev === point.day ? null : point.day))
                 }
-                aria-pressed={picked === point.day}
+                aria-pressed={isPicked}
                 aria-label={`${point.label}: ${formatMoneyCompact(point.value)}`}
-                className="group relative flex min-w-0 flex-col items-stretch gap-0.5 px-px"
+                className="flex min-w-0 items-end"
+                style={{ height: TRACK_PX }}
               >
-                <div
-                  className={cn(
-                    "pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[11px] text-[#0f766e]",
-                    picked === point.day ? "block" : "hidden group-hover:block",
-                  )}
-                >
-                  <span className="whitespace-nowrap font-medium">
-                    {point.label}
-                  </span>
-                  <span className="mx-1 text-[#8A8A8A]" aria-hidden>
-                    ·
-                  </span>
-                  <span className="whitespace-nowrap font-semibold tabular-nums">
-                    {formatMoneyCompact(point.value)}
-                  </span>
-                </div>
-
-                <div
-                  className="flex w-full items-end justify-center"
-                  style={{ height: trackPx }}
-                >
-                  {point.value > 0 ? (
-                    <div
-                      className="hub-bar-grow w-full"
-                      style={{
-                        height: heightPx,
-                        backgroundColor: isToday
-                          ? HUB_ACCENT
-                          : isPeak
-                            ? "#0d9488"
-                            : "#99f6e4",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]"
-                      style={{ height: 2 }}
-                    />
-                  )}
-                </div>
-
-                <div className="flex items-center justify-center gap-0.5">
-                  <span
-                    className={cn(
-                      "text-[11px] font-medium tabular-nums leading-none",
-                      isToday ? "text-[#0f766e]" : "text-[#666666]",
-                    )}
-                  >
-                    {dayOfMonth(point.day)}
-                  </span>
-                  <span
-                    className={cn(
-                      "hidden text-[10px] uppercase leading-none sm:inline",
-                      isToday ? "text-[#0f766e]" : "text-[#B0A898]",
-                    )}
-                  >
-                    {weekdayInitial(point.day)}
-                  </span>
-                </div>
+                <span
+                  className="w-full rounded-t-[4px] transition-[height,background-color] duration-200"
+                  style={{
+                    height: heightPx,
+                    backgroundColor: isToday
+                      ? BAR_TODAY
+                      : isPicked
+                        ? BAR_PICKED
+                        : BAR_MUTED,
+                  }}
+                />
               </button>
             );
           })}
         </div>
       </div>
-    </section>
+
+      <div className="mt-1.5 grid gap-1" style={columns}>
+        {points.map((point) => {
+          const isToday = point.day === todayDay;
+          return (
+            <span
+              key={point.day}
+              className={cn(
+                "truncate text-center text-[11px] font-medium leading-none tabular-nums",
+                isToday ? "text-[#0f766e]" : "text-[#667085]",
+              )}
+            >
+              {showWeekday
+                ? `${weekdayNarrow(point.day)} ${dayOfMonth(point.day)}`
+                : dayOfMonth(point.day)}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 }

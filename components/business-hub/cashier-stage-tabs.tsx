@@ -1,9 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { HUB_BTN } from "@/lib/business-hub/constants";
 
 const DUAL_LANE_MAX = 2;
+
+const CHIP_BASE =
+  "inline-flex h-9 shrink-0 items-center rounded-full px-3 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]";
+const CHIP_ON = "bg-[#0f766e] text-white";
+const CHIP_OFF = "bg-white text-[#344054] ring-1 ring-black/[0.06] hover:bg-[#f7f9f8]";
 
 function shortName(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -46,18 +50,9 @@ export function CashierStageTabs({
   if (cashiers.length === 0) return null;
 
   return (
-    <div
-      className={cn("flex min-w-0 items-center gap-1.5 sm:gap-2", className)}
-    >
-      <div className="hidden shrink-0 items-center gap-2 sm:flex">
-        <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#141414] before:block before:h-px before:w-2 before:bg-[#0f766e] before:content-['']">
-          Stage
-        </p>
-        <span className="text-[11px] text-[#8A8A8A]">{modeCopy(selected)}</span>
-      </div>
-
+    <div className={cn("flex min-w-0 items-center gap-2", className)}>
       <div
-        className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Cashier lanes"
       >
@@ -66,20 +61,13 @@ export function CashierStageTabs({
           role="tab"
           aria-selected={viewingAll}
           onClick={selectAll}
-          className={cn(
-            HUB_BTN,
-            "inline-flex h-9 shrink-0 items-center px-2 text-[12px] font-medium sm:h-7 sm:px-2.5",
-            viewingAll
-              ? "border border-[#0f766e] bg-white text-[#0f766e]"
-              : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",
-          )}
+          className={cn(CHIP_BASE, viewingAll ? CHIP_ON : CHIP_OFF)}
         >
           Floor
         </button>
 
-        {cashiers.map((name, index) => {
+        {cashiers.map((name) => {
           const active = selected.includes(name);
-          const laneIndex = selected.indexOf(name);
           return (
             <button
               key={name}
@@ -97,30 +85,20 @@ export function CashierStageTabs({
               }
               onClick={() => toggleCashier(name)}
               className={cn(
-                HUB_BTN,
-                "inline-flex h-9 max-w-[7.5rem] shrink-0 items-center gap-1 px-2 text-[12px] font-medium sm:h-7 sm:max-w-[8.5rem] sm:gap-1.5 sm:px-2.5",
-                active
-                  ? "border border-[#0f766e] bg-white text-[#0f766e]"
-                  : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",
+                CHIP_BASE,
+                "max-w-[8rem] gap-1.5",
+                active ? CHIP_ON : CHIP_OFF,
               )}
             >
-              <span
-                className={cn(
-                  "font-mono text-[10px] tabular-nums",
-                  active ? "text-[#0f766e]" : "text-[#8A8A8A]",
-                )}
-              >
-                {laneIndex >= 0
-                  ? String(laneIndex + 1).padStart(2, "0")
-                  : String(index + 1).padStart(2, "0")}
-              </span>
-              <span className="truncate" title={name}>
-                {shortName(name)}
-              </span>
+              <span className="truncate">{shortName(name)}</span>
             </button>
           );
         })}
       </div>
+
+      <span className="hidden shrink-0 text-[11px] text-[#98a2b3] sm:inline">
+        {modeCopy(selected)}
+      </span>
     </div>
   );
 }

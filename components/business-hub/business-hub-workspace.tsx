@@ -7,11 +7,13 @@ import {
   Boxes,
   CircleDollarSign,
   ClipboardCheck,
+  ClipboardList,
   CreditCard,
   Globe,
   MessageCircle,
   MonitorSmartphone,
   Package,
+  Receipt,
   RefreshCw,
   ScanLine,
   Settings,
@@ -1193,6 +1195,55 @@ export function BusinessHubWorkspace() {
     showButcherCounter,
   ]);
 
+  const quickActionLinks = useMemo(() => {
+    // Deliberately NOT the bottom-tab destinations (Sales / Products / Stock).
+    // These are the jobs a shop reaches for between sales.
+    const links: JumpInLink[] = [];
+    if (canWriteFinanceExpenses || canReadFinanceExpenses) {
+      links.push({
+        href: APP_ROUTES.expenses,
+        label: "Add expense",
+        hint: "Log a cost",
+        icon: Receipt,
+        group: "Money",
+      });
+    }
+    if (canApproveStockTake || canViewSupplyBatches) {
+      links.push({
+        href: APP_ROUTES.inventoryStockTake,
+        label: "Count stock",
+        hint: "Stock-take",
+        icon: ClipboardCheck,
+        group: "Stock",
+      });
+    }
+    if (canViewSupplyBatches) {
+      links.push({
+        href: APP_ROUTES.inventoryRestock,
+        label: "Reorder stock",
+        hint: "What to restock",
+        icon: Package,
+        group: "Stock",
+      });
+    }
+    if (canViewSalesIntelligence) {
+      links.push({
+        href: APP_ROUTES.salesReports,
+        label: "End-of-day report",
+        hint: "Close the day",
+        icon: ClipboardList,
+        group: "Insight",
+      });
+    }
+    return links;
+  }, [
+    canApproveStockTake,
+    canReadFinanceExpenses,
+    canViewSalesIntelligence,
+    canViewSupplyBatches,
+    canWriteFinanceExpenses,
+  ]);
+
   const cashierNames = useMemo(() => {
     const fromSales = cashiersFromTicks(recentTicks);
     const fromDrawouts = cashiersFromDrawouts(recentDrawouts);
@@ -1332,13 +1383,14 @@ export function BusinessHubWorkspace() {
                     {
                       label: "See items",
                       onClick: () => setMarginLeaksOpen(true),
+                      emphasize: true,
                     },
                   ]
                 : []),
             ...(canReadFinanceReports || canWriteFinanceExpenses
               ? [
                   {
-                    label: "Pocket cash…",
+                    label: "Pocket cash",
                     onClick: () => setProfitPocketOpen(true),
                   },
                 ]
@@ -1599,10 +1651,9 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-2 sm:gap-4">
-                  {/* The money story as one layered surface: the headline
-                      revenue, where that money arrived from, then the supporting
-                      numbers under a hairline. */}
+                <div className="flex flex-col gap-3 sm:gap-4">
+                  {/* The money board: revenue headline + shape, how it arrived,
+                      the supporting numbers, then the profit actions. */}
                   {salesEmpty ? null : (
                     <HubMoneyHero
                       items={hubKpis}
@@ -1615,10 +1666,10 @@ export function BusinessHubWorkspace() {
                     />
                   )}
 
-                  {/* Quick actions — buttons, two rows (the desk rail shows the
-                      same board, so this is below-xl only). */}
+                  {/* Quick actions — jobs the bottom tabs don't cover (the desk
+                      rail shows the wider shortcut board). */}
                   <div className="xl:hidden">
-                    <HubQuickActions links={jumpInLinks} />
+                    <HubQuickActions links={quickActionLinks} />
                   </div>
 
                   {/* Phone shows the detailed "Open work" board below; this
@@ -1791,7 +1842,7 @@ export function BusinessHubWorkspace() {
                   {/* Setup & utilities — grouped into one layered panel at the
                       end of the board instead of three floating cards. */}
                   {showSetupPanel ? (
-                    <section className="space-y-1.5 xl:hidden">
+                    <section className="space-y-2.5 xl:hidden">
                       <HubSectionLabel
                         title="Shop setup"
                         meta="Payments · float · tills"
@@ -1799,9 +1850,11 @@ export function BusinessHubWorkspace() {
                       />
                       <div
                         className={cn(
-                          "flex flex-col gap-px overflow-hidden border",
+                          "flex flex-col gap-px overflow-hidden rounded-2xl border",
                           "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
                           "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                          "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+                          "[&_[data-hub-card]]:rounded-none",
                         )}
                       >
                         {canShowPaymentMethod ? (

@@ -16,14 +16,14 @@ export type ActionItem = {
 
 const TONES = {
   warning: {
-    card: "border-[color-mix(in_srgb,#B45309_16%,transparent)] bg-[#FDF8F0] hover:bg-[#FCF3E6]",
-    icon: "bg-[#FBEBD2] text-[#B45309]",
-    arrow: "text-[#B45309]",
+    card: "bg-[#fdf8f0] hover:bg-[#fcf3e6]",
+    icon: "bg-[#fbe8cf] text-[#b45309]",
+    arrow: "text-[#b45309]",
   },
   info: {
-    card: "border-[color-mix(in_srgb,#0f766e_16%,transparent)] bg-[#F1F9F8] hover:bg-[#E7F4F2]",
-    icon: "bg-[#D6EDEA] text-[#0f766e]",
-    arrow: "text-[#0f766e]",
+    card: "bg-white hover:bg-[#fafcfb]",
+    icon: "bg-[#eef2f6] text-[#475467]",
+    arrow: "text-[#98a2b3]",
   },
 } as const;
 
@@ -34,13 +34,13 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-1.5">
+    <section className="space-y-2.5">
       <HubSectionLabel
         title="Needs attention"
         meta={`${items.length} to review`}
         className="px-0.5"
       />
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-2.5">
         {items.map((item) => {
           const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;
@@ -49,7 +49,8 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex min-h-12 items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors",
+                "group flex min-h-12 items-center gap-2 rounded-2xl px-3 py-2.5 transition-colors",
+                "ring-1 ring-black/[0.05]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}

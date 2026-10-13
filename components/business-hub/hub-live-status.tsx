@@ -116,15 +116,11 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "relative inline-flex h-9 items-center gap-1.5 overflow-hidden text-[12px] font-semibold sm:h-8 sm:gap-2 sm:border sm:px-2.5 sm:text-[10px] sm:tracking-[-0.02em]",
-        view.tone === "live" &&
-          "text-[#0f766e] sm:border-emerald-300/50 sm:bg-[#0B1F17] sm:text-emerald-100",
-        view.tone === "sync" &&
-          "text-amber-800 sm:border-amber-300/50 sm:bg-amber-50 sm:text-amber-950",
-        view.tone === "off" &&
-          "text-[#666666] sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] sm:bg-white",
-        view.tone === "paused" &&
-          "text-muted-foreground sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] sm:bg-muted",
+        "inline-flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em]",
+        view.tone === "live" && "text-[#101828]",
+        view.tone === "sync" && "text-[#b45309]",
+        view.tone === "off" && "text-[#98a2b3]",
+        view.tone === "paused" && "text-[#98a2b3]",
         justUpdated && view.tone === "live" && "hub-scan-sweep",
         className,
       )}
@@ -134,26 +130,15 @@ export function HubLiveStatus({
     >
       <span
         className={cn(
-          "relative size-1.5 shrink-0",
-          view.tone === "live" && "bg-emerald-400 hub-live-beacon",
+          "relative size-2 shrink-0 rounded-full",
+          view.tone === "live" && "bg-[#12b76a] hub-live-beacon",
           view.tone === "sync" && "animate-pulse bg-amber-500",
-          view.tone === "off" && "bg-[#BBBBBB]",
-          view.tone === "paused" && "bg-muted-foreground/50",
+          view.tone === "off" && "bg-[#cbd2d9]",
+          view.tone === "paused" && "bg-[#cbd2d9]",
         )}
         aria-hidden
       />
-      <span className="tracking-normal sm:tracking-[0.14em]">{view.label}</span>
-      <span
-        className={cn(
-          "border-l pl-2 font-medium normal-case tracking-normal",
-          "hidden sm:inline",
-          view.tone === "live"
-            ? "border-emerald-400/30 text-emerald-200/90"
-            : "border-current/20 text-current/70",
-        )}
-      >
-        {view.detail}
-      </span>
+      {view.label}
     </span>
   );
 }

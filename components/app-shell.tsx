@@ -889,6 +889,8 @@ type BottomTab = {
   href?: string;
   matchSectionIds: string[];
   workspace?: ShellWorkspaceId;
+  /** Raised, filled center affordance (e.g. "Sell"). */
+  primary?: boolean;
 };
 
 /** Stock manager: Home first; Order/Receive = Path A PO flow; Inventory = shelf qty. */
@@ -1453,6 +1455,7 @@ export function AppShell({ children }: AppShellProps) {
             icon: ScanLine,
             href: APP_ROUTES.cashier,
             workspace: undefined,
+            primary: true,
           };
         }
         if (tab.id === "ops") {
@@ -1560,6 +1563,7 @@ export function AppShell({ children }: AppShellProps) {
           href: APP_ROUTES.cashier,
           workspace: "cashier" as const,
           matchSectionIds: ["ops", "sales"],
+          primary: true,
         };
       }
       if (canViewShifts) {
