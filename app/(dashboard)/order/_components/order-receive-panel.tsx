@@ -2311,10 +2311,10 @@ export function OrderReceivePanel({
           </div>
         </div>
 
-        {/* Phone: keep the primary action in thumb reach while the lines scroll.
-            Sits directly above the fixed bottom tab bar. */}
+        {/* Phone: the next action follows the lines. It stays in the page
+            flow so it cannot cover a line total, status, or delete control. */}
         {!embedded ? (
-          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-2 flex items-stretch gap-3 rounded-2xl bg-[#0f766e] px-4 py-3 text-white shadow-[0_10px_28px_-12px_rgba(15,118,110,0.55)] lg:hidden">
+          <div className="mt-2 flex items-stretch gap-3 rounded-2xl bg-[#0f766e] px-4 py-3 text-white lg:hidden">
             <div className="flex min-w-0 flex-1 flex-col justify-center">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">
                 {isStockFloor ? "This unpack" : "Selected total"}
