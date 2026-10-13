@@ -106,7 +106,7 @@ export function BusinessPageLayout({
             status/actions; row 2 is the till stage, full width.
           */}
           <div className="sm:hidden">
-            <div className="flex h-11 min-w-0 items-center gap-2 px-3">
+            <div className="flex h-11 min-w-0 items-center gap-2 px-4">
               {toolbarLeading}
               <div className="ml-auto flex shrink-0 items-center gap-0.5">
                 {headerActions}
@@ -114,7 +114,7 @@ export function BusinessPageLayout({
               </div>
             </div>
             {stage ? (
-              <div className="flex h-11 min-w-0 items-center border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3">
+              <div className="flex h-11 min-w-0 items-center border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-4">
                 <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {stage}
                 </div>
@@ -165,7 +165,7 @@ export function BusinessPageLayout({
           <h1 className="sr-only">Business</h1>
         )}
 
-        <div className="min-h-0 flex-1 px-3 sm:px-0">{children}</div>
+        <div className="min-h-0 flex-1 px-4 sm:px-0">{children}</div>
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export function HubMark({
       ) : (
         <span
           className={cn(
-            "font-mono font-bold uppercase leading-none text-[var(--hub-paper)]",
+            "font-heading font-semibold uppercase leading-none text-[var(--hub-paper)]",
             letterClassName,
           )}
         >

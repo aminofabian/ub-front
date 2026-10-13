@@ -34,13 +34,13 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-3">
       <HubSectionLabel
         title="Needs attention"
         meta={`${items.length} to review`}
         className="px-0.5"
       />
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         {items.map((item) => {
           const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;

@@ -10,11 +10,11 @@ export function HubAllClear() {
     <section
       className={cn(
         HUB_SURFACE,
-        "flex items-center gap-2 px-3 py-1.5 text-[12px] text-[#3A3A3A]",
+        "flex items-center gap-2.5 px-4 py-3 text-[13px] text-[#344054]",
       )}
     >
       <CheckCircle2
-        className="size-3.5 shrink-0 text-emerald-600"
+        className="size-4 shrink-0 text-[#0e9f6e]"
         aria-hidden
       />
       <span>All clear — nothing needs a look right now.</span>

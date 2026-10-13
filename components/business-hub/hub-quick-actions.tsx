@@ -6,7 +6,7 @@ import type { JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { cn } from "@/lib/utils";
 
 const TILE_LINK =
-  "flex min-h-[3.75rem] min-w-0 items-center gap-2.5 rounded-2xl bg-white p-3 text-left ring-1 ring-black/[0.05] transition-colors hover:bg-[#fafcfb] active:bg-[#f2f7f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50";
+  "flex min-h-[3.75rem] min-w-0 items-center gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-black/[0.05] transition-colors hover:bg-[#fafcfb] active:bg-[#f2f7f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50";
 
 /**
  * Shortcuts the bottom tabs don't already cover — Add expense, Count stock,
@@ -56,11 +56,11 @@ export function HubQuickActions({
   }
 
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-3">
       <h3 className="px-0.5 text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
         {title}
       </h3>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         {tiles.map((link) => {
           const Icon = link.icon;
           return (

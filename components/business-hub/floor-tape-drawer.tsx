@@ -77,20 +77,20 @@ export function FloorTapeDrawer({
         className={cn(
           HUB_SURFACE,
           HUB_BTN,
-          "flex w-full min-h-12 items-center gap-3 px-3 py-2.5 text-left xl:hidden",
+          "flex w-full min-h-14 items-center gap-3 px-3.5 py-3 text-left xl:hidden",
           "transition-colors hover:bg-[color-mix(in_srgb,#141414_2.5%,white)]",
           "active:bg-[color-mix(in_srgb,#0f766e_6%,white)]",
           justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         )}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white text-[#0f766e]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
           <Receipt className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold tracking-[-0.015em] text-[#141414]">
+          <span className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
             {lanes.length > 1 ? "Till lanes" : primary.title}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-[#7A7A7A]">
+          <span className="mt-0.5 block truncate text-[12px] text-[#667085]">
             {tickCount > 0
               ? `${tickCount} recent · ${primary.subtitle}`
               : drawoutCount > 0

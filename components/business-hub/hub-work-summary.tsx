@@ -18,8 +18,8 @@ export function HubWorkSummary({ cards }: { cards: HubWorkCard[] }) {
   if (cards.length === 0) return null;
 
   return (
-    <section className="space-y-2">
-      <h3 className="px-0.5 text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
+    <section className="space-y-2.5">
+      <h3 className="px-0.5 text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
         Work
       </h3>
       <div

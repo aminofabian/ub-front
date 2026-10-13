@@ -38,7 +38,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
   if (visible.length === 0) return null;
 
   return (
-    <section className="space-y-1.5">
+    <section className="space-y-3">
       <HubSectionLabel
         title="Open work"
         className="px-0.5"
@@ -51,7 +51,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       {visible.length > 1 ? (
         <div
-          className="flex gap-px border border-[color-mix(in_srgb,#141414_10%,transparent)] bg-[color-mix(in_srgb,#141414_10%,transparent)] p-px sm:hidden"
+          className="flex gap-0.5 rounded-full bg-[#eef1f0] p-0.5 sm:hidden"
           role="tablist"
           aria-label="Open work boards"
         >
@@ -66,10 +66,10 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                 onClick={() => setActiveId(column.id)}
                 className={cn(
                   HUB_BTN,
-                  "min-h-9 min-w-0 flex-1 bg-white px-2 py-1.5 text-center",
+                  "min-h-9 min-w-0 flex-1 rounded-full px-2 py-1.5 text-center transition-colors",
                   selected
-                    ? "bg-[#0f766e] text-white"
-                    : "text-[#5C5C5C] hover:text-[#0f766e]",
+                    ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+                    : "text-[#667085] hover:text-[#101828]",
                 )}
               >
                 <span className="block truncate text-[12px] font-semibold leading-none tracking-[-0.015em]">
@@ -79,7 +79,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                   <span
                     className={cn(
                       "mt-1 block truncate text-[10px] font-medium leading-none",
-                      selected ? "text-white/80" : "text-[#8A8A8A]",
+                      selected ? "text-[#667085]" : "text-[#98a2b3]",
                     )}
                   >
                     {column.meta}

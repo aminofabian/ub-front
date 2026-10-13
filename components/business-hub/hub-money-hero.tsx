@@ -200,7 +200,7 @@ export function HubMoneyHero({
       {actions.length > 0 ? (
         <div
           className={cn(
-            "grid gap-2.5 pt-0.5",
+            "grid gap-3 pt-0.5",
             actions.length === 1 ? "grid-cols-1" : "grid-cols-2",
           )}
         >

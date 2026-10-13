@@ -148,7 +148,7 @@ export function CashierTillDrawer({
                 >
                   <span
                     className={cn(
-                      "absolute left-1.5 top-1 font-mono text-[9px] tabular-nums",
+                      "absolute left-1.5 top-1 text-[9px] font-semibold tabular-nums",
                       active ? "text-[#0f766e]" : "text-[#8A8A8A]",
                     )}
                   >

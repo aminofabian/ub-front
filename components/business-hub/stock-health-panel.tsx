@@ -50,17 +50,17 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
           >
             <span
               className={cn(
-                "size-1.5 shrink-0",
-                item.tone === "alert" && "bg-[#C47A5A]",
+                "size-1.5 shrink-0 rounded-full",
+                item.tone === "alert" && "bg-[#e0a43c]",
                 item.tone === "watch" && "bg-[#0f766e]",
-                (!item.tone || item.tone === "ok") && "bg-emerald-600",
+                (!item.tone || item.tone === "ok") && "bg-[#cbd2d9]",
               )}
               aria-hidden
             />
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block truncate text-[10px] font-medium leading-tight",
+                  "block truncate text-[11px] font-medium leading-tight",
                   HUB_MUTED,
                 )}
               >

@@ -1790,7 +1790,7 @@ export function BusinessHubWorkspace() {
                   {/* 5 — Floor tape: the last ticks, one thumb away. The desk
                       reads the same tape in the lane rail beside this column. */}
                   {showTillStage && !galleryOpen ? (
-                    <section className="space-y-1.5 xl:hidden">
+                    <section className="space-y-3 xl:hidden">
                       <HubSectionLabel
                         title="Floor tape"
                         meta={
@@ -1813,7 +1813,7 @@ export function BusinessHubWorkspace() {
 
                   {/* 6 — Stock: the checks, then what is actually moving */}
                   {stockItems.length > 0 || showMovers ? (
-                    <section className="space-y-1.5">
+                    <section className="space-y-3">
                       <HubSectionLabel
                         title="Stock"
                         meta={
@@ -1825,7 +1825,7 @@ export function BusinessHubWorkspace() {
                       />
                       <div
                         className={cn(
-                          "grid gap-2",
+                          "grid gap-2.5",
                           stockItems.length > 0 &&
                             showMovers &&
                             "lg:grid-cols-[1.4fr_0.6fr] lg:items-start",
@@ -1842,7 +1842,7 @@ export function BusinessHubWorkspace() {
                   {/* Setup & utilities — grouped into one layered panel at the
                       end of the board instead of three floating cards. */}
                   {showSetupPanel ? (
-                    <section className="space-y-2.5 xl:hidden">
+                    <section className="space-y-3 xl:hidden">
                       <HubSectionLabel
                         title="Shop setup"
                         meta="Payments · float · tills"
