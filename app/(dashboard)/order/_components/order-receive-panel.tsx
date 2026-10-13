@@ -2032,8 +2032,8 @@ export function OrderReceivePanel({
         </div>
 
         <div className="relative z-[2] shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] lg:shadow-none">
-          <div className="grid gap-3 p-3 lg:grid-cols-[1fr_17.5rem] lg:items-start lg:gap-4">
-            <div className="space-y-2">
+          <div className="flex flex-col gap-3 p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
+            <div className="space-y-2 lg:col-start-1 lg:row-start-1">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -2078,182 +2078,195 @@ export function OrderReceivePanel({
               </p>
             </div>
 
-            <div>
-              <div className="rounded-2xl ring-1 ring-black/[0.05] bg-white p-3">
-                <div
-                  className={cn(
-                    "flex items-end justify-between gap-3",
-                    !embedded && "hidden lg:flex",
-                  )}
-                >
-                  <div>
-                    <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                      {isStockFloor ? "This unpack" : "Selected total"}
-                    </p>
-                    <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                      {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+            <div className="lg:contents">
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-black/[0.05] lg:col-span-2 lg:row-start-2">
+                <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:gap-4">
+                  <div
+                    className={cn(
+                      "flex items-end justify-between gap-3 lg:w-[10.5rem] lg:shrink-0 lg:flex-col lg:items-start lg:gap-0.5",
+                      !embedded && "hidden lg:flex",
+                    )}
+                  >
+                    <div>
+                      <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                        {isStockFloor ? "This unpack" : "Selected total"}
+                      </p>
+                      <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                        {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <p className="font-heading text-[22px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] lg:text-[20px]">
+                      {formatMoney(selectedTotal, ORDER_CURRENCY)}
                     </p>
                   </div>
-                  <p className="font-heading text-[22px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)]">
-                    {formatMoney(selectedTotal, ORDER_CURRENCY)}
-                  </p>
-                </div>
-                <CashierPrintPicker
-                  mode="multiple"
-                  branchId={detail?.branchId || branchId}
-                  storageKey={`palmart:receive-print-cashiers:${detail?.branchId || branchId || "none"}`}
-                  onChange={setPrintCashierIds}
-                />
-                <button
-                  type="button"
-                  disabled={
-                    printingReceipt ||
-                    confirming ||
-                    !detail ||
-                    printCashierIds.length === 0 ||
-                    selectedUnits <= 0
-                  }
-                  onClick={() => void printReceiptNow()}
-                  className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
-                >
-                  {printingReceipt ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                      Sending to till…
-                    </>
-                  ) : (
-                    <>
-                      <Printer className="size-4" aria-hidden />
-                      Print receipt now
-                    </>
-                  )}
-                </button>
-                {twoStepDelivery ? (
-                  <>
-                    <div className={cn(!embedded && "hidden lg:block")}>
-                      {detail &&
-                      (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
-                        "delivered" ? (
-                        <button
-                          type="button"
-                          disabled={markingArrived || confirming}
-                          onClick={() => void markArrived()}
-                          className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                        >
-                          {markingArrived ? (
-                            <>
-                              <Loader2 className="size-4 animate-spin" />
-                              Marking arrived…
-                            </>
-                          ) : (
-                            <>
-                              <PackageCheck className="size-4" />
-                              1 · Mark arrived
-                            </>
+                  <div className="lg:min-w-[16rem] lg:flex-1">
+                    <CashierPrintPicker
+                      mode="multiple"
+                      branchId={detail?.branchId || branchId}
+                      storageKey={`palmart:receive-print-cashiers:${detail?.branchId || branchId || "none"}`}
+                      onChange={setPrintCashierIds}
+                    />
+                    <button
+                      type="button"
+                      disabled={
+                        printingReceipt ||
+                        confirming ||
+                        !detail ||
+                        printCashierIds.length === 0 ||
+                        selectedUnits <= 0
+                      }
+                      onClick={() => void printReceiptNow()}
+                      className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+                    >
+                      {printingReceipt ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                          Sending to till…
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="size-4" aria-hidden />
+                          Print receipt now
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2 lg:w-[24rem] lg:shrink-0">
+                    {twoStepDelivery ? (
+                      <>
+                        <div
+                          className={cn(
+                            "flex flex-col gap-2 lg:flex-row",
+                            !embedded && "hidden lg:flex",
                           )}
-                        </button>
-                      ) : detail ? (
-                        <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800">
-                          <PackageCheck className="size-3.5" />
-                          Arrived — ready to unpack
+                        >
+                          <div className="lg:min-w-0 lg:flex-1">
+                            {detail &&
+                            (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                              "delivered" ? (
+                              <button
+                                type="button"
+                                disabled={markingArrived || confirming}
+                                onClick={() => void markArrived()}
+                                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                              >
+                                {markingArrived ? (
+                                  <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Marking arrived…
+                                  </>
+                                ) : (
+                                  <>
+                                    <PackageCheck className="size-4" />
+                                    1 · Mark arrived
+                                  </>
+                                )}
+                              </button>
+                            ) : detail ? (
+                              <p className="flex h-12 items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800 lg:h-10">
+                                <PackageCheck className="size-3.5" />
+                                Arrived — ready to unpack
+                              </p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            disabled={
+                              confirming ||
+                              markingArrived ||
+                              !detail ||
+                              openLines.length === 0 ||
+                              (detail &&
+                                (detail.deliveryStatus ??
+                                  "not_shipped").toLowerCase() !== "delivered")
+                            }
+                            onClick={() => void confirmSelected()}
+                            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:w-auto lg:flex-1 lg:text-[13px]"
+                          >
+                            {confirming ? (
+                              <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Adding to stock…
+                              </>
+                            ) : (
+                              <>
+                                <Check className="size-4" />
+                                2 · Unpack &amp; add to stock
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        {detail &&
+                        (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
+                          "delivered" ? (
+                          <button
+                            type="button"
+                            disabled={
+                              confirming ||
+                              markingArrived ||
+                              !detail ||
+                              openLines.length === 0
+                            }
+                            onClick={() =>
+                              void confirmSelected({ overrideArrival: true })
+                            }
+                            className="w-full text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] underline-offset-2 transition hover:text-[var(--order-ink,#15231f)] hover:underline disabled:opacity-40"
+                          >
+                            Override — unpack without marking arrived
+                          </button>
+                        ) : null}
+                        <p className="text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                          {Object.keys(savingLines).length > 0
+                            ? "Saving to order…"
+                            : orderDirty
+                              ? "Saving…"
+                              : detail
+                                ? "Stock rises only on unpack"
+                                : "\u00a0"}
                         </p>
-                      ) : null}
-                      <button
-                        type="button"
-                        disabled={
-                          confirming ||
-                          markingArrived ||
-                          !detail ||
-                          openLines.length === 0 ||
-                          (detail &&
-                            (detail.deliveryStatus ??
-                              "not_shipped").toLowerCase() !== "delivered")
-                        }
-                        onClick={() => void confirmSelected()}
-                        className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                      >
-                        {confirming ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Adding to stock…
-                          </>
-                        ) : (
-                          <>
-                            <Check className="size-4" />
-                            2 · Unpack &amp; add to stock
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    {detail &&
-                    (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
-                      "delivered" ? (
-                      <button
-                        type="button"
-                        disabled={
-                          confirming ||
-                          markingArrived ||
-                          !detail ||
-                          openLines.length === 0
-                        }
-                        onClick={() =>
-                          void confirmSelected({ overrideArrival: true })
-                        }
-                        className="mt-2 w-full text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] underline-offset-2 transition hover:text-[var(--order-ink,#15231f)] hover:underline disabled:opacity-40"
-                      >
-                        Override — unpack without marking arrived
-                      </button>
-                    ) : null}
-                    <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                      {Object.keys(savingLines).length > 0
-                        ? "Saving to order…"
-                        : orderDirty
-                          ? "Saving…"
-                          : detail
-                            ? "Stock rises only on unpack"
-                            : "\u00a0"}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className={cn(!embedded && "hidden lg:block")}>
-                      <button
-                        type="button"
-                        disabled={
-                          confirming || !detail || openLines.length === 0
-                        }
-                        onClick={() => void confirmSelected()}
-                        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                      >
-                        {confirming ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Posting supply…
-                          </>
-                        ) : (
-                          <>
-                            <Check className="size-4" />
-                            {isStockFloor
-                              ? "Unpack & add to stock"
-                              : "Confirm supply"}
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <p className="mt-2 text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                      {Object.keys(savingLines).length > 0
-                        ? "Saving to order…"
-                        : orderDirty
-                          ? "Saving…"
-                          : detail
-                            ? "Edits saved to this order"
-                            : "\u00a0"}
-                    </p>
-                  </>
-                )}
+                      </>
+                    ) : (
+                      <>
+                        <div className={cn(!embedded && "hidden lg:block")}>
+                          <button
+                            type="button"
+                            disabled={
+                              confirming || !detail || openLines.length === 0
+                            }
+                            onClick={() => void confirmSelected()}
+                            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                          >
+                            {confirming ? (
+                              <>
+                                <Loader2 className="size-4 animate-spin" />
+                                Posting supply…
+                              </>
+                            ) : (
+                              <>
+                                <Check className="size-4" />
+                                {isStockFloor
+                                  ? "Unpack & add to stock"
+                                  : "Confirm supply"}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                          {Object.keys(savingLines).length > 0
+                            ? "Saving to order…"
+                            : orderDirty
+                              ? "Saving…"
+                              : detail
+                                ? "Edits saved to this order"
+                                : "\u00a0"}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:gap-x-3 lg:gap-y-1">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:col-start-2 lg:row-start-1 lg:mt-0 lg:justify-end lg:gap-x-3 lg:gap-y-1">
                 <button
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
