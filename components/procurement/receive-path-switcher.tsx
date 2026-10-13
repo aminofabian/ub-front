@@ -27,8 +27,7 @@ export function ReceivePathSwitcher({
   const isStockManager =
     compact || me?.role?.key?.trim().toLowerCase() === "stock_manager";
 
-  if (isStockManager) {
-    return (
+  const segments = (
       <div
         className={cn(
           "flex gap-0.5 rounded-full bg-[#eef1f0] p-0.5",
@@ -63,12 +62,15 @@ export function ReceivePathSwitcher({
           Direct · no PO
         </button>
       </div>
-    );
-  }
+  );
+
+  if (isStockManager) return segments;
 
   return (
-    <div
-      className={cn("grid grid-cols-2 gap-2.5", className)}
+    <>
+      <div className="lg:hidden">{segments}</div>
+      <div
+      className={cn("hidden grid-cols-2 gap-2.5 lg:grid", className)}
       role="group"
       aria-label="How goods arrived"
     >
@@ -133,5 +135,6 @@ export function ReceivePathSwitcher({
         </span>
       </button>
     </div>
+    </>
   );
 }

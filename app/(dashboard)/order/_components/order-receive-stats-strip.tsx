@@ -29,11 +29,31 @@ export function OrderReceiveStatsStrip({
   const partialActive = receiveStats.partialCount > 0;
   const basketActive = localStats.units > 0;
 
+  const phoneLine = (
+    <p className="text-[15px] font-semibold tracking-[-0.02em] text-[#101828]">
+      {loading ? (
+        "Checking the queue"
+      ) : (
+        <>
+          <span className="tabular-nums text-[#0f766e]">
+            {receiveStats.openCount}
+          </span>
+          {" open"}
+          <span className="mx-1.5 font-normal text-[#98a2b3]">·</span>
+          <span className="tabular-nums">{receiveStats.awaitingUnits}</span>
+          {" units due"}
+        </>
+      )}
+    </p>
+  );
+
   if (compact) {
     return (
+      <>
+        <div className="px-0.5 lg:hidden">{phoneLine}</div>
       <section
         aria-label="Receive desk pulse"
-        className="flex items-center justify-between gap-3 rounded-2xl bg-[#e9f5f1] p-3.5"
+        className="hidden items-center justify-between gap-3 rounded-2xl bg-[#e9f5f1] p-3.5 lg:flex"
       >
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
@@ -66,11 +86,14 @@ export function OrderReceiveStatsStrip({
           Order
         </Link>
       </section>
+      </>
     );
   }
 
   return (
-    <section aria-label="Receive desk stats" className="space-y-2.5">
+    <>
+      <div className="px-0.5 lg:hidden">{phoneLine}</div>
+    <section aria-label="Receive desk stats" className="hidden space-y-2.5 lg:block">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
       <div className="flex items-stretch gap-1">
@@ -139,5 +162,6 @@ export function OrderReceiveStatsStrip({
         ) : null}
       </div>
     </section>
+    </>
   );
 }

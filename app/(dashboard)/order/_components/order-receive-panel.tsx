@@ -262,6 +262,7 @@ export function OrderReceivePanel({
     null,
   );
   const [savedLineIds, setSavedLineIds] = useState<Record<string, boolean>>({});
+  const [showLinePrices, setShowLinePrices] = useState(false);
   const persistTimers = useRef<Record<string, number>>({});
   const persistInflight = useRef<Record<string, Promise<boolean>>>({});
   const persistQueued = useRef<Record<string, LinePersistOpts | undefined>>({});
@@ -1243,6 +1244,7 @@ export function OrderReceivePanel({
 
   return (
     <div
+      data-receive-detail={selectedId && !embedded ? "" : undefined}
       className={cn(
         "relative flex flex-col bg-white font-sans text-[var(--order-ink,#15231f)]",
         embedded
@@ -1268,10 +1270,10 @@ export function OrderReceivePanel({
       >
         <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5 sm:py-1.5">
           <div>
-            <p className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-[12px]">
+            <p className="text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-[12px]">
               Open orders
             </p>
-            <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+            <p className="hidden text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:block">
               {isStockFloor
                 ? twoStepDelivery
                   ? "Tap a PO · arrive · unpack"
@@ -1338,7 +1340,7 @@ export function OrderReceivePanel({
                           {phase.label}
                         </span>
                       </div>
-                      <span className="text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
+                      <span className="text-base font-semibold leading-snug text-[var(--order-ink,#15231f)] sm:text-[13px]">
                         {name}
                       </span>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
@@ -1349,7 +1351,7 @@ export function OrderReceivePanel({
                             : ""}
                         </span>
                       </div>
-                      <span className="text-[9px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                      <span className="hidden text-[9px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)] sm:inline">
                         {formatOrderCreatedAt(o.createdAt)}
                       </span>
                     </button>
@@ -1370,7 +1372,7 @@ export function OrderReceivePanel({
           !selectedId && "hidden lg:flex",
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2 sm:items-center sm:px-4 sm:py-1.5">
+        <div className="sticky top-0 z-[2] flex shrink-0 items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 sm:items-center sm:px-4 sm:py-1.5 lg:static">
           <div className="flex min-w-0 items-start gap-2 sm:items-center">
             <button
               type="button"
@@ -1378,20 +1380,18 @@ export function OrderReceivePanel({
                 setSelectedId(null);
                 setDetail(null);
               }}
-              className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[var(--order-ink,#15231f)] transition-colors hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)] lg:hidden"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#e9f5f1] text-[#0f766e] transition-transform active:scale-[0.96] lg:hidden"
               aria-label="Back to open orders"
             >
               <ArrowLeft className="size-4" aria-hidden />
             </button>
             <div className="min-w-0">
-              <h2 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                {detail
-                  ? `${detail.poNumber} · ${supplierName}`
-                  : "Delivery & unpack"}
+              <h2 className="truncate font-heading text-[18px] font-semibold tracking-[-0.03em] text-[var(--order-ink,#15231f)] lg:text-[15px]">
+                {detail ? supplierName : "Delivery & unpack"}
               </h2>
               {detail ? (
-                <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                  Created {formatOrderCreatedAt(selectedOrderCreatedAt)}
+                <p className="mt-0.5 truncate text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] lg:text-[11px]">
+                  {detail.poNumber}
                   {" · "}
                   {deliveryPhaseLabel(detail.deliveryStatus).label}
                 </p>
@@ -1407,8 +1407,7 @@ export function OrderReceivePanel({
           {!embedded ? (
             <div
               className={cn(
-                "flex shrink-0 flex-wrap items-center justify-end gap-2",
-                isStockFloor && "hidden sm:flex",
+                "hidden shrink-0 flex-wrap items-center justify-end gap-2 lg:flex",
               )}
             >
               {detail ? (
@@ -1495,7 +1494,19 @@ export function OrderReceivePanel({
                 <span className="text-right">Line total</span>
                 <span className="sr-only">Remove</span>
               </div>
-              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
+              <div className="flex items-center justify-between px-3 pt-3 lg:hidden">
+                <p className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+                  Count what arrived
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowLinePrices((open) => !open)}
+                  className="inline-flex h-10 items-center rounded-full bg-[#e9f5f1] px-3 text-[13px] font-semibold text-[#0f766e] active:scale-[0.98]"
+                >
+                  {showLinePrices ? "Hide prices" : "Edit prices"}
+                </button>
+              </div>
+              <ul className="flex flex-col gap-2 p-3 lg:block lg:gap-0 lg:divide-y lg:divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] lg:p-0">
                 {displayLines.map((line) => {
                   const remaining = roundQty(
                     (orderQtyByLine[line.id] ?? toNum(line.qtyOrdered)) -
@@ -1523,7 +1534,7 @@ export function OrderReceivePanel({
                     <li
                       key={line.id}
                       className={cn(
-                        "grid gap-3 px-3 py-3 transition-colors sm:px-4 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3 lg:py-2.5",
+                        "grid gap-3 rounded-2xl bg-[#f7faf9] p-3 transition-colors lg:rounded-none lg:bg-transparent lg:px-4 lg:py-2.5 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3",
                         checked
                           ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,transparent)]"
                           : "bg-transparent",
@@ -1577,7 +1588,7 @@ export function OrderReceivePanel({
                               {lineOption}
                             </p>
                           ) : null}
-                          <p className="mt-0.5 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                          <p className="mt-0.5 text-[13px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] lg:text-[10px]">
                             Received {toNum(line.qtyReceived)}
                             {!canReceive ? " · fully received" : ""}
                             {lineBusy
@@ -1586,11 +1597,19 @@ export function OrderReceivePanel({
                                 ? " · saved"
                                 : ""}
                           </p>
+                          {!showLinePrices ? (
+                            <p className="mt-1 font-heading text-[18px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] lg:hidden">
+                              {formatMoney(amount, ORDER_CURRENCY)}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pl-8 lg:contents">
-                        <label className="order-2 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center">
+                        <label className={cn(
+                          "order-2 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center",
+                          !showLinePrices && "max-lg:hidden",
+                        )}>
                           <span className="lg:hidden">Unit</span>
                           <input
                             className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
@@ -1674,7 +1693,10 @@ export function OrderReceivePanel({
                           />
                         </label>
 
-                        <label className="order-3 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center">
+                        <label className={cn(
+                          "order-3 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center",
+                          !showLinePrices && "max-lg:hidden",
+                        )}>
                           <span className="lg:hidden">Order</span>
                           <input
                             className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
@@ -1747,7 +1769,7 @@ export function OrderReceivePanel({
                         {canReceive ? (
                           <div
                             className={cn(
-                              "order-1 inline-flex w-full min-w-0 items-stretch overflow-hidden rounded-xl border bg-white lg:order-none lg:w-auto lg:justify-self-center",
+                              "order-1 inline-flex min-w-0 flex-1 items-stretch overflow-hidden rounded-xl border bg-white lg:order-none lg:w-auto lg:flex-none lg:justify-self-center",
                               checked
                                 ? "border-[var(--pos-primary,#0f766e)]"
                                 : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
@@ -1807,7 +1829,10 @@ export function OrderReceivePanel({
                           </span>
                         )}
 
-                        <label className="order-4 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-self-end lg:pl-0">
+                        <label className={cn(
+                          "order-4 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-self-end lg:pl-0",
+                          !showLinePrices && "max-lg:hidden",
+                        )}>
                           <span className="lg:hidden">Total</span>
                           <input
                             className="h-8 w-[5.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
@@ -1915,7 +1940,7 @@ export function OrderReceivePanel({
                             type="button"
                             disabled={!canDelete || lineBusy}
                             onClick={() => void removeLine(line.id)}
-                            className="inline-flex size-10 items-center justify-center rounded-xl border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30 lg:size-8"
+                            className="inline-flex size-11 items-center justify-center rounded-xl border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30 lg:size-8"
                             title={
                               canDelete
                                 ? "Remove line"
@@ -2000,7 +2025,7 @@ export function OrderReceivePanel({
 
         <div className="relative shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="flex flex-col gap-3 p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
-            <div className="order-2 space-y-2 lg:order-none lg:col-start-1 lg:row-start-1">
+            <div className="order-2 hidden space-y-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:block">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -2046,7 +2071,7 @@ export function OrderReceivePanel({
             </div>
 
             <div className="order-1 lg:contents">
-              <div className="rounded-2xl bg-white p-3 ring-1 ring-black/[0.05] lg:col-span-2 lg:row-start-2">
+              <div className="lg:col-span-2 lg:row-start-2 lg:rounded-2xl lg:bg-white lg:p-3 lg:ring-1 lg:ring-black/[0.05]">
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:gap-4">
                   <div className="flex items-end justify-between gap-3 lg:w-[10.5rem] lg:shrink-0 lg:flex-col lg:items-start lg:gap-0.5">
                     <div>
@@ -2061,7 +2086,7 @@ export function OrderReceivePanel({
                       {formatMoney(selectedTotal, ORDER_CURRENCY)}
                     </p>
                   </div>
-                  <div className="lg:min-w-[16rem] lg:flex-1">
+                  <div className="hidden lg:block lg:min-w-[16rem] lg:flex-1">
                     <CashierPrintPicker
                       mode="multiple"
                       branchId={detail?.branchId || branchId}
@@ -2223,6 +2248,38 @@ export function OrderReceivePanel({
                 </div>
               </div>
 
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-2 lg:hidden">
+                <div className="flex gap-2 lg:hidden">
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold text-[#0f766e]"
+                    onClick={() => {
+                      const next: Record<string, boolean> = {};
+                      for (const l of openLines) next[l.id] = true;
+                      setSelectedLines(next);
+                    }}
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]"
+                    onClick={() => setSelectedLines({})}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {detail ? (
+                  <button
+                    type="button"
+                    disabled={deletingOrder || confirming}
+                    onClick={() => void removeOrder()}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-red-700 disabled:opacity-40 lg:hidden"
+                  >
+                    {deletingOrder ? "Deleting…" : "Delete order"}
+                  </button>
+                ) : null}
+              </div>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:col-start-2 lg:row-start-1 lg:mt-0 lg:justify-end lg:gap-x-3 lg:gap-y-1">
                 <button
                   type="button"
