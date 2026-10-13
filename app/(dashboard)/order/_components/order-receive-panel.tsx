@@ -1612,7 +1612,7 @@ export function OrderReceivePanel({
                         )}>
                           <span className="lg:hidden">Unit</span>
                           <input
-                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold max-lg:h-11 max-lg:w-[5.5rem] max-lg:text-base tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy}
                             inputMode="decimal"
                             value={
@@ -1699,7 +1699,7 @@ export function OrderReceivePanel({
                         )}>
                           <span className="lg:hidden">Order</span>
                           <input
-                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold max-lg:h-11 max-lg:w-[5.5rem] max-lg:text-base tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy}
                             inputMode="decimal"
                             value={orderQty}
@@ -1835,7 +1835,7 @@ export function OrderReceivePanel({
                         )}>
                           <span className="lg:hidden">Total</span>
                           <input
-                            className="h-8 w-[5.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[5.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold max-lg:h-11 max-lg:w-[6.5rem] max-lg:text-base tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy || amountQty <= 0}
                             inputMode="decimal"
                             aria-label="Line total"
@@ -1977,7 +1977,7 @@ export function OrderReceivePanel({
                     <div className="relative min-w-0 flex-1">
                       <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
                       <input
-                        className="h-8 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)]"
+                        className="h-8 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none max-lg:h-11 max-lg:text-base focus:border-[var(--pos-primary,#0f766e)]"
                         placeholder={
                           orderTemplate === "ledger"
                             ? "Search catalog list…"

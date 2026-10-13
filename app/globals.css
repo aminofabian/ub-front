@@ -613,9 +613,26 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     animation: tablet-sheet-in 0.28s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
+@keyframes order-phone-pop {
+    0% {
+        transform: scale(0.82);
+    }
+    60% {
+        transform: scale(1.08);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.order-phone-pop {
+    animation: order-phone-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .order-phone-rise,
-    .order-phone-sheet {
+    .order-phone-sheet,
+    .order-phone-pop {
         animation: none;
     }
 }
