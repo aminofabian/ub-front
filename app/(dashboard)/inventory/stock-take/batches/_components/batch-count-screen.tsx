@@ -31,7 +31,7 @@ export function BatchCountScreen({ sessionId, onBack, onFinished }: Props) {
   if (batch.status === BATCH_SESSION_CLOSED) {
     return (
       <div className="flex flex-col gap-3 pt-3">
-        <DashboardFeedback kind="info" text={`Batch ${batch.batchNumber} is already finished.`} />
+        <DashboardFeedback kind="success" text={`Batch ${batch.batchNumber} is already finished.`} />
         <button type="button" className={COUNT_TONE.quietButton} onClick={onBack}>
           Back to batches
         </button>
