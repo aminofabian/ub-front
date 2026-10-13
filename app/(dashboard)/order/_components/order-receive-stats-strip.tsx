@@ -33,46 +33,36 @@ export function OrderReceiveStatsStrip({
     return (
       <section
         aria-label="Receive desk pulse"
-        className="flex items-stretch gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+        className="flex items-center justify-between gap-3 rounded-2xl bg-[#e9f5f1] p-3.5"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3 bg-white px-3 py-2">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-              Queue
-            </p>
-            <p className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-              {loading ? "—" : (
-                <>
-                  <span
-                    className={cn(
-                      queueActive && "text-[var(--pos-primary,#0f766e)]",
-                    )}
-                  >
-                    {receiveStats.openCount}
-                  </span>
-                  <span className="mx-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
-                    open
-                  </span>
-                  <span
-                    className={cn(
-                      dueActive && "text-amber-800",
-                    )}
-                  >
-                    {receiveStats.awaitingUnits}
-                  </span>
-                  <span className="ml-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
-                    units due
-                  </span>
-                </>
-              )}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
+            Queue
+          </p>
+          <p className="mt-1 truncate text-[13px] font-semibold tabular-nums tracking-[-0.01em] text-[#101828]">
+            {loading ? (
+              "—"
+            ) : (
+              <>
+                <span className={cn(queueActive && "text-[#0f766e]")}>
+                  {receiveStats.openCount}
+                </span>
+                <span className="mx-1 font-normal text-[#667085]">open</span>
+                <span className={cn(dueActive && "text-[#b45309]")}>
+                  {receiveStats.awaitingUnits}
+                </span>
+                <span className="ml-1 font-normal text-[#667085]">
+                  units due
+                </span>
+              </>
+            )}
+          </p>
         </div>
         <Link
           href={APP_ROUTES.order}
-          className="inline-flex shrink-0 items-center gap-1.5 bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
+          className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-[13px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5]"
         >
-          <ShoppingCart className="size-3.5" aria-hidden />
+          <ShoppingCart className="size-4" aria-hidden />
           Order
         </Link>
       </section>
@@ -80,7 +70,7 @@ export function OrderReceiveStatsStrip({
   }
 
   return (
-    <section aria-label="Receive desk stats" className="space-y-1">
+    <section aria-label="Receive desk stats" className="space-y-2.5">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
       <div className="flex items-stretch gap-1">
@@ -141,9 +131,9 @@ export function OrderReceiveStatsStrip({
         {!loading && basketActive ? (
           <Link
             href={APP_ROUTES.order}
-            className="inline-flex h-7 shrink-0 items-center gap-1 self-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)]"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 self-center rounded-xl bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7]"
           >
-            <ShoppingCart className="size-3" aria-hidden />
+            <ShoppingCart className="size-4" aria-hidden />
             New order
           </Link>
         ) : null}

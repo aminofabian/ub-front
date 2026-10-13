@@ -1279,8 +1279,8 @@ export function OrderReceivePanel({
       className={cn(
         "relative flex flex-col bg-white font-sans text-[var(--order-ink,#15231f)]",
         embedded
-          ? "h-[min(82dvh,52rem)] min-h-[28rem] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:flex-row"
-          : "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden",
+          ? "h-[min(82dvh,52rem)] min-h-[28rem] overflow-hidden rounded-2xl ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] lg:flex-row"
+          : "rounded-2xl ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
@@ -1314,7 +1314,7 @@ export function OrderReceivePanel({
                   : "Confirm quantities into stock"}
             </p>
           </div>
-          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] px-2 font-heading text-[13px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)] sm:h-7 sm:min-w-7 sm:text-[12px]">
+          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-[#e6f4f0] px-2 font-heading text-[13px] font-semibold tabular-nums text-[#0f766e] sm:h-7 sm:min-w-7 sm:text-[12px]">
             {orders.length}
           </span>
         </div>
@@ -1325,14 +1325,14 @@ export function OrderReceivePanel({
               Loading orders…
             </p>
           ) : orders.length === 0 ? (
-            <div className="mx-1 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-10 text-center">
+            <div className="mx-1 rounded-2xl border border-dashed border-[#e6eaec] bg-white px-4 py-10 text-center">
               <Package className="mx-auto size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_20%,transparent)]" />
               <p className="mt-3 text-[13px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
                 No open orders yet
               </p>
               <Link
                 href={APP_ROUTES.order}
-                className="mt-3 inline-flex h-8 items-center rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[12px] font-semibold text-white transition hover:bg-[#0d6b63]"
+                className="mt-3 inline-flex h-8 items-center rounded-xl bg-[var(--pos-primary,#0f766e)] px-4 text-[12px] font-semibold text-white transition hover:bg-[#0d6b63]"
               >
                 Place an order
               </Link>
@@ -1351,20 +1351,20 @@ export function OrderReceivePanel({
                       type="button"
                       onClick={() => selectOrder(o.id)}
                       className={cn(
-                        "group relative flex w-full flex-col gap-1 rounded-none border px-3 py-3 text-left transition-[border-color,background-color] duration-150 sm:py-2",
+                        "group relative flex w-full flex-col gap-1 rounded-xl px-3 py-3 text-left transition-[box-shadow,background-color] duration-150 sm:py-2",
                         "active:scale-[0.995]",
                         active
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]"
-                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
+                          ? "ring-2 ring-[#0f766e] bg-[#f0f9f7]"
+                          : "ring-1 ring-black/[0.05] bg-white hover:ring-black/[0.1]",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="font-mono text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                        <span className="text-[11px] font-semibold tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                           {o.poNumber}
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold",
+                            "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
                             phase.className,
                           )}
                         >
@@ -1374,7 +1374,7 @@ export function OrderReceivePanel({
                       <span className="text-[13px] font-semibold leading-snug text-[var(--order-ink,#15231f)]">
                         {name}
                       </span>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         <span>
                           {o.lineCount} lines · {toNum(o.totalOrdered)} ordered
                           {toNum(o.totalReceived) > 0
@@ -1382,7 +1382,7 @@ export function OrderReceivePanel({
                             : ""}
                         </span>
                       </div>
-                      <span className="font-mono text-[9px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
+                      <span className="text-[9px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
                         {formatOrderCreatedAt(o.createdAt)}
                       </span>
                     </button>
@@ -1411,7 +1411,7 @@ export function OrderReceivePanel({
                 setSelectedId(null);
                 setDetail(null);
               }}
-              className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[var(--order-ink,#15231f)] transition-colors hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)] lg:hidden"
+              className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[var(--order-ink,#15231f)] transition-colors hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)] lg:hidden"
               aria-label="Back to open orders"
             >
               <ArrowLeft className="size-4" aria-hidden />
@@ -1423,7 +1423,7 @@ export function OrderReceivePanel({
                   : "Delivery & unpack"}
               </h2>
               {detail ? (
-                <p className="mt-0.5 font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                <p className="mt-0.5 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                   Created {formatOrderCreatedAt(selectedOrderCreatedAt)}
                   {" · "}
                   {deliveryPhaseLabel(detail.deliveryStatus).label}
@@ -1449,7 +1449,7 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={deletingOrder || confirming}
                   onClick={() => void removeOrder()}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-none border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
                 >
                   {deletingOrder ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -1461,7 +1461,7 @@ export function OrderReceivePanel({
               ) : null}
               <Link
                 href={APP_ROUTES.order}
-                className="inline-flex h-8 shrink-0 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
+                className="inline-flex h-8 shrink-0 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,transparent)]"
               >
                 New order
               </Link>
@@ -1472,7 +1472,7 @@ export function OrderReceivePanel({
                 type="button"
                 disabled={deletingOrder || confirming}
                 onClick={() => void removeOrder()}
-                className="inline-flex h-8 items-center gap-1.5 rounded-none border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-[11px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
               >
                 {deletingOrder ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -1575,7 +1575,7 @@ export function OrderReceivePanel({
                             }))
                           }
                           className={cn(
-                            "relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition-colors after:absolute after:-inset-3 after:content-['']",
+                            "relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors after:absolute after:-inset-3 after:content-['']",
                             !canReceive
                               ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
                               : checked
@@ -1585,7 +1585,7 @@ export function OrderReceivePanel({
                         >
                           {checked ? <Check className="size-3" /> : null}
                         </button>
-                        <div className="relative size-11 shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+                        <div className="relative size-11 shrink-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                           {thumb ? (
                             <Image
                               src={thumb}
@@ -1610,7 +1610,7 @@ export function OrderReceivePanel({
                               {lineOption}
                             </p>
                           ) : null}
-                          <p className="mt-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                          <p className="mt-0.5 text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                             Received {toNum(line.qtyReceived)}
                             {!canReceive ? " · fully received" : ""}
                             {lineBusy
@@ -1626,7 +1626,7 @@ export function OrderReceivePanel({
                         <label className="order-2 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center">
                           <span className="lg:hidden">Unit</span>
                           <input
-                            className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy}
                             inputMode="decimal"
                             value={
@@ -1710,7 +1710,7 @@ export function OrderReceivePanel({
                         <label className="order-3 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-center">
                           <span className="lg:hidden">Order</span>
                           <input
-                            className="h-8 w-[4.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy}
                             inputMode="decimal"
                             value={orderQty}
@@ -1780,7 +1780,7 @@ export function OrderReceivePanel({
                         {canReceive ? (
                           <div
                             className={cn(
-                              "order-1 inline-flex w-full min-w-0 items-stretch overflow-hidden rounded-none border bg-white lg:order-none lg:w-auto lg:justify-self-center",
+                              "order-1 inline-flex w-full min-w-0 items-stretch overflow-hidden rounded-xl border bg-white lg:order-none lg:w-auto lg:justify-self-center",
                               checked
                                 ? "border-[var(--pos-primary,#0f766e)]"
                                 : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
@@ -1835,7 +1835,7 @@ export function OrderReceivePanel({
                             </button>
                           </div>
                         ) : (
-                          <span className="hidden text-center font-mono text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:block">
+                          <span className="hidden text-center text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)] lg:block">
                             —
                           </span>
                         )}
@@ -1843,7 +1843,7 @@ export function OrderReceivePanel({
                         <label className="order-4 inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] lg:order-none lg:justify-self-end lg:pl-0">
                           <span className="lg:hidden">Total</span>
                           <input
-                            className="h-8 w-[5.5rem] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                            className="h-8 w-[5.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
                             disabled={lineBusy || amountQty <= 0}
                             inputMode="decimal"
                             aria-label="Line total"
@@ -1948,7 +1948,7 @@ export function OrderReceivePanel({
                             type="button"
                             disabled={!canDelete || lineBusy}
                             onClick={() => void removeLine(line.id)}
-                            className="inline-flex size-10 items-center justify-center rounded-none border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30 lg:size-8"
+                            className="inline-flex size-10 items-center justify-center rounded-xl border border-transparent text-red-600 transition hover:border-red-100 hover:bg-red-50 disabled:opacity-30 lg:size-8"
                             title={
                               canDelete
                                 ? "Remove line"
@@ -1970,11 +1970,11 @@ export function OrderReceivePanel({
             </>
           )}
           {detail && !detailLoading ? (
-            <div className="mx-3 mb-3 mt-1 rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3 sm:mx-4">
+            <div className="mx-3 mb-3 mt-1 rounded-2xl border border-dashed border-[#e6eaec] bg-white p-3 sm:mx-4">
               <button
                 type="button"
                 onClick={() => setAddItemOpen((v) => !v)}
-                className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[12px] font-semibold text-[var(--order-ink,#15231f)] transition hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)] sm:w-auto sm:px-4"
+                className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[12px] font-semibold text-[var(--order-ink,#15231f)] transition hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)] sm:w-auto sm:px-4"
               >
                 <Plus className="size-3.5" />
                 {addItemOpen ? "Hide catalog" : "Add item from catalog"}
@@ -1985,7 +1985,7 @@ export function OrderReceivePanel({
                     <div className="relative min-w-0 flex-1">
                       <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
                       <input
-                        className="h-8 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)]"
+                        className="h-8 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none focus:border-[var(--pos-primary,#0f766e)]"
                         placeholder={
                           orderTemplate === "ledger"
                             ? "Search catalog list…"
@@ -2037,7 +2037,7 @@ export function OrderReceivePanel({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="inline-flex h-8 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
+                  className="inline-flex h-8 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
                   onClick={() => {
                     const next: Record<string, boolean> = {};
                     for (const l of openLines) next[l.id] = true;
@@ -2048,7 +2048,7 @@ export function OrderReceivePanel({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-8 items-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
+                  className="inline-flex h-8 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
                   onClick={() => setSelectedLines({})}
                 >
                   Clear
@@ -2079,7 +2079,7 @@ export function OrderReceivePanel({
             </div>
 
             <div>
-              <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+              <div className="rounded-2xl ring-1 ring-black/[0.05] bg-white p-3">
                 <div
                   className={cn(
                     "flex items-end justify-between gap-3",
@@ -2114,7 +2114,7 @@ export function OrderReceivePanel({
                     selectedUnits <= 0
                   }
                   onClick={() => void printReceiptNow()}
-                  className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+                  className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
                 >
                   {printingReceipt ? (
                     <>
@@ -2138,7 +2138,7 @@ export function OrderReceivePanel({
                           type="button"
                           disabled={markingArrived || confirming}
                           onClick={() => void markArrived()}
-                          className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                          className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
                         >
                           {markingArrived ? (
                             <>
@@ -2170,7 +2170,7 @@ export function OrderReceivePanel({
                               "not_shipped").toLowerCase() !== "delivered")
                         }
                         onClick={() => void confirmSelected()}
-                        className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                        className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
                       >
                         {confirming ? (
                           <>
@@ -2223,7 +2223,7 @@ export function OrderReceivePanel({
                           confirming || !detail || openLines.length === 0
                         }
                         onClick={() => void confirmSelected()}
-                        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                        className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
                       >
                         {confirming ? (
                           <>
@@ -2258,7 +2258,7 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void sendOrderWhatsApp()}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
                   <MessageCircle className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "whatsapp" ? "Opening…" : "WhatsApp"}
@@ -2273,7 +2273,7 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void copyOrderList()}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
                   <Copy className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "copy" ? "Copying…" : "Copy"}
@@ -2288,7 +2288,7 @@ export function OrderReceivePanel({
                   type="button"
                   disabled={shareBusy || shareLines.length === 0}
                   onClick={() => void downloadOrderPdf()}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-40 lg:h-auto lg:border-0 lg:bg-transparent lg:px-0 lg:text-[11px] lg:text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]"
                 >
                   <FileDown className="size-3.5 lg:hidden" aria-hidden />
                   {sharing === "pdf" ? "Preparing…" : "PDF"}
@@ -2301,14 +2301,14 @@ export function OrderReceivePanel({
         {/* Phone: keep the primary action in thumb reach while the lines scroll.
             Sits directly above the fixed bottom tab bar. */}
         {!embedded ? (
-          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-2 flex items-stretch gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden">
+          <div className="sticky bottom-[var(--shell-bottom-inset)] z-[3] mt-2 flex items-stretch gap-3 rounded-2xl bg-[#0f766e] px-4 py-3 text-white shadow-[0_10px_28px_-12px_rgba(15,118,110,0.55)] lg:hidden">
             <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">
                 {isStockFloor ? "This unpack" : "Selected total"}
               </p>
-              <p className="mt-0.5 truncate font-heading text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--order-ink,#15231f)]">
+              <p className="mt-0.5 truncate font-heading text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">
                 {formatMoney(selectedTotal, ORDER_CURRENCY)}
-                <span className="ml-1.5 font-sans text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                <span className="ml-1.5 font-sans text-[11px] font-medium text-white/70">
                   {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
                 </span>
               </p>
@@ -2317,7 +2317,7 @@ export function OrderReceivePanel({
               type="button"
               disabled={stickyCta.disabled}
               onClick={stickyCta.onClick}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] px-4 text-[13px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-white/15 px-4 text-[13px] font-semibold text-white transition hover:bg-white/25 disabled:opacity-50"
             >
               {stickyCta.busy ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />

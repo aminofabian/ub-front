@@ -31,7 +31,7 @@ export function ReceivePathSwitcher({
     return (
       <div
         className={cn(
-          "grid grid-cols-2 gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+          "flex gap-0.5 rounded-full bg-[#eef1f0] p-0.5",
           className,
         )}
         role="group"
@@ -40,26 +40,26 @@ export function ReceivePathSwitcher({
         <Link
           href={APP_ROUTES.orderReceive}
           className={cn(
-            "flex min-h-11 items-center justify-center gap-2 px-2 text-[13px] font-semibold tracking-[-0.02em] transition-colors",
+            "flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-2 text-[13px] font-semibold transition-colors",
             active === "against-order"
-              ? "bg-[var(--pos-primary,#0f766e)] text-white"
-              : "bg-white text-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+              ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+              : "text-[#667085]",
           )}
         >
-          <ClipboardList className="size-3.5 shrink-0" aria-hidden />
+          <ClipboardList className="size-4 shrink-0" aria-hidden />
           Against order
         </Link>
         <button
           type="button"
           onClick={onWalkIn}
           className={cn(
-            "flex min-h-11 items-center justify-center gap-2 px-2 text-[13px] font-semibold tracking-[-0.02em] transition-colors",
+            "flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-2 text-[13px] font-semibold transition-colors",
             active === "walk-in"
-              ? "bg-[var(--pos-primary,#0f766e)] text-white"
-              : "bg-white text-[var(--order-ink,#15231f)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+              ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+              : "text-[#667085]",
           )}
         >
-          <PackagePlus className="size-3.5 shrink-0" aria-hidden />
+          <PackagePlus className="size-4 shrink-0" aria-hidden />
           Direct · no PO
         </button>
       </div>
@@ -68,34 +68,34 @@ export function ReceivePathSwitcher({
 
   return (
     <div
-      className={cn("grid grid-cols-2 gap-1.5 sm:gap-2", className)}
+      className={cn("grid grid-cols-2 gap-2.5", className)}
       role="group"
       aria-label="How goods arrived"
     >
       <Link
         href={APP_ROUTES.orderReceive}
         className={cn(
-          "flex items-start gap-2.5 border px-2.5 py-2.5 transition-colors sm:gap-3 sm:px-3",
+          "flex items-start gap-2.5 rounded-2xl p-3 ring-1 transition-colors sm:gap-3",
           active === "against-order"
-            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
-            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
+            ? "bg-[#f0f9f7] ring-2 ring-[#0f766e]"
+            : "bg-white ring-black/[0.05] hover:ring-black/[0.1]",
         )}
       >
         <span
           className={cn(
-            "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center border",
+            "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl",
             active === "against-order"
-              ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
+              ? "bg-[#0f766e] text-white"
+              : "bg-[#f1f5f4] text-[#98a2b3]",
           )}
         >
           <ClipboardList className="size-4" aria-hidden />
         </span>
         <span className="min-w-0">
-          <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          <span className="block text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
             Against an order
           </span>
-          <span className="mt-0.5 hidden text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] sm:block">
+          <span className="mt-0.5 hidden text-[12px] leading-snug text-[#667085] sm:block">
             China PO, marketplace, or any open order — mark arrived, then unpack
             into stock.
           </span>
@@ -106,27 +106,27 @@ export function ReceivePathSwitcher({
         type="button"
         onClick={onWalkIn}
         className={cn(
-          "flex items-start gap-2.5 border px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3",
+          "flex items-start gap-2.5 rounded-2xl p-3 text-left ring-1 transition-colors sm:gap-3",
           active === "walk-in"
-            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
-            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_24%,transparent)]",
+            ? "bg-[#f0f9f7] ring-2 ring-[#0f766e]"
+            : "bg-white ring-black/[0.05] hover:ring-black/[0.1]",
         )}
       >
         <span
           className={cn(
-            "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center border",
+            "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl",
             active === "walk-in"
-              ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
+              ? "bg-[#0f766e] text-white"
+              : "bg-[#f1f5f4] text-[#98a2b3]",
           )}
         >
           <PackagePlus className="size-4" aria-hidden />
         </span>
         <span className="min-w-0">
-          <span className="block text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+          <span className="block text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
             Walk-in · no order
           </span>
-          <span className="mt-0.5 hidden text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] sm:block">
+          <span className="mt-0.5 hidden text-[12px] leading-snug text-[#667085] sm:block">
             Direct supply — supplier shows up, you count, stock rises when you
             post.
           </span>
