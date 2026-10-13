@@ -7,7 +7,6 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
-import { OrderBuyingJourney } from "./order-buying-journey";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
 import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
 
@@ -67,15 +66,10 @@ export function OrderStatsStrip() {
   return (
     <>
       {/* Phones: the full lifetime + pipeline strip eats too much of a short
-          viewport, so show the journey + one-line pulse; the full strip
-          returns at lg+. */}
-      <div className="space-y-2 lg:hidden">
-        <OrderBuyingJourney step={1} />
-        {compactPulse}
-      </div>
+          viewport, so show the one-line pulse; the full strip returns at lg+.
+          (The buying journey itself is the shared ProcurementHubNav above.) */}
+      <div className="lg:hidden">{compactPulse}</div>
       <section aria-label="Order stats" className="hidden space-y-2 lg:block">
-      <OrderBuyingJourney step={1} />
-
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
       <div className="flex items-stretch gap-1">

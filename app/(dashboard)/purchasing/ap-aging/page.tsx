@@ -22,6 +22,7 @@ import {
   PROCUREMENT_VARS,
   ProcurementHubNav,
 } from "@/components/procurement/procurement-hub-nav";
+import { PaySupplyDrawer } from "@/app/(dashboard)/supplies/_components/pay-supply-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
@@ -167,6 +168,10 @@ export default function ApAgingPage() {
   const [loading, setLoading] = useState(true);
   const [aging, setAging] = useState<ApAgingTotalsResponse | null>(null);
   const [bills, setBills] = useState<PathBSupplyListRowRecord[]>([]);
+  const [payTarget, setPayTarget] = useState<{
+    row: PathBSupplyListRowRecord;
+    settleAll: boolean;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setMessage("");
@@ -282,6 +287,7 @@ export default function ApAgingPage() {
   const billCount = unpaid.length;
   const supplierCount = bySupplier.length;
 
+  const paySeed = bySupplier[0]?.bills[0] ?? null;
   const legendColors = ["#0f766e", "#12b76a", "#7ecbb8", "#cbd2d9"];
   const supplierLegend = bySupplier.slice(0, 4);
 
@@ -457,13 +463,17 @@ export default function ApAgingPage() {
                 : `${filteredUnpaid.length} bill${filteredUnpaid.length === 1 ? "" : "s"} · largest first`}
             </p>
           </div>
-          <Link
-            href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7]"
+          <button
+            type="button"
+            disabled={!paySeed}
+            onClick={() =>
+              paySeed && setPayTarget({ row: paySeed, settleAll: true })
+            }
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7] disabled:opacity-50"
           >
             <CreditCard className="size-4" aria-hidden />
             Pay
-          </Link>
+          </button>
         </div>
         <div className="relative">
           <Search
@@ -584,13 +594,16 @@ export default function ApAgingPage() {
                             {money(bill.amountPaid)}
                           </p>
                         </div>
-                        <Link
-                          href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPayTarget({ row: bill, settleAll: false })
+                          }
                           className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#0f766e] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
                         >
                           Pay
                           <ArrowRight className="size-4" aria-hidden />
-                        </Link>
+                        </button>
                       </div>
                     </li>
                   ))}
@@ -675,13 +688,19 @@ export default function ApAgingPage() {
               </button>
             </nav>
           </div>
-          <Link
-            href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-            className="mt-3 inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
-          >
-            <CreditCard className="size-4" aria-hidden />
-            Pay on Supplies
-          </Link>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={!paySeed}
+              onClick={() =>
+                paySeed && setPayTarget({ row: paySeed, settleAll: true })
+              }
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63] disabled:opacity-50"
+            >
+              <CreditCard className="size-4" aria-hidden />
+              Pay on Supplies
+            </button>
+          </div>
         </header>
 
         {message ? <DashboardFeedback kind="error" text={message} /> : null}
@@ -716,15 +735,31 @@ export default function ApAgingPage() {
                 {currency} {money(totalOpen)}
               </p>
             </div>
-            <Link
-              href={`${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
+            <button
+              type="button"
+              disabled={!paySeed}
+              onClick={() =>
+                paySeed && setPayTarget({ row: paySeed, settleAll: true })
+              }
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0f766e] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63] disabled:opacity-50"
             >
               <CreditCard className="size-4" aria-hidden />
               Pay bills
-            </Link>
+            </button>
           </div>
         ) : null}
+
+        <PaySupplyDrawer
+          open={payTarget != null}
+          onOpenChange={(open) => {
+            if (!open) setPayTarget(null);
+          }}
+          row={payTarget?.row ?? null}
+          settleAllOnOpen={payTarget?.settleAll ?? false}
+          onPaid={() => {
+            void load();
+          }}
+        />
       </div>
     </div>
   );
