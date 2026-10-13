@@ -29,15 +29,19 @@ export function RevenueBarChart({
   points,
   ariaLabel,
   bare = false,
+  dense = false,
 }: {
   points: DailyRevenuePoint[];
   ariaLabel: string;
   caption?: string;
   /** Drop the panel chrome when the meter is nested inside another surface. */
   bare?: boolean;
+  /** Sparkline scale: shorter bars, no summary strip (compact revenue block). */
+  dense?: boolean;
 }) {
   const { formatMoneyCompact } = useFormatMoney();
   const [picked, setPicked] = useState<string | null>(null);
+  const trackPx = dense ? 18 : METER_TRACK_PX;
   const max = Math.max(...points.map((p) => p.value), 1);
   const stats = chartWindowStats(points);
   const peakDay = stats.best?.day ?? null;
@@ -72,7 +76,12 @@ export function RevenueBarChart({
 
   return (
     <section className={cn(!bare && HUB_SURFACE, "overflow-hidden")}>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:justify-end">
+      <div
+        className={cn(
+          "flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-1.5 sm:justify-end",
+          dense && "max-sm:hidden",
+        )}
+      >
         {summary.map((item) => (
           <p
             key={item.id}
@@ -96,7 +105,7 @@ export function RevenueBarChart({
             const heightPx =
               point.value <= 0
                 ? 0
-                : Math.max(2, Math.round((point.value / max) * METER_TRACK_PX));
+                : Math.max(2, Math.round((point.value / max) * trackPx));
             const isToday = point.day === todayDay;
             const isPeak = point.day === peakDay && point.value > 0 && !isToday;
 
@@ -130,7 +139,7 @@ export function RevenueBarChart({
 
                 <div
                   className="flex w-full items-end justify-center"
-                  style={{ height: METER_TRACK_PX }}
+                  style={{ height: trackPx }}
                 >
                   {point.value > 0 ? (
                     <div

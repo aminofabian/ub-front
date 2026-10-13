@@ -1619,6 +1619,12 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
+                  {/* Quick actions — buttons, two rows (the desk rail shows the
+                      same board, so this is below-xl only). */}
+                  <div className="xl:hidden">
+                    <HubQuickActions links={jumpInLinks} />
+                  </div>
+
                   {tenderTotals ? (
                     <HubPaymentSplit
                       cash={tenderTotals.cash}
@@ -1628,36 +1634,6 @@ export function BusinessHubWorkspace() {
                       periodLabel={isToday ? "Today" : "This week"}
                     />
                   ) : null}
-
-                  {salesEmpty ? null : (
-                    <section className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
-                      <HubSectionLabel
-                        title="Revenue"
-                        meta={isToday ? "Today" : "This week"}
-                        action={
-                          revenueTrend ? (
-                            <span className="text-[12px] font-semibold tabular-nums text-[#047857]">
-                              {revenueTrend}
-                            </span>
-                          ) : undefined
-                        }
-                      />
-                      <p
-                        className="mt-1.5 hidden text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:block"
-                        style={{ fontFamily: "var(--font-heading)" }}
-                      >
-                        {money(revenue)}
-                      </p>
-                      <div className="mt-2">
-                        <RevenueBarChart
-                          bare
-                          points={chartPoints}
-                          ariaLabel={chartAriaLabel}
-                          caption={chartCaption}
-                        />
-                      </div>
-                    </section>
-                  )}
 
                   {/* Phone shows the detailed "Open work" board below; this
                       summary would repeat the same supply/credit/web counts. */}
@@ -1763,6 +1739,49 @@ export function BusinessHubWorkspace() {
                       ]}
                     />
                   ) : null}
+
+                  {/* Revenue detail — the KPI strip already carries the headline
+                      numbers, so the chart sits below the work board. */}
+                  {salesEmpty ? null : (
+                    <section className="space-y-1.5">
+                      <HubSectionLabel
+                        title="Revenue"
+                        meta={isToday ? "Today" : "This week"}
+                        className="px-0.5"
+                      />
+                      <div className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className="truncate text-[20px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums"
+                            style={{ fontFamily: "var(--font-heading)" }}
+                          >
+                            {money(revenue)}
+                          </p>
+                          {revenueTrend ? (
+                            <span
+                              className={cn(
+                                "inline-flex shrink-0 items-center gap-0.5 rounded-none px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                                revenueTrend.startsWith("-")
+                                  ? "bg-[#FDECEC] text-[#B4342F]"
+                                  : "bg-[#E6F4EC] text-[#047857]",
+                              )}
+                            >
+                              {revenueTrend}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2.5">
+                          <RevenueBarChart
+                            dense
+                            bare
+                            points={chartPoints}
+                            ariaLabel={chartAriaLabel}
+                            caption={chartCaption}
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  )}
 
                   {/* 5 — Floor tape: the last ticks, one thumb away. The desk
                       reads the same tape in the lane rail beside this column. */}

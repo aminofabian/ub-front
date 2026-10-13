@@ -94,9 +94,6 @@ export function BusinessPageLayout({
   const heading = title?.trim() || "";
   const blurb = description?.trim() || "";
   const showCopy = Boolean(heading || blurb);
-  // Phone: period, tills, and the store switch share one row under identity.
-  // Desk keeps that lens on the identity row, with tills on their own band.
-  const showPhoneLens = Boolean(toolbarLeading || stage);
 
   return (
     <div
@@ -134,32 +131,23 @@ export function BusinessPageLayout({
           ) : null}
 
           {/*
-            Phone: exactly two rows — (1) the shop and its status/actions, then
-            (2) the board lens (period · tills · online). Both are 44px tall so
-            they read as one toolbar, not two squeezed strips.
+            Phone chrome is two 44px rows and carries no shop identity — the
+            shell header already shows the name and logo. Row 1 is the lens +
+            status/actions; row 2 is the till stage, full width.
           */}
           <div className="sm:hidden">
             <div className="flex h-11 min-w-0 items-center gap-2 px-3">
-              {identity ? (
-                <HubIdentity identity={identity} />
-              ) : (
-                <span className="min-w-0 flex-1" />
-              )}
+              {toolbarLeading}
               <div className="ml-auto flex shrink-0 items-center gap-0.5">
                 {headerActions}
                 {menu}
               </div>
             </div>
-            {showPhoneLens ? (
-              <div className="flex h-11 min-w-0 items-center gap-2 border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3">
-                {toolbarLeading}
-                {stage ? (
-                  <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {stage}
-                  </div>
-                ) : (
-                  <span className="min-w-0 flex-1" aria-hidden />
-                )}
+            {stage ? (
+              <div className="flex h-11 min-w-0 items-center border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3">
+                <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {stage}
+                </div>
               </div>
             ) : null}
           </div>
