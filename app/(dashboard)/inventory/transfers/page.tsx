@@ -754,6 +754,33 @@ export default function InventoryTransfersPage() {
                           Complete now
                         </Button>
                       ) : null}
+                      {isDraft ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-11 gap-1.5 rounded-2xl px-3 text-[13px] sm:h-7 sm:rounded-none sm:px-2 sm:text-[11px]"
+                          disabled={busy}
+                          onClick={() => {
+                            showConfirmModal({
+                              id: `cancel-transfer-${t.id}`,
+                              title: "Cancel this draft?",
+                              description:
+                                "The transfer is discarded. Stock stays at the sending branch.",
+                              confirmLabel: "Cancel draft",
+                              onConfirm: () =>
+                                runTransferAction(
+                                  t.id,
+                                  "cancel",
+                                  "Draft cancelled.",
+                                ),
+                            });
+                          }}
+                        >
+                          <Ban className="size-4 sm:size-3" />
+                          Cancel
+                        </Button>
+                      ) : null}
                     </div>
                   </li>
                 );

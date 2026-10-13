@@ -9058,7 +9058,7 @@ export async function postReceiveStockTransfer(
   );
 }
 
-/** Phase 9: Cancel an in-transit transfer — returns stock to source. */
+/** Cancel a draft, or an in-transit transfer (stock returns to source). */
 export async function postCancelStockTransfer(
   transferId: string,
 ): Promise<void> {
