@@ -207,6 +207,12 @@ describe("filterBatchLines", () => {
     ]);
   });
 
+  test("a line counted just now stays on the to-count list", () => {
+    expect(
+      filterBatchLines(lines, "todo", "", new Set(["a"])).map((l) => l.lineId),
+    ).toEqual(["a", "b", "c"]);
+  });
+
   test("counted shows only counted lines", () => {
     expect(filterBatchLines(lines, "counted", "").map((l) => l.lineId)).toEqual([
       "a",
