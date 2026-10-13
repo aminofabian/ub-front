@@ -165,6 +165,7 @@ export const APP_ROUTES = {
   inventoryTransfers: "/inventory/transfers",
   inventoryStockTake: "/inventory/stock-take",
   inventoryStockTakeMyStats: "/inventory/stock-take/my-stats",
+  inventoryStockTakeBatches: "/inventory/stock-take/batches",
   inventoryStockTakeDailyAudit: "/inventory/stock-take/daily-audit",
   inventoryStockTakeDailyAuditReview: "/inventory/stock-take/daily-audit/review",
   inventoryStockTakeInvestigations: "/inventory/stock-take/investigations",

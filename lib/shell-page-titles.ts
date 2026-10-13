@@ -25,6 +25,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.inventoryValuation]: "What stock is worth",
     [APP_ROUTES.inventoryTransfers]: "Move between shops",
     [APP_ROUTES.inventoryStockTake]: "Full count",
+    [APP_ROUTES.inventoryStockTakeBatches]: "Count in batches",
     [APP_ROUTES.inventoryStockTakeDailyAudit]: "Daily audit",
     [APP_ROUTES.inventoryStockTakeDailyAuditReview]: "Count review",
     [APP_ROUTES.inventoryStockTakeInvestigations]: "Odd counts",

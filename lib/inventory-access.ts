@@ -114,7 +114,7 @@ export const STOCK_HUB_ACTIONS: readonly StockHubAction[] = [
   },
   {
     id: "full-count",
-    href: APP_ROUTES.inventoryStockTake,
+    href: APP_ROUTES.inventoryStockTakeBatches,
     label: "Full count",
     hint: "Count in batches across days until every SKU is done",
     icon: ClipboardList,
@@ -200,6 +200,7 @@ const STOCK_MANAGER_INVENTORY_HREFS: readonly string[] = [
   APP_ROUTES.inventoryMissingBarcodes,
   APP_ROUTES.inventoryStockTake,
   APP_ROUTES.inventoryStockTakeMyStats,
+  APP_ROUTES.inventoryStockTakeBatches,
   APP_ROUTES.inventoryStockTakeDailyAudit,
   APP_ROUTES.inventoryStockTakeRestock,
   APP_ROUTES.purchasingAddSupplies,

@@ -9632,6 +9632,156 @@ export async function fetchDailyAuditInvestigations(params?: {
   );
 }
 
+export type CountCycleStatus = "active" | "completed" | "cancelled";
+
+export type CountCycleBatchSummary = {
+  sessionId: string;
+  batchNumber: number;
+  status: string;
+  sessionDate: string;
+  totalCount: number;
+  countedCount: number;
+  awaitingApplyCount: number;
+  closedAt: string | null;
+};
+
+export type CountCycleRecord = {
+  cycleId: string;
+  branchId: string;
+  status: CountCycleStatus;
+  batchSize: number;
+  totalItems: number;
+  countedItems: number;
+  remainingItems: number;
+  batchesDone: number;
+  daysRemaining: number;
+  projectedFinishDate: string;
+  countedToday: boolean;
+  startedAt: string;
+  completedAt: string | null;
+  activeBatch: {
+    sessionId: string;
+    batchNumber: number;
+    totalCount: number;
+    countedCount: number;
+  } | null;
+  awaitingApplyCount: number;
+  batches: CountCycleBatchSummary[];
+};
+
+export type CountCycleHomeRecord = {
+  cycle: CountCycleRecord | null;
+  catalogSize: number;
+  defaultBatchSize: number;
+};
+
+export type CountCycleBatchLine = {
+  lineId: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  barcode: string | null;
+  categoryName: string | null;
+  unitType: string | null;
+  imageUrl: string | null;
+  aisle: string | null;
+  countedQty: number | string | null;
+  systemQty: number | string | null;
+  status: string;
+};
+
+export type CountCycleBatchRecord = {
+  sessionId: string;
+  cycleId: string;
+  batchNumber: number;
+  status: string;
+  sessionDate: string;
+  totalCount: number;
+  countedCount: number;
+  showsSystemStock: boolean;
+  lines: CountCycleBatchLine[];
+};
+
+const COUNT_CYCLES_PATH = "/api/v1/inventory/stock-take/count-cycles";
+
+export async function fetchCountCycleHome(
+  branchId: string,
+): Promise<CountCycleHomeRecord> {
+  const params = new URLSearchParams({ branchId });
+  return request<CountCycleHomeRecord>(`${COUNT_CYCLES_PATH}/home?${params}`);
+}
+
+export async function postCountCycle(body: {
+  branchId: string;
+  batchSize: number;
+}): Promise<CountCycleRecord> {
+  return request<CountCycleRecord>(COUNT_CYCLES_PATH, { method: "POST", body });
+}
+
+export async function postCountCycleBatch(
+  cycleId: string,
+): Promise<CountCycleBatchRecord> {
+  return request<CountCycleBatchRecord>(
+    `${COUNT_CYCLES_PATH}/${encodeURIComponent(cycleId)}/batches`,
+    { method: "POST" },
+  );
+}
+
+export async function postCountCycleCancel(
+  cycleId: string,
+): Promise<CountCycleRecord> {
+  return request<CountCycleRecord>(
+    `${COUNT_CYCLES_PATH}/${encodeURIComponent(cycleId)}/cancel`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchCountCycleBatch(
+  sessionId: string,
+): Promise<CountCycleBatchRecord> {
+  return request<CountCycleBatchRecord>(
+    `${COUNT_CYCLES_PATH}/batches/${encodeURIComponent(sessionId)}`,
+  );
+}
+
+export async function fetchCountCycleBatchReview(
+  sessionId: string,
+): Promise<CountCycleBatchRecord> {
+  return request<CountCycleBatchRecord>(
+    `${COUNT_CYCLES_PATH}/batches/${encodeURIComponent(sessionId)}/review`,
+  );
+}
+
+export async function patchCountCycleLine(
+  sessionId: string,
+  lineId: string,
+  countedQty: number,
+): Promise<CountCycleBatchRecord> {
+  return request<CountCycleBatchRecord>(
+    `${COUNT_CYCLES_PATH}/batches/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}`,
+    { method: "PATCH", body: { countedQty } },
+  );
+}
+
+export async function postCountCycleFinishBatch(
+  sessionId: string,
+): Promise<CountCycleRecord> {
+  return request<CountCycleRecord>(
+    `${COUNT_CYCLES_PATH}/batches/${encodeURIComponent(sessionId)}/finish`,
+    { method: "POST" },
+  );
+}
+
+export async function postCountCycleApplyBatch(
+  sessionId: string,
+  lineIds?: string[],
+): Promise<CountCycleBatchRecord> {
+  return request<CountCycleBatchRecord>(
+    `${COUNT_CYCLES_PATH}/batches/${encodeURIComponent(sessionId)}/apply`,
+    { method: "POST", body: lineIds?.length ? { lineIds } : {} },
+  );
+}
+
 export type StockTakeRestockItemStatus =
   | "pending"
   | "approved"

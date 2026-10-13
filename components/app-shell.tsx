@@ -327,6 +327,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.inventoryStock,
     items: [
       {
+        href: APP_ROUTES.inventoryStockTakeBatches,
+        label: "Count in batches",
+        group: "Counts",
+      },
+      {
         href: APP_ROUTES.inventoryStockTakeDailyAudit,
         label: "Daily audit",
         group: "Counts",
@@ -640,6 +645,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     const allowed: string[] = [
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeMyStats,
+      APP_ROUTES.inventoryStockTakeBatches,
       APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.myProfile,
       APP_ROUTES.myPay,
