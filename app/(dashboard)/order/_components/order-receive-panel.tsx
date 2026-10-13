@@ -1241,39 +1241,6 @@ export function OrderReceivePanel({
     }
   };
 
-  // Single "next step" action, reused by the desktop footer and the phone's
-  // sticky thumb bar so both stay in sync.
-  const notArrived =
-    (detail?.deliveryStatus ?? "not_shipped").toLowerCase() !== "delivered";
-  const stickyCta = twoStepDelivery
-    ? notArrived
-      ? {
-          label: "1 · Mark arrived",
-          busyLabel: "Marking arrived…",
-          icon: PackageCheck,
-          busy: markingArrived,
-          disabled: markingArrived || confirming,
-          onClick: () => void markArrived(),
-        }
-      : {
-          label: "2 · Unpack & add to stock",
-          busyLabel: "Adding to stock…",
-          icon: Check,
-          busy: confirming,
-          disabled:
-            confirming || markingArrived || !detail || openLines.length === 0,
-          onClick: () => void confirmSelected(),
-        }
-    : {
-        label: isStockFloor ? "Unpack & add to stock" : "Confirm supply",
-        busyLabel: isStockFloor ? "Adding to stock…" : "Posting supply…",
-        icon: Check,
-        busy: confirming,
-        disabled: confirming || !detail || openLines.length === 0,
-        onClick: () => void confirmSelected(),
-      };
-  const StickyCtaIcon = stickyCta.icon;
-
   return (
     <div
       className={cn(
@@ -2031,9 +1998,9 @@ export function OrderReceivePanel({
           ) : null}
         </div>
 
-        <div className="relative z-[2] shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)] lg:shadow-none">
+        <div className="relative shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="flex flex-col gap-3 p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
-            <div className="space-y-2 lg:col-start-1 lg:row-start-1">
+            <div className="order-2 space-y-2 lg:order-none lg:col-start-1 lg:row-start-1">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -2078,15 +2045,10 @@ export function OrderReceivePanel({
               </p>
             </div>
 
-            <div className="lg:contents">
+            <div className="order-1 lg:contents">
               <div className="rounded-2xl bg-white p-3 ring-1 ring-black/[0.05] lg:col-span-2 lg:row-start-2">
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:gap-4">
-                  <div
-                    className={cn(
-                      "flex items-end justify-between gap-3 lg:w-[10.5rem] lg:shrink-0 lg:flex-col lg:items-start lg:gap-0.5",
-                      !embedded && "hidden lg:flex",
-                    )}
-                  >
+                  <div className="flex items-end justify-between gap-3 lg:w-[10.5rem] lg:shrink-0 lg:flex-col lg:items-start lg:gap-0.5">
                     <div>
                       <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
                         {isStockFloor ? "This unpack" : "Selected total"}
@@ -2134,12 +2096,7 @@ export function OrderReceivePanel({
                   <div className="flex flex-col gap-2 lg:w-[24rem] lg:shrink-0">
                     {twoStepDelivery ? (
                       <>
-                        <div
-                          className={cn(
-                            "flex flex-col gap-2 lg:flex-row",
-                            !embedded && "hidden lg:flex",
-                          )}
-                        >
+                        <div className="flex flex-col gap-2 lg:flex-row">
                           <div className="lg:min-w-0 lg:flex-1">
                             {detail &&
                             (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
@@ -2227,7 +2184,7 @@ export function OrderReceivePanel({
                       </>
                     ) : (
                       <>
-                        <div className={cn(!embedded && "hidden lg:block")}>
+                        <div>
                           <button
                             type="button"
                             disabled={
@@ -2310,37 +2267,6 @@ export function OrderReceivePanel({
             </div>
           </div>
         </div>
-
-        {/* Phone: the next action follows the lines. It stays in the page
-            flow so it cannot cover a line total, status, or delete control. */}
-        {!embedded ? (
-          <div className="mt-2 flex items-stretch gap-3 rounded-2xl bg-[#0f766e] px-4 py-3 text-white lg:hidden">
-            <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">
-                {isStockFloor ? "This unpack" : "Selected total"}
-              </p>
-              <p className="mt-0.5 truncate font-heading text-[16px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">
-                {formatMoney(selectedTotal, ORDER_CURRENCY)}
-                <span className="ml-1.5 font-sans text-[11px] font-medium text-white/70">
-                  {selectedUnits} unit{selectedUnits === 1 ? "" : "s"}
-                </span>
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={stickyCta.disabled}
-              onClick={stickyCta.onClick}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-white/15 px-4 text-[13px] font-semibold text-white transition hover:bg-white/25 disabled:opacity-50"
-            >
-              {stickyCta.busy ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <StickyCtaIcon className="size-4" aria-hidden />
-              )}
-              {stickyCta.busy ? stickyCta.busyLabel : stickyCta.label}
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   );
