@@ -442,6 +442,7 @@ export function PayConfirmDrawer({
             {formatPayrollMoney(maxAdvanceDeduct)})
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               max={maxAdvanceDeduct}
               step="0.01"
@@ -476,6 +477,7 @@ export function PayConfirmDrawer({
             Other deductions
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.01"
               className={dashboardInputClass()}

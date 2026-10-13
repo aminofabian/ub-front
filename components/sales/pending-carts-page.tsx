@@ -27,6 +27,7 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
+import { FilterSheet, FilterSheetTrigger } from "@/components/ui/filter-sheet";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
@@ -256,6 +257,7 @@ export function PendingCartsPage() {
   const [hoursBack, setHoursBack] = useState(48);
   const [cashierFilter, setCashierFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const [staleOnly, setStaleOnly] = useState(false);
   const [drafts, setDrafts] = useState<PosDraftSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -524,6 +526,65 @@ export function PendingCartsPage() {
     );
   }
 
+  const resetFilters = () => {
+    setHoursBack(48);
+    setCashierFilter("");
+    setStaleOnly(false);
+  };
+
+  // Rendered inline on `sm+`; on phones it moves into the filter sheet (§4.5).
+  const filterFields = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+      <label className="block space-y-1.5">
+        <span className={dashboardFilterFieldLabelClass()}>Time range</span>
+        <select
+          value={hoursBack}
+          onChange={(e) => setHoursBack(Number(e.target.value))}
+          className={dashboardSelectClass()}
+        >
+          {HOURS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="block space-y-1.5">
+        <span className={dashboardFilterFieldLabelClass()}>Cashier</span>
+        <select
+          value={cashierFilter}
+          onChange={(e) => setCashierFilter(e.target.value)}
+          className={dashboardSelectClass()}
+        >
+          <option value="">All cashiers</option>
+          {cashierOptions.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="flex items-end sm:col-span-2 lg:col-span-1">
+        <button
+          type="button"
+          onClick={() => setStaleOnly((value) => !value)}
+          aria-pressed={staleOnly}
+          className={cn(
+            "inline-flex h-11 w-full items-center justify-center gap-2 rounded-none border px-3 text-sm font-medium transition-colors lg:h-auto lg:py-2 sm:w-auto",
+            staleOnly
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
+              : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <Clock className="size-4 shrink-0" aria-hidden />
+          Stale only ({STALE_MINUTES}+ min)
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className={cn(DASHBOARD_MAX, "space-y-1 pb-4")}>
       <header className="flex flex-wrap items-center justify-between gap-1">
@@ -670,61 +731,24 @@ export function PendingCartsPage() {
               <span> · {drafts.length.toLocaleString("en-KE")} loaded</span>
             ) : null}
           </p>
+          <FilterSheetTrigger
+            className="w-full justify-center sm:hidden"
+            activeCount={hasActiveFilters ? 1 : 0}
+            onClick={() => setFiltersSheetOpen(true)}
+          />
         </div>
 
-        <div className={cn(DASHBOARD_FILTER_WELL, "mx-5 mb-0 mt-0 sm:mx-6")}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-            <label className="block space-y-1.5">
-              <span className={dashboardFilterFieldLabelClass()}>
-                Time range
-              </span>
-              <select
-                value={hoursBack}
-                onChange={(e) => setHoursBack(Number(e.target.value))}
-                className={dashboardSelectClass()}
-              >
-                {HOURS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block space-y-1.5">
-              <span className={dashboardFilterFieldLabelClass()}>Cashier</span>
-              <select
-                value={cashierFilter}
-                onChange={(e) => setCashierFilter(e.target.value)}
-                className={dashboardSelectClass()}
-              >
-                <option value="">All cashiers</option>
-                {cashierOptions.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="flex items-end sm:col-span-2 lg:col-span-1">
-              <button
-                type="button"
-                onClick={() => setStaleOnly((value) => !value)}
-                aria-pressed={staleOnly}
-                className={cn(
-                  "inline-flex w-full items-center justify-center gap-2 rounded-none border px-3 py-2 text-sm font-medium transition-colors sm:w-auto",
-                  staleOnly
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                )}
-              >
-                <Clock className="size-4 shrink-0" aria-hidden />
-                Stale only ({STALE_MINUTES}+ min)
-              </button>
-            </div>
-          </div>
+        <div className={cn(DASHBOARD_FILTER_WELL, "mx-5 mb-0 mt-0 hidden sm:mx-6 sm:block")}>
+          {filterFields}
         </div>
+
+        <FilterSheet
+          open={filtersSheetOpen}
+          onOpenChange={setFiltersSheetOpen}
+          onReset={resetFilters}
+        >
+          {filterFields}
+        </FilterSheet>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">

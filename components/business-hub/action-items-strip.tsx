@@ -40,7 +40,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
         meta={`${items.length} to review`}
         className="px-0.5"
       />
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-1.5">
         {items.map((item) => {
           const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;
@@ -49,32 +49,32 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex min-h-11 items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors sm:min-h-0",
+                "group flex min-h-14 items-center gap-2 rounded-none border px-2.5 py-2 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}
             >
               <span
                 className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-none",
+                  "flex size-6 shrink-0 items-center justify-center rounded-none",
                   tone.icon,
                 )}
               >
                 <Icon className="size-3.5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-[12px] font-semibold tracking-[-0.015em] text-[#141414]">
+                <span className="line-clamp-2 text-[12px] font-semibold tracking-[-0.015em] text-[#141414]">
                   {item.label}
                 </span>
                 {item.detail ? (
-                  <span className="block truncate text-[10px] text-[#6F6F6F]">
+                  <span className="mt-0.5 block truncate text-[10px] text-[#6F6F6F]">
                     {item.detail}
                   </span>
                 ) : null}
               </span>
               <ArrowRight
                 className={cn(
-                  "size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                  "hidden size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 sm:block",
                   tone.arrow,
                 )}
                 aria-hidden

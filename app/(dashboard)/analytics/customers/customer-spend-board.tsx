@@ -496,7 +496,7 @@ export function CustomerSpendBoard() {
             title="Ranking"
             hint={rangeLabel || "Pick a period"}
             badge={filtered.length}
-            className="lg:order-1"
+            className="order-2 lg:order-1"
           >
             <div className="flex min-h-0 flex-col gap-2">
               <div
@@ -753,7 +753,7 @@ export function CustomerSpendBoard() {
           <DirectoryColumn
             title="Scope"
             hint="Period & branch"
-            className="lg:order-2"
+            className="order-1 lg:order-2"
           >
             <div className="flex flex-col gap-2">
               {data && tillTotal > 0 ? (

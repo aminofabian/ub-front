@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronRight, Menu } from "lucide-react";
 
 import { HubMark } from "@/components/business-hub/hub-mark";
+import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
 import {
   BUSINESS_HUB_TABS,
   hubTabCopy,
@@ -71,6 +72,8 @@ export function BusinessHubMenuButton({
               ) : null}
             </span>
           </div>
+
+          <OnlineStoreHeaderSwitch variant="row" />
 
           <nav
             aria-label="Your shop pages"

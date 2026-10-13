@@ -55,6 +55,17 @@ const TINTS: Record<StatTone, string> = {
   neutral: "bg-[color-mix(in_srgb,#141414_5%,white)] text-[#6F6F6F]",
 };
 
+/** Phone cue: a tone dot keeps the colour signal when the icon box is dropped. */
+const DOTS: Record<StatTone, string> = {
+  teal: "bg-[#0f766e]",
+  emerald: "bg-[#047857]",
+  violet: "bg-[#5B4DBE]",
+  amber: "bg-[#B45309]",
+  ink: "bg-[#141414]",
+  owed: "bg-[#B4342F]",
+  neutral: "bg-[#6F6F6F]",
+};
+
 function trendDirection(trend?: string | null): "up" | "down" | null {
   if (!trend) return null;
   return trend.startsWith("-") || trend.startsWith("<-") ? "down" : "up";
@@ -64,21 +75,30 @@ function StatCard({ item }: { item: StatItem }) {
   const Icon = item.icon;
   const direction = trendDirection(item.trend);
   const TrendIcon = direction === "down" ? ArrowDownRight : ArrowUpRight;
-  const surface = cn(HUB_SURFACE, "flex min-w-0 flex-col p-3");
+  const surface = cn(HUB_SURFACE, "flex min-w-0 flex-col p-2.5");
 
   const content = (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
           {Icon ? (
             <span
               className={cn(
-                "hidden size-7 shrink-0 items-center justify-center rounded-none sm:flex",
+                "hidden size-6 shrink-0 items-center justify-center rounded-none sm:flex",
                 TINTS[item.tone ?? "teal"],
               )}
             >
               <Icon className="size-3.5" aria-hidden />
             </span>
+          ) : null}
+          {Icon ? (
+            <span
+              className={cn(
+                "size-1.5 shrink-0 rounded-full sm:hidden",
+                DOTS[item.tone ?? "teal"],
+              )}
+              aria-hidden
+            />
           ) : null}
           <p className="truncate text-[11px] font-medium text-[#6F6F6F]">
             {item.label}
@@ -87,13 +107,13 @@ function StatCard({ item }: { item: StatItem }) {
         {direction ? (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center gap-0.5 rounded-none px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-none px-1 py-px text-[10px] font-semibold tabular-nums",
               direction === "down"
                 ? "bg-[#FDECEC] text-[#B4342F]"
                 : "bg-[#E6F4EC] text-[#047857]",
             )}
           >
-            <TrendIcon className="size-3" aria-hidden />
+            <TrendIcon className="size-2.5" aria-hidden />
             {item.trend}
           </span>
         ) : null}
@@ -101,28 +121,28 @@ function StatCard({ item }: { item: StatItem }) {
 
       <p
         className={cn(
-          "mt-1.5 truncate font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums",
-          item.value.length > 16 ? "text-[15px]" : "text-[17px] sm:text-[19px]",
+          "mt-1 truncate font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums",
+          item.value.length > 16 ? "text-[13px]" : "text-[15px] sm:text-[17px]",
         )}
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {item.value}
       </p>
       {item.hint || item.trendLabel ? (
-        <p className="mt-1 truncate text-[11px] text-[#8A8A8A]">
+        <p className="mt-0.5 truncate text-[10px] text-[#8A8A8A] sm:text-[11px]">
           {item.hint ?? item.trendLabel}
         </p>
       ) : null}
       {item.children ? <div className="mt-2">{item.children}</div> : null}
       {item.actions?.length ? (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {item.actions.map((action) => (
             <button
               key={action.label}
               type="button"
               onClick={action.onClick}
               className={cn(
-                "inline-flex min-h-9 items-center rounded-none px-2.5 text-[11px] font-semibold transition-colors sm:min-h-0 sm:px-2 sm:py-0.5 sm:text-[10px]",
+                "inline-flex min-h-7 items-center rounded-none px-2 text-[10px] font-semibold transition-colors sm:min-h-0 sm:px-2 sm:py-0.5",
                 action.emphasize
                   ? "bg-[#FDECEC] text-[#B4342F] hover:bg-[#FBDDDD]"
                   : "bg-[#F1F3F2] text-[#4A4A4A] hover:bg-[#E6EAE9]",
@@ -163,7 +183,7 @@ export function StatStrip({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("grid grid-cols-2 gap-2 xl:grid-cols-4", className)}>
+    <div className={cn("grid grid-cols-2 gap-1.5 sm:gap-2 xl:grid-cols-4", className)}>
       {items.map((item) => (
         <StatCard key={item.id} item={item} />
       ))}

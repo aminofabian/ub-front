@@ -308,7 +308,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Items</div>
                   <div className="text-lg font-semibold">{data.itemCount}</div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {formatQty(data.totalInitialQuantity)} units
                   </div>
                 </div>
@@ -317,7 +317,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                   <div className="text-lg font-semibold">
                     {formatMoney(data.totalCost)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     landed
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                   <div className="text-lg font-semibold text-emerald-600">
                     {formatMoney(data.totalRevenue)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {data.soldPercentage}% of batch
                   </div>
                 </div>
@@ -335,7 +335,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                   <div className="text-lg font-semibold">
                     {formatMoney(data.totalAssociatedCosts)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {data.expenses?.length ?? 0} cost(s)
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                         Number(data.totalAssociatedCosts),
                     )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {Number(data.totalRevenue) > 0
                       ? Math.round(
                           ((Number(data.totalRevenue) -
@@ -384,7 +384,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                         >
                           {days < 0 ? "Expired" : days + "d"}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           {new Date(earliest).toLocaleDateString()}
                         </div>
                       </>

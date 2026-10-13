@@ -472,6 +472,7 @@ export default function PickupMtaaniSettingsPage() {
                 <label className={dashboardLabelClass()}>Markup (KES)</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   min={1}
                   disabled={!connected}
                   className={dashboardInputClass(!connected)}

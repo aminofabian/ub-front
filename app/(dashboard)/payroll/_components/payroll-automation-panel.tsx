@@ -212,6 +212,7 @@ export function PayrollAutomationPanel({
               Pay day (1–28)
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 max="28"
                 className="rounded-none border border-border/60 bg-background px-2.5 py-1.5 text-sm"

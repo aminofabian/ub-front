@@ -33,7 +33,6 @@ import {
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
@@ -257,32 +256,7 @@ export default function BusinessSettingsPage() {
         title="Business settings"
         description="Profile, storefront, and delivery — inventory and till policies live under Configuration."
       >
-        <div className="flex flex-wrap items-center gap-1.5">
-          <BusinessHubMenuButton identity={shopIdentity} />
-          <DashboardQuickLinks
-            compact
-            links={[
-              {
-                href: APP_ROUTES.businessConfiguration,
-                label: "Configuration",
-                desc: "Inventory & till",
-                icon: SlidersHorizontal,
-              },
-              {
-                href: APP_ROUTES.businessBranding,
-                label: "Branding",
-                desc: "Logo & colors",
-                icon: Palette,
-              },
-              {
-                href: APP_ROUTES.business,
-                label: "Business",
-                desc: "Morning board",
-                icon: Building2,
-              },
-            ]}
-          />
-        </div>
+        <BusinessHubMenuButton identity={shopIdentity} />
       </DashboardPageHero>
 
       {editor.feedback && !editor.loadFailed ? (

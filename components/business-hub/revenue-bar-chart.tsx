@@ -76,7 +76,7 @@ export function RevenueBarChart({
         {summary.map((item) => (
           <p
             key={item.id}
-            className="flex items-baseline gap-1 text-[10px] tabular-nums sm:text-[11px]"
+            className="flex items-baseline gap-1 text-[11px] tabular-nums sm:text-xs"
             title={`${item.label}: ${item.value} · ${item.hint}`}
           >
             <span className={HUB_MUTED}>{item.label}</span>
@@ -113,7 +113,7 @@ export function RevenueBarChart({
               >
                 <div
                   className={cn(
-                    "pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[10px] text-[#0f766e]",
+                    "pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 border border-[#0f766e] bg-white px-1.5 py-0.5 text-[11px] text-[#0f766e]",
                     picked === point.day ? "block" : "hidden group-hover:block",
                   )}
                 >
@@ -155,7 +155,7 @@ export function RevenueBarChart({
                 <div className="flex items-center justify-center gap-0.5">
                   <span
                     className={cn(
-                      "text-[9px] font-medium tabular-nums leading-none",
+                      "text-[11px] font-medium tabular-nums leading-none",
                       isToday ? "text-[#0f766e]" : "text-[#666666]",
                     )}
                   >
@@ -163,7 +163,7 @@ export function RevenueBarChart({
                   </span>
                   <span
                     className={cn(
-                      "hidden text-[9px] uppercase leading-none sm:inline",
+                      "hidden text-[10px] uppercase leading-none sm:inline",
                       isToday ? "text-[#0f766e]" : "text-[#B0A898]",
                     )}
                   >

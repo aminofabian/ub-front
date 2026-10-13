@@ -196,6 +196,7 @@ export function LogAdvanceDrawer({
           Original amount (KES)
           <input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             className={dashboardInputClass()}
@@ -210,6 +211,7 @@ export function LogAdvanceDrawer({
             Already repaid (KES)
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.01"
               className={dashboardInputClass()}

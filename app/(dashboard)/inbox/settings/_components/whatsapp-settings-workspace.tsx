@@ -217,6 +217,7 @@ export function WhatsappSettingsWorkspace() {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={0}
                   max={20}
                   value={settings.maxRepliesPerConversation}

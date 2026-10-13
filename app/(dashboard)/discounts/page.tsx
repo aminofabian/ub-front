@@ -1108,6 +1108,7 @@ export default function DiscountsPage() {
               <span className="font-medium">Value</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="any"
                 className="rounded-none border bg-background px-3 py-2"

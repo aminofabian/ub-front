@@ -326,7 +326,7 @@ function SettingsFocus({
     >
       <div className="max-w-md space-y-3">
         {navItem ? (
-          <span className="inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-0.5 text-xs font-semibold text-muted-foreground">
             <navItem.icon className="size-3" aria-hidden />
             {navItem.label}
           </span>
@@ -513,7 +513,7 @@ export function SettingsTheatre({
                         >
                           {item.label}
                         </p>
-                        <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
                           {meta.hint}
                         </p>
                       </div>
@@ -575,7 +575,7 @@ export function SettingsTheatre({
       </div>
       <p className={cn(dashboardHintClass(), "flex items-center gap-1.5")}>
         <Building2 className="size-3.5 shrink-0" aria-hidden />
-        Deep links use <span className="font-mono text-[10px]">#section-id</span>{" "}
+        Deep links use <span className="font-mono text-xs">#section-id</span>{" "}
         in the URL
       </p>
     </div>

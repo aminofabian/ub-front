@@ -4,9 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  ArrowLeft,
-  Building2,
-  Palette,
   RefreshCw,
   SlidersHorizontal,
 } from "lucide-react";
@@ -22,7 +19,6 @@ import {
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
@@ -176,31 +172,7 @@ export default function BusinessConfigurationPage() {
         eyebrow="Operations"
         title="Configuration"
         description="Inventory rules and till permissions — flip policies with clear switches."
-      >
-        <DashboardQuickLinks
-          compact
-          links={[
-            {
-              href: APP_ROUTES.businessSettings,
-              label: "Settings",
-              desc: "Profile & storefront",
-              icon: ArrowLeft,
-            },
-            {
-              href: APP_ROUTES.businessBranding,
-              label: "Branding",
-              desc: "Logo & colors",
-              icon: Palette,
-            },
-            {
-              href: APP_ROUTES.business,
-              label: "Business",
-              desc: "Morning board",
-              icon: Building2,
-            },
-          ]}
-        />
-      </DashboardPageHero>
+      />
 
       {editor.feedback ? (
         <DashboardFeedback

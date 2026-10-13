@@ -19,7 +19,9 @@ import {
   DashboardLoading,
   DashboardFeedback,
   DASHBOARD_MAX_WIDE,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { FilterSheet, FilterSheetTrigger } from "@/components/ui/filter-sheet";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
 import {
@@ -40,6 +42,9 @@ import {
   type ItemTypeRecord,
 } from "@/lib/api";
 import { productDossierPath } from "@/lib/product-dossier-url";
+
+const INLINE_FILTER_SELECT =
+  "h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30";
 
 /* ------------------------------------------------------------------ */
 /* Helpers */
@@ -197,7 +202,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
           <p className="text-[12px] font-semibold text-foreground/90">
             Bulk add images by SKU
           </p>
-          <p className="text-[10px] leading-relaxed text-muted-foreground/60">
+          <p className="text-xs leading-relaxed text-muted-foreground/60">
             {mode === "files"
               ? "Pick image files named by SKU (e.g. SKU-001.jpg) — each becomes that product's photo."
               : "CSV with columns sku, image_url — a public image URL or Cloudinary key. Existing images are replaced; unknown SKUs are reported, not skipped silently."}
@@ -226,7 +231,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
               if (pickRef.current) pickRef.current.value = "";
             }}
             className={cn(
-              "flex-1 rounded-none px-2 py-1 text-[10px] font-semibold transition-colors",
+              "flex-1 rounded-none px-2 py-1 text-[11px] font-semibold transition-colors",
               mode === opt.key
                 ? "bg-background text-foreground shadow-none"
                 : "text-muted-foreground hover:text-foreground",
@@ -309,14 +314,14 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
           {files.slice(0, 12).map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="truncate font-mono text-[10px] text-foreground/75"
+              className="truncate font-mono text-[11px] text-foreground/75"
               title={f.name}
             >
               {f.name}
             </li>
           ))}
           {files.length > 12 ? (
-            <li className="text-[10px] text-muted-foreground/60">
+            <li className="text-[11px] text-muted-foreground/60">
               …and {files.length - 12} more
             </li>
           ) : null}
@@ -324,7 +329,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
       ) : null}
 
       {mode === "csv" && csvFile ? (
-        <div className="mt-2 truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2.5 py-1.5 font-mono text-[10px] text-foreground/75">
+        <div className="mt-2 truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2.5 py-1.5 font-mono text-[11px] text-foreground/75">
           {csvFile.name}
         </div>
       ) : null}
@@ -340,7 +345,7 @@ function BulkImageImport({ onDone }: { onDone: () => void }) {
             found · {result.invalid.length} file(s)/row(s) invalid
           </p>
           {issues.length > 0 ? (
-            <ul className="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto text-[10px] text-muted-foreground">
+            <ul className="mt-1 max-h-32 list-inside list-disc space-y-0.5 overflow-y-auto text-[11px] text-muted-foreground">
               {issues.map((iss, i) => (
                 <li key={`${iss.line}-${i}`}>
                   <span className="font-mono text-foreground/80">
@@ -376,6 +381,13 @@ export default function InventoryMissingImagesPage() {
   const [branchId, setBranchId] = useState("");
   const [itemTypeId, setItemTypeId] = useState(headerItemTypeId ?? "");
   const [categoryId, setCategoryId] = useState("");
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
+
+  const clearFilters = useCallback(() => {
+    setBranchId("");
+    setItemTypeId("");
+    setCategoryId("");
+  }, []);
 
   // Results
   const [items, setItems] = useState<ItemSummaryRecord[]>([]);
@@ -541,12 +553,12 @@ export default function InventoryMissingImagesPage() {
                     {totalMissing}
                     {capped ? "+" : ""}
                   </span>
-                  <span className="text-[10px] text-orange-600/60">
+                  <span className="text-xs text-orange-600/60">
                     without image
                   </span>
                 </div>
                 {totalAll > 0 ? (
-                  <span className="text-[10px] text-muted-foreground/50">
+                  <span className="text-xs text-muted-foreground/50">
                     of {totalAll.toLocaleString()} total
                   </span>
                 ) : null}
@@ -573,7 +585,7 @@ export default function InventoryMissingImagesPage() {
 
           {/* ── Filters bar ── */}
           <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-2">
-            {/* Search */}
+            {/* Search stays on the page (§4.5). */}
             <div className="relative min-w-[140px] flex-1 sm:max-w-[220px]">
               <Search className="absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/50" />
               <input
@@ -584,11 +596,18 @@ export default function InventoryMissingImagesPage() {
               />
             </div>
 
-            {/* Branch */}
+            {/* Phone: remaining filters live in a bottom sheet. */}
+            <FilterSheetTrigger
+              className="h-7.5 gap-1 px-2.5 text-[11px] sm:hidden"
+              onClick={() => setFiltersSheetOpen(true)}
+            />
+
+            {/* ≥sm: inline selects. */}
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              aria-label="Branch"
+              className={cn(INLINE_FILTER_SELECT, "hidden sm:block")}
             >
               <option value="">All branches</option>
               {branches.map((b) => (
@@ -598,11 +617,11 @@ export default function InventoryMissingImagesPage() {
               ))}
             </select>
 
-            {/* Item type */}
             <select
               value={itemTypeId}
               onChange={(e) => setItemTypeId(e.target.value)}
-              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              aria-label="Department"
+              className={cn(INLINE_FILTER_SELECT, "hidden sm:block")}
             >
               <option value="">All departments</option>
               {itemTypes.map((t) => (
@@ -612,11 +631,11 @@ export default function InventoryMissingImagesPage() {
               ))}
             </select>
 
-            {/* Category */}
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="h-7.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 pr-7 text-[11px] font-medium text-foreground/80 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              aria-label="Category"
+              className={cn(INLINE_FILTER_SELECT, "hidden sm:block")}
             >
               <option value="">All categories</option>
               {categories.map((c) => (
@@ -626,6 +645,58 @@ export default function InventoryMissingImagesPage() {
               ))}
             </select>
           </div>
+
+          <FilterSheet
+            open={filtersSheetOpen}
+            onOpenChange={setFiltersSheetOpen}
+            onReset={clearFilters}
+          >
+            <label className="grid gap-1 text-xs">
+              <span className="text-muted-foreground">Branch</span>
+              <select
+                className={cn(dashboardSelectClass(), "text-sm")}
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+              >
+                <option value="">All branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs">
+              <span className="text-muted-foreground">Department</span>
+              <select
+                className={cn(dashboardSelectClass(), "text-sm")}
+                value={itemTypeId}
+                onChange={(e) => setItemTypeId(e.target.value)}
+              >
+                <option value="">All departments</option>
+                {itemTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs">
+              <span className="text-muted-foreground">Category</span>
+              <select
+                className={cn(dashboardSelectClass(), "text-sm")}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </FilterSheet>
         </div>
 
         {/* ── Bulk import ── */}
@@ -679,7 +750,7 @@ export default function InventoryMissingImagesPage() {
                   <div className="flex aspect-[4/3] items-center justify-center rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors group-hover:border-orange-400/20 group-hover:bg-orange-400/[0.03]">
                     <div className="flex flex-col items-center gap-1.5">
                       <ImageOff className="size-8 text-muted-foreground/25 group-hover:text-orange-400/30" />
-                      <span className="text-[9px] font-medium tracking-[-0.02em] text-muted-foreground/35 group-hover:text-orange-400/40">
+                      <span className="text-[10px] font-medium tracking-[-0.02em] text-muted-foreground/35 group-hover:text-orange-400/40">
                         No image
                       </span>
                     </div>
@@ -695,15 +766,15 @@ export default function InventoryMissingImagesPage() {
                     </Link>
 
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="font-mono text-[10px] text-muted-foreground/55">
+                      <span className="font-mono text-[11px] text-muted-foreground/55">
                         {item.sku}
                       </span>
                       {item.categoryName ? (
                         <>
-                          <span className="text-[10px] text-muted-foreground/25">
+                          <span className="text-[11px] text-muted-foreground/25">
                             ·
                           </span>
-                          <span className="truncate text-[10px] text-muted-foreground/50">
+                          <span className="truncate text-[11px] text-muted-foreground/50">
                             {item.categoryName}
                           </span>
                         </>
@@ -711,10 +782,10 @@ export default function InventoryMissingImagesPage() {
                     </div>
 
                     {/* Meta row */}
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                       {item.stockQty != null ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">
+                          <span className="text-[11px] text-muted-foreground/40">
                             Stock
                           </span>
                           {fmtQty(item.stockQty)}
@@ -723,7 +794,7 @@ export default function InventoryMissingImagesPage() {
                       {item.buyingPrice != null &&
                       toNum(item.buyingPrice) > 0 ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">
+                          <span className="text-[11px] text-muted-foreground/40">
                             Buy
                           </span>
                           {fmtMoney(item.buyingPrice)}
@@ -732,7 +803,7 @@ export default function InventoryMissingImagesPage() {
                       {item.bundlePrice != null &&
                       toNum(item.bundlePrice) > 0 ? (
                         <span className="inline-flex items-center gap-1 font-mono tabular-nums text-muted-foreground/70">
-                          <span className="text-[9px] text-muted-foreground/40">
+                          <span className="text-[11px] text-muted-foreground/40">
                             Sell
                           </span>
                           {fmtMoney(item.bundlePrice)}
@@ -745,7 +816,7 @@ export default function InventoryMissingImagesPage() {
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3">
                     <Link
                       href={productDossierPath(item)}
-                      className="text-[10px] font-medium text-muted-foreground/60 transition-colors hover:text-foreground"
+                      className="text-[11px] font-medium text-muted-foreground/60 transition-colors hover:text-foreground"
                     >
                       View product →
                     </Link>
@@ -760,7 +831,7 @@ export default function InventoryMissingImagesPage() {
 
             {/* ── Quick links footer ── */}
             <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 p-4">
-              <p className="mb-3 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/60">
+              <p className="mb-3 text-xs font-semibold tracking-[-0.02em] text-muted-foreground/60">
                 Quick actions
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -773,7 +844,7 @@ export default function InventoryMissingImagesPage() {
                     <span className="text-[11px] font-semibold text-foreground/80 group-hover:text-primary">
                       {l.label}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/50">
+                    <span className="text-[11px] text-muted-foreground/50">
                       {l.desc}
                     </span>
                   </Link>

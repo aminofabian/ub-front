@@ -23,6 +23,7 @@ import {
 import { FormDrawer } from "@/components/form-drawer";
 import { OpsClientLogsPanel } from "@/components/ops-client-logs-panel";
 import { Button } from "@/components/ui/button";
+import { FilterSheet, FilterSheetTrigger } from "@/components/ui/filter-sheet";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import type {
   AuditEventCategory,
@@ -181,7 +182,7 @@ function SeverityBadge({ severity }: { severity: AuditEventSeverity }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+        "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-xs font-semibold tracking-[-0.02em]",
         SEVERITY_BADGE[severity],
       )}
     >
@@ -195,7 +196,7 @@ function SeverityBadge({ severity }: { severity: AuditEventSeverity }) {
 
 function CategoryChip({ category }: { category: AuditEventCategory }) {
   return (
-    <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+    <span className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent px-1.5 py-0.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
       {CATEGORY_LABELS[category]}
     </span>
   );
@@ -471,7 +472,7 @@ function StatStrip({
       >
         {value.toLocaleString()}
       </p>
-      <p className="mt-1.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+      <p className="mt-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
         {label}
       </p>
     </div>
@@ -748,6 +749,7 @@ export function LogsTheatre(props: LogsTheatreProps) {
   const isLg = useMediaLg();
   const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -787,6 +789,108 @@ export function LogsTheatre(props: LogsTheatreProps) {
   const showCustomRange = draft.preset === "custom";
   const start = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const end = Math.min((page + 1) * PAGE_SIZE, total);
+
+  // Rendered inline on `sm+` and into the phone filter sheet below `sm`.
+  const filterInputs = (
+    <div className="grid gap-2">
+      <label className="grid gap-0.5 text-[11px]">
+        <span className={dashboardHintClass()}>Severity</span>
+        <select
+          className={cn(
+            dashboardSelectClass(draft.failuresOnly),
+            "h-8 py-0 text-[11px]",
+          )}
+          disabled={draft.failuresOnly}
+          value={draft.failuresOnly ? "WARN" : draft.severity}
+          onChange={(e) =>
+            onDraftChange({
+              severity: e.target.value as AuditEventSeverity | "",
+            })
+          }
+        >
+          <option value="">Any severity</option>
+          {SEVERITIES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-0.5 text-[11px]">
+        <span className={dashboardHintClass()}>Category</span>
+        <select
+          className={cn(dashboardSelectClass(), "h-8 py-0 text-[11px]")}
+          value={draft.category}
+          onChange={(e) =>
+            onDraftChange({
+              category: e.target.value as AuditEventCategory | "",
+            })
+          }
+        >
+          <option value="">All categories</option>
+          {CATEGORY_OPTIONS.map((c) => (
+            <option key={c} value={c}>
+              {CATEGORY_LABELS[c]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-0.5 text-[11px]">
+        <span className={dashboardHintClass()}>Event type</span>
+        <input
+          className={cn(dashboardInputClass(), "h-8 text-[11px]")}
+          list="audit-event-type-options"
+          placeholder="e.g. sale.completed"
+          value={draft.eventType}
+          onChange={(e) => onDraftChange({ eventType: e.target.value })}
+        />
+      </label>
+      <label className="grid gap-0.5 text-[11px]">
+        <span className={dashboardHintClass()}>Branch</span>
+        <select
+          className={cn(dashboardSelectClass(), "h-8 py-0 text-[11px]")}
+          value={draft.branchId}
+          onChange={(e) => onDraftChange({ branchId: e.target.value })}
+        >
+          <option value="">All branches</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {showCustomRange ? (
+        <>
+          <label className="grid gap-0.5 text-[11px]">
+            <span className={dashboardHintClass()}>From</span>
+            <input
+              type="datetime-local"
+              className={cn(dashboardInputClass(), "h-8 text-[11px]")}
+              value={draft.customFrom}
+              onChange={(e) => onDraftChange({ customFrom: e.target.value })}
+            />
+          </label>
+          <label className="grid gap-0.5 text-[11px]">
+            <span className={dashboardHintClass()}>To</span>
+            <input
+              type="datetime-local"
+              className={cn(dashboardInputClass(), "h-8 text-[11px]")}
+              value={draft.customTo}
+              onChange={(e) => onDraftChange({ customTo: e.target.value })}
+            />
+          </label>
+        </>
+      ) : null}
+    </div>
+  );
+
+  const filterNotice = draft.failuresOnly ? (
+    <p className={cn(dashboardHintClass(), "leading-relaxed")}>
+      Showing WARN+ — login failures, invalid keys, failed STK / webhooks,
+      and server exceptions.
+    </p>
+  ) : null;
 
   const roster = (opts?: { fill?: boolean; denser?: boolean }) => {
     const fill = opts?.fill ?? false;
@@ -833,11 +937,15 @@ export function LogsTheatre(props: LogsTheatreProps) {
                 : null}
             </p>
             <div className="flex items-center gap-1">
+              <FilterSheetTrigger
+                className="h-7 shrink-0 gap-1 px-2 text-[11px] sm:hidden"
+                onClick={() => setSheetOpen(true)}
+              />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+                className="hidden h-7 shrink-0 gap-1 rounded-none px-2 text-[11px] sm:inline-flex"
                 onClick={() => setFiltersOpen((o) => !o)}
               >
                 Filters
@@ -860,107 +968,8 @@ export function LogsTheatre(props: LogsTheatreProps) {
           </div>
 
           {filtersOpen ? (
-            <div className="space-y-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2">
-              <div className="grid gap-2">
-                <label className="grid gap-0.5 text-[11px]">
-                  <span className={dashboardHintClass()}>Severity</span>
-                  <select
-                    className={cn(
-                      dashboardSelectClass(draft.failuresOnly),
-                      "h-8 py-0 text-[11px]",
-                    )}
-                    disabled={draft.failuresOnly}
-                    value={draft.failuresOnly ? "WARN" : draft.severity}
-                    onChange={(e) =>
-                      onDraftChange({
-                        severity: e.target.value as AuditEventSeverity | "",
-                      })
-                    }
-                  >
-                    <option value="">Any severity</option>
-                    {SEVERITIES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-0.5 text-[11px]">
-                  <span className={dashboardHintClass()}>Category</span>
-                  <select
-                    className={cn(dashboardSelectClass(), "h-8 py-0 text-[11px]")}
-                    value={draft.category}
-                    onChange={(e) =>
-                      onDraftChange({
-                        category: e.target.value as AuditEventCategory | "",
-                      })
-                    }
-                  >
-                    <option value="">All categories</option>
-                    {CATEGORY_OPTIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {CATEGORY_LABELS[c]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-0.5 text-[11px]">
-                  <span className={dashboardHintClass()}>Event type</span>
-                  <input
-                    className={cn(dashboardInputClass(), "h-8 text-[11px]")}
-                    list="audit-event-type-options"
-                    placeholder="e.g. sale.completed"
-                    value={draft.eventType}
-                    onChange={(e) => onDraftChange({ eventType: e.target.value })}
-                  />
-                  <datalist id="audit-event-type-options">
-                    {KNOWN_FAILURE_EVENT_TYPES.map((t) => (
-                      <option key={t} value={t} />
-                    ))}
-                  </datalist>
-                </label>
-                <label className="grid gap-0.5 text-[11px]">
-                  <span className={dashboardHintClass()}>Branch</span>
-                  <select
-                    className={cn(dashboardSelectClass(), "h-8 py-0 text-[11px]")}
-                    value={draft.branchId}
-                    onChange={(e) => onDraftChange({ branchId: e.target.value })}
-                  >
-                    <option value="">All branches</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {showCustomRange ? (
-                  <>
-                    <label className="grid gap-0.5 text-[11px]">
-                      <span className={dashboardHintClass()}>From</span>
-                      <input
-                        type="datetime-local"
-                        className={cn(dashboardInputClass(), "h-8 text-[11px]")}
-                        value={draft.customFrom}
-                        onChange={(e) =>
-                          onDraftChange({ customFrom: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-0.5 text-[11px]">
-                      <span className={dashboardHintClass()}>To</span>
-                      <input
-                        type="datetime-local"
-                        className={cn(dashboardInputClass(), "h-8 text-[11px]")}
-                        value={draft.customTo}
-                        onChange={(e) =>
-                          onDraftChange({ customTo: e.target.value })
-                        }
-                      />
-                    </label>
-                  </>
-                ) : null}
-              </div>
+            <div className="hidden space-y-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-2 sm:block">
+              {filterInputs}
               <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
@@ -980,14 +989,25 @@ export function LogsTheatre(props: LogsTheatreProps) {
                   Reset
                 </Button>
               </div>
-              {draft.failuresOnly ? (
-                <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-                  Showing WARN+ — login failures, invalid keys, failed STK /
-                  webhooks, and server exceptions.
-                </p>
-              ) : null}
+              {filterNotice}
             </div>
           ) : null}
+
+          <datalist id="audit-event-type-options">
+            {KNOWN_FAILURE_EVENT_TYPES.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+
+          <FilterSheet
+            open={sheetOpen}
+            onOpenChange={setSheetOpen}
+            onApply={onApply}
+            onReset={onReset}
+          >
+            {filterInputs}
+            {filterNotice}
+          </FilterSheet>
 
           <button
             type="button"
@@ -1008,7 +1028,7 @@ export function LogsTheatre(props: LogsTheatreProps) {
               <span className="block text-[11px] font-semibold text-foreground">
                 Device diagnostics
               </span>
-              <span className="block text-[10px] text-muted-foreground">
+              <span className="block text-xs text-muted-foreground">
                 This browser only
               </span>
             </span>
@@ -1088,7 +1108,7 @@ export function LogsTheatre(props: LogsTheatreProps) {
                           <SeverityBadge severity={row.severity} />
                           <time
                             dateTime={row.createdAt}
-                            className="truncate text-[10px] tabular-nums text-muted-foreground"
+                            className="truncate text-[11px] tabular-nums text-muted-foreground"
                           >
                             {formatEventTime(row.createdAt)}
                           </time>
@@ -1101,7 +1121,7 @@ export function LogsTheatre(props: LogsTheatreProps) {
                         >
                           {humanizeEventType(row.eventType)}
                         </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
                           <CategoryChip category={row.category} />
                           <span className="truncate font-mono">
                             {row.eventType}

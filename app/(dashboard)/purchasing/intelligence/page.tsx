@@ -48,6 +48,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import { FilterSheet, FilterSheetTrigger } from "@/components/ui/filter-sheet";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
@@ -388,6 +389,7 @@ export default function PurchasingIntelligencePage() {
   const [data, setData] =
     useState<PurchasingIntelligenceDashboardResponse | null>(null);
   const [drawer, setDrawer] = useState<DrawerId | null>(null);
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
   const load = useCallback(
     async (range?: { from: string; to: string }) => {
@@ -411,6 +413,42 @@ export default function PurchasingIntelligencePage() {
       }
     },
     [from, to, headerBranchId],
+  );
+
+  // Custom date range — inline on `sm+`, in the phone filter sheet below (§4.5).
+  const rangeInputs = (
+    <>
+      <label className="flex w-full flex-col gap-1 sm:w-auto">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+          From
+        </span>
+        <input
+          type="date"
+          className={cn(fieldClass, "h-11 sm:h-8 sm:w-auto sm:min-w-[9.5rem]")}
+          value={from}
+          disabled={loading}
+          onChange={(e) => {
+            setActivePreset("");
+            setFrom(e.target.value);
+          }}
+        />
+      </label>
+      <label className="flex w-full flex-col gap-1 sm:w-auto">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+          To
+        </span>
+        <input
+          type="date"
+          className={cn(fieldClass, "h-11 sm:h-8 sm:w-auto sm:min-w-[9.5rem]")}
+          value={to}
+          disabled={loading}
+          onChange={(e) => {
+            setActivePreset("");
+            setTo(e.target.value);
+          }}
+        />
+      </label>
+    </>
   );
 
   useEffect(() => {
@@ -579,37 +617,15 @@ export default function PurchasingIntelligencePage() {
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                  From
-                </span>
-                <input
-                  type="date"
-                  className={cn(fieldClass, "min-w-[9.5rem]")}
-                  value={from}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setActivePreset("");
-                    setFrom(e.target.value);
-                  }}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                  To
-                </span>
-                <input
-                  type="date"
-                  className={cn(fieldClass, "min-w-[9.5rem]")}
-                  value={to}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setActivePreset("");
-                    setTo(e.target.value);
-                  }}
-                />
-              </label>
+            {/* Phone: custom range + Apply live in a sheet; presets above stay. */}
+            <FilterSheetTrigger
+              className="h-8 self-start px-3 text-[12px] sm:hidden"
+              activeCount={from || to ? 1 : 0}
+              onClick={() => setFiltersSheetOpen(true)}
+            />
+
+            <div className="hidden flex-wrap items-end gap-2 sm:flex">
+              {rangeInputs}
               <Button
                 type="submit"
                 disabled={loading}
@@ -639,6 +655,22 @@ export default function PurchasingIntelligencePage() {
             </div>
           </form>
         </div>
+
+        <FilterSheet
+          open={filtersSheetOpen}
+          onOpenChange={setFiltersSheetOpen}
+          onApply={() => {
+            setActivePreset("");
+            void load().catch(() => setMessage("Failed to load reports."));
+          }}
+          onReset={() => {
+            setFrom("");
+            setTo("");
+            setActivePreset("");
+          }}
+        >
+          {rangeInputs}
+        </FilterSheet>
 
         <div className="flex min-w-0 flex-col pb-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {message ? <DashboardFeedback kind="error" text={message} /> : null}

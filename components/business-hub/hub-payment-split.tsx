@@ -32,7 +32,7 @@ export function HubPaymentSplit({
   const total = cash + mpesa + credit;
 
   return (
-    <section className={cn(HUB_SURFACE, "p-3.5")}>
+    <section className={cn(HUB_SURFACE, "p-3")}>
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
           How you got paid
@@ -42,7 +42,7 @@ export function HubPaymentSplit({
         </p>
       </div>
 
-      <div className="mt-2.5 flex h-1.5 w-full gap-px overflow-hidden rounded-none bg-[#F1F3F2]">
+      <div className="mt-2 flex h-1.5 w-full gap-px overflow-hidden rounded-none bg-[#F1F3F2]">
         {total > 0
           ? LANES.map((lane) => {
               const share = (totals[lane.id] / total) * 100;
@@ -61,7 +61,7 @@ export function HubPaymentSplit({
 
       <dl
         className={cn(
-          "mt-3 grid gap-2",
+          "mt-2.5 grid gap-2",
           compact ? "grid-cols-1" : "grid-cols-3",
         )}
       >

@@ -799,6 +799,7 @@ export default function PayrollPage() {
               Amount (KES)
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
                 className={dashboardInputClass()}

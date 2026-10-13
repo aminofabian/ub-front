@@ -79,6 +79,7 @@ export function PayrollMonthNav({ year, month, onChange, onRefresh }: Props) {
         Year
         <input
           type="number"
+          inputMode="numeric"
           className={dashboardInputClass(false, "w-24")}
           value={year}
           min={2000}

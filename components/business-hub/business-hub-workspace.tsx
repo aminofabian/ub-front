@@ -1598,7 +1598,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-2.5 sm:gap-4">
+                <div className="flex flex-col gap-2 sm:gap-4">
                   <HubGreeting
                     className="max-sm:absolute max-sm:m-[-1px] max-sm:h-px max-sm:w-px max-sm:overflow-hidden max-sm:whitespace-nowrap max-sm:border-0 max-sm:p-0 max-sm:[clip:rect(0,0,0,0)]"
                     name={me?.name}
@@ -1611,9 +1611,13 @@ export function BusinessHubWorkspace() {
 
                   {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
 
-                  <div className="xl:hidden">
-                    <HubQuickActions links={jumpInLinks} presentation="strip" />
-                  </div>
+                  {showAttentionSection ? (
+                    actionItems.length > 0 ? (
+                      <ActionItemsStrip items={actionItems} />
+                    ) : salesEmpty ? null : (
+                      <HubAllClear />
+                    )
+                  ) : null}
 
                   {tenderTotals ? (
                     <HubPaymentSplit
@@ -1625,36 +1629,26 @@ export function BusinessHubWorkspace() {
                     />
                   ) : null}
 
-                  {showAttentionSection ? (
-                    actionItems.length > 0 ? (
-                      <ActionItemsStrip items={actionItems} />
-                    ) : salesEmpty ? null : (
-                      <HubAllClear />
-                    )
-                  ) : null}
-
                   {salesEmpty ? null : (
-                    <section className="space-y-2">
-                      <div className="flex items-baseline justify-between px-0.5">
-                        <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
-                          <span className="sm:hidden">Revenue</span>
-                          <span className="hidden sm:inline">
-                            Revenue · {isToday ? "Today" : "This week"}
-                          </span>
-                        </h3>
-                        {revenueTrend ? (
-                          <p className="text-[12px] font-semibold tabular-nums text-[#047857]">
-                            {revenueTrend}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
-                        <p
-                          className="mb-2 hidden text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:block"
-                          style={{ fontFamily: "var(--font-heading)" }}
-                        >
-                          {money(revenue)}
-                        </p>
+                    <section className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
+                      <HubSectionLabel
+                        title="Revenue"
+                        meta={isToday ? "Today" : "This week"}
+                        action={
+                          revenueTrend ? (
+                            <span className="text-[12px] font-semibold tabular-nums text-[#047857]">
+                              {revenueTrend}
+                            </span>
+                          ) : undefined
+                        }
+                      />
+                      <p
+                        className="mt-1.5 hidden text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:block"
+                        style={{ fontFamily: "var(--font-heading)" }}
+                      >
+                        {money(revenue)}
+                      </p>
+                      <div className="mt-2">
                         <RevenueBarChart
                           bare
                           points={chartPoints}
@@ -1665,30 +1659,10 @@ export function BusinessHubWorkspace() {
                     </section>
                   )}
 
-                  <HubWorkSummary cards={workCards} />
-
-                  <div className="flex flex-col gap-2.5 xl:hidden">
-                    {canShowPaymentMethod ? (
-                      <ReceiveMpesaSetupCard
-                        rail
-                        ownerPhone={me?.phone}
-                        countryCode={business?.countryCode}
-                        permissions={me?.permissions}
-                      />
-                    ) : null}
-                    <AirtimeFloatHubCard
-                      rail
-                      ownerPhone={me?.phone}
-                      permissions={me?.permissions}
-                    />
-                    {canManageBusinessSettings ? (
-                      <ManageTillsHubCard
-                        rail
-                        branches={branches}
-                        branchId={branchId}
-                        initiallyOpen={manageTillsInitiallyOpen}
-                      />
-                    ) : null}
+                  {/* Phone shows the detailed "Open work" board below; this
+                      summary would repeat the same supply/credit/web counts. */}
+                  <div className="max-sm:hidden">
+                    <HubWorkSummary cards={workCards} />
                   </div>
 
                   {/* 5 — Open work (phone: column tabs; sm+: multi-column grid) */}
@@ -1841,6 +1815,31 @@ export function BusinessHubWorkspace() {
                       </div>
                     </section>
                   ) : null}
+
+                  {/* Setup & utilities — secondary to the pulse, so they sit last. */}
+                  <div className="flex flex-col gap-2.5 xl:hidden">
+                    {canShowPaymentMethod ? (
+                      <ReceiveMpesaSetupCard
+                        rail
+                        ownerPhone={me?.phone}
+                        countryCode={business?.countryCode}
+                        permissions={me?.permissions}
+                      />
+                    ) : null}
+                    <AirtimeFloatHubCard
+                      rail
+                      ownerPhone={me?.phone}
+                      permissions={me?.permissions}
+                    />
+                    {canManageBusinessSettings ? (
+                      <ManageTillsHubCard
+                        rail
+                        branches={branches}
+                        branchId={branchId}
+                        initiallyOpen={manageTillsInitiallyOpen}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>

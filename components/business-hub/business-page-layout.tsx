@@ -39,7 +39,7 @@ function HubIdentity({ identity }: { identity: BusinessIdentity }) {
         name={name}
         logoUrl={identity.logoUrl}
         faviconUrl={identity.faviconUrl}
-        className="size-8 sm:size-7"
+        className="size-7"
       />
       <span className="min-w-0">
         <span className="block truncate font-heading text-[15px] font-semibold leading-none tracking-[-0.02em] text-[var(--hub-ink)] sm:text-[16px]">
@@ -134,24 +134,24 @@ export function BusinessPageLayout({
           ) : null}
 
           {/*
-            Phone is exactly two rows when the board has a lens: shop and
-            status, then period, tills, and the store switch. Desk keeps one
-            control line, with tills on the band underneath.
+            Phone: exactly two rows — (1) the shop and its status/actions, then
+            (2) the board lens (period · tills · online). Both are 44px tall so
+            they read as one toolbar, not two squeezed strips.
           */}
           <div className="sm:hidden">
-            <div className="flex h-12 min-w-0 items-center gap-2 px-3">
+            <div className="flex h-11 min-w-0 items-center gap-2 px-3">
               {identity ? (
                 <HubIdentity identity={identity} />
               ) : (
                 <span className="min-w-0 flex-1" />
               )}
-              <div className="ml-auto flex shrink-0 items-center gap-1">
+              <div className="ml-auto flex shrink-0 items-center gap-0.5">
                 {headerActions}
                 {menu}
               </div>
             </div>
             {showPhoneLens ? (
-              <div className="flex h-12 min-w-0 items-center gap-1.5 px-3">
+              <div className="flex h-11 min-w-0 items-center gap-2 border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3">
                 {toolbarLeading}
                 {stage ? (
                   <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -160,7 +160,6 @@ export function BusinessPageLayout({
                 ) : (
                   <span className="min-w-0 flex-1" aria-hidden />
                 )}
-                <OnlineStoreHeaderSwitch />
               </div>
             ) : null}
           </div>
