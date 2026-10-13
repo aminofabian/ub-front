@@ -54,11 +54,11 @@ export function HubQuickActions({
   }
 
   return (
-    <section className={cn(HUB_SURFACE, "p-3 sm:p-3.5")}>
-      <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
+    <section className={cn(HUB_SURFACE, "p-2.5 sm:p-3.5")}>
+      <h3 className="max-sm:hidden text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
         {title}
       </h3>
-      <div className="mt-2 grid grid-cols-3 gap-1.5">
+      <div className="mt-0 grid grid-cols-3 gap-1.5 sm:mt-2">
         {tiles.map((link) => {
           const Icon = link.icon;
           return (
@@ -68,7 +68,7 @@ export function HubQuickActions({
               title={link.hint}
               className={cn(
                 TILE_LINK,
-                "group flex min-h-12 flex-col items-center justify-center gap-1 bg-[#FBFCFB] px-1 py-1.5 text-center",
+                "group flex min-h-11 flex-col items-center justify-center gap-1 bg-[#FBFCFB] px-1 py-1.5 text-center",
               )}
             >
               <Icon className="size-4 shrink-0 text-[#0f766e]" aria-hidden />

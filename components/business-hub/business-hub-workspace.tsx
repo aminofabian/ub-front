@@ -35,7 +35,6 @@ import { type JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
 import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
-import { HubGreeting } from "@/components/business-hub/hub-greeting";
 import { HubKpiRow, type HubKpi } from "@/components/business-hub/hub-kpi-row";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
 import { HubPaymentSplit } from "@/components/business-hub/hub-payment-split";
@@ -1480,7 +1479,6 @@ export function BusinessHubWorkspace() {
           : null
       }
       setupHome={shopNotReady}
-      identity={identity}
       menu={<BusinessHubMenuButton identity={identity} setupHome={shopNotReady} />}
       toolbarLeading={
         shopNotReady ? null : (
@@ -1599,25 +1597,7 @@ export function BusinessHubWorkspace() {
 
               {shopNotReady ? null : (
                 <div className="flex flex-col gap-2 sm:gap-4">
-                  <HubGreeting
-                    className="max-sm:absolute max-sm:m-[-1px] max-sm:h-px max-sm:w-px max-sm:overflow-hidden max-sm:whitespace-nowrap max-sm:border-0 max-sm:p-0 max-sm:[clip:rect(0,0,0,0)]"
-                    name={me?.name}
-                    subtitle={
-                      isToday
-                        ? "Here's what's happening at your shop today."
-                        : "Here's how the shop did this week."
-                    }
-                  />
-
                   {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
-
-                  {showAttentionSection ? (
-                    actionItems.length > 0 ? (
-                      <ActionItemsStrip items={actionItems} />
-                    ) : salesEmpty ? null : (
-                      <HubAllClear />
-                    )
-                  ) : null}
 
                   {/* Quick actions — buttons, two rows (the desk rail shows the
                       same board, so this is below-xl only). */}
@@ -1738,6 +1718,16 @@ export function BusinessHubWorkspace() {
                           : []),
                       ]}
                     />
+                  ) : null}
+
+                  {/* Needs attention — the follow-up queue, so it sits below the
+                      work board rather than above the shortcuts. */}
+                  {showAttentionSection ? (
+                    actionItems.length > 0 ? (
+                      <ActionItemsStrip items={actionItems} />
+                    ) : salesEmpty ? null : (
+                      <HubAllClear />
+                    )
                   ) : null}
 
                   {/* Revenue detail — the KPI strip already carries the headline

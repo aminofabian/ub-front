@@ -40,7 +40,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
         meta={`${items.length} to review`}
         className="px-0.5"
       />
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-1">
         {items.map((item) => {
           const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;
@@ -49,7 +49,7 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex min-h-14 items-center gap-2 rounded-none border px-2.5 py-2 transition-colors",
+                "group flex min-h-12 items-center gap-2 rounded-none border px-2.5 py-1.5 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}

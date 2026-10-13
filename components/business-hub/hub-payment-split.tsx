@@ -32,7 +32,7 @@ export function HubPaymentSplit({
   const total = cash + mpesa + credit;
 
   return (
-    <section className={cn(HUB_SURFACE, "p-3")}>
+    <section className={cn(HUB_SURFACE, "p-2.5")}>
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
           How you got paid

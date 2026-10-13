@@ -75,7 +75,7 @@ function StatCard({ item }: { item: StatItem }) {
   const Icon = item.icon;
   const direction = trendDirection(item.trend);
   const TrendIcon = direction === "down" ? ArrowDownRight : ArrowUpRight;
-  const surface = cn(HUB_SURFACE, "flex min-w-0 flex-col p-2.5");
+  const surface = cn(HUB_SURFACE, "flex min-w-0 flex-col p-2");
 
   const content = (
     <>
@@ -121,7 +121,7 @@ function StatCard({ item }: { item: StatItem }) {
 
       <p
         className={cn(
-          "mt-1 truncate font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums",
+          "mt-0.5 truncate font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums",
           item.value.length > 16 ? "text-[13px]" : "text-[15px] sm:text-[17px]",
         )}
         style={{ fontFamily: "var(--font-heading)" }}
@@ -129,7 +129,7 @@ function StatCard({ item }: { item: StatItem }) {
         {item.value}
       </p>
       {item.hint || item.trendLabel ? (
-        <p className="mt-0.5 truncate text-[10px] text-[#8A8A8A] sm:text-[11px]">
+        <p className="mt-0.5 hidden truncate text-[10px] text-[#8A8A8A] sm:block sm:text-[11px]">
           {item.hint ?? item.trendLabel}
         </p>
       ) : null}

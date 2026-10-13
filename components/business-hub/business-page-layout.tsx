@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
-import { HubMark } from "@/components/business-hub/hub-mark";
 import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
 import { OXANIUM_SURFACE_STYLE } from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
@@ -29,32 +28,6 @@ export type BusinessIdentity = {
   faviconUrl?: string | null;
 };
 
-function HubIdentity({ identity }: { identity: BusinessIdentity }) {
-  const name = identity.name.trim() || "Your shop";
-  const meta = identity.meta?.trim() || "";
-
-  return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-      <HubMark
-        name={name}
-        logoUrl={identity.logoUrl}
-        faviconUrl={identity.faviconUrl}
-        className="size-7"
-      />
-      <span className="min-w-0">
-        <span className="block truncate font-heading text-[15px] font-semibold leading-none tracking-[-0.02em] text-[var(--hub-ink)] sm:text-[16px]">
-          {name}
-        </span>
-        {meta ? (
-          <span className="mt-1 hidden truncate text-[10px] leading-none text-[color-mix(in_srgb,var(--hub-ink)_62%,transparent)] sm:block">
-            {meta}
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
 export function BusinessPageLayout({
   children,
   headerActions,
@@ -66,7 +39,6 @@ export function BusinessPageLayout({
   description,
   showNav = true,
   setupHome = false,
-  identity,
   menu,
 }: {
   children: ReactNode;
@@ -86,8 +58,6 @@ export function BusinessPageLayout({
   showNav?: boolean;
   /** First-run: the home tab is the shop, not the sales pulse. */
   setupHome?: boolean;
-  /** Shop name + placement line shown at the head of the board. */
-  identity?: BusinessIdentity;
   /** Phone-only affordance for the hub pages, e.g. the shop menu trigger. */
   menu?: ReactNode;
 }) {
@@ -153,12 +123,6 @@ export function BusinessPageLayout({
           </div>
 
           <div className="hidden items-center gap-2 px-2 py-2 sm:flex sm:flex-wrap sm:gap-x-3 sm:gap-y-1.5">
-            {identity ? (
-              <HubIdentity identity={identity} />
-            ) : (
-              <span className="min-w-0 flex-1" />
-            )}
-
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
               {toolbarLeading}
               <OnlineStoreHeaderSwitch />
