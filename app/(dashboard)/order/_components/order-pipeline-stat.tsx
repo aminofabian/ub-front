@@ -29,7 +29,7 @@ export function PipelineStat({
     <>
       <span
         className={cn(
-          "inline-flex size-5 shrink-0 items-center justify-center rounded-none border",
+          "inline-flex size-5 shrink-0 items-center justify-center rounded-md border",
           active
             ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]",
@@ -62,12 +62,10 @@ export function PipelineStat({
   );
 
   const className = cn(
-    "relative flex min-w-0 flex-1 items-center gap-1.5 rounded-none border bg-white px-2 py-1 transition-[border-color] duration-150",
-    active
-      ? "border-[var(--pos-primary,#0f766e)]"
-      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
+    "relative flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-white px-2 py-1 ring-1 ring-black/[0.05] transition-shadow duration-150",
+    active ? "ring-2 ring-[#0f766e]" : "hover:ring-black/[0.14]",
     href &&
-      "group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+      "group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]",
   );
 
   if (href) {
@@ -87,6 +85,6 @@ export function PipelineStat({
 
 export function PipelineStatsGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">{children}</div>
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">{children}</div>
   );
 }

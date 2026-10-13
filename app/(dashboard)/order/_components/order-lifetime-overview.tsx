@@ -56,8 +56,8 @@ export function OrderLifetimeOverview({
       : 0;
 
   return (
-    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 py-1 sm:flex-nowrap sm:gap-x-4">
+    <div className="rounded-2xl bg-white p-3 ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-nowrap sm:gap-x-4">
         <LedgerMetric
           label="Spend"
           value={loading ? "—" : formatMoney(lifetime.totalSpend, CURRENCY)}
@@ -84,9 +84,9 @@ export function OrderLifetimeOverview({
           <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             {loading ? "—" : `${Math.round(paidRatio)}%`}
           </span>
-          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-none bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
             <div
-              className="h-full rounded-none bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
+              className="h-full rounded-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-500"
               style={{ width: loading ? "0%" : `${paidRatio}%` }}
             />
           </div>

@@ -7,6 +7,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
+import { OrderBuyingJourney } from "./order-buying-journey";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
 import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
 
@@ -22,53 +23,43 @@ export function OrderStatsStrip() {
   const confirmActive = sentStats.awaitingUnits > 0;
 
   const compactPulse = (
-      <section
-        aria-label="Order pulse"
-        className="flex items-stretch gap-px border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
-      >
-        <div className="flex min-w-0 flex-1 items-center gap-3 bg-white px-3 py-2">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-              Building
-            </p>
-            <p className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-              {loading ? (
-                "—"
-              ) : (
-                <>
-                  <span
-                    className={cn(
-                      buildingActive && "text-[var(--pos-primary,#0f766e)]",
-                    )}
-                  >
-                    {localStats.units}
-                  </span>
-                  <span className="mx-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
-                    in basket
-                  </span>
-                  <span
-                    className={cn(confirmActive && "text-amber-800")}
-                  >
-                    {sentStats.awaitingUnits}
-                  </span>
-                  <span className="ml-1 font-normal text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]">
-                    due in
-                  </span>
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-        {confirmActive ? (
-          <Link
-            href={APP_ROUTES.orderReceive}
-            className="inline-flex shrink-0 items-center gap-1.5 bg-white px-3 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]"
-          >
-            <ClipboardCheck className="size-3.5" aria-hidden />
-            Receive
-          </Link>
-        ) : null}
-      </section>
+    <section
+      aria-label="Order pulse"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-[#e9f5f1] p-3.5"
+    >
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
+          Building
+        </p>
+        <p className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[#101828]">
+          {loading ? (
+            "—"
+          ) : (
+            <>
+              <span className={cn(buildingActive && "text-[#0f766e]")}>
+                {localStats.units}
+              </span>
+              <span className="mx-1 font-normal text-[#667085]">
+                in basket
+              </span>
+              <span className={cn(confirmActive && "text-[#b45309]")}>
+                {sentStats.awaitingUnits}
+              </span>
+              <span className="ml-1 font-normal text-[#667085]">due in</span>
+            </>
+          )}
+        </p>
+      </div>
+      {confirmActive ? (
+        <Link
+          href={APP_ROUTES.orderReceive}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05]"
+        >
+          <ClipboardCheck className="size-3.5" aria-hidden />
+          Receive
+        </Link>
+      ) : null}
+    </section>
   );
 
   if (isStockFloor) return compactPulse;
@@ -76,9 +67,15 @@ export function OrderStatsStrip() {
   return (
     <>
       {/* Phones: the full lifetime + pipeline strip eats too much of a short
-          viewport, so show the one-line pulse; the full strip returns at lg+. */}
-      <div className="lg:hidden">{compactPulse}</div>
-      <section aria-label="Order stats" className="hidden space-y-1 lg:block">
+          viewport, so show the journey + one-line pulse; the full strip
+          returns at lg+. */}
+      <div className="space-y-2 lg:hidden">
+        <OrderBuyingJourney step={1} />
+        {compactPulse}
+      </div>
+      <section aria-label="Order stats" className="hidden space-y-2 lg:block">
+      <OrderBuyingJourney step={1} />
+
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 
       <div className="flex items-stretch gap-1">
@@ -137,9 +134,9 @@ export function OrderStatsStrip() {
         {!loading && confirmActive ? (
           <Link
             href={APP_ROUTES.orderReceive}
-            className="inline-flex h-7 shrink-0 items-center gap-1 self-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white px-2 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,#fff)]"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 self-center rounded-xl bg-white px-3 text-[12px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#e9f5f1]"
           >
-            <ClipboardCheck className="size-3" aria-hidden />
+            <ClipboardCheck className="size-3.5" aria-hidden />
             Confirm
           </Link>
         ) : null}

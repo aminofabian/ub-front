@@ -40,7 +40,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-white px-2.5 pt-1 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-3 pt-1 sm:px-5 sm:pt-1.5",
         mobileScroll
           ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
           : "h-full min-h-0 overflow-hidden",
@@ -53,9 +53,9 @@ export function OrderPageLayout({
       <div className="relative flex min-h-0 flex-1 flex-col gap-1">
         <div
           className={cn(
-            "shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink)_12%,transparent)] bg-white",
+            "shrink-0 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-white",
             isStockManager &&
-              "shadow-[0_1px_0_0_color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]",
+              "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}
         >
           <ProcurementHubNav />

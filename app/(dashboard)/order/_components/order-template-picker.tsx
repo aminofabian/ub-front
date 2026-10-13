@@ -22,7 +22,7 @@ export function OrderTemplatePicker({
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 items-stretch divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+        "inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#eef1f0] p-0.5",
         className,
       )}
       role="group"
@@ -39,13 +39,14 @@ export function OrderTemplatePicker({
             aria-pressed={active}
             onClick={() => onChange(t.id)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-none px-2.5 py-2 text-[12px] font-semibold tracking-[-0.02em] transition-colors",
+              "inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]",
               active
-                ? "bg-white text-[var(--pos-primary,#0f766e)]"
-                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+                : "text-[#667085] hover:text-[#101828]",
             )}
           >
-            <Icon className="size-3.5" aria-hidden />
+            <Icon className="size-4" aria-hidden />
             <span className="hidden sm:inline">{t.name}</span>
           </button>
         );
