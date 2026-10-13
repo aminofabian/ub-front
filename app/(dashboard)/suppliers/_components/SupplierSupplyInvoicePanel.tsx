@@ -172,7 +172,7 @@ export function SupplierSupplyInvoicePanel({
           {statusBadge ? (
             <span
               className={cn(
-                "inline-flex rounded-none border px-1.5 py-px text-xs font-semibold tracking-[-0.02em]",
+                "inline-flex rounded-full border px-1.5 py-px text-xs font-semibold tracking-[-0.02em]",
                 statusBadge.className,
               )}
             >
@@ -186,16 +186,16 @@ export function SupplierSupplyInvoicePanel({
               : null}
           </span>
         </div>
-        <dl className="divide-y divide-border/40 rounded-none border border-border/50 text-sm">
+        <dl className="divide-y divide-border/40 rounded-xl border border-border/50 text-sm">
           <div className="flex justify-between gap-2 px-2 py-1">
             <dt className="text-muted-foreground">Total</dt>
-            <dd className="font-mono font-semibold tabular-nums">
+            <dd className="font-semibold tabular-nums">
               {formatSupplyMoney(supplyN(detail.grandTotal))}
             </dd>
           </div>
           <div className="flex justify-between gap-2 px-2 py-1">
             <dt className="text-muted-foreground">Paid</dt>
-            <dd className="font-mono tabular-nums text-primary">
+            <dd className="tabular-nums text-primary">
               {formatSupplyMoney(supplyN(detail.amountPaid))}
             </dd>
           </div>
@@ -203,7 +203,7 @@ export function SupplierSupplyInvoicePanel({
             <dt className="text-muted-foreground">Open</dt>
             <dd
               className={cn(
-                "font-mono font-semibold tabular-nums",
+                "font-semibold tabular-nums",
                 balance > 0.009 ? "text-primary font-semibold" : "",
               )}
             >
@@ -213,7 +213,7 @@ export function SupplierSupplyInvoicePanel({
         </dl>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-border/50">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/50">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1">
           <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Lines ({detail.lines.length})
@@ -249,10 +249,10 @@ export function SupplierSupplyInvoicePanel({
                       </p>
                     ) : null}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-1 text-right font-mono tabular-nums">
+                  <td className="whitespace-nowrap px-2 py-1 text-right tabular-nums">
                     {formatSupplyMoney(supplyN(ln.usableQty))}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-1 text-right font-mono font-medium tabular-nums">
+                  <td className="whitespace-nowrap px-2 py-1 text-right font-medium tabular-nums">
                     {formatSupplyMoney(supplyN(ln.lineTotal))}
                   </td>
                 </tr>
@@ -263,7 +263,7 @@ export function SupplierSupplyInvoicePanel({
       </div>
 
       {detail.notes?.trim() ? (
-        <p className="shrink-0 rounded-none border border-border/45 bg-muted/15 px-2 py-1.5 text-xs text-muted-foreground">
+        <p className="shrink-0 rounded-xl border border-border/45 bg-muted/15 px-2 py-1.5 text-xs text-muted-foreground">
           {detail.notes.trim()}
         </p>
       ) : null}
@@ -281,7 +281,7 @@ export function SupplierSupplyInvoicePanel({
             type="button"
             size="sm"
             variant={balance > 0.009 && canPay ? "default" : "outline"}
-            className="h-7 gap-1 rounded-none text-xs"
+            className="h-7 gap-1 rounded-xl text-xs"
             onClick={() => setPayOpen(true)}
           >
             <CreditCard className="size-3" aria-hidden />
@@ -293,7 +293,7 @@ export function SupplierSupplyInvoicePanel({
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 gap-1 rounded-none text-xs"
+            className="h-7 gap-1 rounded-xl text-xs"
             onClick={() => setEditOpen(true)}
           >
             <FileEdit className="size-3" aria-hidden />
@@ -308,7 +308,7 @@ export function SupplierSupplyInvoicePanel({
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 gap-1 rounded-none text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="h-7 gap-1 rounded-xl text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
             disabled={deleting}
             onClick={() => void onDelete()}
           >

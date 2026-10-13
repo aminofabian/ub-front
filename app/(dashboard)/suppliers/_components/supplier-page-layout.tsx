@@ -23,8 +23,8 @@ export function SupplierPageLayout({
       )}
       style={PROCUREMENT_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
-        <div className="shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-3">
+        <div className="shrink-0 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
           <ProcurementHubNav />
         </div>
 

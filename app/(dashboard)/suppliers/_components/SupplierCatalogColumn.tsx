@@ -930,7 +930,7 @@ export function SupplierCatalogColumn({
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-none px-4"
+            className="h-9 rounded-xl px-4"
             onClick={() => setCatalogBrowserOpen(false)}
           >
             Close
@@ -997,7 +997,7 @@ export function SupplierCatalogColumn({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-none px-3 text-xs"
+            className="h-8 rounded-xl px-3 text-xs"
             onClick={() => setCatalogBrowserOpen(false)}
           >
             Close
@@ -1005,7 +1005,7 @@ export function SupplierCatalogColumn({
           <Button
             type="submit"
             size="sm"
-            className="h-8 shrink-0 gap-1 rounded-none px-3 text-xs font-semibold"
+            className="h-8 shrink-0 gap-1 rounded-xl px-3 text-xs font-semibold"
             disabled={linksBusy || selectedIds.size === 0}
           >
             <Link2 className="size-3" aria-hidden />
@@ -1332,7 +1332,7 @@ export function SupplierCatalogColumn({
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 w-full rounded-none text-xs"
+              className="h-7 w-full rounded-xl text-xs"
               disabled={catalogLoadingMore || catalogLoading}
               onClick={() => void loadMore()}
             >
@@ -1381,7 +1381,7 @@ export function SupplierCatalogColumn({
         action={
           <div className="flex items-center gap-1">
             {itemLinks.length > 0 ? (
-              <span className="rounded bg-muted/50 px-1 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
+              <span className="rounded-full bg-muted/50 px-1 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
                 {itemLinks.length}
               </span>
             ) : null}
@@ -1389,7 +1389,7 @@ export function SupplierCatalogColumn({
               <Button
                 type="button"
                 size="sm"
-                className="h-6 gap-0.5 rounded-none bg-[var(--pos-primary,#0f766e)] px-1.5 text-xs font-semibold text-white shadow-none hover:bg-[#0d6b63]"
+                className="h-6 gap-0.5 rounded-xl bg-[var(--pos-primary,#0f766e)] px-1.5 text-xs font-semibold text-white shadow-none hover:bg-[#0d6b63]"
                 onClick={() => setCatalogBrowserOpen(true)}
               >
                 <Link2 className="size-2.5" aria-hidden />
@@ -1497,7 +1497,7 @@ export function SupplierCatalogColumn({
                                 ) : null}
                                 {packs ? (
                                   <span
-                                    className="inline-flex shrink-0 items-center gap-1 border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
                                     title={`Pack options: ${packs.map((p) => `${fmtPackSize(p.unitsPerPack)} ${p.packUnit}`).join(", ")}`}
                                   >
                                     {packs
@@ -1509,7 +1509,7 @@ export function SupplierCatalogColumn({
                                   </span>
                                 ) : pack ? (
                                   <span
-                                    className="inline-flex shrink-0 items-center border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
+                                    className="inline-flex shrink-0 items-center rounded-full border border-amber-900/35 bg-amber-50 px-1 py-px font-mono text-[9px] font-black tabular-nums text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/50 dark:text-amber-100"
                                     title={`Sold as a pack of ${pack.size} ${pack.unit}`}
                                   >
                                     ×{fmtPackSize(pack.size)}
@@ -1523,7 +1523,7 @@ export function SupplierCatalogColumn({
                                 </span>
                                 {row.packageVariant ? (
                                   <span
-                                    className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
+                                    className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
                                     title="Package / pack variant"
                                   >
                                     Pack
@@ -1531,7 +1531,7 @@ export function SupplierCatalogColumn({
                                 ) : null}
                                 {row.primary ? (
                                   <span
-                                    className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
+                                    className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-semibold tracking-[-0.02em] text-primary"
                                     title="Primary supplier for this product"
                                   >
                                     1°
@@ -1670,7 +1670,7 @@ export function SupplierCatalogColumn({
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="size-6 rounded-none p-0 text-muted-foreground"
+                                  className="size-6 rounded-xl p-0 text-muted-foreground"
                                   title="Edit link"
                                   onClick={() => openEditLinkDrawer(row)}
                                 >
@@ -1682,7 +1682,7 @@ export function SupplierCatalogColumn({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="size-6 rounded-none p-0 text-muted-foreground"
+                                    className="size-6 rounded-xl p-0 text-muted-foreground"
                                     title="Set as primary supplier"
                                     disabled={linksBusy || !row.active}
                                     onClick={() => void onSetPrimaryLink(row)}
@@ -1695,7 +1695,7 @@ export function SupplierCatalogColumn({
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="size-6 rounded-none p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  className="size-6 rounded-xl p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                   title="Remove link"
                                   disabled={linksBusy}
                                   onClick={() => void onRemoveLink(row)}
@@ -1739,7 +1739,7 @@ export function SupplierCatalogColumn({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7 shrink-0 gap-1 rounded-none px-2.5 text-xs font-semibold"
+                    className="h-7 shrink-0 gap-1 rounded-xl px-2.5 text-xs font-semibold"
                     disabled={
                       linksBusy ||
                       moveSelectedIds.size === 0 ||
@@ -1854,7 +1854,7 @@ export function SupplierCatalogColumn({
               <span className={supFieldLabel}>Pack sizes (optional)</span>
               <button
                 type="button"
-                className="inline-flex h-7 items-center gap-1 border border-primary/35 bg-primary/5 px-2 text-[11px] font-semibold text-primary transition hover:bg-primary/10"
+                className="inline-flex h-7 items-center gap-1 rounded-xl border border-primary/35 bg-primary/5 px-2 text-[11px] font-semibold text-primary transition hover:bg-primary/10"
                 onClick={addPackDraft}
               >
                 <Package className="size-3" aria-hidden />
@@ -1870,7 +1870,7 @@ export function SupplierCatalogColumn({
                 {editLinkPacks.map((d, index) => (
                   <div
                     key={d.id ?? `new-${index}`}
-                    className="flex items-center gap-1 border border-border/60 bg-muted/20 p-1"
+                    className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/20 p-1"
                   >
                     <div className="flex shrink-0 flex-col">
                       <button

@@ -30,7 +30,7 @@ export const supSectionHint =
 /* ── Controls ───────────────────────────────────────────────────────────── */
 
 const supControlBase = cn(
-  "w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-sm",
+  "w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-sm",
   "transition-[border-color] duration-150",
   "placeholder:text-muted-foreground/60",
   "focus-visible:outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
@@ -72,7 +72,7 @@ export const supPageRoot = cn(
 );
 
 export const supHeroSection = cn(
-  "relative overflow-hidden rounded-none border bg-white p-3",
+  "relative overflow-hidden rounded-2xl border bg-white p-3",
   HAIRLINE,
 );
 
@@ -80,7 +80,7 @@ export const supHeroGlowPrimary = "hidden";
 export const supHeroGlowAccent = "hidden";
 
 export const supWorkspaceShell = cn(
-  "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border",
+  "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border",
   HAIRLINE,
   PAPER,
   "lg:h-[min(80dvh,52rem)]",
@@ -89,12 +89,12 @@ export const supWorkspaceShell = cn(
 export const supWorkspaceInner = "flex min-h-0 flex-1 flex-col gap-0 p-0";
 
 export const supCard = cn(
-  "rounded-none border bg-white text-foreground",
+  "rounded-2xl border bg-white text-foreground",
   HAIRLINE,
 );
 
 export const supCardInset = cn(
-  "rounded-none border border-dashed bg-white",
+  "rounded-2xl border border-dashed bg-white",
   HAIRLINE,
 );
 
@@ -109,7 +109,7 @@ export const supSectionHeader = cn(
 export const supSectionBody = "p-0";
 
 export const supStatTile = cn(
-  "rounded-none border bg-white px-2.5 py-2",
+  "rounded-xl border bg-white px-2.5 py-2",
   HAIRLINE,
 );
 
@@ -151,7 +151,7 @@ export const supTableCell = cn(
 );
 
 export const supKvTable = cn(
-  "w-full border-collapse rounded-none border text-left text-xs overflow-hidden",
+  "w-full border-collapse rounded-2xl border text-left text-xs overflow-hidden",
   HAIRLINE,
 );
 
@@ -177,7 +177,7 @@ export const supPanelHeader = cn(
 
 export const supPanelHeaderIcon = (_accent: "primary" | "violet" = "primary") =>
   cn(
-    "flex size-7 shrink-0 items-center justify-center rounded-none border bg-white text-[var(--pos-primary,#0f766e)]",
+    "flex size-7 shrink-0 items-center justify-center rounded-xl border bg-white text-[var(--pos-primary,#0f766e)]",
     HAIRLINE,
   );
 
@@ -193,19 +193,19 @@ export const supPanelKicker = supKickerPrimary;
 export const supPanelKickerViolet = supKickerViolet;
 
 export const supEmptyState = cn(
-  "flex flex-col items-center justify-center gap-3 rounded-none border border-dashed",
+  "flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed",
   HAIRLINE,
   "bg-white px-4 py-10 text-center",
 );
 
 export const supEmptyIconWrap = cn(
-  "flex size-11 items-center justify-center rounded-none border",
+  "flex size-11 items-center justify-center rounded-xl border",
   HAIRLINE,
   "bg-white text-muted-foreground/50",
 );
 
 export const supChip = cn(
-  "inline-flex h-8 shrink-0 items-center rounded-none px-2.5 text-[12px] font-semibold tracking-[-0.02em]",
+  "inline-flex h-8 shrink-0 items-center rounded-full px-2.5 text-[12px] font-semibold tracking-[-0.02em]",
   "transition-colors duration-150",
 );
 
@@ -224,11 +224,11 @@ export const supDrawerFooter = cn(
 );
 
 export const supBtnPrimary = cn(
-  "h-8 gap-1.5 rounded-none px-3 font-semibold shadow-none",
+  "h-8 gap-1.5 rounded-xl px-3 font-semibold shadow-none",
 );
 
 export const supBtnOutline = cn(
-  "h-8 rounded-none px-3 font-medium shadow-none",
+  "h-8 rounded-xl px-3 font-medium shadow-none",
 );
 
 export const supRowActive = cn(
@@ -249,10 +249,10 @@ export const supMotionIn = "";
 
 export function statusBadgeClass(status: string): string {
   if (status === "active")
-    return "rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
+    return "rounded-full border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
   if (status === "blocked")
-    return "rounded-none border border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
-  return "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
+    return "rounded-full border border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
+  return "rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
 }
 
 export function statusDotClass(status: string): string {
@@ -264,8 +264,8 @@ export function statusDotClass(status: string): string {
 export function paymentStatusBadgeClass(status: string): string {
   const s = status.toUpperCase();
   if (s === "PAID")
-    return "rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
+    return "rounded-full border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
   if (s === "PARTIAL")
-    return "rounded-none border border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
-  return "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
+    return "rounded-full border border-[#9a2e16]/35 bg-transparent text-[#9a2e16]";
+  return "rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground";
 }

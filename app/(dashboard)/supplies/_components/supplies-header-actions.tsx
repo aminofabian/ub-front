@@ -18,12 +18,12 @@ import { cn } from "@/lib/utils";
 import { SupplierGuideDrawer } from "../../suppliers/_components/SupplierGuideDrawer";
 
 const chip = cn(
-  "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
-  "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
+  "inline-flex h-8 items-center gap-1 rounded-full bg-white px-2.5 text-[12px] font-semibold tracking-[-0.02em] text-[#475467] ring-1 ring-black/[0.05]",
+  "transition-colors hover:bg-[#f2f7f5] hover:text-[#101828]",
 );
 
 const chipActive = cn(
-  "inline-flex h-8 items-center gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2 text-[12px] font-semibold tracking-[-0.02em] text-white",
+  "inline-flex h-8 items-center gap-1 rounded-full bg-[#0f766e] px-2.5 text-[12px] font-semibold tracking-[-0.02em] text-white",
 );
 
 export function SuppliesHeaderActions({
@@ -103,7 +103,7 @@ export function SuppliesHeaderActions({
         disabled={listLoading}
         onClick={onRefresh}
         className={cn(
-          "inline-flex size-8 items-center justify-center rounded-none text-muted-foreground",
+          "inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground",
           "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
           "disabled:cursor-not-allowed disabled:opacity-60",
         )}
@@ -119,7 +119,7 @@ export function SuppliesHeaderActions({
           type="button"
           size="sm"
           variant="outline"
-          className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-semibold shadow-none"
+          className="h-8 gap-1 rounded-xl px-2.5 text-[12px] font-semibold shadow-none"
           onClick={onPayAdvance}
         >
           <Wallet className="size-3" aria-hidden />
@@ -130,7 +130,7 @@ export function SuppliesHeaderActions({
         <Button
           type="button"
           size="sm"
-          className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
+          className="h-8 gap-1 rounded-xl bg-[var(--pos-primary,#0f766e)] px-2.5 text-[12px] font-semibold text-white shadow-none hover:bg-[#0d6b63]"
           onClick={onNewSupply}
         >
           <PackagePlus className="size-3" aria-hidden />

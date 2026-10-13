@@ -238,10 +238,10 @@ export function SupplierProfileFields({
         <button
           type="button"
           onClick={() => setMoreOpen((value) => !value)}
-          className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-[#E8E4DC] bg-white px-3.5 text-sm font-medium text-[#0D9488] sm:min-h-9 sm:rounded-none"
+          className="flex min-h-11 w-full items-center justify-between rounded-xl border border-[#E8E4DC] bg-white px-3.5 text-sm font-medium text-[#0f766e] sm:min-h-9"
         >
           {moreOpen ? "Hide extra details" : "More details"}
-          <span className="text-xs font-normal text-[#6B7280]">
+          <span className="text-xs font-normal text-[#667085]">
             VAT, credit, payout
           </span>
         </button>
@@ -271,7 +271,7 @@ export function SupplierProfileFields({
             <label className="flex h-8 cursor-pointer items-center gap-2 px-2">
               <input
                 type="checkbox"
-                className="size-3.5 rounded-none border-input text-primary focus-visible:ring-1 focus-visible:ring-primary/40"
+                className="size-3.5 rounded-sm border-input text-primary focus-visible:ring-1 focus-visible:ring-primary/40"
                 checked={draft.taxExempt}
                 onChange={(e) => onDraftChange({ taxExempt: e.target.checked })}
               />
@@ -374,7 +374,7 @@ export function SupplierProfileFields({
               hint="Save an M-Pesa number to enable automated Send Money. SMS verification is optional."
             >
               <input
-                className={cn(supFormCellInput, "font-mono")}
+                className={cn(supFormCellInput, "tabular-nums")}
                 value={draft.payoutPhone}
                 onChange={(e) => onDraftChange({ payoutPhone: e.target.value })}
                 maxLength={32}
@@ -386,7 +386,7 @@ export function SupplierProfileFields({
           {draft.payoutType === "till" ? (
             <SupFormRow label="Till number" hint="Supplier Buy Goods till.">
               <input
-                className={cn(supFormCellInput, "font-mono")}
+                className={cn(supFormCellInput, "tabular-nums")}
                 value={draft.payoutTillNumber}
                 onChange={(e) =>
                   onDraftChange({ payoutTillNumber: e.target.value })
@@ -401,7 +401,7 @@ export function SupplierProfileFields({
             <>
               <SupFormRow label="Paybill number">
                 <input
-                  className={cn(supFormCellInput, "font-mono")}
+                  className={cn(supFormCellInput, "tabular-nums")}
                   value={draft.payoutPaybillNumber}
                   onChange={(e) =>
                     onDraftChange({ payoutPaybillNumber: e.target.value })
@@ -416,7 +416,7 @@ export function SupplierProfileFields({
                 hint="Account / reference the paybill requires."
               >
                 <input
-                  className={cn(supFormCellInput, "font-mono")}
+                  className={cn(supFormCellInput, "tabular-nums")}
                   value={draft.payoutPaybillAccount}
                   onChange={(e) =>
                     onDraftChange({ payoutPaybillAccount: e.target.value })

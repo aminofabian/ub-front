@@ -15,12 +15,12 @@ import {
 } from "../../suppliers/_components/supplier-ui-tokens";
 
 export const SUPPLIES_SURFACE = cn(
-  "overflow-hidden rounded-none border bg-white",
+  "overflow-hidden rounded-2xl border bg-white",
   HAIRLINE,
 );
 
 export const SUPPLIES_THEATRE = cn(
-  "overflow-hidden rounded-none border",
+  "overflow-hidden rounded-2xl border",
   HAIRLINE,
   PAPER,
   "lg:h-[min(80dvh,52rem)]",
@@ -48,30 +48,37 @@ export function SuppliesPageLayout({
       )}
       style={PROCUREMENT_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1.5">
-        <div className={cn("shrink-0 border bg-white", HAIRLINE)}>
+      <div className="relative flex min-h-0 flex-1 flex-col gap-3">
+        <div
+          className={cn(
+            "shrink-0 overflow-hidden rounded-2xl border bg-white",
+            HAIRLINE,
+            "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+          )}
+        >
           <ProcurementHubNav />
         </div>
 
         <header
           className={cn(
-            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
+            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-3 py-2.5 sm:px-4",
             HAIRLINE,
+            "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex size-7 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-white">
-                <Package className="size-3.5" aria-hidden />
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
+                <Package className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
                 <h1
-                  className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
+                  className="truncate text-[18px] font-semibold tracking-[-0.02em] text-[#101828]"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
                   Records
                 </h1>
-                <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
+                <p className="hidden truncate text-[12px] text-[#667085] sm:block">
                   Deliveries · bills · deposits
                 </p>
               </div>
@@ -99,7 +106,7 @@ export function SuppliesPageLayout({
           ) : null}
         </header>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5 pb-16 sm:pb-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 pb-16 sm:pb-0">
           {children}
         </div>
       </div>

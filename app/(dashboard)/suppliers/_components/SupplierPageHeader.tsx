@@ -62,18 +62,13 @@ export function SupplierPageHeader({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-none border bg-white px-2.5 py-1.5 sm:px-3",
+        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.05)] sm:px-3",
         HAIRLINE,
       )}
     >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn(
-              "inline-flex size-7 shrink-0 items-center justify-center rounded-none border bg-[var(--pos-primary,#0f766e)] text-white",
-              HAIRLINE,
-            )}
-          >
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
             <Truck className="size-3.5" aria-hidden />
           </span>
           <div className="min-w-0">
@@ -106,7 +101,7 @@ export function SupplierPageHeader({
               key={href}
               href={href}
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
+                "inline-flex h-8 items-center gap-1 rounded-full px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
                 "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
               )}
             >
@@ -119,7 +114,7 @@ export function SupplierPageHeader({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-8 items-center gap-1 rounded-none px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
+                  "inline-flex h-8 items-center gap-1 rounded-full px-2 text-[12px] font-semibold tracking-[-0.02em] text-muted-foreground",
                   "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
                 )}
                 title="The complete supplier flow — summary + full guide"
@@ -140,7 +135,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium shadow-none"
+              className="h-8 gap-1 rounded-xl px-2.5 text-[12px] font-medium shadow-none"
               asChild
             >
               <Link href={receiveTillHref}>
@@ -154,7 +149,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[12px] font-medium shadow-none"
+              className="h-8 gap-1 rounded-xl px-2.5 text-[12px] font-medium shadow-none"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />

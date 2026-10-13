@@ -71,7 +71,7 @@ export function SupplierWorkspaceEmpty({
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-2xl flex-col gap-5",
+          "mx-auto flex w-full max-w-2xl flex-col gap-5 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
           compact ? "p-4 sm:p-5" : "p-5 sm:p-8",
         )}
       >
@@ -95,7 +95,7 @@ export function SupplierWorkspaceEmpty({
           {canWrite ? (
             <Button
               type="button"
-              className="h-12 justify-start gap-2 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63] sm:h-9 sm:rounded-none"
+              className="h-12 justify-start gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63] sm:h-9"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
@@ -106,7 +106,7 @@ export function SupplierWorkspaceEmpty({
             <Button
               type="button"
               variant="outline"
-              className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
+              className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -116,14 +116,14 @@ export function SupplierWorkspaceEmpty({
           <Button
             type="button"
             variant="outline"
-            className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
+            className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
             onClick={() =>
               document.getElementById("supplier-directory-search")?.focus()
             }
           >
             <Search className="size-3.5" aria-hidden />
             Search directory
-            <kbd className="ml-auto hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
+            <kbd className="ml-auto hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
               /
             </kbd>
           </Button>
@@ -131,7 +131,7 @@ export function SupplierWorkspaceEmpty({
             type="button"
             variant="outline"
             asChild
-            className="h-12 justify-start gap-2 rounded-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9 sm:rounded-none"
+            className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
           >
             <Link href={APP_ROUTES.supplierDirectory}>
               <Truck className="size-3.5" aria-hidden />
@@ -141,7 +141,7 @@ export function SupplierWorkspaceEmpty({
         </div>
 
         {picks.length > 0 ? (
-          <section className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white sm:rounded-none">
+          <section className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
             <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <BookUser
@@ -185,7 +185,7 @@ export function SupplierWorkspaceEmpty({
                     ) : null}
                     <span
                       className={cn(
-                        "shrink-0 rounded-none px-2 py-0.5 text-[10px] font-semibold capitalize",
+                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
                         statusBadgeClass(row.status),
                       )}
                     >
@@ -207,10 +207,10 @@ export function SupplierWorkspaceEmpty({
           {STEPS.map((step) => (
             <li
               key={step.n}
-              className="rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 sm:rounded-none"
+              className="rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3"
             >
               <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                <span className="flex size-5 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">
+                <span className="flex size-5 items-center justify-center rounded-full border border-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">
                   {step.n}
                 </span>
                 {step.title}

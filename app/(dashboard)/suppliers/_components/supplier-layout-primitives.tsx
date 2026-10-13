@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import {
+  supCard,
   supDrawerFooter,
   supEmptyIconWrap,
   supEmptyState,
@@ -37,12 +38,7 @@ export function SupSection({
   compact?: boolean;
 }) {
   return (
-    <section
-      className={cn(
-        "overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] bg-white",
-        className,
-      )}
-    >
+    <section className={cn(supCard, "overflow-hidden", className)}>
       <div
         className={cn(
           "flex flex-wrap items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
@@ -127,15 +123,18 @@ export function SupWorkflowRail({
 }) {
   return (
     <nav
-      className="flex shrink-0 flex-wrap items-center gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5"
+      className={cn(
+        supCard,
+        "flex shrink-0 flex-wrap items-center gap-2 px-2.5 py-1.5",
+      )}
       aria-label="Workspace steps"
     >
       <span className={supKicker}>Workspace</span>
       <ol className="flex flex-1 flex-wrap items-center gap-1">
         {steps.map(({ n, label }, i, arr) => (
           <li key={n} className="flex items-center gap-1">
-            <span className="inline-flex items-center gap-1.5 border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
-              <span className="flex size-4 shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] text-[9px] font-bold text-white">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--pos-primary,#0f766e)] text-[9px] font-bold text-white">
                 {n}
               </span>
               {label}
@@ -150,7 +149,7 @@ export function SupWorkflowRail({
         ))}
       </ol>
       {activeLabel ? (
-        <span className="max-w-[12rem] truncate border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-0.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
+        <span className="max-w-[12rem] truncate rounded-full border border-[var(--pos-primary,#0f766e)] bg-white px-2 py-0.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
           {activeLabel}
         </span>
       ) : null}
@@ -180,7 +179,7 @@ export function SupDrawerFooter({
       <Button
         type="button"
         variant="outline"
-        className="h-12 w-full rounded-2xl px-3 sm:h-9 sm:w-auto sm:rounded-none"
+        className="h-12 w-full rounded-xl px-3 sm:h-9 sm:w-auto sm:rounded-xl"
         onClick={onCancel}
       >
         {cancelLabel}
@@ -191,7 +190,7 @@ export function SupDrawerFooter({
         <Button
           type="submit"
           form={submitForm}
-          className="h-12 w-full gap-2 rounded-2xl px-4 font-semibold sm:h-9 sm:w-auto sm:rounded-none"
+          className="h-12 w-full gap-2 rounded-xl px-4 font-semibold sm:h-9 sm:w-auto sm:rounded-xl"
           disabled={submitDisabled}
         >
           {submitLabel}
@@ -214,7 +213,8 @@ export function SupMobileSelectionBar({
   return (
     <div
       className={cn(
-        "shrink-0 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+        supCard,
+        "shrink-0 overflow-hidden",
         sticky &&
           "sticky bottom-[var(--shell-bottom-inset)] z-20 mt-1.5 shadow-[0_-10px_28px_-14px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] lg:hidden",
       )}
@@ -249,7 +249,7 @@ export function SupFormSection({
   className?: string;
 }) {
   return (
-    <section className={cn("overflow-hidden bg-white", className)}>
+    <section className={cn(supCard, "overflow-hidden", className)}>
       <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2.5 py-1.5">
         <h3 className={supSectionTitle}>{title}</h3>
         {hint ? <p className={supSectionHint}>{hint}</p> : null}

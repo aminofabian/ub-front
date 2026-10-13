@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 import { SupFormSection } from "./supplier-layout-primitives";
 import {
-  supFormCellInput,
+  supInput,
   supTableCell,
   supTableHead,
   supTableRow,
@@ -195,7 +195,7 @@ export function SupplierDuplicateCheckPanel({
           Global supplier number
         </label>
         <input
-          className={supFormCellInput}
+          className={supInput}
           value={supplierNumber}
           onChange={(e) => onSupplierNumberChange?.(e.target.value)}
           placeholder="S-0001"
@@ -288,7 +288,7 @@ export function SupplierDuplicateCheckPanel({
                           </p>
                           <span
                             className={cn(
-                              "mt-0.5 inline-block border px-1 py-px text-[10px] font-medium",
+                              "mt-0.5 inline-block rounded-full border px-1 py-px text-[10px] font-medium",
                               isIdentityConflict(match)
                                 ? "border-destructive/40 bg-destructive/10 text-destructive"
                                 : confidenceBadgeClass(match.confidence),
@@ -304,7 +304,7 @@ export function SupplierDuplicateCheckPanel({
                         <td
                           className={cn(
                             supTableCell,
-                            "font-mono text-[11px] text-muted-foreground",
+                            "text-[11px] tabular-nums text-muted-foreground",
                           )}
                         >
                           {match.supplierNumber ?? "—"}
@@ -345,7 +345,7 @@ export function SupplierDuplicateCheckPanel({
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-7 rounded-none px-2 text-xs"
+                              className="h-7 rounded-xl px-2 text-xs"
                               disabled={
                                 attachingId ===
                                 (match.marketplaceSupplierId ??

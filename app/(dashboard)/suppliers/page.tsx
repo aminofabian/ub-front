@@ -1035,7 +1035,7 @@ export default function SuppliersPage() {
                     id="supplier-directory-search"
                     className={cn(
                       dashboardInputClass(listLoadingInitial),
-                      "h-8 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-0",
+                      "h-8 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 text-sm focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-0",
                     )}
                     placeholder="Search name or code…"
                     value={listSearch}
@@ -1071,7 +1071,7 @@ export default function SuppliersPage() {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "shrink-0 rounded-none text-muted-foreground hover:text-foreground",
+                      "shrink-0 rounded-xl text-muted-foreground hover:text-foreground",
                       isLg ? "size-8" : "h-8 gap-1 px-2.5 text-xs",
                     )}
                     disabled={listLoadingInitial}
@@ -1161,7 +1161,7 @@ export default function SuppliersPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+                              className="h-7 shrink-0 gap-1 rounded-xl px-2 text-[11px]"
                               onClick={() => setCatalogDrawerOpen(true)}
                             >
                               <Link2 className="size-3" aria-hidden />
@@ -1229,7 +1229,7 @@ export default function SuppliersPage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 shrink-0 gap-1 rounded-none px-2 text-xs"
+                                className="h-7 shrink-0 gap-1 rounded-xl px-2 text-xs"
                                 onClick={() => setSelectedInvoice(null)}
                               >
                                 <ChevronLeft className="size-3.5" aria-hidden />
@@ -1303,7 +1303,7 @@ export default function SuppliersPage() {
             <Button
               type="button"
               size="sm"
-              className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+              className="h-11 min-h-11 shrink-0 gap-1.5 rounded-xl"
               onClick={() => setEditDrawerOpen(true)}
             >
               <Building2 className="size-4" aria-hidden />
@@ -1314,7 +1314,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-xl"
                 onClick={() => setCatalogDrawerOpen(true)}
               >
                 <Link2 className="size-4" aria-hidden />
@@ -1326,7 +1326,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-xl"
                 onClick={() => router.push(supplierReceivePath(detail))}
               >
                 <PackagePlus className="size-4" aria-hidden />
@@ -1338,7 +1338,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-xl"
                 onClick={() => setNewSupplyOpen(true)}
               >
                 <PackagePlus className="size-4" aria-hidden />
@@ -1350,7 +1350,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-none border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                className="h-11 min-h-11 shrink-0 gap-1.5 rounded-xl border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
                 onClick={() => setAdvanceOpen(true)}
               >
                 <Wallet className="size-4" aria-hidden />
@@ -1361,7 +1361,7 @@ export default function SuppliersPage() {
         ) : null}
 
         {!isLg && !detail ? (
-          <div className="overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+          <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05]">
             <SupplierWorkspaceEmpty
               compact
               canWrite={canWrite}

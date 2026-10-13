@@ -216,13 +216,13 @@ export function VirtualizedSupplierList({
                   aria-label={`Supplier ${displayName}`}
                   aria-selected={active}
                   className={cn(
-                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] text-left",
+                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch rounded-xl ring-1 ring-black/[0.05] text-left",
                     cols,
                     compact ? "h-[34px] text-[12px]" : "h-9 text-[13px] max-sm:h-12 max-sm:text-[14px]",
                     "cursor-pointer",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     active
-                      ? cn(supTableRowActive)
+                      ? cn(supTableRowActive, "bg-[#f0f9f7] ring-2 ring-[#0f766e]")
                       : cn(
                           supRowHover,
                           vi.index % 2 === 1 &&
@@ -259,7 +259,7 @@ export function VirtualizedSupplierList({
                       role="cell"
                       className={cn(
                         supTableCell,
-                        "flex min-w-0 items-center truncate font-mono text-[11px] text-muted-foreground max-sm:hidden",
+                        "flex min-w-0 items-center truncate text-[11px] tabular-nums text-muted-foreground max-sm:hidden",
                       )}
                     >
                       {isSystem ? "—" : code || "—"}
@@ -293,7 +293,7 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-none text-muted-foreground hover:text-foreground max-sm:size-9"
+                          className="size-6 rounded-xl text-muted-foreground hover:text-foreground max-sm:size-9"
                           aria-label={`Edit ${displayName}`}
                           onClick={() => onEdit(row.id)}
                         >
@@ -305,7 +305,7 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-sm:size-9"
+                          className="size-6 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-sm:size-9"
                           aria-label={`Delete ${displayName}`}
                           disabled={deletingId === row.id}
                           onClick={() => onDelete(row)}

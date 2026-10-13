@@ -95,7 +95,7 @@ function FilterGroup({
       </span>
       <div
         className={cn(
-          "flex min-w-0 gap-0.5",
+          "flex min-w-0 gap-1.5",
           vertical
             ? "flex-col"
             : "-mx-0.5 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -113,14 +113,14 @@ function FilterGroup({
               aria-pressed={active}
               onClick={() => onChange(f.id)}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1 rounded-none px-2.5 text-[12px] font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-150",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40",
                 vertical && "w-full justify-between",
                 active
-                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
+                  ? "bg-[#0f766e] text-white"
                   : emphasize
-                    ? "border border-[#9a2e16]/35 bg-white text-[#9a2e16]"
-                    : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
+                    ? "bg-white text-[#9a2e16] ring-1 ring-[#9a2e16]/35"
+                    : "bg-white text-[#475467] ring-1 ring-black/[0.05] hover:bg-[#f2f7f5] hover:text-[#101828]",
                 disabled && "pointer-events-none opacity-50",
               )}
             >
@@ -128,7 +128,7 @@ function FilterGroup({
               {count != null ? (
                 <span
                   className={cn(
-                    "font-mono text-[10px]",
+                    "tabular-nums text-[10px]",
                     active
                       ? "text-white/85"
                       : emphasize

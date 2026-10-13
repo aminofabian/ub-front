@@ -144,8 +144,7 @@ export function UnpaidSettleWorkspace({
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Vendor or invoice…"
             className={cn(
-              "h-8 w-full rounded-none border bg-white pl-8 pr-2.5 text-sm outline-none focus-visible:border-[var(--pos-primary,#0f766e)]",
-              HAIRLINE,
+              "h-8 w-full rounded-xl bg-white pl-8 pr-2.5 text-sm ring-1 ring-black/[0.05] outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40",
             )}
           />
         </label>
@@ -154,7 +153,7 @@ export function UnpaidSettleWorkspace({
           type="button"
           size="sm"
           variant="outline"
-          className="h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold shadow-none lg:hidden"
+          className="h-8 gap-1 rounded-xl px-2.5 text-[11px] font-semibold shadow-none lg:hidden"
           onClick={() => setFilterOpen(true)}
         >
           <Filter className="size-3" aria-hidden />
@@ -179,7 +178,7 @@ export function UnpaidSettleWorkspace({
               Vendors
             </p>
           </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto">
+          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
             {groups.map((g) => {
               const key = groupKey(g);
               const active = key === selectedKey;
@@ -189,11 +188,10 @@ export function UnpaidSettleWorkspace({
                     type="button"
                     onClick={() => selectVendor(key)}
                     className={cn(
-                      "flex w-full items-center gap-2 border-b px-3 py-2.5 text-left transition-colors duration-150",
-                      "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+                      "flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-left ring-1 transition-colors duration-150",
                       active
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                        : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+                        ? "bg-[#f0f9f7] ring-[#0f766e]/30"
+                        : "bg-white ring-black/[0.05] hover:bg-[#f2f7f5]",
                     )}
                   >
                     <span className="min-w-0 flex-1">
@@ -257,7 +255,7 @@ export function UnpaidSettleWorkspace({
       <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
         <DialogContent
           side="bottom"
-          className="gap-0 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-0 sm:rounded-none"
+          className="gap-0 rounded-t-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-0"
           showCloseButton
         >
           <DialogHeader className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-4 py-3 pr-12">
@@ -286,7 +284,7 @@ export function UnpaidSettleWorkspace({
       <Dialog open={mobileBillsOpen} onOpenChange={setMobileBillsOpen}>
         <DialogContent
           side="bottom"
-          className="gap-0 rounded-none border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-0 sm:rounded-none md:hidden"
+          className="gap-0 rounded-t-2xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-0 md:hidden"
           showCloseButton
         >
           {selected ? (
@@ -438,7 +436,7 @@ function VendorBillsPanel({
           <Button
             type="button"
             size="sm"
-            className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold hover:bg-[#0d6b63]"
+            className="h-8 gap-1 rounded-xl bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold hover:bg-[#0d6b63]"
             disabled={!canOpenReceiptDrawer}
             onClick={() => onPay(first, true)}
           >
@@ -448,7 +446,7 @@ function VendorBillsPanel({
         ) : null}
       </div>
 
-      <ul className="min-h-0 flex-1 overflow-y-auto">
+      <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
         {group.bills.map((r) => {
           const st = supplyPaymentStatusBadge(r.paymentStatus);
           const bal = supplyN(r.balanceOpen);
@@ -457,7 +455,7 @@ function VendorBillsPanel({
           return (
             <li
               key={r.supplierInvoiceId}
-              className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+              className="overflow-hidden rounded-xl bg-white ring-1 ring-black/[0.05]"
             >
               <div
                 className={cn(
@@ -515,7 +513,7 @@ function VendorBillsPanel({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="size-8 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:text-[var(--order-ink,#15231f)]"
+                      className="size-8 rounded-xl text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:text-[var(--order-ink,#15231f)]"
                       aria-label={`Edit ${r.invoiceNumber}`}
                       onClick={() => onEdit(r)}
                     >
@@ -529,7 +527,7 @@ function VendorBillsPanel({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="size-8 rounded-none text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:bg-destructive/10 hover:text-destructive"
+                      className="size-8 rounded-xl text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] hover:bg-destructive/10 hover:text-destructive"
                       aria-label={`Delete ${r.invoiceNumber}`}
                       disabled={deletingId === r.supplierInvoiceId}
                       onClick={() => onDelete(r)}
@@ -541,7 +539,7 @@ function VendorBillsPanel({
                     type="button"
                     size="sm"
                     className={cn(
-                      "h-8 gap-1 rounded-none px-2.5 text-[11px] font-semibold",
+                      "h-8 gap-1 rounded-xl px-2.5 text-[11px] font-semibold",
                       needsPay &&
                         "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
                     )}

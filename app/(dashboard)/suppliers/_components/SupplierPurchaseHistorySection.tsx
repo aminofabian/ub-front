@@ -176,12 +176,10 @@ export function SupplierPurchaseHistorySection({
       compact={compact}
       title={compact ? "Purchases" : "Purchase history"}
       hint="Posted invoices and what you still owe this vendor."
-      className={
-        compact ? "rounded-none border-x border-b border-t" : undefined
-      }
+      className={compact ? "rounded-2xl" : undefined}
       action={
         totalCount > 0 ? (
-          <span className="inline-flex items-center gap-0.5 rounded-none bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
             <History className="size-2.5 opacity-70" aria-hidden />
             {totalCount}
           </span>
@@ -216,7 +214,7 @@ export function SupplierPurchaseHistorySection({
                         <div
                           className={cn(
                             "mt-0.5 font-semibold tabular-nums text-foreground",
-                            mono && "font-mono",
+                            mono && "tabular-nums",
                             valueClassName,
                           )}
                         >
@@ -234,7 +232,7 @@ export function SupplierPurchaseHistorySection({
             <p
               className={cn(
                 "text-center text-xs text-muted-foreground",
-                compact ? "py-2" : "border border-dashed border-border py-8",
+                compact ? "py-2" : "rounded-xl border border-dashed border-border py-8",
               )}
             >
               No posted invoices yet.
@@ -249,7 +247,7 @@ export function SupplierPurchaseHistorySection({
               scrollable={false}
             />
           ) : (
-            <div className="overflow-x-auto border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
                 <thead className={supTableHead}>
                   <tr>
@@ -300,7 +298,7 @@ export function SupplierPurchaseHistorySection({
                         <td className="whitespace-nowrap border border-border/70 px-2 py-1 text-muted-foreground">
                           {formatShortDate(row.invoiceDate)}
                         </td>
-                        <td className="border border-border/70 px-2 py-1 font-mono">
+                        <td className="border border-border/70 px-2 py-1 tabular-nums">
                           {row.invoiceNumber}
                         </td>
                         <td className="border border-border/70 px-2 py-1 text-muted-foreground">
@@ -311,13 +309,13 @@ export function SupplierPurchaseHistorySection({
                             </span>
                           ) : null}
                         </td>
-                        <td className="border border-border/70 px-2 py-1 text-right font-mono tabular-nums">
+                        <td className="border border-border/70 px-2 py-1 text-right tabular-nums">
                           {formatMoney(n(row.grandTotal))}
                         </td>
-                        <td className="border border-border/70 px-2 py-1 text-right font-mono tabular-nums">
+                        <td className="border border-border/70 px-2 py-1 text-right tabular-nums">
                           {formatMoney(n(row.amountPaid))}
                         </td>
-                        <td className="border border-border/70 px-2 py-1 text-right font-mono font-medium tabular-nums">
+                        <td className="border border-border/70 px-2 py-1 text-right font-medium tabular-nums">
                           {formatMoney(bal)}
                         </td>
                         <td className="border border-border/70 px-2 py-1">
@@ -364,7 +362,7 @@ export function SupplierPurchaseHistorySection({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 gap-1 rounded-none text-sm"
+                className="h-7 gap-1 rounded-xl text-sm"
                 asChild
               >
                 <Link href={APP_ROUTES.purchasingAddSupplies}>
@@ -393,7 +391,7 @@ function SidebarSummaryGrid({ rows }: { rows: SummaryRow[] }) {
               className={cn(
                 supKvValue,
                 "tabular-nums",
-                mono && "font-mono",
+                mono && "tabular-nums",
                 valueClassName,
               )}
             >
@@ -425,7 +423,7 @@ function SidebarInvoiceList({
   return (
     <div
       className={cn(
-        "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+        "rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
         scrollable &&
           orders.length > 10 &&
           "max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain",
@@ -469,14 +467,14 @@ function SidebarInvoiceList({
                   {formatCompactDate(row.invoiceDate)}
                 </td>
                 <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
-                  <span className="block truncate font-mono font-medium">
+                  <span className="block truncate font-medium tabular-nums">
                     {row.invoiceNumber}
                   </span>
                 </td>
-                <td className="border border-border/70 px-1.5 py-0.5 text-right font-mono tabular-nums">
+                <td className="border border-border/70 px-1.5 py-0.5 text-right tabular-nums">
                   {formatMoney(n(row.grandTotal))}
                 </td>
-                <td className="border border-border/70 px-1.5 py-0.5 text-right font-mono tabular-nums">
+                <td className="border border-border/70 px-1.5 py-0.5 text-right tabular-nums">
                   {bal > 0.009 ? formatMoney(bal) : "—"}
                 </td>
                 {canReorder ? (

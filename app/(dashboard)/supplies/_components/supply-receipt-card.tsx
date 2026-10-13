@@ -63,15 +63,13 @@ export function SupplyReceiptCard({
     return (
       <article
         className={cn(
-          "rounded-none border bg-white px-3 py-2.5",
-          needsPay
-            ? "border-[#9a2e16]/35"
-            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          "rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.05)] ring-1",
+          needsPay ? "ring-[#9a2e16]/35" : "ring-black/[0.05]",
         )}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate font-mono text-[12px] font-medium text-[var(--order-ink,#15231f)]">
+            <p className="truncate text-[12px] font-medium text-[var(--order-ink,#15231f)]">
               {row.invoiceNumber}
             </p>
             <p className="mt-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
@@ -109,7 +107,7 @@ export function SupplyReceiptCard({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[11px]"
+              className="h-8 gap-1 rounded-xl px-2.5 text-[11px]"
               onClick={onEdit}
             >
               <FileEdit className="size-3" aria-hidden />
@@ -121,7 +119,7 @@ export function SupplyReceiptCard({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 rounded-none px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="h-8 gap-1 rounded-xl px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
               disabled={deleting}
               onClick={onDelete}
             >
@@ -133,7 +131,7 @@ export function SupplyReceiptCard({
             size="sm"
             variant={needsPay ? "default" : "outline"}
             className={cn(
-              "ml-auto h-8 gap-1 rounded-none px-3 text-[11px]",
+              "ml-auto h-8 gap-1 rounded-xl px-3 text-[11px]",
               needsPay && "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
             )}
             disabled={!canOpenReceiptDrawer}
@@ -150,10 +148,8 @@ export function SupplyReceiptCard({
   return (
     <article
       className={cn(
-        "rounded-none border bg-white px-3 py-2.5",
-        needsPay
-          ? "border-[#9a2e16]/40"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        "rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(16,24,40,0.05)] ring-1",
+        needsPay ? "ring-[#9a2e16]/40" : "ring-black/[0.05]",
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
@@ -164,7 +160,7 @@ export function SupplyReceiptCard({
               fallback="Unknown supplier"
             />
           </h3>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+          <p className="mt-0.5 truncate text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
             {row.invoiceNumber}
             <span className="mx-1 opacity-40">·</span>
             {created}
@@ -188,28 +184,26 @@ export function SupplyReceiptCard({
       </div>
 
       <dl className="mt-2 grid grid-cols-3 gap-1.5">
-        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1.5 text-center">
+        <div className="rounded-xl bg-white px-2 py-1.5 text-center ring-1 ring-black/[0.05]">
           <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Total
           </dt>
-          <dd className="font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+          <dd className="text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
             {formatSupplyMoney(supplyN(row.grandTotal))}
           </dd>
         </div>
-        <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-1.5 text-center">
+        <div className="rounded-xl bg-white px-2 py-1.5 text-center ring-1 ring-black/[0.05]">
           <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
             Paid
           </dt>
-          <dd className="font-mono text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
+          <dd className="text-[12px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]">
             {formatSupplyMoney(supplyN(row.amountPaid))}
           </dd>
         </div>
         <div
           className={cn(
-            "rounded-none border bg-white px-2 py-1.5 text-center",
-            needsPay
-              ? "border-[#9a2e16]/40"
-              : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+            "rounded-xl bg-white px-2 py-1.5 text-center ring-1",
+            needsPay ? "ring-[#9a2e16]/40" : "ring-black/[0.05]",
           )}
         >
           <dt className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
@@ -217,7 +211,7 @@ export function SupplyReceiptCard({
           </dt>
           <dd
             className={cn(
-              "font-mono text-[12px] font-semibold tabular-nums",
+              "text-[12px] font-semibold tabular-nums",
               needsPay ? "text-[#9a2e16]" : "text-[var(--order-ink,#15231f)]",
             )}
           >
@@ -232,7 +226,7 @@ export function SupplyReceiptCard({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 flex-1 gap-1 rounded-none text-[11px]"
+            className="h-8 flex-1 gap-1 rounded-xl text-[11px]"
             onClick={onEdit}
           >
             <FileEdit className="size-3" aria-hidden />
@@ -244,7 +238,7 @@ export function SupplyReceiptCard({
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 gap-1 rounded-none px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="h-8 gap-1 rounded-xl px-2.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
             disabled={deleting}
             onClick={onDelete}
           >
@@ -255,7 +249,7 @@ export function SupplyReceiptCard({
           <Button
             type="button"
             size="sm"
-            className="h-8 flex-1 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] text-[11px] hover:bg-[#0d6b63]"
+            className="h-8 flex-1 gap-1 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[11px] hover:bg-[#0d6b63]"
             disabled={!canOpenReceiptDrawer}
             onClick={onPayAll}
           >
@@ -268,7 +262,7 @@ export function SupplyReceiptCard({
           size="sm"
           variant={needsPay ? "default" : "outline"}
           className={cn(
-            "h-8 flex-1 gap-1 rounded-none text-[11px]",
+            "h-8 flex-1 gap-1 rounded-xl text-[11px]",
             needsPay && "bg-[var(--pos-primary,#0f766e)] hover:bg-[#0d6b63]",
           )}
           disabled={!canOpenReceiptDrawer}
