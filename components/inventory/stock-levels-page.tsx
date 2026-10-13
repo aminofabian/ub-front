@@ -364,7 +364,7 @@ const catalogCellInput = cn(
 
 const catalogCellMoneyInput = cn(
   catalogCellInput,
-  "text-right font-mono tabular-nums",
+  "text-right tabular-nums",
 );
 
 const catalogCellSelect = cn(
@@ -373,7 +373,7 @@ const catalogCellSelect = cn(
 );
 
 const stockTool = cn(
-  "h-7 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+  "h-7 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
   "px-2 text-[11px] tracking-[-0.01em] text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
@@ -598,7 +598,7 @@ function stockStatusMeta(row: StockRow): {
 }
 
 const mobileFieldInput = cn(
-  "h-14 w-full rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white md:rounded-none",
+  "h-14 w-full rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white md:rounded-xl",
   "px-3 text-[18px] leading-none text-[var(--order-ink,#15231f)]",
   "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
   "caret-[var(--pos-primary,#0f766e)]",
@@ -607,7 +607,7 @@ const mobileFieldInput = cn(
 );
 
 const mobileStepBtn = cn(
-  "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl border bg-white transition-colors md:rounded-none",
+  "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl border bg-white transition-colors md:rounded-xl",
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
   "text-[var(--order-ink,#15231f)]",
   "active:scale-[0.96] active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]",
@@ -713,7 +713,7 @@ function StockMobileCard({
               </p>
               <span
                 className={cn(
-                  "mt-0.5 inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                  "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                   statusClass,
                 )}
               >
@@ -752,11 +752,11 @@ function StockMobileCard({
 
           <div
             className={cn(
-              "flex min-h-[3.25rem] min-w-[4.75rem] shrink-0 flex-col items-center justify-center gap-0.5 border px-2",
+              "flex min-h-[3.25rem] min-w-[4.75rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-2",
               qtyTone,
             )}
           >
-            <span className="font-mono text-[1.4rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
+            <span className="text-[1.4rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
               {row.stock.toLocaleString("en-KE")}
             </span>
             <span
@@ -785,14 +785,14 @@ function StockMobileCard({
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
               <span className={stockMute}>
                 System{" "}
-                <span className={cn("font-mono font-semibold tabular-nums", stockInk)}>
+                <span className={cn("font-semibold tabular-nums", stockInk)}>
                   {row.stock.toLocaleString("en-KE")}
                 </span>
               </span>
               {targetOk && Math.abs(delta) >= 0.0001 ? (
                 <span
                   className={cn(
-                    "font-mono font-semibold tabular-nums",
+                    "font-semibold tabular-nums",
                     delta > 0
                       ? "text-emerald-700 dark:text-emerald-400"
                       : "text-rose-700 dark:text-rose-300",
@@ -835,7 +835,7 @@ function StockMobileCard({
                 }}
                 className={cn(
                   mobileFieldInput,
-                  "text-center font-mono text-[1.6rem] font-semibold tabular-nums",
+                  "text-center text-[1.6rem] font-semibold tabular-nums",
                 )}
                 placeholder="0"
                 aria-label={`New stock for ${row.name}`}
@@ -882,7 +882,7 @@ function StockMobileCard({
                   }}
                   className={cn(
                     mobileFieldInput,
-                    "min-w-0 flex-1 font-mono tabular-nums",
+                    "min-w-0 flex-1 tabular-nums",
                   )}
                   placeholder="0"
                   aria-label={`Unit cost for ${row.name}`}
@@ -992,7 +992,7 @@ function StockRowItem({
         {row.barcode ? (
           <span
             className={cn(
-              "mt-0.5 block truncate font-mono text-[10px] tabular-nums",
+              "mt-0.5 block truncate text-[10px] tabular-nums",
               stockMute,
             )}
           >
@@ -1138,7 +1138,7 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              "block px-2 py-1.5 text-right text-[12px] tabular-nums",
               out || low
                 ? "font-semibold text-rose-700 dark:text-rose-300"
                 : stockInk,
@@ -1148,7 +1148,7 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "text-right font-mono text-[12px] tabular-nums", stockMute)}>
+      <td className={cn(stockCell, "text-right text-[12px] tabular-nums", stockMute)}>
         {row.reorderLevel != null && row.reorderLevel > 0
           ? row.reorderLevel.toLocaleString("en-KE")
           : "—"}
@@ -1198,7 +1198,7 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              "block px-2 py-1.5 text-right text-[12px] tabular-nums",
               loss
                 ? "font-semibold text-orange-800 dark:text-orange-300"
                 : stockInk,
@@ -1236,7 +1236,7 @@ function StockRowItem({
         ) : (
           <span
             className={cn(
-              "block px-2 py-1.5 text-right font-mono text-[12px] tabular-nums",
+              "block px-2 py-1.5 text-right text-[12px] tabular-nums",
               loss
                 ? "font-semibold text-orange-800 dark:text-orange-300"
                 : stockInk,
@@ -1273,7 +1273,7 @@ function StockRowItem({
       <td className={stockCell}>
         <span
           className={cn(
-            "inline-flex min-w-[2.25rem] items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+            "inline-flex min-w-[2.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
             statusClass,
           )}
         >
@@ -2408,7 +2408,7 @@ export function StockLevelsPage() {
             type="button"
             onClick={() => setItemTypeId("")}
             className={cn(
-              "h-7 shrink-0 px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+              "h-7 shrink-0 rounded-full px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
               !headerItemTypeId.trim()
                 ? "bg-[var(--pos-primary,#0f766e)] text-white"
                 : cn(
@@ -2429,7 +2429,7 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setItemTypeId(t.id)}
                 className={cn(
-                  "h-7 max-w-[9rem] shrink-0 truncate px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
+                  "h-7 max-w-[9rem] shrink-0 truncate rounded-full px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
                   active
                     ? "bg-[var(--pos-primary,#0f766e)] text-white"
                     : cn(
@@ -2500,13 +2500,11 @@ export function StockLevelsPage() {
             "Choose a branch to see in-store stock"
           }
         />
-        <div className={cn("rounded-none border bg-white", stockHair)}>
+        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
           {departmentRail}
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <StockActionHub
               actions={hubActions}
-              branchName={activeBranchName}
-              departmentLabel={itemTypeLabel}
               outCount={loading && rows.length === 0 ? null : stockCounts.out}
               lowCount={loading && rows.length === 0 ? null : stockCounts.low}
               countsLoading={loading && rows.length === 0}
@@ -2535,10 +2533,9 @@ export function StockLevelsPage() {
               type="button"
               onClick={closeLevels}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors",
-                stockHair,
+                "inline-flex h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-[12px] font-semibold ring-1 ring-black/[0.05] transition-colors",
                 stockMute,
-                "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                "hover:text-[var(--pos-primary,#0f766e)]",
               )}
             >
               <ArrowLeft className="size-3.5" aria-hidden />
@@ -2547,7 +2544,7 @@ export function StockLevelsPage() {
           </DashboardPageHero>
         </header>
 
-        <div className={cn("flex min-h-0 flex-1 flex-col rounded-none border bg-white", stockHair)}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05]">
           {departmentRail}
 
           {fullCountProgress && fullCountProgress.remaining > 0 ? (
@@ -2940,7 +2937,7 @@ export function StockLevelsPage() {
                 {canCatalogWrite ? (
                   <button
                     type="button"
-                    className="h-11 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3.5 text-[13px] font-semibold text-white md:h-7 md:rounded-none md:px-2 md:text-[12px]"
+                    className="h-11 rounded-2xl bg-[var(--pos-primary,#0f766e)] px-3.5 text-[13px] font-semibold text-white md:h-7 md:rounded-xl md:px-2 md:text-[12px]"
                     onClick={openPriceEditor}
                   >
                     Edit prices
@@ -2949,7 +2946,7 @@ export function StockLevelsPage() {
                 <button
                   type="button"
                   className={cn(
-                    "h-11 rounded-2xl px-3 text-[13px] font-medium md:h-7 md:rounded-none md:px-2 md:text-[12px]",
+                    "h-11 rounded-2xl px-3 text-[13px] font-medium md:h-7 md:rounded-xl md:px-2 md:text-[12px]",
                     stockMute,
                   )}
                   onClick={() => {
@@ -3012,10 +3009,9 @@ export function StockLevelsPage() {
                     type="button"
                     onClick={() => setStatusFilter("all")}
                     className={cn(
-                      "mt-1 rounded-none border bg-white px-2.5 py-1 text-[12px] font-semibold transition-colors",
-                      stockHair,
+                      "mt-1 rounded-lg bg-white px-2.5 py-1 text-[12px] font-semibold ring-1 ring-black/[0.05] transition-colors",
                       stockMute,
-                      "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+                      "hover:text-[var(--pos-primary,#0f766e)]",
                     )}
                   >
                     Show all items

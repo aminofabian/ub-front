@@ -34,8 +34,6 @@ export type FullCountProgress = {
 
 type StockActionHubProps = {
   actions: readonly StockHubAction[];
-  branchName: string;
-  departmentLabel: string;
   outCount: number | null;
   lowCount: number | null;
   countsLoading: boolean;
@@ -89,7 +87,7 @@ function ServicesTile({
     <Link
       href={action.href}
       className={cn(
-        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 p-2.5 transition-colors",
+        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-xl p-3 ring-1 ring-black/[0.05] transition-colors",
         "active:brightness-[0.96]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
         tone.bg,
@@ -116,7 +114,7 @@ function ServicesTile({
 function ServicesGrid({ actions }: { actions: readonly StockHubAction[] }) {
   const fill = (3 - (actions.length % 3)) % 3;
   return (
-    <div className="grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+    <div className="grid grid-cols-3 gap-2">
       {actions.map((action, index) => (
         <ServicesTile key={action.id} action={action} toneIndex={index} />
       ))}
@@ -124,7 +122,7 @@ function ServicesGrid({ actions }: { actions: readonly StockHubAction[] }) {
         <span
           key={`fill-${index}`}
           aria-hidden
-          className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
+          className="min-h-[5.75rem]"
         />
       ))}
     </div>
@@ -236,10 +234,9 @@ function StockToolsSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "inline-flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
-              hair,
+              "inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-black/[0.05] transition-colors",
               ink,
-              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
+              "hover:text-[var(--pos-primary,#0f766e)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
             )}
             aria-label="Close"
@@ -259,8 +256,6 @@ function StockToolsSheet({
 /** Stock Home — hero banner, attention pair, and the tools behind a sheet. */
 export function StockActionHub({
   actions,
-  branchName,
-  departmentLabel,
   outCount,
   lowCount,
   countsLoading,
@@ -275,7 +270,6 @@ export function StockActionHub({
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
 
-  const placeLine = [branchName, departmentLabel].filter(Boolean).join(" · ");
   const countPct =
     fullCountProgress && fullCountProgress.total > 0
       ? Math.min(
@@ -296,31 +290,13 @@ export function StockActionHub({
 
   return (
     <div className="flex flex-col gap-3 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
-      <header className="min-w-0">
-        <h1
-          className={cn(
-            "font-heading text-[1.75rem] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[1.85rem]",
-            ink,
-          )}
-        >
-          Stock
-        </h1>
-        <p className={cn("mt-1 max-w-md text-[13px] leading-snug", mute)}>
-          {placeLine ? (
-            <span className="block tracking-[-0.01em]">{placeLine}</span>
-          ) : (
-            "Shelf qty, orders, and receive — one place."
-          )}
-        </p>
-      </header>
-
       {fullCountProgress && fullCountProgress.remaining > 0 ? (
         <Link
           href={APP_ROUTES.inventoryStockTake}
           className={cn(
-            "block border bg-white px-3.5 py-3.5 transition-colors active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-            hair,
-            "hover:border-[var(--pos-primary,#0f766e)]",
+            "block rounded-2xl bg-white px-4 py-3.5 ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-shadow",
+            "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+            "hover:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
@@ -343,9 +319,7 @@ export function StockActionHub({
               </p>
               <div
                 className={cn(
-                  "mt-2.5 h-2 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
-                  hair,
-                  "border",
+                  "mt-2.5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
                 )}
                 role="progressbar"
                 aria-valuenow={countPct}
@@ -354,7 +328,7 @@ export function StockActionHub({
                 aria-label="Full count progress"
               >
                 <div
-                  className="h-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
+                  className="h-full rounded-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
                   style={{ width: `${countPct}%` }}
                 />
               </div>
@@ -370,18 +344,20 @@ export function StockActionHub({
           type="button"
           onClick={() => onOpenLevels("out")}
           className={cn(
-            "flex min-h-[4.75rem] flex-col justify-between border bg-white px-3.5 py-3 text-left transition-colors",
-            hair,
+            "flex min-h-[4.75rem] flex-col justify-between rounded-xl px-3.5 py-3 text-left ring-1 transition-colors",
             outN > 0
-              ? "border-rose-300/80 bg-rose-50/80 dark:border-rose-500/30 dark:bg-rose-500/10"
-              : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+              ? "bg-[#fdecec] ring-[#f5c2c0]"
+              : cn(
+                  "bg-white ring-black/[0.05]",
+                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                ),
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
           <span
             className={cn(
               "text-[11px] font-semibold tracking-[-0.01em]",
-              outN > 0 ? "text-rose-800 dark:text-rose-200" : mute,
+              outN > 0 ? "text-[#b42318]" : mute,
             )}
           >
             Sold out
@@ -389,8 +365,8 @@ export function StockActionHub({
           <span className="flex items-end justify-between gap-2">
             <span
               className={cn(
-                "font-mono text-[1.75rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                outN > 0 ? "text-rose-700 dark:text-rose-300" : ink,
+                "font-heading text-[1.6rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                outN > 0 ? "text-[#d92d20]" : ink,
               )}
             >
               {countsLoading && outCount == null
@@ -400,9 +376,7 @@ export function StockActionHub({
             <span
               className={cn(
                 "mb-0.5 text-[11px] font-semibold",
-                outN > 0
-                  ? "text-rose-700 dark:text-rose-300"
-                  : "text-[var(--pos-primary,#0f766e)]",
+                outN > 0 ? "text-[#b42318]" : "text-[var(--pos-primary,#0f766e)]",
               )}
             >
               Fix →
@@ -413,18 +387,20 @@ export function StockActionHub({
           type="button"
           onClick={() => onOpenLevels("low")}
           className={cn(
-            "flex min-h-[4.75rem] flex-col justify-between border bg-white px-3.5 py-3 text-left transition-colors",
-            hair,
+            "flex min-h-[4.75rem] flex-col justify-between rounded-xl px-3.5 py-3 text-left ring-1 transition-colors",
             lowN > 0
-              ? "border-amber-300/80 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10"
-              : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+              ? "bg-[#fdf6ec] ring-[#f0dcb8]"
+              : cn(
+                  "bg-white ring-black/[0.05]",
+                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+                ),
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
           )}
         >
           <span
             className={cn(
               "text-[11px] font-semibold tracking-[-0.01em]",
-              lowN > 0 ? "text-amber-900 dark:text-amber-200" : mute,
+              lowN > 0 ? "text-[#b45309]" : mute,
             )}
           >
             Running low
@@ -432,8 +408,8 @@ export function StockActionHub({
           <span className="flex items-end justify-between gap-2">
             <span
               className={cn(
-                "font-mono text-[1.75rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                lowN > 0 ? "text-amber-800 dark:text-amber-200" : ink,
+                "font-heading text-[1.6rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+                lowN > 0 ? "text-[#b45309]" : ink,
               )}
             >
               {countsLoading && lowCount == null
@@ -443,9 +419,7 @@ export function StockActionHub({
             <span
               className={cn(
                 "mb-0.5 text-[11px] font-semibold",
-                lowN > 0
-                  ? "text-amber-800 dark:text-amber-200"
-                  : "text-[var(--pos-primary,#0f766e)]",
+                lowN > 0 ? "text-[#b45309]" : "text-[var(--pos-primary,#0f766e)]",
               )}
             >
               Fix →
@@ -458,13 +432,12 @@ export function StockActionHub({
         <Link
           href={hero.href}
           className={cn(
-            "group relative flex min-h-[6.5rem] items-end overflow-hidden border px-4 py-4 text-white sm:min-h-[6.5rem] sm:px-5 sm:py-5",
+            "group relative flex min-h-[6.5rem] items-end overflow-hidden rounded-2xl px-4 py-4 text-white shadow-[0_10px_28px_-14px_rgba(15,118,110,0.55)] sm:min-h-[6.5rem] sm:px-5 sm:py-5",
             "transition-transform duration-150 ease-out active:scale-[0.985]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
           )}
           style={{
             background: `linear-gradient(145deg, ${teal} 0%, color-mix(in srgb, ${teal} 68%, #062e2a) 100%)`,
-            borderColor: teal,
           }}
         >
           <span
@@ -482,7 +455,7 @@ export function StockActionHub({
                 {hero.hint || "Tap a product, set the shelf qty, save."}
               </span>
             </span>
-            <span className="mb-0.5 inline-flex size-11 shrink-0 items-center justify-center bg-white/15">
+            <span className="mb-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15">
               <ArrowRight className="size-5" aria-hidden />
             </span>
           </span>
@@ -501,7 +474,7 @@ export function StockActionHub({
             >
               Inventory tools
             </p>
-            <div className="grid grid-cols-3 gap-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+            <div className="grid grid-cols-3 gap-2">
               {teaser.map((action, index) => (
                 <ServicesTile
                   key={action.id}
@@ -514,7 +487,7 @@ export function StockActionHub({
                 onClick={() => setSheetOpen(true)}
                 aria-haspopup="dialog"
                 className={cn(
-                  "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 bg-white p-2.5 text-left transition-colors",
+                  "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-xl bg-white p-3 text-left ring-1 ring-black/[0.05] transition-colors",
                   "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
                 )}
@@ -527,12 +500,7 @@ export function StockActionHub({
                 >
                   All tools
                 </span>
-                <span
-                  className={cn(
-                    "inline-flex size-7 items-center justify-center self-end border bg-white",
-                    hair,
-                  )}
-                >
+                <span className="inline-flex size-7 items-center justify-center self-end rounded-lg bg-[#e6f4f0]">
                   <LayoutGrid
                     className="size-4 text-[var(--pos-primary,#0f766e)]"
                     strokeWidth={1.75}
@@ -544,7 +512,7 @@ export function StockActionHub({
                 <span
                   key={`fill-${index}`}
                   aria-hidden
-                  className="min-h-[5.75rem] bg-white dark:bg-[#0c1512]"
+                  className="min-h-[5.75rem]"
                 />
               ))}
             </div>
@@ -566,10 +534,9 @@ export function StockActionHub({
               key={action.id}
               href={action.href}
               className={cn(
-                "group flex min-h-[5.75rem] flex-col justify-between border bg-white px-3.5 py-3.5 transition-colors",
-                hair,
+                "group flex min-h-[5.75rem] flex-col justify-between rounded-xl bg-white px-3.5 py-3.5 ring-1 ring-black/[0.05] transition-shadow",
+                "hover:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
                 "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-                "hover:border-[var(--pos-primary,#0f766e)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
               )}
             >
@@ -597,12 +564,7 @@ export function StockActionHub({
       ) : null}
 
       {list.length > 0 ? (
-        <div
-          className={cn(
-            "hidden divide-y border bg-white sm:block",
-            hair,
-          )}
-        >
+        <div className="hidden divide-y divide-black/[0.05] overflow-hidden rounded-xl bg-white ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] sm:block">
           {list.map((action) => (
             <Link
               key={action.id}
@@ -615,10 +577,7 @@ export function StockActionHub({
               )}
             >
               <span
-                className={cn(
-                  "inline-flex size-9 shrink-0 items-center justify-center border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                  hair,
-                )}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
               >
                 <action.icon
                   className={cn("size-4", mute)}
