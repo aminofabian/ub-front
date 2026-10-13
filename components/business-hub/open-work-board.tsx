@@ -95,10 +95,10 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       <div
         className={cn(
-          "hidden gap-2 sm:grid",
+          "hidden gap-3 sm:grid",
           visible.length === 1 && "sm:grid-cols-1",
           visible.length === 2 && "sm:grid-cols-2",
-          visible.length >= 3 && "sm:grid-cols-2 xl:grid-cols-3",
+          visible.length >= 3 && "sm:grid-cols-2",
         )}
       >
         {visible.map((column) => (

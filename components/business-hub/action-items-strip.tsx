@@ -21,9 +21,9 @@ const TONES = {
     arrow: "text-[#b45309]",
   },
   info: {
-    card: "bg-white hover:bg-[#fafcfb]",
-    icon: "bg-[#eef2f6] text-[#475467]",
-    arrow: "text-[#98a2b3]",
+    card: "bg-[#f0f9f7] hover:bg-[#e6f4f1]",
+    icon: "bg-[#d9f0eb] text-[#0f766e]",
+    arrow: "text-[#0f766e]",
   },
 } as const;
 

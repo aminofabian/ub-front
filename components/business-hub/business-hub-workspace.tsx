@@ -1769,7 +1769,7 @@ export function BusinessHubWorkspace() {
                                     onInspect={openShopperHistory}
                                   />
                                 ),
-                                className: "sm:col-span-2 xl:col-span-1",
+                                className: "sm:col-span-2",
                               },
                             ]
                           : []),
@@ -1912,7 +1912,7 @@ export function BusinessHubWorkspace() {
                       />
                     ))
                   : null}
-                <HubQuickActions links={jumpInLinks} />
+                <HubQuickActions links={jumpInLinks} limit={6} />
                 {canShowPaymentMethod ? (
                   <ReceiveMpesaSetupCard
                     rail
