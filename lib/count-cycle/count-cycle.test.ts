@@ -15,6 +15,7 @@ import { mergeSavedLine } from "./merge-saved-line";
 import { parseCountInput } from "./parse-count-input";
 import { projectCountPlan } from "./project-count-plan";
 import { rankReviewLines } from "./rank-review-lines";
+import { toFullCountProgress } from "./to-full-count-progress";
 
 function line(
   lineId: string,
@@ -190,6 +191,30 @@ describe("cycleDayTileInput", () => {
     const input = cycleDayTileInput({ ...base, countedToday: true }, now);
     expect(input.currentFill).toBeNull();
     expect(input.firstOpenDay.toISOString().slice(0, 10)).toBe("2026-10-15");
+  });
+
+  describe("toFullCountProgress", () => {
+    test("running count with today's batch not yet opened", () => {
+      expect(toFullCountProgress(base)).toEqual({
+        counted: 100,
+        total: 300,
+        remaining: 200,
+        detail: "Today's batch is ready · 100 products",
+      });
+    });
+
+    test("names the open batch", () => {
+      const progress = toFullCountProgress({
+        ...base,
+        activeBatch: { sessionId: "s2", batchNumber: 2, totalCount: 100, countedCount: 25 },
+      });
+      expect(progress?.detail).toBe("Batch 2 open · 25 of 100 counted");
+    });
+
+    test("nothing to show for a finished or missing count", () => {
+      expect(toFullCountProgress(null)).toBeNull();
+      expect(toFullCountProgress({ ...base, status: "completed" })).toBeNull();
+    });
   });
 });
 

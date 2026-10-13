@@ -36,6 +36,8 @@ export type StockFilterBarProps = {
   onChange: (next: StockStatusFilter) => void;
   /** `bar` = one dense horizontal strip; `panels` = labelled stacked groups. */
   variant: "bar" | "panels";
+  /** `touch` gives the bar thumb-sized segments for phones. */
+  size?: "compact" | "touch";
   className?: string;
 };
 
@@ -48,8 +50,10 @@ export function StockFilterBar({
   counts,
   onChange,
   variant,
+  size = "compact",
   className,
 }: StockFilterBarProps) {
+  const touch = size === "touch";
   if (variant === "panels") {
     return (
       <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
@@ -97,7 +101,8 @@ export function StockFilterBar({
         <div key={group.id} className="flex shrink-0 items-center gap-1">
           <span
             className={cn(
-              "px-1.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+              "px-1.5 font-semibold uppercase tracking-[0.08em]",
+              touch ? "text-[11px]" : "text-[10px]",
               MUTE,
             )}
             title={group.hint}
@@ -111,6 +116,7 @@ export function StockFilterBar({
                 option={option}
                 count={counts[option.countKey]}
                 active={option.key === value}
+                touch={touch}
                 onSelect={() => onChange(option.key)}
               />
             ))}
@@ -128,11 +134,13 @@ function FilterSegment({
   option,
   count,
   active,
+  touch,
   onSelect,
 }: {
   option: StockStatusOption;
   count: number;
   active: boolean;
+  touch: boolean;
   onSelect: () => void;
 }) {
   const quiet = !active && count === 0;
@@ -143,7 +151,8 @@ function FilterSegment({
       aria-pressed={active}
       title={option.hint}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] transition-colors duration-150",
+        "inline-flex shrink-0 items-center gap-1 rounded-full transition-colors duration-150",
+        touch ? "h-9 gap-1.5 px-3.5 text-[13px]" : "h-7 px-2.5 text-[11px]",
         "tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
         active
           ? cn("font-semibold text-white", TONE_FILL[option.tone])

@@ -16,7 +16,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   Check,
-  ClipboardList,
   Lock,
   Minus,
   Package,
@@ -42,7 +41,6 @@ import {
 } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
-  fetchActiveStockTakeSession,
   fetchAllocationPreview,
   fetchBatchDashboard,
   fetchBranches,
@@ -81,10 +79,9 @@ import { ColumnResizeHandle } from "@/lib/column-resize-handle";
 import { BulkPriceEditor } from "@/app/(dashboard)/products/_components/BulkPriceEditor";
 import { PriceCleanupBar } from "@/app/(dashboard)/products/_components/PriceCleanupBar";
 import { PackagePriceDialog } from "@/components/pricing/package-price-dialog";
-import {
-  StockActionHub,
-  type FullCountProgress,
-} from "./stock-action-hub";
+import { useFullCountProgress } from "@/hooks/use-full-count-progress";
+import { FullCountBanner } from "./full-count-banner";
+import { StockActionHub } from "./stock-action-hub";
 import { StockFilterBar } from "./stock-filter-bar";
 import { StockFilterMenu } from "./stock-filter-menu";
 import {
@@ -689,7 +686,7 @@ function StockMobileCard({
           onClick={canEdit ? onStartEdit : undefined}
           disabled={!canEdit}
           className={cn(
-            "flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
+            "flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
             canEdit &&
               "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
@@ -705,7 +702,7 @@ function StockMobileCard({
             <div className="flex items-start gap-2">
               <p
                 className={cn(
-                  "min-w-0 flex-1 text-[14px] font-semibold leading-snug tracking-[-0.015em]",
+                  "min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.015em]",
                   stockInk,
                 )}
               >
@@ -713,7 +710,7 @@ function StockMobileCard({
               </p>
               <span
                 className={cn(
-                  "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                  "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-[-0.01em]",
                   statusClass,
                 )}
               >
@@ -721,11 +718,11 @@ function StockMobileCard({
               </span>
             </div>
             {metaBits.length > 0 ? (
-              <p className={cn("mt-0.5 truncate text-[11px] tabular-nums", stockMute)}>
+              <p className={cn("mt-1 truncate text-[12px] tabular-nums", stockMute)}>
                 {metaBits.join(" · ")}
               </p>
             ) : null}
-            <p className={cn("mt-0.5 text-[11px] tabular-nums", stockMute)}>
+            <p className={cn("mt-1 text-[12px] tabular-nums", stockMute)}>
               Sell{" "}
               <span className={cn("font-semibold", stockInk)}>
                 {fmtMoney(row.sellPrice, currency)}
@@ -746,22 +743,22 @@ function StockMobileCard({
               ) : null}
             </p>
             {!canEdit && !row.editable ? (
-              <p className={cn("mt-0.5 text-[11px]", stockMute)}>Stock on parent SKU</p>
+              <p className={cn("mt-1 text-[12px]", stockMute)}>Stock on parent SKU</p>
             ) : null}
           </div>
 
           <div
             className={cn(
-              "flex min-h-[3.25rem] min-w-[4.75rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-2",
+              "flex min-h-[3.75rem] min-w-[5.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2.5",
               qtyTone,
             )}
           >
-            <span className="text-[1.4rem] font-semibold tabular-nums leading-none tracking-[-0.03em]">
+            <span className="font-heading text-[1.7rem] font-semibold tabular-nums leading-none tracking-[-0.02em]">
               {row.stock.toLocaleString("en-KE")}
             </span>
             <span
               className={cn(
-                "text-[9px] font-semibold uppercase tracking-[0.1em]",
+                "text-[10px] font-semibold uppercase tracking-[0.08em]",
                 canEdit
                   ? "text-[var(--pos-primary,#0f766e)]"
                   : "opacity-60",
@@ -901,7 +898,7 @@ function StockMobileCard({
             </div>
           ) : null}
 
-          <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] px-3 pb-[var(--shell-bottom-inset)] pt-2.5 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onSaveEdit}
@@ -1435,9 +1432,6 @@ export function StockLevelsPage() {
   const [sortDir, setSortDir] = useState<StockSortDir>("asc");
   const [supplierId, setSupplierId] = useState("");
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
-  const [fullCountProgress, setFullCountProgress] =
-    useState<FullCountProgress | null>(null);
-
   useEffect(() => {
     if (!isLevelsView) return;
     const raw = searchParams.get("status");
@@ -1934,48 +1928,7 @@ export function StockLevelsPage() {
     if (fallback) setBranchId(fallback);
   }, [isBranchLockedRole, branchId, branches]);
 
-  // Resume Full count across days — progress for hub + levels banner.
-  useEffect(() => {
-    const branch = branchId.trim();
-    if (!branch || !allowed) {
-      setFullCountProgress(null);
-      return;
-    }
-    let cancelled = false;
-    void fetchActiveStockTakeSession(branch)
-      .then((res) => {
-        if (cancelled) return;
-        const session = res.session;
-        if (!session || session.status !== "in_progress") {
-          setFullCountProgress(null);
-          return;
-        }
-        const total = session.summary?.totalCount ?? session.lines?.length ?? 0;
-        const remaining = session.summary?.remainingCount ?? 0;
-        const counted = Math.max(
-          0,
-          (session.summary?.submittedCount ?? 0) +
-            (session.summary?.confirmedCount ?? 0),
-        );
-        const done = counted > 0 ? counted : Math.max(0, total - remaining);
-        if (remaining <= 0 || total <= 0) {
-          setFullCountProgress(null);
-          return;
-        }
-        setFullCountProgress({
-          counted: done,
-          total,
-          remaining,
-          sessionName: session.name?.trim() || "Full count",
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setFullCountProgress(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [branchId, allowed]);
+  const fullCountProgress = useFullCountProgress(branchId, allowed);
 
   const priceListOpts = useMemo(
     () => ({
@@ -2324,16 +2277,6 @@ export function StockLevelsPage() {
     debouncedSearch,
   ]);
 
-  const fullCountPct =
-    fullCountProgress && fullCountProgress.total > 0
-      ? Math.min(
-          100,
-          Math.round(
-            (fullCountProgress.counted / fullCountProgress.total) * 100,
-          ),
-        )
-      : 0;
-
   const priceSelectionCount = priceMatchAll
     ? totalElements
     : priceSelectedIds.size;
@@ -2547,56 +2490,7 @@ export function StockLevelsPage() {
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05]">
           {departmentRail}
 
-          {fullCountProgress && fullCountProgress.remaining > 0 ? (
-            <Link
-              href={APP_ROUTES.inventoryStockTake}
-              className={cn(
-                "flex shrink-0 items-center gap-2 border-b px-2.5 py-1.5 transition-colors",
-                stockHair,
-                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              <ClipboardList
-                className="size-3.5 shrink-0 text-[var(--pos-primary,#0f766e)]"
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <div className="min-w-0 flex-1">
-                <p className={cn("text-[11px] font-semibold tracking-[-0.01em]", stockInk)}>
-                  Full count · {fullCountProgress.counted.toLocaleString("en-KE")}/
-                  {fullCountProgress.total.toLocaleString("en-KE")}
-                  <span className={cn("ml-1 font-normal", stockMute)}>
-                    · {fullCountProgress.remaining.toLocaleString("en-KE")} left
-                  </span>
-                </p>
-                <div
-                  className={cn(
-                    "mt-1 h-0.5 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]",
-                  )}
-                  role="progressbar"
-                  aria-valuenow={fullCountPct}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Full count progress"
-                >
-                  <div
-                    className="h-full bg-[var(--pos-primary,#0f766e)]"
-                    style={{ width: `${fullCountPct}%` }}
-                  />
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 text-[9px] font-bold uppercase tracking-[0.1em]",
-                  "text-[var(--pos-primary,#0f766e)]",
-                )}
-              >
-                Resume
-              </span>
-            </Link>
-          ) : null}
+          {fullCountProgress ? <FullCountBanner progress={fullCountProgress} /> : null}
 
           {/* Search + status + filters — always above the list on mobile */}
           <div
@@ -2606,7 +2500,7 @@ export function StockLevelsPage() {
             )}
           >
             {/* Mobile / tablet: search + icon tools */}
-            <div className="flex items-stretch border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] md:hidden">
+            <div className="flex items-center gap-2 px-3 pb-2 pt-3 md:hidden">
               <span className="relative min-w-0 flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
@@ -2618,7 +2512,8 @@ export function StockLevelsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search name, barcode, SKU…"
                   className={cn(
-                    "h-11 w-full border-0 bg-transparent pl-10 pr-3 text-[16px]",
+                    "h-12 w-full rounded-xl border-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)] pl-10 pr-3 text-[16px] transition-shadow",
+                    "focus:bg-white focus:shadow-[0_0_0_2px_var(--pos-primary,#0f766e)]",
                     stockInk,
                     "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
                     "caret-[var(--pos-primary,#0f766e)]",
@@ -2631,11 +2526,10 @@ export function StockLevelsPage() {
                 type="button"
                 onClick={() => setMobileFiltersOpen((v) => !v)}
                 className={cn(
-                  "relative inline-flex size-11 shrink-0 items-center justify-center border-l",
-                  stockHair,
-                  stockInk,
-                  mobileFiltersOpen &&
-                    "bg-[var(--order-ink,#15231f)] text-white",
+                  "relative inline-flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  mobileFiltersOpen
+                    ? "bg-[var(--order-ink,#15231f)] text-white"
+                    : cn("bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)]", stockInk),
                 )}
                 aria-expanded={mobileFiltersOpen}
                 aria-label="More filters"
@@ -2649,7 +2543,7 @@ export function StockLevelsPage() {
                 statusFilter === "poor_margin" ||
                 statusFilter === "no_buy" ||
                 statusFilter === "no_sell" ? (
-                  <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--pos-primary,#0f766e)] ring-2 ring-white" />
+                  <span className="absolute right-2 top-2 size-2 rounded-full bg-[var(--pos-primary,#0f766e)] ring-2 ring-white" />
                 ) : null}
               </button>
               <button
@@ -2657,8 +2551,8 @@ export function StockLevelsPage() {
                 onClick={() => void load()}
                 disabled={loading || !branchId}
                 className={cn(
-                  "inline-flex size-11 shrink-0 items-center justify-center border-l",
-                  stockHair,
+                  "inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)] transition-colors",
+                  stockInk,
                   "disabled:opacity-50",
                 )}
                 aria-label="Refresh stock"
@@ -2672,9 +2566,10 @@ export function StockLevelsPage() {
 
             {/* Mobile: status filters, same options as desktop */}
             {(rows.length > 0 || loading) && (
-              <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 py-1.5 md:hidden">
+              <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2 pb-2.5 pt-0.5 md:hidden">
                 <StockFilterBar
                   variant="bar"
+                  size="touch"
                   value={statusFilter}
                   counts={stockCounts}
                   onChange={setStatusFilter}

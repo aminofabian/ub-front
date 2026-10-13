@@ -12,6 +12,7 @@ import {
 
 import type { StockHubAction } from "@/lib/inventory-access";
 import { APP_ROUTES } from "@/lib/config";
+import type { FullCountProgress } from "@/lib/count-cycle/to-full-count-progress";
 import {
   SheetGrabber,
   useSheetDragDismiss,
@@ -25,20 +26,13 @@ const hair =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 const teal = "var(--pos-primary,#0f766e)";
 
-export type FullCountProgress = {
-  counted: number;
-  total: number;
-  remaining: number;
-  sessionName: string;
-};
-
 type StockActionHubProps = {
   actions: readonly StockHubAction[];
   outCount: number | null;
   lowCount: number | null;
   countsLoading: boolean;
   onOpenLevels: (status?: "out" | "low" | "all") => void;
-  /** Open Full count session progress — resume across days. */
+  /** Batch-by-batch full count still running at this branch. */
   fullCountProgress?: FullCountProgress | null;
 };
 
@@ -292,7 +286,7 @@ export function StockActionHub({
     <div className="flex flex-col gap-3 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
       {fullCountProgress && fullCountProgress.remaining > 0 ? (
         <Link
-          href={APP_ROUTES.inventoryStockTake}
+          href={APP_ROUTES.inventoryStockTakeBatches}
           className={cn(
             "block rounded-2xl bg-white px-4 py-3.5 ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-shadow",
             "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
@@ -315,7 +309,7 @@ export function StockActionHub({
                 </span>
               </p>
               <p className={cn("mt-0.5 truncate text-[12px]", mute)}>
-                {fullCountProgress.sessionName}
+                {fullCountProgress.detail}
               </p>
               <div
                 className={cn(
