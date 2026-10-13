@@ -29,8 +29,8 @@ export type FormDrawerProps = {
   children: React.ReactNode;
   /** Sticky actions bar (Save, Cancel, etc.) */
   footer?: React.ReactNode;
-  /** default ≈ md; wide ≈ 3xl; large ≈ 5xl; extraWide ≈ data tables; half = right 50vw; full = entire viewport */
-  width?: "default" | "wide" | "large" | "extraWide" | "half" | "full";
+  /** default ≈ md; wide ≈ 3xl; large ≈ 5xl; extraWide ≈ data tables; third = right ⅓; half = right 50vw; full = entire viewport */
+  width?: "default" | "wide" | "large" | "extraWide" | "third" | "half" | "full";
   /**
    * When set on large layouts, the panel fills this node (the last products
    * column) instead of covering the whole page. Mobile still uses the overlay.
@@ -262,15 +262,17 @@ export function FormDrawer({
                     "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
                     "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
                     sharp ? "rounded-none" : "sm:rounded-l-2xl",
-                    width === "half"
-                      ? "w-full min-w-0 sm:w-[50vw] sm:max-w-[50vw]"
-                      : width === "extraWide"
-                        ? "sm:max-w-[min(92rem,calc(100vw-1.25rem))]"
-                        : width === "large"
-                          ? "sm:max-w-5xl"
-                          : width === "wide"
-                            ? "sm:max-w-3xl"
-                            : "sm:max-w-xl",
+                    width === "third"
+                      ? "w-full min-w-0 sm:w-[33vw] sm:min-w-[22rem] sm:max-w-[34rem]"
+                      : width === "half"
+                        ? "w-full min-w-0 sm:w-[50vw] sm:max-w-[50vw]"
+                        : width === "extraWide"
+                          ? "sm:max-w-[min(92rem,calc(100vw-1.25rem))]"
+                          : width === "large"
+                            ? "sm:max-w-5xl"
+                            : width === "wide"
+                              ? "sm:max-w-3xl"
+                              : "sm:max-w-xl",
                   ),
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",

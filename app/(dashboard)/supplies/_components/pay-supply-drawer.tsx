@@ -1023,7 +1023,8 @@ export function PaySupplyDrawer({
               : `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
           : undefined
       }
-      width="full"
+      width="third"
+      appearance="default"
       icon={<CreditCard className="size-5 text-primary" aria-hidden />}
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
