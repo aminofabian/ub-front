@@ -6,18 +6,52 @@ import type { JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { HUB_SURFACE } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
-/** Shortcuts for the board — two across on phones, three on wider screens. */
+const TILE_LINK =
+  "rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white text-[#141414] transition-colors hover:border-[#0f766e]/30 hover:bg-[#F1F9F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45";
+
+/** Shortcuts for the board. Phones use one scrolling row; the desk rail uses a grid. */
 export function HubQuickActions({
   links,
   limit = 6,
   title = "Quick actions",
+  presentation = "grid",
 }: {
   links: JumpInLink[];
   limit?: number;
   title?: string;
+  presentation?: "grid" | "strip";
 }) {
   const tiles = links.slice(0, limit);
   if (tiles.length === 0) return null;
+
+  if (presentation === "strip") {
+    return (
+      <nav
+        aria-label={title}
+        className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {tiles.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href + link.label}
+              href={link.href}
+              title={link.hint}
+              className={cn(
+                TILE_LINK,
+                "inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5",
+              )}
+            >
+              <Icon className="size-3.5 shrink-0 text-[#0f766e]" aria-hidden />
+              <span className="text-[12px] font-medium leading-none">
+                {link.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <section className={cn(HUB_SURFACE, "p-3 sm:p-3.5")}>
@@ -33,9 +67,8 @@ export function HubQuickActions({
               href={link.href}
               title={link.hint}
               className={cn(
-                "group flex min-h-[3.75rem] flex-col items-center justify-center gap-1.5 rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-[#FBFCFB] px-1.5 py-2 text-center transition-colors sm:min-h-[4.25rem]",
-                "hover:border-[#0f766e]/30 hover:bg-[#F1F9F8]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
+                TILE_LINK,
+                "group flex min-h-[3.75rem] flex-col items-center justify-center gap-1.5 bg-[#FBFCFB] px-1.5 py-2 text-center sm:min-h-[4.25rem]",
               )}
             >
               <span className="flex size-8 items-center justify-center rounded-none bg-[#E6F2F0] text-[#0f766e]">

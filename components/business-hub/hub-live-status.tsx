@@ -116,14 +116,15 @@ export function HubLiveStatus({
   return (
     <span
       className={cn(
-        "relative inline-flex h-8 items-center gap-1.5 overflow-hidden border px-2 text-[10px] font-semibold tracking-[-0.02em] sm:gap-2 sm:px-2.5",
+        "relative inline-flex h-9 items-center gap-1.5 overflow-hidden text-[12px] font-semibold sm:h-8 sm:gap-2 sm:border sm:px-2.5 sm:text-[10px] sm:tracking-[-0.02em]",
         view.tone === "live" &&
-          "border-emerald-300/50 bg-[#0B1F17] text-emerald-100",
-        view.tone === "sync" && "border-amber-300/50 bg-amber-50 text-amber-950",
+          "text-[#0f766e] sm:border-emerald-300/50 sm:bg-[#0B1F17] sm:text-emerald-100",
+        view.tone === "sync" &&
+          "text-amber-800 sm:border-amber-300/50 sm:bg-amber-50 sm:text-amber-950",
         view.tone === "off" &&
-          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-white text-[#666666]",
+          "text-[#666666] sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] sm:bg-white",
         view.tone === "paused" &&
-          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] bg-muted text-muted-foreground",
+          "text-muted-foreground sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] sm:bg-muted",
         justUpdated && view.tone === "live" && "hub-scan-sweep",
         className,
       )}
@@ -141,7 +142,7 @@ export function HubLiveStatus({
         )}
         aria-hidden
       />
-      <span className="tracking-[0.14em]">{view.label}</span>
+      <span className="tracking-normal sm:tracking-[0.14em]">{view.label}</span>
       <span
         className={cn(
           "border-l pl-2 font-medium normal-case tracking-normal",

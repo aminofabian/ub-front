@@ -34,19 +34,19 @@ function HubIdentity({ identity }: { identity: BusinessIdentity }) {
   const meta = identity.meta?.trim() || "";
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
       <HubMark
         name={name}
         logoUrl={identity.logoUrl}
         faviconUrl={identity.faviconUrl}
-        className="size-7"
+        className="size-8 sm:size-7"
       />
       <span className="min-w-0">
         <span className="block truncate font-heading text-[15px] font-semibold leading-none tracking-[-0.02em] text-[var(--hub-ink)] sm:text-[16px]">
           {name}
         </span>
         {meta ? (
-          <span className="mt-1 block truncate text-[10px] leading-none text-[color-mix(in_srgb,var(--hub-ink)_62%,transparent)]">
+          <span className="mt-1 hidden truncate text-[10px] leading-none text-[color-mix(in_srgb,var(--hub-ink)_62%,transparent)] sm:block">
             {meta}
           </span>
         ) : null}
@@ -94,9 +94,9 @@ export function BusinessPageLayout({
   const heading = title?.trim() || "";
   const blurb = description?.trim() || "";
   const showCopy = Boolean(heading || blurb);
-  // The view lens earns its own line on phones; on wider screens it shares the
-  // identity row with the store switch and actions.
-  const showControlLine = Boolean(toolbarLeading);
+  // Phone: period, tills, and the store switch share one row under identity.
+  // Desk keeps that lens on the identity row, with tills on their own band.
+  const showPhoneLens = Boolean(toolbarLeading || stage);
 
   return (
     <div
@@ -123,7 +123,7 @@ export function BusinessPageLayout({
             "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
             "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
             // Match shell gutters on phone — avoid -mx bleed that fights the nav.
-            "mx-0 rounded-none sm:border",
+            "mx-0 overflow-x-clip rounded-none sm:overflow-visible sm:border",
           )}
         >
           {/* Tablet up: the hub's own pages. Phones use the identity row's menu. */}
@@ -134,43 +134,59 @@ export function BusinessPageLayout({
           ) : null}
 
           {/*
-            Phone: one dense row — shop · actions · menu. Period + store sit on
-            a second slim line only when needed. Desk keeps the single control line.
+            Phone is exactly two rows when the board has a lens: shop and
+            status, then period, tills, and the store switch. Desk keeps one
+            control line, with tills on the band underneath.
           */}
-          <div className="flex items-center gap-2 px-3 py-2 sm:flex-wrap sm:gap-x-3 sm:gap-y-1.5 sm:px-2 sm:py-2">
+          <div className="sm:hidden">
+            <div className="flex h-12 min-w-0 items-center gap-2 px-3">
+              {identity ? (
+                <HubIdentity identity={identity} />
+              ) : (
+                <span className="min-w-0 flex-1" />
+              )}
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {headerActions}
+                {menu}
+              </div>
+            </div>
+            {showPhoneLens ? (
+              <div className="flex h-12 min-w-0 items-center gap-1.5 px-3">
+                {toolbarLeading}
+                {stage ? (
+                  <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {stage}
+                  </div>
+                ) : (
+                  <span className="min-w-0 flex-1" aria-hidden />
+                )}
+                <OnlineStoreHeaderSwitch />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="hidden items-center gap-2 px-2 py-2 sm:flex sm:flex-wrap sm:gap-x-3 sm:gap-y-1.5">
             {identity ? (
               <HubIdentity identity={identity} />
             ) : (
               <span className="min-w-0 flex-1" />
             )}
 
-            <div className="ml-auto flex shrink-0 items-center gap-1">
-              <div className="hidden items-center gap-1.5 sm:flex">
-                {toolbarLeading}
-                <OnlineStoreHeaderSwitch />
-              </div>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              {toolbarLeading}
+              <OnlineStoreHeaderSwitch />
               {headerActions}
               {menu}
             </div>
           </div>
 
-          {showControlLine ? (
-            <div className="flex items-center gap-1.5 border-t border-[color-mix(in_srgb,var(--hub-ink)_6%,transparent)] px-3 py-1.5 sm:hidden">
-              {toolbarLeading}
-              <span className="min-w-0 flex-1" aria-hidden />
-              <OnlineStoreHeaderSwitch />
-            </div>
-          ) : null}
-
           {stage ? (
             <div
               className={cn(
-                "px-3 py-1 sm:px-2 sm:py-1.5",
+                "hidden px-2 py-1.5 sm:block",
                 "bg-[color-mix(in_srgb,var(--hub-ink)_2.5%,white)]",
                 HUB_RULE_8,
                 "border-t",
-                // Phone: keep the till lane picker one tap-row tall.
-                "max-sm:overflow-x-auto max-sm:overflow-y-hidden",
                 stageClassName,
               )}
             >

@@ -37,7 +37,9 @@ export function HubPaymentSplit({
         <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
           How you got paid
         </h3>
-        <p className="shrink-0 text-[11px] text-[#8A8A8A]">{periodLabel}</p>
+        <p className="hidden shrink-0 text-[11px] text-[#8A8A8A] sm:block">
+          {periodLabel}
+        </p>
       </div>
 
       <div className="mt-2.5 flex h-1.5 w-full gap-px overflow-hidden rounded-none bg-[#F1F3F2]">

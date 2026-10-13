@@ -52,7 +52,7 @@ function KpiCard({ kpi }: { kpi: HubKpi }) {
         <div className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-none",
+              "hidden size-7 shrink-0 items-center justify-center rounded-none sm:flex",
               TINTS[kpi.tint ?? "teal"],
             )}
           >

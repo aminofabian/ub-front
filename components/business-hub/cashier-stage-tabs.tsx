@@ -47,10 +47,7 @@ export function CashierStageTabs({
 
   return (
     <div
-      className={cn(
-        "flex items-center gap-2",
-        className,
-      )}
+      className={cn("flex min-w-0 items-center gap-1.5 sm:gap-2", className)}
     >
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
         <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#141414] before:block before:h-px before:w-2 before:bg-[#0f766e] before:content-['']">
@@ -71,7 +68,7 @@ export function CashierStageTabs({
           onClick={selectAll}
           className={cn(
             HUB_BTN,
-            "inline-flex h-7 shrink-0 items-center px-2.5 text-[12px] font-medium",
+            "inline-flex h-9 shrink-0 items-center px-2 text-[12px] font-medium sm:h-7 sm:px-2.5",
             viewingAll
               ? "border border-[#0f766e] bg-white text-[#0f766e]"
               : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",
@@ -101,7 +98,7 @@ export function CashierStageTabs({
               onClick={() => toggleCashier(name)}
               className={cn(
                 HUB_BTN,
-                "inline-flex h-7 max-w-[8.5rem] shrink-0 items-center gap-1.5 px-2.5 text-[12px] font-medium",
+                "inline-flex h-9 max-w-[7.5rem] shrink-0 items-center gap-1 px-2 text-[12px] font-medium sm:h-7 sm:max-w-[8.5rem] sm:gap-1.5 sm:px-2.5",
                 active
                   ? "border border-[#0f766e] bg-white text-[#0f766e]"
                   : "bg-white text-[#5A5A5A] ring-1 ring-[color-mix(in_srgb,#141414_7%,transparent)] hover:text-[#0f766e]",

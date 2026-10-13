@@ -14,7 +14,7 @@ export function OnlineStoreHeaderSwitch() {
   return (
     <div
       className={cn(
-        "inline-flex h-8 max-w-full items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white pl-2 pr-1",
+        "inline-flex h-9 max-w-full shrink-0 items-center gap-1 rounded-none border border-[color-mix(in_srgb,#141414_8%,transparent)] bg-white pl-1.5 pr-1 sm:h-8 sm:gap-1.5 sm:pl-2 sm:pr-1.5",
         saving && "opacity-70",
       )}
     >

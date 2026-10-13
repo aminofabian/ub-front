@@ -1498,7 +1498,7 @@ export function BusinessHubWorkspace() {
             type="button"
             onClick={() => void load()}
             disabled={refreshing}
-            className={HUB_ICON_BTN}
+            className={cn(HUB_ICON_BTN, "max-sm:size-9")}
             aria-label="Refresh business hub"
           >
             <RefreshCw
@@ -1600,6 +1600,7 @@ export function BusinessHubWorkspace() {
               {shopNotReady ? null : (
                 <div className="flex flex-col gap-2.5 sm:gap-4">
                   <HubGreeting
+                    className="max-sm:absolute max-sm:m-[-1px] max-sm:h-px max-sm:w-px max-sm:overflow-hidden max-sm:whitespace-nowrap max-sm:border-0 max-sm:p-0 max-sm:[clip:rect(0,0,0,0)]"
                     name={me?.name}
                     subtitle={
                       isToday
@@ -1610,8 +1611,8 @@ export function BusinessHubWorkspace() {
 
                   {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
 
-                  <div className="flex flex-col gap-2.5 xl:hidden">
-                    <HubQuickActions links={jumpInLinks} />
+                  <div className="xl:hidden">
+                    <HubQuickActions links={jumpInLinks} presentation="strip" />
                   </div>
 
                   {tenderTotals ? (
@@ -1636,7 +1637,10 @@ export function BusinessHubWorkspace() {
                     <section className="space-y-2">
                       <div className="flex items-baseline justify-between px-0.5">
                         <h3 className="text-[12px] font-semibold tracking-[-0.02em] text-[#141414]">
-                          Revenue · {isToday ? "Today" : "This week"}
+                          <span className="sm:hidden">Revenue</span>
+                          <span className="hidden sm:inline">
+                            Revenue · {isToday ? "Today" : "This week"}
+                          </span>
                         </h3>
                         {revenueTrend ? (
                           <p className="text-[12px] font-semibold tabular-nums text-[#047857]">
@@ -1646,7 +1650,7 @@ export function BusinessHubWorkspace() {
                       </div>
                       <div className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
                         <p
-                          className="mb-2 text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums"
+                          className="mb-2 hidden text-[22px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums sm:block"
                           style={{ fontFamily: "var(--font-heading)" }}
                         >
                           {money(revenue)}
@@ -1685,7 +1689,6 @@ export function BusinessHubWorkspace() {
                         initiallyOpen={manageTillsInitiallyOpen}
                       />
                     ) : null}
-                    <HubTipCard />
                   </div>
 
                   {/* 5 — Open work (phone: column tabs; sm+: multi-column grid) */}
