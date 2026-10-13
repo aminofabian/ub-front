@@ -22,6 +22,7 @@ import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-
 import { GlobalCatalogLoadMoreSkeleton } from "@/components/products/global-catalog-product-skeleton";
 import { CatalogImportCeremony } from "@/components/products/catalog-import-ceremony";
 import { CatalogImportSheet } from "./catalog-import-sheet";
+import { CatalogMobileCards } from "./catalog-mobile-cards";
 import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
 import {
   GlobalCatalogActionProgressBar,
@@ -1573,7 +1574,7 @@ export default function GlobalCatalogPage() {
   ]);
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="absolute inset-0 z-0 flex min-h-0 flex-col overflow-hidden 2xl:static 2xl:h-full 2xl:overflow-visible">
       <header className="flex shrink-0 items-center justify-between border-b bg-white px-3 py-2">
         <div className="flex items-center gap-3">
           <Button
@@ -1848,6 +1849,53 @@ export default function GlobalCatalogPage() {
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex shrink-0 flex-col gap-2 border-b bg-white p-2.5">
+            {/* Phone-only pack rail — the desktop aside (starter packs) is
+                hidden below `lg`, so phones need their own pack navigation. */}
+            {visibleReadyPacks.length > 0 ? (
+              <div className="-mx-2.5 flex gap-1.5 overflow-x-auto px-2.5 pb-0.5 lg:hidden [scrollbar-width:none]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPackId(null);
+                    setSelectedCategoryId(null);
+                  }}
+                  className={cn(
+                    "shrink-0 whitespace-nowrap rounded-none border px-3 py-2 text-xs transition-colors",
+                    selectedPackId === null && selectedCategoryId === null
+                      ? "border-[var(--catalog-primary,#0f766e)] font-medium text-[var(--catalog-primary,#0f766e)]"
+                      : "border-border text-muted-foreground",
+                  )}
+                >
+                  All products
+                </button>
+                {visibleReadyPacks.map((pack) => {
+                  const active = selectedPackId === pack.id;
+                  return (
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryId(null);
+                        setSelectedPackId(
+                          pack.id === selectedPackId ? null : pack.id,
+                        );
+                      }}
+                      className={cn(
+                        "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border px-3 py-2 text-xs transition-colors",
+                        active
+                          ? "border-[var(--catalog-primary,#0f766e)] font-medium text-[var(--catalog-primary,#0f766e)]"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      {pack.name}
+                      <span className="tabular-nums opacity-70">
+                        {pack.productCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             {selectedPack || selectedCategoryId ? (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground">Viewing</span>
@@ -1954,32 +2002,72 @@ export default function GlobalCatalogPage() {
             ref={scrollRef}
             className="relative flex-1 overflow-auto scroll-smooth"
           >
-            <CatalogImportSheet
-              products={products}
-              selectedIds={new Set(selected.keys())}
-              overrides={lineOverrides}
-              categoryName={(categoryId) =>
-                meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
-              }
-              departments={shopDepartments}
-              suggestedDepartmentId={(product) => {
-                const globalCategory = meta?.categories.find(
-                  (category) => category.id === product.globalCategoryId,
-                );
-                const slug = globalCategory?.tenantCategorySlugHint?.trim();
-                if (!slug) return undefined;
-                return tenantCategories.find((category) => category.slug === slug)
-                  ?.id;
-              }}
-              currency={currency}
-              imageSrc={globalCatalogImageSrc}
-              onToggle={toggleProduct}
-              onEdit={updateOverride}
-              onOpenOwned={(itemId) =>
-                router.push(`/products?product=${itemId}`)
-              }
-              loading={initialLoading}
-            />
+            {/* Desktop/tablet: the spreadsheet grid. Its 7 columns need a
+                horizontal scroll on laptops, so it lives in `overflow-x-auto`. */}
+            <div className="hidden lg:block">
+              <div className="overflow-x-auto">
+                <div className="min-w-[44rem]">
+                  <CatalogImportSheet
+                    products={products}
+                    selectedIds={new Set(selected.keys())}
+                    overrides={lineOverrides}
+                    categoryName={(categoryId) =>
+                      meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
+                    }
+                    departments={shopDepartments}
+                    suggestedDepartmentId={(product) => {
+                      const globalCategory = meta?.categories.find(
+                        (category) => category.id === product.globalCategoryId,
+                      );
+                      const slug = globalCategory?.tenantCategorySlugHint?.trim();
+                      if (!slug) return undefined;
+                      return tenantCategories.find(
+                        (category) => category.slug === slug,
+                      )?.id;
+                    }}
+                    currency={currency}
+                    imageSrc={globalCatalogImageSrc}
+                    onToggle={toggleProduct}
+                    onEdit={updateOverride}
+                    onOpenOwned={(itemId) =>
+                      router.push(`/products?product=${itemId}`)
+                    }
+                    loading={initialLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Phone: the grid is unusable at ~390px — one card per product. */}
+            <div className="lg:hidden">
+              <CatalogMobileCards
+                products={products}
+                selectedIds={new Set(selected.keys())}
+                overrides={lineOverrides}
+                categoryName={(categoryId) =>
+                  meta?.categories.find((c) => c.id === categoryId)?.name ?? "—"
+                }
+                departments={shopDepartments}
+                suggestedDepartmentId={(product) => {
+                  const globalCategory = meta?.categories.find(
+                    (category) => category.id === product.globalCategoryId,
+                  );
+                  const slug = globalCategory?.tenantCategorySlugHint?.trim();
+                  if (!slug) return undefined;
+                  return tenantCategories.find(
+                    (category) => category.slug === slug,
+                  )?.id;
+                }}
+                currency={currency}
+                imageSrc={globalCatalogImageSrc}
+                onToggle={toggleProduct}
+                onEdit={updateOverride}
+                onOpenOwned={(itemId) =>
+                  router.push(`/products?product=${itemId}`)
+                }
+                loading={initialLoading}
+              />
+            </div>
 
             {showEmptyState ? (
               <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
@@ -2138,7 +2226,7 @@ export default function GlobalCatalogPage() {
                 importProgress &&
                 (actionPhase === "importing" || actionPhase === "done")
               ) ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+                <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--shell-bottom-inset)+0.75rem)] z-20 flex justify-center px-3 2xl:bottom-3">
                   {selected.size > 0 ||
                   actionPhase === "loading" ||
                   actionPhase === "selecting" ||

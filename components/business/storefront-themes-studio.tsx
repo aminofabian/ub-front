@@ -71,6 +71,7 @@ import {
 } from "@/lib/theme-try-on";
 import { trackStorefrontEditEvent } from "@/lib/storefront-staff-edit";
 import { loadThemePins, saveThemePins } from "@/lib/storefront-theme-prefs";
+import { UnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { cn } from "@/lib/utils";
 
 type Mode = "store" | "landing";
@@ -834,6 +835,8 @@ export function StorefrontThemesStudio({
   return (
     <ShopCartPreviewProvider>
       <div className="flex min-h-0 flex-col gap-1.5">
+        <UnsavedChangesGuard active={dirty} />
+
         {!storefrontOn ? (
           <div
             role="status"

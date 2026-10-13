@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  PHONE_BOTTOM_SHEET,
 } from "@/components/ui/dialog";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { recordTabPayment, type OutstandingTabRowRecord } from "@/lib/api";
@@ -92,7 +93,9 @@ export function MarkPaidDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogContent
+        className={cn("gap-0 overflow-hidden p-0 sm:max-w-md", PHONE_BOTTOM_SHEET)}
+      >
         <DialogHeader className="space-y-1 border-b border-border/60 px-5 py-4 text-left">
           <DialogTitle className="text-base">
             Mark paid: {customer?.name?.trim() || "Customer"}

@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import { UnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { cn } from "@/lib/utils";
 
 /** Old inventory/till anchors lived on this page — send them to Configuration. */
@@ -249,6 +250,7 @@ export default function BusinessSettingsPage() {
       )}
       data-onboarding-target={ONBOARDING_TARGETS.settingsDrawer}
     >
+      <UnsavedChangesGuard active={editor.isDirty} />
       <DashboardPageHero
         icon={Settings2}
         eyebrow="Shop"

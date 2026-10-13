@@ -19,6 +19,8 @@ import {
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { PriceRadarCard } from "@/components/price-radar-card";
+
+import { CatalogPicker } from "./_components/catalog-picker";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -94,10 +96,13 @@ export default function PricingPage() {
   const [taxInclusive, setTaxInclusive] = useState(false);
   const [taxActive, setTaxActive] = useState(true);
   const [suggestItemId, setSuggestItemId] = useState("");
+  const [suggestItemLabel, setSuggestItemLabel] = useState("");
   const [suggestSupplierId, setSuggestSupplierId] = useState("");
+  const [suggestSupplierLabel, setSuggestSupplierLabel] = useState("");
   const [suggestion, setSuggestion] =
     useState<SellPriceSuggestionRecord | null>(null);
   const [sellItemId, setSellItemId] = useState("");
+  const [sellItemLabel, setSellItemLabel] = useState("");
   const [sellBranchId, setSellBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   // Default the sell-price branch from the global header (empty = all/default).
@@ -175,7 +180,7 @@ export default function PricingPage() {
   const onSuggest = useCallback(async () => {
     const id = suggestItemId.trim();
     if (!id) {
-      setError("Enter an item ID.");
+      setError("Choose an item to price.");
       setNotice("");
       return;
     }
@@ -200,7 +205,7 @@ export default function PricingPage() {
   const onSetSellingPrice = useCallback(async () => {
     const itemId = sellItemId.trim();
     if (!itemId || !sellPrice.trim() || !sellEffectiveFrom.trim()) {
-      setError("Item ID, price, and effective-from date are required.");
+      setError("Item, price, and effective-from date are required.");
       setNotice("");
       return;
     }
@@ -576,27 +581,32 @@ export default function PricingPage() {
           >
             <FormDrawerFields
               legend="Inputs"
-              hint="Paste item UUID from catalog; supplier UUID is optional."
+              hint="Search the catalogue by name or SKU. A supplier narrows the costing and is optional."
             >
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm">
-                  <span className="text-muted-foreground">Item ID</span>
-                  <input
-                    className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                    value={suggestItemId}
-                    onChange={(e) => setSuggestItemId(e.target.value)}
-                  />
-                </label>
-                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm">
-                  <span className="text-muted-foreground">
-                    Supplier ID (optional)
-                  </span>
-                  <input
-                    className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                    value={suggestSupplierId}
-                    onChange={(e) => setSuggestSupplierId(e.target.value)}
-                  />
-                </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CatalogPicker
+                  label="Item"
+                  kind="item"
+                  value={suggestItemId}
+                  selectedLabel={suggestItemLabel}
+                  placeholder="Search name / SKU…"
+                  onChange={(id, title) => {
+                    setSuggestItemId(id);
+                    setSuggestItemLabel(title ?? "");
+                    setSuggestion(null);
+                  }}
+                />
+                <CatalogPicker
+                  label="Supplier (optional)"
+                  kind="supplier"
+                  value={suggestSupplierId}
+                  selectedLabel={suggestSupplierLabel}
+                  placeholder="Search supplier…"
+                  onChange={(id, title) => {
+                    setSuggestSupplierId(id);
+                    setSuggestSupplierLabel(title ?? "");
+                  }}
+                />
               </div>
             </FormDrawerFields>
             {suggestion ? (
@@ -888,14 +898,19 @@ export default function PricingPage() {
             >
               <FormDrawerFields legend="Price row">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                    <span className="text-muted-foreground">Item ID</span>
-                    <input
-                      className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
+                  <div className="sm:col-span-2">
+                    <CatalogPicker
+                      label="Item"
+                      kind="item"
                       value={sellItemId}
-                      onChange={(e) => setSellItemId(e.target.value)}
+                      selectedLabel={sellItemLabel}
+                      placeholder="Search name / SKU…"
+                      onChange={(id, title) => {
+                        setSellItemId(id);
+                        setSellItemLabel(title ?? "");
+                      }}
                     />
-                  </label>
+                  </div>
                   <label className="flex flex-col gap-1 text-sm">
                     <span className="text-muted-foreground">
                       Branch (optional)

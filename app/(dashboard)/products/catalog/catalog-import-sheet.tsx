@@ -36,7 +36,7 @@ type CatalogImportSheetProps = {
   loading?: boolean;
 };
 
-function moneyDraft(
+export function moneyDraft(
   override: number | null | undefined,
   recommended: number | null | undefined,
 ): string {
@@ -290,7 +290,7 @@ export function CatalogImportSheet({
   );
 }
 
-function parseMoney(raw: string): number | null {
+export function parseMoney(raw: string): number | null {
   const cleaned = raw.replace(/,/g, "").trim();
   if (!cleaned) return null;
   const value = Number(cleaned);

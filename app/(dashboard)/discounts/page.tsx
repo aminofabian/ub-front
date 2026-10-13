@@ -546,7 +546,8 @@ export default function DiscountsPage() {
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       <div className={DASHBOARD_TABLE_SURFACE}>
-        <table className="min-w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[44rem] text-sm md:min-w-full">
           <thead className="border-b bg-muted/40 text-left text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Discount</th>
@@ -620,6 +621,7 @@ export default function DiscountsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <FormDrawer

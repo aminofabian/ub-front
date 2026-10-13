@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { UnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { cn } from "@/lib/utils";
 
 function workspaceFromHash(hash: string): ConfigurationWorkspace {
@@ -169,6 +170,7 @@ export default function BusinessConfigurationPage() {
 
   return (
     <div className={cn(DASHBOARD_MAX_WIDE, "flex flex-col gap-1.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8")}>
+      <UnsavedChangesGuard active={editor.isDirty} />
       <DashboardPageHero
         icon={SlidersHorizontal}
         eyebrow="Operations"

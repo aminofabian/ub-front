@@ -1186,8 +1186,14 @@ export function SupplyBatchListPage() {
         </div>
 
       {clearDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className={cn("w-full max-w-lg overflow-hidden border bg-white shadow-lg", HAIRLINE)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+          <div
+            className={cn(
+              "max-h-[92dvh] w-full overflow-y-auto border bg-white shadow-lg",
+              "rounded-t-[1.25rem] pb-[env(safe-area-inset-bottom)] sm:max-w-lg sm:rounded-none sm:pb-0",
+              HAIRLINE,
+            )}
+          >
             <div className={cn("border-b bg-white px-4 py-3", HAIRLINE)}>
               <h2
                 className="text-base font-semibold tracking-tight"
@@ -1208,7 +1214,7 @@ export function SupplyBatchListPage() {
                 <label className="flex flex-col gap-1">
                   <span className={supFieldLabel}>Reason for write-off</span>
                   <select
-                    className={cn(supSelect, "h-8 bg-white text-sm")}
+                    className={cn(supSelect, "h-11 bg-white text-sm sm:h-8")}
                     value={clearReason}
                     onChange={(e) => setClearReason(e.target.value)}
                   >
@@ -1222,7 +1228,7 @@ export function SupplyBatchListPage() {
                 <label className="flex flex-col gap-1">
                   <span className={supFieldLabel}>Notes</span>
                   <input
-                    className={cn(supInput, "h-8 bg-white text-sm")}
+                    className={cn(supInput, "h-11 bg-white text-sm sm:h-8")}
                     value={clearNotes}
                     onChange={(e) => setClearNotes(e.target.value)}
                     placeholder="Optional notes…"

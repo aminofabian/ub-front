@@ -79,6 +79,16 @@ const dialogContentVariants = cva(
   },
 );
 
+/**
+ * Phone bottom-sheet override for a centred dialog. Append to a `DialogContent`
+ * `className` so that below `sm` the panel docks to the bottom of the screen
+ * instead of floating centred. Desktop (`sm`+) is unchanged.
+ */
+export const PHONE_BOTTOM_SHEET =
+  "max-sm:!bottom-0 max-sm:!left-0 max-sm:!right-0 max-sm:!top-auto " +
+  "max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!w-full max-sm:!max-w-none " +
+  "max-sm:!max-h-[92dvh] max-sm:!pb-[env(safe-area-inset-bottom)]";
+
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof RadixDialog.Content> &
   VariantProps<typeof dialogContentVariants> & {
     showCloseButton?: boolean;

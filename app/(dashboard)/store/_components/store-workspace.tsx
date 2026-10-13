@@ -30,6 +30,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  PHONE_BOTTOM_SHEET,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useStoreRoomRealtime } from "@/hooks/use-store-room-realtime";
@@ -1151,7 +1152,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           if (!open && !approvalBusy) setApprovalOpen(false);
         }}
       >
-        <DialogContent>
+        <DialogContent className={PHONE_BOTTOM_SHEET}>
           <DialogHeader>
             <DialogTitle>Ask before big take-outs?</DialogTitle>
             <DialogDescription>

@@ -147,6 +147,7 @@ import {
   STORE_PERSONALITY_PRESETS,
   type StorePersonalityPreset,
 } from "@/lib/storefront-personality";
+import { UnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { cn } from "@/lib/utils";
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
@@ -1533,6 +1534,8 @@ export function StorefrontDesignEditor({
 
   return (
     <div className="space-y-5">
+      <UnsavedChangesGuard active={dirty} />
+
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
       {feedback ? <DashboardFeedback kind="success" text={feedback} /> : null}
 

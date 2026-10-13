@@ -23,6 +23,7 @@ import {
   type StorefrontSeoLocation,
 } from "@/lib/storefront-seo-defaults";
 import { resolveBusinessFaviconHref } from "@/lib/tenant-favicon-path";
+import { UnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { cn } from "@/lib/utils";
 import {
   clearMyBrandingAppIcon,
@@ -855,6 +856,8 @@ export default function BrandingPage() {
       )}
       data-onboarding-target={ONBOARDING_TARGETS.brandingDrawer}
     >
+      <UnsavedChangesGuard active={dirty} />
+
       <form id="branding-edit-form" className="hidden" onSubmit={onSave} aria-hidden />
 
       <DashboardPageHero

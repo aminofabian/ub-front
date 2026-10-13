@@ -12,6 +12,15 @@ import {
   type SyncConflictRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { showConfirmModal } from "@/components/confirm-modal";
+
+function prettyJson(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+}
 
 export default function SyncConflictsPage() {
   const { me } = useDashboard();
@@ -128,13 +137,13 @@ export default function SyncConflictsPage() {
               key={c.id}
               className="rounded-none border bg-background p-4 shadow-none"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div className="min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-medium">
                       {c.entityType}
                     </span>
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="break-all font-mono text-xs text-muted-foreground">
                       {c.entityId}
                     </span>
                     {c.resolution !== "pending" && (
@@ -152,24 +161,54 @@ export default function SyncConflictsPage() {
                       Detected {new Date(c.createdAt).toLocaleString()}
                     </p>
                   )}
+                  {c.localSnapshot && c.localSnapshot !== "{}" ? (
+                    <details className="text-[11px] text-muted-foreground">
+                      <summary className="cursor-pointer select-none">
+                        This device&apos;s data
+                      </summary>
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all border bg-muted/30 p-2 text-[11px]">
+                        {prettyJson(c.localSnapshot)}
+                      </pre>
+                    </details>
+                  ) : null}
                 </div>
 
                 {c.resolution === "pending" && (
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
                     <button
-                      onClick={() => resolve(c.id, "server")}
+                      type="button"
+                      onClick={() =>
+                        showConfirmModal({
+                          id: `sync-server-${c.id}`,
+                          title: "Keep the server version?",
+                          description:
+                            "This device's unsaved changes for this record will be discarded.",
+                          confirmLabel: "Keep server",
+                          onConfirm: () => void resolve(c.id, "server"),
+                        })
+                      }
                       disabled={resolving === c.id}
-                      className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-[11px] font-medium shadow-none hover:bg-muted disabled:opacity-50"
+                      className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-none border bg-background px-3 text-[12px] font-medium shadow-none hover:bg-muted disabled:opacity-50 sm:min-h-8 sm:flex-none sm:px-2.5"
                     >
-                      <XCircle className="size-3" />
+                      <XCircle className="size-3.5" />
                       Server wins
                     </button>
                     <button
-                      onClick={() => resolve(c.id, "local")}
+                      type="button"
+                      onClick={() =>
+                        showConfirmModal({
+                          id: `sync-local-${c.id}`,
+                          title: "Keep this device's version?",
+                          description:
+                            "The server's version will be overwritten by this device's changes.",
+                          confirmLabel: "Keep local",
+                          onConfirm: () => void resolve(c.id, "local"),
+                        })
+                      }
                       disabled={resolving === c.id}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-none hover:bg-primary/90 disabled:opacity-50"
+                      className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-none bg-primary px-3 text-[12px] font-medium text-primary-foreground shadow-none hover:bg-primary/90 disabled:opacity-50 sm:min-h-8 sm:flex-none sm:px-2.5"
                     >
-                      <CheckCircle className="size-3" />
+                      <CheckCircle className="size-3.5" />
                       Local wins
                     </button>
                   </div>

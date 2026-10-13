@@ -50,7 +50,7 @@ function packUnitPrice(
 }
 
 const STEP =
-  "flex h-8 w-7 shrink-0 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]";
+  "flex h-11 w-full shrink-0 items-center justify-center touch-manipulation text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#fff)] hover:text-[var(--order-ink,#15231f)] active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,#fff)] disabled:pointer-events-none disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)] sm:h-8";
 
 function OrderShelfTile({
   link,
@@ -206,7 +206,7 @@ function OrderShelfTile({
         ) : (
           <div className="mt-auto w-full pt-2">
             <div
-              className="grid h-8 w-full min-w-0 grid-cols-[1.75rem_minmax(0,1fr)_1.75rem] rounded-none border bg-white"
+              className="grid h-11 w-full min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] rounded-none border bg-white sm:h-8 sm:grid-cols-[1.75rem_minmax(0,1fr)_1.75rem]"
               style={{
                 borderColor: inCart ? TEAL : RULE,
                 color: inCart ? TEAL : INK,
@@ -228,7 +228,7 @@ function OrderShelfTile({
                 qty={qty}
                 onSetQty={onSetQty}
                 ariaLabel={`Quantity for ${primary}`}
-                className="h-8 px-1"
+                className="h-11 px-1 sm:h-8"
               />
               <button
                 type="button"

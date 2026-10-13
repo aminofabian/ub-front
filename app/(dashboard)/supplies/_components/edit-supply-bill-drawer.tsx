@@ -25,6 +25,7 @@ import {
   SupSection,
 } from "../../suppliers/_components/supplier-layout-primitives";
 import {
+  HAIRLINE,
   supCardInset,
   supFieldLabel,
   supInput,
@@ -34,6 +35,13 @@ import {
   supTextarea,
 } from "../../suppliers/_components/supplier-ui-tokens";
 import { ExtraCostsBody, type ExtraRow } from "./extra-costs-section";
+import { nsdInput } from "./new-supply-drawer-ui";
+import {
+  SupplyCostCell,
+  SupplyLineTotalCell,
+  SupplyQtyCell,
+} from "./supply-line-metric-cells";
+import { SupplyShelfPriceCell } from "./supply-shelf-price-cell";
 import { formatSupplyMoney, supplyN } from "./supplies-shared";
 
 type LineForm = {
@@ -73,6 +81,62 @@ function lineTotalFrom(
   buying: number,
 ): number {
   return roundMoney2((usable + wastage) * buying);
+}
+
+/**
+ * Mobile card field for wastage — mirrors the receiving metric cells (44px,
+ * 16px type) since there is no shared wastage cell in the metric cell set.
+ */
+function SupplyWastageCell({
+  value,
+  onChange,
+  disabled = false,
+  label,
+}: {
+  value: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
+  label?: string;
+}) {
+  const hasText = value.trim().length > 0;
+  const parsed = parseNonNeg(value);
+  const tone = !hasText ? "empty" : parsed == null ? "invalid" : "active";
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      {label ? (
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+          {label}
+        </span>
+      ) : null}
+      <div
+        className={cn(
+          "relative flex h-11 min-w-0 items-center border transition-[border-color,background-color] duration-100",
+          tone === "empty"
+            ? "border-border/70 bg-muted/15"
+            : tone === "invalid"
+              ? "border-amber-500/40 bg-amber-500/[0.07]"
+              : "border-foreground/20 bg-background",
+        )}
+      >
+        <input
+          className={cn(
+            nsdInput,
+            "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
+            "text-right font-mono text-base tabular-nums",
+            "focus-visible:ring-0 focus-visible:ring-offset-0",
+            tone === "invalid" && "text-amber-800 dark:text-amber-200",
+          )}
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
+          onFocus={(e) => e.currentTarget.select()}
+          disabled={disabled}
+          inputMode="decimal"
+          placeholder="0"
+          aria-label={label ?? "Wastage"}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function EditSupplyBillDrawer({
@@ -526,7 +590,130 @@ export function EditSupplyBillDrawer({
               }
               bodyClassName="p-0 sm:p-0"
             >
-              <div className="overflow-x-auto border-t border-border/45">
+              <div className="space-y-1.5 border-t border-border/45 p-2 lg:hidden">
+                {detail.lines.map((ln) => {
+                  const f = lineForms.find(
+                    (x) => x.supplierInvoiceLineId === ln.id,
+                  );
+                  const u = f ? Number(f.usableQtyStr) : supplyN(ln.usableQty);
+                  const w = f
+                    ? Number(f.wastageQtyStr)
+                    : supplyN(ln.wastageQty);
+                  const buying = f
+                    ? Number(f.buyingPriceStr)
+                    : supplyN(ln.unitCost);
+                  const lt =
+                    Number.isFinite(u) &&
+                    Number.isFinite(w) &&
+                    Number.isFinite(buying)
+                      ? lineTotalFrom(u, w, buying)
+                      : supplyN(ln.lineTotal);
+                  const editable = canEditLines && Boolean(f);
+                  const sellDisabled =
+                    busy || !canSetSellPrice || !f?.itemId || !branchId;
+                  const qtyStr = f
+                    ? f.usableQtyStr
+                    : String(supplyN(ln.usableQty));
+                  const wastageStr = f
+                    ? f.wastageQtyStr
+                    : String(supplyN(ln.wastageQty));
+                  const buyingStr = f
+                    ? f.buyingPriceStr
+                    : String(supplyN(ln.unitCost));
+                  const sellStr = f ? f.sellPriceStr : "";
+                  return (
+                    <article
+                      key={ln.id}
+                      className={cn(
+                        "overflow-hidden rounded-none border bg-card",
+                        HAIRLINE,
+                      )}
+                    >
+                      <div className="px-2.5 py-2">
+                        {editable && f ? (
+                          <textarea
+                            className={cn(
+                              supTextarea,
+                              "min-h-[2.5rem] text-xs",
+                            )}
+                            rows={2}
+                            value={f.description}
+                            onChange={(e) =>
+                              patchLineForm(ln.id, {
+                                description: e.target.value,
+                              })
+                            }
+                            disabled={busy}
+                            aria-label={`Description for ${ln.description}`}
+                          />
+                        ) : (
+                          <h4 className="break-words text-[13px] font-semibold leading-snug tracking-tight text-foreground">
+                            {ln.description || "—"}
+                          </h4>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
+                        <SupplyQtyCell
+                          touch
+                          quiet
+                          label="Qty"
+                          value={qtyStr}
+                          onChange={(v) =>
+                            patchLineForm(ln.id, { usableQtyStr: v })
+                          }
+                          disabled={busy || !editable}
+                        />
+                        <SupplyCostCell
+                          touch
+                          quiet
+                          label="Buying"
+                          value={buyingStr}
+                          onChange={(v) =>
+                            patchLineForm(ln.id, { buyingPriceStr: v })
+                          }
+                          disabled={busy || !editable}
+                        />
+                        <SupplyWastageCell
+                          label="Wastage"
+                          value={wastageStr}
+                          onChange={(v) =>
+                            patchLineForm(ln.id, { wastageQtyStr: v })
+                          }
+                          disabled={busy || !editable}
+                        />
+                        <SupplyShelfPriceCell
+                          touch
+                          quiet
+                          label="Selling"
+                          value={sellStr}
+                          onChange={(v) =>
+                            patchLineForm(ln.id, {
+                              sellPriceStr: v,
+                              sellPriceTouched: true,
+                            })
+                          }
+                          disabled={sellDisabled}
+                          canSetSellPrice={canSetSellPrice}
+                          unitStr={buyingStr}
+                          sellPriceTouched={f?.sellPriceTouched ?? false}
+                        />
+                        <SupplyLineTotalCell
+                          touch
+                          quiet
+                          label="Line total"
+                          total={Number.isFinite(lt) ? lt : null}
+                          qty={Number.isFinite(u + w) ? u + w : null}
+                          unitCost={Number.isFinite(buying) ? buying : null}
+                          disabled
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto border-t border-border/45 lg:block">
                 <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
                   <thead className={supTableHead}>
                     <tr>

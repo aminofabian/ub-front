@@ -1575,7 +1575,7 @@ export function OrderReceivePanel({
                             }))
                           }
                           className={cn(
-                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition-colors",
+                            "relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-none border transition-colors after:absolute after:-inset-3 after:content-['']",
                             !canReceive
                               ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
                               : checked

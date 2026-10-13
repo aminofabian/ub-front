@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { frontWindowFieldsForLandingContent } from "@/lib/front-window-landing";
@@ -191,6 +191,48 @@ export function useBusinessSettingsEditor() {
       return { ...prev, enabled: remoteStorefrontEnabled };
     });
   }, [remoteStorefrontEnabled]);
+
+  // Nothing-saved baseline: mirrors how the form converges after a load (the
+  // storefront `enabled` flag tracks the live remote value, not the snapshot).
+  const baselineForm = useMemo(() => {
+    if (!effectiveSnapshot) return null;
+    const base = applyBusinessSnapshot(effectiveSnapshot, branches);
+    return {
+      editable: base.editable,
+      storefront: { ...base.storefront, enabled: remoteStorefrontEnabled },
+      inventory: base.inventory,
+      posDrafts: base.posDrafts,
+      cashierCapabilities: base.cashierCapabilities,
+      shiftSettings: base.shiftSettings,
+      tillListen: base.tillListen,
+      hubAlerts: base.hubAlerts,
+    };
+  }, [effectiveSnapshot, branches, remoteStorefrontEnabled]);
+
+  const isDirty = useMemo(() => {
+    if (!baselineForm) return false;
+    const current = {
+      editable,
+      storefront,
+      inventory,
+      posDrafts,
+      cashierCapabilities,
+      shiftSettings,
+      tillListen,
+      hubAlerts,
+    };
+    return JSON.stringify(current) !== JSON.stringify(baselineForm);
+  }, [
+    baselineForm,
+    editable,
+    storefront,
+    inventory,
+    posDrafts,
+    cashierCapabilities,
+    shiftSettings,
+    tillListen,
+    hubAlerts,
+  ]);
 
   const resetFormFromSnapshot = useCallback(() => {
     if (!effectiveSnapshot) {
@@ -550,6 +592,7 @@ export function useBusinessSettingsEditor() {
     setLoadFailed,
     isSaving,
     isLoading,
+    isDirty,
     activeBranches,
     storefrontNeedsBranch,
     load,

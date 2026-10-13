@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { showConfirmModal } from "@/components/confirm-modal";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   approvePaymentClaim,
@@ -78,7 +79,7 @@ export default function PaymentClaimsReviewPage() {
     [load],
   );
 
-  const onReject = useCallback(
+  const rejectClaim = useCallback(
     async (claimId: string) => {
       setMessage("");
       setBusyId(claimId);
@@ -92,6 +93,20 @@ export default function PaymentClaimsReviewPage() {
       }
     },
     [load],
+  );
+
+  const onReject = useCallback(
+    (claimId: string) => {
+      showConfirmModal({
+        id: `reject-claim-${claimId}`,
+        title: "Reject this payment claim?",
+        description:
+          "This tells the customer their payment wasn't matched. It can't be undone.",
+        confirmLabel: "Reject claim",
+        onConfirm: () => void rejectClaim(claimId),
+      });
+    },
+    [rejectClaim],
   );
 
   if (!allowed) {

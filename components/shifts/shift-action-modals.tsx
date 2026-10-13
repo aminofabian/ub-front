@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  PHONE_BOTTOM_SHEET,
 } from "@/components/ui/dialog";
 import {
   DashboardFeedback,
@@ -61,6 +62,7 @@ const SHIFT_MODAL_CONTENT = cn(
   "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
   "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_42%,var(--card))]",
   "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+  PHONE_BOTTOM_SHEET,
 );
 
 const SHIFT_MODAL_HEADER = cn(
@@ -158,7 +160,7 @@ function shiftSelectClass(disabled?: boolean, className?: string) {
 }
 
 const DENOM_STEPPER_BTN = cn(
-  "inline-flex size-6 shrink-0 items-center justify-center rounded-none border",
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-none border sm:size-6",
   "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
   "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_75%,#fff)]",
   "text-[var(--pos-ink,#1c1915)]",
@@ -280,7 +282,7 @@ export function DenominationRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[3rem_6.5rem_minmax(0,1fr)] items-center gap-1 px-1.5 py-px",
+        "grid grid-cols-[3.5rem_auto_minmax(0,1fr)] items-center gap-1.5 px-1.5 py-1.5 sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)] sm:gap-1 sm:py-px",
         "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] last:border-b-0",
         "transition-[background-color] duration-150",
         hasQty
@@ -295,7 +297,7 @@ export function DenominationRow({
         {shortLabel}
       </p>
 
-      <div className="flex w-[6.5rem] shrink-0 items-center justify-between gap-0.5">
+      <div className="flex w-auto shrink-0 items-center justify-between gap-1 sm:w-[6.5rem] sm:gap-0.5">
         {editable ? (
           <button
             type="button"
@@ -307,7 +309,7 @@ export function DenominationRow({
             <Minus className="size-3" strokeWidth={2.5} />
           </button>
         ) : (
-          <span className="size-6 shrink-0" aria-hidden />
+          <span className="size-11 shrink-0 sm:size-6" aria-hidden />
         )}
         <input
           type="number"
@@ -319,7 +321,7 @@ export function DenominationRow({
           className={shiftFieldClass(
             readOnly,
             cn(
-              "h-6 w-10 shrink-0 px-0.5 py-0 text-center text-[11px] font-semibold tabular-nums",
+              "h-11 w-14 shrink-0 px-0.5 py-0 text-center text-base font-semibold tabular-nums sm:h-6 sm:w-10 sm:text-[11px]",
               "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
               hasQty &&
                 "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,#fff_94%,transparent)]",
@@ -342,13 +344,13 @@ export function DenominationRow({
             <Plus className="size-3" strokeWidth={2.5} />
           </button>
         ) : (
-          <span className="size-6 shrink-0" aria-hidden />
+          <span className="size-11 shrink-0 sm:size-6" aria-hidden />
         )}
       </div>
 
       <span
         className={cn(
-          "min-w-0 truncate text-right font-mono text-[10px] tabular-nums",
+          "min-w-0 truncate text-right font-mono text-[12px] tabular-nums sm:text-[10px]",
           hasQty
             ? "font-semibold text-[var(--pos-ink,#1c1915)]"
             : "text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
@@ -440,7 +442,7 @@ export function DenominationTable({
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[var(--pos-primary,#0f766e)] px-2 py-1.5 text-[var(--pos-primary-ink,#fff)]">
-        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--pos-primary-ink,#fff)]/75">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--pos-primary-ink,#fff)]/75">
           {title}
         </p>
         <p
@@ -451,7 +453,7 @@ export function DenominationTable({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 divide-x divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
+      <div className="grid grid-cols-1 divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] sm:grid-cols-2 sm:divide-x sm:divide-y-0">
         <DenominationGroup
           title="Notes"
           icon={<Banknote className="size-3" strokeWidth={2.25} />}
