@@ -35,9 +35,9 @@ import { type JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { BusinessHubMenuButton } from "@/components/business-hub/hub-menu";
 import { FloorTapeDrawer } from "@/components/business-hub/floor-tape-drawer";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
-import { HubKpiRow, type HubKpi } from "@/components/business-hub/hub-kpi-row";
+import { type HubKpi } from "@/components/business-hub/hub-kpi";
 import { HubLiveStatus } from "@/components/business-hub/hub-live-status";
-import { HubPaymentSplit } from "@/components/business-hub/hub-payment-split";
+import { HubMoneyHero } from "@/components/business-hub/hub-money-hero";
 import { HubQuickActions } from "@/components/business-hub/hub-quick-actions";
 import { HubTipCard } from "@/components/business-hub/hub-tip-card";
 import { HubWorkSummary } from "@/components/business-hub/hub-work-summary";
@@ -59,7 +59,6 @@ import {
   HubHistoryDrawer,
   type HubHistoryTarget,
 } from "@/components/business-hub/hub-history-drawer";
-import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
 import { TopMoversPanel } from "@/components/business-hub/top-movers-panel";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
@@ -87,7 +86,6 @@ import {
 } from "@/lib/business-hub/formatters";
 import {
   averageTicket,
-  buildChartCaption,
   buildPulseHeadline,
   marginPct,
   paymentTenderTotals,
@@ -848,7 +846,6 @@ export function BusinessHubWorkspace() {
     chartPoints,
     salesEmpty,
   });
-  const chartCaption = buildChartCaption({ period, points: chartPoints });
   const chartAriaLabel = isToday
     ? "Daily revenue over the last twelve days"
     : "Daily revenue over the last seven days";
@@ -1302,6 +1299,12 @@ export function BusinessHubWorkspace() {
   const canShowPaymentMethod =
     hasPermission(me?.permissions, Permission.PaymentsGatewaysRead) ||
     hasPermission(me?.permissions, Permission.PaymentsGatewaysWrite);
+  const canShowAirtime =
+    hasPermission(me?.permissions, Permission.AirtimeRead) ||
+    hasPermission(me?.permissions, Permission.AirtimeManage) ||
+    hasPermission(me?.permissions, Permission.AirtimeSell);
+  const showSetupPanel =
+    canShowPaymentMethod || canShowAirtime || canManageBusinessSettings;
 
   const tenderTotals = useMemo(() => {
     if (!canViewSalesIntelligence) return null;
@@ -1597,23 +1600,26 @@ export function BusinessHubWorkspace() {
 
               {shopNotReady ? null : (
                 <div className="flex flex-col gap-2 sm:gap-4">
-                  {salesEmpty ? null : <HubKpiRow items={hubKpis} />}
+                  {/* The money story as one layered surface: the headline
+                      revenue, where that money arrived from, then the supporting
+                      numbers under a hairline. */}
+                  {salesEmpty ? null : (
+                    <HubMoneyHero
+                      items={hubKpis}
+                      periodLabel={isToday ? "Today" : "This week"}
+                      chartPoints={chartPoints}
+                      chartAriaLabel={chartAriaLabel}
+                      tender={
+                        tenderTotals ? { ...tenderTotals, format: money } : null
+                      }
+                    />
+                  )}
 
                   {/* Quick actions — buttons, two rows (the desk rail shows the
                       same board, so this is below-xl only). */}
                   <div className="xl:hidden">
                     <HubQuickActions links={jumpInLinks} />
                   </div>
-
-                  {tenderTotals ? (
-                    <HubPaymentSplit
-                      cash={tenderTotals.cash}
-                      mpesa={tenderTotals.mpesa}
-                      credit={tenderTotals.credit}
-                      format={money}
-                      periodLabel={isToday ? "Today" : "This week"}
-                    />
-                  ) : null}
 
                   {/* Phone shows the detailed "Open work" board below; this
                       summary would repeat the same supply/credit/web counts. */}
@@ -1730,49 +1736,6 @@ export function BusinessHubWorkspace() {
                     )
                   ) : null}
 
-                  {/* Revenue detail — the KPI strip already carries the headline
-                      numbers, so the chart sits below the work board. */}
-                  {salesEmpty ? null : (
-                    <section className="space-y-1.5">
-                      <HubSectionLabel
-                        title="Revenue"
-                        meta={isToday ? "Today" : "This week"}
-                        className="px-0.5"
-                      />
-                      <div className="rounded-none border border-[color-mix(in_srgb,#141414_7%,transparent)] bg-white p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <p
-                            className="truncate text-[20px] font-semibold leading-none tracking-[-0.03em] text-[#141414] tabular-nums"
-                            style={{ fontFamily: "var(--font-heading)" }}
-                          >
-                            {money(revenue)}
-                          </p>
-                          {revenueTrend ? (
-                            <span
-                              className={cn(
-                                "inline-flex shrink-0 items-center gap-0.5 rounded-none px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
-                                revenueTrend.startsWith("-")
-                                  ? "bg-[#FDECEC] text-[#B4342F]"
-                                  : "bg-[#E6F4EC] text-[#047857]",
-                              )}
-                            >
-                              {revenueTrend}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2.5">
-                          <RevenueBarChart
-                            dense
-                            bare
-                            points={chartPoints}
-                            ariaLabel={chartAriaLabel}
-                            caption={chartCaption}
-                          />
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
                   {/* 5 — Floor tape: the last ticks, one thumb away. The desk
                       reads the same tape in the lane rail beside this column. */}
                   {showTillStage && !galleryOpen ? (
@@ -1825,30 +1788,54 @@ export function BusinessHubWorkspace() {
                     </section>
                   ) : null}
 
-                  {/* Setup & utilities — secondary to the pulse, so they sit last. */}
-                  <div className="flex flex-col gap-2.5 xl:hidden">
-                    {canShowPaymentMethod ? (
-                      <ReceiveMpesaSetupCard
-                        rail
-                        ownerPhone={me?.phone}
-                        countryCode={business?.countryCode}
-                        permissions={me?.permissions}
+                  {/* Setup & utilities — grouped into one layered panel at the
+                      end of the board instead of three floating cards. */}
+                  {showSetupPanel ? (
+                    <section className="space-y-1.5 xl:hidden">
+                      <HubSectionLabel
+                        title="Shop setup"
+                        meta="Payments · float · tills"
+                        className="px-0.5"
                       />
-                    ) : null}
-                    <AirtimeFloatHubCard
-                      rail
-                      ownerPhone={me?.phone}
-                      permissions={me?.permissions}
-                    />
-                    {canManageBusinessSettings ? (
-                      <ManageTillsHubCard
-                        rail
-                        branches={branches}
-                        branchId={branchId}
-                        initiallyOpen={manageTillsInitiallyOpen}
-                      />
-                    ) : null}
-                  </div>
+                      <div
+                        className={cn(
+                          "flex flex-col gap-px overflow-hidden border",
+                          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
+                          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                        )}
+                      >
+                        {canShowPaymentMethod ? (
+                          <div className="min-w-0 bg-white">
+                            <ReceiveMpesaSetupCard
+                              rail
+                              ownerPhone={me?.phone}
+                              countryCode={business?.countryCode}
+                              permissions={me?.permissions}
+                            />
+                          </div>
+                        ) : null}
+                        {canShowAirtime ? (
+                          <div className="min-w-0 bg-white">
+                            <AirtimeFloatHubCard
+                              rail
+                              ownerPhone={me?.phone}
+                              permissions={me?.permissions}
+                            />
+                          </div>
+                        ) : null}
+                        {canManageBusinessSettings ? (
+                          <div className="min-w-0 bg-white">
+                            <ManageTillsHubCard
+                              rail
+                              branches={branches}
+                              branchId={branchId}
+                              initiallyOpen={manageTillsInitiallyOpen}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
               )}
             </div>

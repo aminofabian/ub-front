@@ -68,10 +68,18 @@ export function HubQuickActions({
               title={link.hint}
               className={cn(
                 TILE_LINK,
-                "group flex min-h-11 flex-col items-center justify-center gap-1 bg-[#FBFCFB] px-1 py-1.5 text-center",
+                "group flex min-h-14 flex-col items-center justify-center gap-1.5 px-1 py-2 text-center",
               )}
             >
-              <Icon className="size-4 shrink-0 text-[#0f766e]" aria-hidden />
+              <span
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center border bg-white text-[#0f766e] transition-colors",
+                  "border-[color-mix(in_srgb,#141414_7%,transparent)]",
+                  "group-hover:border-[#0f766e]/45 group-hover:bg-[#F1F9F8]",
+                )}
+              >
+                <Icon className="size-4" aria-hidden />
+              </span>
               <span className="w-full truncate text-[10px] font-medium leading-tight text-[#141414]">
                 {link.label}
               </span>
