@@ -21,6 +21,21 @@ export function OrderStatsStrip() {
   const sentActive = sentStats.count > 0;
   const confirmActive = sentStats.awaitingUnits > 0;
 
+  const phoneDue = confirmActive ? (
+    <Link
+      href={APP_ROUTES.orderReceive}
+      className="flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-[#fff4e8] px-3.5 py-2.5 active:scale-[0.99]"
+    >
+      <span className="min-w-0 text-[14px] font-semibold tracking-[-0.02em] text-[#9a3412]">
+        {loading ? "Checking arrivals" : `${sentStats.awaitingUnits} still to receive`}
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[#0f766e]">
+        <ClipboardCheck className="size-3.5" aria-hidden />
+        Receive
+      </span>
+    </Link>
+  ) : null;
+
   const compactPulse = (
     <section
       aria-label="Order pulse"
@@ -61,14 +76,18 @@ export function OrderStatsStrip() {
     </section>
   );
 
-  if (isStockFloor) return compactPulse;
+  if (isStockFloor) {
+    return (
+      <>
+        <div className="lg:hidden">{phoneDue}</div>
+        <div className="hidden lg:block">{compactPulse}</div>
+      </>
+    );
+  }
 
   return (
     <>
-      {/* Phones: the full lifetime + pipeline strip eats too much of a short
-          viewport, so show the one-line pulse; the full strip returns at lg+.
-          (The buying journey itself is the shared ProcurementHubNav above.) */}
-      <div className="lg:hidden">{compactPulse}</div>
+      <div className="lg:hidden">{phoneDue}</div>
       <section aria-label="Order stats" className="hidden space-y-2 lg:block">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 

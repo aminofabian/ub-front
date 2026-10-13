@@ -119,7 +119,7 @@ export function ChangeAisleModal({
                   onClick={() => setSelected(CLEAR_AISLE)}
                   disabled={busy}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-none border p-3 text-left transition-colors",
+                    "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                     selected === CLEAR_AISLE
                       ? "border-primary/60 bg-primary/[0.06] ring-1 ring-inset ring-primary/30"
                       : "border-border/60 bg-background hover:bg-muted/30",
@@ -131,7 +131,7 @@ export function ChangeAisleModal({
                 </button>
               </li>
               {sorted.length === 0 ? (
-                <li className="rounded-none border border-dashed border-border/50 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+                <li className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
                   No shelf zones yet. Create one from Your shop → Shelf zones.
                 </li>
               ) : (
@@ -145,7 +145,7 @@ export function ChangeAisleModal({
                         onClick={() => setSelected(a.id)}
                         disabled={busy}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-none border p-3 text-left transition-colors",
+                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                           isSelected
                             ? "border-primary/60 bg-primary/[0.06] ring-1 ring-inset ring-primary/30"
                             : "border-border/60 bg-background hover:bg-muted/30",

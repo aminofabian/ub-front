@@ -48,7 +48,7 @@ function CatalogListSkeletonRow({
           <span className="h-3.5 w-[72%] max-w-xs animate-pulse rounded bg-muted" />
           <span className="h-3 w-[42%] max-w-[10rem] animate-pulse rounded bg-muted/80" />
         </span>
-        <span className="size-8 shrink-0 animate-pulse rounded-none border border-border/40 bg-muted/80" />
+        <span className="size-8 shrink-0 animate-pulse rounded-lg border border-border/40 bg-muted/80" />
       </span>
       <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
         <span className="h-5 w-10 animate-pulse rounded-full bg-muted" />

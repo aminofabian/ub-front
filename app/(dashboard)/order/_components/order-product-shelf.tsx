@@ -59,24 +59,27 @@ function OrderShelfTile({
   const { primary, option } = orderLinkTitleParts(link);
   const inCart = qty > 0;
   const hasPrice = cost > 0;
+  const mark = (primary.trim().charAt(0) || "?").toUpperCase();
 
   return (
     <article
       className={cn(
-        "group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+        "group flex min-w-0 items-center gap-3 rounded-2xl bg-white p-2 shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+        "md:h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0",
         inCart ? "ring-2 ring-[#0f766e]" : "ring-1 ring-black/[0.05]",
       )}
     >
       <button
         type="button"
         className={cn(
-          "relative aspect-[4/3] w-full overflow-hidden bg-[#e9f5f1]",
+          "relative size-[4.5rem] shrink-0 overflow-hidden rounded-xl bg-[#e9f5f1]",
+          "md:aspect-[4/3] md:h-auto md:w-full md:rounded-none",
           "touch-manipulation disabled:opacity-60",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f766e]",
         )}
         onClick={onAdd}
         disabled={pickMode && picking}
-        aria-label={pickMode ? `Add ${link.itemName}` : `Add ${link.itemName}`}
+        aria-label={`Add ${link.itemName}`}
       >
         {thumb ? (
           <span className="absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2">
@@ -84,23 +87,28 @@ function OrderShelfTile({
               src={thumb}
               alt=""
               fill
-              sizes="(max-width: 640px) 48vw, (min-width: 1024px) 18vw, 180px"
+              sizes="(max-width: 639px) 72px, (min-width: 1024px) 18vw, 180px"
               className="object-contain object-center"
               unoptimized
             />
           </span>
         ) : (
-          <span className="absolute left-1/2 top-1/2 flex h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-            <Package
-              className="size-10 opacity-20"
-              strokeWidth={1.5}
-              aria-hidden
-            />
-          </span>
+          <>
+            <span className="absolute inset-0 flex items-center justify-center font-heading text-[22px] font-semibold text-[#0f766e] md:hidden">
+              {mark}
+            </span>
+            <span className="absolute left-1/2 top-1/2 hidden h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center md:flex">
+              <Package
+                className="size-10 opacity-20"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+            </span>
+          </>
         )}
         {inCart ? (
           <span
-            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-[#0f766e] text-[12px] font-semibold tabular-nums text-white"
+            className="absolute right-2 top-2 hidden size-7 items-center justify-center rounded-full bg-[#0f766e] text-[12px] font-semibold tabular-nums text-white md:flex"
             aria-hidden
           >
             {qty}
@@ -108,10 +116,10 @@ function OrderShelfTile({
         ) : null}
       </button>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3.5 pb-3.5 pt-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:px-3.5 md:pb-3.5 md:pt-3">
         <div className="min-w-0">
           <p
-            className="line-clamp-2 break-words text-[15px] font-semibold leading-snug text-[#101828]"
+            className="line-clamp-2 break-words text-base font-semibold leading-snug text-[#101828] sm:text-[15px]"
             title={primary}
           >
             {primary}
@@ -126,7 +134,7 @@ function OrderShelfTile({
         <div className="mt-2 flex items-baseline justify-between gap-2">
           <p
             className={cn(
-              "min-w-0 truncate text-[13px] font-semibold tabular-nums",
+              "min-w-0 truncate text-sm font-semibold tabular-nums sm:text-[13px]",
               hasPrice ? "text-[#101828]" : "text-[#98a2b3]",
             )}
           >
@@ -150,7 +158,7 @@ function OrderShelfTile({
         {pickMode ? (
           <button
             type="button"
-            className="mt-auto flex h-11 w-full items-center justify-center rounded-xl bg-[#e6f4f0] text-[14px] font-semibold text-[#0f766e] transition-colors duration-150 hover:bg-[#d9ede7] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+            className="mt-auto hidden h-11 w-full items-center justify-center rounded-xl bg-[#e6f4f0] text-[14px] font-semibold text-[#0f766e] transition-colors duration-150 hover:bg-[#d9ede7] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] md:flex"
             onClick={onAdd}
             disabled={picking}
           >
@@ -158,7 +166,7 @@ function OrderShelfTile({
           </button>
         ) : inCart ? (
           <div
-            className="mt-auto flex h-11 min-w-0 items-center gap-1 rounded-xl bg-[#e6f4f0] px-1"
+            className="mt-auto hidden h-11 min-w-0 items-center gap-1 rounded-xl bg-[#e6f4f0] px-1 md:flex"
             role="group"
             aria-label={`Quantity for ${primary}`}
           >
@@ -189,14 +197,85 @@ function OrderShelfTile({
         ) : (
           <button
             type="button"
-            className="mt-auto flex h-11 w-full items-center justify-center rounded-xl bg-[#e6f4f0] text-[14px] font-semibold text-[#0f766e] transition-colors duration-150 hover:bg-[#d9ede7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+            className="mt-auto hidden h-11 w-full items-center justify-center rounded-xl bg-[#e6f4f0] text-[14px] font-semibold text-[#0f766e] transition-colors duration-150 hover:bg-[#d9ede7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] md:flex"
             onClick={onAdd}
           >
             Add
           </button>
         )}
       </div>
+
+      <PhoneShelfControl
+        primary={primary}
+        qty={qty}
+        inCart={inCart}
+        pickMode={pickMode}
+        picking={picking}
+        onAdd={onAdd}
+        onSetQty={onSetQty}
+      />
     </article>
+  );
+}
+
+function PhoneShelfControl({
+  primary,
+  qty,
+  inCart,
+  pickMode,
+  picking,
+  onAdd,
+  onSetQty,
+}: {
+  primary: string;
+  qty: number;
+  inCart: boolean;
+  pickMode: boolean;
+  picking: boolean;
+  onAdd: () => void;
+  onSetQty: (qty: number) => void;
+}) {
+  if (pickMode || !inCart) {
+    return (
+      <button
+        type="button"
+        className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#0f766e] text-white shadow-[0_8px_18px_-10px_rgba(15,118,110,0.9)] transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:opacity-60 md:hidden"
+        onClick={onAdd}
+        disabled={pickMode && picking}
+        aria-label={picking ? `Adding ${primary}` : `Add ${primary}`}
+      >
+        <Plus className="size-5" strokeWidth={2.25} aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="flex shrink-0 items-center gap-0.5 md:hidden"
+      role="group"
+      aria-label={`Quantity for ${primary}`}
+    >
+      <button
+        type="button"
+        disabled={qty <= 0}
+        className="flex size-11 items-center justify-center rounded-full text-[#0f766e] transition-transform duration-150 active:scale-[0.96] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+        onClick={() => onSetQty(qty - 1)}
+        aria-label="Decrease"
+      >
+        <Minus className="size-4" strokeWidth={2.25} aria-hidden />
+      </button>
+      <span className="min-w-5 text-center font-heading text-[18px] font-semibold tabular-nums text-[#0f766e]">
+        {qty}
+      </span>
+      <button
+        type="button"
+        className="flex size-11 items-center justify-center rounded-full bg-[#0f766e] text-white transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2"
+        onClick={() => onSetQty(qty + 1)}
+        aria-label="Increase"
+      >
+        <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+      </button>
+    </div>
   );
 }
 
@@ -221,7 +300,7 @@ export function OrderProductShelf({
   const pickMode = onPickItem != null;
 
   return (
-    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))] 2xl:grid-cols-[repeat(4,minmax(0,1fr))]">
+    <div className="flex flex-col gap-2.5 md:grid md:grid-cols-[repeat(2,minmax(0,1fr))] md:gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))] 2xl:grid-cols-[repeat(4,minmax(0,1fr))]">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
         const pack = packByItemId[link.itemId] ?? null;

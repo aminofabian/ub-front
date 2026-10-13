@@ -176,7 +176,7 @@ export function BulkPriceEditor({
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
       <DialogContent
         showCloseButton={false}
-        className="w-[calc(100vw-1.5rem)] max-w-3xl gap-0 overflow-hidden rounded-none border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] p-0 shadow-[0_24px_80px_-32px_rgba(21,35,31,0.45)]"
+        className="w-[calc(100vw-1.5rem)] max-w-3xl gap-0 overflow-hidden rounded-2xl border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] p-0 shadow-[0_24px_80px_-32px_rgba(21,35,31,0.45)]"
       >
         <div className={styles.root}>
           <header className={styles.header}>

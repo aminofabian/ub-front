@@ -160,7 +160,7 @@ export function BulkStockAdjustModal({
           <div
             role="status"
             className={cn(
-              "flex flex-col gap-1 rounded-none border px-4 py-3.5 text-sm leading-relaxed shadow-none",
+              "flex flex-col gap-1 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-none",
               summary.failed.length > 0
                 ? "border-destructive/25 bg-destructive/5"
                 : "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
@@ -227,7 +227,7 @@ export function BulkStockAdjustModal({
               </select>
             </label>
 
-            <div className="flex flex-wrap gap-2 rounded-none border border-border/50 bg-muted/25 p-1.5">
+            <div className="flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5">
               {MODES.map((m) => (
                 <Button
                   key={m.id}
@@ -335,7 +335,7 @@ export function BulkStockAdjustModal({
                 aria-valuemax={100}
                 aria-valuenow={pct ?? undefined}
                 aria-valuetext={pct != null ? `${pct}% complete` : "working"}
-                className="rounded-none border border-primary/15 bg-primary/4 p-4"
+                className="rounded-xl border border-primary/15 bg-primary/4 p-4"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-xs text-muted-foreground">

@@ -224,122 +224,33 @@ export function ProcurementHubNav({
       aria-label="Buying journey"
       style={PROCUREMENT_VARS}
     >
-      {/* Phone: one summary row the supplier list can lead past. */}
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left sm:hidden"
-      >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
-          Buying journey
-        </span>
-        <span className="ml-auto text-[12px] font-semibold tabular-nums text-[#0f766e]">
-          {activeIndex >= 0
-            ? `Step ${activeIndex + 1} of ${steps.length}`
-            : `${steps.length} stops`}
-        </span>
-        <ChevronDown
-          className={cn(
-            "size-4 shrink-0 text-[#98a2b3] transition-transform duration-200",
-            open && "rotate-180",
-          )}
-          aria-hidden
-        />
-      </button>
-
-      {/* Phone: vertical route when expanded. */}
-      {open ? (
-        <ol className="flex flex-col px-4 pb-4 sm:hidden">
-          {steps.map((step, index) => {
-            const active = index === activeIndex;
-            const done = activeIndex > index;
-            const Icon = step.icon;
-            const isLast = index === steps.length - 1;
-            const next = steps[index + 1];
-            return (
-              <li key={step.href} className="min-w-0">
-                <Link
-                  href={step.href}
-                  title={`${step.label}: ${step.hint}`}
-                  aria-current={active ? "page" : undefined}
-                  className="flex gap-3"
-                >
-                  <span className="relative flex shrink-0 flex-col items-center">
-                    <span
-                      className={cn(
-                        "flex size-8 items-center justify-center rounded-lg",
-                        active
-                          ? "bg-[#0f766e] text-white"
-                          : done
-                            ? "bg-[#d9f0eb] text-[#0f766e]"
-                            : "border border-[#e6eaec] text-[#98a2b3]",
-                      )}
-                      aria-hidden
-                    >
-                      {done ? (
-                        <Check className="size-4" strokeWidth={2.5} />
-                      ) : (
-                        <Icon className="size-4" />
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full text-[9px] font-bold tabular-nums",
-                        active || done
-                          ? "bg-[#0f766e] text-white"
-                          : "bg-[#eef1f0] text-[#98a2b3]",
-                      )}
-                      aria-hidden
-                    >
-                      {index + 1}
-                    </span>
-                  </span>
-                  <span className="min-w-0 pt-0.5 pb-1">
-                    <span
-                      className={cn(
-                        "block text-[14px] font-semibold tracking-[-0.01em]",
-                        active ? "text-[#101828]" : "text-[#667085]",
-                      )}
-                    >
-                      {step.label}
-                    </span>
-                    <span className="mt-0.5 block text-[12px] leading-snug text-[#98a2b3]">
-                      {step.hint}
-                    </span>
-                  </span>
-                </Link>
-
-                <div className="flex gap-3" aria-hidden>
-                  <span className="flex w-8 shrink-0 flex-col items-center">
-                    {!isLast ? (
-                      <>
-                        <span className="w-px flex-1 border-l border-dashed border-[#cbd2d9]" />
-                        <ChevronDown className="size-3 shrink-0 text-[#cbd2d9]" />
-                      </>
-                    ) : (
-                      <span className="w-px flex-1 border-l border-dashed border-[#cbd2d9]" />
-                    )}
-                  </span>
-                  <span className="flex items-center gap-2 pb-3 pt-1.5">
-                    {isLast ? (
-                      <Flag
-                        className="size-3.5 shrink-0 text-[#0f766e]"
-                        aria-hidden
-                      />
-                    ) : (
-                      <span className="h-px w-4 bg-[#d9f0eb]" />
-                    )}
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0f766e]">
-                      {isLast ? "Done" : `Then ${next?.label ?? ""}`}
-                    </span>
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      ) : null}
+      <ol className="grid list-none grid-cols-4 gap-1 p-1.5 sm:hidden">
+        {steps.map((step, index) => {
+          const active = index === activeIndex;
+          const Icon = step.icon;
+          return (
+            <li key={step.href} className="min-w-0">
+              <Link
+                href={step.href}
+                title={`${step.label}: ${step.hint}`}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-transform duration-150 active:scale-[0.97]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2",
+                  active
+                    ? "bg-[#0f766e] text-white"
+                    : "text-[#344054] active:bg-[#e9f5f1]",
+                )}
+              >
+                <Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+                <span className="max-w-full truncate text-[11px] font-semibold tracking-[-0.01em]">
+                  {step.label}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
 
       {/* sm+: one horizontal row of pills. */}
       <ol className="m-0 hidden list-none flex-wrap items-center gap-1.5 px-4 py-3 sm:flex">

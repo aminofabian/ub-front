@@ -230,7 +230,7 @@ export function CatalogListColumn({
           <Button
             type="button"
             size="sm"
-            className="h-7 gap-1 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
+            className="h-7 gap-1 rounded-lg bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
             disabled={selectionBusy}
             onClick={onActivateAllMatching}
           >
@@ -277,7 +277,7 @@ export function CatalogListColumn({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 gap-1 rounded-none border px-2 text-xs"
+                className="h-7 gap-1 rounded-lg border px-2 text-xs"
                 disabled={selectionBusy}
                 onClick={onBulkActivate}
               >
@@ -293,7 +293,7 @@ export function CatalogListColumn({
               <Button
                 type="button"
                 size="sm"
-                className="h-7 rounded-none bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
+                className="h-7 rounded-lg bg-[var(--catalog-primary,#0f766e)] px-2 text-xs text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_86%,black)]"
                 disabled={selectionBusy}
                 onClick={onBulkEditPrices}
               >
@@ -389,7 +389,7 @@ export function CatalogListColumn({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 gap-1 rounded-none px-2 text-xs"
+              className="h-7 gap-1 rounded-lg px-2 text-xs"
               disabled={selectionBusy}
               onClick={() => catalog.clearRowSelection()}
             >
