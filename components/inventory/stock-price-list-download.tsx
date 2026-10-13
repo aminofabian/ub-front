@@ -128,7 +128,7 @@ export function StockPriceListDownload({
           role="menu"
           aria-label="Price list"
           className={cn(
-            "absolute top-[calc(100%+4px)] right-0 z-40 w-[15.5rem] overflow-hidden",
+            "absolute top-[calc(100%+4px)] right-0 z-40 w-[15.5rem] overflow-hidden rounded-xl",
             "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
             "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
           )}
@@ -180,7 +180,7 @@ function triggerClass(variant: "bar" | "icon", open: boolean): string {
     );
   }
   return cn(
-    "inline-flex h-7 items-center gap-1 border bg-white px-2",
+    "inline-flex h-7 items-center gap-1 rounded-xl border bg-white px-2",
     "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
     "text-[11px] font-semibold tracking-[-0.01em] text-[var(--order-ink,#15231f)]",
     "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",

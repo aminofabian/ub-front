@@ -80,7 +80,7 @@ export function StockFilterMenu<T extends string>({
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "inline-flex h-7 w-full min-w-0 items-center justify-between gap-1",
-          "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+          "rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
           "px-2 text-left text-[11px] tracking-[-0.01em] text-[var(--order-ink,#15231f)]",
           "transition-[border-color,background-color] duration-150",
           "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
@@ -110,7 +110,7 @@ export function StockFilterMenu<T extends string>({
         <div
           className={cn(
             "absolute top-[calc(100%+4px)] z-40 overflow-hidden",
-            "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
+            "rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
             "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
             wide ? "w-[min(18rem,calc(100vw-1.5rem))]" : "min-w-full w-[12.5rem]",
             align === "end" ? "right-0" : "left-0",
@@ -161,7 +161,7 @@ export function StockFilterMenu<T extends string>({
                     </span>
                     <span className="min-w-0 flex-1 truncate">{opt.label}</span>
                     {opt.meta ? (
-                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
+                      <span className="shrink-0 text-[11px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]">
                         {opt.meta}
                       </span>
                     ) : null}

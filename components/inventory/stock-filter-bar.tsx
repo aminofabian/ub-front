@@ -56,7 +56,7 @@ export function StockFilterBar({
         {STOCK_STATUS_GROUPS.map((group) => (
           <section
             key={group.id}
-            className={cn("rounded-none border bg-white p-2.5", HAIRLINE)}
+            className="rounded-2xl bg-white p-2.5 ring-1 ring-black/[0.05]"
           >
             <h3 className="text-[11px] font-semibold tracking-[-0.02em]">
               {group.label}
@@ -86,7 +86,7 @@ export function StockFilterBar({
       className={cn(
         // Own row on desktop: the taxonomy deserves a line to itself rather
         // than competing with search and four filters for space.
-        "flex max-w-full items-center overflow-x-auto md:basis-full",
+        "flex max-w-full items-center gap-1.5 overflow-x-auto md:basis-full",
         "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
@@ -94,17 +94,17 @@ export function StockFilterBar({
       aria-label="Filter stock"
     >
       {STOCK_STATUS_GROUPS.map((group) => (
-        <div key={group.id} className="flex shrink-0 items-center">
+        <div key={group.id} className="flex shrink-0 items-center gap-1">
           <span
             className={cn(
-              "px-2 text-[10px] font-semibold uppercase tracking-[0.08em]",
+              "px-1.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
               MUTE,
             )}
             title={group.hint}
           >
             {group.label}
           </span>
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-1">
             {group.options.map((option) => (
               <FilterSegment
                 key={option.key}
@@ -112,7 +112,6 @@ export function StockFilterBar({
                 count={counts[option.countKey]}
                 active={option.key === value}
                 onSelect={() => onChange(option.key)}
-                withDivider={option !== group.options[group.options.length - 1]}
               />
             ))}
           </div>
@@ -130,13 +129,11 @@ function FilterSegment({
   count,
   active,
   onSelect,
-  withDivider,
 }: {
   option: StockStatusOption;
   count: number;
   active: boolean;
   onSelect: () => void;
-  withDivider: boolean;
 }) {
   const quiet = !active && count === 0;
   return (
@@ -146,14 +143,12 @@ function FilterSegment({
       aria-pressed={active}
       title={option.hint}
       className={cn(
-        "inline-flex h-7 items-center gap-1 px-2 text-[11px] transition-colors duration-150",
+        "inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] transition-colors duration-150",
         "tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-        withDivider && "border-r",
-        HAIRLINE,
         active
           ? cn("font-semibold text-white", TONE_FILL[option.tone])
           : cn(
-              "font-medium hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]",
+              "bg-white font-medium ring-1 ring-black/[0.05] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]",
               quiet ? cn("opacity-45", MUTE) : cn(TONE_TEXT[option.tone]),
             ),
       )}
