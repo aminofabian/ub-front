@@ -29,7 +29,9 @@ ENV GITHUB_SHA=$SOURCE_COMMIT \
     NEXT_TELEMETRY_DISABLED=1 \
     NODE_OPTIONS=--max-old-space-size=3072
 
-RUN npm run build
+# Webpack writes .next/cache during `next build`. `next start` never reads it,
+# and the pack files are large enough to fill the Coolify host on extract.
+RUN npm run build && rm -rf .next/cache
 
 FROM node:24-alpine AS run
 RUN apk add --no-cache libc6-compat

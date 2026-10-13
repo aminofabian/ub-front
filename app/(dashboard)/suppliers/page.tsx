@@ -1297,7 +1297,6 @@ export default function SuppliersPage() {
 
         {!isLg && detail ? (
           <SupMobileSelectionBar
-            sticky
             name={<SupplierDisplayName name={detail.name} code={detail.code} />}
           >
             <Button
