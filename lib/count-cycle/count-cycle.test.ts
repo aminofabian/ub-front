@@ -1,11 +1,17 @@
 import { describe, expect, test } from "bun:test";
 
-import type { CountCycleBatchLine, CountCycleRecord } from "@/lib/api";
+import type {
+  CountCycleBatchLine,
+  CountCycleBatchRecord,
+  CountCycleRecord,
+} from "@/lib/api";
 
 import { buildDayTiles } from "./build-day-tiles";
 import { cycleDayTileInput } from "./cycle-day-tile-input";
 import { filterBatchLines } from "./filter-batch-lines";
+import { formatCountDay } from "./format-count-day";
 import { groupBatchLines } from "./group-batch-lines";
+import { mergeSavedLine } from "./merge-saved-line";
 import { parseCountInput } from "./parse-count-input";
 import { projectCountPlan } from "./project-count-plan";
 import { rankReviewLines } from "./rank-review-lines";
@@ -215,6 +221,35 @@ describe("filterBatchLines", () => {
     expect(filterBatchLines(lines, "all", "6161").map((l) => l.lineId)).toEqual([
       "b",
     ]);
+  });
+});
+
+describe("mergeSavedLine", () => {
+  const batch = (lines: CountCycleBatchLine[]): CountCycleBatchRecord => ({
+    sessionId: "s1",
+    cycleId: "c1",
+    batchNumber: 1,
+    status: "active",
+    sessionDate: "2026-10-14",
+    totalCount: lines.length,
+    countedCount: lines.filter((l) => l.countedQty != null).length,
+    showsSystemStock: false,
+    lines,
+  });
+
+  test("keeps local counts the reply has not seen yet", () => {
+    const local = batch([line("a", { countedQty: 3 }), line("b")]);
+    const reply = batch([line("a"), line("b", { countedQty: 5 })]);
+    const merged = mergeSavedLine(local, reply, "b");
+    expect(merged.lines.map((l) => l.countedQty)).toEqual([3, 5]);
+    expect(merged.countedCount).toBe(2);
+  });
+});
+
+describe("formatCountDay", () => {
+  test("weekday, day, month whether given a Date or a server day", () => {
+    expect(formatCountDay("2026-10-26")).toBe("Mon 26 Oct");
+    expect(formatCountDay(new Date("2026-10-26T12:00:00"))).toBe("Mon 26 Oct");
   });
 });
 

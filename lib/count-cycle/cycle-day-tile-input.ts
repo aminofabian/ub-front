@@ -1,5 +1,6 @@
 import type { CountCycleRecord } from "@/lib/api";
 
+import { BATCH_SESSION_CLOSED } from "./batch-session-closed";
 import type { DayTileInput } from "./build-day-tiles";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -12,7 +13,7 @@ export function cycleDayTileInput(
   const active = cycle.activeBatch;
   const todayIsSpent = cycle.countedToday && !active;
   const doneDates = cycle.batches
-    .filter((batch) => batch.status === "closed")
+    .filter((batch) => batch.status === BATCH_SESSION_CLOSED)
     .map((batch) => new Date(batch.closedAt ?? `${batch.sessionDate}T12:00:00`));
   return {
     doneDates,
