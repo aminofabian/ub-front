@@ -1337,7 +1337,9 @@ export function TenantOrderWorkspace({
       });
       return;
     }
-    setLineOrder((prev) => [itemId, ...prev.filter((id) => id !== itemId)]);
+    // Keep existing slip rows anchored so adjusting a quantity never reorders
+    // the list under the user; only brand-new lines are appended.
+    setLineOrder((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
     setFlashItemId(itemId);
   };
 
