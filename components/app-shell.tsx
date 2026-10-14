@@ -1313,6 +1313,17 @@ export function AppShell({ children }: AppShellProps) {
         workspace: "receive",
         href: APP_ROUTES.orderReceive,
       },
+      ...(canWriteSuppliersDelegated
+        ? [
+            {
+              id: "new-supplier",
+              label: "New supplier",
+              hint: "Add who you buy from",
+              icon: Truck,
+              href: `${APP_ROUTES.suppliers}?new=1`,
+            },
+          ]
+        : []),
       {
         id: "credits",
         label: "On tab",
@@ -1362,9 +1373,13 @@ export function AppShell({ children }: AppShellProps) {
     return candidates.filter((link) => {
       if (link.action === "support" || link.action === "guide") return true;
       if (link.workspace === "cashier") return canQuickSale;
-      return Boolean(link.href && allowedHrefs.has(link.href));
+      if (!link.href) return false;
+      // Quick links may carry a query (e.g. /suppliers?new=1 opens the create
+      // drawer); gate on the base path so they still respect nav visibility.
+      const baseHref = link.href.split("?")[0] ?? "";
+      return allowedHrefs.has(link.href) || allowedHrefs.has(baseHref);
     });
-  }, [allowedHrefs, canQuickSale]);
+  }, [allowedHrefs, canQuickSale, canWriteSuppliersDelegated]);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [shellWorkspace, setShellWorkspace] = useState<ShellWorkspaceId | null>(

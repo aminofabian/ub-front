@@ -97,6 +97,7 @@ import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
 import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canWriteSuppliers } from "@/lib/supplier-access";
 import {
   completeOnboardingQuestionnaire,
   getOnboardingQuestionnaireState,
@@ -1195,6 +1196,8 @@ export function BusinessHubWorkspace() {
     showButcherCounter,
   ]);
 
+  const canAddSupplier = canWriteSuppliers(me, business);
+
   const quickActionLinks = useMemo(() => {
     // Deliberately NOT the bottom-tab destinations (Sales / Products / Stock).
     // These are the jobs a shop reaches for between sales.
@@ -1235,8 +1238,18 @@ export function BusinessHubWorkspace() {
         group: "Insight",
       });
     }
+    if (canAddSupplier) {
+      links.push({
+        href: `${APP_ROUTES.suppliers}?new=1`,
+        label: "Add supplier",
+        hint: "New vendor",
+        icon: Truck,
+        group: "Stock",
+      });
+    }
     return links;
   }, [
+    canAddSupplier,
     canApproveStockTake,
     canReadFinanceExpenses,
     canViewSalesIntelligence,

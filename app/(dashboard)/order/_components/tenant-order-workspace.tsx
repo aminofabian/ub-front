@@ -17,10 +17,12 @@ import {
   MessageCircle,
   Package,
   PackagePlus,
+  Plus,
   Printer,
   Save,
   Search,
   ShoppingCart,
+  Truck,
   Wallet,
   X,
 } from "lucide-react";
@@ -40,7 +42,7 @@ import { formatSupplyMoney, supplyN } from "@/app/(dashboard)/supplies/_componen
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
 import { Permission, hasPermission } from "@/lib/permissions";
-import { canLinkSupplierProducts } from "@/lib/supplier-access";
+import { canLinkSupplierProducts, canWriteSuppliers } from "@/lib/supplier-access";
 import { APP_ROUTES } from "@/lib/config";
 import {
   addItemSupplierLink,
@@ -340,6 +342,7 @@ export function TenantOrderWorkspace({
     [business?.branding],
   );
   const canLinkProducts = canLinkSupplierProducts(me, business);
+  const canAddSupplier = canWriteSuppliers(me, business);
   const canCreateProduct = hasPermission(
     me?.permissions,
     Permission.CatalogItemsWrite,
@@ -2395,10 +2398,20 @@ export function TenantOrderWorkspace({
             embedded ? "hidden" : "hidden xl:flex",
           )}
         >
-          <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
             <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
               Suppliers
             </p>
+            {canAddSupplier ? (
+              <Link
+                href={`${APP_ROUTES.suppliers}?new=1`}
+                title="Add a supplier"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-white px-2 text-[11px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5] active:scale-[0.98]"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add
+              </Link>
+            ) : null}
           </div>
           <div className="relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 py-2">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
@@ -2756,6 +2769,16 @@ export function TenantOrderWorkspace({
                   Link products
                 </button>
               ) : null}
+              {canAddSupplier ? (
+                <Link
+                  href={`${APP_ROUTES.suppliers}?new=1`}
+                  onClick={() => setToolsOpen(false)}
+                  className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#f4f7f6] px-3.5 text-[15px] font-semibold text-[#15231f] active:scale-[0.99]"
+                >
+                  <Truck className="size-4 text-[#0f766e]" aria-hidden />
+                  Add supplier
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {
@@ -2849,6 +2872,18 @@ export function TenantOrderWorkspace({
                 </button>
               ))}
             </div>
+            {canAddSupplier ? (
+              <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+                <Link
+                  href={`${APP_ROUTES.suppliers}?new=1`}
+                  onClick={() => setSupplierPickerOpen(false)}
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3.5 text-[14px] font-semibold text-[#0f766e] active:scale-[0.99]"
+                >
+                  <Plus className="size-4" aria-hidden />
+                  Add supplier
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

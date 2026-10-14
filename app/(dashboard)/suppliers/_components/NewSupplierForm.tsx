@@ -4,13 +4,10 @@ import type {
   MarketplaceAttachResult,
   SupplierDuplicateMatch,
 } from "@/lib/marketplace-api";
-import { cn } from "@/lib/utils";
-
 import type { SupplierProfileDraft } from "./supplier-profile-shared";
 import { SupplierProfileFields } from "./supplier-profile-shared";
 import { MarketplaceAddSupplierBanner } from "./MarketplaceAddSupplierBanner";
 import { SupplierDuplicateCheckPanel } from "./SupplierDuplicateCheckPanel";
-import { supCard } from "./supplier-ui-tokens";
 
 export function NewSupplierForm({
   draft,
@@ -36,7 +33,7 @@ export function NewSupplierForm({
   const lookupPhone = draft.contactPhone.trim() || draft.payoutPhone.trim();
 
   return (
-    <div className={cn(supCard, "overflow-hidden")}>
+    <div className="space-y-3">
       <MarketplaceAddSupplierBanner
         canViewMarketplace={canViewMarketplace}
         onBrowseMarketplace={onBrowseMarketplace}

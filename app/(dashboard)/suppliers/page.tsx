@@ -212,7 +212,11 @@ export default function SuppliersPage() {
   }, [listSearch]);
 
   useEffect(() => {
-    if (searchParams.get("onboarding") === "create-supplier" && canWrite) {
+    if (!canWrite) return;
+    const wantsCreate =
+      searchParams.get("onboarding") === "create-supplier" ||
+      searchParams.get("new") === "1";
+    if (wantsCreate) {
       setCreateDrawerOpen(true);
     }
   }, [searchParams, canWrite]);
@@ -1655,7 +1659,7 @@ export default function SuppliersPage() {
             onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
             onOpenChange={onCreateDrawerOpenChange}
             title="New supplier"
-            description="Connect a marketplace vendor for catalogue import and portal POs, or create a private supplier record below."
+            description="Add who you buy from. A name is enough to start — add payment details so you can pay them in one tap."
             contextLabel="Purchasing"
             icon={<Truck className="size-5 text-primary" aria-hidden />}
             width="wide"
