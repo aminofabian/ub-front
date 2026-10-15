@@ -5,12 +5,12 @@ import { useState, type ReactNode } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  ChevronRight,
   Link2,
   Link2Off,
   Loader2,
   Package,
   PackageSearch,
+  ScanLine,
   Search,
   ShieldCheck,
   Trash2,
@@ -107,6 +107,8 @@ export function StoreRoomTheatre({
   onSave,
   onDelete,
   onAddCustom,
+  onAdd,
+  onScan,
 }: {
   connected: boolean;
   canWrite: boolean;
@@ -151,6 +153,8 @@ export function StoreRoomTheatre({
   onSave: () => void;
   onDelete: (row: StoreItemRecord) => void;
   onAddCustom?: () => void;
+  onAdd?: () => void;
+  onScan?: () => void;
 }) {
   const mobileDetailOpen = mobileShowDetail && !!selectedRow;
   const isLg = useMediaLg();
@@ -163,32 +167,55 @@ export function StoreRoomTheatre({
     <div
       className={cn(
         "flex min-h-0 flex-col",
-        fill ? "h-full bg-transparent" : "bg-white",
+        fill ? "h-full bg-transparent" : denser ? "bg-white" : "bg-transparent",
       )}
     >
       <div
         className={cn(
-          "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3",
+          "shrink-0 py-2",
+          denser
+            ? "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 sm:px-3"
+            : "px-0",
           fill
             ? "bg-transparent"
-            : "sticky top-0 z-[1] bg-white",
+            : denser
+              ? "sticky top-0 z-[1] bg-white"
+              : "bg-transparent",
         )}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <label className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              className={cn(
+                "pointer-events-none absolute top-1/2 -translate-y-1/2 text-[#98a2b3]",
+                denser ? "left-2 size-3.5" : "left-3.5 size-4",
+              )}
               aria-hidden
             />
             <input
-              className={cn(dashboardInputClass(), "h-9 pl-7 text-[13px] lg:h-8 lg:text-[12px]")}
+              className={cn(
+                dashboardInputClass(),
+                denser
+                  ? "h-9 pl-7 text-[13px] lg:h-8 lg:text-[12px]"
+                  : "h-12 rounded-2xl bg-white pl-10 text-base ring-1 ring-black/[0.06]",
+              )}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search name or barcode…"
+              placeholder={denser ? "Search name or barcode…" : "Search this store room"}
               aria-label="Search store items"
             />
           </label>
-          {connected && unlinkedCount > 0 ? (
+          {!denser && onScan ? (
+            <button
+              type="button"
+              onClick={onScan}
+              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#0f766e] ring-1 ring-black/[0.06] active:scale-[0.97]"
+              aria-label="Scan a barcode"
+            >
+              <ScanLine className="size-5" aria-hidden />
+            </button>
+          ) : null}
+          {denser && connected && unlinkedCount > 0 ? (
             <button
               type="button"
               onClick={onToggleUnlinked}
@@ -206,11 +233,63 @@ export function StoreRoomTheatre({
             </button>
           ) : null}
         </div>
-        <p className={cn(dashboardHintClass(), "mt-1 tabular-nums")}>
-          {filtered.length}
-          {query.trim() || onlyUnlinked ? ` of ${rowsTotal}` : ""} item
-          {filtered.length !== 1 ? "s" : ""}
-        </p>
+        {denser ? (
+          <p className={cn(dashboardHintClass(), "mt-1 tabular-nums")}>
+            {filtered.length}
+            {query.trim() || onlyUnlinked ? ` of ${rowsTotal}` : ""} item
+            {filtered.length !== 1 ? "s" : ""}
+          </p>
+        ) : (
+          <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => {
+                if (onlyUnlinked) onToggleUnlinked();
+              }}
+              className={cn(
+                "inline-flex h-11 shrink-0 items-center rounded-full px-3.5 text-[13px] font-semibold active:scale-[0.98]",
+                !onlyUnlinked
+                  ? "bg-[#0f766e] text-white"
+                  : "bg-white text-[#475467] ring-1 ring-black/[0.06]",
+              )}
+            >
+              All
+            </button>
+            {connected && unlinkedCount > 0 ? (
+              <button
+                type="button"
+                onClick={onToggleUnlinked}
+                aria-pressed={onlyUnlinked}
+                className={cn(
+                  "inline-flex h-11 shrink-0 items-center rounded-full px-3.5 text-[13px] font-semibold tabular-nums active:scale-[0.98]",
+                  onlyUnlinked
+                    ? "bg-[#0f766e] text-white"
+                    : "bg-white text-[#475467] ring-1 ring-black/[0.06]",
+                )}
+              >
+                Unlinked · {unlinkedCount}
+              </button>
+            ) : null}
+            {onInheritOrder ? (
+              <button
+                type="button"
+                onClick={onInheritOrder}
+                className="inline-flex h-11 shrink-0 items-center rounded-full bg-white px-3.5 text-[13px] font-semibold text-[#475467] ring-1 ring-black/[0.06] active:scale-[0.98]"
+              >
+                Delivery
+              </button>
+            ) : null}
+            {onAdd ? (
+              <button
+                type="button"
+                onClick={onAdd}
+                className="inline-flex h-11 shrink-0 items-center rounded-full bg-white px-3.5 text-[13px] font-semibold text-[#0f766e] ring-1 ring-black/[0.06] active:scale-[0.98]"
+              >
+                Add
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div
@@ -237,9 +316,18 @@ export function StoreRoomTheatre({
             </p>
             <p className={cn(dashboardHintClass(), "mx-auto mt-1 max-w-[16rem]")}>
               {connected
-                ? "Add products to watch — counts follow stock."
-                : "Add what’s in the back without touching inventory."}
+                ? "Add products to watch. Counts follow stock."
+                : "Add what is in the back without touching till stock."}
             </p>
+            {!denser && onAdd ? (
+              <button
+                type="button"
+                onClick={onAdd}
+                className="mx-auto mt-4 inline-flex h-11 items-center rounded-full bg-[#0f766e] px-4 text-[14px] font-semibold text-white active:scale-[0.98]"
+              >
+                {connected ? "Add product" : "Add item"}
+              </button>
+            ) : null}
           </div>
         ) : filtered.length === 0 ? (
           <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>
@@ -248,82 +336,124 @@ export function StoreRoomTheatre({
               : `No items match “${query.trim()}”.`}
           </p>
         ) : (
-          <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+          <ul
+            className={cn(
+              denser
+                ? "divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+                : "flex flex-col gap-2.5 py-3",
+            )}
+          >
             {filtered.map((row) => {
               const count = storeItemCount(row, connected);
               const active = selectedId === row.id;
               const fillBar = Math.min(100, Math.round((count / maxCount) * 100));
+              const out = count <= 0;
+              const unlinked = connected && row.itemId == null;
               return (
                 <li key={row.id}>
                   <button
                     type="button"
                     onClick={() => onSelect(row)}
                     className={cn(
-                      "relative flex w-full items-center gap-2.5 text-left transition-colors",
+                      "relative flex w-full items-center text-left transition-colors",
                       denser
-                        ? "px-2.5 py-2 sm:px-3"
-                        : "min-h-[3.25rem] px-3 py-3",
-                      active
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                        : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+                        ? "gap-2.5 px-2.5 py-2 sm:px-3"
+                        : "gap-3 rounded-2xl bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.05)] ring-1 ring-black/[0.06] active:scale-[0.99]",
+                      denser &&
+                        (active
+                          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+                          : "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]"),
                     )}
                   >
                     <span
                       className={cn(
-                        "grid size-7 shrink-0 place-items-center border text-[10px] font-bold uppercase tracking-wide",
-                        active
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
-                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+                        "grid shrink-0 place-items-center",
+                        denser
+                          ? "size-7 border text-[10px] font-bold uppercase tracking-wide"
+                          : "size-12 rounded-2xl bg-[#e7f3ee] text-[#0f766e]",
+                        denser &&
+                          (active
+                            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
+                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground"),
                       )}
                       aria-hidden
                     >
-                      {row.name.slice(0, 1)}
+                      {denser ? (
+                        row.name.slice(0, 1)
+                      ) : (
+                        <Package className="size-5" strokeWidth={1.75} />
+                      )}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p
                         className={cn(
-                          "truncate font-semibold tracking-[-0.015em] text-foreground",
-                          denser ? "text-[12.5px]" : "text-[14px]",
+                          "truncate font-semibold tracking-[-0.02em] text-[#15231f]",
+                          denser ? "text-[12.5px]" : "text-[15px]",
                         )}
                       >
                         {row.name}
                       </p>
-                      <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-                        {row.barcode || "No barcode"}
-                        {connected && row.itemId
-                          ? ` · ${row.inventoryItemName ?? "Linked"}`
-                          : connected
-                            ? " · Unlinked"
-                            : ""}
-                      </p>
-                      <div className="mt-1.5 h-0.5 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
-                        <div
+                      {denser ? (
+                        <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                          {row.barcode || "No barcode"}
+                          {connected && row.itemId
+                            ? ` · ${row.inventoryItemName ?? "Linked"}`
+                            : connected
+                              ? " · Unlinked"
+                              : ""}
+                        </p>
+                      ) : (
+                        <p
                           className={cn(
-                            "h-full",
-                            connected && row.itemId
-                              ? "bg-[var(--pos-primary,#0f766e)]"
-                              : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_30%,transparent)]",
+                            "mt-0.5 truncate text-[13px] font-medium",
+                            out
+                              ? "text-[#c2414a]"
+                              : unlinked
+                                ? "text-[#c2410c]"
+                                : "text-[#667085]",
                           )}
-                          style={{ width: `${fillBar}%` }}
-                        />
-                      </div>
+                        >
+                          {out
+                            ? "Out of stock"
+                            : unlinked
+                              ? "Unlinked"
+                              : row.barcode || "On hand"}
+                        </p>
+                      )}
+                      {denser ? (
+                        <div className="mt-1.5 h-0.5 w-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+                          <div
+                            className={cn(
+                              "h-full",
+                              connected && row.itemId
+                                ? "bg-[var(--pos-primary,#0f766e)]"
+                                : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_30%,transparent)]",
+                            )}
+                            style={{ width: `${fillBar}%` }}
+                          />
+                        </div>
+                      ) : null}
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1.5 tabular-nums">
-                      {connected && row.itemId ? <LiveDot /> : null}
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 items-center tabular-nums",
+                        denser ? "gap-1.5" : "flex-col items-end",
+                      )}
+                    >
+                      {denser && connected && row.itemId ? <LiveDot /> : null}
                       <span
                         className={cn(
-                          "font-semibold leading-none tracking-[-0.03em] text-foreground",
-                          denser ? "text-[14px]" : "text-[16px]",
+                          "font-semibold leading-none tracking-[-0.03em] text-[#15231f]",
+                          denser ? "text-[14px]" : "text-[18px]",
                         )}
                       >
                         {formatQuantity(count)}
                       </span>
-                      {!denser ? (
-                        <ChevronRight
-                          className="size-4 text-muted-foreground/70"
-                          aria-hidden
-                        />
-                      ) : null}
+                      {denser ? null : (
+                        <span className="mt-0.5 text-[12px] font-medium text-[#667085]">
+                          on hand
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>
@@ -480,11 +610,9 @@ export function StoreRoomTheatre({
         </div>
       </div>
 
-      {/* Mobile: full item list on the page; tap opens an edit sheet. */}
-      <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          {roster({ fill: false, denser: false })}
-        </div>
+      {/* Mobile: cards on the page; tap opens an edit sheet. */}
+      <div className="flex min-h-0 flex-col lg:hidden">
+        {roster({ fill: false, denser: false })}
       </div>
 
       <FormDrawer
@@ -847,11 +975,12 @@ export function StoreModeBanner({
     return (
       <div
         className={cn(
-          "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-3.5 py-3 sm:px-3 sm:py-1.5",
+          "rounded-2xl border-black/[0.06] sm:rounded-none",
+          "sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         )}
       >
-        <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
+        <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[14px] text-foreground sm:text-[12px]">
           <span className="inline-flex items-center gap-1.5 font-semibold">
             <LiveDot />
             Following inventory
@@ -870,7 +999,7 @@ export function StoreModeBanner({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-1.5 text-[11px]"
+              className="h-11 gap-1 px-3 text-[13px] sm:h-7 sm:px-1.5 sm:text-[11px]"
               onClick={onApprovals}
               title={
                 requireSeparateApprover
@@ -894,7 +1023,7 @@ export function StoreModeBanner({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 px-1.5 text-[11px]"
+              className="h-11 px-3 text-[13px] sm:h-7 sm:px-1.5 sm:text-[11px]"
               disabled={modeBusy}
               onClick={onStopFollowing}
             >
@@ -912,11 +1041,12 @@ export function StoreModeBanner({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-3.5 py-3 sm:px-3 sm:py-1.5",
+        "rounded-2xl border-black/[0.06] sm:rounded-none",
+        "sm:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
       )}
     >
-      <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
+      <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[14px] sm:text-[12px]">
         <span className="font-semibold text-foreground">Back-room only</span>
         <span className={dashboardHintClass()}>
           Counts stay as you type them.
@@ -927,7 +1057,7 @@ export function StoreModeBanner({
           type="button"
           variant="outline"
           size="sm"
-          className="h-7 gap-1 px-2 text-[11px]"
+          className="h-11 gap-1 px-3 text-[13px] sm:h-7 sm:px-2 sm:text-[11px]"
           disabled={modeBusy}
           onClick={onFollowInventory}
         >

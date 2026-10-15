@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDownToLine,
   ArrowUpFromLine,
   Loader2,
   Plus,
@@ -958,7 +959,8 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5 max-lg:bg-[#f4f7f5] max-lg:pb-28")}>
+      <div className="hidden lg:contents">
       <DashboardPageHero
         icon={Warehouse}
         title="Store room"
@@ -1017,6 +1019,7 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
           </>
         ) : null}
       </DashboardPageHero>
+      </div>
 
       {feedback ? (
         <DashboardFeedback kind={feedback.kind} text={feedback.text} />
@@ -1077,7 +1080,57 @@ export function StoreWorkspace({ canWrite }: { canWrite: boolean }) {
         onSave={() => void handleEdit()}
         onDelete={askDelete}
         onAddCustom={canWrite ? openCustomCreate : undefined}
+        onAdd={
+          canWrite
+            ? connected
+              ? openPickerForCreate
+              : openCustomCreate
+            : undefined
+        }
+        onScan={canWrite ? () => setScannerOpen(true) : undefined}
       />
+
+      {canWrite &&
+      !movementOpen &&
+      !pickOpen &&
+      !createOpen &&
+      !inheritOpen &&
+      !scannerOpen &&
+      !approvalOpen &&
+      !mobileShowDetail ? (
+        <div
+          className="fixed inset-x-0 z-30 px-3 lg:hidden"
+          style={{ bottom: "calc(var(--shell-bottom-inset) + 0.85rem)" }}
+        >
+          <div className="flex items-center gap-2 rounded-full bg-[#0f766e] py-2 pl-4 pr-2 text-white shadow-[0_12px_28px_-16px_rgba(15,118,110,0.95)]">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-white/80">
+                {rows.length.toLocaleString()} {rows.length === 1 ? "item" : "items"}
+              </p>
+              <p className="truncate text-[16px] font-semibold tracking-[-0.02em]">
+                {connected ? "Following stock" : "Back room"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openMovement(null, "in")}
+              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/15 px-3 text-[14px] font-semibold active:scale-[0.98]"
+            >
+              <ArrowDownToLine className="size-4" aria-hidden />
+              Put in
+            </button>
+            <button
+              type="button"
+              disabled={rows.length === 0}
+              onClick={() => openMovement(null, "out")}
+              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-white px-3 text-[14px] font-semibold text-[#0f766e] active:scale-[0.98] disabled:opacity-40"
+            >
+              <ArrowUpFromLine className="size-4" aria-hidden />
+              Take out
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <StoreRoomInheritOrderDrawer
         open={inheritOpen}
