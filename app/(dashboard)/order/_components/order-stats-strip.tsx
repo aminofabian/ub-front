@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ClipboardCheck, Package, ShoppingCart, Truck } from "lucide-react";
 
@@ -9,6 +11,19 @@ import { cn } from "@/lib/utils";
 import { useOrderPipelineStats } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
 import { OrderLifetimeOverview } from "./order-lifetime-overview";
 import { PipelineStat, PipelineStatsGrid } from "./order-pipeline-stat";
+
+const ORDER_PHONE_AWAITING_SLOT_ID = "order-phone-awaiting";
+
+function PhoneDuePortal({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setSlot(document.getElementById(ORDER_PHONE_AWAITING_SLOT_ID));
+  }, []);
+
+  if (!slot || !children) return null;
+  return createPortal(children, slot);
+}
 
 export function OrderStatsStrip() {
   const { me } = useDashboard();
@@ -24,13 +39,22 @@ export function OrderStatsStrip() {
   const phoneDue = confirmActive ? (
     <Link
       href={APP_ROUTES.orderReceive}
-      className="flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-[#fff4e8] px-3.5 py-2.5 active:scale-[0.99]"
+      className="flex items-center gap-3 rounded-2xl bg-[#fff6e8] px-3.5 py-3 active:scale-[0.99]"
     >
-      <span className="min-w-0 text-[14px] font-semibold tracking-[-0.02em] text-[#9a3412]">
-        {loading ? "Checking arrivals" : `${sentStats.awaitingUnits} still to receive`}
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f6e4c4] text-[#7a4518]">
+        <ClipboardCheck className="size-5" aria-hidden />
       </span>
-      <span className="inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[#0f766e]">
-        <ClipboardCheck className="size-3.5" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold leading-tight tracking-[-0.02em] text-[#7a4518]">
+          {loading
+            ? "Checking arrivals"
+            : `${sentStats.awaitingUnits.toLocaleString()} units still to receive`}
+        </span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-[#7a4518]">
+          Booked in when the delivery arrives
+        </span>
+      </span>
+      <span className="inline-flex h-11 shrink-0 items-center rounded-xl bg-[#7a4518] px-4 text-[14px] font-semibold text-white">
         Receive
       </span>
     </Link>
@@ -79,7 +103,7 @@ export function OrderStatsStrip() {
   if (isStockFloor) {
     return (
       <>
-        <div className="lg:hidden">{phoneDue}</div>
+        <PhoneDuePortal>{phoneDue}</PhoneDuePortal>
         <div className="hidden lg:block">{compactPulse}</div>
       </>
     );
@@ -87,7 +111,7 @@ export function OrderStatsStrip() {
 
   return (
     <>
-      <div className="lg:hidden">{phoneDue}</div>
+      <PhoneDuePortal>{phoneDue}</PhoneDuePortal>
       <section aria-label="Order stats" className="hidden space-y-2 lg:block">
       <OrderLifetimeOverview loading={loading} lifetime={lifetime} />
 

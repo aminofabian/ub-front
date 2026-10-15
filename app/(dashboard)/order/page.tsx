@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function TenantOrderPage() {
   return (
     <Suspense fallback={null}>
-      <OrderPageLayout mobileScroll header={<OrderStatsStrip />}>
+      <OrderPageLayout mobileScroll hideHubOnPhone header={<OrderStatsStrip />}>
         <OrderPageShell />
       </OrderPageLayout>
     </Suspense>

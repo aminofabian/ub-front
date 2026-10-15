@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  Camera,
   Check,
   ChevronDown,
-  ChevronUp,
+  ChevronRight,
   ClipboardList,
   Copy,
   Ellipsis,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "@/components/cashier/cashier-create-product-modal";
 import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -394,6 +396,8 @@ export function TenantOrderWorkspace({
   const [supplierQuery, setSupplierQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [parentFilterId, setParentFilterId] = useState<string | null>(null);
+  const [inOrderOnly, setInOrderOnly] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [slipMoreOpen, setSlipMoreOpen] = useState(false);
@@ -694,6 +698,7 @@ export function TenantOrderWorkspace({
 
   useEffect(() => {
     setParentFilterId(null);
+    setInOrderOnly(false);
   }, [supplierId]);
 
   useEffect(() => {
@@ -849,6 +854,9 @@ export function TenantOrderWorkspace({
     if (parentFilterId) {
       rows = rows.filter((r) => linkParentId(r) === parentFilterId);
     }
+    if (inOrderOnly) {
+      rows = rows.filter((r) => (cart[r.itemId] ?? 0) > 0);
+    }
     if (q) {
       rows = rows.filter((r) => {
         const hay = [
@@ -873,7 +881,7 @@ export function TenantOrderWorkspace({
       if (lowA !== lowB) return lowA - lowB;
       return a.itemName.localeCompare(b.itemName);
     });
-  }, [links, filter, parentFilterId]);
+  }, [links, filter, parentFilterId, inOrderOnly, cart]);
 
   const cartLines = useMemo(() => {
     const lines = links
@@ -1520,6 +1528,7 @@ export function TenantOrderWorkspace({
 
   const familyChips = parentOptions.filter((o) => o.id !== "all");
   const showFamilies = familyChips.length >= 2;
+  const showShelfChips = showFamilies || inOrderOnly || cartLines.length > 0;
 
   const cartLinesPanel = (
     <>
@@ -2273,7 +2282,36 @@ export function TenantOrderWorkspace({
         ["--order-slip" as string]: "#ffffff",
       }}
     >
-      <div className="relative z-[1] flex shrink-0 items-center px-1 sm:px-2">
+      <div className="relative z-[1] flex shrink-0 items-center gap-2 px-3 pt-2 sm:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            setSupplierPickerOpen(true);
+            setSupplierQuery("");
+          }}
+          className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl border border-black/[0.06] bg-white px-3.5 py-2 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.99]"
+        >
+          <span className="min-w-0">
+            <span className="block text-[12px] font-medium text-[#667085]">
+              Supplier
+            </span>
+            <span className="block truncate text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[#15231f]">
+              {activeSupplier?.name ?? "Select supplier"}
+            </span>
+          </span>
+          <ChevronDown className="size-5 shrink-0 text-[#667085]" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={() => setToolsOpen(true)}
+          className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-black/[0.06] bg-white text-[#15231f] shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.97]"
+          aria-label="Order tools"
+        >
+          <Ellipsis className="size-5" aria-hidden />
+        </button>
+      </div>
+
+      <div className="relative z-[1] hidden shrink-0 items-center px-1 sm:flex sm:px-2">
         <button
           type="button"
           onClick={() => {
@@ -2383,6 +2421,11 @@ export function TenantOrderWorkspace({
       </div>
 
       <div
+        id="order-phone-awaiting"
+        className="empty:hidden px-3 pt-2 lg:hidden"
+      />
+
+      <div
         className={cn(
           "relative z-[1] flex min-w-0 flex-col",
           embedded
@@ -2466,18 +2509,27 @@ export function TenantOrderWorkspace({
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
               <input
-                className="h-12 w-full rounded-full bg-white pl-10 pr-3 text-base caret-[#0f766e] ring-1 ring-black/[0.05] outline-none placeholder:text-[#667085] focus:ring-2 focus:ring-[#0f766e]/40 sm:h-11 sm:text-[14px]"
+                className="h-12 w-full rounded-2xl bg-white pl-10 pr-3 text-base caret-[#0f766e] ring-1 ring-black/[0.06] outline-none placeholder:text-[#667085] focus:ring-2 focus:ring-[#0f766e]/40 sm:h-11 sm:rounded-full sm:text-[14px]"
                 placeholder={
                   orderTemplate === "ledger"
                     ? "Search products in this list…"
-                    : "Search products on this shelf…"
+                    : "Search this supplier's products"
                 }
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 enterKeyHint="search"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#0f766e] ring-1 ring-black/[0.06] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] sm:hidden"
+              aria-label="Scan a barcode"
+            >
+              <Camera className="size-5" aria-hidden />
+            </button>
             <OrderTemplatePicker
+              className="hidden sm:inline-flex"
               value={orderTemplate}
               onChange={setOrderTemplate}
             />
@@ -2494,35 +2546,54 @@ export function TenantOrderWorkspace({
             ) : null}
           </div>
 
-          {showFamilies ? (
-            <div className="shrink-0 px-3 py-2">
-              <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {showShelfChips ? (
+            <div className="shrink-0 px-3 pb-1 pt-0.5 sm:py-2">
+              <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
-                  onClick={() => setParentFilterId(null)}
+                  onClick={() => {
+                    setParentFilterId(null);
+                    setInOrderOnly(false);
+                  }}
                   className={cn(
                     "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 py-2 text-[13px] font-semibold transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
-                    !parentFilterId
+                    !parentFilterId && !inOrderOnly
                       ? "bg-[#0f766e] text-white"
-                      : "bg-white text-[#475467] ring-1 ring-black/[0.05] hover:text-[#101828]",
+                      : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
                   )}
                 >
                   All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInOrderOnly(true);
+                    setParentFilterId(null);
+                  }}
+                  className={cn(
+                    "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 py-2 text-[13px] font-semibold tabular-nums transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                    inOrderOnly
+                      ? "bg-[#0f766e] text-white"
+                      : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
+                  )}
+                >
+                  In order · {cartLines.length}
                 </button>
                 {familyChips.map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setInOrderOnly(false);
                       setParentFilterId(
                         parentFilterId === opt.id ? null : opt.id,
-                      )
-                    }
+                      );
+                    }}
                     className={cn(
-                      "inline-flex min-h-11 max-w-[9.5rem] shrink-0 items-center truncate rounded-full px-3.5 py-2 text-[13px] font-semibold transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                      "inline-flex min-h-11 max-w-[11rem] shrink-0 items-center truncate rounded-full px-3.5 py-2 text-[13px] font-semibold transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
                       parentFilterId === opt.id
                         ? "bg-[#0f766e] text-white"
-                        : "bg-white text-[#475467] ring-1 ring-black/[0.05] hover:text-[#101828]",
+                        : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
                     )}
                   >
                     {opt.label}
@@ -2534,7 +2605,7 @@ export function TenantOrderWorkspace({
 
           <div
             className={cn(
-              "min-h-0 flex-1 overscroll-contain p-3 sm:p-4 [scrollbar-width:thin]",
+              "min-h-0 flex-1 overscroll-contain px-3 pb-28 pt-3 sm:px-4 sm:pt-4 xl:pb-4 [scrollbar-width:thin]",
               embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
             )}
           >
@@ -2576,7 +2647,11 @@ export function TenantOrderWorkspace({
                 Loading shelf…
               </p>
             ) : visibleLinks.length === 0 ? (
-              parentFilterId && links.length > 0 ? (
+              inOrderOnly ? (
+                <p className="py-16 text-center text-[14px] text-[#667085]">
+                  Nothing in this order yet. Tap Add on a product.
+                </p>
+              ) : parentFilterId && links.length > 0 ? (
                 <p className="py-20 text-center text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
                   Nothing in this family.
                 </p>
@@ -2645,59 +2720,48 @@ export function TenantOrderWorkspace({
         </aside>
       </div>
 
-      <button
-        type="button"
-        key={cartUnits > 0 ? "filled" : "empty"}
-        onClick={() => setMobileOrderOpen(true)}
+      <div
         className={cn(
-          "order-phone-rise relative z-[3] mb-3 flex shrink-0 items-center gap-3 active:scale-[0.98]",
-          "mx-auto w-[min(100%-1.5rem,24rem)] rounded-full py-2 pl-2 pr-4",
-          embedded && "sm:mx-3 sm:w-auto sm:rounded-2xl sm:py-3 sm:pl-3",
-          cartUnits > 0
-            ? "bg-[#0f766e] text-white shadow-[0_14px_32px_-16px_rgba(15,118,110,0.9)]"
-            : "bg-white text-[#15231f] shadow-[0_10px_24px_-16px_rgba(21,35,31,0.4)] ring-1 ring-black/[0.06]",
-          flashItemId && cartUnits > 0 && "ring-2 ring-white/80",
+          "z-30",
+          embedded ? "mx-3 mb-2 shrink-0" : "fixed inset-x-0 px-3 xl:hidden",
           !embedded &&
-            "sticky bottom-[calc(var(--shell-bottom-inset)+0.4rem)] xl:hidden",
+            (mobileOrderOpen || toolsOpen || supplierPickerOpen || scannerOpen) &&
+            "pointer-events-none invisible",
         )}
+        style={
+          embedded
+            ? undefined
+            : { bottom: "calc(var(--shell-bottom-inset) + 0.85rem)" }
+        }
       >
-        <span
-          key={cartUnits}
+        <button
+          type="button"
+          onClick={() => setMobileOrderOpen(true)}
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-full font-heading text-[16px] font-semibold tabular-nums",
-            cartUnits > 0 && "order-phone-pop",
-            cartUnits > 0
-              ? "bg-white/20 text-white"
-              : "bg-[#e9f5f1] text-[#0f766e]",
+            "order-phone-rise flex w-full items-center justify-between gap-3 rounded-full bg-[#0f766e] px-4 py-3 text-left text-white shadow-[0_12px_28px_-16px_rgba(15,118,110,0.95)] active:scale-[0.99]",
+            flashItemId && "ring-2 ring-white/80",
           )}
         >
-          {cartUnits}
-        </span>
-        <span className="min-w-0 flex-1 text-left">
-          <span
-            className={cn(
-              "block truncate text-[12px] font-medium",
-              cartUnits > 0 ? "text-white/80" : "text-[#475467]",
-            )}
-          >
-            {cartUnits === 0
-              ? "This order"
-              : (activeSupplier?.name ?? "This order")}
+          <span className="min-w-0">
+            <span className="block text-[13px] font-medium text-white/80">
+              {cartUnits.toLocaleString()} {cartUnits === 1 ? "item" : "items"}
+            </span>
+            <span
+              key={cartUnits}
+              className={cn(
+                "block truncate font-heading text-[18px] font-semibold leading-tight tracking-[-0.03em] tabular-nums",
+                cartUnits > 0 && "order-phone-pop",
+              )}
+            >
+              {formatMoney(effectiveTotal, currency)}
+            </span>
           </span>
-          <span className="block truncate font-heading text-[18px] font-semibold leading-tight tracking-[-0.03em] tabular-nums">
-            {cartUnits === 0
-              ? "Open slip"
-              : formatMoney(effectiveTotal, ORDER_CURRENCY)}
+          <span className="inline-flex shrink-0 items-center gap-1 text-[15px] font-semibold">
+            Review order
+            <ChevronRight className="size-4" aria-hidden />
           </span>
-        </span>
-        <ChevronUp
-          className={cn(
-            "size-4 shrink-0",
-            cartUnits > 0 ? "text-white/80" : "text-[#667085]",
-          )}
-          aria-hidden
-        />
-      </button>
+        </button>
+      </div>
 
       {toolsOpen ? (
         <div
@@ -2790,6 +2854,22 @@ export function TenantOrderWorkspace({
                 <History className="size-4 text-[#0f766e]" aria-hidden />
                 Past orders
               </button>
+              <Link
+                href={APP_ROUTES.purchasingAddSupplies}
+                onClick={() => setToolsOpen(false)}
+                className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#f4f7f6] px-3.5 text-[15px] font-semibold text-[#15231f] active:scale-[0.99]"
+              >
+                <Package className="size-4 text-[#0f766e]" aria-hidden />
+                Records
+              </Link>
+              <Link
+                href={APP_ROUTES.suppliers}
+                onClick={() => setToolsOpen(false)}
+                className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#f4f7f6] px-3.5 text-[15px] font-semibold text-[#15231f] active:scale-[0.99]"
+              >
+                <Truck className="size-4 text-[#0f766e]" aria-hidden />
+                Suppliers
+              </Link>
               {!embedded ? (
                 <SupplierGuideDrawer
                   trigger={
@@ -2941,6 +3021,31 @@ export function TenantOrderWorkspace({
             {placeFooter}
           </div>
         </div>
+      ) : null}
+
+      {scannerOpen ? (
+        <BarcodeScanner
+          onScan={(code) => {
+            setScannerOpen(false);
+            const trimmed = code.trim();
+            if (!trimmed) return;
+            const hit = links.find((link) => {
+              const barcode = link.barcode?.trim();
+              const sku = link.sku?.trim();
+              return barcode === trimmed || sku === trimmed;
+            });
+            if (!hit) {
+              setFilter(trimmed);
+              toast.message("No exact match. Showing search results.");
+              return;
+            }
+            setFilter("");
+            setParentFilterId(null);
+            setInOrderOnly(false);
+            setQty(hit.itemId, (cart[hit.itemId] ?? 0) + 1);
+          }}
+          onClose={() => setScannerOpen(false)}
+        />
       ) : null}
 
       <SupplyPackQtyModal

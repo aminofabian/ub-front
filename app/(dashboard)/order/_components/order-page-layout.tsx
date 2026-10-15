@@ -17,6 +17,7 @@ export function OrderPageLayout({
   header,
   className,
   mobileScroll = false,
+  hideHubOnPhone = false,
 }: {
   children: ReactNode;
   title?: string;
@@ -32,6 +33,8 @@ export function OrderPageLayout({
    * Height-locked split panes resume at `lg`.
    */
   mobileScroll?: boolean;
+  /** Phones already have the app tab bar. Hide the buying-journey row there. */
+  hideHubOnPhone?: boolean;
 }) {
   const { me } = useDashboard();
   const isStockManager =
@@ -40,7 +43,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)] px-0 pt-0 sm:px-5 sm:pt-1.5",
+        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[#f4f7f5] px-0 pt-0 sm:px-5 sm:pt-1.5 xl:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
         mobileScroll
           ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
           : "h-full min-h-0 overflow-hidden",
@@ -54,6 +57,7 @@ export function OrderPageLayout({
         <div
           className={cn(
             "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-white sm:rounded-2xl sm:border",
+            hideHubOnPhone && "max-sm:hidden",
             isStockManager &&
               "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}

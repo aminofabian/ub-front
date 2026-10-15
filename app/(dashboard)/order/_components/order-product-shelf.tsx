@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Minus, Package, Plus } from "lucide-react";
+import { Minus, Package, Plus, ShoppingBag } from "lucide-react";
 
 import type { SupplierItemLinkRecord } from "@/lib/api";
 import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
@@ -33,6 +33,20 @@ function packUnitPrice(
   );
 }
 
+function stockStatus(stock: number, reorder: number): {
+  label: string;
+  tone: "out" | "low" | "ok";
+} {
+  const count = Number.isInteger(stock)
+    ? stock.toLocaleString()
+    : (Math.round(stock * 10) / 10).toLocaleString();
+  if (stock <= 0) return { label: "Out of stock", tone: "out" };
+  if ((reorder > 0 && stock <= reorder) || stock <= 8) {
+    return { label: `${count} left`, tone: "low" };
+  }
+  return { label: `${count} in stock`, tone: "ok" };
+}
+
 function OrderShelfTile({
   link,
   qty,
@@ -52,27 +66,28 @@ function OrderShelfTile({
 }) {
   const stock = toNum(link.currentStock);
   const reorder = toNum(link.reorderLevel);
-  const low = reorder > 0 && stock <= reorder;
   const packed = pack != null && pack.size > 1;
   const cost = packUnitPrice(link, pack);
   const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
   const { primary, option } = orderLinkTitleParts(link);
   const inCart = qty > 0;
   const hasPrice = cost > 0;
-  const mark = (primary.trim().charAt(0) || "?").toUpperCase();
+  const stockLine = stockStatus(stock, reorder);
 
   return (
     <article
       className={cn(
-        "group flex min-w-0 items-center gap-3 rounded-2xl bg-white p-2 shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+        "group flex min-w-0 items-center gap-3 rounded-2xl bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
         "md:h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0",
-        inCart ? "ring-2 ring-[#0f766e]" : "ring-1 ring-black/[0.05]",
+        inCart
+          ? "ring-1 ring-black/[0.06] md:ring-2 md:ring-[#0f766e]"
+          : "ring-1 ring-black/[0.06]",
       )}
     >
       <button
         type="button"
         className={cn(
-          "relative size-[4.5rem] shrink-0 overflow-hidden rounded-xl bg-[#e9f5f1]",
+          "relative size-14 shrink-0 overflow-hidden rounded-2xl bg-[#e7f3ee]",
           "md:aspect-[4/3] md:h-auto md:w-full md:rounded-none",
           "touch-manipulation disabled:opacity-60",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f766e]",
@@ -94,8 +109,12 @@ function OrderShelfTile({
           </span>
         ) : (
           <>
-            <span className="absolute inset-0 flex items-center justify-center font-heading text-[22px] font-semibold text-[#0f766e] md:hidden">
-              {mark}
+            <span className="absolute inset-0 flex items-center justify-center md:hidden">
+              <ShoppingBag
+                className="size-6 text-[#0f766e]"
+                strokeWidth={1.75}
+                aria-hidden
+              />
             </span>
             <span className="absolute left-1/2 top-1/2 hidden h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 items-center justify-center md:flex">
               <Package
@@ -131,27 +150,29 @@ function OrderShelfTile({
           ) : null}
         </div>
 
-        <div className="mt-2 flex items-baseline justify-between gap-2">
+        <div className="mt-1.5 md:mt-2 md:flex md:items-baseline md:justify-between md:gap-2">
           <p
             className={cn(
-              "min-w-0 truncate text-sm font-semibold tabular-nums sm:text-[13px]",
+              "min-w-0 truncate text-[15px] font-semibold tabular-nums md:text-[13px]",
               hasPrice ? "text-[#101828]" : "text-[#98a2b3]",
             )}
           >
             {hasPrice ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
             {packed && hasPrice ? (
-              <span className="ml-1 text-[11px] font-medium text-[#98a2b3]">
+              <span className="ml-1 text-[12px] font-medium text-[#98a2b3]">
                 / pack
               </span>
             ) : null}
           </p>
           <p
             className={cn(
-              "shrink-0 text-[12px] font-medium tabular-nums",
-              low ? "text-[#b45309]" : "text-[#667085]",
+              "mt-0.5 text-[13px] font-medium md:mt-0 md:shrink-0 md:text-[12px]",
+              stockLine.tone === "out" && "text-[#c2414a]",
+              stockLine.tone === "low" && "text-[#c2410c]",
+              stockLine.tone === "ok" && "text-[#667085]",
             )}
           >
-            {stock} in stock
+            {stockLine.label}
           </p>
         </div>
 
@@ -211,6 +232,8 @@ function OrderShelfTile({
         inCart={inCart}
         pickMode={pickMode}
         picking={picking}
+        hasPrice={hasPrice}
+        lineTotal={cost * qty}
         onAdd={onAdd}
         onSetQty={onSetQty}
       />
@@ -224,6 +247,8 @@ function PhoneShelfControl({
   inCart,
   pickMode,
   picking,
+  hasPrice,
+  lineTotal,
   onAdd,
   onSetQty,
 }: {
@@ -232,6 +257,8 @@ function PhoneShelfControl({
   inCart: boolean;
   pickMode: boolean;
   picking: boolean;
+  hasPrice: boolean;
+  lineTotal: number;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
 }) {
@@ -239,42 +266,50 @@ function PhoneShelfControl({
     return (
       <button
         type="button"
-        className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#0f766e] text-white shadow-[0_8px_18px_-10px_rgba(15,118,110,0.9)] transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:opacity-60 md:hidden"
+        className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full border border-[#0f766e] bg-white px-3.5 text-[14px] font-semibold text-[#0f766e] transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:opacity-60 md:hidden"
         onClick={onAdd}
         disabled={pickMode && picking}
         aria-label={picking ? `Adding ${primary}` : `Add ${primary}`}
       >
-        <Plus className="size-5" strokeWidth={2.25} aria-hidden />
+        <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+        {picking ? "Adding" : "Add"}
       </button>
     );
   }
 
   return (
-    <div
-      className="flex shrink-0 items-center gap-0.5 md:hidden"
-      role="group"
-      aria-label={`Quantity for ${primary}`}
-    >
-      <button
-        type="button"
-        disabled={qty <= 0}
-        className="flex size-11 items-center justify-center rounded-full text-[#0f766e] transition-transform duration-150 active:scale-[0.96] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
-        onClick={() => onSetQty(qty - 1)}
-        aria-label="Decrease"
+    <div className="flex shrink-0 flex-col items-end gap-1 md:hidden">
+      <div
+        className="flex items-center gap-1"
+        role="group"
+        aria-label={`Quantity for ${primary}`}
       >
-        <Minus className="size-4" strokeWidth={2.25} aria-hidden />
-      </button>
-      <span className="min-w-5 text-center font-heading text-[18px] font-semibold tabular-nums text-[#0f766e]">
-        {qty}
-      </span>
-      <button
-        type="button"
-        className="flex size-11 items-center justify-center rounded-full bg-[#0f766e] text-white transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2"
-        onClick={() => onSetQty(qty + 1)}
-        aria-label="Increase"
-      >
-        <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-      </button>
+        <button
+          type="button"
+          disabled={qty <= 0}
+          className="flex size-11 items-center justify-center rounded-full border border-[#0f766e]/35 bg-white text-[#0f766e] transition-transform duration-150 active:scale-[0.96] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+          onClick={() => onSetQty(qty - 1)}
+          aria-label="Decrease"
+        >
+          <Minus className="size-4" strokeWidth={2.25} aria-hidden />
+        </button>
+        <span className="min-w-6 text-center text-[18px] font-semibold tabular-nums text-[#15231f]">
+          {qty}
+        </span>
+        <button
+          type="button"
+          className="flex size-11 items-center justify-center rounded-full bg-[#0f766e] text-white transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2"
+          onClick={() => onSetQty(qty + 1)}
+          aria-label="Increase"
+        >
+          <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+        </button>
+      </div>
+      {hasPrice ? (
+        <p className="text-[13px] font-semibold tabular-nums text-[#344054]">
+          {formatMoney(lineTotal, ORDER_CURRENCY)}
+        </p>
+      ) : null}
     </div>
   );
 }
