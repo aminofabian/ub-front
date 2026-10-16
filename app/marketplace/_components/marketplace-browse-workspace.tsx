@@ -32,7 +32,7 @@ import {
   type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
-import { marketplacePassportProductPath } from "@/lib/marketplace-url";
+import { marketplaceSupplierPassportPath } from "@/lib/marketplace-url";
 import { cn, formatMoney } from "@/lib/utils";
 
 import { useMarketplaceTemplate } from "@/hooks/use-marketplace-template";
@@ -832,17 +832,7 @@ function MarketplaceBrowseWorkspaceInner({
                       ) : (
                         <>
                           {isLedger ? (
-                            <MarketplaceProductLedger
-                              rows={visibleProducts}
-                              onSelectSupplier={
-                                isTenant
-                                  ? (id) => {
-                                      setActiveSupplierId(id);
-                                      setTab("products");
-                                    }
-                                  : undefined
-                              }
-                            />
+                            <MarketplaceProductLedger rows={visibleProducts} />
                           ) : (
                             <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                               {visibleProducts.map((row, index) => (
@@ -850,14 +840,6 @@ function MarketplaceBrowseWorkspaceInner({
                                   key={`${row.supplierId}-${row.productId}`}
                                   row={row}
                                   index={index}
-                                  onSelectSupplier={
-                                    isTenant
-                                      ? (id) => {
-                                          setActiveSupplierId(id);
-                                          setTab("products");
-                                        }
-                                      : undefined
-                                  }
                                 />
                               ))}
                             </div>
@@ -918,33 +900,11 @@ function MarketplaceBrowseWorkspaceInner({
                   </h2>
                 </div>
                 {isLedger ? (
-                  <MarketplaceSupplierLedger
-                    rows={visibleSuppliers}
-                    onSelect={
-                      isTenant
-                        ? (id) => {
-                            setActiveSupplierId(id);
-                            setTab("products");
-                          }
-                        : undefined
-                    }
-                  />
+                  <MarketplaceSupplierLedger rows={visibleSuppliers} />
                 ) : (
                   <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                     {visibleSuppliers.map((row, index) => (
-                      <SupplierTile
-                        key={row.id}
-                        row={row}
-                        index={index}
-                        onSelect={
-                          isTenant
-                            ? (id) => {
-                                setActiveSupplierId(id);
-                                setTab("products");
-                              }
-                            : undefined
-                        }
-                      />
+                      <SupplierTile key={row.id} row={row} index={index} />
                     ))}
                   </div>
                 )}
@@ -1276,18 +1236,15 @@ function ProductImage({
 function ProductTile({
   row,
   index,
-  onSelectSupplier,
 }: {
   row: MarketplaceProductSearchRow;
   index: number;
-  onSelectSupplier?: (supplierId: string) => void;
 }) {
   const hue = hueFromId(row.productId);
-  const href =
-    marketplacePassportProductPath(row.supplierSlug, row.productSlug) ??
-    (row.supplierSlug
-      ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
-      : APP_ROUTES.marketplace);
+  const href = marketplaceSupplierPassportPath(
+    row.supplierSlug,
+    row.productSlug,
+  );
   const body = (
     <>
       <ProductImage
@@ -1316,19 +1273,6 @@ function ProductTile({
     </>
   );
 
-  if (onSelectSupplier) {
-    return (
-      <button
-        type="button"
-        className={mktPosTile}
-        style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-        onClick={() => onSelectSupplier(row.supplierId)}
-      >
-        {body}
-      </button>
-    );
-  }
-
   return (
     <Link
       href={href}
@@ -1343,16 +1287,12 @@ function ProductTile({
 function SupplierTile({
   row,
   index,
-  onSelect,
 }: {
   row: MarketplaceSupplierSearchRow;
   index: number;
-  onSelect?: (supplierId: string) => void;
 }) {
   const hue = hueFromId(row.id);
-  const href = row.slug
-    ? APP_ROUTES.marketplaceSupplier(row.slug)
-    : APP_ROUTES.marketplace;
+  const href = marketplaceSupplierPassportPath(row.slug);
   const body = (
     <>
       <div
@@ -1398,19 +1338,6 @@ function SupplierTile({
       </div>
     </>
   );
-
-  if (onSelect) {
-    return (
-      <button
-        type="button"
-        className={mktPosTile}
-        style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-        onClick={() => onSelect(row.id)}
-      >
-        {body}
-      </button>
-    );
-  }
 
   return (
     <Link

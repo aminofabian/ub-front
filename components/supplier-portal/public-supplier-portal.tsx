@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ChevronDown,
   Loader2,
@@ -41,6 +41,12 @@ type Branding = {
 type Props = {
   username: string;
   branding: Branding;
+  /**
+   * Rendered when this shop has no supplier matching `username` — e.g. a public
+   * marketplace supplier that is not one of the shop's suppliers. Lets the shop
+   * host fall back to the public passport instead of a dead-end.
+   */
+  fallback?: ReactNode;
 };
 
 type PortalTab = "supplies" | "movements" | "selling";
@@ -173,7 +179,7 @@ function SupplyLinesDetail({
   );
 }
 
-export function PublicSupplierPortalView({ username, branding }: Props) {
+export function PublicSupplierPortalView({ username, branding, fallback }: Props) {
   const [data, setData] = useState<PublicSupplierPortal | null>(null);
   const [busy, setBusy] = useState(true);
   const [missing, setMissing] = useState(false);
@@ -269,6 +275,9 @@ export function PublicSupplierPortalView({ username, branding }: Props) {
   }
 
   if (missing || !data) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center" style={theme}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

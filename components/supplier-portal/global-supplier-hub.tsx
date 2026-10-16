@@ -44,6 +44,8 @@ import {
 
 type Props = {
   username: string;
+  /** Catalogue product slug from `?p=` so a deep-link opens with that product. */
+  selectedProductSlug?: string | null;
 };
 
 const INK_BORDER =
@@ -593,7 +595,7 @@ function GlobalSupplierHubSkeleton() {
   );
 }
 
-export function GlobalSupplierHubView({ username }: Props) {
+export function GlobalSupplierHubView({ username, selectedProductSlug }: Props) {
   const [storefront, setStorefront] = useState<GlobalSupplierStorefront | undefined>(
     undefined,
   );
@@ -752,7 +754,11 @@ export function GlobalSupplierHubView({ username }: Props) {
                       ) : null}
                     </div>
                   </div>
-                  <MarketplaceOrderWorkspace detail={detail} layout="shelf" />
+                  <MarketplaceOrderWorkspace
+                    detail={detail}
+                    layout="shelf"
+                    selectedProductSlug={selectedProductSlug ?? null}
+                  />
                 </div>
               ) : hub ? (
                 <div className="mt-8 text-center text-sm text-muted-foreground">

@@ -23,7 +23,15 @@ import {
   supplierPassportMetadata,
 } from "@/lib/supplier-passport-seo";
 
-type PageProps = { params: Promise<{ username: string }> };
+type PageProps = {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ p?: string | string[] }>;
+};
+
+function firstQueryValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
 
 /**
  * Global passport only on bare platform apex hosts.
@@ -104,9 +112,14 @@ export async function generateMetadata({
   };
 }
 
-export default async function PublicSupplierPortalPage({ params }: PageProps) {
+export default async function PublicSupplierPortalPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { username } = await params;
+  const query = await searchParams;
   const decoded = decodeURIComponent(username);
+  const selectedProductSlug = firstQueryValue(query.p);
 
   // Tenant host always wins — public shop portal (pre-change behavior).
   const tenant = await resolveTenantContext();
@@ -128,6 +141,15 @@ export default async function PublicSupplierPortalPage({ params }: PageProps) {
           primaryHex: parseStorefrontHex(tenant.branding?.primaryColor),
           logoUrl: tenant.branding?.logoUrl?.trim() || null,
         }}
+        // A marketplace supplier that is not one of this shop's suppliers would
+        // dead-end on "Supplier not found"; fall back to the public passport so
+        // supplier tiles always land on a real page.
+        fallback={
+          <GlobalSupplierHubView
+            username={decoded}
+            selectedProductSlug={selectedProductSlug}
+          />
+        }
       />
     );
   }
@@ -166,7 +188,10 @@ export default async function PublicSupplierPortalPage({ params }: PageProps) {
             />
           </>
         ) : null}
-        <GlobalSupplierHubView username={decoded} />
+        <GlobalSupplierHubView
+          username={decoded}
+          selectedProductSlug={selectedProductSlug}
+        />
       </>
     );
   }

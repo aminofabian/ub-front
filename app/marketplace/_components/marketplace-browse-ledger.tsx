@@ -5,12 +5,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { Package } from "lucide-react";
 
-import { APP_ROUTES } from "@/lib/config";
 import type {
   MarketplaceProductSearchRow,
   MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
-import { marketplacePassportProductPath } from "@/lib/marketplace-url";
+import { marketplaceSupplierPassportPath } from "@/lib/marketplace-url";
 import { cn, formatMoney } from "@/lib/utils";
 
 function hueFromId(id: string): number {
@@ -114,10 +113,8 @@ function ledgerStats(rows: MarketplaceProductSearchRow[]) {
 
 export function MarketplaceProductLedger({
   rows,
-  onSelectSupplier,
 }: {
   rows: MarketplaceProductSearchRow[];
-  onSelectSupplier?: (supplierId: string) => void;
 }) {
   const stats = ledgerStats(rows);
   return (
@@ -147,11 +144,10 @@ export function MarketplaceProductLedger({
       </div>
       <div>
         {rows.map((row, index) => {
-          const href =
-            marketplacePassportProductPath(row.supplierSlug, row.productSlug) ??
-            (row.supplierSlug
-              ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
-              : APP_ROUTES.marketplace);
+          const href = marketplaceSupplierPassportPath(
+            row.supplierSlug,
+            row.productSlug,
+          );
           const hue = hueFromId(row.productId);
           const body = (
             <>
@@ -191,18 +187,6 @@ export function MarketplaceProductLedger({
               </div>
             </>
           );
-          if (onSelectSupplier) {
-            return (
-              <button
-                key={`${row.supplierId}-${row.productId}`}
-                type="button"
-                className={cn(LEDGER_ROW, "w-full text-left")}
-                onClick={() => onSelectSupplier(row.supplierId)}
-              >
-                {body}
-              </button>
-            );
-          }
           return (
             <Link
               key={`${row.supplierId}-${row.productId}`}
@@ -220,10 +204,8 @@ export function MarketplaceProductLedger({
 
 export function MarketplaceSupplierLedger({
   rows,
-  onSelect,
 }: {
   rows: MarketplaceSupplierSearchRow[];
-  onSelect?: (supplierId: string) => void;
 }) {
   const listed = rows.reduce((sum, row) => sum + (row.productCount ?? 0), 0);
   return (
@@ -250,9 +232,7 @@ export function MarketplaceSupplierLedger({
       </div>
       <div>
         {rows.map((row, index) => {
-          const href = row.slug
-            ? APP_ROUTES.marketplaceSupplier(row.slug)
-            : APP_ROUTES.marketplace;
+          const href = marketplaceSupplierPassportPath(row.slug);
           const hue = hueFromId(row.id);
           const phone = row.contactPhone?.trim() || null;
           const body = (
@@ -301,18 +281,6 @@ export function MarketplaceSupplierLedger({
               </div>
             </>
           );
-          if (onSelect) {
-            return (
-              <button
-                key={row.id}
-                type="button"
-                className={cn(LEDGER_ROW, "w-full text-left")}
-                onClick={() => onSelect(row.id)}
-              >
-                {body}
-              </button>
-            );
-          }
           return (
             <Link key={row.id} href={href} className={LEDGER_ROW}>
               {body}

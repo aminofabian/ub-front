@@ -67,6 +67,24 @@ export function marketplaceSupplierPath(
   return `${base}?p=${encodeURIComponent(product)}`;
 }
 
+/**
+ * Supplier passport `/s/{username}` for a marketplace supplier row — the slug
+ * prefix before the `--` id marker ("grocery-githurai--758d4b07" →
+ * "/s/grocery-githurai"), which is exactly the value the `/s/{username}` page
+ * (and the sitemap / SEO blocks) resolve. Pass `productSlug` to deep-link a
+ * catalogue product (`?p=`).
+ */
+export function marketplaceSupplierPassportPath(
+  slug: string | null | undefined,
+  productSlug?: string | null,
+): string {
+  const username = slug?.trim().split(ID_MARKER)[0]?.trim();
+  if (!username) return APP_ROUTES.marketplace;
+  const base = `/s/${encodeURIComponent(username)}`;
+  const product = productSlug?.trim();
+  return product ? `${base}?p=${encodeURIComponent(product)}` : base;
+}
+
 /** One line in a shareable marketplace order (`?o=`). */
 export type MarketplaceOrderQueryLine = {
   slug: string;

@@ -3,8 +3,38 @@ import { describe, expect, it } from "bun:test";
 import {
   encodeMarketplaceOrderQuery,
   marketplaceSupplierOrderPath,
+  marketplaceSupplierPassportPath,
   parseMarketplaceOrderQuery,
 } from "@/lib/marketplace-url";
+
+describe("marketplace supplier passport path", () => {
+  it("strips the --id marker so /s/{username} resolves", () => {
+    expect(marketplaceSupplierPassportPath("grocery-githurai--758d4b07")).toBe(
+      "/s/grocery-githurai",
+    );
+  });
+
+  it("keeps a bare username and encodes segments", () => {
+    expect(marketplaceSupplierPassportPath("jamro")).toBe("/s/jamro");
+    expect(marketplaceSupplierPassportPath("Mama Mboga & Sons--abc12345")).toBe(
+      "/s/Mama%20Mboga%20%26%20Sons",
+    );
+  });
+
+  it("deep-links a catalogue product with ?p=", () => {
+    expect(
+      marketplaceSupplierPassportPath("grocery-githurai--758d4b07", "onions-red-10"),
+    ).toBe("/s/grocery-githurai?p=onions-red-10");
+    expect(marketplaceSupplierPassportPath("grocery-githurai--758d4b07", "   ")).toBe(
+      "/s/grocery-githurai",
+    );
+  });
+
+  it("falls back to the marketplace when there is no slug", () => {
+    expect(marketplaceSupplierPassportPath(null)).toBe("/marketplace");
+    expect(marketplaceSupplierPassportPath("   ")).toBe("/marketplace");
+  });
+});
 
 describe("marketplace order query", () => {
   it("round-trips quantities and rounded line totals", () => {
