@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="34" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">POS system price in Kenya, part by part</text>
+
+  <!-- Card -->
+  <rect x="16" y="64" width="928" height="380" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+
+  <!-- Header row -->
+  <text x="52" y="100" font-size="11" font-weight="700" fill="#1F2937">Part</text>
+  <text x="560" y="100" font-size="11" font-weight="700" fill="#6b7280">Typical price</text>
+  <text x="760" y="100" font-size="11" font-weight="700" fill="#6b7280">Notes</text>
+  <line x1="40" y1="114" x2="920" y2="114" stroke="#e5e7eb"/>
+
+  <!-- Rows -->
+  <rect x="40" y="124" width="880" height="38" rx="8" fill="#f0fdf4"/>
+  <text x="52" y="148" font-size="11" font-weight="600" fill="#1F2937">Phone-first till</text>
+  <text x="560" y="148" font-size="11" font-weight="700" fill="#15803d">KSh 0 to start</text>
+  <text x="760" y="148" font-size="10" fill="#6b7280">Runs on your phone</text>
+
+  <rect x="40" y="166" width="880" height="38" rx="8" fill="#ffffff"/>
+  <text x="52" y="190" font-size="11" font-weight="600" fill="#1F2937">2D barcode scanner</text>
+  <text x="560" y="190" font-size="11" font-weight="700" fill="#2563eb">KSh 7,000 – 15,000</text>
+  <text x="760" y="190" font-size="10" fill="#6b7280">Buy fast for volume</text>
+
+  <rect x="40" y="208" width="880" height="38" rx="8" fill="#f9fafb"/>
+  <text x="52" y="232" font-size="11" font-weight="600" fill="#1F2937">Thermal receipt printer</text>
+  <text x="560" y="232" font-size="11" font-weight="700" fill="#2563eb">KSh 8,000 – 15,000</text>
+  <text x="760" y="232" font-size="10" fill="#6b7280">One per till</text>
+
+  <rect x="40" y="250" width="880" height="38" rx="8" fill="#ffffff"/>
+  <text x="52" y="274" font-size="11" font-weight="600" fill="#1F2937">Cash drawer</text>
+  <text x="560" y="274" font-size="11" font-weight="700" fill="#2563eb">KSh 6,000 – 12,000</text>
+  <text x="760" y="274" font-size="10" fill="#6b7280">Opened by printer</text>
+
+  <rect x="40" y="292" width="880" height="38" rx="8" fill="#f9fafb"/>
+  <text x="52" y="316" font-size="11" font-weight="600" fill="#1F2937">Weighing scale</text>
+  <text x="560" y="316" font-size="11" font-weight="700" fill="#2563eb">KSh 15,000 – 40,000</text>
+  <text x="760" y="316" font-size="10" fill="#6b7280">Goods by weight only</text>
+
+  <rect x="40" y="334" width="880" height="38" rx="8" fill="#ffffff"/>
+  <text x="52" y="358" font-size="11" font-weight="600" fill="#1F2937">POS terminal / touchscreen</text>
+  <text x="560" y="358" font-size="11" font-weight="700" fill="#A8842C">KSh 40,000 – 120,000</text>
+  <text x="760" y="358" font-size="10" fill="#6b7280">Biggest single line</text>
+
+  <rect x="40" y="376" width="880" height="38" rx="8" fill="#f9fafb"/>
+  <text x="52" y="400" font-size="11" font-weight="600" fill="#1F2937">Cloud software</text>
+  <text x="560" y="400" font-size="11" font-weight="700" fill="#A8842C">KSh 700 – 5,000 / month</text>
+  <text x="760" y="400" font-size="10" fill="#6b7280">Per user or per lane</text>
+
+  <!-- Banner -->
+  <rect x="40" y="458" width="880" height="72" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="64" y="486" font-size="12" font-weight="700" fill="#2563eb">A price is a list, not a number</text>
+  <text x="64" y="510" font-size="10.5" fill="#374151">Price the same parts on every quote, add the running costs, then compare three-year totals. Typical Kenyan prices for 2026 (ex-VAT), for planning.</text>
+</svg>

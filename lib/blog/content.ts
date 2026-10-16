@@ -27,10 +27,15 @@ import {
   POS_COST_ARTICLES,
   POS_COST_PILLAR_SLUG,
 } from "./cluster-pos-cost";
+import {
+  BUY_POS_KENYA_ARTICLES,
+  BUY_POS_KENYA_PILLAR_SLUG,
+} from "./cluster-buy-pos-kenya";
 import type { BlogArticle } from "./types";
 
 export {
   BARCODE_LOOKUP_PILLAR_SLUG,
+  BUY_POS_KENYA_PILLAR_SLUG,
   ETIMS_TAX_PILLAR_SLUG,
   GROW_MINI_MART_PILLAR_SLUG,
   KIOSK_VS_ODOO_PILLAR_SLUG,
@@ -48,6 +53,7 @@ export const CLUSTER_PILLAR_SLUGS = [
   KOPOKOPO_PILLAR_SLUG,
   ETIMS_TAX_PILLAR_SLUG,
   POS_COST_PILLAR_SLUG,
+  BUY_POS_KENYA_PILLAR_SLUG,
 ] as const;
 
 export function isClusterPillar(slug: string): boolean {
@@ -62,4 +68,5 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   ...KOPOKOPO_ARTICLES,
   ...ETIMS_TAX_ARTICLES,
   ...POS_COST_ARTICLES,
+  ...BUY_POS_KENYA_ARTICLES,
 ];

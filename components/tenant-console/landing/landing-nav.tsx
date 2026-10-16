@@ -148,6 +148,11 @@ const RESOURCES_MENU: NavMenu = {
         { label: "Stories", body: "From Kenyan shop floors.", href: "#stories" },
         { label: "FAQ", body: "Straight answers, no jargon.", href: "#faq" },
         { label: "Help center", body: "Merchant and shopper docs.", href: "/help" },
+        {
+          label: "Barcode generator",
+          body: "Code 128 labels for the shelf.",
+          href: "/tools/barcode-generator",
+        },
       ],
     },
   ],
@@ -157,6 +162,10 @@ const RESOURCES_MENU: NavMenu = {
       {
         label: "Top 10 POS systems in Kenya",
         href: "/blog/top-10-pos-systems-kenya-2026",
+      },
+      {
+        label: "POS system for sale in Kenya",
+        href: "/blog/pos-system-for-sale-in-kenya",
       },
     ],
   },

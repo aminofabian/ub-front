@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="36" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Online supermarket POS: one stock, two channels</text>
+  <text x="480" y="58" font-size="11" fill="#6b7280" text-anchor="middle">Two stock counts eventually disagree. One inventory never does.</text>
+
+  <!-- Center stock node -->
+  <rect x="360" y="120" width="240" height="112" rx="14" fill="#ffffff" stroke="#A8842C" stroke-width="1.5"/>
+  <text x="480" y="158" font-size="12.5" font-weight="700" fill="#A8842C" text-anchor="middle">One inventory</text>
+  <text x="480" y="182" font-size="10.5" fill="#374151" text-anchor="middle">One catalog, one stock count,</text>
+  <text x="480" y="200" font-size="10.5" fill="#374151" text-anchor="middle">one set of records.</text>
+
+  <!-- Left branch: till -->
+  <rect x="40" y="300" width="380" height="140" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="230" y="334" font-size="12.5" font-weight="700" fill="#1F2937" text-anchor="middle">In-store till</text>
+  <text x="230" y="360" font-size="10.5" fill="#374151" text-anchor="middle">Walk-in sales at the counter.</text>
+  <text x="230" y="382" font-size="10.5" fill="#374151" text-anchor="middle">Barcode scanning, cash, and</text>
+  <text x="230" y="400" font-size="10.5" fill="#374151" text-anchor="middle">M-Pesa STK push.</text>
+  <rect x="88" y="414" width="284" height="16" rx="8" fill="#f0fdf4"/>
+  <text x="230" y="426" font-size="9.5" fill="#15803d" text-anchor="middle">Stock falls the moment a sale rings</text>
+
+  <!-- Right branch: web -->
+  <rect x="540" y="300" width="380" height="140" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="730" y="334" font-size="12.5" font-weight="700" fill="#1F2937" text-anchor="middle">Online storefront</text>
+  <text x="730" y="360" font-size="10.5" fill="#374151" text-anchor="middle">Orders from a phone, day and night.</text>
+  <text x="730" y="382" font-size="10.5" fill="#374151" text-anchor="middle">Same prices, same products,</text>
+  <text x="730" y="400" font-size="10.5" fill="#374151" text-anchor="middle">M-Pesa online.</text>
+  <rect x="588" y="414" width="284" height="16" rx="8" fill="#eff6ff"/>
+  <text x="730" y="426" font-size="9.5" fill="#2563eb" text-anchor="middle">Same stock falls — no overselling</text>
+
+  <!-- Connectors -->
+  <path d="M430 232 C 340 250, 260 260, 230 300" stroke="#A8842C" stroke-width="2" fill="none"/>
+  <path d="M530 232 C 620 250, 700 260, 730 300" stroke="#A8842C" stroke-width="2" fill="none"/>
+  <circle cx="230" cy="300" r="4" fill="#A8842C"/>
+  <circle cx="730" cy="300" r="4" fill="#A8842C"/>
+
+  <!-- Bottom banner -->
+  <rect x="40" y="472" width="880" height="58" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="64" y="500" font-size="11.5" font-weight="700" fill="#2563eb">The two-count trap</text>
+  <text x="64" y="520" font-size="10.5" fill="#374151">A till plus a separate e-commerce tool each keep their own stock — and the website keeps selling after the shelf is empty.</text>
+</svg>

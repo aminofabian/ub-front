@@ -1,5 +1,6 @@
 import {
   BLOG_ARTICLES,
+  BUY_POS_KENYA_PILLAR_SLUG,
   CLUSTER_PILLAR_SLUGS,
   isClusterPillar,
   ETIMS_TAX_PILLAR_SLUG,
@@ -28,6 +29,7 @@ export type { BlogCluster, BlogClusterDef } from "./clusters";
 
 export {
   BLOG_CLUSTER_DEFS,
+  BUY_POS_KENYA_PILLAR_SLUG,
   CLUSTER_PILLAR_SLUGS,
   ETIMS_TAX_PILLAR_SLUG,
   isClusterPillar,

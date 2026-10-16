@@ -36,8 +36,10 @@ const FOOTER_COLS = [
     label: "Learn",
     links: [
       { label: "Guides", href: "/#guides" },
+      { label: "Barcode generator", href: "/tools/barcode-generator" },
       { label: "Blog", href: "/blog" },
       { label: "Top POS in Kenya", href: "/blog/top-10-pos-systems-kenya-2026" },
+      { label: "Buy a POS in Kenya", href: "/blog/pos-system-for-sale-in-kenya" },
       { label: "Stories", href: "/#stories" },
       { label: "We moved to kiosk.ke", href: "/migration" },
     ],

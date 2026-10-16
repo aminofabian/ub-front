@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <!-- Backdrop -->
+  <rect width="960" height="560" fill="#FBF9F5"/>
+
+  <!-- Title -->
+  <text x="480" y="36" font-size="17" font-weight="700" fill="#1F2937" text-anchor="middle">Buying a POS in Kenya: buy the brain first</text>
+  <text x="480" y="58" font-size="11" fill="#6b7280" text-anchor="middle">The box is replaceable. The software is a three-year commitment.</text>
+
+  <!-- Step 1 -->
+  <rect x="40" y="88" width="278" height="236" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="72" cy="120" r="15" fill="#2563eb"/>
+  <text x="72" y="125" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="98" y="125" font-size="12.5" font-weight="700" fill="#1F2937">Pick a channel</text>
+  <text x="64" y="156" font-size="10.5" fill="#374151">IT shops, marketplaces, vendors,</text>
+  <text x="64" y="172" font-size="10.5" fill="#374151">or direct from the software.</text>
+  <text x="64" y="200" font-size="10" fill="#6b7280">Who handles support, and how fast?</text>
+  <text x="64" y="216" font-size="10" fill="#6b7280">Who owns the licence, you or them?</text>
+  <line x1="64" y1="240" x2="294" y2="240" stroke="#e5e7eb"/>
+  <text x="64" y="268" font-size="10" fill="#6b7280">Hardware advice varies by channel.</text>
+  <text x="64" y="290" font-size="10" fill="#6b7280">The price is rarely the deciding factor.</text>
+
+  <!-- Step 2 -->
+  <rect x="341" y="88" width="278" height="236" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="373" cy="120" r="15" fill="#A8842C"/>
+  <text x="373" y="125" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="399" y="125" font-size="12.5" font-weight="700" fill="#1F2937">Check the software terms</text>
+  <text x="365" y="156" font-size="10.5" fill="#374151">The details vendors leave out:</text>
+  <text x="365" y="180" font-size="10" fill="#6b7280">Seats per lane, user, or branch</text>
+  <text x="365" y="200" font-size="10" fill="#6b7280">M-Pesa native, or a paid module</text>
+  <text x="365" y="220" font-size="10" fill="#6b7280">Tax invoices, storefront, offline mode</text>
+  <text x="365" y="240" font-size="10" fill="#6b7280">Support, updates, data export</text>
+  <line x1="365" y1="262" x2="595" y2="262" stroke="#e5e7eb"/>
+  <text x="365" y="288" font-size="10" font-weight="700" fill="#A8842C">Get it all in writing.</text>
+
+  <!-- Step 3 -->
+  <rect x="642" y="88" width="278" height="236" rx="14" fill="#ffffff" stroke="#d1d5db"/>
+  <circle cx="674" cy="120" r="15" fill="#15803d"/>
+  <text x="674" y="125" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="700" y="125" font-size="12.5" font-weight="700" fill="#1F2937">Add hardware later</text>
+  <text x="666" y="156" font-size="10.5" fill="#374151">Start on the phone you own (KSh 0).</text>
+  <text x="666" y="184" font-size="10" fill="#6b7280">Add a scanner when volume grows</text>
+  <text x="666" y="204" font-size="10" fill="#6b7280">Add a printer when receipts matter</text>
+  <text x="666" y="224" font-size="10" fill="#6b7280">Add a terminal when the queue does</text>
+  <line x1="666" y1="246" x2="896" y2="246" stroke="#e5e7eb"/>
+  <text x="666" y="272" font-size="10" font-weight="700" fill="#15803d">Buy for the shop you run today.</text>
+
+  <!-- Arrows -->
+  <path d="M320 206 l14 0" stroke="#A8842C" stroke-width="2"/>
+  <path d="M334 200 l8 6 -8 6 z" fill="#A8842C"/>
+  <path d="M621 206 l14 0" stroke="#A8842C" stroke-width="2"/>
+  <path d="M635 200 l8 6 -8 6 z" fill="#A8842C"/>
+
+  <!-- Banner -->
+  <rect x="40" y="356" width="880" height="156" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="64" y="388" font-size="12.5" font-weight="700" fill="#2563eb">The trap is never the sticker price</text>
+  <text x="64" y="414" font-size="11" fill="#374151">A cheap box from a marketplace and a complete system from a vendor can cost the same in year one and very different</text>
+  <text x="64" y="432" font-size="11" fill="#374151">totals by year three. Compare the running cost — seats, payments, support — not the receipt at the till.</text>
+  <text x="64" y="466" font-size="10.5" font-weight="700" fill="#1F2937">Judge the offer on what it excludes, and on the three-year total.</text>
+  <text x="64" y="492" font-size="10" fill="#6b7280">Typical Kenyan market guidance for 2026 (usually ex-VAT) — confirm with a supplier before you buy.</text>
+</svg>

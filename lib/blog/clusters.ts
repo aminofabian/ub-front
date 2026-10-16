@@ -14,6 +14,10 @@ import {
   POS_COST_SPOKE_SLUGS,
 } from "./cluster-pos-cost";
 import {
+  BUY_POS_KENYA_PILLAR_SLUG,
+  BUY_POS_KENYA_SPOKE_SLUGS,
+} from "./cluster-buy-pos-kenya";
+import {
   TOP_10_POS_KENYA_PILLAR_SLUG,
   TOP_10_SPOKE_SLUGS,
 } from "./cluster-top-10-pos-kenya";
@@ -121,5 +125,15 @@ export const BLOG_CLUSTER_DEFS: BlogClusterDef[] = [
       "What a POS system costs a Kenyan shop — hardware, software, M-Pesa fees, and the running costs nobody quotes — plus how to compare quotes on three-year total cost.",
     pillarSlug: POS_COST_PILLAR_SLUG,
     spokeSlugs: [...POS_COST_SPOKE_SLUGS],
+  },
+  {
+    id: "buy-pos-kenya",
+    code: "08",
+    title: "Buying a POS System in Kenya",
+    shortTitle: "Buy a POS",
+    description:
+      "Where to buy, what each part costs, and how to judge the best fit for a supermarket, restaurant, or online shop — the buyer's path from search to counter.",
+    pillarSlug: BUY_POS_KENYA_PILLAR_SLUG,
+    spokeSlugs: [...BUY_POS_KENYA_SPOKE_SLUGS],
   },
 ];
