@@ -79,6 +79,18 @@ export const PLATFORM_GUIDES = [
     blurb: "Checklist for M-Pesa, offline, eTIMS, pricing, and growth.",
   },
   {
+    title: "POS system for sale in Kenya (2026)",
+    href: "/blog/pos-system-for-sale-in-kenya",
+    blurb:
+      "Where to buy, what each part costs, and what a quote quietly leaves out.",
+  },
+  {
+    title: "POS prices in Kenya (2026)",
+    href: "/blog/pos-system-price-kenya",
+    blurb:
+      "The full price list — terminal, scanner, printer, and monthly software.",
+  },
+  {
     title: "POS with M-Pesa in Kenya",
     href: "/blog/pos-with-mpesa-kenya",
     blurb: "Native STK versus bolt-ons — and what that means at the till.",
