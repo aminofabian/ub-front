@@ -65,6 +65,8 @@ export const APP_ROUTES = {
   businessDomains: "/business/domains",
   businessIntegrationsPickupMtaani:
     "/business/integrations/pickup-mtaani",
+  /** Optional opt-in EasyTax (KRA eTIMS) tax integration settings. */
+  integrationsEasyTax: "/integrations/easytax",
   businessImport: "/business/import",
   billingRenew: "/business/billing/renew",
   branches: "/branches",
@@ -79,6 +81,8 @@ export const APP_ROUTES = {
   expenses: "/expenses",
   /** Daily profit pocketing calendar and month-to-month rate. */
   profitPocketing: "/business/pocketing",
+  /** VAT report — collected, reversed, and payable for a chosen period. */
+  taxVat: "/tax",
   /** Staff self-service payslip portal (login required). */
   myPay: "/my-pay",
   /** Staff self-service profile — pay, advances, workplace concern. */

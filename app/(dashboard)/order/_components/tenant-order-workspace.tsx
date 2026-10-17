@@ -94,6 +94,7 @@ import { OrderTemplatePicker } from "./order-template-picker";
 import { type OrderParentOption } from "./order-parent-floater";
 
 const ORDER_CURRENCY = "KES";
+const SLIP_LINE_FLOOR = "min-h-[14.5rem] flex-[1_0_14.5rem]";
 
 type CartQty = OrderCartQty;
 
@@ -1916,7 +1917,7 @@ export function TenantOrderWorkspace({
   );
 
   const placeFooter = (
-    <div className="min-w-0 shrink-0 overflow-x-hidden border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
+    <div className="max-h-[calc(100%-19rem)] min-w-0 shrink-0 overflow-x-hidden overflow-y-auto overscroll-contain border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] [scrollbar-width:thin] sm:px-4 sm:py-4">
       {pendingDeposit ? (
         <div className="rounded-none border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] p-3.5">
           <p className="flex items-center gap-2 font-heading text-[18px] font-semibold tracking-[-0.03em] text-[var(--order-ink,#15231f)] xl:text-[14px] xl:tracking-[-0.02em]">
@@ -1985,7 +1986,7 @@ export function TenantOrderWorkspace({
       ) : (
         <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
           <div className="space-y-3">
-            <div className="flex min-w-0 items-end justify-between gap-2">
+            <div className="sticky top-0 z-[1] -mx-3.5 -mt-3.5 flex min-w-0 items-end justify-between gap-2 bg-white px-3.5 pb-2 pt-3.5">
               <p className="min-w-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 {cartUnits} line{cartUnits === 1 ? "" : "s"}
               </p>
@@ -2131,7 +2132,8 @@ export function TenantOrderWorkspace({
           </button>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 xl:mt-4 xl:block">
+          <div className="sticky bottom-0 z-[1] -mx-3.5 -mb-3.5 mt-3 bg-white px-3.5 pb-3.5 pt-2 xl:mt-4">
+          <div className="grid grid-cols-2 gap-2 xl:block">
           <button
             type="button"
             disabled={placing || whatsapping || cartLines.length === 0}
@@ -2179,6 +2181,7 @@ export function TenantOrderWorkspace({
               aria-hidden
             />
           </button>
+          </div>
         </div>
       )}
 
@@ -2432,7 +2435,7 @@ export function TenantOrderWorkspace({
             ? "min-h-0 flex-1 overflow-hidden"
             : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
           !embedded &&
-            "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(17rem,20rem)]",
+            "xl:grid xl:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(20rem,23rem)] xl:grid-rows-[minmax(0,1fr)]",
         )}
       >
         <aside
@@ -2686,7 +2689,7 @@ export function TenantOrderWorkspace({
 
         <aside
           className={cn(
-            "min-h-0 min-w-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
+            "h-full min-h-0 min-w-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
             embedded ? "hidden" : "hidden xl:flex",
           )}
         >
@@ -2712,7 +2715,10 @@ export function TenantOrderWorkspace({
           </div>
           <div
             ref={desktopSlipRef}
-            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:thin]"
+            className={cn(
+              SLIP_LINE_FLOOR,
+              "min-w-0 overflow-x-hidden overflow-y-auto [scrollbar-width:thin]",
+            )}
           >
             {cartLinesPanel}
           </div>
@@ -2978,11 +2984,11 @@ export function TenantOrderWorkspace({
         >
           <button
             type="button"
-            className="min-h-0 flex-1 bg-[var(--order-ink,#15231f)]/40"
+            className="h-[12%] min-h-12 shrink-0 bg-[var(--order-ink,#15231f)]/40"
             aria-label="Dismiss order"
             onClick={() => setMobileOrderOpen(false)}
           />
-          <div className="order-phone-sheet flex max-h-[88%] min-h-[45%] flex-col rounded-t-[1.25rem] bg-white shadow-[0_-16px_40px_-20px_rgba(21,35,31,0.45)]">
+          <div className="order-phone-sheet flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[1.25rem] bg-white shadow-[0_-16px_40px_-20px_rgba(21,35,31,0.45)]">
             <div
               className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
               aria-hidden
@@ -3014,7 +3020,10 @@ export function TenantOrderWorkspace({
             </div>
             <div
               ref={mobileSlipRef}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              className={cn(
+                SLIP_LINE_FLOOR,
+                "overflow-y-auto overscroll-contain",
+              )}
             >
               {cartLinesPanel}
             </div>

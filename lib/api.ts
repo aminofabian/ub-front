@@ -1063,6 +1063,8 @@ export type CategoryTaxSummaryRecord = {
   name: string;
   ratePercent: number | string;
   inclusive: boolean;
+  /** KRA eTIMS tax code (A/B/C/D/E); null when unset. */
+  etimsTaxCode?: string | null;
 };
 
 export type CategoryRecord = {
@@ -7752,6 +7754,100 @@ export async function fetchFinancePLDaily(
   );
 }
 
+export type VatReportTaxCodeRow = {
+  /** KRA tax code (A/B/C/D/E); empty string when the line carried no tax rate. */
+  taxCode: string;
+  taxableAmount: number | string;
+  taxAmount: number | string;
+  lineCount: number;
+};
+
+/** VAT position for a period — the figures to remit to KRA. */
+export type VatReportRecord = {
+  from: string;
+  to: string;
+  branchId: string | null;
+  /** VAT charged on sales in the period. */
+  vatCollected: number | string;
+  /** VAT reversed by voids and refunds in the period. */
+  vatReversed: number | string;
+  /** Net VAT due for the period (collected − reversed). */
+  vatPayable: number | string;
+  /** Sales revenue in the period, net of VAT. */
+  netRevenue: number | string;
+  byTaxCode: VatReportTaxCodeRow[];
+};
+
+export async function fetchVatReport(
+  from: string,
+  to: string,
+  branchId?: string,
+): Promise<VatReportRecord> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  // The VAT report page renders the summary and the buckets independently and
+  // owns a single de-duplicated error toast for the pair, so suppress the
+  // generic per-request toast here.
+  return request<VatReportRecord>(
+    `/api/v1/finance/vat?${params.toString()}`,
+    { toast: false },
+  );
+}
+
+export type VatBucketRecord = {
+  /** First day of the bucket. */
+  periodStart: string;
+  /** Last day of the bucket (equal to periodStart for a day bucket). */
+  periodEnd: string;
+  vatCollected: number | string;
+  vatReversed: number | string;
+  vatPayable: number | string;
+  netRevenue: number | string;
+};
+
+/**
+ * The VAT report split into day or month buckets, zero-filled across the range
+ * so a chart has no gaps. Same ledger source as {@link fetchVatReport}.
+ */
+export async function fetchVatReportBuckets(
+  from: string,
+  to: string,
+  bucket: "day" | "month" = "day",
+  branchId?: string,
+): Promise<VatBucketRecord[]> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  params.set("bucket", bucket);
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return request<VatBucketRecord[]>(
+    `/api/v1/finance/vat/buckets?${params.toString()}`,
+    { toast: false },
+  );
+}
+
+/**
+ * Download the VAT report as a CSV file — a summary block, a "By tax code"
+ * block, and a "Breakdown by day|month" block. Backend:
+ * {@code GET /api/v1/finance/vat/export.csv}. Returns the file body as a blob;
+ * callers turn it into a browser download.
+ */
+export async function fetchVatReportExportCsv(
+  from: string,
+  to: string,
+  bucket: "day" | "month" = "day",
+  branchId?: string,
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  params.set("bucket", bucket);
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return requestBinary(`/api/v1/finance/vat/export.csv?${params.toString()}`);
+}
+
 export type FinanceExpenseResponse = {
   id: string;
   branchId: string | null;
@@ -10355,10 +10451,16 @@ export type TaxRateRecord = {
   name: string;
   ratePercent: number | string;
   inclusive: boolean;
+  active: boolean;
+  /** KRA eTIMS tax code (A/B/C/D/E); null when unset. */
+  etimsTaxCode: string | null;
 };
 
-export async function fetchTaxRates(): Promise<TaxRateRecord[]> {
-  return request<TaxRateRecord[]>("/api/v1/pricing/tax-rates");
+export async function fetchTaxRates(
+  includeInactive = false,
+): Promise<TaxRateRecord[]> {
+  const query = includeInactive ? "?includeInactive=true" : "";
+  return request<TaxRateRecord[]>(`/api/v1/pricing/tax-rates${query}`);
 }
 
 export async function postPriceRule(body: {
@@ -10396,11 +10498,31 @@ export async function postTaxRate(body: {
   ratePercent: number | string;
   inclusive: boolean;
   active: boolean;
+  etimsTaxCode?: string | null;
 }): Promise<TaxRateRecord> {
   return request<TaxRateRecord>("/api/v1/pricing/tax-rates", {
     method: "POST",
     body,
   });
+}
+
+export async function putTaxRate(
+  taxRateId: string,
+  body: {
+    name: string;
+    ratePercent: number | string;
+    inclusive: boolean;
+    active: boolean;
+    etimsTaxCode?: string | null;
+  },
+): Promise<TaxRateRecord> {
+  return request<TaxRateRecord>(
+    `/api/v1/pricing/tax-rates/${encodeURIComponent(taxRateId)}`,
+    {
+      method: "PUT",
+      body,
+    },
+  );
 }
 
 export async function postSellingPrice(body: {
@@ -12185,6 +12307,65 @@ export async function updateSupplierPayoutSettings(
       body,
     },
   );
+}
+
+export type EasyTaxEnvironment = "SANDBOX" | "PRODUCTION";
+
+/** Optional opt-in EasyTax (KRA eTIMS) tax integration settings. */
+export type EasyTaxSettingsRecord = {
+  enabled: boolean;
+  environment: EasyTaxEnvironment;
+  baseUrl: string | null;
+  username: string | null;
+  /** The password is write-only; the stored value is never returned. */
+  hasPassword: boolean;
+  tin: string | null;
+  branchId: string | null;
+  deviceSerial: string | null;
+  /** Every required field is present, so the integration can run. */
+  configured: boolean;
+  /** ISO-8601 timestamp of the last connection test, or null if never tested. */
+  lastTestedAt: string | null;
+  lastTestOk: boolean | null;
+  lastTestMessage: string | null;
+};
+
+export type UpdateEasyTaxSettingsPayload = {
+  enabled?: boolean;
+  environment?: EasyTaxEnvironment;
+  baseUrl?: string;
+  username?: string;
+  /** Write-only. Omit or leave blank to keep the stored password. */
+  password?: string;
+  tin?: string;
+  branchId?: string;
+  deviceSerial?: string;
+};
+
+export type EasyTaxTestResult = {
+  ok: boolean;
+  message: string;
+  /** ISO-8601 timestamp of when the test ran. */
+  checkedAt: string;
+};
+
+export async function fetchEasyTaxSettings(): Promise<EasyTaxSettingsRecord> {
+  return request<EasyTaxSettingsRecord>("/api/v1/integrations/easytax");
+}
+
+export async function updateEasyTaxSettings(
+  body: UpdateEasyTaxSettingsPayload,
+): Promise<EasyTaxSettingsRecord> {
+  return request<EasyTaxSettingsRecord>("/api/v1/integrations/easytax", {
+    method: "PUT",
+    body,
+  });
+}
+
+export async function testEasyTaxConnection(): Promise<EasyTaxTestResult> {
+  return request<EasyTaxTestResult>("/api/v1/integrations/easytax/test", {
+    method: "POST",
+  });
 }
 
 export type ProfitPocketSendRailOptionRecord = {

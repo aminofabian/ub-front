@@ -3071,6 +3071,9 @@ export default function CategoriesPage() {
                       {selectedCategory.defaultTaxRate.inclusive
                         ? ", inclusive"
                         : ""}
+                      {selectedCategory.defaultTaxRate.etimsTaxCode
+                        ? ` · eTIMS ${selectedCategory.defaultTaxRate.etimsTaxCode}`
+                        : ""}
                       )
                     </p>
                   ) : null}

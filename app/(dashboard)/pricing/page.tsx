@@ -35,6 +35,7 @@ import {
   postSellingPrice,
   postTaxRate,
   putPriceRule,
+  putTaxRate,
   type BranchRecord,
   type PriceRuleRecord,
   type SellPriceSuggestionRecord,
@@ -95,6 +96,8 @@ export default function PricingPage() {
   const [taxRatePercent, setTaxRatePercent] = useState("");
   const [taxInclusive, setTaxInclusive] = useState(false);
   const [taxActive, setTaxActive] = useState(true);
+  const [taxEtimsCode, setTaxEtimsCode] = useState("");
+  const [taxEditId, setTaxEditId] = useState("");
   const [suggestItemId, setSuggestItemId] = useState("");
   const [suggestItemLabel, setSuggestItemLabel] = useState("");
   const [suggestSupplierId, setSuggestSupplierId] = useState("");
@@ -160,7 +163,7 @@ export default function PricingPage() {
       return;
     }
     let cancelled = false;
-    Promise.all([fetchPriceRules(), fetchTaxRates()])
+    Promise.all([fetchPriceRules(), fetchTaxRates(true)])
       .then(([r, t]) => {
         if (!cancelled) {
           setRules(r);
@@ -234,7 +237,7 @@ export default function PricingPage() {
     if (!canRead) {
       return;
     }
-    const [r, t] = await Promise.all([fetchPriceRules(), fetchTaxRates()]);
+    const [r, t] = await Promise.all([fetchPriceRules(), fetchTaxRates(true)]);
     setRules(r);
     setTaxRates(t);
   }, [canRead]);
@@ -312,7 +315,7 @@ export default function PricingPage() {
     reloadReadData,
   ]);
 
-  const onCreateTaxRate = useCallback(async () => {
+  const onSubmitTaxRate = useCallback(async () => {
     const name = taxName.trim();
     if (!name || !taxRatePercent.trim()) {
       setError("Tax name and rate % are required.");
@@ -325,29 +328,44 @@ export default function PricingPage() {
       setNotice("");
       return;
     }
+    const editing = taxEditId.trim().length > 0;
     setError("");
     setNotice("");
     setLoading(true);
     try {
-      await postTaxRate({
+      const body = {
         name,
         ratePercent: pct,
         inclusive: taxInclusive,
         active: taxActive,
-      });
+        etimsTaxCode: taxEtimsCode.trim() ? taxEtimsCode.trim().toUpperCase() : null,
+      };
+      if (editing) {
+        await putTaxRate(taxEditId.trim(), body);
+      } else {
+        await postTaxRate(body);
+      }
       setTaxName("");
       setTaxRatePercent("");
       setTaxInclusive(false);
       setTaxActive(true);
-      setNotice("Tax rate created.");
+      setTaxEtimsCode("");
+      setTaxEditId("");
+      setNotice(editing ? "Tax rate updated." : "Tax rate created.");
       await reloadReadData();
       setRulesTaxDrawerOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create tax rate failed.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : editing
+            ? "Update tax rate failed."
+            : "Create tax rate failed.",
+      );
     } finally {
       setLoading(false);
     }
-  }, [reloadReadData, taxActive, taxInclusive, taxName, taxRatePercent]);
+  }, [reloadReadData, taxActive, taxEditId, taxEtimsCode, taxInclusive, taxName, taxRatePercent]);
 
   if (!allowed) {
     return (
@@ -505,7 +523,7 @@ export default function PricingPage() {
                 Tax rates
               </h4>
               <p className="text-xs text-muted-foreground">
-                Active rates only (for reference).
+                All rates for this business.
               </p>
               <div className="overflow-x-auto rounded-none border">
                 <table className="w-full min-w-[24rem] text-left text-sm">
@@ -516,13 +534,15 @@ export default function PricingPage() {
                         Rate %
                       </th>
                       <th className="px-3 py-2 font-medium">Inclusive</th>
+                      <th className="px-3 py-2 font-medium">eTIMS</th>
+                      <th className="px-3 py-2 font-medium">Active</th>
                     </tr>
                   </thead>
                   <tbody>
                     {taxRates.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={5}
                           className="px-3 py-4 text-center text-muted-foreground"
                         >
                           No tax rates.
@@ -538,6 +558,8 @@ export default function PricingPage() {
                           <td className="px-3 py-2">
                             {row.inclusive ? "Yes" : "No"}
                           </td>
+                          <td className="px-3 py-2">{row.etimsTaxCode ?? "—"}</td>
+                          <td className="px-3 py-2">{row.active ? "Yes" : "No"}</td>
                         </tr>
                       ))
                     )}
@@ -809,10 +831,36 @@ export default function PricingPage() {
             </FormDrawerFields>
 
             <FormDrawerFields
-              legend="New tax rate"
-              hint="Rate is a non-negative percent. Inclusive affects how tax is presented on receipts."
+              legend={taxEditId ? "Update tax rate" : "New tax rate"}
+              hint="Rate is a non-negative percent. Inclusive affects how tax is presented on receipts. eTIMS code is the KRA tax class (A = exempt, B = 16%, C = 0%, D = non-VAT, E = 8%)."
             >
               <div className="flex flex-wrap items-end gap-3">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-muted-foreground">Editing</span>
+                  <select
+                    className="min-w-[12rem] rounded border bg-background px-2 py-1.5"
+                    value={taxEditId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setTaxEditId(id);
+                      const rate = taxRates.find((r) => r.id === id);
+                      if (rate) {
+                        setTaxName(rate.name);
+                        setTaxRatePercent(String(rate.ratePercent));
+                        setTaxInclusive(rate.inclusive);
+                        setTaxActive(rate.active);
+                        setTaxEtimsCode(rate.etimsTaxCode ?? "");
+                      }
+                    }}
+                  >
+                    <option value="">New tax rate</option>
+                    {taxRates.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-sm">
                   <span className="text-muted-foreground">Name</span>
                   <input
@@ -839,6 +887,17 @@ export default function PricingPage() {
                   />
                   Inclusive
                 </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-muted-foreground">eTIMS code</span>
+                  <input
+                    type="text"
+                    maxLength={8}
+                    placeholder="A / B / C / D / E"
+                    className="w-28 rounded border bg-background px-2 py-1.5 uppercase"
+                    value={taxEtimsCode}
+                    onChange={(e) => setTaxEtimsCode(e.target.value)}
+                  />
+                </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -851,10 +910,29 @@ export default function PricingPage() {
                   type="button"
                   variant="secondary"
                   disabled={loading}
-                  onClick={() => onCreateTaxRate().catch(() => undefined)}
+                  onClick={() => onSubmitTaxRate().catch(() => undefined)}
                 >
-                  Create tax rate
+                  {taxEditId ? "Save changes" : "Create tax rate"}
                 </Button>
+                {taxEditId ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() => {
+                      setTaxEditId("");
+                      setTaxName("");
+                      setTaxRatePercent("");
+                      setTaxInclusive(false);
+                      setTaxActive(true);
+                      setTaxEtimsCode("");
+                      setNotice("");
+                      setError("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
               </div>
             </FormDrawerFields>
           </FormDrawer>

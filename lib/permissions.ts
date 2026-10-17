@@ -1,6 +1,9 @@
 export const Permission = {
   /** CSV / legacy JSON imports under Integrations (Phase 8). */
   IntegrationsImportsManage: "integrations.imports.manage",
+  /** Optional opt-in EasyTax (KRA eTIMS) tax integration. */
+  IntegrationsEasyTaxRead: "integrations.easytax.read",
+  IntegrationsEasyTaxWrite: "integrations.easytax.write",
   BusinessManageSettings: "business.manage_settings",
   BusinessManageSubscription: "business.manage_subscription",
   /** View the unified activity / audit log portal. */

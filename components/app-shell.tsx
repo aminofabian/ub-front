@@ -192,6 +192,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         label: "Desktop & LAN",
         group: "Configuration",
       },
+      {
+        href: APP_ROUTES.integrationsEasyTax,
+        label: "Tax (eTIMS)",
+        group: "Configuration",
+      },
       BRANCHES_LINK,
       {
         href: APP_ROUTES.users,
@@ -435,6 +440,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.paymentsDayLedger, label: "Today's takings" },
       { href: APP_ROUTES.expenses, label: "Expenses & profit" },
+      { href: APP_ROUTES.taxVat, label: "VAT report" },
       { href: APP_ROUTES.profitPocketing, label: "Pocketing calendar" },
       { href: APP_ROUTES.fixedCosts, label: "Fixed costs" },
       { href: APP_ROUTES.paymentsKioskPay, label: "Kiosk Pay" },
@@ -590,6 +596,7 @@ type NavGate = {
   canAccessGrocery: boolean;
   canManageImports: boolean;
   canViewPaymentGateways: boolean;
+  canViewEasyTaxIntegrations: boolean;
   canViewAirtime: boolean;
   roleKey: string | undefined;
   groceryClerkStockAccess: boolean;
@@ -739,6 +746,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canReadFinanceExpenses || gate.canReadFinanceReports;
   if (item.href === APP_ROUTES.profitPocketing)
     return gate.canReadFinanceReports || gate.canWriteFinanceExpenses;
+  if (item.href === APP_ROUTES.taxVat) return gate.canReadFinanceReports;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
     return gate.canApproveStockTake;
@@ -813,6 +821,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.paymentsKioskPay)
     return gate.canViewPaymentGateways;
+  if (item.href === APP_ROUTES.integrationsEasyTax)
+    return gate.canViewEasyTaxIntegrations;
   if (item.href === APP_ROUTES.airtime) return gate.canViewAirtime;
   if (item.href === APP_ROUTES.onlineAirtime) return gate.canViewAirtime;
   if (item.href === APP_ROUTES.paymentsDayLedger)
@@ -1099,6 +1109,10 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PaymentsGatewaysWrite,
   );
+  const canViewEasyTaxIntegrations = hasPermission(
+    me?.permissions,
+    Permission.IntegrationsEasyTaxRead,
+  );
   const canBuySmsCredits = hasPermission(
     me?.permissions,
     Permission.SmsCreditsPurchase,
@@ -1197,6 +1211,7 @@ export function AppShell({ children }: AppShellProps) {
       canAccessGrocery,
       canManageImports,
       canViewPaymentGateways,
+      canViewEasyTaxIntegrations,
       canViewAirtime,
       canManageCrmInbox,
       canManageCrmAutomation,
@@ -1261,6 +1276,7 @@ export function AppShell({ children }: AppShellProps) {
     canAccessGrocery,
     canManageImports,
     canViewPaymentGateways,
+    canViewEasyTaxIntegrations,
     canViewAirtime,
     canManageCrmInbox,
     canManageCrmAutomation,
