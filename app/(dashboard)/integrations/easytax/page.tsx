@@ -8,13 +8,14 @@ import {
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { EasyTaxBranchSettingsSection } from "@/components/integrations/easytax-branch-settings-section";
 import { EasyTaxSettingsSection } from "@/components/integrations/easytax-settings-section";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 export default function EasyTaxSettingsPage() {
-  const { me } = useDashboard();
+  const { me, branchId } = useDashboard();
   const canRead = hasPermission(
     me?.permissions,
     Permission.IntegrationsEasyTaxRead,
@@ -44,6 +45,10 @@ export default function EasyTaxSettingsPage() {
         description="Optional EasyTax (KRA eTIMS) tax integration. When it is on, your sales are reported to KRA for tax compliance. Off by default."
       />
       <EasyTaxSettingsSection canWrite={canWrite} />
+      <EasyTaxBranchSettingsSection
+        canWrite={canWrite}
+        defaultBranchId={branchId || me?.branchId || null}
+      />
     </div>
   );
 }

@@ -1536,6 +1536,36 @@ export async function updatePlatformIntegrations(
   });
 }
 
+export type PlatformEasyTaxSettingsRecord = {
+  enabled: boolean;
+  sandboxBaseUrl: string | null;
+  productionBaseUrl: string | null;
+};
+
+export type UpdatePlatformEasyTaxSettingsPayload = {
+  enabled?: boolean;
+  sandboxBaseUrl?: string;
+  productionBaseUrl?: string;
+};
+
+export async function fetchPlatformEasyTaxSettings(): Promise<PlatformEasyTaxSettingsRecord> {
+  return saRequest<PlatformEasyTaxSettingsRecord>(
+    API_ROUTES.superAdminPlatformEasyTax,
+  );
+}
+
+export async function updatePlatformEasyTaxSettings(
+  body: UpdatePlatformEasyTaxSettingsPayload,
+): Promise<PlatformEasyTaxSettingsRecord> {
+  return saRequest<PlatformEasyTaxSettingsRecord>(
+    API_ROUTES.superAdminPlatformEasyTax,
+    {
+      method: "PUT",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
 export type VerifyMetaWhatsAppAppSecretResult = {
   verified: boolean;
   status: "VALID" | "INVALID" | "UNCONFIGURED" | "ERROR";

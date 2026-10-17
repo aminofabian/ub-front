@@ -12315,15 +12315,16 @@ export type EasyTaxEnvironment = "SANDBOX" | "PRODUCTION";
 export type EasyTaxSettingsRecord = {
   enabled: boolean;
   environment: EasyTaxEnvironment;
-  baseUrl: string | null;
   username: string | null;
   /** The password is write-only; the stored value is never returned. */
   hasPassword: boolean;
   tin: string | null;
-  branchId: string | null;
-  deviceSerial: string | null;
-  /** Every required field is present, so the integration can run. */
+  /** This shop has supplied its own username, password and TIN. */
   configured: boolean;
+  /** Platform administrators have made EasyTax available to tenants. */
+  platformEnabled: boolean;
+  /** Endpoint chosen by the platform for the selected environment. */
+  resolvedBaseUrl: string | null;
   /** ISO-8601 timestamp of the last connection test, or null if never tested. */
   lastTestedAt: string | null;
   lastTestOk: boolean | null;
@@ -12333,12 +12334,22 @@ export type EasyTaxSettingsRecord = {
 export type UpdateEasyTaxSettingsPayload = {
   enabled?: boolean;
   environment?: EasyTaxEnvironment;
-  baseUrl?: string;
   username?: string;
   /** Write-only. Omit or leave blank to keep the stored password. */
   password?: string;
   tin?: string;
-  branchId?: string;
+};
+
+export type EasyTaxBranchSettingsRecord = {
+  branchId: string;
+  kraBranchId: string | null;
+  deviceSerial: string | null;
+  /** The branch has both its KRA branch id and device serial. */
+  configured: boolean;
+};
+
+export type UpdateEasyTaxBranchSettingsPayload = {
+  kraBranchId?: string;
   deviceSerial?: string;
 };
 
@@ -12366,6 +12377,27 @@ export async function testEasyTaxConnection(): Promise<EasyTaxTestResult> {
   return request<EasyTaxTestResult>("/api/v1/integrations/easytax/test", {
     method: "POST",
   });
+}
+
+export async function fetchEasyTaxBranchSettings(
+  branchId: string,
+): Promise<EasyTaxBranchSettingsRecord> {
+  return request<EasyTaxBranchSettingsRecord>(
+    `/api/v1/integrations/easytax/branches/${encodeURIComponent(branchId)}`,
+  );
+}
+
+export async function updateEasyTaxBranchSettings(
+  branchId: string,
+  body: UpdateEasyTaxBranchSettingsPayload,
+): Promise<EasyTaxBranchSettingsRecord> {
+  return request<EasyTaxBranchSettingsRecord>(
+    `/api/v1/integrations/easytax/branches/${encodeURIComponent(branchId)}`,
+    {
+      method: "PUT",
+      body,
+    },
+  );
 }
 
 export type ProfitPocketSendRailOptionRecord = {

@@ -37,6 +37,9 @@ function formatWhen(iso: string | null): string {
 /**
  * Optional opt-in EasyTax (KRA eTIMS) tax integration. Off by default; nothing
  * is sent to KRA until it is switched on and every field is filled in.
+ *
+ * The endpoint comes from the platform, not the shop. Tenants only supply
+ * their own login and TIN here; each branch has its own device details.
  */
 export function EasyTaxSettingsSection({
   canWrite,
@@ -49,22 +52,16 @@ export function EasyTaxSettingsSection({
 
   const [enabled, setEnabled] = useState(false);
   const [environment, setEnvironment] = useState<EasyTaxEnvironment>("SANDBOX");
-  const [baseUrl, setBaseUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [tin, setTin] = useState("");
-  const [branchId, setBranchId] = useState("");
-  const [deviceSerial, setDeviceSerial] = useState("");
 
   const apply = useCallback((next: EasyTaxSettingsRecord) => {
     setSettings(next);
     setEnabled(next.enabled);
     setEnvironment(next.environment);
-    setBaseUrl(next.baseUrl ?? "");
     setUsername(next.username ?? "");
     setTin(next.tin ?? "");
-    setBranchId(next.branchId ?? "");
-    setDeviceSerial(next.deviceSerial ?? "");
     // The password is write-only — never echo the stored value back.
     setPassword("");
   }, []);
@@ -87,6 +84,8 @@ export function EasyTaxSettingsSection({
   }, [reload]);
 
   const configured = Boolean(settings?.configured);
+  const platformEnabled = Boolean(settings?.platformEnabled);
+  const resolvedBaseUrl = settings?.resolvedBaseUrl?.trim() || null;
   const hasStoredPassword = Boolean(settings?.hasPassword);
 
   const dirty = useMemo(() => {
@@ -94,27 +93,15 @@ export function EasyTaxSettingsSection({
     return (
       enabled !== settings.enabled ||
       environment !== settings.environment ||
-      baseUrl.trim() !== (settings.baseUrl ?? "") ||
       username.trim() !== (settings.username ?? "") ||
       tin.trim() !== (settings.tin ?? "") ||
-      branchId.trim() !== (settings.branchId ?? "") ||
-      deviceSerial.trim() !== (settings.deviceSerial ?? "") ||
       password.trim().length > 0
     );
-  }, [
-    settings,
-    enabled,
-    environment,
-    baseUrl,
-    username,
-    tin,
-    branchId,
-    deviceSerial,
-    password,
-  ]);
+  }, [settings, enabled, environment, username, tin, password]);
 
   const canTest =
-    baseUrl.trim().length > 0 &&
+    platformEnabled &&
+    Boolean(resolvedBaseUrl) &&
     (password.trim().length > 0 || hasStoredPassword);
 
   const onSave = async () => {
@@ -125,11 +112,8 @@ export function EasyTaxSettingsSection({
       const next = await updateEasyTaxSettings({
         enabled,
         environment,
-        baseUrl: baseUrl.trim(),
         username: username.trim(),
         tin: tin.trim(),
-        branchId: branchId.trim(),
-        deviceSerial: deviceSerial.trim(),
         ...(trimmedPassword ? { password: trimmedPassword } : {}),
       });
       apply(next);
@@ -172,6 +156,12 @@ export function EasyTaxSettingsSection({
 
   const busy = saving || testing;
 
+  const testDisabledReason = !platformEnabled
+    ? "Your platform administrator must enable EasyTax first."
+    : !resolvedBaseUrl
+      ? "Your platform administrator has not set an EasyTax endpoint yet."
+      : "Add a password before testing.";
+
   return (
     <section className={cn(HUB_SURFACE, "space-y-4 p-4")}>
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -193,7 +183,7 @@ export function EasyTaxSettingsSection({
           )}
         >
           <Plug className="size-3.5" aria-hidden />
-          {configured ? "Configured" : "Not configured"}
+          {configured ? "Shop details saved" : "Shop details missing"}
         </span>
       </header>
 
@@ -204,15 +194,58 @@ export function EasyTaxSettingsSection({
         </div>
       ) : (
         <>
+          {!platformEnabled ? (
+            <div className="flex items-start gap-2 border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] px-3 py-2 text-xs leading-relaxed text-[#9a2e16]">
+              <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <p>
+                EasyTax is not available on this platform yet. Contact your
+                platform administrator to have it enabled. You can still save
+                your shop details below.
+              </p>
+            </div>
+          ) : null}
+
           {!configured ? (
             <div className="flex items-start gap-2 border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_8%,white)] px-3 py-2 text-xs leading-relaxed text-[#9a2e16]">
               <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               <p>
-                This integration can’t run yet. Fill in every field below and
-                save. It stays off until you switch it on.
+                This shop still needs its EasyTax username, password and TIN.
+                Fill them in below and save. It stays off until you switch it
+                on. Each branch also needs its own KRA branch ID and device
+                serial — add those in the branch section below.
               </p>
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              This shop has saved its EasyTax login and TIN. Each branch still
+              needs its own KRA branch ID and device serial — add those in the
+              branch section below.
+            </p>
+          )}
+
+          <div
+            className={cn(
+              HAIRLINE,
+              "bg-muted/15 px-3.5 py-3",
+            )}
+          >
+            <p className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+              Endpoint
+            </p>
+            {resolvedBaseUrl ? (
+              <p className="mt-0.5 break-all font-mono text-xs leading-relaxed text-foreground">
+                {resolvedBaseUrl}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Not configured by your platform administrator.
+              </p>
+            )}
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              Your shop does not need to enter this. The platform sets it for
+              the environment you save below.
+            </p>
+          </div>
 
           <div
             className={cn(
@@ -226,12 +259,18 @@ export function EasyTaxSettingsSection({
               </p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                 Off by default. Turn it on only after the connection test
-                succeeds.
+                succeeds and every branch has its device details.
               </p>
+              {!platformEnabled ? (
+                <p className="mt-1 text-xs leading-relaxed text-[#9a2e16]">
+                  Your platform administrator must enable EasyTax before you
+                  can switch it on.
+                </p>
+              ) : null}
             </div>
             <Switch
               checked={enabled}
-              disabled={!canWrite || busy}
+              disabled={!canWrite || busy || !platformEnabled}
               onCheckedChange={setEnabled}
               aria-label="Enable EasyTax"
             />
@@ -255,20 +294,6 @@ export function EasyTaxSettingsSection({
                 <option value="SANDBOX">Sandbox (testing)</option>
                 <option value="PRODUCTION">Production (live)</option>
               </select>
-            </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                Base URL
-              </span>
-              <input
-                className={FIELD_INPUT}
-                value={baseUrl}
-                disabled={!canWrite || busy}
-                placeholder="https://…"
-                autoComplete="off"
-                onChange={(e) => setBaseUrl(e.target.value)}
-              />
             </label>
 
             <label className="flex flex-col gap-1.5">
@@ -320,32 +345,6 @@ export function EasyTaxSettingsSection({
                 onChange={(e) => setTin(e.target.value)}
               />
             </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                Branch ID
-              </span>
-              <input
-                className={FIELD_INPUT}
-                value={branchId}
-                disabled={!canWrite || busy}
-                autoComplete="off"
-                onChange={(e) => setBranchId(e.target.value)}
-              />
-            </label>
-
-            <label className="flex flex-col gap-1.5 sm:col-span-2">
-              <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
-                Device Serial
-              </span>
-              <input
-                className={FIELD_INPUT}
-                value={deviceSerial}
-                disabled={!canWrite || busy}
-                autoComplete="off"
-                onChange={(e) => setDeviceSerial(e.target.value)}
-              />
-            </label>
           </div>
 
           <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] pt-3">
@@ -393,11 +392,7 @@ export function EasyTaxSettingsSection({
                 variant="outline"
                 disabled={busy || !canTest}
                 onClick={() => void onTest()}
-                title={
-                  canTest
-                    ? undefined
-                    : "Add a Base URL and password before testing."
-                }
+                title={canTest ? undefined : testDisabledReason}
               >
                 {testing ? (
                   <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
