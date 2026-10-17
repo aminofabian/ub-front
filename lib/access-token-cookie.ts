@@ -252,7 +252,8 @@ export function isAccessTokenMintPath(pathname: string): boolean {
     pathname.endsWith("/refresh") ||
     pathname.endsWith("/register") ||
     pathname.endsWith("/accept-invite") ||
-    pathname.endsWith("/verify-email")
+    pathname.endsWith("/verify-email") ||
+    pathname.endsWith("/oauth/google/complete")
   );
 }
 

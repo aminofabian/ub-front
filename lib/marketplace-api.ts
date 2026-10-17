@@ -279,6 +279,51 @@ export type SupplierPortalOrderDetail = {
   lines: SupplierPortalOrderLine[];
 };
 
+export type SupplierEasyTaxEnvironment = "SANDBOX" | "PRODUCTION";
+
+/**
+ * Supplier-side EasyTax (KRA eTIMS) opt-in. The supplier files under its own TIN
+ * with its own EasyTax/VSCU, so this is separate from the tenant configuration.
+ */
+export type SupplierEasyTaxSettingsRecord = {
+  enabled: boolean;
+  environment: SupplierEasyTaxEnvironment;
+  username: string | null;
+  /** The password is write-only; the stored value is never returned. */
+  hasPassword: boolean;
+  tin: string | null;
+  kraBranchId: string | null;
+  deviceSerial: string | null;
+  /** The supplier has supplied a TIN, credentials, KRA branch id, and device serial. */
+  configured: boolean;
+  /** Platform administrators have made EasyTax available. */
+  platformEnabled: boolean;
+  /** Endpoint chosen by the platform for the selected environment. */
+  resolvedBaseUrl: string | null;
+  /** ISO-8601 timestamp of the last connection test, or null if never tested. */
+  lastTestedAt: string | null;
+  lastTestOk: boolean | null;
+  lastTestMessage: string | null;
+};
+
+export type SupplierEasyTaxSettingsUpdate = {
+  enabled?: boolean;
+  environment?: SupplierEasyTaxEnvironment;
+  username?: string;
+  /** Write-only. Omit or leave blank to keep the stored password. */
+  password?: string;
+  tin?: string;
+  kraBranchId?: string;
+  deviceSerial?: string;
+};
+
+export type SupplierEasyTaxTestResult = {
+  ok: boolean;
+  message: string | null;
+  /** ISO-8601 timestamp of when the test ran. */
+  checkedAt: string | null;
+};
+
 async function publicFetch<T>(path: string): Promise<T> {
   let response: Response;
   try {
@@ -737,6 +782,28 @@ export async function linkSupplierPortalLocalSupplier(
   return supplierPortalFetch<SupplierPortalProfile>(
     `${API_ROUTES.supplierPortalProfile}/link`,
     { method: "POST", body: JSON.stringify({ localSupplierId }) },
+  );
+}
+
+export async function fetchSupplierEasyTaxSettings(): Promise<SupplierEasyTaxSettingsRecord> {
+  return supplierPortalFetch<SupplierEasyTaxSettingsRecord>(
+    API_ROUTES.supplierPortalEasyTax,
+  );
+}
+
+export async function updateSupplierEasyTaxSettings(
+  body: SupplierEasyTaxSettingsUpdate,
+): Promise<SupplierEasyTaxSettingsRecord> {
+  return supplierPortalFetch<SupplierEasyTaxSettingsRecord>(
+    API_ROUTES.supplierPortalEasyTax,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export async function testSupplierEasyTaxConnection(): Promise<SupplierEasyTaxTestResult> {
+  return supplierPortalFetch<SupplierEasyTaxTestResult>(
+    `${API_ROUTES.supplierPortalEasyTax}/test`,
+    { method: "POST" },
   );
 }
 

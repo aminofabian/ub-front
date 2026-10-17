@@ -296,6 +296,7 @@ export const API_ROUTES = {
   supplierPortalAuthClaimVerifyInvite: "/api/v1/supplier-portal/auth/claim/verify-invite",
   supplierPortalAuthClaimComplete: "/api/v1/supplier-portal/auth/claim/complete",
   supplierPortalProfile: "/api/v1/supplier-portal/profile",
+  supplierPortalEasyTax: "/api/v1/supplier-portal/easytax",
   supplierPortalHub: "/api/v1/supplier-portal/hub",
   supplierPortalHubShops: "/api/v1/supplier-portal/hub/shops",
   supplierPortalProducts: "/api/v1/supplier-portal/products",

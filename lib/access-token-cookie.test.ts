@@ -174,6 +174,9 @@ describe("access-token-cookie", () => {
     expect(isAccessTokenMintPath("/api/v1/auth/login-pin")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/refresh")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/verify-email")).toBe(true);
+    expect(isAccessTokenMintPath("/api/v1/auth/oauth/google/complete")).toBe(
+      true,
+    );
     expect(isAccessTokenMintPath("/api/v1/sales")).toBe(false);
     expect(isAccessTokenMintPath("/api/v1/super-admin/auth/login")).toBe(false);
     expect(isAccessTokenMintPath("/api/v1/supplier-portal/auth/login")).toBe(

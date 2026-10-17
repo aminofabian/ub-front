@@ -64,6 +64,11 @@ import {
   resolvePostAuthDestination,
 } from "@/lib/post-auth-destination";
 import { isOfficeLoginMode } from "@/lib/login-audience";
+import {
+  completeGoogleShopPick,
+  fetchGoogleShopPick,
+  GOOGLE_SHOP_PICK_PARAM,
+} from "@/lib/google-shop-pick";
 import { getPosGuidanceKind, isEmailNotVerifiedError } from "@/lib/problem";
 import { formatTillAccessDeniedMessage } from "@/lib/pos-till-unlock";
 import { cn } from "@/lib/utils";
@@ -140,6 +145,9 @@ function LoginPageContent() {
     PublicSignInDestination[]
   >([]);
   const [shopPickerBusy, setShopPickerBusy] = useState(false);
+  const [shopPickerMode, setShopPickerMode] = useState<"password" | "google">(
+    "password",
+  );
   const { countries } = useSelfServeCountries();
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
@@ -305,6 +313,72 @@ function LoginPageContent() {
     [searchParams],
   );
 
+  const onPickGoogleShop = useCallback(
+    async (destination: PublicSignInDestination) => {
+      const slug = destination.slug?.trim();
+      if (!slug) {
+        setErrorMessage("Could not open that shop. Try again or contact support.");
+        return;
+      }
+      setShopPickerBusy(true);
+      setErrorMessage("");
+      try {
+        const done = await completeGoogleShopPick(slug);
+        if (done.businessId) {
+          setSessionTenantId(done.businessId);
+        }
+        setShopPickerOpen(false);
+        setIsSubmitting(true);
+        const dest = await resolveAfterStaffAuth({
+          office: true,
+          honorNext: true,
+        });
+        await completeAuthAndNavigate(dest, done.slug ?? slug, {
+          office: true,
+          returnHost: done.returnHost,
+        });
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not sign in to that shop.",
+        );
+        setShopPickerBusy(false);
+        setIsSubmitting(false);
+      }
+    },
+    [resolveAfterStaffAuth],
+  );
+
+  useEffect(() => {
+    if (searchParams.get(GOOGLE_SHOP_PICK_PARAM) !== "1") {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const pick = await fetchGoogleShopPick();
+        if (cancelled) return;
+        if (!pick) {
+          setErrorMessage("That Google sign-in expired. Try again.");
+          return;
+        }
+        setEmail(pick.email);
+        setShopPickerMode("google");
+        setShopPickerRows(pick.destinations);
+        setShopPickerOpen(true);
+        setErrorMessage("");
+      } catch {
+        if (!cancelled) {
+          setErrorMessage("That Google sign-in expired. Try again.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
     if (id.length > 0) {
@@ -425,6 +499,7 @@ function LoginPageContent() {
       if (!tenantId && !IS_DESKTOP) {
         const resolution = await resolveApexStaffTenant(email);
         if (resolution.kind === "multiple") {
+          setShopPickerMode("password");
           setShopPickerRows(resolution.destinations);
           setShopPickerOpen(true);
           return;
@@ -498,6 +573,10 @@ function LoginPageContent() {
   };
 
   const onPickStaffShop = async (destination: PublicSignInDestination) => {
+    if (shopPickerMode === "google") {
+      await onPickGoogleShop(destination);
+      return;
+    }
     setShopPickerBusy(true);
     setErrorMessage("");
     try {

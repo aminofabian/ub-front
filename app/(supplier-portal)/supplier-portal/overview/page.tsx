@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Loader2,
   Package,
+  ReceiptText,
   ShoppingBag,
   Wallet,
 } from "lucide-react";
@@ -24,10 +25,12 @@ import {
 } from "@/components/supplier-portal/supplier-portal-ui";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchSupplierEasyTaxSettings,
   fetchSupplierPortalCapabilities,
   fetchSupplierPortalHubShops,
   fetchSupplierPortalOrders,
   fetchSupplierPortalPayments,
+  type SupplierEasyTaxSettingsRecord,
   type SupplierPortalHubShops,
 } from "@/lib/marketplace-api";
 import { formatMoneyCompact, resolveCurrencyCode } from "@/lib/money";
@@ -85,6 +88,28 @@ function greetingFor(d: Date): string {
   return "Good evening";
 }
 
+function easyTaxStatus(tax: SupplierEasyTaxSettingsRecord): string {
+  if (!tax.platformEnabled) return "EasyTax: not available yet";
+  if (!tax.enabled) return "EasyTax: not enabled";
+  return `EasyTax: enabled — ${tax.environment === "PRODUCTION" ? "production" : "sandbox"}`;
+}
+
+function easyTaxHint(tax: SupplierEasyTaxSettingsRecord): string {
+  if (!tax.platformEnabled) {
+    return "Your platform administrator needs to enable it first.";
+  }
+  if (!tax.enabled) {
+    return "Opt in to file your invoices with KRA under your own TIN.";
+  }
+  if (tax.lastTestOk === false) {
+    return "The last connection test failed — review your details.";
+  }
+  if (tax.lastTestOk == null) {
+    return "Enabled — test the connection in settings.";
+  }
+  return "Invoices are filed with KRA under your TIN.";
+}
+
 export default function SupplierPortalOverviewPage() {
   const router = useRouter();
   const [hub, setHub] = useState<SupplierPortalHubShops | null>(null);
@@ -95,6 +120,9 @@ export default function SupplierPortalOverviewPage() {
   const [shopsPaidToday, setShopsPaidToday] = useState(0);
   const [partialShopCount, setPartialShopCount] = useState(0);
   const [canViewMoney, setCanViewMoney] = useState(false);
+  const [easyTax, setEasyTax] = useState<SupplierEasyTaxSettingsRecord | null>(
+    null,
+  );
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState<Date | null>(null);
@@ -112,10 +140,15 @@ export default function SupplierPortalOverviewPage() {
       try {
         const caps = await fetchSupplierPortalCapabilities();
         setCanViewMoney(caps.canViewMoney);
-        const [orders, shops] = await Promise.all([
+        const canManageTax = caps.permissions.includes("supplier.tax.manage");
+        const [orders, shops, tax] = await Promise.all([
           fetchSupplierPortalOrders(),
           fetchSupplierPortalHubShops().catch(() => null),
+          canManageTax
+            ? fetchSupplierEasyTaxSettings().catch(() => null)
+            : Promise.resolve(null),
         ]);
+        if (tax) setEasyTax(tax);
         if (shops) {
           setHub(shops);
           setPartialShopCount(shops.shops.filter((s) => toNum(s.pending) > 0).length);
@@ -458,6 +491,34 @@ export default function SupplierPortalOverviewPage() {
             ) : null}
           </section>
         </div>
+
+        {easyTax ? (
+          <div className="flex flex-col gap-3 border border-[color-mix(in_srgb,var(--dash-ink)_14%,transparent)] bg-[color-mix(in_srgb,#fff_82%,#f7f3eb)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]">
+                <ReceiptText className="size-4" strokeWidth={1.8} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">
+                  EasyTax / KRA eTIMS
+                </p>
+                <p className="mt-0.5 text-[13px] font-semibold text-[var(--dash-ink)]">
+                  {easyTaxStatus(easyTax)}
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-[color-mix(in_srgb,var(--dash-ink)_55%,transparent)]">
+                  {easyTaxHint(easyTax)}
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`${APP_ROUTES.supplierPortalSettings}#easytax`}
+              className={cn(spBtnGhost, "h-8 shrink-0")}
+            >
+              {easyTax.enabled ? "Manage EasyTax" : "Set up EasyTax"}
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        ) : null}
 
         <SupplierActivityTabs />
 

@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
+import { SupplierEasyTaxSettings } from "@/components/supplier-portal/supplier-easytax-settings";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchSupplierPortalCapabilities,
   fetchSupplierPortalSessions,
   logoutAllSupplierPortalSessions,
   revokeSupplierPortalSession,
@@ -39,6 +41,7 @@ export default function SupplierPortalSettingsPage() {
   const [rows, setRows] = useState<SupplierPortalSessionRow[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [canManageTax, setCanManageTax] = useState(false);
 
   const reload = () =>
     fetchSupplierPortalSessions()
@@ -50,6 +53,11 @@ export default function SupplierPortalSettingsPage() {
       router.replace(APP_ROUTES.supplierPortalLogin);
       return;
     }
+    void fetchSupplierPortalCapabilities()
+      .then((caps) =>
+        setCanManageTax(caps.permissions.includes("supplier.tax.manage")),
+      )
+      .catch(() => setCanManageTax(false));
     void reload();
   }, [router]);
 
@@ -89,7 +97,7 @@ export default function SupplierPortalSettingsPage() {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Settings</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Security and active sessions for your supplier account.
+              EasyTax, security, and active sessions for your supplier account.
             </p>
           </div>
           <Button type="button" variant="destructive" size="sm" disabled={busy} onClick={() => void onLogoutAll()}>
@@ -98,6 +106,10 @@ export default function SupplierPortalSettingsPage() {
         </header>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        <div id="easytax" className="scroll-mt-24">
+          {canManageTax ? <SupplierEasyTaxSettings /> : null}
+        </div>
 
         <section className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

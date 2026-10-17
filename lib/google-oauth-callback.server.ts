@@ -15,7 +15,12 @@ type ExchangePayload = {
   nextPath?: string | null;
   slug?: string | null;
   returnHost?: string | null;
+  status?: string | null;
+  email?: string | null;
 };
+
+const CHOOSE_SHOP_STATUS = "choose_shop";
+const GOOGLE_SHOP_PICK_PARAM = "googleShopPick";
 
 const OAUTH_NEXT_COOKIE = "ub.oauth_next";
 const OAUTH_RETURN_HOST_COOKIE = "ub.oauth_return_host";
@@ -63,6 +68,36 @@ function preferOfficeLogin(nextPath: string): boolean {
     nextPath.startsWith("/grocery") ||
     nextPath.startsWith("/butcher")
   );
+}
+
+/**
+ * Google verified the account, but it staffs more than one shop. Send the
+ * browser to the same office picker password sign-in already uses. The pick
+ * token rides in the upstream HttpOnly cookie; the bind cookie stays so the
+ * later complete call can prove this browser.
+ */
+function shopPickRedirect(
+  req: NextRequest,
+  origin: string,
+  payload: ExchangePayload,
+  upstream: Response,
+  hostname: string,
+  secure: boolean,
+  cookieDomain?: string,
+): NextResponse {
+  const next = safeNext(payload.nextPath || readOauthNextCookie(req));
+  const target = new URL("/login/staff", origin);
+  target.searchParams.set("mode", "office");
+  target.searchParams.set(GOOGLE_SHOP_PICK_PARAM, "1");
+  if (next && next !== "/") {
+    target.searchParams.set("next", next);
+  }
+  const res = NextResponse.redirect(target, 303);
+  clearOauthHintCookies(res, { secure, cookieDomain });
+  for (const cookie of readSetCookieHeaders(upstream.headers)) {
+    res.headers.append("Set-Cookie", rewriteSetCookieForFrontend(cookie, hostname));
+  }
+  return res;
 }
 
 function clearOauthHintCookies(
@@ -195,6 +230,10 @@ export async function handleGoogleOAuthCallback(
   } catch {
     payload = null;
   }
+  if (payload?.status === CHOOSE_SHOP_STATUS) {
+    return shopPickRedirect(req, origin, payload, upstream, hostname, secure, cookieDomain);
+  }
+
   const accessToken = payload?.accessToken?.trim();
   if (!accessToken) {
     return loginRedirect("failed");
