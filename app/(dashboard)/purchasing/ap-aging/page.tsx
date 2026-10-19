@@ -36,6 +36,11 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+import {
+  ApAgingOverviewPane,
+  SupplierSettleDossier,
+} from "./_components/supplier-settle-dossier";
+
 const INK_RULE =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 
@@ -101,14 +106,6 @@ const BUCKETS: BucketDef[] = [
   },
 ];
 
-function statusLabel(status: string): string {
-  const s = status.trim().toUpperCase();
-  if (s === "UNPAID" || s === "OPEN") return "Unpaid";
-  if (s === "PARTIAL") return "Part paid";
-  if (s === "PAID") return "Paid";
-  return status || "Open";
-}
-
 function PulseCard({
   label,
   value,
@@ -172,6 +169,9 @@ export default function ApAgingPage() {
     row: PathBSupplyListRowRecord;
     settleAll: boolean;
   } | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setMessage("");
@@ -245,6 +245,25 @@ export default function ApAgingPage() {
     return [...map.values()].sort((a, b) => b.total - a.total);
   }, [filteredUnpaid]);
 
+  useEffect(() => {
+    if (bySupplier.length === 0) {
+      setSelectedSupplierId(null);
+      return;
+    }
+    setSelectedSupplierId((prev) => {
+      if (prev && bySupplier.some((g) => g.supplierId === prev)) return prev;
+      return bySupplier[0]!.supplierId;
+    });
+  }, [bySupplier]);
+
+  const selectedGroup = useMemo(
+    () =>
+      selectedSupplierId
+        ? (bySupplier.find((g) => g.supplierId === selectedSupplierId) ?? null)
+        : null,
+    [bySupplier, selectedSupplierId],
+  );
+
   const overdueTotal = useMemo(() => {
     if (!aging?.buckets) return 0;
     const b = aging.buckets;
@@ -287,7 +306,7 @@ export default function ApAgingPage() {
   const billCount = unpaid.length;
   const supplierCount = bySupplier.length;
 
-  const paySeed = bySupplier[0]?.bills[0] ?? null;
+  const paySeed = selectedGroup?.bills[0] ?? bySupplier[0]?.bills[0] ?? null;
   const legendColors = ["#0f766e", "#12b76a", "#7ecbb8", "#cbd2d9"];
   const supplierLegend = bySupplier.slice(0, 4);
 
@@ -455,19 +474,23 @@ export default function ApAgingPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
-              Open invoices
+              Who you owe
             </h2>
             <p className="mt-0.5 text-[12px] text-[#667085]">
               {loading && unpaid.length === 0
                 ? "Loading…"
-                : `${filteredUnpaid.length} bill${filteredUnpaid.length === 1 ? "" : "s"} · largest first`}
+                : `${bySupplier.length} vendor${bySupplier.length === 1 ? "" : "s"} · tap to see items`}
             </p>
           </div>
           <button
             type="button"
-            disabled={!paySeed}
+            disabled={!selectedGroup}
             onClick={() =>
-              paySeed && setPayTarget({ row: paySeed, settleAll: true })
+              selectedGroup &&
+              setPayTarget({
+                row: selectedGroup.bills[0]!,
+                settleAll: true,
+              })
             }
             className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#e6f4f0] px-3.5 text-[13px] font-semibold text-[#0f766e] transition-colors hover:bg-[#d9ede7] disabled:opacity-50"
           >
@@ -496,11 +519,11 @@ export default function ApAgingPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 animate-pulse rounded-2xl bg-[#eef1f0]"
+                className="h-16 animate-pulse rounded-2xl bg-[#eef1f0]"
               />
             ))}
           </div>
-        ) : filteredUnpaid.length === 0 ? (
+        ) : bySupplier.length === 0 ? (
           <div className="flex flex-col items-center px-4 py-16 text-center">
             <CheckCircle2
               className="mb-3 size-8 text-[#0f766e]"
@@ -514,7 +537,7 @@ export default function ApAgingPage() {
             <p className="mt-1 max-w-sm text-[12px] leading-snug text-[#667085]">
               {query.trim()
                 ? "Try another supplier or invoice number."
-                : "When deliveries post with a balance, they show up here so you can settle them on Supplies."}
+                : "When deliveries post with a balance, they show up here so you can settle them."}
             </p>
             {!query.trim() ? (
               <Link
@@ -527,93 +550,76 @@ export default function ApAgingPage() {
             ) : null}
           </div>
         ) : (
-          <ul className="space-y-2.5">
-            {bySupplier.map((group) => (
-              <li key={group.supplierId} className={cn(CARD, "p-3.5")}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[#101828]">
-                      {group.supplierName}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-[#667085]">
-                      {group.count} open bill{group.count === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                  <p
+          <ul className="space-y-2" role="listbox" aria-label="Suppliers">
+            {bySupplier.map((group) => {
+              const active = group.supplierId === selectedSupplierId;
+              const share =
+                totalOpen > 0.009
+                  ? Math.round((group.total / totalOpen) * 100)
+                  : 0;
+              return (
+                <li key={group.supplierId}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    onClick={() => setSelectedSupplierId(group.supplierId)}
                     className={cn(
-                      "shrink-0 text-[15px] font-semibold tabular-nums",
-                      OWED,
+                      "flex w-full items-start justify-between gap-3 rounded-2xl px-3.5 py-3 text-left transition-colors",
+                      active
+                        ? "bg-[#e6f4f0] ring-1 ring-[#0f766e]/35"
+                        : "bg-[#f6f8f7] hover:bg-[#eef2f0]",
                     )}
                   >
-                    {currency} {money(group.total)}
-                  </p>
-                </div>
-                <ul className="mt-2.5 space-y-2">
-                  {group.bills.map((bill) => (
-                    <li
-                      key={bill.supplierInvoiceId}
-                      className="flex items-center justify-between gap-3 rounded-xl bg-[#f6f8f7] px-3 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-[#101828]">
-                          {bill.invoiceNumber}
-                        </p>
-                        <p className="mt-0.5 truncate text-[11px] text-[#667085]">
-                          {statusLabel(bill.paymentStatus)}
-                          {bill.createdAt
-                            ? ` · ${new Date(bill.createdAt).toLocaleDateString(
-                                "en-KE",
-                                {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                },
-                              )}`
-                            : null}
-                          {" · "}
-                          {bill.lineCount} line
-                          {bill.lineCount === 1 ? "" : "s"}
-                        </p>
-                        <p className="mt-0.5 text-[11px] tabular-nums text-[#98a2b3] sm:hidden">
-                          {money(bill.balanceOpen)} of {money(bill.grandTotal)} ·
-                          paid {money(bill.amountPaid)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <div className="hidden text-right sm:block">
-                          <p
-                            className={cn(
-                              "text-[13px] font-semibold tabular-nums",
-                              OWED,
-                            )}
-                          >
-                            {money(bill.balanceOpen)}
-                          </p>
-                          <p className="text-[11px] tabular-nums text-[#98a2b3]">
-                            of {money(bill.grandTotal)} · paid{" "}
-                            {money(bill.amountPaid)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPayTarget({ row: bill, settleAll: false })
-                          }
-                          className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#0f766e] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0d6b63]"
-                        >
-                          Pay
-                          <ArrowRight className="size-4" aria-hidden />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
+                    <div className="min-w-0">
+                      <p
+                        className={cn(
+                          "truncate text-[15px] font-semibold tracking-[-0.01em]",
+                          active ? "text-[#0f766e]" : "text-[#101828]",
+                        )}
+                      >
+                        {group.supplierName}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-[#667085]">
+                        {group.count} bill{group.count === 1 ? "" : "s"}
+                        {share > 0 ? ` · ${share}% of open` : null}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p
+                        className={cn(
+                          "text-[15px] font-semibold tabular-nums",
+                          OWED,
+                        )}
+                      >
+                        {money(group.total)}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-[#98a2b3]">
+                        {active ? "Showing items" : "View items"}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
     </div>
+  );
+
+  const stage = selectedGroup ? (
+    <SupplierSettleDossier
+      supplierName={selectedGroup.supplierName}
+      bills={selectedGroup.bills}
+      currency={currency}
+      onPayAll={() =>
+        setPayTarget({ row: selectedGroup.bills[0]!, settleAll: true })
+      }
+      onPayBill={(bill) => setPayTarget({ row: bill, settleAll: false })}
+    />
+  ) : (
+    <ApAgingOverviewPane pulseStack={pulseStack} ageList={ageList} />
   );
 
   return (
@@ -706,18 +712,16 @@ export default function ApAgingPage() {
         {message ? <DashboardFeedback kind="error" text={message} /> : null}
 
         <div className="flex min-h-0 flex-col gap-3">
-          <div className="hidden lg:grid lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)] lg:items-start lg:gap-4">
-            <div className="min-w-0">{feed}</div>
-            <div className="flex min-w-0 flex-col gap-2.5">
-              {pulseStack}
-              {ageList}
-            </div>
+          <div className="hidden lg:grid lg:h-[min(72dvh,52rem)] lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] lg:items-stretch lg:gap-4">
+            <div className="min-h-0 min-w-0">{feed}</div>
+            <div className="min-h-0 min-w-0">{stage}</div>
           </div>
 
           <div className="flex min-h-0 flex-col gap-3 lg:hidden">
-            {pulseStack}
+            {!selectedGroup ? pulseStack : null}
             {feed}
-            {ageList}
+            {stage}
+            {!selectedGroup ? ageList : null}
           </div>
         </div>
 
