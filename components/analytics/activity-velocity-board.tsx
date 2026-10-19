@@ -32,6 +32,7 @@ import { canEditStockLevels } from "@/lib/inventory-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { salesHair, salesHairDivide } from "@/components/sales/sales-surface";
 
 function activityImageSrc(
   imageKey: string | null | undefined,
@@ -358,7 +359,10 @@ function EditDrawer({
         readOnly={readOnly}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
+        className={cn(
+          "h-8 rounded-xl border bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]",
+          salesHair,
+        )}
       />
     </label>
   );
@@ -377,7 +381,7 @@ function EditDrawer({
       >
         {/* Drag handle — mobile bottom sheet cue */}
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
-          <span className="h-1 w-10 rounded-none bg-muted-foreground/25" />
+          <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
         </div>
 
         <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-1 md:pt-3">
@@ -393,7 +397,7 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -407,7 +411,10 @@ function EditDrawer({
                 type="button"
                 disabled={uploading || !canUploadPhoto}
                 onClick={() => fileRef.current?.click()}
-                className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)] disabled:opacity-60"
+                className={cn(
+                  "group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/20 transition-colors active:scale-[0.98] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)] disabled:opacity-60",
+                  salesHair,
+                )}
               >
                 {photoSrc ? (
                   <img
@@ -420,7 +427,7 @@ function EditDrawer({
                 )}
                 {canUploadPhoto ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-opacity md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
-                    <span className="flex size-8 items-center justify-center rounded-none bg-black/35 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
                       <Camera className="size-3.5 text-white md:size-4" />
                     </span>
                   </div>
@@ -450,7 +457,7 @@ function EditDrawer({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] font-medium leading-snug text-[#9a2e16]">
+            <div className="rounded-xl border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] font-medium leading-snug text-[#9a2e16]">
               {error}
             </div>
           ) : null}
@@ -460,7 +467,7 @@ function EditDrawer({
           ) : null}
 
           {stockedBase && !detailLoading ? (
-            <div className="space-y-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3.5 py-3">
+            <div className={cn("space-y-2 rounded-xl border bg-muted/15 px-3.5 py-3", salesHair)}>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 <span className="font-semibold text-foreground">Base stock</span>
                 {" — "}
@@ -504,7 +511,10 @@ function EditDrawer({
                     <button
                       type="button"
                       onClick={() => selectVariant(v)}
-                      className="flex min-h-12 w-full items-center justify-between gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 py-3 text-left transition-colors active:scale-[0.99] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]"
+                      className={cn(
+                        "flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3.5 py-3 text-left transition-colors active:scale-[0.99] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]",
+                        salesHair,
+                      )}
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-[14px] font-medium text-foreground">
@@ -580,7 +590,7 @@ function EditDrawer({
               type="button"
               onClick={handleSave}
               disabled={saving || detailLoading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-all hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-50"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-all hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-50"
             >
               <Save className="size-4" />
               {saving ? "Saving…" : "Save changes"}
@@ -711,7 +721,7 @@ export function ActivityVelocityBoard({
               title={row.itemName}
               onClick={() => onSelectItem(row.itemId)}
               className={cn(
-                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
                 tone === "up"
                   ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]"
                   : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_6%,white)] text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_10%,white)]",
@@ -742,10 +752,10 @@ export function ActivityVelocityBoard({
               onClick={() => setFocus(option.id)}
               aria-pressed={focus === option.id}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-none border px-2.5 text-[11px] font-semibold transition-colors",
+                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-colors",
                 focus === option.id
                   ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground hover:text-foreground",
+                  : cn("border bg-white text-muted-foreground hover:text-foreground", salesHair),
               )}
             >
               {option.label}
@@ -783,10 +793,10 @@ export function ActivityVelocityBoard({
                 type="button"
                 onClick={() => onSort("itemName")}
                 className={cn(
-                  "h-8 shrink-0 rounded-none border px-3 text-[11px] font-semibold transition-colors",
+                  "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
                   sortKey === "itemName"
                     ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
+                    : cn("border bg-muted/30 text-muted-foreground", salesHair),
                 )}
               >
                 A–Z
@@ -799,10 +809,10 @@ export function ActivityVelocityBoard({
                   title={col.hint}
                   onClick={() => onSort(col.key)}
                   className={cn(
-                    "h-8 shrink-0 rounded-none border px-3 text-[11px] font-semibold transition-colors",
+                    "h-8 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-colors",
                     sortKey === col.key
                       ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground",
+                      : cn("border bg-muted/30 text-muted-foreground", salesHair),
                   )}
                 >
                   {col.label}
@@ -811,7 +821,13 @@ export function ActivityVelocityBoard({
               ))}
             </div>
 
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            <ul
+              className={cn(
+                "divide-y overflow-hidden rounded-xl border bg-white",
+                salesHair,
+                salesHairDivide,
+              )}
+            >
               {sorted.map((row, idx) => {
                 const focusKey =
                   sortKey === "itemName" ? "todayQty" : sortKey;
@@ -966,7 +982,10 @@ export function ActivityVelocityBoard({
                       <button
                         type="button"
                         onClick={() => setEditingRow(row)}
-                        className="flex size-11 shrink-0 items-center justify-center self-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25 text-foreground/70 transition-colors active:scale-95 active:bg-muted/50"
+                        className={cn(
+                          "flex size-11 shrink-0 items-center justify-center self-center rounded-xl border bg-muted/25 text-foreground/70 transition-colors active:scale-95 active:bg-muted/50",
+                          salesHair,
+                        )}
                         aria-label={`Edit ${row.itemName}`}
                       >
                         <Pencil className="size-4" />
@@ -1085,11 +1104,11 @@ export function ActivityVelocityBoard({
                               {formatMoneyCompact(rev)}
                             </span>
                             <span
-                              className="mt-0.5 h-0.5 w-full overflow-hidden rounded-none bg-muted/40"
+                              className="mt-0.5 h-0.5 w-full overflow-hidden rounded-full bg-muted/40"
                               aria-hidden
                             >
                               <span
-                                className="block h-full rounded-none bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]"
+                                className="block h-full rounded-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)]"
                                 style={{ width: `${pct}%` }}
                               />
                             </span>
@@ -1121,7 +1140,7 @@ export function ActivityVelocityBoard({
                           e.stopPropagation();
                           setEditingRow(row);
                         }}
-                        className="flex size-7 items-center justify-center rounded-none text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground group-hover:text-muted-foreground"
+                        className="flex size-7 items-center justify-center rounded-xl text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground group-hover:text-muted-foreground"
                         title="Edit stock, prices, photo"
                       >
                         <Pencil className="size-3.5" />

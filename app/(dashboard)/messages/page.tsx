@@ -16,6 +16,7 @@ import {
   fetchContactMessages,
   replyToContactMessage,
 } from "@/lib/api";
+import { salesPaper } from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 
 export default function MessagesPage() {
@@ -47,7 +48,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "flex flex-col gap-1.5 pb-8")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper, "flex flex-col gap-1.5")}>
       <DashboardPageHero
         icon={MessageSquare}
         eyebrow="Inbox"

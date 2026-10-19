@@ -75,24 +75,17 @@ import {
   DRAWOUT_CATEGORIES,
 } from "@/components/shifts/shift-action-modals";
 import { DrawoutApprovalActions } from "@/components/shifts/drawout-approval-actions";
+import {
+  SalesPeriodChip,
+  salesHair,
+  salesPaper,
+  salesSurface,
+} from "@/components/sales/sales-surface";
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const PAPER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
-const ROSTER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]";
-const SHIFT_CHIP = cn(
-  "inline-flex h-8 shrink-0 items-center rounded-none px-2.5",
-  "text-[12px] font-semibold tracking-[-0.02em] transition-colors duration-150",
-);
-const SHIFT_CHIP_ACTIVE =
-  "bg-[var(--pos-primary,#0f766e)] text-white";
-const SHIFT_CHIP_IDLE = cn(
-  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
-);
+const ROSTER_WASH =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]";
 
-/* Store-room theatre — roster | dossier. Same ink / teal / paper as sales. */
+/* Shifts theatre — roster | dossier (Sales room language). */
 
 const STATUS_OPTIONS = [
   { value: "", label: "All shifts" },
@@ -115,8 +108,8 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 /** Ledger convention: money renders in monospace tabular figures. */
 const NUM = "font-mono tabular-nums";
 
-/** White hairline panel. */
-const CARD = cn("overflow-hidden rounded-none border bg-white", HAIRLINE);
+/** Soft Sales panel shell. */
+const CARD = cn(salesSurface, "overflow-hidden");
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -271,7 +264,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
         statusBadgeClass(status),
       )}
     >
@@ -447,7 +440,7 @@ function KpiCard({
   dotClassName?: string | null;
 }) {
   return (
-    <div className={cn("border bg-white p-3", HAIRLINE)}>
+    <div className={cn(salesSurface, "p-3")}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {label}
@@ -503,11 +496,13 @@ function ShiftRow({
       onClick={onSelect}
       aria-pressed={isSelected}
       className={cn(
-        "group w-full border text-left transition-colors duration-150",
-        HAIRLINE,
+        "group w-full rounded-xl text-left ring-1 transition-colors duration-150",
         isSelected
-          ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-          : "bg-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]"
+          : cn(
+              "bg-white ring-black/[0.05]",
+              "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+            ),
         compact && "p-2.5",
       )}
     >
@@ -523,7 +518,7 @@ function ShiftRow({
               "flex size-8 shrink-0 items-center justify-center border text-[11px] font-bold tracking-tight",
               isSelected
                 ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                : cn(HAIRLINE, "bg-white text-foreground"),
+                : cn(salesHair, "bg-white text-foreground"),
             )}
             aria-hidden
           >
@@ -2016,7 +2011,7 @@ export default function ShiftsPage() {
   ];
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper, "gap-1.5")}>
       <DashboardPageHero
         icon={Clock}
         title="Shifts"
@@ -2084,8 +2079,8 @@ export default function ShiftsPage() {
         <section
           aria-label="Open shift"
           className={cn(
-            "flex flex-wrap items-center gap-x-4 gap-y-2 border bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2.5 sm:px-4",
-            HAIRLINE,
+            salesSurface,
+            "flex flex-wrap items-center gap-x-4 gap-y-2 bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2.5 sm:px-4",
           )}
         >
           <span className="relative flex items-center gap-2.5">
@@ -2157,15 +2152,25 @@ export default function ShiftsPage() {
       {/* Theatre — roster | dossier */}
       <div
         className={cn(
-          "hidden overflow-hidden border lg:grid",
+          salesSurface,
+          "hidden overflow-hidden lg:grid",
           "h-[min(80dvh,52rem)]",
-          HAIRLINE,
-          PAPER,
           "lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]",
         )}
       >
-        <div className={cn("flex min-h-0 flex-col border-r", HAIRLINE, ROSTER)}>
-          <div className={cn("shrink-0 space-y-2 border-b px-2.5 py-2 sm:px-3", HAIRLINE)}>
+        <div
+          className={cn(
+            "flex min-h-0 flex-col border-r",
+            salesHair,
+            ROSTER_WASH,
+          )}
+        >
+          <div
+            className={cn(
+              "shrink-0 space-y-2 border-b px-2.5 py-2 sm:px-3",
+              salesHair,
+            )}
+          >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <h2
@@ -2196,10 +2201,10 @@ export default function ShiftsPage() {
               ) : null}
             </div>
 
-            <div className={cn("relative border bg-white", HAIRLINE)}>
+            <div className="relative rounded-xl bg-white ring-1 ring-black/[0.05]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="h-8 w-full bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
+                className="h-9 w-full rounded-xl bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
                 placeholder="Cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -2217,54 +2222,41 @@ export default function ShiftsPage() {
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-0.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {STATUS_OPTIONS.map((opt) => (
-                <button
+                <SalesPeriodChip
                   key={opt.value || "all-status"}
-                  type="button"
-                  className={cn(
-                    SHIFT_CHIP,
-                    statusFilter === opt.value
-                      ? SHIFT_CHIP_ACTIVE
-                      : SHIFT_CHIP_IDLE,
-                  )}
+                  active={statusFilter === opt.value}
                   onClick={() => setStatusFilter(opt.value)}
+                  className="!h-8"
                 >
                   {opt.value === "" ? "All" : opt.label}
-                </button>
+                </SalesPeriodChip>
               ))}
             </div>
 
             {!isBranchLockedRole && branches.length > 0 ? (
-              <div className="flex items-center gap-0.5 overflow-x-auto pb-0.5">
-                <button
-                  type="button"
-                  className={cn(
-                    SHIFT_CHIP,
-                    !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
-                  )}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                <SalesPeriodChip
+                  active={!branchFilter}
                   onClick={() => setBranchFilter("")}
+                  className="!h-8"
                 >
                   All branches
-                </button>
+                </SalesPeriodChip>
                 {branches
                   .filter((b) => b.active !== false)
                   .map((b) => (
-                    <button
+                    <SalesPeriodChip
                       key={b.id}
-                      type="button"
-                      className={cn(
-                        SHIFT_CHIP,
-                        branchFilter === b.id
-                          ? SHIFT_CHIP_ACTIVE
-                          : SHIFT_CHIP_IDLE,
-                      )}
+                      active={branchFilter === b.id}
                       onClick={() =>
                         setBranchFilter((cur) => (cur === b.id ? "" : b.id))
                       }
+                      className="!h-8"
                     >
                       {b.name}
-                    </button>
+                    </SalesPeriodChip>
                   ))}
               </div>
             ) : null}
@@ -2310,11 +2302,11 @@ export default function ShiftsPage() {
 
         <div className="relative flex min-h-0 flex-col overflow-hidden bg-white">
           {selectedShift ? (
-            <div className={cn("flex items-center gap-3 border-b px-4 py-2.5", HAIRLINE)}>
+            <div className={cn("flex items-center gap-3 border-b px-4 py-2.5", salesHair)}>
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center border bg-[var(--pos-primary,#0f766e)] text-[11px] font-bold tracking-tight text-white",
-                  HAIRLINE,
+                  salesHair,
                 )}
                 aria-hidden
               >
@@ -2339,7 +2331,7 @@ export default function ShiftsPage() {
               <StatusBadge status={selectedShift.status} />
             </div>
           ) : (
-            <div className={cn("border-b px-4 py-2.5", HAIRLINE)}>
+            <div className={cn("border-b px-4 py-2.5", salesHair)}>
               <h3
                 className="text-sm font-semibold tracking-[-0.02em] text-foreground"
                 style={{ fontFamily: "var(--font-heading)" }}
@@ -2378,29 +2370,24 @@ export default function ShiftsPage() {
 
       {/* Mobile: stacked roster + detail */}
       <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-        <div className={cn("border", HAIRLINE, ROSTER)}>
-          <div className={cn("space-y-2 border-b px-2.5 py-2", HAIRLINE)}>
-            <div className="flex flex-wrap items-center gap-0.5">
+        <div className={cn(salesSurface, "overflow-hidden", ROSTER_WASH)}>
+          <div className={cn("space-y-2 border-b px-2.5 py-2", salesHair)}>
+            <div className="flex flex-wrap items-center gap-1.5">
               {STATUS_OPTIONS.map((opt) => (
-                <button
+                <SalesPeriodChip
                   key={opt.value || "all-m"}
-                  type="button"
-                  className={cn(
-                    SHIFT_CHIP,
-                    statusFilter === opt.value
-                      ? SHIFT_CHIP_ACTIVE
-                      : SHIFT_CHIP_IDLE,
-                  )}
+                  active={statusFilter === opt.value}
                   onClick={() => setStatusFilter(opt.value)}
+                  className="!h-8"
                 >
                   {opt.value === "" ? "All" : opt.label}
-                </button>
+                </SalesPeriodChip>
               ))}
             </div>
-            <div className={cn("relative border bg-white", HAIRLINE)}>
+            <div className="relative rounded-xl bg-white ring-1 ring-black/[0.05]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className="h-8 w-full bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
+                className="h-9 w-full rounded-xl bg-transparent pl-8 pr-9 text-[13px] outline-none placeholder:text-muted-foreground/50"
                 placeholder="Cashier or branch…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -2408,35 +2395,27 @@ export default function ShiftsPage() {
               />
             </div>
             {!isBranchLockedRole && branches.length > 0 ? (
-              <div className="flex items-center gap-0.5 overflow-x-auto">
-                <button
-                  type="button"
-                  className={cn(
-                    SHIFT_CHIP,
-                    !branchFilter ? SHIFT_CHIP_ACTIVE : SHIFT_CHIP_IDLE,
-                  )}
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                <SalesPeriodChip
+                  active={!branchFilter}
                   onClick={() => setBranchFilter("")}
+                  className="!h-8"
                 >
                   All branches
-                </button>
+                </SalesPeriodChip>
                 {branches
                   .filter((b) => b.active !== false)
                   .map((b) => (
-                    <button
+                    <SalesPeriodChip
                       key={b.id}
-                      type="button"
-                      className={cn(
-                        SHIFT_CHIP,
-                        branchFilter === b.id
-                          ? SHIFT_CHIP_ACTIVE
-                          : SHIFT_CHIP_IDLE,
-                      )}
+                      active={branchFilter === b.id}
                       onClick={() =>
                         setBranchFilter((cur) => (cur === b.id ? "" : b.id))
                       }
+                      className="!h-8"
                     >
                       {b.name}
-                    </button>
+                    </SalesPeriodChip>
                   ))}
               </div>
             ) : null}
@@ -2474,7 +2453,7 @@ export default function ShiftsPage() {
             <div
               className={cn(
                 "flex h-8 items-center justify-between border-b bg-white px-2.5 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground",
-                HAIRLINE,
+                salesHair,
               )}
             >
               <span>Detail</span>

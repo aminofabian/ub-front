@@ -32,6 +32,12 @@ import { GlobalCatalogReviewImportDialog } from "@/components/products/global-ca
 import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sync";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import {
+  salesInk,
+  salesMute,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import { APP_ROUTES } from "@/lib/config";
 import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
@@ -1574,18 +1580,25 @@ export default function GlobalCatalogPage() {
   ]);
 
   return (
-    <div className="absolute inset-0 z-0 flex min-h-0 flex-col overflow-hidden 2xl:static 2xl:h-full 2xl:overflow-visible">
-      <header className="flex shrink-0 items-center justify-between border-b bg-white px-3 py-2">
+    <div className="absolute inset-0 z-0 flex min-h-0 flex-col overflow-hidden max-lg:bg-[#f4f7f5] 2xl:static 2xl:h-full 2xl:overflow-visible">
+      <header
+        className={cn(
+          salesSurface,
+          "shrink-0 items-center justify-between rounded-none ring-0 sm:mx-2 sm:mt-2 sm:rounded-2xl lg:mx-3 lg:mt-3",
+          "flex px-3 py-2",
+        )}
+      >
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             onClick={() => router.push("/products")}
+            className={cn(salesToolBtnClass(), "size-8 justify-center px-0")}
+            aria-label="Back to products"
           >
-            <ArrowLeft className="size-4" />
-          </Button>
+            <ArrowLeft className="size-3.5" />
+          </button>
           <div>
-            <h1 className="text-sm font-semibold">
+            <h1 className={cn("text-sm font-semibold", salesInk)}>
               {fromOnboarding
                 ? "Import products we already have"
                 : "Stock your shelves"}
@@ -1646,8 +1659,8 @@ export default function GlobalCatalogPage() {
           )}
           <Button
             size="sm"
-            variant="outline"
-            className="gap-1.5"
+            variant="ghost"
+            className={cn(salesToolBtnClass(), "h-8 gap-1.5")}
             onClick={goCreateFromScratch}
           >
             <PenLine className="size-3.5" />
@@ -1657,7 +1670,8 @@ export default function GlobalCatalogPage() {
           {selectedPackId && canAdopt ? (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
+              className={cn(salesToolBtnClass(), "h-8")}
               disabled={replacing || !defaultBranchId || selectedPackEmpty}
               title={
                 selectedPackEmpty
@@ -1677,7 +1691,8 @@ export default function GlobalCatalogPage() {
           {canAdopt ? (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
+              className={cn(salesToolBtnClass(), "h-8")}
               disabled={!defaultBranchId}
               title="Apply the latest catalog prices or images to items you already import"
               onClick={handleRefreshEntry}
@@ -1693,7 +1708,7 @@ export default function GlobalCatalogPage() {
                 ? "Select products below to enable import"
                 : undefined
             }
-            className="rounded-none bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+            className="h-8 rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
             onClick={handlePreview}
           >
             <ShoppingCart className="mr-1.5 size-4" />
@@ -1705,8 +1720,13 @@ export default function GlobalCatalogPage() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-72 shrink-0 flex-col border-r bg-white lg:flex">
+      <div className="flex min-h-0 flex-1 gap-2 px-2 pb-2 lg:gap-3 lg:px-3 lg:pb-3">
+        <aside
+          className={cn(
+            salesSurface,
+            "hidden w-72 shrink-0 flex-col overflow-hidden lg:flex",
+          )}
+        >
           <div className="flex-1 overflow-auto p-3">
             <div className="mb-4">
               <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
@@ -1847,8 +1867,8 @@ export default function GlobalCatalogPage() {
           </div>
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-col gap-2 border-b bg-white p-2.5">
+        <main className={cn(salesSurface, "flex min-w-0 flex-1 flex-col overflow-hidden")}>
+          <div className="flex shrink-0 flex-col gap-2 border-b border-black/[0.05] p-2.5">
             {/* Phone-only pack rail — the desktop aside (starter packs) is
                 hidden below `lg`, so phones need their own pack navigation. */}
             {visibleReadyPacks.length > 0 ? (
@@ -1860,10 +1880,10 @@ export default function GlobalCatalogPage() {
                     setSelectedCategoryId(null);
                   }}
                   className={cn(
-                    "shrink-0 whitespace-nowrap rounded-none border px-3 py-2 text-xs transition-colors",
+                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-xs transition-colors",
                     selectedPackId === null && selectedCategoryId === null
-                      ? "border-[var(--catalog-primary,#0f766e)] font-medium text-[var(--catalog-primary,#0f766e)]"
-                      : "border-border text-muted-foreground",
+                      ? "border-[var(--catalog-primary,#0f766e)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_8%,white)] font-medium text-[var(--catalog-primary,#0f766e)]"
+                      : cn("border-transparent bg-white ring-1 ring-black/[0.05]", salesMute),
                   )}
                 >
                   All products
@@ -1881,10 +1901,10 @@ export default function GlobalCatalogPage() {
                         );
                       }}
                       className={cn(
-                        "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border px-3 py-2 text-xs transition-colors",
+                        "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs transition-colors",
                         active
-                          ? "border-[var(--catalog-primary,#0f766e)] font-medium text-[var(--catalog-primary,#0f766e)]"
-                          : "border-border text-muted-foreground",
+                          ? "border-[var(--catalog-primary,#0f766e)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_8%,white)] font-medium text-[var(--catalog-primary,#0f766e)]"
+                          : cn("border-transparent bg-white ring-1 ring-black/[0.05]", salesMute),
                       )}
                     >
                       {pack.name}
@@ -1899,7 +1919,7 @@ export default function GlobalCatalogPage() {
             {selectedPack || selectedCategoryId ? (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground">Viewing</span>
-                <span className="inline-flex items-center gap-1.5 rounded-none border bg-white px-2.5 py-1 font-medium">
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_8%,white)] px-2.5 py-1 font-medium ring-1 ring-black/[0.05]">
                   {selectedPack ? (
                     <>
                       <Package className="size-3.5 text-primary" />
@@ -1976,7 +1996,7 @@ export default function GlobalCatalogPage() {
                   (hideImported && (totalElements ?? 0) === 0 && products.length === 0)
                 }
                 title="Import every product in this view that is not already in your shop"
-                className="rounded-none bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+                className="h-8 rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
                 onClick={handleImportAll}
               >
                 {adopting ? (
@@ -1988,8 +2008,9 @@ export default function GlobalCatalogPage() {
                   : ""}
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
+                className={cn(salesToolBtnClass(), "h-8")}
                 disabled={products.every((p) => p.alreadyImported)}
                 onClick={selectAllVisible}
               >
@@ -2254,14 +2275,19 @@ export default function GlobalCatalogPage() {
                       className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"
                     />
                   ) : (
-                    <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-none border border-border bg-white px-2 py-1.5 shadow-none motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                    <div
+                      className={cn(
+                        salesSurface,
+                        "pointer-events-auto flex max-w-xl items-center gap-2 px-2 py-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400",
+                      )}
+                    >
                       <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
                         Can&apos;t find a product?
                       </span>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 gap-1.5 rounded-none"
+                        className={cn(salesToolBtnClass(), "h-8 gap-1.5")}
                         onClick={goCreateFromScratch}
                       >
                         <PenLine className="size-3.5" />
@@ -2270,7 +2296,7 @@ export default function GlobalCatalogPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 rounded-none text-xs"
+                        className={cn(salesToolBtnClass(), "h-8 text-xs")}
                         onClick={goBrowseAll}
                       >
                         Clear filters

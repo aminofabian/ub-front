@@ -32,6 +32,7 @@ import { canEditStockLevels } from "@/lib/inventory-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { salesHair, salesHairDivide } from "@/components/sales/sales-surface";
 
 function activityImageSrc(
   imageKey: string | null | undefined,
@@ -242,7 +243,10 @@ function EditDrawer({
         readOnly={readOnly}
         onChange={(e) => set(e.target.value)}
         placeholder={hint ?? "—"}
-        className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]"
+        className={cn(
+          "h-8 rounded-xl border bg-muted/20 px-3.5 text-[16px] font-medium outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/35 read-only:cursor-default read-only:opacity-70 md:h-10 md:text-[13px]",
+          salesHair,
+        )}
       />
     </label>
   );
@@ -256,7 +260,7 @@ function EditDrawer({
         showCloseButton={false}
       >
         <div className="flex justify-center pt-2.5 md:hidden" aria-hidden>
-          <span className="h-1 w-10 rounded-none bg-muted-foreground/25" />
+          <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
         </div>
         <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 pb-3 pt-1 md:pt-3">
           <div className="min-w-0">
@@ -271,7 +275,7 @@ function EditDrawer({
           </div>
           <button
             onClick={onClose}
-            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+            className="ml-2 flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground active:scale-95"
             aria-label="Close"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -284,7 +288,10 @@ function EditDrawer({
               type="button"
               disabled={uploading || !canUploadPhoto}
               onClick={() => fileRef.current?.click()}
-              className="group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-none border-2 border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 transition-colors active:scale-[0.98] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)] disabled:opacity-60"
+              className={cn(
+                "group relative flex size-[4.25rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/20 transition-colors active:scale-[0.98] hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)] disabled:opacity-60",
+                salesHair,
+              )}
             >
               {photoSrc ? (
                 <img
@@ -297,7 +304,7 @@ function EditDrawer({
               )}
               {canUploadPhoto ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 md:opacity-0 md:group-hover:bg-black/20 md:group-hover:opacity-100">
-                  <span className="flex size-8 items-center justify-center rounded-none bg-black/35 backdrop-blur-sm md:bg-transparent">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm md:bg-transparent">
                     <Camera className="size-3.5 text-white" />
                   </span>
                 </div>
@@ -324,7 +331,7 @@ function EditDrawer({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
           {error ? (
-            <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] font-medium text-[#9a2e16]">
+            <div className="rounded-xl border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-[12px] font-medium text-[#9a2e16]">
               {error}
             </div>
           ) : null}
@@ -358,7 +365,7 @@ function EditDrawer({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-none bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-all hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition-all hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-50"
           >
             <Save className="size-4" />
             {saving ? "Saving…" : "Save changes"}
@@ -457,10 +464,18 @@ export function ActivityItemStory({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a product — e.g. Eggs…"
-          className="h-12 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-9 pr-3 text-[16px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-10 sm:text-sm"
+          className={cn(
+            "h-12 w-full rounded-xl border bg-muted/30 pl-9 pr-3 text-[16px] outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 sm:h-10 sm:text-sm",
+            salesHair,
+          )}
         />
         {query.trim().length >= 2 ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-lg">
+          <div
+            className={cn(
+              "absolute left-0 right-0 top-[calc(100%+4px)] z-20 overflow-hidden rounded-xl border bg-white shadow-lg",
+              salesHair,
+            )}
+          >
             {searching ? (
               <p className="px-3 py-2.5 text-xs text-muted-foreground">Searching…</p>
             ) : suggestions.length === 0 ? (
@@ -487,7 +502,12 @@ export function ActivityItemStory({
 
       {/* Empty state */}
       {!itemId ? (
-        <div className="rounded-none border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-6 py-12 text-center">
+        <div
+          className={cn(
+            "rounded-2xl border border-dashed bg-muted/10 px-6 py-12 text-center",
+            salesHair,
+          )}
+        >
           <Package className="mx-auto size-8 text-muted-foreground/40" aria-hidden />
           <p className="mt-3 text-sm font-medium text-foreground/80">Pick a product to see its story</p>
           <p className="mt-1 text-xs text-muted-foreground">Stocking history, sell-through, and how it has been moving day by day.</p>
@@ -511,7 +531,7 @@ export function ActivityItemStory({
                 <img
                   src={headerImageSrc}
                   alt=""
-                  className="size-10 shrink-0 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] object-cover"
+                  className={cn("size-10 shrink-0 rounded-xl border object-cover", salesHair)}
                 />
               ) : null}
               <div>
@@ -523,14 +543,20 @@ export function ActivityItemStory({
               <button
                 type="button"
                 onClick={() => setEditOpen(true)}
-                className="inline-flex h-11 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 active:scale-[0.98] sm:h-8 sm:rounded-none sm:px-2.5 sm:text-[11px]"
+                className={cn(
+                  "inline-flex h-11 items-center gap-1.5 rounded-xl border bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 active:scale-[0.98] sm:h-8 sm:px-2.5 sm:text-[11px]",
+                  salesHair,
+                )}
               >
                 <Pencil className="size-3.5 sm:size-3" />
                 Edit
               </button>
               <Link
                 href={`/products/${s?.itemId}`}
-                className="inline-flex h-11 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 sm:h-8 sm:rounded-none sm:px-2.5 sm:text-[11px]"
+                className={cn(
+                  "inline-flex h-11 items-center gap-1.5 rounded-xl border bg-muted/30 px-3.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:bg-muted/50 sm:h-8 sm:px-2.5 sm:text-[11px]",
+                  salesHair,
+                )}
               >
                 <ExternalLink className="size-3.5 sm:size-3" aria-hidden />
                 Open
@@ -541,13 +567,23 @@ export function ActivityItemStory({
           {/* Quick info row: prices + stock */}
           <div className="flex flex-wrap items-center gap-1.5">
             {s?.buyingPrice != null && toNum(s.buyingPrice) > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums",
+                  salesHair,
+                )}
+              >
                 <span className="text-[9px] text-muted-foreground/60">Buy</span>
                 {formatMoneyCompact(s.buyingPrice)}
               </span>
             ) : null}
             {s?.sellingPrice != null && toNum(s.sellingPrice) > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border bg-muted/15 px-2 py-0.5 font-mono text-[10.5px] tabular-nums",
+                  salesHair,
+                )}
+              >
                 <span className="text-[9px] text-muted-foreground/60">Sell</span>
                 {formatMoneyCompact(s.sellingPrice)}
               </span>
@@ -570,7 +606,13 @@ export function ActivityItemStory({
           {/* Period chips */}
           <div className="flex flex-wrap gap-2">
             {PERIOD_CHIPS.map((chip) => (
-              <div key={chip.label} className="min-w-[5.5rem] flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/15 px-3 py-2">
+              <div
+                key={chip.label}
+                className={cn(
+                  "min-w-[5.5rem] flex-1 rounded-xl border bg-muted/15 px-3 py-2",
+                  salesHair,
+                )}
+              >
                 <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">{chip.label}</p>
                 <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatQty(activity.periods[chip.key])}</p>
                 <p className="font-mono text-[10px] tabular-nums text-muted-foreground/60">{formatMoney(activity.periods[chip.revKey])}</p>
@@ -614,7 +656,7 @@ export function ActivityItemStory({
           </div>
 
           {season ? (
-            <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-3 py-2.5">
+            <div className={cn("rounded-xl border bg-muted/10 px-3 py-2.5", salesHair)}>
               <ItemSeasonalityChart
                 data={season}
                 view={seasonView}
@@ -636,7 +678,13 @@ export function ActivityItemStory({
               {activity.stockIns.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No inbound movements recorded.</p>
               ) : (
-                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                <ul
+                  className={cn(
+                    "divide-y rounded-xl border",
+                    salesHair,
+                    salesHairDivide,
+                  )}
+                >
                   {activity.stockIns.map((m) => (
                     <li key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5">
                       <div className="min-w-0">
@@ -660,7 +708,13 @@ export function ActivityItemStory({
               {activity.recentSales.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No sale lines in this window.</p>
               ) : (
-                <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                <ul
+                  className={cn(
+                    "divide-y rounded-xl border",
+                    salesHair,
+                    salesHairDivide,
+                  )}
+                >
                   {activity.recentSales.slice(0, 12).map((s, idx) => (
                     <li key={`${s.saleId}-${idx}`} className="flex items-center justify-between gap-3 px-3 py-2.5">
                       <div className="min-w-0">
@@ -713,7 +767,7 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2.5">
+    <div className={cn("rounded-xl border bg-white px-3 py-2.5", salesHair)}>
       <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
         <Icon className="size-3" aria-hidden />
         {label}

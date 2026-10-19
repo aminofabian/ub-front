@@ -66,6 +66,12 @@ import {
 } from "@/lib/pos-draft-api";
 import { Permission, hasPermission } from "@/lib/permissions";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 
 type ButcherCartLine = {
@@ -814,9 +820,24 @@ export function ButcherCashierWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
       {/* Catalog */}
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col border-[rgb(var(--bp-border))] lg:border-r">
-        <div className="relative shrink-0 border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))]">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[rgb(var(--bp-fg-muted))]" />
+      <section
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col border-[rgb(var(--bp-border))] lg:border-r",
+          salesHair,
+        )}
+      >
+        <div
+          className={cn(
+            "relative shrink-0 border-b bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+            salesHair,
+          )}
+        >
+          <Search
+            className={cn(
+              "pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2",
+              salesMute,
+            )}
+          />
           <input
             type="search"
             value={search}
@@ -910,17 +931,35 @@ export function ButcherCashierWorkspace() {
       </aside>
 
       {/* Order panel */}
-      <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-[rgb(var(--bp-border))] max-h-[min(44dvh,28rem)] bg-[rgb(var(--bp-surface))] lg:max-h-none lg:h-full lg:w-[min(100%,21rem)] lg:border-t-0 xl:w-[23rem]">
+      <aside
+        className={cn(
+          "flex min-h-0 w-full shrink-0 flex-col border-t max-h-[min(44dvh,28rem)] bg-white ring-1 ring-black/[0.04] lg:max-h-none lg:h-full lg:w-[min(100%,21rem)] lg:border-t-0 xl:w-[23rem]",
+          salesHair,
+        )}
+      >
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-3 py-2.5">
-            <h2 className="text-sm font-bold text-[rgb(var(--bp-fg))]">
+          <div
+            className={cn(
+              "flex shrink-0 items-center justify-between gap-2 border-b bg-[color-mix(in_srgb,#f4f7f5_65%,#fff)] px-3 py-2.5",
+              salesHair,
+            )}
+          >
+            <h2
+              className={cn(
+                "font-heading text-sm font-semibold tracking-[-0.02em]",
+                salesInk,
+              )}
+            >
               Current order
             </h2>
             <button
               type="button"
               disabled={lines.length === 0 || activePosDraft != null}
               onClick={onHoldOrder}
-              className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface))] px-2 py-1 text-[11px] font-medium text-[rgb(var(--bp-fg-faint))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              className={cn(
+                salesToolBtnClass(),
+                "gap-1 px-2.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-40",
+              )}
             >
               <Pause className="size-3" />
               Hold
@@ -930,7 +969,12 @@ export function ButcherCashierWorkspace() {
           {showPosDraftPanel ? (
             posDraftSummaries.filter((d) => d.id !== activePosDraft?.draftId)
               .length > 0 ? (
-              <div className="flex shrink-0 flex-wrap gap-1 border-b border-[rgb(var(--bp-border))] px-2 py-2">
+              <div
+                className={cn(
+                  "flex shrink-0 flex-wrap gap-1 border-b px-2 py-2",
+                  salesHair,
+                )}
+              >
                 {posDraftSummaries
                   .filter((d) => d.id !== activePosDraft?.draftId)
                   .map((d) => (
@@ -938,7 +982,10 @@ export function ButcherCashierWorkspace() {
                       key={d.id}
                       type="button"
                       onClick={() => void onRecallPosDraft(d.id)}
-                      className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-2 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
+                      className={cn(
+                        salesToolBtnClass(),
+                        "gap-1 rounded-full px-2.5 py-0.5 text-[11px]",
+                      )}
                     >
                       <RotateCcw className="size-3" />
                       #{d.ticketNumber} ({d.lineCount})
@@ -947,13 +994,21 @@ export function ButcherCashierWorkspace() {
               </div>
             ) : null
           ) : heldOrders.length > 0 ? (
-            <div className="flex shrink-0 flex-wrap gap-1 border-b border-[rgb(var(--bp-border))] px-2 py-2">
+            <div
+              className={cn(
+                "flex shrink-0 flex-wrap gap-1 border-b px-2 py-2",
+                salesHair,
+              )}
+            >
               {heldOrders.map((held) => (
                 <button
                   key={held.id}
                   type="button"
                   onClick={() => onRecallHeld(held.id)}
-                  className="inline-flex items-center gap-1 rounded-none border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel))] px-2 py-0.5 text-[11px] text-[rgb(var(--bp-fg-soft))] transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
+                  className={cn(
+                    salesToolBtnClass(),
+                    "gap-1 rounded-full px-2.5 py-0.5 text-[11px]",
+                  )}
                 >
                   <RotateCcw className="size-3" />
                   {held.label}

@@ -11,6 +11,13 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesSurface,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import type {
   GroceryInvoiceSummaryResponse,
@@ -112,7 +119,7 @@ function shortenBarcode(code: string): string {
 
 function CardSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-3 rounded-xl border border-border/50 bg-card p-4">
+    <div className={cn("flex animate-pulse flex-col gap-3 p-4", salesSurface)}>
       <div className="flex items-center justify-between">
         <span className="h-5 w-16 rounded-full bg-muted" />
         <span className="h-4 w-12 rounded bg-muted/70" />
@@ -130,8 +137,14 @@ function CardSkeleton() {
 
 function TableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-      <div className="hidden border-b border-border/50 bg-muted/30 px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:grid sm:grid-cols-[1.6fr_1.5fr_1.1fr_0.9fr_1.1fr_84px] sm:gap-3">
+    <div className={cn("overflow-hidden", salesSurface)}>
+      <div
+        className={cn(
+          "hidden border-b px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] sm:grid sm:grid-cols-[1.6fr_1.5fr_1.1fr_0.9fr_1.1fr_84px] sm:gap-3",
+          salesHair,
+          salesMute,
+        )}
+      >
         <span>Status</span>
         <span>Barcode</span>
         <span className="text-right">Total</span>
@@ -139,7 +152,7 @@ function TableSkeleton() {
         <span className="hidden lg:inline">Created</span>
         <span className="text-right">·</span>
       </div>
-      <ul className="divide-y divide-border/40">
+      <ul className={cn("divide-y", salesHairDivide)}>
         {Array.from({ length: 6 }).map((_, i) => (
           <li
             key={i}
@@ -174,14 +187,25 @@ function EmptyState({
 
   if (hasFilter) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-6 py-16 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center border border-dashed px-6 py-16 text-center",
+          salesSurface,
+          salesHair,
+        )}
+      >
+        <span
+          className={cn(
+            "flex size-12 items-center justify-center rounded-full bg-white ring-1 ring-black/[0.05]",
+            salesMute,
+          )}
+        >
           <SearchX className="size-5" />
         </span>
-        <p className="mt-4 text-sm font-semibold text-foreground">
+        <p className={cn("mt-4 text-sm font-semibold", salesInk)}>
           No matching invoices
         </p>
-        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+        <p className={cn("mt-1 max-w-xs text-xs leading-relaxed", salesMute)}>
           {query
             ? `Nothing matches “${query}”. Try a different barcode or cashier name.`
             : `No ${activeTab.replace(/_/g, " ")} invoices yet — try a different filter.`}
@@ -191,14 +215,20 @@ function EmptyState({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-6 py-20 text-center">
-      <span className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-sm ring-1 ring-primary/10">
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center border border-dashed px-6 py-20 text-center",
+        salesSurface,
+        salesHair,
+      )}
+    >
+      <span className="relative flex size-16 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)] shadow-sm ring-1 ring-black/[0.05]">
         <Inbox className="size-7" strokeWidth={2} />
       </span>
-      <p className="mt-5 text-base font-semibold tracking-tight text-foreground">
+      <p className={cn("mt-5 text-base font-semibold tracking-tight", salesInk)}>
         No invoices yet
       </p>
-      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+      <p className={cn("mt-1.5 max-w-sm text-sm leading-relaxed", salesMute)}>
         Invoices created in the grocery workspace will show up here so you can
         track pending pickups, completed sales, and expired drafts.
       </p>
@@ -226,9 +256,15 @@ function InvoicesTable({
   currency: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+    <div className={cn("overflow-hidden", salesSurface)}>
       {/* Header (desktop only — mobile uses the inline labels per row). */}
-      <div className="hidden border-b border-border/60 bg-muted/35 px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground sm:grid sm:grid-cols-[1.6fr_1.5fr_1.1fr_0.9fr_1.1fr_84px] sm:gap-3">
+      <div
+        className={cn(
+          "hidden border-b px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] sm:grid sm:grid-cols-[1.6fr_1.5fr_1.1fr_0.9fr_1.1fr_84px] sm:gap-3",
+          salesHair,
+          salesMute,
+        )}
+      >
         <span className="pl-3">Status</span>
         <span>Barcode</span>
         <span className="text-right">Total</span>
@@ -237,7 +273,7 @@ function InvoicesTable({
         <span className="text-right pr-1">Actions</span>
       </div>
 
-      <ul className="divide-y divide-border/40">
+      <ul className={cn("divide-y", salesHairDivide)}>
         {invoices.map((inv) => {
           const cfg =
             STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.pending_payment;
@@ -248,7 +284,7 @@ function InvoicesTable({
               key={inv.id}
               className={cn(
                 "group relative grid cursor-pointer items-center gap-x-3 gap-y-2 px-3 py-3 transition-colors grid-cols-[1fr_auto] sm:grid-cols-[1.6fr_1.5fr_1.1fr_0.9fr_1.1fr_84px] sm:gap-3 sm:px-4",
-                "hover:bg-muted/30 focus-within:bg-muted/30",
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] focus-within:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
               )}
               tabIndex={0}
               role="button"
@@ -285,7 +321,10 @@ function InvoicesTable({
                 </span>
                 {/* Mobile-only meta row underneath the status */}
                 <p
-                  className="truncate font-mono text-[11px] tracking-[0.1em] text-muted-foreground sm:hidden"
+                  className={cn(
+                    "truncate font-mono text-[11px] tracking-[0.1em] sm:hidden",
+                    salesMute,
+                  )}
                   title={inv.barcodeCode}
                 >
                   {shortenBarcode(inv.barcodeCode)}
@@ -295,33 +334,46 @@ function InvoicesTable({
               {/* ── Barcode column (desktop) ── */}
               <div className="hidden min-w-0 sm:block">
                 <p
-                  className="truncate font-mono text-[12px] font-semibold tracking-[0.12em] text-foreground"
+                  className={cn(
+                    "truncate font-mono text-[12px] font-semibold tracking-[0.12em]",
+                    salesInk,
+                  )}
                   title={inv.barcodeCode}
                 >
                   {inv.barcodeCode}
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                <p className={cn("mt-0.5 line-clamp-1 text-[11px]", salesMute)}>
                   {inv.createdByName || "—"}
                 </p>
               </div>
 
               {/* ── Total ── */}
               <div className="flex flex-col items-end sm:text-right">
-                <span className="text-[15px] font-bold tabular-nums leading-tight tracking-tight text-foreground sm:text-[15.5px]">
-                  <span className="mr-1 text-[9.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <span
+                  className={cn(
+                    "text-[15px] font-bold tabular-nums leading-tight tracking-tight sm:text-[15.5px]",
+                    salesInk,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mr-1 text-[9.5px] font-bold uppercase tracking-[0.12em]",
+                      salesMute,
+                    )}
+                  >
                     {currency}
                   </span>
                   {inv.grandTotal.toFixed(2)}
                 </span>
                 {/* Mobile-only secondary meta (items + ago) */}
-                <span className="text-[10.5px] text-muted-foreground sm:hidden">
+                <span className={cn("text-[10.5px] sm:hidden", salesMute)}>
                   {inv.lineCount} item{inv.lineCount === 1 ? "" : "s"} ·{" "}
                   {timeAgo(inv.createdAt)}
                 </span>
               </div>
 
               {/* ── Items count (md+) ── */}
-              <div className="hidden text-sm text-muted-foreground md:block">
+              <div className={cn("hidden text-sm md:block", salesMute)}>
                 <span className="tabular-nums">{inv.lineCount}</span>
                 <span className="ml-1 text-[11px]">
                   item{inv.lineCount === 1 ? "" : "s"}
@@ -330,14 +382,24 @@ function InvoicesTable({
 
               {/* ── Created (lg+) ── */}
               <div className="hidden text-sm lg:block">
-                <span className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[12.5px]",
+                    salesMute,
+                  )}
+                >
                   <Clock className="size-3" />
                   {timeAgo(inv.createdAt)}
                 </span>
               </div>
 
               {/* ── Actions ── */}
-              <div className="col-span-2 mt-1 flex items-center justify-end gap-1 border-t border-border/30 pt-2 sm:col-span-1 sm:mt-0 sm:border-0 sm:pt-0">
+              <div
+                className={cn(
+                  "col-span-2 mt-1 flex items-center justify-end gap-1 border-t pt-2 sm:col-span-1 sm:mt-0 sm:border-0 sm:pt-0",
+                  salesHair,
+                )}
+              >
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -406,8 +468,10 @@ function InvoicesGrid({
             type="button"
             onClick={() => onViewInvoice(inv.id)}
             className={cn(
-              "group relative flex flex-col rounded-xl border bg-card p-4 text-left shadow-sm ring-1 ring-black/[0.02] transition-all dark:ring-white/[0.03]",
-              "hover:-translate-y-0.5 hover:shadow-md",
+              "group relative flex flex-col border p-4 text-left transition-all",
+              salesSurface,
+              salesHair,
+              "hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               cfg.border,
             )}
@@ -423,27 +487,40 @@ function InvoicesGrid({
                 <span className={cn("size-1.5 rounded-full", cfg.dot)} />
                 {cfg.label}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <span className={cn("flex items-center gap-1 text-[11px]", salesMute)}>
                 <Clock className="size-3" />
                 {timeAgo(inv.createdAt)}
               </span>
             </div>
 
             <p
-              className="mb-1 truncate font-mono text-[11px] tracking-[0.12em] text-muted-foreground"
+              className={cn(
+                "mb-1 truncate font-mono text-[11px] tracking-[0.12em]",
+                salesMute,
+              )}
               title={inv.barcodeCode}
             >
               {shortenBarcode(inv.barcodeCode)}
             </p>
 
-            <p className="text-[1.7rem] font-bold tabular-nums leading-tight tracking-tight text-foreground">
-              <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            <p
+              className={cn(
+                "text-[1.7rem] font-bold tabular-nums leading-tight tracking-tight",
+                salesInk,
+              )}
+            >
+              <span
+                className={cn(
+                  "mr-1 text-[11px] font-bold uppercase tracking-[0.12em]",
+                  salesMute,
+                )}
+              >
                 {currency}
               </span>
               {inv.grandTotal.toFixed(2)}
             </p>
 
-            <p className="mt-1.5 line-clamp-1 text-[11.5px] text-muted-foreground">
+            <p className={cn("mt-1.5 line-clamp-1 text-[11.5px]", salesMute)}>
               {inv.lineCount} item{inv.lineCount === 1 ? "" : "s"}
               {inv.createdByName ? ` · ${inv.createdByName}` : ""}
             </p>
@@ -451,8 +528,10 @@ function InvoicesGrid({
             <div className="mt-4 flex items-center gap-2">
               <span
                 className={cn(
-                  "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs font-medium text-foreground transition-colors",
-                  "group-hover:border-border group-hover:bg-muted",
+                  salesHair,
+                  "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl bg-white px-2.5 text-xs font-semibold ring-1 ring-black/[0.05] transition-colors",
+                  salesInk,
+                  "group-hover:ring-black/[0.08]",
                 )}
               >
                 <Eye className="size-3.5" />

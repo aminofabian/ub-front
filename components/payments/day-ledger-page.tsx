@@ -26,6 +26,15 @@ import {
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { StatStrip } from "@/components/dashboard/stat-strip";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesPeriodChip,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { OneOffExpenseDrawer } from "@/components/payments/one-off-expense-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -69,16 +78,7 @@ const METHOD_CHIPS: {
 /** Primary filters — always shown when present. */
 const PRIMARY_CHIPS: MethodChipId[] = ["cash", "mpesa", "credit"];
 
-const INK_RULE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const PAPER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
-
-const SEGMENT =
-  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-semibold transition-colors duration-150";
-const SEGMENT_IDLE =
-  "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground";
-const SEGMENT_ACTIVE = "bg-[var(--pos-primary,#0f766e)] text-white";
+const INK_RULE = salesHair;
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -214,8 +214,8 @@ function PulseCard({
   return (
     <article
       className={cn(
-        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-        INK_RULE,
+        salesSurface,
+        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] p-3.5",
         className,
       )}
     >
@@ -527,17 +527,15 @@ export function DayLedgerPage() {
   const openCount = rows.length - reviewedCount;
 
   const dayNav = (
-    <div className="flex items-center gap-1">
-      <Button
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        className="size-8 rounded-none"
+        className={cn(salesToolBtnClass(), "size-8 justify-center px-0")}
         onClick={() => setDay((d) => shiftDay(d, -1))}
         aria-label="Previous day"
       >
         <ChevronLeft className="size-4" />
-      </Button>
+      </button>
       <label className="relative">
         <span className="sr-only">Pick day</span>
         <input
@@ -552,34 +550,57 @@ export function DayLedgerPage() {
         />
         <span
           className={cn(
-            "inline-flex min-w-[7.5rem] items-center justify-center border bg-white px-2.5 py-1.5 text-sm font-semibold tabular-nums",
-            INK_RULE,
+            salesToolBtnClass(true),
+            "inline-flex min-w-[7.5rem] justify-center tabular-nums",
           )}
         >
           {formatDayShort(day)}
         </span>
       </label>
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        className="size-8 rounded-none"
+        className={cn(salesToolBtnClass(), "size-8 justify-center px-0")}
         disabled={isToday}
         onClick={() => setDay((d) => shiftDay(d, 1))}
         aria-label="Next day"
       >
         <ChevronRight className="size-4" />
-      </Button>
+      </button>
       {!isToday ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 rounded-none px-2 text-xs shadow-none"
-          onClick={() => setDay(todayIsoLocal())}
-        >
+        <SalesPeriodChip active={false} onClick={() => setDay(todayIsoLocal())}>
           Today
-        </Button>
+        </SalesPeriodChip>
+      ) : (
+        <SalesPeriodChip active onClick={() => setDay(todayIsoLocal())}>
+          Today
+        </SalesPeriodChip>
+      )}
+    </div>
+  );
+
+  const dayPeriodStrip = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2 border-b px-3 py-2.5 sm:px-3.5",
+        salesHair,
+      )}
+    >
+      <div role="group" aria-label="Day">
+        {dayNav}
+      </div>
+      {isToday ? (
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium",
+            salesMute,
+          )}
+        >
+          <span
+            className="size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)]"
+            aria-hidden
+          />
+          Live day
+        </span>
       ) : null}
     </div>
   );
@@ -617,18 +638,6 @@ export function DayLedgerPage() {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-
-      <div className="absolute left-3 top-3 z-[2]">{dayNav}</div>
-
-      {isToday ? (
-        <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1.5 bg-white/90 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-          <span
-            className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          />
-          Live day
-        </span>
-      ) : null}
 
       <p
         className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
@@ -703,12 +712,11 @@ export function DayLedgerPage() {
                 type="button"
                 onClick={() => toggleMethod(id)}
                 className={cn(
-                  "absolute z-[1] border bg-white p-3 text-left shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)] transition-colors",
-                  INK_RULE,
+                  salesSurface,
+                  "absolute z-[1] p-3 text-left transition-colors",
                   place,
-                  selected
-                    ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                    : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+                  selected &&
+                    "ring-[var(--pos-primary,#0f766e)] ring-1",
                 )}
               >
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -739,12 +747,14 @@ export function DayLedgerPage() {
 
   const feed = (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className={cn("shrink-0 space-y-2 border-b px-3 py-2 sm:px-3.5", INK_RULE)}>
+      <div className={cn("shrink-0 space-y-2 border-b px-3 py-2 sm:px-3.5", salesHair)}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2
-              className="text-[15px] font-semibold tracking-[-0.02em]"
-              style={{ fontFamily: "var(--font-heading)" }}
+              className={cn(
+                "font-heading text-[15px] font-semibold tracking-[-0.02em]",
+                salesInk,
+              )}
             >
               Payments
             </h2>
@@ -777,7 +787,7 @@ export function DayLedgerPage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-0.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(
             [
               ["all", "All"],
@@ -786,50 +796,47 @@ export function DayLedgerPage() {
               ["flagged", "Flagged"],
             ] as const
           ).map(([id, label]) => (
-            <button
+            <SalesPeriodChip
               key={id}
-              type="button"
+              active={markFilter === id}
               onClick={() => setMarkFilter(id)}
-              className={cn(
-                SEGMENT,
-                markFilter === id ? SEGMENT_ACTIVE : SEGMENT_IDLE,
-              )}
+              className="!h-8 px-2.5 text-[11px]"
             >
               {label}
-            </button>
+            </SalesPeriodChip>
           ))}
           <button
             type="button"
             disabled={filtered.length === 0}
             onClick={markAllVisibleReviewed}
-            className={cn(SEGMENT, SEGMENT_IDLE, "ml-auto disabled:opacity-40")}
+            className={cn(
+              salesToolBtnClass(),
+              "ml-auto disabled:opacity-40",
+            )}
           >
             Mark all
           </button>
         </div>
 
         {mixChips.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {mixChips.map((chip) => {
               const selected = methodFilters.has(chip.id);
               return (
-                <button
+                <SalesPeriodChip
                   key={chip.id}
-                  type="button"
+                  active={selected}
                   onClick={() => toggleMethod(chip.id)}
-                  className={cn(
-                    SEGMENT,
-                    selected ? SEGMENT_ACTIVE : SEGMENT_IDLE,
-                  )}
+                  className="!h-8 px-2.5 text-[11px]"
                 >
                   {chip.short}
-                </button>
+                </SalesPeriodChip>
               );
             })}
             {methodFilters.size > 0 ? (
               <button
                 type="button"
-                className={cn(SEGMENT, SEGMENT_IDLE)}
+                className={salesToolBtnClass()}
                 onClick={() => setMethodFilters(new Set())}
               >
                 Clear
@@ -1180,7 +1187,7 @@ export function DayLedgerPage() {
   );
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper, "flex flex-col gap-1.5")}>
       <DashboardPageHero
         icon={Wallet}
         title="Day ledger"
@@ -1227,16 +1234,13 @@ export function DayLedgerPage() {
       {canReadFinanceExpenses &&
       expensesTotal != null &&
       expensesTotal > 0 ? (
-        <div
-          className={cn(
-            "flex flex-wrap items-center justify-between gap-3 border bg-white px-3 py-2.5",
-            INK_RULE,
-          )}
-        >
+        <div className={cn(salesSurface, "flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 sm:px-4")}>
           <div>
             <p
-              className="text-sm font-semibold tracking-[-0.02em]"
-              style={{ fontFamily: "var(--font-heading)" }}
+              className={cn(
+                "font-heading text-sm font-semibold tracking-[-0.02em]",
+                salesInk,
+              )}
             >
               {fmtKes(expensesTotal)} in expenses
             </p>
@@ -1261,22 +1265,26 @@ export function DayLedgerPage() {
       <div className="flex min-h-0 flex-col gap-1.5">
         <div
           className={cn(
-            "hidden overflow-hidden border lg:grid",
+            salesSurface,
+            "hidden min-h-0 flex-col overflow-hidden lg:flex",
             "h-[min(80dvh,52rem)]",
-            INK_RULE,
-            PAPER,
-            "lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]",
           )}
         >
-          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE)}>
-            {feed}
+          {dayPeriodStrip}
+          <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
+            <div className={cn("min-h-0 overflow-hidden border-r", salesHair)}>
+              {feed}
+            </div>
+            <div className="relative min-h-0 overflow-hidden bg-[#f4f7f5]">
+              {pulse}
+            </div>
           </div>
-          <div className="relative min-h-0 overflow-hidden">{pulse}</div>
         </div>
 
         <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-          <div className={cn("space-y-2 border p-2", INK_RULE, PAPER)}>
-            <div className="flex flex-wrap items-center gap-2">{dayNav}</div>
+          <div className={cn(salesSurface, "overflow-hidden")}>
+            {dayPeriodStrip}
+            <div className="space-y-2 p-2">
             {loading ? (
               <div className="grid grid-cols-2 gap-2">
                 {[0, 1].map((i) => (
@@ -1364,8 +1372,9 @@ export function DayLedgerPage() {
                 </div>
               </>
             )}
+            </div>
           </div>
-          <div className={cn("border", INK_RULE)}>{feed}</div>
+          <div className={cn(salesSurface, "overflow-hidden")}>{feed}</div>
         </div>
       </div>
 

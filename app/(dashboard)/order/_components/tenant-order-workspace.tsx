@@ -92,6 +92,11 @@ import { OrderProductShelf } from "./order-product-shelf";
 import { OrderQtyField } from "./order-qty-field";
 import { OrderTemplatePicker } from "./order-template-picker";
 import { type OrderParentOption } from "./order-parent-floater";
+import {
+  salesHair,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 
 const ORDER_CURRENCY = "KES";
 const SLIP_LINE_FLOOR = "min-h-[14.5rem] flex-[1_0_14.5rem]";
@@ -2276,7 +2281,7 @@ export function TenantOrderWorkspace({
         "relative flex w-full flex-col font-sans text-[var(--order-ink,#15231f)] selection:bg-[#cde8e3] selection:text-[#15231f]",
         embedded
           ? "h-full min-h-0 flex-1 overflow-hidden border-0"
-          : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
+          : "max-lg:bg-[#f4f7f5] lg:min-h-0 lg:flex-1 lg:overflow-hidden",
       )}
       style={{
         ["--pos-primary" as string]: "#0f766e",
@@ -2375,7 +2380,10 @@ export function TenantOrderWorkspace({
             <button
               type="button"
               onClick={() => setCreateProductOpen(true)}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-semibold text-[#475467] ring-1 ring-black/[0.05] transition-colors hover:text-[#101828] active:scale-[0.98]"
+              className={cn(
+                salesToolBtnClass(),
+                "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
+              )}
               title="Create a new catalog product and link it to this supplier"
             >
               <PackagePlus className="size-3.5" aria-hidden />
@@ -2388,7 +2396,10 @@ export function TenantOrderWorkspace({
             <button
               type="button"
               onClick={() => openLinkCatalog(filter)}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5] active:scale-[0.98]"
+              className={cn(
+                salesToolBtnClass(true),
+                "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
+              )}
               title="Link catalog products to this supplier"
             >
               <Link2 className="size-3.5" aria-hidden />
@@ -2398,7 +2409,10 @@ export function TenantOrderWorkspace({
           <button
             type="button"
             onClick={() => setPastOrdersOpen(true)}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-semibold text-[#475467] ring-1 ring-black/[0.05] transition-colors hover:text-[#101828] active:scale-[0.98]"
+            className={cn(
+              salesToolBtnClass(),
+              "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
+            )}
             title="Reorder from a previous purchase order"
           >
             <History className="size-3.5" aria-hidden />
@@ -2411,7 +2425,10 @@ export function TenantOrderWorkspace({
               trigger={
                 <button
                   type="button"
-                  className="mr-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[12px] font-semibold text-[#475467] ring-1 ring-black/[0.05] transition-colors hover:text-[#101828] active:scale-[0.98]"
+                  className={cn(
+                    salesToolBtnClass(),
+                    "mr-1 h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
+                  )}
                   title="The complete supplier flow — summary + full guide"
                 >
                   <BookOpen className="size-3.5" aria-hidden />
@@ -2431,6 +2448,7 @@ export function TenantOrderWorkspace({
       <div
         className={cn(
           "relative z-[1] flex min-w-0 flex-col",
+          !embedded && cn(salesSurface, "mx-2 overflow-hidden sm:mx-3"),
           embedded
             ? "min-h-0 flex-1 overflow-hidden"
             : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
@@ -2459,10 +2477,16 @@ export function TenantOrderWorkspace({
               </Link>
             ) : null}
           </div>
-          <div className="relative border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2 py-2">
+          <div
+            className={cn(
+              "relative border-b px-2 py-2",
+              salesHair,
+              "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]",
+            )}
+          >
             <Search className="pointer-events-none absolute left-4 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
             <input
-              className="h-9 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-8 pr-2 text-[13px] outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_15%,transparent)]"
+              className="h-9 w-full rounded-xl bg-white pl-8 pr-2 text-[13px] ring-1 ring-black/[0.05] outline-none placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)]"
               placeholder="Find supplier"
               value={supplierQuery}
               onChange={(e) => setSupplierQuery(e.target.value)}
@@ -2508,7 +2532,13 @@ export function TenantOrderWorkspace({
               : "lg:min-h-0 lg:flex-1 lg:overflow-hidden",
           )}
         >
-          <div className="flex shrink-0 items-center gap-2 px-3 py-2">
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-2 border-b px-3 py-2.5",
+              salesHair,
+              "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]",
+            )}
+          >
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
               <input
@@ -2540,7 +2570,10 @@ export function TenantOrderWorkspace({
               <button
                 type="button"
                 onClick={() => openLinkCatalog(filter)}
-                className="hidden h-10 shrink-0 items-center gap-1 rounded-full bg-white px-3 text-[12px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5] sm:inline-flex"
+                className={cn(
+                  salesToolBtnClass(true),
+                  "hidden h-10 shrink-0 gap-1 px-3 sm:inline-flex",
+                )}
                 title="Link products from your catalog"
               >
                 <Link2 className="size-3.5" aria-hidden />

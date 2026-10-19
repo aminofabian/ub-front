@@ -33,10 +33,15 @@ import { CustomerMessagingDrawer } from "@/components/credits/customer-messaging
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import {
   DirectoryBackButton,
-  DirectoryColumn,
   DirectoryMobileTabs,
-  directoryFrameClass,
 } from "@/components/credits/directory-workspace-ui";
+import {
+  salesPaper,
+  salesSurface,
+  salesHairDivide,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { LoyaltyCardPreview } from "@/components/credits/loyalty-card-preview";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -304,7 +309,7 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper, "flex flex-col")}>
       {message ? (
         <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
@@ -357,11 +362,9 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
               : []),
           ]}
         />
-        <Button
+        <button
           type="button"
-          size="icon"
-          variant="outline"
-          className="size-8 rounded-none"
+          className={salesToolBtnClass()}
           onClick={() => setRefreshKey((k) => k + 1)}
           disabled={refreshing}
           aria-label="Refresh"
@@ -370,58 +373,50 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
             className={cn("size-3.5", refreshing && "animate-spin")}
             aria-hidden
           />
-        </Button>
+        </button>
         {canManageCustomers ? (
           <Button
             type="button"
             size="sm"
-            className="h-8 gap-1 rounded-none bg-[var(--pos-primary,#0f766e)] text-xs text-white"
+            className="h-8 gap-1 rounded-xl bg-[var(--pos-primary,#0f766e)] text-xs text-white shadow-none hover:bg-[#0d6b63]"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-3.5" />
             New
           </Button>
         ) : null}
-        <Button
+        <button
           type="button"
-          size="sm"
-          variant="outline"
-          className="size-8 rounded-none px-0"
+          className={cn(salesToolBtnClass(), "size-8 justify-center px-0")}
           onClick={() => setMessagingOpen(true)}
           aria-label="Messaging"
         >
           <MessageCircle className="size-3.5" />
-        </Button>
+        </button>
         {canManageCustomers && selectedIds.size > 0 ? (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1 rounded-none text-xs"
+            className={salesToolBtnClass()}
             onClick={() => setSmsOpen(true)}
           >
             <MessageSquare className="size-3.5" />
             {selectedIds.size}
-          </Button>
+          </button>
         ) : null}
         {canManageCustomers && selectedIds.size >= 2 ? (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1 rounded-none text-xs"
+            className={salesToolBtnClass()}
             onClick={() => setMergeOpen(true)}
           >
             <GitMerge className="size-3.5" />
             Fuse
-          </Button>
+          </button>
         ) : null}
         {canManageCustomers && selectedIds.size > 0 ? (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1 rounded-none text-xs"
+            className={salesToolBtnClass()}
             onClick={() => {
               const ids = Array.from(selectedIds).slice(0, 500);
               router.push(
@@ -431,26 +426,47 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
           >
             <Mail className="size-3.5" />
             Email
-          </Button>
+          </button>
         ) : null}
       </DashboardPageHero>
 
-      <div className={cn(directoryFrameClass, refreshing && "opacity-90")}>
-        <div className="grid min-h-0 flex-1 divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(16rem,19rem)] lg:divide-x lg:divide-y-0">
+      <div
+        className={cn(
+          salesSurface,
+          "flex min-h-0 flex-col overflow-hidden lg:h-[min(80dvh,52rem)] lg:max-h-[calc(100dvh-10.5rem)]",
+          refreshing && "opacity-90",
+        )}
+      >
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 divide-y lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(16rem,19rem)] lg:divide-x lg:divide-y-0",
+            salesHairDivide,
+          )}
+        >
           {!isLg ? (
             <>
               {mobilePane === "list" ? (
-                <DirectoryColumn
-                  className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] pb-[var(--shell-bottom-inset)]"
+                <SalesStage
+                  className="min-h-0 rounded-none border-0 bg-[#f4f7f5] shadow-none ring-0 pb-[var(--shell-bottom-inset)]"
+                  bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
                   title="Directory"
                   hint="Search and pick"
-                  badge={visibleRows.length}
+                  action={
+                    <span className="rounded-lg bg-white px-1.5 py-0.5 text-[10px] font-medium tabular-nums ring-1 ring-black/[0.05]">
+                      {visibleRows.length}
+                    </span>
+                  }
                 >
                   <CustomerListColumn {...listProps} />
-                </DirectoryColumn>
+                </SalesStage>
               ) : null}
               {mobilePane === "insights" ? (
-                <DirectoryColumn title="Purchases" hint={focusedCustomer?.name}>
+                <SalesStage
+                  className="min-h-0 rounded-none border-0 shadow-none ring-0"
+                  bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
+                  title="Purchases"
+                  hint={focusedCustomer?.name}
+                >
                   <DirectoryBackButton
                     label="Directory"
                     onClick={() => setMobilePane("list")}
@@ -460,29 +476,41 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
                     currency={currency}
                     canViewAnalytics={canViewAnalytics}
                   />
-                </DirectoryColumn>
+                </SalesStage>
               ) : null}
               {mobilePane === "contact" ? (
-                <DirectoryColumn title="Contact" hint={focusedCustomer?.name}>
+                <SalesStage
+                  className="min-h-0 rounded-none border-0 shadow-none ring-0"
+                  bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
+                  title="Contact"
+                  hint={focusedCustomer?.name}
+                >
                   <DirectoryBackButton
                     label="Directory"
                     onClick={() => setMobilePane("list")}
                   />
                   <CustomerContactColumn {...contactProps} />
-                </DirectoryColumn>
+                </SalesStage>
               ) : null}
             </>
           ) : (
             <>
-              <DirectoryColumn
-                className="bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]"
+              <SalesStage
+                className="min-h-0 rounded-none border-0 bg-[#f4f7f5] shadow-none ring-0"
+                bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
                 title="Directory"
                 hint="Who shops with you"
-                badge={visibleRows.length}
+                action={
+                  <span className="rounded-lg bg-white px-1.5 py-0.5 text-[10px] font-medium tabular-nums ring-1 ring-black/[0.05]">
+                    {visibleRows.length}
+                  </span>
+                }
               >
                 <CustomerListColumn {...listProps} />
-              </DirectoryColumn>
-              <DirectoryColumn
+              </SalesStage>
+              <SalesStage
+                className="min-h-0 rounded-none border-0 shadow-none ring-0"
+                bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
                 title="Purchases"
                 hint={focusedCustomer?.name ?? "Select someone"}
               >
@@ -491,14 +519,15 @@ export function CustomersWorkspace({ initialCustomerId = null }: Props) {
                   currency={currency}
                   canViewAnalytics={canViewAnalytics}
                 />
-              </DirectoryColumn>
-              <DirectoryColumn
-                className="bg-white"
+              </SalesStage>
+              <SalesStage
+                className="min-h-0 rounded-none border-0 shadow-none ring-0"
+                bodyClassName="min-h-0 flex-1 overflow-y-auto p-2"
                 title="Contact"
                 hint={focusedCustomer ? "Balance & reach" : "—"}
               >
                 <CustomerContactColumn {...contactProps} />
-              </DirectoryColumn>
+              </SalesStage>
             </>
           )}
         </div>

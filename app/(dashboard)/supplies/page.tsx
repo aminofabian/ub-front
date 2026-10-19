@@ -343,10 +343,10 @@ export default function SuppliesPage() {
               type="button"
               onClick={() => setBillFilter("unpaid")}
               className={cn(
-                "rounded-none px-1.5 py-0.5 tabular-nums transition",
+                "rounded-full px-2.5 py-1 tabular-nums ring-1 ring-black/[0.05] transition",
                 isUnpaid
-                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                  : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]"
+                  : "bg-white hover:bg-[#f2f7f5]",
               )}
             >
               <span className="font-semibold text-foreground">

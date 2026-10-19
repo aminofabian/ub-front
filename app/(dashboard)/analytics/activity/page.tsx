@@ -31,6 +31,16 @@ import {
   DASHBOARD_MAX_WIDE,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesPeriodChip,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 import {
@@ -78,33 +88,27 @@ function toNum(n: number | string | null | undefined): number {
 
 function SectionCard({
   title,
-  icon: Icon,
   children,
   className,
   action,
+  bodyClassName,
 }: {
   title: string;
-  icon: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }>;
   children: ReactNode;
   className?: string;
   action?: ReactNode;
+  bodyClassName?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
-        className,
-      )}
+    <SalesStage
+      title={title}
+      className={className}
+      action={action}
+      bodyClassName={bodyClassName}
     >
-      <div className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[-0.02em] text-foreground/90">
-          <Icon className="size-3.5 text-muted-foreground/60" aria-hidden />
-          <span className="truncate">{title}</span>
-        </div>
-        {action ? <div className="w-full sm:w-auto">{action}</div> : null}
-      </div>
-      <div className="p-3 sm:p-4">{children}</div>
-    </div>
+      {children}
+    </SalesStage>
   );
 }
 
@@ -449,7 +453,7 @@ export default function AnalyticsActivityPage() {
 
   if (loading && !refreshing) {
     return (
-      <div className="min-h-full bg-white">
+      <div className="min-h-full max-lg:bg-[#f4f7f5]">
         <div className={DASHBOARD_MAX_WIDE}>
           <DashboardLoading label="Loading activity…" />
         </div>
@@ -458,26 +462,35 @@ export default function AnalyticsActivityPage() {
   }
 
   return (
-    <div className="relative min-h-full bg-white">
+    <div className="relative min-h-full max-lg:bg-[#f4f7f5]">
       <div
         className={cn(
           DASHBOARD_MAX_WIDE,
-          "!space-y-1 !pb-[calc(var(--shell-bottom-inset)+4.75rem)] md:!pb-8",
+          salesPaper,
+          "!gap-1 !pb-[calc(var(--shell-bottom-inset)+4.75rem)] md:!pb-8",
         )}
       >
-        <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+        <div className={cn(salesSurface, "sticky top-0 z-30 overflow-hidden")}>
           <div className="flex items-center gap-2 px-2.5 py-1 sm:px-3">
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <Link
                 href="/analytics"
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
+                className={cn(
+                  salesToolBtnClass(),
+                  "size-8 shrink-0 justify-center px-0 sm:size-7",
+                )}
                 aria-label="Back to analytics"
               >
                 <ArrowLeft className="size-3.5" />
               </Link>
               <div className="flex min-w-0 flex-col">
                 <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
-                  <span className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  <span
+                    className={cn(
+                      "font-heading text-[15px] font-semibold tracking-[-0.02em]",
+                      salesInk,
+                    )}
+                  >
                     Activity
                   </span>
                   {showDatePresets && activeRangeSummary ? (
@@ -495,19 +508,20 @@ export default function AnalyticsActivityPage() {
             </div>
 
             {/* Desktop view tabs */}
-            <div className="hidden flex-wrap items-center gap-1 md:flex">
+            <div className="hidden flex-wrap items-center gap-1.5 md:flex">
               {VIEW_TABS.map((tab) => {
                 const Icon = tab.icon;
+                const active = view === tab.id;
                 return (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setView(tab.id)}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-none border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
-                      view === tab.id
-                        ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white shadow-none"
-                        : "border-transparent bg-muted/50 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/80 hover:text-foreground",
+                      salesToolBtnClass(active),
+                      "h-8 gap-1.5",
+                      active &&
+                        "bg-[var(--pos-primary,#0f766e)] text-white ring-0 hover:text-white",
                     )}
                   >
                     <Icon className="size-3" aria-hidden />
@@ -524,7 +538,11 @@ export default function AnalyticsActivityPage() {
                   onChange={(e) => onChangeBranch(e.target.value)}
                   disabled={branchLocked}
                   aria-label="Branch"
-                  className="h-10 max-w-[7.5rem] appearance-none rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 py-0 pl-2.5 pr-7 text-[12px] font-medium text-foreground/90 outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/60 focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:rounded-none sm:text-[11px]"
+                  className={cn(
+                    "h-10 max-w-[7.5rem] appearance-none rounded-xl border bg-white py-0 pl-2.5 pr-7 text-[12px] font-medium outline-none transition-colors focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 disabled:cursor-not-allowed disabled:opacity-60 sm:h-8 sm:max-w-none sm:text-[11px]",
+                    salesHair,
+                    salesInk,
+                  )}
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (
@@ -546,7 +564,10 @@ export default function AnalyticsActivityPage() {
               </div>
               <button
                 type="button"
-                className="flex size-10 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/80 transition-all duration-200 hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/50 hover:text-foreground active:scale-95 disabled:opacity-40 sm:size-8 sm:rounded-none"
+                className={cn(
+                  salesToolBtnClass(),
+                  "size-10 shrink-0 justify-center px-0 active:scale-95 disabled:opacity-40 sm:size-8",
+                )}
                 onClick={() => {
                   setRefreshing(true);
                   load();
@@ -575,28 +596,32 @@ export default function AnalyticsActivityPage() {
           </div>
 
           {showDatePresets ? (
-            <div className="-mx-px flex gap-1.5 overflow-x-auto border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:px-4">
+            <div
+              className={cn(
+                "flex gap-1.5 overflow-x-auto border-t px-3 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:px-4",
+                salesHair,
+              )}
+            >
               {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
-                <button
+                <SalesPeriodChip
                   key={key}
-                  type="button"
-                  title={hint}
+                  active={preset === key}
                   onClick={() => setPreset(key)}
-                  className={cn(
-                    "h-8 shrink-0 rounded-none border px-3 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:h-7 sm:rounded-none sm:px-2.5 sm:text-[10.5px]",
-                    preset === key
-                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "border-transparent bg-muted/40 text-muted-foreground hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:bg-muted/70 hover:text-foreground",
-                  )}
+                  className="h-8 shrink-0 sm:h-7"
                 >
-                  {label}
-                </button>
+                  <span title={hint}>{label}</span>
+                </SalesPeriodChip>
               ))}
             </div>
           ) : null}
 
           {showDatePresets && preset === "custom" ? (
-            <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/[0.15] px-3 pb-2.5 pt-2 sm:px-4">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2 border-t bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 pb-2.5 pt-2 sm:px-4",
+                salesHair,
+              )}
+            >
               <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/60">
                 From
               </span>
@@ -604,14 +629,22 @@ export default function AnalyticsActivityPage() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
+                className={cn(
+                  "h-10 min-w-0 flex-1 rounded-xl border bg-white px-2.5 text-[14px] font-medium outline-none transition-colors focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:text-[11px]",
+                  salesHair,
+                  salesInk,
+                )}
               />
-              <span className="text-[11px] text-muted-foreground/60">to</span>
+              <span className={cn("text-[11px]", salesMute)}>to</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[14px] font-medium text-foreground outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:rounded-none sm:text-[11px]"
+                className={cn(
+                  "h-10 min-w-0 flex-1 rounded-xl border bg-white px-2.5 text-[14px] font-medium outline-none transition-colors focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 sm:h-7 sm:flex-none sm:text-[11px]",
+                  salesHair,
+                  salesInk,
+                )}
               />
             </div>
           ) : null}
@@ -633,7 +666,10 @@ export default function AnalyticsActivityPage() {
                   placeholder="Filter products…"
                   value={velocitySearch}
                   onChange={(e) => setVelocitySearch(e.target.value)}
-                  className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
+                  className={cn(
+                    "h-10 w-full rounded-xl border bg-white pl-8 pr-3 text-[14px] outline-none transition-colors focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:text-[11px]",
+                    salesHair,
+                  )}
                 />
               </div>
             }
@@ -679,7 +715,11 @@ export default function AnalyticsActivityPage() {
                       setSelectedItemId(null);
                       syncItemInUrl(null);
                     }}
-                    className="h-9 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/50 sm:h-7 sm:rounded-none sm:px-2 sm:text-[10px]"
+                    className={cn(
+                      "h-9 rounded-xl border bg-white px-2.5 text-[11px] font-semibold sm:h-7 sm:px-2 sm:text-[10px]",
+                      salesHair,
+                      salesMute,
+                    )}
                   >
                     Clear item filter
                   </button>
@@ -691,7 +731,7 @@ export default function AnalyticsActivityPage() {
                       setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
                       setShowStockTakeDialog(true);
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,white)] sm:h-7 sm:rounded-none sm:text-[11px]"
+                    className="flex h-9 items-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] px-2.5 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,white)] sm:h-7 sm:text-[11px]"
                   >
                     <ClipboardList className="size-3.5" />
                     Stock Take ({selectedItemIds.size})
@@ -708,7 +748,10 @@ export default function AnalyticsActivityPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setSaleSearch(e.target.value)
                     }
-                    className="h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 pl-8 pr-3 text-[14px] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:rounded-none sm:text-[11px]"
+                    className={cn(
+                      "h-10 w-full rounded-xl border bg-white pl-8 pr-3 text-[14px] outline-none transition-colors focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30 placeholder:text-muted-foreground/50 sm:h-7 sm:w-auto sm:text-[11px]",
+                      salesHair,
+                    )}
                   />
                 </div>
               </div>
@@ -724,7 +767,7 @@ export default function AnalyticsActivityPage() {
                     return (
                       <li
                         key={`${s.saleId}-${s.itemId}-${idx}`}
-                        className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/[0.12] p-3"
+                        className={cn(salesSurface, "p-3")}
                       >
                         <div className="flex items-start gap-2.5">
                           <label className="flex size-10 shrink-0 items-center justify-center">
@@ -774,7 +817,7 @@ export default function AnalyticsActivityPage() {
                               <div className="flex items-center gap-1.5">
                                 <span
                                   className={cn(
-                                    "rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                    "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                     s.paymentMethod.toLowerCase() === "cash"
                                       ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
                                       : s.paymentMethod.toLowerCase() ===
@@ -920,7 +963,7 @@ export default function AnalyticsActivityPage() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <span
                                   className={cn(
-                                    "size-1.5 shrink-0 rounded-none",
+                                    "size-1.5 shrink-0 rounded-full",
                                     profitVal >= 0
                                       ? "bg-[var(--pos-primary,#0f766e)]"
                                       : "bg-[#9a2e16]",
@@ -950,7 +993,7 @@ export default function AnalyticsActivityPage() {
                             <td className="px-3 py-2.5">
                               <span
                                 className={cn(
-                                  "inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                  "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.paymentMethod.toLowerCase() === "cash"
                                     ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)]"
                                     : s.paymentMethod.toLowerCase() === "mpesa"
@@ -964,7 +1007,7 @@ export default function AnalyticsActivityPage() {
                             <td className="py-2.5 pr-3">
                               <span
                                 className={cn(
-                                  "inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                                  "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
                                   s.status === "completed"
                                     ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
                                     : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/70",
@@ -972,7 +1015,7 @@ export default function AnalyticsActivityPage() {
                               >
                                 <span
                                   className={cn(
-                                    "size-1.5 rounded-none",
+                                    "size-1.5 rounded-full",
                                     s.status === "completed"
                                       ? "bg-[var(--pos-primary,#0f766e)]"
                                       : "bg-muted-foreground/50",
@@ -1089,7 +1132,10 @@ export default function AnalyticsActivityPage() {
 
       {/* Thumb-zone view dock — phone only */}
       <nav
-        className="fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 pb-1.5 pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden"
+        className={cn(
+          "fixed inset-x-0 bottom-[var(--shell-bottom-inset)] z-40 border-t bg-white/95 px-2 pb-1.5 pt-1.5 shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl md:hidden",
+          salesHair,
+        )}
         aria-label="Activity views"
       >
         <div className="mx-auto grid max-w-lg grid-cols-3 gap-1">
@@ -1102,19 +1148,19 @@ export default function AnalyticsActivityPage() {
                 type="button"
                 onClick={() => setView(tab.id)}
                 className={cn(
-                  "relative flex flex-col items-center gap-0.5 rounded-none px-1 py-2 transition-colors active:scale-[0.97]",
-                  active ? "text-[var(--pos-primary,#0f766e)]" : "text-muted-foreground",
+                  "relative flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition-colors active:scale-[0.97]",
+                  active ? "text-[var(--pos-primary,#0f766e)]" : salesMute,
                 )}
               >
                 {active ? (
                   <span
-                    className="absolute inset-x-3 top-0 h-0.5 rounded-none bg-[var(--pos-primary,#0f766e)]"
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--pos-primary,#0f766e)]"
                     aria-hidden
                   />
                 ) : null}
                 <span
                   className={cn(
-                    "flex size-9 items-center justify-center rounded-none transition-colors",
+                    "flex size-9 items-center justify-center rounded-xl transition-colors",
                     active ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)]" : "bg-transparent",
                   )}
                 >

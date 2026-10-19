@@ -9,20 +9,17 @@ import {
 } from "@/components/procurement/procurement-hub-nav";
 import { cn } from "@/lib/utils";
 
-import {
-  HAIRLINE,
-  PAPER,
-} from "../../suppliers/_components/supplier-ui-tokens";
+import { salesPaper, salesSurface } from "@/components/sales/sales-surface";
 
-export const SUPPLIES_SURFACE = cn(
-  "overflow-hidden rounded-2xl border bg-white",
-  HAIRLINE,
-);
+const SUPPLIES_ROSTER_WASH =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]";
+
+export const SUPPLIES_SURFACE = cn(salesSurface, "overflow-hidden");
 
 export const SUPPLIES_THEATRE = cn(
-  "overflow-hidden rounded-2xl border",
-  HAIRLINE,
-  PAPER,
+  salesSurface,
+  "overflow-hidden",
+  SUPPLIES_ROSTER_WASH,
   "lg:h-[min(80dvh,52rem)]",
 );
 
@@ -43,27 +40,21 @@ export function SuppliesPageLayout({
   return (
     <div
       className={cn(
+        salesPaper,
         "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5",
         className,
       )}
       style={PROCUREMENT_VARS}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-3">
-        <div
-          className={cn(
-            "shrink-0 overflow-hidden rounded-2xl border bg-white",
-            HAIRLINE,
-            "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
-          )}
-        >
+        <div className={cn("shrink-0 overflow-hidden", SUPPLIES_SURFACE)}>
           <ProcurementHubNav />
         </div>
 
         <header
           className={cn(
-            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-3 py-2.5 sm:px-4",
-            HAIRLINE,
-            "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+            SUPPLIES_SURFACE,
+            "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 sm:px-4",
           )}
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">

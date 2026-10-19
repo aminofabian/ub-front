@@ -25,12 +25,20 @@ import {
 
 import {
   DASHBOARD_MAX,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesPaper,
+  SalesPeriodChip,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { WebOrderFulfillmentActions } from "@/components/storefront/web-order-fulfillment-actions";
 import { WebOrderShipmentCard } from "@/components/storefront/web-order-shipment-card";
 import { Button } from "@/components/ui/button";
@@ -438,7 +446,7 @@ export function WebOrdersPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX, salesPaper, "flex flex-col gap-2")}>
       <DashboardPageHero
         icon={ShoppingBag}
         eyebrow="Storefront"
@@ -457,37 +465,41 @@ export function WebOrdersPage() {
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label="Order list filter"
+          className="flex flex-wrap items-center gap-1.5"
+        >
           {(
             [
               { id: "open", label: `Open (${openCount})` },
               { id: "all", label: `All (${scopedOrders.length})` },
             ] as const
           ).map((t) => (
-            <button
+            <SalesPeriodChip
               key={t.id}
-              type="button"
+              active={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={cn(
-                "rounded-none border px-3 py-1 text-xs font-semibold transition-colors",
-                tab === t.id
-                  ? "border-[#0f766e] bg-[#0f766e]/10 text-[#0f766e]"
-                  : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
-              )}
             >
               {t.label}
-            </button>
+            </SalesPeriodChip>
           ))}
           {waCount > 0 ? (
             <button
               key="whatsapp"
               type="button"
-              onClick={() => setChannelTab(channelTab === "whatsapp" ? "all" : "whatsapp")}
+              onClick={() =>
+                setChannelTab(channelTab === "whatsapp" ? "all" : "whatsapp")
+              }
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-none border px-3 py-1 text-xs font-semibold transition-colors",
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold tracking-[-0.01em] transition-colors",
                 channelTab === "whatsapp"
-                  ? "border-[#128C4A] bg-[#25D366]/15 text-[#128C4A]"
-                  : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
+                  ? "bg-[#128C4A] text-white"
+                  : cn(
+                      "border bg-white",
+                      salesHair,
+                      "text-[#128C4A] hover:bg-[#25D366]/10",
+                    ),
               )}
               aria-pressed={channelTab === "whatsapp"}
             >
@@ -496,11 +508,9 @@ export function WebOrdersPage() {
             </button>
           ) : null}
         </div>
-        <Button
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
+          className={cn(salesToolBtnClass(), "gap-1.5")}
           disabled={refreshing || loading}
           onClick={() => void loadOrders({ soft: true })}
         >
@@ -510,32 +520,35 @@ export function WebOrdersPage() {
             <RefreshCw className="size-3.5" aria-hidden />
           )}
           Refresh
-        </Button>
+        </button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <section className={cn(DASHBOARD_TABLE_SURFACE, selectedId && "max-lg:hidden")}>
-          <div className={DASHBOARD_TABLE_HEAD}>
-            <p className="text-sm font-semibold text-foreground">Orders</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Newest first · select a row for details
-            </p>
-          </div>
-
+        <SalesStage
+          title="Orders"
+          hint="Newest first · select a row for details"
+          className={cn(selectedId && "max-lg:hidden")}
+          bodyClassName="p-0"
+        >
           {loading ? (
-            <div className="flex items-center gap-2 px-5 py-10 text-sm text-muted-foreground">
+            <div
+              className={cn(
+                "flex items-center gap-2 px-4 py-10 text-sm sm:px-5",
+                salesMute,
+              )}
+            >
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Loading orders…
             </div>
           ) : visibleOrders.length === 0 ? (
-            <div className="px-5 py-10">
-              <p className="text-sm font-medium text-foreground">No orders yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">
+            <div className="px-4 py-10 sm:px-5">
+              <p className={cn("text-sm font-medium", salesInk)}>No orders yet</p>
+              <p className={cn("mt-1 text-xs", salesMute)}>
                 New storefront checkouts will show up here live.
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border/50">
+            <ul className={cn("divide-y", salesHairDivide)}>
               {visibleOrders.map((order) => {
                 const selected = order.id === selectedId;
                 const badge = orderStatusLine(order);
@@ -561,7 +574,12 @@ export function WebOrdersPage() {
                               className="size-1.5 shrink-0 rounded-full bg-[#0f766e]"
                             />
                           ) : null}
-                          <p className="truncate text-sm font-semibold text-foreground">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-semibold",
+                              salesInk,
+                            )}
+                          >
                             {order.customerName?.trim() || "Customer"}
                           </p>
                           <StatusPill tone={badge.tone}>{badge.label}</StatusPill>
@@ -572,16 +590,21 @@ export function WebOrdersPage() {
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                        <p className={cn("mt-1 truncate text-xs", salesMute)}>
                           {order.customerPhone || "—"} ·{" "}
                           {order.catalogBranchName || "Branch"} · #
                           {orderCodeOf(order)}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        <p className={cn("mt-0.5 text-[11px]", salesMute)}>
                           {formatWhen(order.createdAt)}
                         </p>
                       </div>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                      <p
+                        className={cn(
+                          "shrink-0 text-sm font-semibold tabular-nums",
+                          salesInk,
+                        )}
+                      >
                         {fmtMoney(order.grandTotal, order.currency || currency)}
                       </p>
                     </button>
@@ -590,94 +613,90 @@ export function WebOrdersPage() {
               })}
             </ul>
           )}
-        </section>
+        </SalesStage>
 
-        <aside
+        <SalesStage
+          title={detail ? orderStatusLine(detail).label : "Order"}
+          hint={detail ? `#${orderCodeOf(detail)}` : "Select an order"}
           className={cn(
-            DASHBOARD_TABLE_SURFACE,
             !selectedId && "max-lg:hidden",
             "lg:sticky lg:top-16 lg:max-h-[calc(100dvh-5.5rem)] lg:self-start lg:overflow-y-auto",
           )}
+          action={
+            selectedId ? (
+              <button
+                type="button"
+                className={cn(salesToolBtnClass(), "gap-1.5")}
+                disabled={printing}
+                onClick={() => void printTicket()}
+              >
+                {printing ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Printer className="size-3.5" aria-hidden />
+                )}
+                Print
+              </button>
+            ) : null
+          }
+          bodyClassName="space-y-4"
         >
-          <div className={DASHBOARD_TABLE_HEAD}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                {selectedId ? (
-                  <button
-                    type="button"
-                    className="mb-1 text-xs font-semibold text-[#0f766e] lg:hidden"
-                    onClick={() => {
-                      if (deepLinkCode) dismissedCode.current = deepLinkCode;
-                      setSelectedId(null);
-                    }}
-                  >
-                    Back to orders
-                  </button>
-                ) : null}
-                <p className="text-sm font-semibold text-foreground">
-                  {detail ? orderStatusLine(detail).label : "Order"}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {detail ? `#${orderCodeOf(detail)}` : "Select an order"}
-                </p>
-              </div>
-              {selectedId ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5"
-                  disabled={printing}
-                  onClick={() => void printTicket()}
-                >
-                  {printing ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  ) : (
-                    <Printer className="size-3.5" aria-hidden />
-                  )}
-                  Print
-                </Button>
-              ) : null}
-            </div>
-          </div>
+          {selectedId ? (
+            <button
+              type="button"
+              className="mb-1 text-xs font-semibold text-[var(--pos-primary,#0f766e)] lg:hidden"
+              onClick={() => {
+                if (deepLinkCode) dismissedCode.current = deepLinkCode;
+                setSelectedId(null);
+              }}
+            >
+              Back to orders
+            </button>
+          ) : null}
 
           {!selectedId ? (
-            <div className="flex flex-col items-start gap-2 px-5 py-10">
-              <Package className="size-5 text-muted-foreground" aria-hidden />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-start gap-2 py-6">
+              <Package className={cn("size-5", salesMute)} aria-hidden />
+              <p className={cn("text-sm", salesMute)}>
                 Select an order to review and act on it.
               </p>
             </div>
           ) : detailLoading ? (
-            <div className="flex items-center gap-2 px-5 py-10 text-sm text-muted-foreground">
+            <div
+              className={cn(
+                "flex items-center gap-2 py-10 text-sm",
+                salesMute,
+              )}
+            >
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Loading detail…
             </div>
           ) : !detail ? (
-            <div className="flex flex-col items-start gap-3 px-5 py-10">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-start gap-3 py-6">
+              <p className={cn("text-sm", salesMute)}>
                 Could not load this order.
               </p>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
+                className="rounded-xl"
                 onClick={() => setDetailTick((tick) => tick + 1)}
               >
                 Try again
               </Button>
             </div>
           ) : (
-            <div className="space-y-4 px-4 py-4 sm:px-5">
+            <>
               <div>
-                <p className="text-base font-semibold text-foreground">
+                <p className={cn("text-base font-semibold", salesInk)}>
                   {detail.customerName?.trim() || "Customer"}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className={cn("mt-1 text-xs", salesMute)}>
                   {detail.customerPhone || "—"}
                   {detail.customerEmail ? ` · ${detail.customerEmail}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className={cn("mt-1 text-xs", salesMute)}>
                   {detail.catalogBranchName} · {formatWhen(detail.createdAt)} · #
                   {orderCodeOf(detail)}
                 </p>
@@ -694,7 +713,7 @@ export function WebOrdersPage() {
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-none bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#25D366]/15 px-3 text-xs font-semibold text-[#128C4A] transition-colors hover:bg-[#25D366]/25"
                       >
                         <MessageCircle className="size-3.5" aria-hidden />
                         Message on WhatsApp
@@ -702,7 +721,11 @@ export function WebOrdersPage() {
                       {canInbox ? (
                         <Link
                           href={`${APP_ROUTES.inbox}?phone=${encodeURIComponent(digits)}`}
-                          className="inline-flex h-9 items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted/40"
+                          className={cn(
+                            "inline-flex h-9 items-center gap-1.5 rounded-xl border bg-white px-3 text-xs font-semibold transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                            salesHair,
+                            salesInk,
+                          )}
                         >
                           <MessagesSquare className="size-3.5" aria-hidden />
                           Inbox
@@ -717,7 +740,7 @@ export function WebOrdersPage() {
                   return (
                     <p
                       className={cn(
-                        "mt-3 flex items-start gap-2 rounded-none border px-3 py-2 text-xs leading-relaxed",
+                        "mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs leading-relaxed",
                         hint.tone === "expired"
                           ? "border-amber-300 bg-amber-50 text-amber-900"
                           : "border-sky-200 bg-sky-50 text-sky-900",
@@ -743,7 +766,12 @@ export function WebOrdersPage() {
 
               <WebOrderShipmentCard order={detail} onUpdated={onDetailUpdated} />
 
-              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+              <ul
+                className={cn(
+                  "divide-y overflow-hidden rounded-xl ring-1 ring-black/[0.05]",
+                  salesHairDivide,
+                )}
+              >
                 {detail.lines.map((line) => (
                   <li
                     key={`${line.itemId}-${line.lineIndex}`}
@@ -771,26 +799,30 @@ export function WebOrdersPage() {
                 ))}
               </ul>
 
-              <div className="flex items-center justify-between border-t border-border/50 pt-3">
-                <span className="text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+              <div className={cn("flex items-center justify-between border-t pt-3", salesHair)}>
+                <span className={cn("text-xs font-semibold tracking-[-0.02em]", salesMute)}>
                   Total
                 </span>
-                <p className="text-lg font-semibold tabular-nums text-foreground">
+                <p className={cn("text-lg font-semibold tabular-nums", salesInk)}>
                   {fmtMoney(detail.grandTotal, detail.currency || currency)}
                 </p>
               </div>
 
               {detail.notes?.trim() ? (
-                <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
-                  <p className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                <div
+                  className={cn(
+                    "rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-2 ring-1 ring-black/[0.05]",
+                  )}
+                >
+                  <p className={cn("text-[11px] font-semibold tracking-[-0.02em]", salesMute)}>
                     Notes
                   </p>
-                  <p className="mt-1 text-sm text-foreground">{detail.notes}</p>
+                  <p className={cn("mt-1 text-sm", salesInk)}>{detail.notes}</p>
                 </div>
               ) : null}
-            </div>
+            </>
           )}
-        </aside>
+        </SalesStage>
       </div>
     </div>
   );

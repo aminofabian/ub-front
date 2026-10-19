@@ -2,11 +2,13 @@
 
 import { Search } from "lucide-react";
 
+import { CrmBar, WhiteCard } from "@/components/credits/customer-board-theme";
 import {
-  BoardFilterButton,
-  CrmBar,
-  WhiteCard,
-} from "@/components/credits/customer-board-theme";
+  salesMute,
+  salesSurface,
+  SalesPeriodChip,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { customerTableCheckboxClass } from "@/components/credits/customer-crm-ui";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
@@ -60,7 +62,7 @@ export function CustomerListColumn({
 }: Props) {
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      <div className="shrink-0 space-y-1.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-1.5">
+      <div className={cn(salesSurface, "shrink-0 space-y-1.5 p-2")}>
         <label className="relative block">
           <Search
             className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground"
@@ -89,17 +91,22 @@ export function CustomerListColumn({
                 ["verified", "Verified"],
               ] as const
             ).map(([id, label]) => (
-              <BoardFilterButton
+              <button
                 key={id}
-                compact
-                selected={originFilter === id}
+                type="button"
+                className={salesToolBtnClass(originFilter === id)}
                 onClick={() => onOriginFilter(id)}
               >
                 {label}
-              </BoardFilterButton>
+              </button>
             ))}
           </div>
-          <label className="ml-auto flex cursor-pointer items-center gap-1 text-[10px] text-muted-foreground">
+          <label
+            className={cn(
+              "ml-auto flex cursor-pointer items-center gap-1 text-[10px]",
+              salesMute,
+            )}
+          >
             <input
               type="checkbox"
               checked={outstandingOnly}
@@ -111,33 +118,29 @@ export function CustomerListColumn({
         </div>
 
         <div>
-          <p className="mb-0.5 px-0.5 text-[9px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            Joined
-            <span className="font-normal normal-case tracking-normal text-muted-foreground/80">
-              {" "}
-              · {periodLabel}
-            </span>
+          <p className={cn("mb-1 px-0.5 text-[10px] font-semibold", salesMute)}>
+            Joined · {periodLabel}
           </p>
           <div
-            className="flex flex-wrap gap-0.5"
+            className="flex flex-wrap gap-1"
             role="group"
             aria-label="Joined date filter"
           >
             {dateOptions.map(({ id, label }) => (
-              <BoardFilterButton
+              <SalesPeriodChip
                 key={id}
-                compact
-                selected={datePreset === id}
+                active={datePreset === id}
                 onClick={() => onDatePreset(id)}
+                className="!h-8 px-2.5 text-[11px]"
               >
                 {label}
-              </BoardFilterButton>
+              </SalesPeriodChip>
             ))}
           </div>
         </div>
       </div>
 
-      <WhiteCard className="min-h-0 flex-1">
+      <WhiteCard className="min-h-0 flex-1 !rounded-xl ring-1 ring-black/[0.05]">
         {loading ? (
           <p className="px-2.5 py-5 text-[11px] text-muted-foreground">
             Loading…

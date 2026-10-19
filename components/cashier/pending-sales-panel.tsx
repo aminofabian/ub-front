@@ -12,6 +12,14 @@ import {
   ShoppingCart,
   Ban,
 } from "lucide-react";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -157,17 +165,12 @@ export function PendingSalesPanel({
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-medium transition-colors",
-          open
-            ? "bg-primary/10 text-primary"
-            : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
-        )}
+        className={cn(salesToolBtnClass(open), "gap-1.5 px-3 py-1.5 text-xs")}
       >
         <ShoppingCart className="size-3.5" />
         <span>Pending</span>
         {pendingCount > 0 && (
-          <span className="inline-flex size-4 items-center justify-center rounded-none bg-primary text-[10px] font-bold text-primary-foreground">
+          <span className="inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-white">
             {pendingCount > 9 ? "9+" : pendingCount}
           </span>
         )}
@@ -178,11 +181,27 @@ export function PendingSalesPanel({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed inset-0 z-40"
+            aria-hidden
+            onClick={() => setOpen(false)}
+          />
 
-          <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-none border border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
-              <span className="text-sm font-semibold">Pending sales</span>
+          <div
+            className={cn(
+              salesSurface,
+              "absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center justify-between border-b px-4 py-3",
+                salesHair,
+              )}
+            >
+              <span className={cn("text-sm font-semibold", salesInk)}>
+                Pending sales
+              </span>
               {loading && (
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
               )}
@@ -202,7 +221,7 @@ export function PendingSalesPanel({
                   No pending sales at this branch.
                 </p>
               ) : (
-                <div className="divide-y divide-border/30">
+                <div className={cn("divide-y", salesHairDivide)}>
                   {drafts.map((draft) => {
                     const canCancel =
                       canCancelAny ||
@@ -232,12 +251,12 @@ export function PendingSalesPanel({
                               <span className="text-xs font-mono font-semibold text-foreground">
                                 #{draft.ticketNumber}
                               </span>
-                              <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                              <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                                 {draft.lineCount}{" "}
                                 {draft.lineCount === 1 ? "item" : "items"}
                               </span>
                               {onThisTill && (
-                                <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                                <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
                                   On this till
                                 </span>
                               )}
@@ -284,14 +303,17 @@ export function PendingSalesPanel({
             </div>
 
             {drafts.length > 0 && (
-              <div className="border-t border-border/40 px-4 py-2">
+              <div className={cn("border-t px-4 py-2", salesHair)}>
                 <button
                   type="button"
                   onClick={() => {
                     void fetchDrafts();
                     toast.success("Pending sales refreshed");
                   }}
-                  className="w-full text-center text-[11px] text-muted-foreground hover:text-foreground"
+                  className={cn(
+                    "w-full text-center text-[11px] hover:text-[var(--order-ink,#15231f)]",
+                    salesMute,
+                  )}
                 >
                   Refresh list
                 </button>

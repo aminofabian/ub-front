@@ -55,6 +55,12 @@ import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snaps
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import {
   fetchItems,
@@ -174,7 +180,12 @@ function LiveClock() {
   });
 
   return (
-    <span className="hidden items-center gap-1 text-[11px] font-medium tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] sm:inline-flex">
+    <span
+      className={cn(
+        "hidden items-center gap-1 text-[11px] font-medium tabular-nums sm:inline-flex",
+        salesMute,
+      )}
+    >
       <Clock3 className="size-3" />
       {time}
     </span>
@@ -316,7 +327,7 @@ function ProductCard({
         "touch-manipulation select-none",
         inCart
           ? "border-[var(--pos-primary,#0f766e)]"
-          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]",
+          : cn(salesHair, "hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)]"),
       )}
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-white">
@@ -1386,7 +1397,7 @@ export function GroceryWorkspace() {
     <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
       <div
         className={cn(
-          "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden touch-manipulation",
+          "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden touch-manipulation [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",
         )}
         style={
           {
@@ -1395,10 +1406,21 @@ export function GroceryWorkspace() {
         }
       >
       {/* ── App header ── */}
-      <header className="relative z-30 shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pt-[env(safe-area-inset-top,0px)] text-[var(--order-ink,#15231f)]">
+      <header
+        className={cn(
+          "relative z-30 shrink-0 border-b bg-white pt-[env(safe-area-inset-top,0px)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+          salesHair,
+          salesInk,
+        )}
+      >
         <div className="relative flex items-center justify-between gap-2 px-3 py-1 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+            <div
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-xl border bg-white ring-1 ring-black/[0.05]",
+                salesHair,
+              )}
+            >
               <TenantLogo
                 brand={tenantTitle}
                 logoUrl={business?.branding?.logoUrl}
@@ -1408,10 +1430,20 @@ export function GroceryWorkspace() {
               />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate font-heading text-[15px] font-semibold leading-tight tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              <h1
+                className={cn(
+                  "truncate font-heading text-[15px] font-semibold leading-tight tracking-[-0.02em]",
+                  salesInk,
+                )}
+              >
                 {groceryModeTitle(counterMode)}
               </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+              <div
+                className={cn(
+                  "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]",
+                  salesMute,
+                )}
+              >
                 <span className="truncate font-medium">{tenantTitle}</span>
                 <span className="inline-flex min-w-0 items-center gap-1">
                   <MapPin className="size-3 shrink-0" aria-hidden />
@@ -1422,7 +1454,12 @@ export function GroceryWorkspace() {
                   </span>
                 </span>
                 {activeDepartmentLabel ? (
-                  <span className="inline-flex items-center gap-1 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 border-l pl-2",
+                      salesHair,
+                    )}
+                  >
                     {activeDepartmentLabel}
                   </span>
                 ) : null}
@@ -1430,7 +1467,10 @@ export function GroceryWorkspace() {
                   <Link
                     href={`/inventory/restock-digest/${activeRestockRun.runId}${canReviewDigest ? "" : "/prep"}`}
                     title={`Tonight's list — ${activeRestockRun.lineCount} items`}
-                    className="inline-flex max-w-full items-center gap-1 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2 font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                    className={cn(
+                      "inline-flex max-w-full items-center gap-1 border-l pl-2 font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline",
+                      salesHair,
+                    )}
                   >
                     <ClipboardList className="size-3 shrink-0" aria-hidden />
                     <span className="truncate">Tonight&apos;s list</span>
@@ -1440,7 +1480,12 @@ export function GroceryWorkspace() {
                   </Link>
                 ) : null}
                 {cashierName ? (
-                  <span className="hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-2 sm:inline">
+                  <span
+                    className={cn(
+                      "hidden border-l pl-2 sm:inline",
+                      salesHair,
+                    )}
+                  >
                     {cashierName}
                   </span>
                 ) : null}
@@ -1461,7 +1506,7 @@ export function GroceryWorkspace() {
                 type="button"
                 onClick={() => setOrderPadOpen(true)}
                 title="Order"
-                className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
+                className={cn(salesToolBtnClass(), "gap-1 px-2 text-[11px]")}
               >
                 <ShoppingBasket className="size-3" aria-hidden />
                 <span className="hidden min-[420px]:inline">Order</span>
@@ -1472,7 +1517,7 @@ export function GroceryWorkspace() {
                 type="button"
                 onClick={() => setOrderConfirmOpen(true)}
                 title="Confirm orders"
-                className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)]"
+                className={cn(salesToolBtnClass(), "gap-1 px-2 text-[11px]")}
               >
                 <ClipboardCheck className="size-3" aria-hidden />
                 <span className="hidden min-[420px]:inline">Confirm</span>
@@ -1489,10 +1534,8 @@ export function GroceryWorkspace() {
                     : "Update product photos"
                 }
                 className={cn(
-                  "inline-flex h-8 items-center gap-1 rounded-none border bg-white px-2 text-[11px] font-semibold transition-colors",
-                  imageEditMode
-                    ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                  salesToolBtnClass(imageEditMode),
+                  "gap-1 px-2 text-[11px]",
                 )}
               >
                 <ImagePlus className="size-3" aria-hidden />
@@ -1504,10 +1547,9 @@ export function GroceryWorkspace() {
             <LiveClock />
             <span
               className={cn(
-                "inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold",
-                online
-                  ? "text-[var(--pos-primary,#0f766e)]"
-                  : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
+                salesToolBtnClass(),
+                "gap-1 px-2 text-[11px] pointer-events-none",
+                online && "text-[var(--pos-primary,#0f766e)]",
               )}
             >
               <span
@@ -1520,12 +1562,20 @@ export function GroceryWorkspace() {
                 {online ? "Online" : "Offline"}
               </span>
             </span>
-            <RealtimeConnectionIndicator className="h-8 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 py-0 text-[11px] font-semibold normal-case tracking-normal" />
+            <RealtimeConnectionIndicator
+              className={cn(
+                salesToolBtnClass(),
+                "h-8 px-2 py-0 text-[11px] normal-case tracking-normal",
+              )}
+            />
             <button
               type="button"
               disabled={counterLocked}
               onClick={() => lockCounter({ reason: "manual" })}
-              className="inline-flex h-8 items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] disabled:opacity-50"
+              className={cn(
+                salesToolBtnClass(),
+                "gap-1 px-2 text-[11px] disabled:opacity-50",
+              )}
               aria-label="Lock counter"
             >
               <LockKeyhole className="size-3" aria-hidden />
@@ -1576,7 +1626,12 @@ export function GroceryWorkspace() {
           )}
         >
           {/* Sticky search */}
-          <div className="sticky top-0 z-20 shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-1.5 sm:px-4">
+          <div
+            className={cn(
+              "sticky top-0 z-20 shrink-0 border-b bg-white px-3 py-1.5 sm:px-4",
+              salesHair,
+            )}
+          >
             <div className="flex items-center gap-1.5">
               <div className="group relative flex h-10 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-3 pr-1.5 focus-within:border-[var(--pos-primary,#0f766e)] sm:pl-3.5">
                 <Search className="size-4 shrink-0 text-muted-foreground" />
@@ -1632,12 +1687,10 @@ export function GroceryWorkspace() {
                   aria-pressed={keyboardOpen}
                   aria-label={keyboardOpen ? "Close on-screen keyboard" : "Open on-screen keyboard"}
                   className={cn(
-                    "flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors sm:px-3",
+                    salesToolBtnClass(keyboardOpen),
+                    "gap-1.5 px-2.5 text-[12px] sm:px-3",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                     "touch-manipulation select-none",
-                    keyboardOpen
-                      ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                   )}
                 >
                   <Keyboard className="size-[17px]" strokeWidth={2.25} />
@@ -1661,12 +1714,10 @@ export function GroceryWorkspace() {
                 }
                 title="Use the device's default on-screen keyboard"
                 className={cn(
-                  "flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-none border bg-white px-2.5 text-[12px] font-semibold transition-colors sm:px-3",
+                  salesToolBtnClass(useSystemKeyboard),
+                  "gap-1.5 px-2.5 text-[12px] sm:px-3",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
                   "touch-manipulation select-none",
-                  useSystemKeyboard
-                    ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                 )}
               >
                 <MonitorSmartphone className="size-[17px]" strokeWidth={2.25} />

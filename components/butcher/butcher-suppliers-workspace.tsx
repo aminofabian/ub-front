@@ -25,6 +25,15 @@ import { toast } from "sonner";
 import { ButcherAddStockDialog } from "@/components/butcher/butcher-add-stock-dialog";
 import { useButcherTheme } from "@/components/butcher/butcher-theme-provider";
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  SalesMetricTile,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -307,191 +316,219 @@ export function ButcherSuppliersWorkspace() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:gap-4">
       {/* List column */}
-      <section className="flex min-h-0 w-full shrink-0 flex-col gap-3 lg:w-[min(100%,22rem)] xl:w-80">
-        <div className="flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[rgb(var(--bp-fg-muted))]" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search suppliers"
-              className={cn(butcherInputClass, "pl-10")}
-            />
-          </div>
-          {canWrite ? (
-            <Button
-              type="button"
-              className={cn(
-                "h-11 shrink-0 gap-1.5 rounded-xl px-4 font-semibold",
-                butcherChargeButtonClass,
-              )}
-              style={{
-                backgroundColor: "var(--pos-primary)",
-                color: "var(--pos-primary-ink)",
-              }}
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Add supplier</span>
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.4)]">
-          {listLoading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="size-6 animate-spin text-[var(--pos-primary)]" />
+      <section className="flex min-h-0 w-full shrink-0 flex-col lg:w-[min(100%,22rem)] xl:w-80">
+        <SalesStage
+          title="Suppliers"
+          hint={rows.length > 0 ? `${rows.length} on file` : "Search and pick a vendor"}
+          className="min-h-0 flex-1"
+          bodyClassName="flex min-h-0 flex-col gap-2.5 p-0 sm:p-0"
+          action={
+            canWrite ? (
+              <button
+                type="button"
+                className={cn(
+                  salesToolBtnClass(true),
+                  "bg-[var(--pos-primary)] text-[var(--pos-primary-ink,white)] ring-0 hover:brightness-105",
+                )}
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="size-3.5" />
+                <span className="hidden sm:inline">Add</span>
+              </button>
+            ) : null
+          }
+        >
+          <div className={cn("border-b px-3 py-2.5 sm:px-3.5", salesHair)}>
+            <div className="relative min-w-0">
+              <Search
+                className={cn(
+                  "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2",
+                  salesMute,
+                )}
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search suppliers"
+                className={cn(butcherInputClass, "pl-10")}
+              />
             </div>
-          ) : rows.length === 0 ? (
-            <p className="py-16 text-center text-sm text-[rgb(var(--bp-fg-muted))]">
-              No suppliers found.
-            </p>
-          ) : (
-            <ul className="max-h-[min(70dvh,40rem)] overflow-y-auto p-1.5">
-              {rows.map((row) => {
-                const active = row.id === selectedId;
-                const count = productCounts[row.id];
-                const subtitle = [
-                  formatSupplierType(row.supplierType),
-                  count != null ? `${count} products` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
-                return (
-                  <li key={row.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(row.id)}
-                      className={cn(
-                        "w-full rounded-xl px-3 py-3 text-left transition",
-                        active
-                          ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,#0a0a0a)] ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
-                          : "hover:bg-[rgb(var(--bp-hover))]/60",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p
-                          className={cn(
-                            "truncate text-sm font-semibold",
-                            active
-                              ? "text-[var(--pos-primary)]"
-                              : "text-[rgb(var(--bp-fg))]",
-                          )}
-                        >
-                          {row.name}
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {listLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="size-6 animate-spin text-[var(--pos-primary)]" />
+              </div>
+            ) : rows.length === 0 ? (
+              <p className={cn("py-16 text-center text-sm", salesMute)}>
+                No suppliers found.
+              </p>
+            ) : (
+              <ul
+                className={cn(
+                  "max-h-[min(70dvh,40rem)] divide-y overflow-y-auto p-1",
+                  salesHairDivide,
+                )}
+              >
+                {rows.map((row) => {
+                  const active = row.id === selectedId;
+                  const count = productCounts[row.id];
+                  const subtitle = [
+                    formatSupplierType(row.supplierType),
+                    count != null ? `${count} products` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <li key={row.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(row.id)}
+                        className={cn(
+                          "w-full rounded-xl px-3 py-2.5 text-left transition",
+                          active
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] ring-1 ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]"
+                            : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-semibold",
+                              active
+                                ? "text-[var(--pos-primary,#0f766e)]"
+                                : salesInk,
+                            )}
+                          >
+                            {row.name}
+                          </p>
+                          {row.status !== "active" ? (
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1 ring-black/[0.05]",
+                                salesMute,
+                              )}
+                            >
+                              {row.status}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className={cn("mt-0.5 truncate text-xs", salesMute)}>
+                          {subtitle}
                         </p>
-                        {row.status !== "active" ? (
-                          <span className="shrink-0 rounded-md bg-[rgb(var(--bp-hover))] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[rgb(var(--bp-fg-muted))]">
-                            {row.status}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-[rgb(var(--bp-fg-muted))]">
-                        {subtitle}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </SalesStage>
       </section>
 
       {/* Detail column */}
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex min-h-[min(70dvh,40rem)] flex-1 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.35)] p-4 sm:p-5">
+        <SalesStage
+          title={detail?.name ?? "Supplier detail"}
+          hint={
+            detail
+              ? primaryContact?.name?.trim() || "No contact on file"
+              : "Pick a supplier from the list"
+          }
+          className="min-h-[min(70dvh,40rem)] flex-1"
+          bodyClassName="flex min-h-0 flex-1 flex-col"
+        >
           {detailLoading && !detail ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="size-7 animate-spin text-[var(--pos-primary)]" />
             </div>
           ) : !detail ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-              <Truck className="size-10 text-[rgb(var(--bp-fg-faint))]" strokeWidth={1.25} />
-              <p className="text-sm text-[rgb(var(--bp-fg-muted))]">
+              <Truck className={cn("size-10", salesMute)} strokeWidth={1.25} />
+              <p className={cn("text-sm", salesMute)}>
                 Select a supplier to view details.
               </p>
             </div>
           ) : (
             <>
-              <div className="flex items-start gap-4 border-b border-[rgb(var(--bp-border))] pb-5">
+              <div className={cn("flex items-start gap-3 border-b pb-4", salesHair)}>
                 <div
-                  className="flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-bold"
+                  className="flex size-12 shrink-0 items-center justify-center rounded-full text-base font-bold ring-1 ring-black/[0.05]"
                   style={{
                     backgroundColor:
-                      "color-mix(in srgb, var(--pos-primary) 22%, #171717)",
+                      "color-mix(in srgb, var(--pos-primary) 14%, white)",
                     color: "var(--pos-primary)",
                   }}
                 >
                   {supplierInitials(detail.name)}
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold tracking-tight text-[rgb(var(--bp-fg))]">
-                    {detail.name}
-                  </h2>
-                  <p className="text-sm text-[rgb(var(--bp-fg-muted))]">
-                    {primaryContact?.name?.trim() || "No contact on file"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 py-5 text-sm">
-                {primaryContact?.phone?.trim() ? (
-                  <div className="flex items-center gap-3 text-[rgb(var(--bp-fg-soft))]">
-                    <Phone className="size-4 shrink-0 text-[rgb(var(--bp-fg-muted))]" />
-                    <span>{primaryContact.phone}</span>
-                  </div>
-                ) : null}
-                {primaryContact?.email?.trim() ? (
-                  <div className="flex items-center gap-3">
-                    <Mail className="size-4 shrink-0 text-[rgb(var(--bp-fg-muted))]" />
-                    <a
-                      href={`mailto:${primaryContact.email}`}
-                      className="text-[var(--pos-primary)] hover:underline"
-                    >
-                      {primaryContact.email}
-                    </a>
-                  </div>
-                ) : null}
-                <div className="flex items-center gap-3 text-[rgb(var(--bp-fg-faint))]">
-                  <Clock3 className="size-4 shrink-0 text-[rgb(var(--bp-fg-muted))]" />
-                  <span>
-                    Last order:{" "}
-                    <span className="text-[rgb(var(--bp-fg-soft))]">
-                      {enrichment?.lastOrderLabel ?? "—"}
+                <div className="min-w-0 flex-1 space-y-2 text-sm">
+                  {primaryContact?.phone?.trim() ? (
+                    <div className={cn("flex items-center gap-2", salesInk)}>
+                      <Phone className={cn("size-3.5 shrink-0", salesMute)} />
+                      <span>{primaryContact.phone}</span>
+                    </div>
+                  ) : null}
+                  {primaryContact?.email?.trim() ? (
+                    <div className="flex items-center gap-2">
+                      <Mail className={cn("size-3.5 shrink-0", salesMute)} />
+                      <a
+                        href={`mailto:${primaryContact.email}`}
+                        className="text-[var(--pos-primary,#0f766e)] hover:underline"
+                      >
+                        {primaryContact.email}
+                      </a>
+                    </div>
+                  ) : null}
+                  <div className={cn("flex items-center gap-2", salesMute)}>
+                    <Clock3 className="size-3.5 shrink-0" />
+                    <span>
+                      Last order:{" "}
+                      <span className={salesInk}>
+                        {enrichment?.lastOrderLabel ?? "—"}
+                      </span>
                     </span>
-                  </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.5)] p-4">
-                  <p className="text-xs text-[rgb(var(--bp-fg-muted))]">Products supplied</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-[rgb(var(--bp-fg))]">
-                    {enrichment?.productCount ?? "—"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel-strong)/0.5)] p-4">
-                  <p className="text-xs text-[rgb(var(--bp-fg-muted))]">Outstanding balance</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-amber-400">
-                    {enrichment != null
+              <div className={cn("grid grid-cols-2 border-b", salesHair)}>
+                <SalesMetricTile
+                  label="Products supplied"
+                  value={
+                    enrichment != null
+                      ? String(enrichment.productCount)
+                      : "—"
+                  }
+                />
+                <SalesMetricTile
+                  className={cn("border-l", salesHair)}
+                  label="Outstanding balance"
+                  value={
+                    enrichment != null
                       ? formatMoney(enrichment.openBalance, currency)
-                      : "—"}
-                  </p>
-                </div>
+                      : "—"
+                  }
+                  warn={
+                    enrichment != null && enrichment.openBalance > 0
+                  }
+                />
               </div>
 
               {enrichment && enrichment.categories.length > 0 ? (
-                <div className="mt-5">
-                  <p className="mb-2 text-xs font-medium text-[rgb(var(--bp-fg-muted))]">
+                <div className="py-4">
+                  <p className={cn("mb-2 text-xs font-semibold", salesMute)}>
                     Categories
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {enrichment.categories.map((tag) => (
                       <span
                         key={tag}
-                        className={butcherPillClass(false)}
+                        className={cn(
+                          butcherPillClass(false),
+                          "rounded-full",
+                        )}
                       >
                         {tag}
                       </span>
@@ -500,29 +537,27 @@ export function ButcherSuppliersWorkspace() {
                 </div>
               ) : null}
 
-              <div className="mt-auto flex flex-wrap gap-2 pt-6">
+              <div className="mt-auto flex flex-wrap gap-2 pt-4">
                 {canPathBWrite || canPathAWrite ? (
                   <>
-                    <Button
+                    <button
                       type="button"
-                      className="gap-2 rounded-xl border-0 shadow-md hover:brightness-110"
-                      style={{
-                        backgroundColor: "var(--pos-primary)",
-                        color: "var(--pos-primary-ink)",
-                      }}
+                      className={cn(
+                        salesToolBtnClass(true),
+                        "gap-1.5 bg-[var(--pos-primary)] text-[var(--pos-primary-ink,white)] ring-0 hover:brightness-105",
+                      )}
                       onClick={() => {
                         setStockSessionId(null);
                         setStockOpen(true);
                       }}
                     >
-                      <PackagePlus className="size-4" />
+                      <PackagePlus className="size-3.5" />
                       Add stock
-                    </Button>
+                    </button>
                     {openDraftCount > 0 ? (
-                      <Button
+                      <button
                         type="button"
-                        variant="outline"
-                        className="rounded-xl border-[rgb(var(--bp-border))] bg-transparent text-[rgb(var(--bp-fg-soft))] hover:bg-[rgb(var(--bp-hover))]"
+                        className={salesToolBtnClass()}
                         onClick={() => {
                           setStockSessionId(null);
                           setStockOpen(true);
@@ -530,39 +565,27 @@ export function ButcherSuppliersWorkspace() {
                       >
                         {openDraftCount} draft
                         {openDraftCount === 1 ? "" : "s"}
-                      </Button>
+                      </button>
                     ) : null}
                   </>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl border-[rgb(var(--bp-border))] bg-transparent text-[rgb(var(--bp-fg-soft))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))]"
-                  asChild
+                <Link
+                  href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(detail.id)}`}
+                  className={salesToolBtnClass()}
                 >
-                  <Link
-                    href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(detail.id)}`}
-                  >
-                    View products
-                  </Link>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2 rounded-xl border-[rgb(var(--bp-border))] bg-transparent text-[rgb(var(--bp-fg-soft))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))]"
-                  asChild
+                  View products
+                </Link>
+                <Link
+                  href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(detail.id)}&tab=history`}
+                  className={cn(salesToolBtnClass(), "gap-1.5")}
                 >
-                  <Link
-                    href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(detail.id)}&tab=history`}
-                  >
-                    <FileText className="size-4" />
-                    Order history
-                  </Link>
-                </Button>
+                  <FileText className="size-3.5" />
+                  Order history
+                </Link>
               </div>
             </>
           )}
-        </div>
+        </SalesStage>
       </section>
 
       <ButcherAddStockDialog

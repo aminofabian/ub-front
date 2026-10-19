@@ -61,7 +61,7 @@ const PAYMENT_ICONS: Record<
 };
 
 const SEGMENT =
-  "inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-[11px] font-semibold transition-colors duration-150";
+  "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-150";
 const SEGMENT_IDLE =
   "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground";
 const SEGMENT_ACTIVE =
@@ -168,7 +168,7 @@ export function SalesFeedFilters({
       className={cn(
         compact
           ? null
-          : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
+          : "overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white shadow-none",
       )}
     >
       {hidePeriod ? null : (
@@ -180,7 +180,7 @@ export function SalesFeedFilters({
         >
           <FilterCluster label="When">
             <div role="group" aria-label="Period">
-              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {DATE_FILTER_OPTIONS.map(({ id, label }) => (
                   <Seg
                     key={id}
@@ -199,7 +199,7 @@ export function SalesFeedFilters({
               type="button"
               onClick={clearExtra}
               className={cn(
-                "inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                "inline-flex items-center gap-1 rounded-full px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 !compact && "ml-auto",
               )}
               title="Clear filters"
@@ -226,7 +226,7 @@ export function SalesFeedFilters({
               onChange={(e) => onCustomFromChange(e.target.value)}
               className={cn(
                 dashboardInputClass(),
-                "h-8 w-auto rounded-none py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
+                "h-8 w-auto rounded-xl py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
               )}
             />
           </label>
@@ -238,7 +238,7 @@ export function SalesFeedFilters({
               onChange={(e) => onCustomToChange(e.target.value)}
               className={cn(
                 dashboardInputClass(),
-                "h-8 w-auto rounded-none py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
+                "h-8 w-auto rounded-xl py-1 text-xs focus-visible:border-[var(--pos-primary,#0f766e)]",
               )}
             />
           </label>
@@ -254,7 +254,7 @@ export function SalesFeedFilters({
         {showChannelFilter ? (
           <FilterCluster label="Channel">
             <div role="group" aria-label="Channel">
-              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {CHANNEL_FILTER_OPTIONS.map(({ id, label, short }) => {
                   const Icon =
                     id === "online_store"
@@ -283,7 +283,7 @@ export function SalesFeedFilters({
 
         <FilterCluster label="Status">
           <div role="group" aria-label="Status">
-            <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
+            <div className="inline-flex flex-wrap items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
               {STATUS_OPTIONS.map(({ id, label }) => (
                 <Seg
                   key={id}
@@ -301,7 +301,7 @@ export function SalesFeedFilters({
         {showTender ? (
           <FilterCluster label="Pay">
             <div role="group" aria-label="Payment">
-              <div className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
+              <div className="inline-flex flex-wrap items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
                 {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
                   const active = paymentFilter === id;
                   const Icon = PAYMENT_ICONS[id];
@@ -337,7 +337,7 @@ export function SalesFeedFilters({
           <button
             type="button"
             onClick={clearExtra}
-            className="ml-auto inline-flex items-center gap-1 rounded-none px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            className="ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
             title="Clear filters"
           >
             <X className="size-3" aria-hidden />

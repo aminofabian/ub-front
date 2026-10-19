@@ -217,7 +217,7 @@ export function SuppliesReceiptWorkspace({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className="hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] p-2.5 lg:flex">
+        <aside className="hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)] p-2.5 lg:flex">
           <SuppliesFilterPanel
             layout="rail"
             value={billFilter}
@@ -227,7 +227,7 @@ export function SuppliesReceiptWorkspace({
           />
         </aside>
 
-        <aside className="flex w-full min-w-0 shrink-0 flex-col border-r-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)] md:w-[17rem] md:border-r md:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:w-[18.5rem]">
+        <aside className="flex w-full min-w-0 shrink-0 flex-col border-r-0 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)] md:w-[17rem] md:border-r md:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] lg:w-[18.5rem]">
           <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Receipts

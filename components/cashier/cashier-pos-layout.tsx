@@ -78,6 +78,12 @@ import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { PosFrequentChips } from "@/components/cashier/pos-frequent-chips";
 import { PosSearchHitList } from "@/components/cashier/pos-search-hit-list";
 import { PosVariantPicker } from "@/components/cashier/pos-variant-picker";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import {
   CashierProductModal,
@@ -113,23 +119,15 @@ import {
   type CashierMobileToolId,
 } from "@/lib/cashier-mobile-events";
 
+const POS_TOOL_CHIP = salesToolBtnClass;
+
+const POS_PRIMARY_CHIP_CLASS = POS_TOOL_CHIP(true);
+
+const POS_SECONDARY_CHIP_CLASS = POS_TOOL_CHIP(false);
+
 const POS_SHIFT_CHIP_CLASS = cn(
-  "inline-flex items-center gap-1.5 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
-  "transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
-  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+  POS_TOOL_CHIP(),
   "active:scale-[0.98]",
-);
-
-const POS_PRIMARY_CHIP_CLASS = cn(
-  POS_SHIFT_CHIP_CLASS,
-  "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] text-[var(--pos-ink,#1c1915)]",
-  "hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]",
-);
-
-const POS_SECONDARY_CHIP_CLASS = cn(
-  POS_SHIFT_CHIP_CLASS,
-  "border-transparent text-muted-foreground",
-  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] hover:text-foreground",
 );
 
 /** Micro label: counts, roles, section kickers inside the shelf. */
@@ -1853,7 +1851,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
           ? cn(
-              "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6",
+              "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6 [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",
               // Drawer: flex column host — scroller + absolute dock. Page: scroll
               // with the dashboard main and keep bottom padding for the fixed dock.
               inDrawer
@@ -1892,7 +1890,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         >
       <section
         className={cn(
-          "border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
+          "border-b bg-white/40 dark:border-border/40",
+          salesHair,
           compactShelf ? "pb-1.5" : "pb-3",
           mobilePhone && !offlineBanner && "hidden",
         )}
@@ -1906,15 +1905,20 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           <div className="min-w-0">
             {compactShelf ? (
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                <h2
+                  className={cn(
+                    "font-heading text-[0.95rem] font-semibold leading-none tracking-[-0.02em] dark:text-foreground",
+                    salesInk,
+                  )}
+                >
                   {pageTitle}
                 </h2>
                 {branchesLoading ? (
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className={cn("text-[11px]", salesMute)}>
                     Loading branches…
                   </span>
                 ) : activeBranchName ? (
-                  <span className="truncate text-[11px] text-muted-foreground">
+                  <span className={cn("truncate text-[11px]", salesMute)}>
                     {activeBranchName}
                   </span>
                 ) : (
@@ -1925,14 +1929,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               </div>
             ) : (
               <>
-                <h2 className="pos-market-section-label flex items-center gap-2 text-xl leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-2xl">
+                <h2
+                  className={cn(
+                    "flex items-center gap-2 font-heading text-xl font-semibold leading-none tracking-[-0.02em] dark:text-foreground sm:text-2xl",
+                    salesInk,
+                  )}
+                >
                   <span>{pageTitle}</span>
                   <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-none bg-[var(--pos-primary)] opacity-80"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)] opacity-80"
                     aria-hidden
                   />
                 </h2>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+                <p
+                  className={cn(
+                    "mt-1 text-[11px] leading-relaxed sm:text-xs",
+                    salesMute,
+                  )}
+                >
                   {branchesLoading ? (
                     "Loading branches…"
                   ) : activeBranchName ? (
@@ -2022,12 +2036,23 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               />
             ) : null}
             {!online ? (
-              <span className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <span
+                className={cn(
+                  "rounded-full border border-dashed px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  salesHair,
+                  salesMute,
+                )}
+              >
                 {uiCopy.offlinePill}
               </span>
             ) : null}
             {posShiftLinks?.branchSelected ? (
-              <div className="ml-1 flex shrink-0 flex-wrap items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pl-2.5 dark:border-border/50">
+              <div
+                className={cn(
+                  "ml-1 flex shrink-0 flex-wrap items-center gap-1 border-l pl-2.5 dark:border-border/50",
+                  salesHair,
+                )}
+              >
                 {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"
@@ -2087,9 +2112,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           <div
             className={cn(
               "flex items-center gap-1.5 overflow-x-auto px-1 py-1",
-              "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)]",
-              "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
-              "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
+              "bg-[color-mix(in_srgb,#f4f7f5_92%,transparent)]",
+              "supports-[backdrop-filter]:bg-[color-mix(in_srgb,#f4f7f5_82%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
+              "border-b dark:border-border/40 dark:bg-background/85",
+              salesHair,
             )}
           >
             {([...phoneCartTabs] as typeof cartTabs)
@@ -2243,7 +2269,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <button
                 type="button"
                 onClick={onCreateCart}
-                className="inline-flex shrink-0 items-center gap-1 rounded-none border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-[var(--pos-primary)] hover:text-foreground"
+                className={cn(
+                  POS_TOOL_CHIP(),
+                  "border-dashed px-2 py-1 text-xs hover:border-[var(--pos-primary,#0f766e)]",
+                )}
               >
                 <PlusCircle className="size-3.5" />
                 <span>New</span>
@@ -2260,15 +2289,19 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           <div
             className={cn(
               "flex items-center gap-1.5 px-1 py-1",
-              "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)]",
-              "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
+              "bg-[color-mix(in_srgb,#f4f7f5_92%,transparent)]",
+              "border-b dark:border-border/40 dark:bg-background/85",
+              salesHair,
             )}
           >
             {canCreateCart ? (
               <button
                 type="button"
                 onClick={onCreateCart}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2.5 text-xs font-semibold text-muted-foreground"
+                className={cn(
+                  POS_TOOL_CHIP(),
+                  "h-9 border-dashed px-2.5 text-xs",
+                )}
               >
                 <PlusCircle className="size-3.5" />
                 New sale
@@ -2285,21 +2318,21 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <section
           className={cn(
             "py-0.5",
-            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]",
-            "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
+            "bg-[color-mix(in_srgb,#f4f7f5_94%,transparent)]",
+            "supports-[backdrop-filter]:bg-[color-mix(in_srgb,#f4f7f5_84%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
             "dark:bg-background/90",
           )}
         >
           <div
             className={cn(
-              "group flex items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3 pr-1 transition-colors",
-              "rounded-none",
-              "focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
+              "group flex items-center gap-1.5 rounded-xl border bg-white pl-3 pr-1 shadow-[0_1px_2px_rgba(16,24,40,0.05)] ring-1 ring-black/[0.05] transition-colors",
+              salesHair,
+              "focus-within:border-[var(--pos-primary,#0f766e)] focus-within:ring-[var(--pos-primary,#0f766e)]/20",
               "dark:border-border/40 dark:bg-card/80",
             )}
           >
             <Search
-              className="size-5 shrink-0 text-muted-foreground/75"
+              className={cn("size-5 shrink-0", salesMute)}
               aria-hidden
             />
             <input

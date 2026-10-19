@@ -2,14 +2,39 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, Filter, RefreshCw, X } from "lucide-react";
+import {
+  Check,
+  Filter,
+  Gauge,
+  RefreshCw,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   useSessionItemType,
   useSyncBranchFilter,
 } from "@/hooks/use-session-scope";
-import { DashboardFeedback } from "@/components/dashboard-page-ui";
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
+import {
+  SalesHeroMetric,
+  SalesMetricTile,
+  SalesPeriodChip,
+  SalesStage,
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  salesTeal,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -48,10 +73,9 @@ import {
 } from "@/lib/api";
 import { AnalyticsOpsBoard } from "./analytics-ops-board";
 
-const BAR = "color-mix(in oklab, currentColor 45%, transparent)";
-const BAR_LEAD = "currentColor";
+const BAR = `color-mix(in srgb, ${salesTeal} 28%, transparent)`;
+const BAR_LEAD = salesTeal;
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-const OWED = "#9a2e16";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -124,116 +148,17 @@ function Panel({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <div
-      className={cn(
-        "rounded-none border border-border bg-transparent",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Desktop filter rail: a compact radio list that slices the board. */
-function SlicerPanel({
-  title,
-  name,
-  items,
-  value,
-  onChange,
-  onClear,
-}: {
-  title: string;
-  name: string;
-  items: { id: string; label: string }[];
-  value: string;
-  onChange: (id: string) => void;
-  onClear?: () => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={title}
-      className="border border-border px-2.5 py-2.5"
-    >
-      <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-        <SectionTitle>{title}</SectionTitle>
-        {onClear && value ? (
-          <button
-            type="button"
-            onClick={onClear}
-            className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X className="size-3" aria-hidden />
-            Clear
-          </button>
-        ) : null}
-      </div>
-      <div className="space-y-px">
-        {items.map((item) => {
-          const selected = item.id === value;
-          return (
-            <label
-              key={item.id || "all"}
-              className={cn(
-                "flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-[12px] tracking-[-0.01em] transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
-                selected
-                  ? "bg-[var(--pos-primary,#0f766e)] font-semibold text-white"
-                  : "text-foreground hover:bg-muted/50",
-              )}
-            >
-              <span className="truncate">{item.label}</span>
-              <input
-                type="radio"
-                name={name}
-                value={item.id}
-                checked={selected}
-                onChange={() => onChange(item.id)}
-                className="sr-only"
-              />
-              {selected ? (
-                <Check className="size-3 shrink-0" aria-hidden />
-              ) : null}
-            </label>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  children,
-  className,
-}: {
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex min-h-0 flex-col px-3 pb-3 pt-3.5 sm:px-4", className)}>
-      <h3 className="mb-3 text-[12px] font-semibold tracking-[-0.02em] text-foreground">
-        {title}
-      </h3>
-      <div className="min-h-0 flex-1 text-foreground">{children}</div>
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
-      {children}
-    </h2>
-  );
+  return <div className={cn(salesSurface, "overflow-hidden", className)}>{children}</div>;
 }
 
 function EmptyPlot({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex h-44 items-center justify-center px-4 text-center text-xs leading-relaxed text-muted-foreground">
+    <p
+      className={cn(
+        "flex h-40 items-center justify-center px-4 text-center text-[13px] leading-relaxed",
+        salesMute,
+      )}
+    >
       {children}
     </p>
   );
@@ -261,103 +186,26 @@ function RankedBars({
         return (
           <li key={item.key} className="min-w-0">
             <div className="mb-1 flex items-baseline justify-between gap-2">
-              <span className="min-w-0 truncate text-[13px] font-medium tracking-[-0.015em]">
-                <span className="mr-1.5 tabular-nums text-muted-foreground">
+              <span className={cn("min-w-0 truncate text-[13px] font-medium tracking-[-0.015em]", salesInk)}>
+                <span className={cn("mr-1.5 tabular-nums", salesMute)}>
                   {index + 1}.
                 </span>
                 {item.label}
               </span>
-              <span className="shrink-0 text-[12px] font-semibold tabular-nums tracking-[-0.02em]">
+              <span className={cn("shrink-0 text-[12px] font-semibold tabular-nums tracking-[-0.02em]", salesInk)}>
                 {formatValue(item.value)}
               </span>
             </div>
-            <div className="h-2 bg-muted/60">
+            <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]">
               <div
-                className="h-full origin-left motion-reduce:transition-none"
+                className="h-full w-full origin-left rounded-full motion-reduce:transition-none"
                 style={{
-                  width: `${pct}%`,
+                  transform: `scaleX(${pct / 100})`,
                   background: index === 0 ? BAR_LEAD : BAR,
-                  transition: `width 200ms ${EASE}`,
-                }}
-              />
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function ColumnChart({
-  items,
-  formatValue,
-  empty,
-}: {
-  items: { key: string; label: string; value: number }[];
-  formatValue: (n: number) => string;
-  empty: string;
-}) {
-  return (
-    <>
-      <div className="sm:hidden">
-        <RankedBars items={items} formatValue={formatValue} empty={empty} />
-      </div>
-      <div className="hidden sm:block">
-        <ColumnChartDesktop
-          items={items}
-          formatValue={formatValue}
-          empty={empty}
-        />
-      </div>
-    </>
-  );
-}
-
-function ColumnChartDesktop({
-  items,
-  formatValue,
-  empty,
-}: {
-  items: { key: string; label: string; value: number }[];
-  formatValue: (n: number) => string;
-  empty: string;
-}) {
-  if (items.length === 0) return <EmptyPlot>{empty}</EmptyPlot>;
-  const max = Math.max(...items.map((i) => Math.abs(i.value)), 1);
-  return (
-    <ul className="flex h-[16.5rem] items-end gap-1.5">
-      {items.map((item, index) => {
-        const pct = Math.max(
-          (Math.abs(item.value) / max) * 100,
-          item.value ? 6 : 0,
-        );
-        const lead = index === 0;
-        return (
-          <li
-            key={item.key}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
-          >
-            <span className="w-full truncate text-center text-[10px] font-semibold tabular-nums tracking-[-0.02em] text-foreground">
-              {formatValue(item.value)}
-            </span>
-            <div className="flex h-36 w-full items-end justify-center sm:h-40">
-              <div
-                className="w-[70%] max-w-11 origin-bottom motion-reduce:transition-none"
-                style={{
-                  height: "100%",
-                  transform: `scaleY(${pct / 100})`,
-                  background: lead ? BAR_LEAD : BAR,
                   transition: `transform 200ms ${EASE}`,
                 }}
-                title={`${item.label}: ${formatValue(item.value)}`}
               />
             </div>
-            <span
-              className="line-clamp-2 h-8 w-full text-center text-[10px] leading-tight text-muted-foreground"
-              title={item.label}
-            >
-              {item.label}
-            </span>
           </li>
         );
       })}
@@ -486,38 +334,59 @@ function CustomerTrend({
 function BoardSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-[1280px] space-y-6 pb-10"
+      className={cn(DASHBOARD_MAX_WIDE, salesPaper)}
       aria-busy="true"
     >
-      <div className="h-10 w-1/2 animate-pulse bg-muted" />
-      <div className="h-12 animate-pulse border border-border bg-muted/40" />
-      <div className="grid grid-cols-2 gap-0 border border-border xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "h-20 animate-pulse bg-muted/40",
-              i > 0 && "border-l border-border",
-              i >= 2 && "border-t border-border xl:border-t-0",
-              i === 4 && "col-span-2 xl:col-span-1",
-            )}
-          />
-        ))}
-      </div>
-      <div className="grid gap-0 border border-border md:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "h-56 animate-pulse bg-muted/30",
-              i % 2 === 1 && "md:border-l md:border-border",
-              i >= 2 && "border-t border-border",
-            )}
-          />
-        ))}
+      <div className={cn(salesSurface, "h-11 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]")} />
+      <div className={cn(salesSurface, "h-12 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)]")} />
+      <div className={cn(salesSurface, "h-36 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]")} />
+      <div className="grid gap-2 md:grid-cols-2">
+        <div className={cn(salesSurface, "h-56 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]")} />
+        <div className={cn(salesSurface, "h-56 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]")} />
       </div>
       <span className="sr-only">Loading sales performance</span>
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  items,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  items: { id: string; label: string }[];
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex min-w-0 items-center gap-1.5">
+      <span className={cn("hidden shrink-0 text-[11px] font-semibold sm:inline", salesMute)}>
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        aria-label={label}
+        className={cn(
+          "h-9 max-w-[11rem] cursor-pointer appearance-none rounded-xl border bg-white py-0 pl-2.5 pr-7 text-[12px] font-semibold outline-none",
+          salesHair,
+          salesInk,
+          "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/25",
+          "disabled:cursor-not-allowed disabled:opacity-60",
+        )}
+      >
+        {items.map((item) => (
+          <option key={item.id || "all"} value={item.id}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -530,7 +399,6 @@ export function AnalyticsWorkspace({
 } = {}) {
   const {
     business,
-    me,
     setBranchId: setHeaderBranchId,
     canViewAuditLog,
   } = useDashboard();
@@ -753,26 +621,40 @@ export function AnalyticsWorkspace({
     ? totalRevenue - totalProfit
     : toNum(pl?.cogs);
 
-  const productBars = (showCategoryTable ? itemsByProfit.slice(0, 8) : itemsByProfit).map((row) => ({
-    key: row.itemId,
-    label: row.itemName,
-    value: toNum(row.netProfit),
-  }));
+  const productProfitBars = [...itemsByProfit]
+    .sort((a, b) => toNum(b.netProfit) - toNum(a.netProfit))
+    .slice(0, 8)
+    .map((row) => ({
+      key: row.itemId,
+      label: row.itemName,
+      value: toNum(row.netProfit),
+    }));
+
+  const productQtyBars = [...itemsByProfit]
+    .sort((a, b) => toNum(b.quantitySold) - toNum(a.quantitySold))
+    .slice(0, 8)
+    .map((row) => ({
+      key: `qty-${row.itemId}`,
+      label: row.itemName,
+      value: toNum(row.quantitySold),
+    }));
 
   const staffBars = [...staffPerf]
     .sort((a, b) => toNum(b.totalRevenue) - toNum(a.totalRevenue))
-    .slice(0, 6)
+    .slice(0, 8)
     .map((row) => ({
       key: row.userId,
       label: row.userName,
       value: toNum(row.totalRevenue),
     }));
 
-  const cogsBars = branchCogs.map((row) => ({
-    key: row.branchId,
-    label: row.branchName,
-    value: toNum(row.cogs),
-  }));
+  const cogsBars = branchCogs
+    .slice(0, 8)
+    .map((row) => ({
+      key: row.branchId,
+      label: row.branchName,
+      value: toNum(row.cogs),
+    }));
 
   const today = new Date();
   const todayStr = toISODate(today);
@@ -855,362 +737,377 @@ export function AnalyticsWorkspace({
     ? ["thisMonth", "lastMonth", "last30", "today"]
     : ["today", "last7", "last30", "thisMonth"];
 
+
+  const rangeLabel = dateRange
+    ? dateRange.from === dateRange.to
+      ? dateRange.from
+      : `${dateRange.from} → ${dateRange.to}`
+    : periodLabel;
+
+  const attention = unallocated + owedTotal;
+
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1280px] space-y-4 pb-4 text-foreground sm:space-y-5 sm:pb-8",
+        DASHBOARD_MAX_WIDE,
+        salesPaper,
+        salesInk,
         refreshing && "opacity-80",
       )}
     >
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3 sm:pb-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-[1.35rem] font-bold tracking-tight sm:text-xl">
-              Trends
-            </h1>
+      <DashboardPageHero
+        icon={TrendingUp}
+        title="Trends"
+        description={
+          <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <ActiveScopeSubtitle className="text-[11px]" />
+            {rangeLabel ? (
+              <span className="tabular-nums">{rangeLabel}</span>
+            ) : null}
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-semibold tracking-[-0.02em]",
-                balanced ? "text-[var(--pos-primary,#0f766e)]" : "text-[#9a2e16]",
+                "inline-flex items-center gap-1 font-semibold",
+                balanced
+                  ? "text-[var(--pos-primary,#0f766e)]"
+                  : "text-[#9a2e16]",
               )}
             >
-              {balanced ? <Check className="size-3.5" aria-hidden /> : null}
+              {balanced ? <Check className="size-3" aria-hidden /> : null}
               {balanced ? "Balanced" : "Needs review"}
             </span>
-          </div>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            {me?.name || business?.name || "Sales performance"}
-            {dateRange ? (
-              <span className="mt-0.5 block tabular-nums sm:mt-0 sm:inline sm:before:content-['_·_']">
-                {dateRange.from === dateRange.to
-                  ? dateRange.from
-                  : `${dateRange.from} → ${dateRange.to}`}
-              </span>
-            ) : null}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {activityHref ? (
-            <Link
-              href={activityHref}
-              className="inline-flex h-10 items-center border border-border px-3 text-[12px] font-semibold text-foreground active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:border-0 sm:px-0 sm:font-medium sm:text-muted-foreground sm:underline-offset-2 sm:hover:text-foreground sm:hover:underline"
-            >
-              Activity
-            </Link>
-          ) : null}
-          <Link
-            href={APP_ROUTES.analyticsCustomers}
-            className="inline-flex h-10 items-center border border-border px-3 text-[12px] font-semibold text-foreground active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:border-0 sm:px-0 sm:font-medium sm:text-muted-foreground sm:underline-offset-2 sm:hover:text-foreground sm:hover:underline"
-          >
-            Shoppers
+          </span>
+        }
+      >
+        {activityHref ? (
+          <Link href={activityHref} className={salesToolBtnClass()}>
+            <Gauge className="size-3.5" aria-hidden />
+            Activity
           </Link>
-          <button
-            type="button"
-            className="flex size-10 items-center justify-center border border-border text-muted-foreground active:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 sm:size-9 sm:border-0"
-            onClick={() => {
-              setRefreshing(true);
-              void load();
-            }}
-            disabled={refreshing}
-            aria-label="Refresh"
-          >
-            <RefreshCw
-              className={cn("size-4", refreshing && "animate-spin")}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile: period + filters before KPIs */}
-      <div className="space-y-2 lg:hidden">
-        <div
-          className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="group"
-          aria-label="Period"
+        ) : null}
+        <Link
+          href={APP_ROUTES.analyticsCustomers}
+          className={salesToolBtnClass()}
         >
-          {primaryPeriods.map((key) => {
-            const label =
-              ANALYTICS_PRESET_LABELS.find((p) => p.key === key)?.label ?? key;
-            const active = preset === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setPreset(key)}
-                className={cn(
-                  "inline-flex h-10 shrink-0 items-center border px-3.5 text-[13px] font-semibold tracking-[-0.015em] transition-colors",
-                  active
-                    ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-foreground active:bg-muted/40",
-                )}
-              >
-                {label}
-              </button>
-            );
-          })}
+          <Users className="size-3.5" aria-hidden />
+          Shoppers
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            setRefreshing(true);
+            void load();
+          }}
+          disabled={refreshing}
+          aria-label="Refresh"
+          className={cn(
+            salesToolBtnClass(),
+            "size-8 justify-center px-0 disabled:opacity-40",
+          )}
+        >
+          <RefreshCw
+            className={cn("size-3.5", refreshing && "animate-spin")}
+            aria-hidden
+          />
+        </button>
+      </DashboardPageHero>
+
+      {/* Period + scope strip — one control surface, not a side rail */}
+      <div className={cn(salesSurface, "px-2.5 py-2 sm:px-3")}>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="group"
+            aria-label="Period"
+          >
+            {primaryPeriods.map((key) => {
+              const label =
+                ANALYTICS_PRESET_LABELS.find((p) => p.key === key)?.label ??
+                key;
+              return (
+                <SalesPeriodChip
+                  key={key}
+                  active={preset === key}
+                  onClick={() => setPreset(key)}
+                >
+                  {label}
+                </SalesPeriodChip>
+              );
+            })}
+            <SalesPeriodChip
+              active={
+                preset === "custom" || !primaryPeriods.includes(preset)
+              }
+              onClick={() => {
+                setPreset("custom");
+                setMobileFiltersOpen(true);
+              }}
+            >
+              More
+            </SalesPeriodChip>
+          </div>
+          <div className="hidden items-center gap-2 sm:flex">
+            <FilterSelect
+              label="Category"
+              value={categoryId}
+              onChange={setCategoryId}
+              items={categoryItems}
+            />
+            <FilterSelect
+              label="Branch"
+              value={branchId}
+              onChange={onChangeBranch}
+              items={branchItems}
+              disabled={branchLocked}
+            />
+          </div>
           <button
             type="button"
             onClick={() => setMobileFiltersOpen((v) => !v)}
             className={cn(
-              "relative inline-flex h-10 shrink-0 items-center gap-1 border px-3 text-[13px] font-semibold",
-              mobileFiltersOpen ||
-                preset === "custom" ||
-                !primaryPeriods.includes(preset) ||
-                filtersActive
-                ? "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+              "relative inline-flex h-9 items-center gap-1 rounded-xl border bg-white px-2.5 text-[12px] font-semibold sm:hidden",
+              salesHair,
+              filtersActive || mobileFiltersOpen
+                ? "text-[var(--pos-primary,#0f766e)]"
+                : salesMute,
             )}
             aria-expanded={mobileFiltersOpen}
           >
             <Filter className="size-3.5" aria-hidden />
-            More
-            <ChevronDown
-              className={cn(
-                "size-3.5 transition-transform",
-                mobileFiltersOpen && "rotate-180",
-              )}
-              aria-hidden
-            />
+            Filters
             {filtersActive ? (
-              <span className="absolute -right-1 -top-1 size-2 rounded-none bg-[var(--pos-primary,#0f766e)]" />
+              <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[var(--pos-primary,#0f766e)] ring-2 ring-white" />
             ) : null}
           </button>
         </div>
 
-        <p className="truncate text-[12px] text-muted-foreground">
-          <span className="font-medium text-foreground">{periodLabel}</span>
-          <span className="mx-1.5 opacity-40">·</span>
-          {categoryLabel}
-          <span className="mx-1.5 opacity-40">·</span>
-          {branchLabel}
-        </p>
-
-        {mobileFiltersOpen ? (
-          <div className="space-y-3 border border-border bg-muted/20 p-3">
-            <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                Period
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {ANALYTICS_PRESET_LABELS.map(({ key, label }) => {
-                  const active = preset === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setPreset(key)}
-                      className={cn(
-                        "inline-flex h-9 items-center border px-3 text-[12px] font-semibold",
-                        active
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-background",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+        {mobileFiltersOpen || preset === "custom" || !primaryPeriods.includes(preset) ? (
+          <div className={cn("mt-2 space-y-2 border-t pt-2 sm:mt-2.5", salesHair)}>
+            <div className="flex flex-wrap gap-1.5 sm:hidden">
+              {ANALYTICS_PRESET_LABELS.map(({ key, label }) => (
+                <SalesPeriodChip
+                  key={key}
+                  active={preset === key}
+                  onClick={() => setPreset(key)}
+                  className="h-8 px-2.5 text-[11px]"
+                >
+                  {label}
+                </SalesPeriodChip>
+              ))}
             </div>
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                Category
-              </span>
-              <select
+            <div className="flex flex-wrap gap-2 sm:hidden">
+              <FilterSelect
+                label="Category"
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="h-11 w-full border border-border bg-background px-3 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {categoryItems.map((c) => (
-                  <option key={c.id || "all"} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                Branch
-              </span>
-              <select
+                onChange={setCategoryId}
+                items={categoryItems}
+              />
+              <FilterSelect
+                label="Branch"
                 value={branchId}
-                onChange={(e) => onChangeBranch(e.target.value)}
-                className="h-11 w-full border border-border bg-background px-3 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {branchItems.map((b) => (
-                  <option key={b.id || "all"} value={b.id}>
-                    {b.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={onChangeBranch}
+                items={branchItems}
+                disabled={branchLocked}
+              />
+            </div>
+            {preset === "custom" ? (
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+                <label className={cn("flex flex-col gap-1 text-[11px] font-semibold", salesMute)}>
+                  From
+                  <input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className={cn(
+                      "h-10 rounded-xl border bg-white px-2.5 text-[13px] font-medium outline-none",
+                      salesHair,
+                      salesInk,
+                      "focus-visible:border-[var(--pos-primary,#0f766e)]",
+                    )}
+                  />
+                </label>
+                <label className={cn("flex flex-col gap-1 text-[11px] font-semibold", salesMute)}>
+                  To
+                  <input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className={cn(
+                      "h-10 rounded-xl border bg-white px-2.5 text-[13px] font-medium outline-none",
+                      salesHair,
+                      salesInk,
+                      "focus-visible:border-[var(--pos-primary,#0f766e)]",
+                    )}
+                  />
+                </label>
+              </div>
+            ) : null}
+            <p className={cn("truncate text-[12px] sm:hidden", salesMute)}>
+              <span className={cn("font-semibold", salesInk)}>{periodLabel}</span>
+              <span className="mx-1.5 opacity-40">·</span>
+              {categoryLabel}
+              <span className="mx-1.5 opacity-40">·</span>
+              {branchLabel}
+            </p>
           </div>
         ) : null}
       </div>
 
-      {preset === "custom" ? (
-        <div className="grid grid-cols-2 gap-2 text-[12px] text-muted-foreground sm:flex sm:flex-wrap sm:items-center sm:gap-3">
-          <label className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-            From
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-11 w-full border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-auto"
+      {/* What we made — one composition, not five equal cards */}
+      <section className={cn(salesSurface, "overflow-hidden")}>
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <div
+            className={cn(
+              "border-b lg:border-b-0 lg:border-r",
+              salesHair,
+            )}
+          >
+            <SalesHeroMetric
+              label="Net profit"
+              value={money(totalProfit)}
+              hint={`After cost of goods${categoryFiltered ? " in this category" : ""} for the period.`}
             />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-            To
-            <input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="h-11 w-full border border-border bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-auto"
-            />
-          </label>
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem]">
-        <div className="min-w-0 space-y-4">
-          <div className="grid grid-cols-2 gap-0 border border-border xl:grid-cols-5">
+          </div>
+          <div className="grid grid-cols-2">
             {[
               {
-                label: "Total revenue",
-                short: "Revenue",
+                label: "Revenue",
                 value: money(totalRevenue),
               },
               {
-                label: "Total cost of goods sold",
-                short: "COGS",
+                label: "Cost of goods",
                 value: money(totalCogs),
               },
               {
-                label: "Total profit",
-                short: "Profit",
-                value: money(totalProfit),
-              },
-              {
-                label: "Total customers",
-                short: "Customers",
+                label: "Customers",
                 value: (customerTrend?.totalDistinct ?? 0).toLocaleString(
                   "en-KE",
                 ),
               },
               {
                 label: "Unallocated",
-                short: "Unallocated",
-                value: money(unallocated + owedTotal),
-                warn: unallocated + owedTotal > 0,
+                value: money(attention),
+                warn: attention > 0,
               },
             ].map((kpi, i) => (
-              <div
+              <SalesMetricTile
                 key={kpi.label}
+                label={kpi.label}
+                value={kpi.value}
+                warn={"warn" in kpi && kpi.warn}
                 className={cn(
-                  "flex min-h-[4.75rem] flex-col justify-between border-border px-3 py-3 sm:min-h-[5.25rem]",
-                  i > 0 && "border-l",
-                  i >= 2 && "border-t xl:border-t-0",
-                  i === 4 && "col-span-2 border-t xl:col-span-1 xl:border-t-0",
+                  i % 2 === 1 && "border-l",
+                  i >= 2 && "border-t",
+                  salesHair,
                 )}
-              >
-                <p className="text-[11px] font-medium tracking-[-0.02em] text-muted-foreground">
-                  <span className="sm:hidden">{kpi.short}</span>
-                  <span className="hidden sm:inline">{kpi.label}</span>
-                </p>
-                <p
-                  className="text-[1.35rem] font-bold tabular-nums leading-none tracking-[-0.03em] sm:text-[1.6rem]"
-                  style={{
-                    color: "warn" in kpi && kpi.warn ? OWED : undefined,
-                  }}
-                >
-                  {kpi.value}
-                </p>
-              </div>
+              />
             ))}
           </div>
+        </div>
+      </section>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <ChartCard title="Product by profit">
-              <ColumnChart
-                items={productBars}
-                formatValue={money}
-                empty="No product profit in this slice."
-              />
-            </ChartCard>
-            <ChartCard title="Sales by revenue">
-              <ColumnChart
-                items={staffBars}
-                formatValue={money}
-                empty="No cashier sales in this slice."
-              />
-            </ChartCard>
-            <ChartCard title="Branch by COGS">
-              <ColumnChart
-                items={cogsBars}
-                formatValue={money}
-                empty="No cost of goods in this slice."
-              />
-            </ChartCard>
-            <ChartCard title="Monthly customers trend">
+      {/* Floors — what moved and who sold it */}
+      <div className="grid gap-2 lg:grid-cols-2">
+        <SalesStage
+          title="What left the shelf"
+          hint="Units sold — a quiet category can still hide a hot product."
+        >
+          <RankedBars
+            items={productQtyBars}
+            formatValue={(n) => formatQty(n)}
+            empty="No products sold in this slice."
+          />
+        </SalesStage>
+        <SalesStage
+          title="Profit by product"
+          hint="Where the margin actually came from."
+        >
+          <RankedBars
+            items={productProfitBars}
+            formatValue={money}
+            empty="No product profit in this slice."
+          />
+        </SalesStage>
+        <SalesStage
+          title="Who sold it"
+          hint="Cashiers and tills ranked by revenue."
+        >
+          <RankedBars
+            items={staffBars}
+            formatValue={money}
+            empty="No cashier sales in this slice."
+          />
+        </SalesStage>
+        <SalesStage
+          title="Branch cost of goods"
+          hint="What each branch spent to make those sales."
+        >
+          {cogsBars.length > 0 ? (
+            <RankedBars
+              items={cogsBars}
+              formatValue={money}
+              empty="No cost of goods in this slice."
+            />
+          ) : (
+            <div>
+              <p className={cn("mb-3 text-[13px] font-semibold", salesInk)}>
+                Customers by month
+              </p>
               <CustomerTrend
                 points={customerPoints}
                 incompleteKey={incompleteMonth}
               />
-            </ChartCard>
-          </div>
-        </div>
-
-        <aside className="hidden flex-col gap-3 lg:sticky lg:top-3 lg:flex lg:self-start">
-          <SlicerPanel
-            title="Period"
-            name="analytics-period"
-            items={ANALYTICS_PRESET_LABELS.map(({ key, label }) => ({
-              id: key,
-              label,
-            }))}
-            value={preset}
-            onChange={(id) => setPreset(id as DatePreset)}
-          />
-          <SlicerPanel
-            title="Category"
-            name="analytics-category"
-            items={categoryItems}
-            value={categoryId}
-            onChange={setCategoryId}
-            onClear={() => setCategoryId("")}
-          />
-          <SlicerPanel
-            title="Branch"
-            name="analytics-branch"
-            items={branchItems}
-            value={branchId}
-            onChange={onChangeBranch}
-            onClear={branchLocked ? undefined : () => onChangeBranch("")}
-          />
-        </aside>
+            </div>
+          )}
+        </SalesStage>
       </div>
 
-      <AnalyticsOpsBoard
-        money={money}
-        payments={payments}
-        tabs={tabs}
-        collections={collections}
-        audit={audit}
-        imported={payments.length > 0 ? imported : totalRevenue}
-        allocated={payments.length > 0 ? allocated : totalRevenue}
-        unallocated={unallocated + owedTotal}
-        balanced={balanced}
-        openShifts={openShifts}
-        unverifiedMpesa={unverifiedMpesa}
-        canViewAudit={canViewAuditLog}
-      />
+      {cogsBars.length > 0 ? (
+        <SalesStage
+          title="Customers by month"
+          hint="Distinct shoppers with a completed sale."
+        >
+          <CustomerTrend
+            points={customerPoints}
+            incompleteKey={incompleteMonth}
+          />
+        </SalesStage>
+      ) : null}
+
+      <div className="pt-1">
+        <div className="mb-2 flex items-baseline justify-between gap-3 px-0.5">
+          <h2
+            className={cn(
+              "font-heading text-[15px] font-semibold tracking-[-0.02em]",
+              salesInk,
+            )}
+          >
+            Money desk
+          </h2>
+          <p className={cn("text-[12px]", salesMute)}>
+            Tenders, tabs, and what still needs a pass
+          </p>
+        </div>
+        <AnalyticsOpsBoard
+          money={money}
+          payments={payments}
+          tabs={tabs}
+          collections={collections}
+          audit={audit}
+          imported={payments.length > 0 ? imported : totalRevenue}
+          allocated={payments.length > 0 ? allocated : totalRevenue}
+          unallocated={unallocated + owedTotal}
+          balanced={balanced}
+          openShifts={openShifts}
+          unverifiedMpesa={unverifiedMpesa}
+          canViewAudit={canViewAuditLog}
+        />
+      </div>
 
       {showCategoryTable ? (
         <Panel className="overflow-hidden">
-          <div className="flex flex-col gap-2 border-b border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-1" role="group" aria-label="Report breakdown">
               {(
                 [
@@ -1227,7 +1124,7 @@ export function AnalyticsWorkspace({
                     "h-8 border px-2.5 text-[12px] font-semibold tracking-[-0.01em]",
                     reportView === id
                       ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "border-border text-muted-foreground hover:text-foreground",
+                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {label}
@@ -1241,7 +1138,7 @@ export function AnalyticsWorkspace({
                   onChange={(e) => setProductQuery(e.target.value)}
                   placeholder="Find a product"
                   aria-label="Find a product"
-                  className="h-8 min-w-0 flex-1 border border-border bg-transparent px-2.5 text-[13px] outline-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30"
+                  className="h-8 min-w-0 flex-1 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-2.5 text-[13px] outline-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30"
                 />
                 <div className="flex shrink-0" role="group" aria-label="Sort products">
                   {PRODUCT_SORTS.map((option) => (
@@ -1255,7 +1152,7 @@ export function AnalyticsWorkspace({
                         option.key !== "quantitySold" && "-ml-px",
                         productSort === option.key
                           ? "z-[1] border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
-                          : "border-border text-muted-foreground hover:text-foreground",
+                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {option.label}
@@ -1272,7 +1169,7 @@ export function AnalyticsWorkspace({
 
           {reportView === "products" ? (
             <>
-              <p className="border-b border-border px-3 py-2 text-[12px] text-muted-foreground">
+              <p className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 text-[12px] text-muted-foreground">
                 <span className="font-semibold tabular-nums text-foreground">
                   {productRows.length.toLocaleString("en-KE")}
                 </span>
@@ -1322,7 +1219,7 @@ export function AnalyticsWorkspace({
               </div>
               <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full min-w-[36rem] text-left text-sm">
-                  <thead className="border-b border-border text-[11px] text-muted-foreground">
+                  <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[11px] text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2 font-medium">Product</th>
                       <th className="px-3 py-2 text-right font-medium">Qty sold</th>
@@ -1346,7 +1243,7 @@ export function AnalyticsWorkspace({
                       productRows.map((row) => (
                         <tr
                           key={row.itemId}
-                          className="border-b border-border last:border-0"
+                          className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                         >
                           <td className="px-3 py-2">
                             <p className="font-medium">{row.itemName}</p>
@@ -1402,7 +1299,7 @@ export function AnalyticsWorkspace({
               </div>
               <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full min-w-[28rem] text-left text-sm">
-                  <thead className="border-b border-border text-[11px] text-muted-foreground">
+                  <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[11px] text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2 font-medium">Category</th>
                       <th className="px-3 py-2 text-right font-medium">
@@ -1425,7 +1322,7 @@ export function AnalyticsWorkspace({
                       categoryRevenue.map((row) => (
                         <tr
                           key={row.categoryId}
-                          className="border-b border-border last:border-0"
+                          className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                         >
                           <td className="px-3 py-2">{row.categoryName}</td>
                           <td className="px-3 py-2 text-right tabular-nums">
