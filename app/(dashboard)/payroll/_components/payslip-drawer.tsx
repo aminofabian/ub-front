@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Download, Loader2, Printer, Receipt } from "lucide-react";
+import { Download, Loader2, Printer, Receipt, Wallet } from "lucide-react";
 
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -417,6 +418,45 @@ export function PayslipDrawer({
             <span className="text-lg font-extrabold tabular-nums">
               {formatPayrollMoney(Number(payslip.netPaid))}
             </span>
+          </div>
+
+          <div className="mt-3 border border-border/50 bg-muted/15 px-3 py-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <Wallet className="size-3.5 text-muted-foreground" aria-hidden />
+              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                Finance
+              </p>
+              {payslip.expenseId ? (
+                <span className="ml-auto inline-flex items-center border border-[var(--pos-primary,#0f766e)]/35 bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)]">
+                  Posted
+                </span>
+              ) : (
+                <span className="ml-auto inline-flex items-center border border-[#a16207]/35 bg-[color-mix(in_srgb,#a16207_5%,white)] px-1.5 py-0.5 text-[10px] font-semibold text-[#a16207]">
+                  Not posted
+                </span>
+              )}
+            </div>
+            {payslip.expenseId ? (
+              <p className="mt-1 text-muted-foreground">
+                Salary expense is in the books
+                {paidVia ? ` · paid via ${paidVia}` : ""}. Ref{" "}
+                <span className="font-mono text-[10px] text-foreground">
+                  {payslip.expenseId.slice(0, 8)}
+                </span>
+              </p>
+            ) : (
+              <p className="mt-1 text-muted-foreground">
+                This pay was not posted as an expense, so Finance does not show
+                the salary cost. Post it next time when marking paid.
+              </p>
+            )}
+            <Link
+              href="/expenses"
+              className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--pos-primary,#0f766e)] hover:underline"
+            >
+              Open expenses
+              <span aria-hidden>→</span>
+            </Link>
           </div>
 
           {payslip.note ? (

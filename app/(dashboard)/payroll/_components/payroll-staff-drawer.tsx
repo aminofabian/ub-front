@@ -244,7 +244,7 @@ export function PayrollStaffDrawer({
           <StaffAvatar name={row.displayName} paid={row.alreadyPaid} />
           <div className="min-w-0 flex-1 text-sm">
             {row.alreadyPaid
-              ? `Paid ${formatPayrollDate(row.paidAt)}`
+              ? `Paid ${formatPayrollDate(row.paidAt)}${row.expenseId ? " · posted to finance" : " · not in finance"}`
               : row.employmentStatus === "on_leave"
                 ? "On leave — update status before paying"
                 : Number(row.monthlySalary ?? row.baseSalary) <= 0
@@ -283,6 +283,16 @@ export function PayrollStaffDrawer({
                 {Number(row.monthlySalary ?? row.baseSalary) > 0
                   ? formatPayrollMoney(row.monthlySalary ?? row.baseSalary)
                   : "Not set"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Pay to</dt>
+              <dd className="tabular-nums font-medium">
+                {row.phone?.trim() || (
+                  <span className="font-normal text-[#a16207]">
+                    No phone on file
+                  </span>
+                )}
               </dd>
             </div>
             {payrollProrationDaysLabel(row.prorationFactor, year, month) ? (

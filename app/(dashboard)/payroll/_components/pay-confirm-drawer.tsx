@@ -21,6 +21,7 @@ import {
   advanceRepaymentModeSummary,
   allocateAdvanceRepayments,
   buildStaffAdvancePayPreview,
+  estimateKenyaStatutory,
   formatPayrollMoney,
   payrollArrearMonthsLabel,
   payrollArrearsNet,
@@ -106,13 +107,42 @@ export function PayConfirmDrawer({
     row && skipProration
       ? Number(row.monthlySalary ?? row.baseSalary)
       : Number(row?.baseSalary ?? 0);
-  const currentStatutory = applyStatutory
-    ? Number(row?.statutoryTotal) || 0
-    : 0;
-  const arrearsStatutory = applyStatutory
-    ? Number(row?.arrearsStatutoryTotal ?? 0)
-    : 0;
-  const combinedStatutory = currentStatutory + arrearsStatutory;
+
+  // Statutory is recalculated locally from the payable base. The API only
+  // returns statutory numbers when the run was loaded with `statutory=true`,
+  // so trusting `row.statutoryTotal` here showed a zero deduction when the
+  // user switched statutory on inside this drawer (and a stale deduction when
+  // "pay full month" changed the base).
+  const statutory = useMemo(
+    () =>
+      applyStatutory
+        ? estimateKenyaStatutory(periodBase)
+        : { nssf: 0, shif: 0, housingLevy: 0, paye: 0, total: 0 },
+    [applyStatutory, periodBase],
+  );
+  const currentStatutory = statutory.total;
+  const arrearsStatutory = useMemo(() => {
+    if (!applyStatutory || !row) return 0;
+    const periods = row.arrearPeriods ?? [];
+    if (periods.length > 0) {
+      return round2(
+        periods.reduce(
+          (sum, period) =>
+            sum + estimateKenyaStatutory(Number(period.baseSalary)).total,
+          0,
+        ),
+      );
+    }
+    return estimateKenyaStatutory(Number(row.arrearsBaseTotal ?? 0)).total;
+  }, [applyStatutory, row]);
+  const combinedStatutory = round2(currentStatutory + arrearsStatutory);
+  const maxOther = round2(Math.max(0, periodBase - currentStatutory));
+  const otherError =
+    other < 0
+      ? "Deductions cannot be negative."
+      : other > maxOther
+        ? `Other deductions exceed the ${formatPayrollMoney(maxOther)} left after statutory.`
+        : null;
   // Arrear payslips are disbursed in full as their own payslips, so advances can
   // only be recovered from the current month's pay — mirrors the backend pool.
   const advancePool = row
@@ -215,13 +245,13 @@ export function PayConfirmDrawer({
     () =>
       row && applyStatutory
         ? [
-            ["PAYE", row.payeSuggested],
-            ["NSSF", row.nssfSuggested],
-            ["SHIF", row.shifSuggested],
-            ["Housing Levy", row.housingLevySuggested],
+            ["PAYE", statutory.paye],
+            ["NSSF", statutory.nssf],
+            ["SHIF", statutory.shif],
+            ["Housing Levy", statutory.housingLevy],
           ]
         : [],
-    [row, applyStatutory],
+    [row, applyStatutory, statutory],
   );
 
   function applyPreset(kind: "scheduled" | "full" | "half" | "none") {
@@ -263,7 +293,8 @@ export function PayConfirmDrawer({
             disabled={
               saving ||
               row.employmentStatus === "on_leave" ||
-              deferredJoinMonth
+              deferredJoinMonth ||
+              otherError != null
             }
             onClick={() =>
               onConfirm({
@@ -479,11 +510,20 @@ export function PayConfirmDrawer({
               type="number"
               inputMode="decimal"
               min="0"
+              max={maxOther}
               step="0.01"
               className={dashboardInputClass()}
               value={otherDeductions}
               onChange={(e) => setOtherDeductions(e.target.value)}
             />
+            <span className="font-normal text-[11px] text-muted-foreground/90">
+              Max {formatPayrollMoney(maxOther)} after statutory. Uniform, lost
+              stock and loans are deducted from this month only; arrears are
+              paid separately.
+            </span>
+            {otherError ? (
+              <span className="font-medium text-[#9a2e16]">{otherError}</span>
+            ) : null}
           </label>
         </FormDrawerFields>
 
@@ -636,4 +676,8 @@ function formatPayrollDateShort(value: string | null | undefined): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value.slice(0, 10);
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }

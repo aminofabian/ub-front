@@ -24,22 +24,6 @@ type Props = {
   onError: (message: string) => void;
 };
 
-function categoryTypeFor(
-  code: string,
-  current: string,
-): "fixed" | "variable" {
-  if (code === "rent" || code === "salaries") return "fixed";
-  if (
-    code === "utilities" ||
-    code === "transport" ||
-    code === "maintenance" ||
-    code === "packaging"
-  ) {
-    return "variable";
-  }
-  return current === "fixed" ? "fixed" : "variable";
-}
-
 export function ExpenseEditDrawer({
   expense,
   onOpenChange,
@@ -50,6 +34,9 @@ export function ExpenseEditDrawer({
   const [expenseDate, setExpenseDate] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryCode, setCategoryCode] = useState<ExpenseCategoryCode | "">("");
+  const [categoryType, setCategoryType] = useState<"fixed" | "variable">(
+    "variable",
+  );
   const [paymentMethod, setPaymentMethod] = useState<ExpensePaymentMethod>("cash");
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +49,7 @@ export function ExpenseEditDrawer({
       (option) => option.value === expense.categoryCode,
     );
     setCategoryCode(code?.value ?? "other");
+    setCategoryType(expense.categoryType === "fixed" ? "fixed" : "variable");
     const method = EXPENSE_PAYMENT_METHOD_OPTIONS.find(
       (option) => option.value === expense.paymentMethod,
     );
@@ -84,7 +72,7 @@ export function ExpenseEditDrawer({
         amount: Math.round(parsed * 100) / 100,
         paymentMethod,
         categoryCode: code,
-        categoryType: categoryTypeFor(code, expense.categoryType),
+        categoryType,
       });
       onSaved();
     } catch (err) {
@@ -142,6 +130,19 @@ export function ExpenseEditDrawer({
                 {option.label}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="block space-y-1 text-sm">
+          <span className="font-medium">Fixed / variable</span>
+          <select
+            className={dashboardSelectClass()}
+            value={categoryType}
+            onChange={(e) =>
+              setCategoryType(e.target.value === "fixed" ? "fixed" : "variable")
+            }
+          >
+            <option value="fixed">Fixed — rent, salaries</option>
+            <option value="variable">Variable — utilities, transport</option>
           </select>
         </label>
         <label className="block space-y-1 text-sm">

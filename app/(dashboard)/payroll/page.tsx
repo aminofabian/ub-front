@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Download,
+  ListChecks,
   Loader2,
   MessageSquare,
   Sparkles,
@@ -27,20 +28,23 @@ import { cn } from "@/lib/utils";
 import {
   createStaffSalary,
   fetchPayrollRun,
+  fetchPayrollSummary,
   payAllStaffPayroll,
   payStaffPayroll,
   updateStaffProfile,
   type PayslipRecord,
   type PayrollRunRow,
+  type PayrollSummary,
 } from "@/lib/api";
 import {
+  exportPayrollPaymentScheduleCsv,
   exportPayrollRunCsv,
   defaultPayrollPeriod,
   formatPayrollMoney,
   payrollArrearMonthsLabel,
-  payrollCombinedBase,
   payrollIsJoinMonth,
   payrollMonthLabel,
+  payrollPaymentScheduleRows,
 } from "@/lib/payroll-utils";
 
 import { AdvanceLedgerDrawer } from "./_components/advance-ledger-drawer";
@@ -51,6 +55,7 @@ import {
 } from "./_components/pay-confirm-drawer";
 import { PayrollAdvancesTheatre } from "./_components/payroll-advances-theatre";
 import { PayrollCalendarTheatre } from "./_components/payroll-calendar-theatre";
+import { PayrollInsights } from "./_components/payroll-insights";
 import { PayrollPayslipsTheatre } from "./_components/payroll-payslips-theatre";
 import { PayrollRunTheatre } from "./_components/payroll-run-theatre";
 import { PayrollTabs } from "./_components/payroll-tabs";
@@ -75,7 +80,13 @@ export default function PayrollPage() {
   const [year, setYear] = useState(defaultPeriod.year);
   const [month, setMonth] = useState(defaultPeriod.month);
   const [rows, setRows] = useState<PayrollRunRow[]>([]);
+  const [payrollSummary, setPayrollSummary] = useState<PayrollSummary | null>(
+    null,
+  );
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  /** Guards against a slow previous month overwriting a newer selection. */
+  const loadSeq = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     kind: "success" | "error";
@@ -136,13 +147,25 @@ export default function PayrollPage() {
         r.employmentStatus !== "on_leave",
     );
     const paid = rows.filter((r) => r.alreadyPaid);
+    const payable = (r: PayrollRunRow) =>
+      !r.alreadyPaid &&
+      r.employmentStatus !== "on_leave" &&
+      Number(r.baseSalary) > 0;
     return {
       headcount: rows.length,
       pendingCount: pending.length,
       paidCount: paid.length,
-      totalBase: rows.reduce((s, r) => s + payrollCombinedBase(r), 0),
+      // Match the backend summary: current period for everyone, arrears only
+      // where this run will actually pay them.
+      totalBase: rows.reduce(
+        (s, r) =>
+          s +
+          Number(r.baseSalary) +
+          (payable(r) ? Number(r.arrearsBaseTotal ?? 0) : 0),
+        0,
+      ),
       totalArrears: rows.reduce(
-        (s, r) => s + Number(r.arrearsBaseTotal ?? 0),
+        (s, r) => s + (payable(r) ? Number(r.arrearsBaseTotal ?? 0) : 0),
         0,
       ),
       staffWithArrears: rows.filter((r) => (r.arrearPeriods?.length ?? 0) > 0)
@@ -153,7 +176,12 @@ export default function PayrollPage() {
       ),
       totalNetPending: pending.reduce((s, r) => s + Number(r.suggestedNet), 0),
       totalStatutory: rows.reduce(
-        (s, r) => s + (applyStatutory ? Number(r.statutoryTotal) : 0),
+        (s, r) =>
+          s +
+          (applyStatutory
+            ? Number(r.statutoryTotal) +
+              (payable(r) ? Number(r.arrearsStatutoryTotal ?? 0) : 0)
+            : 0),
         0,
       ),
       // Zero-base rows that are explained by deferred join months are not
@@ -174,24 +202,44 @@ export default function PayrollPage() {
 
   const load = useCallback(async () => {
     if (!canViewPayroll) return;
+    const seq = ++loadSeq.current;
     setLoading(true);
+    setSummaryLoading(true);
     setError(null);
+
+    // Start both requests together, but paint the roster as soon as it lands.
+    // The overview is an enhancement and must never block the pay run.
+    const summaryPromise = fetchPayrollSummary(year, month, {
+      branchId: branchFilter || undefined,
+      statutory: applyStatutory,
+    }).catch(() => null);
+
     try {
       const data = await fetchPayrollRun(year, month, {
         branchId: branchFilter || undefined,
         statutory: applyStatutory,
       });
+      if (seq !== loadSeq.current) return;
       setRows(data);
       setSelectedRow((prev) =>
         prev ? (data.find((r) => r.userId === prev.userId) ?? prev) : prev,
       );
+      setLoading(false);
+
+      const summaryData = await summaryPromise;
+      if (seq !== loadSeq.current) return;
+      setPayrollSummary(summaryData);
+      setSummaryLoading(false);
     } catch (err) {
+      if (seq !== loadSeq.current) return;
       setError(
         err instanceof Error ? err.message : "Failed to load payroll run",
       );
       setRows([]);
+      setPayrollSummary(null);
+      setSummaryLoading(false);
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [canViewPayroll, year, month, branchFilter, applyStatutory]);
 
@@ -378,37 +426,76 @@ export default function PayrollPage() {
       setFeedback({ kind: "error", text: "No payable staff in this month." });
       return;
     }
-    setPayingAll(true);
-    setFeedback(null);
-    try {
-      const result = await payAllStaffPayroll({
+
+    // Pay-all is the one action that can close a whole run in one click and
+    // it deliberately skips manual advances / per-person other deductions.
+    // Say that out loud before it happens.
+    showConfirmModal({
+      id: `pay-all-${year}-${month}-${branchFilter || "all"}`,
+      title: `Mark ${summary.pendingCount} staff paid?`,
+      description: `${formatPayrollMoney(summary.totalNetPending)} net for ${payrollMonthLabel(
         year,
         month,
-        applyStatutory,
-        postExpense: postExpenseDefault,
-        paymentMethod: postExpenseDefault ? payAllMethod : undefined,
-        branchId: branchFilter || undefined,
-      });
-      await load();
-      if (result.failures.length === 0) {
-        setFeedback({
-          kind: "success",
-          text: `Marked ${result.paidCount} staff paid for ${payrollMonthLabel(year, month)}.`,
-        });
-      } else {
-        setFeedback({
-          kind: "error",
-          text: `Paid ${result.paidCount}; ${result.failures.length} failed. ${result.failures[0]?.reason ?? ""}`,
-        });
-      }
-    } catch (err) {
-      setFeedback({
-        kind: "error",
-        text: err instanceof Error ? err.message : "Pay all failed",
-      });
-    } finally {
-      setPayingAll(false);
-    }
+      )}. ${
+        branchFilter
+          ? `Branch: ${
+              branches.find((branch) => branch.id === branchFilter)?.name ??
+              "filtered"
+            }. `
+          : ""
+      }${applyStatutory ? "Statutory on" : "Statutory off"} · ${
+        postExpenseDefault ? "expense posted to finance" : "finance not posted"
+      }.${
+        summary.totalArrears > 0
+          ? ` Includes ${formatPayrollMoney(summary.totalArrears)} arrears.`
+          : ""
+      } Manual advances and per-person deductions are skipped — use each row for those.`,
+      confirmLabel: "Pay all",
+      confirmVariant: "default",
+      onConfirm: async () => {
+        setPayingAll(true);
+        setFeedback(null);
+        try {
+          const result = await payAllStaffPayroll({
+            year,
+            month,
+            applyStatutory,
+            postExpense: postExpenseDefault,
+            paymentMethod: postExpenseDefault ? payAllMethod : undefined,
+            branchId: branchFilter || undefined,
+          });
+          await load();
+          if (result.failures.length === 0) {
+            setFeedback({
+              kind: "success",
+              text: `Marked ${result.paidCount} staff paid for ${payrollMonthLabel(year, month)}${
+                result.skippedCount > 0
+                  ? ` · ${result.skippedCount} skipped`
+                  : ""
+              }.`,
+            });
+          } else {
+            const details = result.failures
+              .slice(0, 3)
+              .map((failure) => `${failure.displayName}: ${failure.reason}`)
+              .join(" · ");
+            setFeedback({
+              kind: "error",
+              text: `Paid ${result.paidCount}; ${result.failures.length} failed; ${result.skippedCount} skipped. ${details}${
+                result.failures.length > 3 ? " …" : ""
+              }`,
+            });
+          }
+        } catch (err) {
+          setFeedback({
+            kind: "error",
+            text: err instanceof Error ? err.message : "Pay all failed",
+          });
+        } finally {
+          setPayingAll(false);
+        }
+      },
+    });
   }
 
   async function onSaveSalary() {
@@ -490,6 +577,25 @@ export default function PayrollPage() {
               <Download className="size-3.5" aria-hidden />
               Export
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 shadow-none"
+              disabled={payrollPaymentScheduleRows(rows).length === 0}
+              onClick={() =>
+                exportPayrollPaymentScheduleCsv(
+                  rows,
+                  year,
+                  month,
+                  postExpenseDefault ? payAllMethod : "mpesa_manual",
+                )
+              }
+              title="Who to pay, on which number, and how much — for M-Pesa or the bank"
+            >
+              <ListChecks className="size-3.5" aria-hidden />
+              Pay schedule
+            </Button>
             {canManagePayroll ? (
               <Button
                 type="button"
@@ -514,6 +620,20 @@ export default function PayrollPage() {
             <DashboardFeedback kind={feedback.kind} text={feedback.text} />
           ) : null}
 
+          {!loading && !error ? (
+            <PayrollInsights
+              summary={
+                payrollSummary?.year === year && payrollSummary.month === month
+                  ? payrollSummary
+                  : null
+              }
+              loading={summaryLoading}
+              postExpense={postExpenseDefault}
+              rows={rows}
+              onSelectRow={openStaffDrawer}
+            />
+          ) : null}
+
           {loading ? (
             <DashboardLoading label="Loading payroll run…" />
           ) : error ? (
@@ -532,7 +652,15 @@ export default function PayrollPage() {
               }}
               onRefresh={() => void load()}
               rows={rows}
-              summary={summary}
+              summary={
+                payrollSummary?.year === year &&
+                payrollSummary.month === month
+                  ? {
+                      ...summary,
+                      totalStatutory: payrollSummary.statutory,
+                    }
+                  : summary
+              }
               selectedRow={selectedRow}
               staffDrawerOpen={staffDrawerOpen}
               onSelectRow={openStaffDrawer}

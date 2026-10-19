@@ -30,9 +30,10 @@ import {
   deleteFinanceExpense,
   fetchExpenseKopokopoPayStatus,
   fetchExpensePayOptions,
-  fetchExpenseScheduleOccurrences,
+  fetchExpenseScheduleOccurrencesRange,
   fetchExpenseSchedules,
   fetchFinanceExpensesRange,
+  fetchFinanceExpenseSummary,
   fetchFinancePL,
   fetchPayrollPeriodPayslips,
   fetchPayrollRun,
@@ -50,6 +51,7 @@ import {
   type ExpenseScheduleOccurrenceRecord,
   type ExpenseScheduleRecord,
   type FinanceExpenseResponse,
+  type FinanceExpenseSummaryResponse,
   type PayrollRunRow,
   type ProfitAndLossResponse,
   type ShiftListItem,
@@ -70,6 +72,7 @@ import {
   expensesHubPresetRange,
   moneyNumber,
   monthsOverlappingRange,
+  toIsoDate,
   type ExpensesHubPreset,
 } from "@/lib/expenses-hub-utils";
 import {
@@ -123,7 +126,7 @@ type SalaryLine = {
   displayName: string;
   year: number;
   month: number;
-  monthlySalary: number;
+  payableSalary: number;
   alreadyPaid: boolean;
 };
 
@@ -157,9 +160,11 @@ export function ExpensesHubWorkspace() {
   const canChangeExpenses =
     canWriteFinanceExpenses || canManageFinanceExpenses;
 
-  const [preset, setPreset] = useState<ExpensesHubPreset>("all");
-  const [from, setFrom] = useState(() => expensesHubPresetRange("all").from);
-  const [to, setTo] = useState(() => expensesHubPresetRange("all").to);
+  // Owners usually open this page to check the current month. "All" remains
+  // available, but starting there loads years of rows and buries today's number.
+  const [preset, setPreset] = useState<ExpensesHubPreset>("month");
+  const [from, setFrom] = useState(() => expensesHubPresetRange("month").from);
+  const [to, setTo] = useState(() => expensesHubPresetRange("month").to);
   const [editExpense, setEditExpense] = useState<FinanceExpenseResponse | null>(
     null,
   );
@@ -168,10 +173,18 @@ export function ExpensesHubWorkspace() {
   const [categoryCodeFilter, setCategoryCodeFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchApplied, setSearchApplied] = useState("");
-  const [page, setPage] = useState(0);
 
   const [pl, setPl] = useState<ProfitAndLossResponse | null>(null);
   const [expenses, setExpenses] = useState<FinanceExpenseResponse[]>([]);
+  const [summary, setSummary] = useState<FinanceExpenseSummaryResponse | null>(
+    null,
+  );
+  const [drawerExpenses, setDrawerExpenses] = useState<
+    FinanceExpenseResponse[]
+  >([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<
+    FinanceExpenseResponse[]
+  >([]);
   const [pendingApprovals, setPendingApprovals] = useState<
     FinanceExpenseResponse[]
   >([]);
@@ -215,7 +228,7 @@ export function ExpensesHubWorkspace() {
     if (preset === "week") return "This week";
     if (preset === "month") return "This month";
     if (preset === "today") return "Today";
-    return `${from} → ${to}`;
+    return `${formatFixedCostDate(from)} → ${formatFixedCostDate(to)}`;
   }, [preset, from, to]);
 
   const canPocket =
@@ -227,24 +240,41 @@ export function ExpensesHubWorkspace() {
     const range = expensesHubPresetRange(next);
     setFrom(range.from);
     setTo(range.to);
-    setPage(0);
   };
 
   const load = useCallback(async () => {
     if (!canOpen) return;
+    if (!from || !to || from > to) {
+      setError(
+        !from || !to
+          ? "Choose both dates for a custom period."
+          : "From date must be on or before To date.",
+      );
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const branch = branchFilter || undefined;
-      const year = Number(from.slice(0, 4));
-      const month = Number(from.slice(5, 7));
+      const todayIso = toIsoDate(new Date());
+      const occurrenceFrom = addDaysIso(todayIso, -30);
+      const occurrenceTo = addDaysIso(todayIso, 90);
 
-      const [plRes, listRes, occRes, payrollGap, pendingRes, schedulesRes, drawoutBundle] =
-        await Promise.all([
+      const [
+        plRes,
+        listRes,
+        summaryRes,
+        occRes,
+        payrollGap,
+        pendingRes,
+        schedulesRes,
+        drawerRes,
+        recurringRes,
+        drawoutBundle,
+      ] = await Promise.all([
         canReadFinanceReports
-          ? fetchFinancePL(from, to, branch).catch((err) => {
-              throw err;
-            })
+          ? fetchFinancePL(from, to, branch)
           : Promise.resolve(null),
         canReadFinanceExpenses
           ? fetchEveryExpenseInRange({
@@ -256,8 +286,18 @@ export function ExpensesHubWorkspace() {
               q: searchApplied || undefined,
             })
           : Promise.resolve(null),
-        canReadFinanceExpenses && Number.isFinite(year) && Number.isFinite(month)
-          ? fetchExpenseScheduleOccurrences(year, month, {
+        canReadFinanceExpenses
+          ? fetchFinanceExpenseSummary({
+              from,
+              to,
+              branchId: branch,
+              categoryType: categoryFilter || undefined,
+              categoryCode: categoryCodeFilter || undefined,
+              q: searchApplied || undefined,
+            }).catch(() => null)
+          : Promise.resolve(null),
+        canReadFinanceExpenses
+          ? fetchExpenseScheduleOccurrencesRange(occurrenceFrom, occurrenceTo, {
               branchId: branch,
             }).catch(() => [])
           : Promise.resolve([]),
@@ -280,6 +320,22 @@ export function ExpensesHubWorkspace() {
         canReadFinanceExpenses
           ? fetchExpenseSchedules().catch(() => [])
           : Promise.resolve([]),
+        canApproveDrawouts && canReadFinanceExpenses
+          ? fetchEveryExpenseInRange({
+              from,
+              to,
+              branchId: branch,
+              source: "drawer",
+            }).catch(() => null)
+          : Promise.resolve(null),
+        canReadFinanceExpenses
+          ? fetchEveryExpenseInRange({
+              from,
+              to,
+              branchId: branch,
+              source: "recurring",
+            }).catch(() => null)
+          : Promise.resolve(null),
         canViewShifts
           ? loadDrawoutsForExpensesHub({
               from,
@@ -299,6 +355,7 @@ export function ExpensesHubWorkspace() {
       ]);
 
       setPl(plRes);
+      setSummary(summaryRes);
       if (listRes) {
         setExpenses(listRes.expenses);
         setTotalCount(listRes.totalCount);
@@ -308,6 +365,8 @@ export function ExpensesHubWorkspace() {
         setTotalCount(0);
         setHasMore(false);
       }
+      setDrawerExpenses(drawerRes?.expenses ?? []);
+      setRecurringExpenses(recurringRes?.expenses ?? []);
       setOccurrences(Array.isArray(occRes) ? occRes : []);
       setUnpostedPayroll(payrollGap.unposted);
       setSalaryLines(payrollGap.salaries);
@@ -319,7 +378,10 @@ export function ExpensesHubWorkspace() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load expenses");
       setPl(null);
+      setSummary(null);
       setExpenses([]);
+      setDrawerExpenses([]);
+      setRecurringExpenses([]);
       setOccurrences([]);
       setUnpostedPayroll(null);
       setSalaryLines([]);
@@ -353,44 +415,97 @@ export function ExpensesHubWorkspace() {
     }
   }, [dashLoading, canOpen, load, refreshKey]);
 
-  const tableSum = useMemo(
-    () => expenses.reduce((s, e) => s + moneyNumber(e.amount), 0),
+  const filtersActive = Boolean(
+    categoryFilter || categoryCodeFilter || searchApplied,
+  );
+
+  const postedExpenses = useMemo(
+    () => expenses.filter((e) => e.approvalStatus === "posted"),
+    [expenses],
+  );
+  const pendingExpenses = useMemo(
+    () => expenses.filter((e) => e.approvalStatus === "pending_approval"),
     [expenses],
   );
 
-  const ledgerOpEx = moneyNumber(pl?.operatingExpenses);
-  // Approximate adjustments using the current page only when page 0 and !hasMore;
-  // otherwise show null so we don't lie with a partial sum.
-  const otherAdjustments =
-    pl && canReadFinanceExpenses && page === 0 && !hasMore
-      ? ledgerOpEx -
-        expenses.reduce((s, e) => s + moneyNumber(e.amount), 0)
-      : null;
+  const loadedPostedTotal = useMemo(
+    () => postedExpenses.reduce((sum, e) => sum + moneyNumber(e.amount), 0),
+    [postedExpenses],
+  );
+  const loadedPendingTotal = useMemo(
+    () => pendingExpenses.reduce((sum, e) => sum + moneyNumber(e.amount), 0),
+    [pendingExpenses],
+  );
+  const postedTotal = summary
+    ? moneyNumber(summary.postedAmount)
+    : loadedPostedTotal;
+  const pendingTotal = summary
+    ? moneyNumber(summary.pendingAmount)
+    : loadedPendingTotal;
+  const postedCount = summary?.postedCount ?? postedExpenses.length;
+  const pendingCount = summary?.pendingCount ?? pendingExpenses.length;
+  const summaryCount = summary?.totalCount ?? totalCount;
+  const listComplete = summary != null || !hasMore;
 
   const categoryBreakdown = useMemo(() => {
-    const byCode = new Map<string, number>();
+    if (summary) {
+      return summary.categories
+        .map((row) => ({
+          code: row.categoryCode || "other",
+          posted: moneyNumber(row.postedAmount),
+          pending: moneyNumber(row.pendingAmount),
+        }))
+        .filter((row) => row.posted > 0 || row.pending > 0)
+        .sort((a, b) => b.posted - a.posted || b.pending - a.pending);
+    }
+    const byCode = new Map<string, { posted: number; pending: number }>();
     for (const e of expenses) {
       const key = e.categoryCode || "other";
-      byCode.set(key, (byCode.get(key) ?? 0) + moneyNumber(e.amount));
+      const row = byCode.get(key) ?? { posted: 0, pending: 0 };
+      if (e.approvalStatus === "posted") {
+        row.posted += moneyNumber(e.amount);
+      } else if (e.approvalStatus === "pending_approval") {
+        row.pending += moneyNumber(e.amount);
+      }
+      byCode.set(key, row);
     }
     return [...byCode.entries()]
-      .map(([code, total]) => ({ code, total }))
-      .sort((a, b) => b.total - a.total);
-  }, [expenses]);
+      .map(([code, totals]) => ({ code, ...totals }))
+      .filter((row) => row.posted > 0 || row.pending > 0)
+      .sort((a, b) => b.posted - a.posted || b.pending - a.pending);
+  }, [expenses, summary]);
 
   const salaryScheduleWarning = useMemo(() => {
     return schedules.some((s) => {
       if (!s.active) return false;
+      if (branchFilter && s.branchId && s.branchId !== branchFilter) return false;
       if (s.categoryCode === "salaries") return true;
       const n = (s.name || "").toLowerCase();
       return n.includes("salary") || n.includes("wage");
     });
-  }, [schedules]);
+  }, [branchFilter, schedules]);
+
+  const salaryMonthCount = useMemo(
+    () => new Set(salaryLines.map((row) => `${row.year}-${row.month}`)).size,
+    [salaryLines],
+  );
+  const payrollWindowTruncated = useMemo(() => {
+    const months = monthsOverlappingRange(from, to);
+    const first = months[0];
+    if (!first) return false;
+    return monthIndex(from) < first.year * 12 + (first.month - 1);
+  }, [from, to]);
 
   const upcoming = useMemo(() => {
+    const todayIso = toIsoDate(new Date());
+    const windowStart = addDaysIso(todayIso, -30);
+    const windowEnd = addDaysIso(todayIso, 90);
     return occurrences
       .filter((o) => o.status === "due" || o.status === "failed" || o.status === "upcoming")
       .filter((o) => !branchFilter || !o.branchId || o.branchId === branchFilter)
+      .filter(
+        (o) => o.occurrenceDate >= windowStart && o.occurrenceDate <= windowEnd,
+      )
       .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate))
       .slice(0, 8);
   }, [occurrences, branchFilter]);
@@ -424,13 +539,13 @@ export function ExpensesHubWorkspace() {
   // only offers the review action when there is nothing posted yet.
   const postedDrawoutIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const e of expenses) {
+    for (const e of drawerExpenses) {
       if (e.source === "drawer" && e.sourceReference) {
         ids.add(e.sourceReference);
       }
     }
     return ids;
-  }, [expenses]);
+  }, [drawerExpenses]);
 
   const recentDrawouts = useMemo(
     () => periodDrawouts.filter((d) => isActiveDrawoutStatus(d.status)).slice(0, 8),
@@ -456,18 +571,19 @@ export function ExpensesHubWorkspace() {
     [schedules, branchFilter],
   );
   // Recurring bills (rent, power, water) that already hit operating expenses in
-  // this period — lets the section tie straight back to the net profit above.
+  // this period — use the posted expense amounts, not the scheduled amount, so
+  // an edited bill reconciles to the ledger.
   const regularPostedThisPeriod = useMemo(
     () =>
-      occurrences
+      recurringExpenses
         .filter(
-          (o) =>
-            o.status === "posted" &&
-            o.occurrenceDate >= from &&
-            o.occurrenceDate <= to,
+          (e) =>
+            e.approvalStatus === "posted" &&
+            e.expenseDate >= from &&
+            e.expenseDate <= to,
         )
-        .reduce((sum, o) => sum + moneyNumber(o.amount), 0),
-    [occurrences, from, to],
+        .reduce((sum, e) => sum + moneyNumber(e.amount), 0),
+    [recurringExpenses, from, to],
   );
 
   const removeExpense = (expense: FinanceExpenseResponse) => {
@@ -551,39 +667,77 @@ export function ExpensesHubWorkspace() {
       "categoryType",
       "categoryCode",
       "source",
+      "sourceReference",
       "paymentMethod",
       "amount",
       "approvalStatus",
+      "paidAt",
+      "branchId",
+      "journalEntryId",
+      "receiptS3Key",
     ];
     const rows = expenses.map((e) =>
       [
         e.expenseDate,
-        csvEscape(e.name),
+        e.name,
         e.categoryType,
         e.categoryCode ?? "",
         e.source ?? "",
+        e.sourceReference ?? "",
         e.paymentMethod,
-        moneyNumber(e.amount),
+        moneyNumber(e.amount).toFixed(2),
         e.approvalStatus ?? "",
-      ].join(","),
+        e.paidAt ?? "",
+        e.branchId ?? "",
+        e.journalEntryId ?? "",
+        e.receiptS3Key ?? "",
+      ]
+        .map(csvEscape)
+        .join(","),
     );
     triggerCsvDownload(
-      `expenses-${from}-${to}.csv`,
-      [header.join(","), ...rows].join("\n"),
+      `expenses-${from}-${to}${filtersActive ? "-filtered" : ""}${hasMore ? "-partial" : ""}.csv`,
+      `\uFEFF${[header.join(","), ...rows].join("\r\n")}`,
     );
   };
 
   const downloadPlCsv = () => {
     if (!pl) return;
-    const lines = [
-      "metric,amount",
-      `sales,${moneyNumber(pl.revenue)}`,
-      `cogs,${moneyNumber(pl.cogs)}`,
-      `gross_profit,${moneyNumber(pl.grossProfit)}`,
-      `operating_expenses,${moneyNumber(pl.operatingExpenses)}`,
-      `net_operating_profit,${moneyNumber(pl.netOperating)}`,
+    const rows: [string, string][] = [
+      ["metric", "amount"],
+      ["sales", moneyNumber(pl.revenue).toFixed(2)],
+      ["cogs", moneyNumber(pl.cogs).toFixed(2)],
+      ["gross_profit", moneyNumber(pl.grossProfit).toFixed(2)],
+      ["operating_expenses", moneyNumber(pl.operatingExpenses).toFixed(2)],
+      ["net_operating_profit", moneyNumber(pl.netOperating).toFixed(2)],
+      ...pl.revenueLines.map(
+        (line) =>
+          [
+            `revenue:${line.accountCode} ${line.accountName}`,
+            moneyNumber(line.amount).toFixed(2),
+          ] as [string, string],
+      ),
+      ...pl.cogsLines.map(
+        (line) =>
+          [
+            `cogs:${line.accountCode} ${line.accountName}`,
+            moneyNumber(line.amount).toFixed(2),
+          ] as [string, string],
+      ),
+      ...pl.expenseLines.map(
+        (line) =>
+          [
+            `opex:${line.accountCode} ${line.accountName}`,
+            moneyNumber(line.amount).toFixed(2),
+          ] as [string, string],
+      ),
     ];
-    triggerCsvDownload(`pl-${from}-${to}.csv`, lines.join("\n"));
+    triggerCsvDownload(
+      `pl-${from}-${to}.csv`,
+      `\uFEFF${rows
+        .map(([metric, amount]) => `${csvEscape(metric)},${amount}`)
+        .join("\r\n")}`,
+    );
   };
 
   const approvePending = async (id: string) => {
@@ -811,7 +965,7 @@ export function ExpensesHubWorkspace() {
       >
         <div className="flex flex-wrap items-center gap-1.5">
           <div
-            className="flex flex-wrap gap-1.5"
+            className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible sm:pb-0"
             role="group"
             aria-label="Period"
           >
@@ -840,10 +994,10 @@ export function ExpensesHubWorkspace() {
                 aria-label="From"
                 className={cn(dashboardInputClass(), "h-8 w-[9.5rem] rounded-none text-[12px]")}
                 value={from}
+                max={to || undefined}
                 onChange={(e) => {
                   setPreset("custom");
                   setFrom(e.target.value);
-                  setPage(0);
                 }}
               />
               <input
@@ -851,10 +1005,10 @@ export function ExpensesHubWorkspace() {
                 aria-label="To"
                 className={cn(dashboardInputClass(), "h-8 w-[9.5rem] rounded-none text-[12px]")}
                 value={to}
+                min={from || undefined}
                 onChange={(e) => {
                   setPreset("custom");
                   setTo(e.target.value);
-                  setPage(0);
                 }}
               />
             </>
@@ -865,7 +1019,6 @@ export function ExpensesHubWorkspace() {
             value={branchFilter}
             onChange={(e) => {
               setBranchFilter(e.target.value);
-              setPage(0);
             }}
           >
             <option value="">All branches</option>
@@ -935,6 +1088,11 @@ export function ExpensesHubWorkspace() {
               periodLabel={periodLabel}
               canPocket={canPocket}
               onPocket={() => setProfitPocketOpen(true)}
+              postedListTotal={
+                canReadFinanceExpenses && !filtersActive && listComplete
+                  ? postedTotal
+                  : null
+              }
             />
           ) : canReadFinanceReports ? (
             <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
@@ -942,12 +1100,10 @@ export function ExpensesHubWorkspace() {
             </p>
           ) : null}
 
-          {otherAdjustments != null && Math.abs(otherAdjustments) >= 0.01 ? (
+          {filtersActive ? (
             <p className={cn("px-3 text-sm sm:px-4", dashboardHintClass())}>
-              Other adjustments (ledger OpEx not in the expense table):{" "}
-              <span className="font-semibold text-[var(--order-ink,#15231f)]">
-                {formatFixedCostMoney(otherAdjustments)}
-              </span>
+              Profit above uses all posted expenses for the period; the bill list
+              below is filtered to your selection.
             </p>
           ) : null}
 
@@ -967,9 +1123,9 @@ export function ExpensesHubWorkspace() {
                 <span className="font-semibold tabular-nums">
                   {formatFixedCostMoney(unpostedPayroll.netTotal)}
                 </span>{" "}
-                is missing from operating expenses for this period. Post from
-                payroll (enable “post expense”) — this hub does not invent OpEx
-                rows.
+                is missing from operating expenses in the payroll months
+                overlapping this period. Post from payroll (enable “post
+                expense”) — this hub does not invent OpEx rows.
               </p>
               <Link
                 href={APP_ROUTES.payroll}
@@ -1069,7 +1225,14 @@ export function ExpensesHubWorkspace() {
                 </Link>
               </div>
               <p className={dashboardHintClass()}>
-                Monthly wages. Paid runs that post an expense reduce net.
+                Payable base for the months in view. Future months unlock on the
+                25th. Payroll expenses post net pay, not this gross figure.
+                {salaryMonthCount > 1
+                  ? ` ${salaryMonthCount} months are in view for this period.`
+                  : ""}
+                {payrollWindowTruncated
+                  ? " Payroll detail is limited to the latest 36 months."
+                  : ""}
               </p>
               {salaryLines.length > 0 ? (
                 <ul
@@ -1089,12 +1252,12 @@ export function ExpensesHubWorkspace() {
                           {row.displayName}
                         </p>
                         <p className={dashboardHintClass()}>
-                          Monthly · {salaryMonthLabel(row.year, row.month)} ·{" "}
+                          Payable · {salaryMonthLabel(row.year, row.month)} ·{" "}
                           {row.alreadyPaid ? "Paid" : "Not paid yet"}
                         </p>
                       </div>
                       <p className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
-                        {formatFixedCostMoney(row.monthlySalary)}
+                        {formatFixedCostMoney(row.payableSalary)}
                       </p>
                     </li>
                   ))}
@@ -1102,10 +1265,15 @@ export function ExpensesHubWorkspace() {
               ) : null}
               {salaryLines.length > 0 ? (
                 <p className="flex items-baseline justify-between gap-3 text-sm font-semibold text-[var(--order-ink,#15231f)]">
-                  <span>Wage bill</span>
+                  <span>
+                    Gross payable
+                    {salaryMonthCount > 1
+                      ? ` · ${salaryMonthCount} months`
+                      : ""}
+                  </span>
                   <span className="tabular-nums">
                     {formatFixedCostMoney(
-                      salaryLines.reduce((sum, row) => sum + row.monthlySalary, 0),
+                      salaryLines.reduce((sum, row) => sum + row.payableSalary, 0),
                     )}
                   </span>
                 </p>
@@ -1273,10 +1441,10 @@ export function ExpensesHubWorkspace() {
                     Till drawouts
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
-                    Cash pulled from the drawer during a shift. Petty cash,
-                    casual labour, and recurring bills post to expenses when the
-                    drawout is approved; supplier payments settle stock or a
-                    supplier bill.
+                    Cash pulled from the drawer during a shift. Recent shifts
+                    only. Petty cash, casual labour, and recurring bills post to
+                    expenses when the drawout is approved; supplier payments
+                    settle stock or a supplier bill.
                     {closeCashOuts.length > 0 ? (
                       <>
                         {" "}
@@ -1402,6 +1570,11 @@ export function ExpensesHubWorkspace() {
                     {pendingDrawouts.length} drawout
                     {pendingDrawouts.length === 1 ? "" : "s"} waiting for approval
                   </p>
+                  {branchFilter ? (
+                    <p className="mt-1 text-[11px] text-[#5c3d0a]/75">
+                      Pending drawouts are shown across all branches.
+                    </p>
+                  ) : null}
                   <ul className="mt-2 space-y-1.5">
                     {pendingDrawouts.slice(0, 5).map((d) => (
                       <li
@@ -1446,7 +1619,8 @@ export function ExpensesHubWorkspace() {
                           {drawoutStatusLabel(d.status)}
                           {d.shiftCashierName ? ` · ${d.shiftCashierName}` : ""}
                         </p>
-                        {canApproveDrawouts &&
+                        {canReadFinanceExpenses &&
+                        canApproveDrawouts &&
                         d.status === "APPROVED" &&
                         drawoutNature(d.category) === "other" &&
                         !postedDrawoutIds.has(d.id) ? (
@@ -1576,6 +1750,9 @@ export function ExpensesHubWorkspace() {
               >
                 Upcoming &amp; overdue
               </h2>
+              <p className={dashboardHintClass()}>
+                Due in the next 90 days, plus overdue from the last 30.
+              </p>
               <ul
                 className={cn(
                   "divide-y border-t",
@@ -1645,19 +1822,53 @@ export function ExpensesHubWorkspace() {
                     Expenses
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
-                    {totalCount} expense{totalCount === 1 ? "" : "s"} ·{" "}
+                    {summaryCount.toLocaleString("en-KE")} expense
+                    {summaryCount === 1 ? "" : "s"}
+                    {filtersActive ? " in view" : ""} ·{" "}
                     <span className="font-semibold text-[var(--order-ink,#15231f)]">
-                      {formatFixedCostMoney(tableSum)}
+                      {formatFixedCostMoney(postedTotal)}
+                    </span>{" "}
+                    posted
+                    <span className={cn("ml-1", dashboardHintClass())}>
+                      ({postedCount})
                     </span>
+                    {pendingTotal > 0.009 ? (
+                      <>
+                        {" · "}
+                        <span className="font-semibold text-[#9a2e16]">
+                          {formatFixedCostMoney(pendingTotal)}
+                        </span>{" "}
+                        pending
+                        <span className={cn("ml-1", dashboardHintClass())}>
+                          ({pendingCount})
+                        </span>
+                      </>
+                    ) : null}
+                    {summary && summary.rejectedCount > 0 ? (
+                      <>
+                        {" · "}
+                        <span className={dashboardHintClass()}>
+                          {summary.rejectedCount} rejected
+                        </span>
+                      </>
+                    ) : null}
+                    {hasMore ? (
+                      <>
+                        {" · "}
+                        latest {expenses.length.toLocaleString("en-KE")} shown
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <select
-                    className={cn(dashboardSelectClass(), "rounded-none")}
+                    className={cn(
+                      dashboardSelectClass(),
+                      "w-auto min-w-[8.5rem] max-w-[11rem] rounded-none",
+                    )}
                     value={categoryFilter}
                     onChange={(e) => {
                       setCategoryFilter(e.target.value);
-                      setPage(0);
                     }}
                   >
                     <option value="">All types</option>
@@ -1665,11 +1876,13 @@ export function ExpensesHubWorkspace() {
                     <option value="variable">Variable</option>
                   </select>
                   <select
-                    className={cn(dashboardSelectClass(), "rounded-none")}
+                    className={cn(
+                      dashboardSelectClass(),
+                      "w-auto min-w-[10rem] max-w-[13rem] rounded-none",
+                    )}
                     value={categoryCodeFilter}
                     onChange={(e) => {
                       setCategoryCodeFilter(e.target.value);
-                      setPage(0);
                     }}
                   >
                     <option value="">All categories</option>
@@ -1687,7 +1900,6 @@ export function ExpensesHubWorkspace() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         setSearchApplied(search.trim());
-                        setPage(0);
                       }
                     }}
                   />
@@ -1697,7 +1909,6 @@ export function ExpensesHubWorkspace() {
                     className={OUTLINE_BTN}
                     onClick={() => {
                       setSearchApplied(search.trim());
-                      setPage(0);
                     }}
                   >
                     Search
@@ -1723,18 +1934,84 @@ export function ExpensesHubWorkspace() {
                 </div>
               </div>
 
-              {categoryBreakdown.length > 0 ? (
-                <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
-                  {categoryBreakdown.map((row) => (
-                    <li key={row.code} className={dashboardHintClass()}>
-                      <span className="font-semibold text-[var(--order-ink,#15231f)]">
-                        {expenseCategoryCodeLabel(row.code)}
-                      </span>{" "}
-                      {formatFixedCostMoney(row.total)}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              <div className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 sm:px-3.5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="text-[11px] font-semibold text-[var(--order-ink,#15231f)]">
+                    Posted by category
+                  </p>
+                  <p className={dashboardHintClass()}>
+                    {formatFixedCostMoney(postedTotal)} posted
+                    {summary ? (
+                      <>
+                        {" · "}
+                        {formatFixedCostMoney(
+                          moneyNumber(summary.postedFixedAmount),
+                        )}{" "}
+                        fixed
+                        {" · "}
+                        {formatFixedCostMoney(
+                          moneyNumber(summary.postedVariableAmount),
+                        )}{" "}
+                        variable
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+                {categoryBreakdown.length > 0 ? (
+                  <ul className="mt-2 space-y-2">
+                    {categoryBreakdown.map((row) => {
+                      const share =
+                        postedTotal > 0 ? (row.posted / postedTotal) * 100 : 0;
+                      return (
+                        <li key={row.code}>
+                          <div className="flex items-baseline justify-between gap-2 text-[11.5px]">
+                            <span className="min-w-0 truncate text-[var(--order-ink,#15231f)]">
+                              {expenseCategoryCodeLabel(row.code)}
+                              {row.pending > 0.009 ? (
+                                <span className="text-[#9a2e16]">
+                                  {" "}
+                                  · {formatFixedCostMoney(row.pending)} pending
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="shrink-0 font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                              {row.posted > 0.009 ? (
+                                <>
+                                  {formatFixedCostMoney(row.posted)}
+                                  {postedTotal > 0 ? (
+                                    <span
+                                      className={cn(
+                                        "ml-1.5",
+                                        dashboardHintClass(),
+                                      )}
+                                    >
+                                      {share.toFixed(1)}%
+                                    </span>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <span className={dashboardHintClass()}>—</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1 overflow-hidden bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)]">
+                            <div
+                              className="h-full bg-[var(--pos-primary,#0f766e)]"
+                              style={{ width: `${Math.min(share, 100)}%` }}
+                            />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className={cn("mt-1.5", dashboardHintClass())}>
+                    {pendingTotal > 0.009
+                      ? "No posted expenses yet — pending bills are waiting for approval."
+                      : "No posted expenses in this view."}
+                  </p>
+                )}
+              </div>
 
               <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
                 {expenses.length === 0 ? (
@@ -1762,9 +2039,25 @@ export function ExpensesHubWorkspace() {
                           {(e.name || "?").slice(0, 1)}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--order-ink,#15231f)]">
-                            {e.name}
-                          </p>
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--order-ink,#15231f)]">
+                              {e.name}
+                            </p>
+                            {e.approvalStatus === "pending_approval" ? (
+                              <span className="shrink-0 border border-[#9a2e16]/35 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#9a2e16]">
+                                Pending
+                              </span>
+                            ) : e.approvalStatus === "rejected" ? (
+                              <span className="shrink-0 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                                Rejected
+                              </span>
+                            ) : e.paymentMethod === "mpesa_manual" &&
+                              !e.paidAt ? (
+                              <span className="shrink-0 border border-[#9a2e16]/35 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#9a2e16]">
+                                Awaiting payment
+                              </span>
+                            ) : null}
+                          </div>
                           <p className="mt-0.5 truncate text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
                             <span className="font-semibold text-[var(--order-ink,#15231f)]">
                               {expenseCadenceLabel(e, schedules)}
@@ -1926,11 +2219,25 @@ export function ExpensesHubWorkspace() {
   );
 }
 
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replaceAll('"', '""')}"`;
+function csvEscape(value: unknown): string {
+  const text = String(value ?? "");
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
   }
-  return value;
+  return text;
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const date = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  date.setDate(date.getDate() + days);
+  return toIsoDate(date);
+}
+
+function monthIndex(iso: string): number {
+  const date = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return 0;
+  return date.getFullYear() * 12 + date.getMonth();
 }
 
 function triggerCsvDownload(filename: string, content: string) {
@@ -1939,8 +2246,11 @@ function triggerCsvDownload(filename: string, content: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function ProfitStatement({
@@ -1948,13 +2258,24 @@ function ProfitStatement({
   periodLabel,
   canPocket,
   onPocket,
+  postedListTotal,
 }: {
   pl: ProfitAndLossResponse;
   periodLabel: string;
   canPocket?: boolean;
   onPocket?: () => void;
+  /** Posted expense-list total, or null when the list is filtered/incomplete. */
+  postedListTotal?: number | null;
 }) {
   const net = moneyNumber(pl.netOperating);
+  const postedList =
+    postedListTotal == null ? null : moneyNumber(postedListTotal);
+  const otherLedgerOpex =
+    postedList == null
+      ? null
+      : moneyNumber(pl.operatingExpenses) - postedList;
+  const hasLines =
+    pl.revenueLines.length + pl.cogsLines.length + pl.expenseLines.length > 0;
   const rows = [
     { mark: "", label: "Sales", value: pl.revenue, net: false },
     { mark: "−", label: "Cost of goods", value: pl.cogs, net: false },
@@ -2007,6 +2328,29 @@ function ProfitStatement({
             </div>
           );
         })}
+
+        {postedList != null && otherLedgerOpex != null ? (
+          <div className={cn("border-t px-3 py-2 sm:px-4", HAIRLINE)}>
+            <div className="flex items-baseline justify-between gap-4 pl-5 text-[11px]">
+              <dt className={dashboardHintClass()}>Itemised posted bills</dt>
+              <dd className="font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                {formatFixedCostMoney(postedList)}
+              </dd>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-4 pl-5 text-[11px]">
+              <dt className={dashboardHintClass()}>Other ledger OpEx</dt>
+              <dd
+                className={cn(
+                  "font-semibold tabular-nums text-[var(--order-ink,#15231f)]",
+                  otherLedgerOpex < -0.009 && "text-[#9a2e16]",
+                )}
+              >
+                {formatFixedCostMoney(otherLedgerOpex)}
+              </dd>
+            </div>
+          </div>
+        ) : null}
+
         <div
           className={cn(
             "flex flex-col gap-2.5 border-t px-3 py-3 sm:px-4",
@@ -2030,7 +2374,7 @@ function ProfitStatement({
               {formatFixedCostMoney(net)}
             </dd>
           </div>
-          {canPocket && onPocket ? (
+          {canPocket && onPocket && net > 0.009 ? (
             <button
               type="button"
               onClick={onPocket}
@@ -2051,7 +2395,62 @@ function ProfitStatement({
           ) : null}
         </div>
       </dl>
+      {hasLines ? (
+        <details className={cn("border-t", HAIRLINE)}>
+          <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-[var(--order-ink,#15231f)] sm:px-4">
+            How these numbers are reached
+          </summary>
+          <div className="grid gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 pb-3 pt-3 sm:grid-cols-3 sm:px-4">
+            <PnlLineGroup title="Revenue accounts" lines={pl.revenueLines} />
+            <PnlLineGroup title="Cost of goods" lines={pl.cogsLines} />
+            <PnlLineGroup title="Operating expenses" lines={pl.expenseLines} />
+          </div>
+          <p className={cn("px-3 pb-3 text-[10.5px] leading-relaxed sm:px-4", dashboardHintClass())}>
+            Cost of goods is the dedicated COGS account; every other expense
+            account is operating expense. Net = gross profit − operating
+            expenses.
+          </p>
+        </details>
+      ) : null}
     </section>
+  );
+}
+
+function PnlLineGroup({
+  title,
+  lines,
+}: {
+  title: string;
+  lines: ProfitAndLossResponse["expenseLines"];
+}) {
+  return (
+    <div>
+      <p className="text-[10.5px] font-semibold text-[var(--order-ink,#15231f)]">
+        {title}
+      </p>
+      {lines.length > 0 ? (
+        <ul className="mt-1.5 space-y-1">
+          {lines.map((line) => (
+            <li
+              key={`${line.accountCode}-${line.accountName}`}
+              className="flex items-baseline justify-between gap-2 text-[10.5px]"
+            >
+              <span className={cn("min-w-0 truncate", dashboardHintClass())}>
+                {line.accountName}{" "}
+                <span className="tabular-nums">{line.accountCode}</span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
+                {formatFixedCostMoney(moneyNumber(line.amount))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={cn("mt-1.5 text-[10.5px]", dashboardHintClass())}>
+          No activity.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -2061,6 +2460,8 @@ async function fetchEveryExpenseInRange(options: {
   branchId?: string;
   categoryType?: string;
   categoryCode?: string;
+  source?: string;
+  approvalStatus?: string;
   q?: string;
 }): Promise<{
   expenses: FinanceExpenseResponse[];
@@ -2114,9 +2515,14 @@ async function loadPayrollPicture(
     const seenSlips = new Set<string>();
     let count = 0;
     let netTotal = 0;
-    for (const slips of slipBatches) {
-      for (const slip of slips) {
-        if (slip.expenseId) continue;
+    for (let index = 0; index < months.length; index += 1) {
+      const slipsById = new Map(
+        (slipBatches[index] ?? []).map((slip) => [slip.id, slip]),
+      );
+      for (const row of runBatches[index] ?? []) {
+        if (!row.payslipId) continue;
+        const slip = slipsById.get(row.payslipId);
+        if (!slip || slip.expenseId) continue;
         if (seenSlips.has(slip.id)) continue;
         seenSlips.add(slip.id);
         count += 1;
@@ -2127,14 +2533,14 @@ async function loadPayrollPicture(
     for (const rows of runBatches) {
       for (const row of rows) {
         if (row.employmentStatus === "terminated") continue;
-        const monthly = moneyNumber(row.monthlySalary);
-        if (monthly <= 0) continue;
+        const payable = moneyNumber(row.baseSalary);
+        if (payable <= 0) continue;
         salaries.push({
           key: `${row.userId}-${row.year}-${row.month}`,
           displayName: row.displayName,
           year: row.year,
           month: row.month,
-          monthlySalary: monthly,
+          payableSalary: payable,
           alreadyPaid: row.alreadyPaid,
         });
       }
