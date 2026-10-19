@@ -62,6 +62,7 @@ import {
   type PriceStatusCounts,
   type PriceStatusFilter,
   type ItemTypeRecord,
+  type LowStockProductPoint,
   type SupplierRecord,
 } from "@/lib/api";
 import {
@@ -1450,6 +1451,9 @@ export function StockLevelsPage() {
   }, [isLevelsView, searchParams]);
 
   const [rows, setRows] = useState<StockRow[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<
+    LowStockProductPoint[]
+  >([]);
   /**
    * Package → unit-price calculator target: either the item's reference buy
    * price (desktop Buy column) or the draft unit cost of a stock increase.
@@ -1949,6 +1953,7 @@ export function StockLevelsPage() {
       const branch = branchId.trim();
       if (!branch) {
         setRows([]);
+        setLowStockProducts([]);
         setHasMore(false);
         hasMoreRef.current = false;
         setTotalElements(0);
@@ -1990,6 +1995,7 @@ export function StockLevelsPage() {
           }
           reorderByItemIdRef.current = reorderByItemId;
           categoryByItemIdRef.current = categoryByItemId;
+          setLowStockProducts(dashboard?.lowStockProducts ?? []);
         }
 
         const page = opts.reset ? 0 : pageRef.current + 1;
@@ -2434,7 +2440,7 @@ export function StockLevelsPage() {
 
   if (!isLevelsView) {
     return (
-      <div className={DASHBOARD_MAX}>
+      <div className={cn(DASHBOARD_MAX, "!h-auto !min-h-full !pb-[calc(var(--shell-bottom-inset)+1.5rem)]")}>
         <DashboardPageHero
           icon={Warehouse}
           title="Stock"
@@ -2453,6 +2459,7 @@ export function StockLevelsPage() {
               countsLoading={loading && rows.length === 0}
               onOpenLevels={openLevels}
               fullCountProgress={fullCountProgress}
+              watchlist={lowStockProducts}
             />
           </div>
         </div>
@@ -2462,8 +2469,8 @@ export function StockLevelsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="flex min-h-0 flex-col gap-0 md:gap-1">
-        <header className="sticky top-0 z-20 -mx-3 bg-white/95 backdrop-blur-md sm:mx-0">
+      <div className="flex h-full min-h-0 flex-1 flex-col gap-0 md:gap-1">
+        <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-white/95 backdrop-blur-md sm:mx-0">
           <DashboardPageHero
             icon={Package}
             title="Stock levels"
@@ -2922,7 +2929,7 @@ export function StockLevelsPage() {
           ) : (
             <div
               ref={scrollRef}
-              className="min-h-[min(68dvh,40rem)] max-h-[min(78dvh,56rem)] flex-1 overflow-auto overscroll-contain selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] md:min-h-0 md:max-h-[min(74vh,56rem)]"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4 selection:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)] [scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--order-ink,#15231f)_35%,transparent)_transparent]"
             >
               {/* Mobile / tablet: stacked cards — edit stock without horizontal scroll */}
               <div

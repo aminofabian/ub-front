@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -13,6 +13,12 @@ import {
 
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
+import {
+  coverPhrase,
+  shelfFocusCounts,
+  shelfSignal,
+  velocityQty,
+} from "@/lib/velocity-shelf";
 import {
   patchItem,
   fetchItemById,
@@ -610,14 +616,24 @@ export function ActivityVelocityBoard({
   onRowPatched?: (itemId: string, patch: Partial<ItemVelocityRow>) => void;
 }) {
   const [editingRow, setEditingRow] = useState<ItemVelocityRow | null>(null);
+  const [focus, setFocus] = useState<"all" | "empty" | "short" | "moving">(
+    "all",
+  );
 
-  const filtered = (() => {
+  const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) => textMatchesQuery(q, r.itemName, r.sku));
-  })();
+  }, [rows, search]);
 
-  const sorted = [...filtered].sort((a, b) => {
+  const focusCounts = useMemo(() => shelfFocusCounts(filtered), [filtered]);
+
+  const focused = useMemo(() => {
+    if (focus === "all") return filtered;
+    return filtered.filter((row) => shelfSignal(row) === focus);
+  }, [filtered, focus]);
+
+  const sorted = [...focused].sort((a, b) => {
     if (sortKey === "itemName") {
       const cmp = a.itemName.localeCompare(b.itemName, undefined, {
         sensitivity: "base",
@@ -637,58 +653,126 @@ export function ActivityVelocityBoard({
     );
   }
 
-  const movers = [...rows]
-    .map((r) => ({
-      row: r,
-      delta: toNum(r.todayQty) - toNum(r.yesterdayQty),
-    }))
-    .filter((m) => m.delta !== 0)
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 5);
+  const pulse = useMemo(() => {
+    const risks = filtered
+      .filter((row) => {
+        const signal = shelfSignal(row);
+        return signal === "empty" || signal === "short";
+      })
+      .sort((a, b) => {
+        const rank = (row: ItemVelocityRow) =>
+          shelfSignal(row) === "empty" ? 0 : 1;
+        return rank(a) - rank(b) || velocityQty(b.last7Qty) - velocityQty(a.last7Qty);
+      })
+      .slice(0, 6)
+      .map((row) => ({
+        row,
+        detail: shelfSignal(row) === "empty" ? "Empty" : (coverPhrase(row) ?? "Short"),
+        tone: "risk" as const,
+      }));
+    if (risks.length > 0) {
+      return { title: "Do these first", items: risks };
+    }
+    const movers = filtered
+      .map((row) => ({
+        row,
+        delta: velocityQty(row.todayQty) - velocityQty(row.yesterdayQty),
+      }))
+      .filter((item) => item.delta !== 0)
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+      .slice(0, 5)
+      .map((item) => ({
+        row: item.row,
+        detail: `${item.delta > 0 ? "+" : ""}${formatQty(item.delta)}`,
+        tone: item.delta > 0 ? ("up" as const) : ("down" as const),
+      }));
+    return { title: "Since yesterday", items: movers };
+  }, [filtered]);
+
+  const focusOptions = [
+    { id: "all" as const, label: "All", count: filtered.length },
+    { id: "empty" as const, label: "Empty shelf", count: focusCounts.empty },
+    { id: "short" as const, label: "Under 3 days", count: focusCounts.short },
+    { id: "moving" as const, label: "Moving today", count: focusCounts.moving },
+  ].filter((option) => option.id === "all" || option.count > 0);
 
   return (
     <div className="space-y-4">
-      {movers.length > 0 ? (
+      {pulse.items.length > 0 ? (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
           <span className="flex shrink-0 items-center gap-1.5 self-center text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/70">
             <Gauge className="size-3" aria-hidden />
-            Pulse
+            {pulse.title}
           </span>
-          {movers.map(({ row, delta }) => {
-            const up = delta > 0;
-            return (
-              <button
-                key={row.itemId}
-                type="button"
-                onClick={() => onSelectItem(row.itemId)}
-                className={cn(
-                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
-                  up
-                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]"
-                    : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_6%,white)] text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_10%,white)]",
-                  )}
-                >
-                {up ? (
-                  <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
-                ) : (
-                  <ArrowDownRight className="size-3.5 shrink-0" aria-hidden />
-                )}
-                <span className="max-w-[8rem] truncate">{row.itemName}</span>
-                <span className="font-mono tabular-nums">
-                  {up ? "+" : ""}
-                  {formatQty(delta)}
-                </span>
-              </button>
-            );
-          })}
+          {pulse.items.map(({ row, detail, tone }) => (
+            <button
+              key={row.itemId}
+              type="button"
+              title={row.itemName}
+              onClick={() => onSelectItem(row.itemId)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none border px-3 text-[12px] font-medium transition-colors active:scale-[0.98]",
+                tone === "up"
+                  ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]"
+                  : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_6%,white)] text-[#9a2e16] hover:bg-[color-mix(in_srgb,#9a2e16_10%,white)]",
+              )}
+            >
+              {tone === "up" ? (
+                <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+              ) : tone === "down" ? (
+                <ArrowDownRight className="size-3.5 shrink-0" aria-hidden />
+              ) : null}
+              <span className="max-w-[11rem] truncate">{row.itemName}</span>
+              <span className="font-mono tabular-nums">{detail}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {focusOptions.length > 1 ? (
+        <div
+          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Focus the list"
+        >
+          {focusOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setFocus(option.id)}
+              aria-pressed={focus === option.id}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-none border px-2.5 text-[11px] font-semibold transition-colors",
+                focus === option.id
+                  ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                  : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+              <span className="font-mono tabular-nums">{option.count}</span>
+            </button>
+          ))}
         </div>
       ) : null}
 
       {sorted.length === 0 ? (
         <div className="py-10 text-center text-sm text-muted-foreground">
-          {search.trim()
-            ? "No products match your search."
-            : "No sales in the last 30 days for this scope."}
+          {search.trim() ? (
+            "No products match your search."
+          ) : focus !== "all" ? (
+            <span className="inline-flex flex-col items-center gap-2">
+              <span>Nothing in this focus.</span>
+              <button
+                type="button"
+                onClick={() => setFocus("all")}
+                className="text-[12px] font-semibold text-[var(--pos-primary,#0f766e)]"
+              >
+                Show every product
+              </button>
+            </span>
+          ) : (
+            "No sales in the last 30 days for this scope."
+          )}
         </div>
       ) : (
         <>
@@ -742,6 +826,8 @@ export function ActivityVelocityBoard({
                   ] as number | string,
                 );
                 const vsYday = toNum(row.todayQty) - toNum(row.yesterdayQty);
+                const signal = shelfSignal(row);
+                const cover = coverPhrase(row);
 
                 return (
                   <li
@@ -767,7 +853,11 @@ export function ActivityVelocityBoard({
                             <p className="truncate text-[14px] font-semibold tracking-tight text-foreground">
                               {row.itemName}
                             </p>
-                            {row.sku ? (
+                            {signal === "empty" || signal === "short" ? (
+                              <p className="mt-0.5 text-[11px] font-semibold text-[#9a2e16]">
+                                {cover}
+                              </p>
+                            ) : row.sku ? (
                               <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/50">
                                 {row.sku}
                               </p>
@@ -838,10 +928,15 @@ export function ActivityVelocityBoard({
 
                         <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
                           <span className="font-medium text-muted-foreground/70">
-                            In store{" "}
+                            On shelf{" "}
                             <span className="font-mono tabular-nums text-foreground/85">
                               {formatQty(row.currentStock)}
                             </span>
+                            {cover && signal !== "empty" && signal !== "short" ? (
+                              <span className="ml-1.5 text-muted-foreground/55">
+                                · {cover}
+                              </span>
+                            ) : null}
                           </span>
                           {vsYday !== 0 ? (
                             <span
@@ -924,30 +1019,43 @@ export function ActivityVelocityBoard({
                   ))}
                   <th
                     className="px-1.5 pb-2.5 pt-1 text-right text-[10px] font-bold tracking-[-0.02em] text-muted-foreground/70"
-                    title="Branch on-hand (same as Products)"
+                    title="On the shelf now, and days left at the recent selling pace"
                   >
-                    In store
+                    On shelf
                   </th>
                   <th className="w-8 pb-2.5 pt-1" />
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((row, idx) => (
+                {sorted.map((row, idx) => {
+                  const signal = shelfSignal(row);
+                  const cover = coverPhrase(row);
+                  return (
                   <tr
                     key={row.itemId}
                     className={cn(
-                      "group cursor-pointer border-l-2 border-transparent transition-colors",
-                      "hover:border-l-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_3%,white)]",
-                      idx % 2 === 0 ? "bg-transparent" : "bg-muted/[0.08]",
+                      "group cursor-pointer transition-colors",
+                      "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]",
+                      signal === "empty"
+                        ? "bg-[color-mix(in_srgb,#9a2e16_7%,white)]"
+                        : signal === "short"
+                          ? "bg-[color-mix(in_srgb,#b45309_7%,white)]"
+                          : idx % 2 === 0
+                            ? "bg-transparent"
+                            : "bg-muted/[0.08]",
                     )}
                     onClick={() => onSelectItem(row.itemId)}
                   >
-                    <td className="sticky left-0 z-[1] bg-inherit py-2 pl-1 pr-2">
-                      <p className="max-w-[180px] truncate text-[11px] font-medium text-foreground/90">
+                    <td className="sticky left-0 z-[1] bg-inherit py-2.5 pl-1 pr-2">
+                      <p className="max-w-[16rem] truncate text-[13px] font-medium tracking-[-0.01em] text-foreground">
                         {row.itemName}
                       </p>
-                      {row.sku ? (
-                        <p className="font-mono text-[9.5px] text-muted-foreground/45">
+                      {signal === "empty" || signal === "short" ? (
+                        <p className="text-[11px] font-semibold text-[#9a2e16]">
+                          {cover}
+                        </p>
+                      ) : row.sku ? (
+                        <p className="font-mono text-[10px] text-muted-foreground/50">
                           {row.sku}
                         </p>
                       ) : null}
@@ -989,8 +1097,22 @@ export function ActivityVelocityBoard({
                         </td>
                       );
                     })}
-                    <td className="px-1.5 py-2 text-right font-mono text-[11px] tabular-nums text-foreground/75">
-                      {formatQty(row.currentStock)}
+                    <td className="px-1.5 py-2 text-right">
+                      <span className="block font-mono text-[12px] font-semibold tabular-nums text-foreground">
+                        {formatQty(row.currentStock)}
+                      </span>
+                      {cover ? (
+                        <span
+                          className={cn(
+                            "mt-0.5 block text-[10px] font-medium tabular-nums",
+                            signal === "empty" || signal === "short"
+                              ? "text-[#9a2e16]"
+                              : "text-muted-foreground/60",
+                          )}
+                        >
+                          {cover}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="py-2 pr-1">
                       <button
@@ -1006,7 +1128,8 @@ export function ActivityVelocityBoard({
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
