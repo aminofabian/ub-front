@@ -4,17 +4,22 @@ import type { ReactNode } from "react";
 
 import { BusinessHubNav } from "@/components/business-hub/business-hub-nav";
 import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-header-switch";
-import { OXANIUM_SURFACE_STYLE } from "@/lib/oxanium-surface";
 import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
-  ["--hub-ink" as string]: "#141414",
-  ["--hub-paper" as string]: "#ffffff",
-  ["--hub-bg" as string]: "#F6F7F6",
-  ["--hub-accent" as string]: "#0f766e",
-  ["--hub-accent-deep" as string]: "#0f766e",
-  ["--hub-slip" as string]: "#ffffff",
-  ["--hub-rule" as string]: "color-mix(in srgb, #141414 8%, transparent)",
+  ["--hub-ink" as string]: "#121A16",
+  ["--hub-paper" as string]: "#FCFAF5",
+  ["--hub-bg" as string]: "#F4F1EA",
+  ["--hub-accent" as string]: "#1D4B3B",
+  ["--hub-accent-deep" as string]: "#163B2E",
+  ["--hub-slip" as string]: "#FCFAF5",
+  ["--hub-rule" as string]: "color-mix(in srgb, #121A16 10%, transparent)",
+  ["--order-ink" as string]: "#121A16",
+  ["--pos-primary" as string]: "#1D4B3B",
+  ["--font-sans" as string]: "var(--font-manrope), system-ui, sans-serif",
+  ["--font-heading" as string]: "var(--font-manrope), system-ui, sans-serif",
+  ["--font-serif" as string]: "var(--font-cormorant), Georgia, serif",
+  fontFamily: "var(--font-manrope), system-ui, sans-serif",
 } as const;
 
 const HUB_RULE_8 = "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]";
@@ -76,7 +81,6 @@ export function BusinessPageLayout({
       )}
       style={{
         ...BUSINESS_HUB_VARS,
-        ...OXANIUM_SURFACE_STYLE,
         backgroundColor: "var(--hub-bg)",
       }}
     >
@@ -86,9 +90,9 @@ export function BusinessPageLayout({
         <div
           data-hub-chrome=""
           className={cn(
-            "sticky top-0 z-20 shrink-0 border-b bg-white/92",
+            "sticky top-0 z-20 shrink-0 border-b bg-[color-mix(in_srgb,var(--hub-bg)_92%,transparent)]",
             "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]",
-            "backdrop-blur-xl supports-[backdrop-filter]:bg-white/80",
+            "backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--hub-bg)_84%,transparent)]",
             // Match shell gutters on phone — avoid -mx bleed that fights the nav.
             "mx-0 overflow-x-clip rounded-none sm:overflow-visible sm:border",
           )}
@@ -149,7 +153,16 @@ export function BusinessPageLayout({
         {showCopy ? (
           <header className="min-w-0 px-3 py-0.5 sm:px-0.5">
             {heading ? (
-              <h1 className="font-heading text-lg font-semibold leading-none tracking-[-0.03em] text-[var(--hub-ink)] sm:text-xl">
+              <h1
+                className="text-[var(--hub-ink)]"
+                style={{
+                  fontFamily: "var(--font-cormorant), Georgia, serif",
+                  fontSize: "clamp(1.65rem, 2.4vw, 2.05rem)",
+                  fontWeight: 400,
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 {heading}
               </h1>
             ) : (

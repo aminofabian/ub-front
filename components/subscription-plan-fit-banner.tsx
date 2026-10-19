@@ -199,7 +199,7 @@ export function SubscriptionPlanFitBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="shrink-0 border-b border-orange-200/90 bg-orange-50 text-orange-950 selection:bg-orange-200/80 dark:border-orange-500/25 dark:bg-orange-950/35 dark:text-orange-50"
+      className="plan-fit-banner shrink-0 border-b border-orange-200/90 bg-orange-50 text-orange-950 selection:bg-orange-200/80 dark:border-orange-500/25 dark:bg-orange-950/35 dark:text-orange-50"
     >
       <div className="flex items-center gap-2 px-3 py-1.5 sm:gap-6 sm:px-5 sm:py-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-8">

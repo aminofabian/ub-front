@@ -27,9 +27,9 @@ export function LegalDocument({
   return (
     <div
       style={landingRootStyle()}
-      className="flex min-h-dvh flex-col bg-[var(--kiosk-bg)]"
+      className="landing-page flex min-h-dvh flex-col bg-[var(--kiosk-bg)]"
     >
-      <main className="mx-auto w-full max-w-[760px] flex-1 px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
+      <main className="mx-auto w-full max-w-[700px] flex-1 px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
         <Link
           href="/"
           className="inline-flex min-h-11 items-center text-sm text-[var(--kiosk-text-dim)] transition-colors hover:text-[var(--kiosk-text)]"
@@ -37,7 +37,7 @@ export function LegalDocument({
           &larr; Back to {PLATFORM_DOMAIN}
         </Link>
 
-        <p className="mt-8 inline-flex items-center border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
+        <p className="mt-8 flex w-fit items-center border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]">
           Pending counsel review
         </p>
 
@@ -55,7 +55,7 @@ export function LegalDocument({
         <div className="mt-12 flex flex-col gap-10">{children}</div>
 
         <section className="mt-14 border-t border-[var(--kiosk-border)] pt-8">
-          <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+          <h2 className="font-heading text-2xl font-normal tracking-[-0.02em] text-[var(--kiosk-text)]">
             Who to contact
           </h2>
           <p className="mt-3 text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)]">
@@ -92,10 +92,10 @@ export function LegalSection({
 }) {
   return (
     <section>
-      <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]">
+      <h2 className="font-heading text-2xl font-normal tracking-[-0.02em] text-[var(--kiosk-text)]">
         {heading}
       </h2>
-      <div className="mt-3 flex flex-col gap-3 text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)]">
+      <div className="mt-3 flex flex-col gap-3 text-[15.5px] leading-[1.75] text-[var(--kiosk-text-muted)]">
         {children}
       </div>
     </section>

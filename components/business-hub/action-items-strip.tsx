@@ -16,14 +16,14 @@ export type ActionItem = {
 
 const TONES = {
   warning: {
-    card: "bg-[#fdf8f0] hover:bg-[#fcf3e6]",
-    icon: "bg-[#fbe8cf] text-[#b45309]",
-    arrow: "text-[#b45309]",
+    card: "border-t border-[var(--hub-rule)] bg-transparent hover:text-[var(--hub-highlight)]",
+    icon: "text-[var(--hub-highlight)]",
+    arrow: "text-[var(--hub-highlight)]",
   },
   info: {
-    card: "bg-[#f0f9f7] hover:bg-[#e6f4f1]",
-    icon: "bg-[#d9f0eb] text-[#0f766e]",
-    arrow: "text-[#0f766e]",
+    card: "border-t border-[var(--hub-rule)] bg-transparent hover:text-[var(--hub-accent)]",
+    icon: "text-[var(--hub-accent)]",
+    arrow: "text-[var(--hub-accent)]",
   },
 } as const;
 
@@ -49,26 +49,20 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "group flex min-h-12 items-center gap-2 rounded-2xl px-3 py-2.5 transition-colors",
-                "ring-1 ring-black/[0.05]",
+                "group flex min-h-12 items-center gap-2 rounded-[2px] px-1 py-3 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
                 tone.card,
               )}
             >
-              <span
-                className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-none",
-                  tone.icon,
-                )}
-              >
-                <Icon className="size-3.5" aria-hidden />
+              <span className={cn("flex size-6 shrink-0 items-center justify-center", tone.icon)}>
+                <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1 leading-tight">
-                <span className="line-clamp-2 text-[12px] font-semibold tracking-[-0.015em] text-[#141414]">
+                <span className="line-clamp-2 text-[12.5px] font-medium tracking-[-0.005em] text-[var(--hub-ink)]">
                   {item.label}
                 </span>
                 {item.detail ? (
-                  <span className="mt-0.5 block truncate text-[10px] text-[#6F6F6F]">
+                  <span className="mt-0.5 block truncate text-[10.5px] text-[var(--hub-muted)]">
                     {item.detail}
                   </span>
                 ) : null}

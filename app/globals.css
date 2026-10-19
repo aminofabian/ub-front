@@ -2999,24 +2999,16 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     border-radius: inherit;
     background-image:
         radial-gradient(
-            ellipse 80% 50% at 12% -8%,
-            color-mix(in srgb, var(--kiosk-gold) 9%, transparent),
-            transparent 55%
+            ellipse 52% 36% at 78% 8%,
+            color-mix(in srgb, var(--kiosk-gold) 7%, transparent),
+            transparent 70%
         ),
         radial-gradient(
-            ellipse 60% 40% at 92% 18%,
-            color-mix(in srgb, var(--kiosk-gold) 6%, transparent),
-            transparent 50%
-        ),
-        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
-    background-size:
-        auto,
-        auto,
-        48px 48px,
-        48px 48px;
-    mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
+            ellipse 44% 32% at 8% 92%,
+            color-mix(in srgb, var(--kiosk-highlight) 5%, transparent),
+            transparent 70%
+        );
+    background-size: auto;
 }
 
 .landing-page main {
@@ -3739,6 +3731,10 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 }
 
 /* ── Proof strip + convert section ── */
+.landing-page .landing-pillars {
+    padding-block: clamp(5rem, 9vw, 8.5rem);
+}
+
 .landing-page .proof-strip {
     padding: 1.75rem 0 1.5rem;
     border-block: 1px solid color-mix(in srgb, var(--kiosk-text) 7%, transparent);
@@ -3910,7 +3906,11 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 }
 
 @media (min-width: 640px) {
-    .landing-page .proof-strip {
+    .landing-page .landing-pillars {
+    padding-block: clamp(5rem, 9vw, 8.5rem);
+}
+
+.landing-page .proof-strip {
         padding: 2rem 0 1.75rem;
     }
 
@@ -4013,14 +4013,8 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
             ellipse 45% 55% at 95% 100%,
             color-mix(in srgb, var(--kiosk-gold) 7%, transparent),
             transparent 55%
-        ),
-        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
-    background-size:
-        auto,
-        auto,
-        44px 44px,
-        44px 44px;
+        );
+    background-size: auto;
 }
 
 .landing-page .landing-pillar-board {
@@ -4582,20 +4576,6 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     }
 }
 
-.landing-page .landing-cta-panel::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.5;
-    mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
-    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
-}
-
 .landing-page .landing-mobile-bento {
     background: linear-gradient(
         135deg,
@@ -4717,11 +4697,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 
 @media (max-width: 767px) {
     .landing-page .landing-page-canvas {
-        background-size:
-            auto,
-            auto,
-            32px 32px,
-            32px 32px;
+        background-size: auto;
         opacity: 0.85;
     }
 
@@ -6246,4 +6222,999 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
   .select-panel {
     animation: none;
   }
+}
+
+/* ==========================================================================
+   Premium landing layer — restrained palette, editorial type, breathing room
+   ========================================================================== */
+
+.landing-page {
+    position: relative;
+    font-family: var(--font-manrope), "Avenir Next", "Segoe UI", system-ui,
+        sans-serif;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+.landing-page::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background-image: url("/textures/paper-grain.png");
+    background-size: 180px 180px;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page .font-heading {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.018em;
+}
+
+.landing-page h3,
+.landing-page h4 {
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+.landing-page p,
+.landing-page li,
+.landing-page button,
+.landing-page a,
+.landing-page input,
+.landing-page select,
+.landing-page textarea {
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+/* The hero is a single, quiet moment: title, lede, two actions, one image. */
+
+.landing-page .landing-hero {
+    min-height: min(760px, calc(100svh - 4.25rem));
+    padding-top: clamp(5.5rem, 10vw, 8rem);
+}
+
+.landing-page .landing-hero-title {
+    margin: 0;
+    max-width: none;
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-size: clamp(3.15rem, 5.5vw, 4.75rem);
+    font-weight: 300;
+    line-height: 0.94;
+    letter-spacing: -0.032em;
+    color: var(--kiosk-text);
+    text-wrap: balance;
+}
+
+.landing-page .landing-hero-title > span:first-child {
+    white-space: nowrap;
+}
+
+.landing-page .landing-hero-title-em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--kiosk-gold);
+    padding-bottom: 0.04em;
+}
+
+.landing-page .landing-hero-lede {
+    margin: clamp(1.5rem, 2.4vw, 2rem) 0 0;
+    max-width: 31rem;
+    font-size: 16px;
+    line-height: 1.68;
+    letter-spacing: -0.005em;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .landing-hero-figure {
+    position: relative;
+    margin: 0;
+    padding: 0.65rem;
+    border: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-elevated) 82%, transparent);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.8) inset,
+        0 38px 80px -52px rgba(18, 26, 22, 0.55);
+}
+
+.landing-page .landing-hero-image {
+    position: relative;
+    overflow: hidden;
+    background: var(--kiosk-surface);
+}
+
+.landing-page .landing-hero-image > img {
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-page .landing-hero-figure:hover .landing-hero-image > img {
+    transform: scale(1.012);
+}
+
+.landing-page .kiosk-logo-mark img {
+    filter: saturate(0.72) contrast(1.04);
+}
+
+.landing-page .landing-hero-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .landing-hero-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin-top: clamp(3.5rem, 6vw, 5rem);
+    border-top: 1px solid var(--kiosk-border);
+}
+
+.landing-page .landing-hero-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1.35rem 1.5rem 0 0;
+}
+
+.landing-page .landing-hero-fact + .landing-hero-fact {
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--kiosk-border);
+}
+
+.landing-page .landing-hero-fact-label {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 1.55rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-hero-fact-detail {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+/* Nav: a single line with air, not a toolbar. */
+
+.landing-page .landing-nav-inner {
+    height: 4.25rem;
+    padding-inline: 1.25rem;
+}
+
+.landing-page .landing-nav--solid {
+    background: color-mix(in srgb, var(--kiosk-nav-blur-bg) 96%, transparent);
+    border-bottom: 1px solid var(--kiosk-border);
+    backdrop-filter: blur(18px) saturate(1.1);
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.landing-page .landing-nav-links {
+    gap: 1.9rem;
+    border: 0;
+    background: transparent;
+}
+
+.landing-page .landing-nav-link {
+    padding: 0.45rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--kiosk-text-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    box-shadow: inset 0 -1px 0 transparent;
+    transition:
+        color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.landing-page .landing-nav-link:hover {
+    color: var(--kiosk-text);
+    background: transparent;
+    box-shadow: inset 0 -1px 0 var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-link.is-open {
+    color: var(--kiosk-text);
+    background: transparent;
+    box-shadow: inset 0 -1px 0 var(--kiosk-gold);
+}
+
+.landing-page .landing-nav-link-code {
+    display: none;
+}
+
+.landing-page .landing-nav-ticket {
+    border-radius: 2px;
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.6rem 0.95rem;
+}
+
+.landing-page .landing-nav-ticket--ghost {
+    border-color: transparent;
+    background: transparent;
+}
+
+.landing-page .landing-nav-ticket--ghost:hover {
+    border-color: var(--kiosk-border-strong);
+    background: transparent;
+}
+
+.landing-page .landing-nav-capsule {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-nav-inner {
+        padding-inline: 2.5rem;
+    }
+
+    .landing-page .landing-nav-links {
+        gap: 2.2rem;
+    }
+}
+
+/* Section voice: serif headings, hidden kickers, flat editorial rows. */
+
+.landing-page .convert-kicker,
+.landing-page .landing-section-header-meta,
+.landing-page .landing-section-index,
+.landing-page .convert-pillar-code,
+.landing-page .landing-kenya-code {
+    display: none;
+}
+
+.landing-page .convert-section {
+    padding: clamp(5rem, 9vw, 8.5rem) 0;
+}
+
+.landing-page .convert-inner {
+    max-width: 1120px;
+    padding-inline: 1.25rem;
+}
+
+.landing-page .convert-head {
+    max-width: 46rem;
+    margin-bottom: clamp(2.75rem, 5vw, 4.5rem);
+}
+
+.landing-page .convert-title {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: clamp(2.35rem, 5.2vw, 4.1rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+}
+
+.landing-page .convert-title span {
+    color: var(--kiosk-text-soft);
+}
+
+.landing-page .convert-sub {
+    max-width: 38rem;
+    margin-top: 1.35rem;
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: var(--kiosk-text-muted);
+}
+
+.landing-page .convert-assurance {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .convert-pillars {
+    gap: 0 3rem;
+}
+
+.landing-page .convert-pillar {
+    padding: 2rem 0 2.1rem;
+    border: 0;
+    border-top: 1px solid var(--kiosk-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.landing-page .convert-pillar:hover {
+    background: transparent;
+    border-top-color: var(--kiosk-gold);
+    box-shadow: none;
+}
+
+.landing-page .convert-pillar-title {
+    max-width: 22rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.32;
+}
+
+.landing-page .convert-pillar-body {
+    margin-top: 0.8rem;
+    max-width: 28rem;
+    font-size: 14.5px;
+    line-height: 1.65;
+}
+
+.landing-page .landing-section-header h2 {
+    max-width: 16ch;
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: clamp(2.35rem, 5vw, 4rem);
+    font-weight: 400;
+    line-height: 1.03;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+}
+
+.landing-page .landing-section-header p {
+    max-width: 40rem;
+    font-size: 15.5px;
+    line-height: 1.7;
+}
+
+.landing-page .landing-section-rule {
+    height: 1px;
+    background: var(--kiosk-border);
+}
+
+.landing-page .landing-section-alt::before {
+    display: none;
+}
+
+.landing-page .landing-bento-card::before,
+.landing-page .landing-bento-card::after {
+    display: none;
+}
+
+.landing-page .landing-pillars {
+    padding-block: clamp(5rem, 9vw, 8.5rem);
+}
+
+.landing-page .proof-strip {
+    border-top: 1px solid var(--kiosk-border);
+    border-bottom: 1px solid var(--kiosk-border);
+    background: color-mix(in srgb, var(--kiosk-surface) 46%, transparent);
+}
+
+.landing-page .proof-strip-label {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 1.2rem;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--kiosk-text-soft);
+}
+
+.landing-page .proof-logo-img {
+    opacity: 0.62;
+    filter: grayscale(1) contrast(1.02);
+    transition:
+        opacity 180ms ease,
+        filter 180ms ease;
+}
+
+.landing-page .proof-logo:hover .proof-logo-img {
+    opacity: 0.9;
+    filter: grayscale(0.3) contrast(1.02);
+}
+
+/* Content stays legible even before a scroll reveal fires. */
+@keyframes section-reveal {
+    from {
+        transform: translateY(10px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .section-reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .landing-page .landing-hero-image > img {
+        transition: none;
+    }
+}
+
+@media (max-width: 639px) {
+    .landing-page .landing-hero {
+        min-height: auto;
+        padding-top: 4.75rem;
+    }
+
+    .landing-page .landing-hero-title {
+        max-width: 12ch;
+        font-size: clamp(2.9rem, 13vw, 3.8rem);
+    }
+
+    .landing-page .landing-hero-lede {
+        font-size: 15px;
+        line-height: 1.65;
+    }
+
+    .landing-page .landing-hero-facts {
+        grid-template-columns: 1fr;
+        margin-top: 2.75rem;
+    }
+
+    .landing-page .landing-hero-fact {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0.9rem 0;
+    }
+
+    .landing-page .landing-hero-fact + .landing-hero-fact {
+        padding-left: 0;
+        border-left: 0;
+        border-top: 1px solid var(--kiosk-border);
+    }
+
+    .landing-page .landing-hero-fact-label {
+        font-size: 1.2rem;
+    }
+
+    .landing-page .landing-hero-caption > span:nth-child(n + 2) {
+        display: none;
+    }
+
+    .landing-page .convert-pillars {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-page .convert-pillar {
+        padding: 1.6rem 0;
+    }
+}
+
+/* Closing CTA: a single dark band, no card chrome. */
+
+.landing-page .landing-cta-panel {
+    --kiosk-text: #F2EDE1;
+    --kiosk-text-soft: rgba(242, 237, 225, 0.72);
+    --kiosk-text-muted: rgba(242, 237, 225, 0.72);
+    --kiosk-gold: #C9DCCF;
+    --kiosk-gold-hover: #E4EEE6;
+    --kiosk-cta-text: #0D1713;
+    --kiosk-elevated: transparent;
+    --kiosk-border-strong: rgba(242, 237, 225, 0.26);
+    --kiosk-success-shadow: rgba(0, 0, 0, 0.25);
+    border: 0;
+    border-radius: 0;
+    background: #0D1713;
+    padding: clamp(4.5rem, 8vw, 7rem) 1.5rem;
+    box-shadow: none;
+}
+
+.landing-page .landing-cta-panel::before {
+    display: none;
+}
+
+.landing-page .landing-cta-panel h2 {
+    max-width: 24ch;
+    margin-inline: auto;
+    color: #F2EDE1;
+    font-size: clamp(2.5rem, 6vw, 4.8rem);
+    font-weight: 300;
+    line-height: 1.02;
+}
+
+.landing-page .landing-cta-panel p {
+    max-width: 34rem;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+
+/* Signup / onboarding modal — the same quiet surface as the page. */
+
+.landing-page.landing-signup-dialog h2 {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: clamp(2rem, 4vw, 2.55rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+}
+
+.landing-page.landing-signup-dialog input,
+.landing-page.landing-signup-dialog select,
+.landing-page.landing-signup-dialog textarea {
+    font-family: var(--font-manrope), system-ui, sans-serif;
+}
+
+.landing-page.landing-signup-dialog [role="dialog"] > div {
+    scrollbar-width: thin;
+    scrollbar-color: var(--kiosk-border-strong) transparent;
+}
+
+.landing-page.landing-signup-dialog .landing-signup-step {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border: 1px solid var(--kiosk-border);
+    background: transparent;
+    padding: 0.3rem 0.55rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kiosk-text-faint);
+}
+
+/* Premium operator surface — the counter, after hours. */
+
+:root {
+    --op-bg: #f4f1ea;
+    --op-surface: #fcfaf5;
+    --op-ink: #121a16;
+    --op-muted: #556159;
+    --op-faint: #626d66;
+    --op-accent: #1d4b3b;
+    --op-accent-deep: #163b2e;
+    --op-accent-soft: color-mix(in srgb, #1d4b3b 7%, #fcfaf5);
+    --op-highlight: #a55237;
+    --op-rule: rgba(18, 26, 22, 0.1);
+    --op-rule-soft: rgba(18, 26, 22, 0.06);
+}
+
+/* Shell header: a quiet fascia, not a market stall. */
+.tablet-header-fascia {
+    background: var(--op-bg);
+    border-bottom: 1px solid var(--op-rule);
+}
+
+.tablet-header-wash,
+.tablet-header-hatch,
+.tablet-header-lip {
+    display: none;
+}
+
+.tablet-header-stamp {
+    background: var(--op-accent);
+}
+
+.tablet-header-brand {
+    font-family: var(--font-cormorant), Georgia, serif !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.tablet-header-page {
+    display: none;
+}
+
+.tablet-header-aisle > div p {
+    font-family: var(--font-cormorant), Georgia, serif !important;
+    font-size: clamp(1.4rem, 2vw, 1.7rem) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+}
+
+.tablet-header-aisle > p {
+    font-family: var(--font-manrope), system-ui, sans-serif !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: none !important;
+    color: var(--op-muted) !important;
+}
+
+.tablet-header-tools {
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.tablet-header-tools .tablet-header-tool {
+    border-left: 1px solid var(--op-rule-soft);
+}
+
+.tablet-bottom-nav-dock {
+    background: color-mix(in srgb, var(--op-surface) 94%, transparent) !important;
+    border-color: var(--op-rule) !important;
+}
+
+.tablet-bottom-nav-dock a,
+.tablet-bottom-nav-dock button {
+    color: var(--op-muted);
+}
+
+.tablet-bottom-nav-dock a[aria-current="page"],
+.tablet-bottom-nav-dock button[aria-current="page"] {
+    color: var(--op-accent);
+}
+
+/* Business hub: paper, hairline, and one forest action. */
+.hub-paper {
+    color: var(--op-ink);
+}
+
+.hub-paper .bg-white {
+    background-color: var(--hub-paper);
+}
+
+.hub-paper .rounded-2xl,
+.hub-paper .rounded-xl {
+    border-radius: 2px;
+}
+
+.hub-paper [class*="ring-black"] {
+    --tw-ring-color: var(--op-rule);
+}
+
+.hub-paper [class*="text-[#101828]"],
+.hub-paper [class*="text-[#141414]"],
+.hub-paper [class*="text-[#15231f]"] {
+    color: var(--op-ink);
+}
+
+.hub-paper [class*="text-[#344054]"],
+.hub-paper [class*="text-[#667085]"] {
+    color: var(--op-muted);
+}
+
+.hub-paper [class*="text-[#98a2b3]"] {
+    color: var(--op-faint);
+}
+
+.hub-paper [class*="text-[#0f766e]"],
+.hub-paper [class*="text-[#047857]"] {
+    color: var(--op-accent);
+}
+
+.hub-paper [class*="bg-[#e6f4f0]"],
+.hub-paper [class*="bg-[#e6f4ec]"] {
+    background-color: var(--op-accent-soft);
+}
+
+.hub-paper [class*="bg-[#fafcfb]"],
+.hub-paper [class*="bg-[#f2f7f5]"] {
+    background-color: color-mix(in srgb, var(--op-accent-soft) 55%, var(--op-surface));
+}
+
+.hub-paper [class*="bg-[#fdecec]"] {
+    background-color: color-mix(in srgb, var(--op-highlight) 9%, var(--op-surface));
+}
+
+.hub-paper [class*="text-[#b4342f]"] {
+    color: #8f3f2f;
+}
+
+.hub-empty-state-title {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: clamp(2rem, 3.2vw, 2.8rem);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    color: var(--op-ink);
+}
+
+.hub-empty-state-lede {
+    max-width: 46ch;
+    margin-top: 0.9rem;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--op-muted);
+}
+
+.hub-paper .hub-rise {
+    animation-duration: 0.45s;
+}
+
+/* Plan-fit notice: a quiet terracotta strip, not a sale banner. */
+.plan-fit-banner {
+    background: color-mix(in srgb, var(--op-highlight) 6%, var(--op-bg)) !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--op-highlight) 24%, transparent) !important;
+    color: var(--op-ink) !important;
+}
+
+.plan-fit-banner [class*="text-orange-950"],
+.plan-fit-banner [class*="text-orange-800"],
+.plan-fit-banner [class*="text-orange-700"] {
+    color: var(--op-ink) !important;
+}
+
+.plan-fit-banner [class*="text-orange-950/65"],
+.plan-fit-banner [class*="text-orange-950/55"] {
+    color: var(--op-muted) !important;
+}
+
+.plan-fit-banner .bg-orange-700 {
+    background: var(--op-highlight) !important;
+    border-radius: 2px !important;
+}
+
+.plan-fit-banner .bg-orange-700:hover {
+    background: color-mix(in srgb, var(--op-highlight) 82%, black) !important;
+}
+
+.plan-fit-banner svg {
+    color: var(--op-highlight);
+}
+
+/* Catalog surfaces: paper shelves, forest ink, no mint. */
+.catalog-paper {
+    color: var(--catalog-ink);
+}
+
+.catalog-paper .bg-white {
+    background-color: var(--catalog-shelf);
+}
+
+.catalog-paper [class*="text-[#0f766e]"],
+.catalog-paper [class*="text-[#047857]"] {
+    color: var(--catalog-primary);
+}
+
+.catalog-paper [class*="text-[#15231f]"],
+.catalog-paper [class*="text-[#101828]"] {
+    color: var(--catalog-ink);
+}
+
+.catalog-paper [class*="bg-[#e6f2f0]"],
+.catalog-paper [class*="bg-[#e6f4f0]"],
+.catalog-paper [class*="bg-[#f2f7f5]"] {
+    background-color: var(--op-accent-soft);
+}
+
+.catalog-paper .text-muted-foreground {
+    color: var(--op-muted);
+}
+
+.catalog-paper .text-foreground {
+    color: var(--catalog-ink);
+}
+
+/* Operator type + color system, inherited by every dashboard route. */
+.tablet-app-root {
+    --font-sans: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    --font-heading: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    --font-serif: var(--font-cormorant), Georgia, serif;
+    --primary: #1d4b3b;
+    --primary-foreground: #fcfaf5;
+    --pos-primary: #1d4b3b;
+    --order-ink: #121a16;
+    background-color: var(--op-bg) !important;
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+.tablet-app-root .font-heading {
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+.tablet-app-root .bg-white {
+    background-color: var(--op-surface);
+}
+
+.tablet-app-root .rounded-2xl,
+.tablet-app-root .rounded-xl {
+    border-radius: 2px;
+}
+
+.tablet-app-root .text-\[\#0f766e\],
+.tablet-app-root [class*="text-[#0f766e]"] {
+    color: var(--op-accent);
+}
+
+.tablet-app-root [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent);
+}
+
+.dashboard-page-hero {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0.15rem 0 0.35rem !important;
+}
+
+.dashboard-page-hero h1 {
+    font-family: var(--font-cormorant), Georgia, serif !important;
+    font-size: clamp(1.5rem, 2.2vw, 1.9rem) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.05 !important;
+}
+
+.dashboard-page-hero > div:first-child > div:first-child > span:first-child {
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--op-accent) !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Auth surfaces — paper, forest, and the same two typefaces. */
+.auth-shell {
+    --background: #f4f1ea;
+    --foreground: #121a16;
+    --card: #fcfaf5;
+    --card-foreground: #121a16;
+    --primary: #1d4b3b;
+    --primary-foreground: #fcfaf5;
+    --secondary: #ece7dc;
+    --secondary-foreground: #121a16;
+    --muted: #ece7dc;
+    --muted-foreground: #556159;
+    --accent: #ece7dc;
+    --accent-foreground: #121a16;
+    --border: rgba(18, 26, 22, 0.12);
+    --input: rgba(18, 26, 22, 0.12);
+    --ring: #1d4b3b;
+    --op-bg: #f4f1ea;
+    --op-surface: #fcfaf5;
+    --op-ink: #121a16;
+    --op-muted: #556159;
+    --op-faint: #626d66;
+    --op-accent: #1d4b3b;
+    --op-rule: rgba(18, 26, 22, 0.12);
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+.auth-shell h1,
+.auth-shell h2,
+.auth-shell .font-heading {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}
+
+.auth-shell input,
+.auth-shell button,
+.auth-shell select,
+.auth-shell textarea {
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+
+.auth-shell .kiosk-logo-mark img,
+.auth-shell .kiosk-logo-host,
+.sa-console .kiosk-logo-host {
+    filter: saturate(0.58) contrast(1.03);
+}
+
+.auth-shell .rounded-xl,
+.auth-shell .rounded-2xl {
+    border-radius: 2px;
+}
+
+/* Super-admin console — the platform desk, same paper and forest. */
+.sa-console {
+    --background: #f4f1ea;
+    --foreground: #121a16;
+    --card: #fcfaf5;
+    --card-foreground: #121a16;
+    --popover: #fcfaf5;
+    --popover-foreground: #121a16;
+    --primary: #1d4b3b;
+    --primary-foreground: #fcfaf5;
+    --secondary: #ece7dc;
+    --secondary-foreground: #121a16;
+    --muted: #ece7dc;
+    --muted-foreground: #556159;
+    --accent: #ece7dc;
+    --accent-foreground: #121a16;
+    --border: rgba(18, 26, 22, 0.1);
+    --input: rgba(18, 26, 22, 0.1);
+    --ring: #1d4b3b;
+    --sidebar: #fcfaf5;
+    --sidebar-foreground: #121a16;
+    --sidebar-primary: #1d4b3b;
+    --sidebar-primary-foreground: #fcfaf5;
+    --sidebar-accent: #ece7dc;
+    --sidebar-accent-foreground: #121a16;
+    --sidebar-border: rgba(18, 26, 22, 0.1);
+    --sidebar-ring: #1d4b3b;
+    background-color: var(--background);
+}
+
+.sa-console .bg-sidebar {
+    background-color: var(--sidebar);
+}
+
+.sa-console .bg-white {
+    background-color: var(--card);
+}
+
+.sa-console .rounded-xl,
+.sa-console .rounded-lg,
+.sa-console .rounded-2xl {
+    border-radius: 2px;
+}
+
+.sa-console .font-heading {
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+}
+
+/* Public marketplace — a paper shelf, not a green portal. */
+.marketplace-page {
+    --font-sans: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    --font-heading: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    color: var(--op-ink);
+}
+
+.marketplace-page h1 {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif !important;
+    font-size: clamp(2rem, 3vw, 2.6rem) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.04 !important;
+}
+
+.marketplace-page .rounded-xl,
+.marketplace-page .rounded-lg,
+.marketplace-page .rounded-md {
+    border-radius: 2px;
+}
+
+.marketplace-page .bg-white {
+    background-color: var(--op-surface);
+}
+
+.marketplace-page .kiosk-logo-host {
+    filter: saturate(0.58) contrast(1.03);
+}
+
+.marketplace-page header {
+    background: color-mix(in srgb, var(--op-bg) 90%, transparent) !important;
+    border-color: var(--op-rule) !important;
+}
+
+/* Retire the old mint/teal utility classes across operator surfaces. */
+.tablet-app-root [class*="bg-[#e6f4f0]"],
+.tablet-app-root [class*="bg-[#e7f3ee]"],
+.tablet-app-root [class*="bg-[#e9f5f1]"],
+.tablet-app-root [class*="bg-[#e6f2f0]"],
+.tablet-app-root [class*="bg-[#f0f9f7]"],
+.tablet-app-root [class*="bg-[#eaf7f4]"],
+.tablet-app-root [class*="bg-[#dff3ee]"] {
+    background-color: var(--op-accent-soft) !important;
+}
+
+.tablet-app-root [class*="bg-[#d9ede7]"] {
+    background-color: color-mix(in srgb, var(--op-accent) 9%, var(--op-surface)) !important;
+}
+
+.tablet-app-root [class*="bg-[#f4f7f5]"] {
+    background-color: var(--op-bg) !important;
+}
+
+.tablet-app-root [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent) !important;
+}
+
+.tablet-app-root [class*="text-[#0f766e]"] {
+    color: var(--op-accent) !important;
+}
+
+.tablet-app-root [class*="border-[#0f766e]"] {
+    border-color: color-mix(in srgb, var(--op-accent) 35%, transparent) !important;
 }

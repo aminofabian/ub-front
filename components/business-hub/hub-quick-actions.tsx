@@ -6,7 +6,7 @@ import type { JumpInLink } from "@/components/business-hub/jump-in-grid";
 import { cn } from "@/lib/utils";
 
 const TILE_LINK =
-  "flex min-h-[3.75rem] min-w-0 items-center gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-black/[0.05] transition-colors hover:bg-[#fafcfb] active:bg-[#f2f7f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50";
+  "flex min-h-[3.1rem] min-w-0 items-center gap-3 rounded-[2px] border-b border-[var(--hub-rule)] bg-transparent px-1 py-3 text-left transition-colors hover:text-[var(--hub-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent)]/35";
 
 /**
  * Shortcuts the bottom tabs don't already cover — Add expense, Count stock,
@@ -57,10 +57,10 @@ export function HubQuickActions({
 
   return (
     <section className="space-y-3">
-      <h3 className="px-0.5 text-[14px] font-semibold tracking-[-0.01em] text-[#101828]">
+      <h3 className="px-0.5 text-[13px] font-semibold tracking-[0.005em] text-[var(--hub-ink)]">
         {title}
       </h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-0">
         {tiles.map((link) => {
           const Icon = link.icon;
           return (
@@ -70,10 +70,12 @@ export function HubQuickActions({
               title={link.hint}
               className={TILE_LINK}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
-                <Icon className="size-4" aria-hidden />
-              </span>
-              <span className="min-w-0 text-[13px] font-medium leading-tight text-[#101828]">
+              <Icon
+                className="size-4 shrink-0 text-[var(--hub-accent)]"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span className="min-w-0 text-[13px] font-medium leading-tight text-[var(--hub-ink)]">
                 {link.label}
               </span>
             </Link>

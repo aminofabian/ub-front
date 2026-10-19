@@ -2,76 +2,78 @@ import type { CSSProperties } from "react";
 
 /* ── Light theme (default) ── */
 const LIGHT = {
-  bg: "#FAF9F6",
-  surface: "#F3F1ED",
-  elevated: "#FFFFFF",
-  panel: "#F6F5F2",
-  text: "#141412",
-  textMuted: "#5F5D58",
-  textSoft: "#6B6863",
-  textDim: "#6E6B66",
-  textFaint: "#74716E",
-  border: "rgba(20, 20, 18, 0.08)",
-  borderSoft: "rgba(20, 20, 18, 0.05)",
-  borderStrong: "rgba(20, 20, 18, 0.12)",
-  cardBg: "rgba(20, 20, 18, 0.02)",
-  cardBgHover: "rgba(20, 20, 18, 0.04)",
-  gridLine: "rgba(20, 20, 18, 0.04)",
-  glowGold: "rgba(40, 167, 69, 0.10)",
-  gold: "#28A745",
-  goldHover: "#20863B",
-  goldSoft: "rgba(40, 167, 69, 0.08)",
-  goldSurface: "rgba(40, 167, 69, 0.04)",
-  goldBorder: "rgba(40, 167, 69, 0.22)",
-  goldBorderStrong: "rgba(32, 134, 59, 0.38)",
-  ctaText: "#FFFFFF",
-  ghostHoverBg: "rgba(20, 20, 18, 0.04)",
-  ghostHoverBorder: "rgba(20, 20, 18, 0.22)",
-  success: "#28A745",
-  successBg: "rgba(40, 167, 69, 0.10)",
-  successShadow: "rgba(40, 167, 69, 0.18)",
-  danger: "#A0453D",
-  dangerBg: "rgba(160, 69, 61, 0.08)",
-  dangerBar: "#A0453D",
-  navBlurBg: "rgba(250, 249, 246, 0.90)",
-  brandMuted: "#7A7670",
+  bg: "#F4F1EA",
+  surface: "#ECE7DC",
+  elevated: "#FCFAF5",
+  panel: "#EFEBE2",
+  text: "#121A16",
+  textMuted: "#556159",
+  textSoft: "#5D6860",
+  textDim: "#646F68",
+  textFaint: "#626D66",
+  border: "rgba(18, 26, 22, 0.10)",
+  borderSoft: "rgba(18, 26, 22, 0.06)",
+  borderStrong: "rgba(18, 26, 22, 0.18)",
+  cardBg: "rgba(18, 26, 22, 0.025)",
+  cardBgHover: "rgba(18, 26, 22, 0.045)",
+  gridLine: "rgba(18, 26, 22, 0.035)",
+  glowGold: "rgba(29, 75, 59, 0.10)",
+  gold: "#1D4B3B",
+  goldHover: "#163B2E",
+  goldSoft: "rgba(29, 75, 59, 0.07)",
+  goldSurface: "rgba(29, 75, 59, 0.04)",
+  goldBorder: "rgba(29, 75, 59, 0.22)",
+  goldBorderStrong: "rgba(29, 75, 59, 0.40)",
+  ctaText: "#F7F3E8",
+  ghostHoverBg: "rgba(18, 26, 22, 0.045)",
+  ghostHoverBorder: "rgba(18, 26, 22, 0.26)",
+  success: "#2F6B52",
+  successBg: "rgba(47, 107, 82, 0.10)",
+  successShadow: "rgba(29, 75, 59, 0.18)",
+  danger: "#A14F3C",
+  dangerBg: "rgba(161, 79, 60, 0.08)",
+  dangerBar: "#A14F3C",
+  navBlurBg: "rgba(244, 241, 234, 0.88)",
+  brandMuted: "#7C827B",
+  highlight: "#A55237",
 } as const;
 
 /* ── Dark theme ── */
 const DARK = {
-  bg: "#080808",
-  surface: "#0D0D0D",
-  elevated: "#111111",
-  panel: "#161616",
-  text: "#F0EDE6",
-  textMuted: "#A29A8E",
-  textSoft: "#948D82",
-  textDim: "#8A8278",
-  textFaint: "#7E7972",
-  border: "rgba(240, 237, 230, 0.07)",
-  borderSoft: "rgba(240, 237, 230, 0.05)",
-  borderStrong: "rgba(240, 237, 230, 0.12)",
-  cardBg: "rgba(240, 237, 230, 0.03)",
-  cardBgHover: "rgba(240, 237, 230, 0.05)",
-  gridLine: "rgba(240, 237, 230, 0.03)",
-  glowGold: "rgba(40, 167, 69, 0.08)",
-  gold: "#28A745",
-  goldHover: "#32B85A",
-  goldSoft: "rgba(40, 167, 69, 0.12)",
-  goldSurface: "rgba(40, 167, 69, 0.06)",
-  goldBorder: "rgba(40, 167, 69, 0.24)",
-  goldBorderStrong: "rgba(32, 134, 59, 0.45)",
-  ctaText: "#FFFFFF",
-  ghostHoverBg: "rgba(240, 237, 230, 0.04)",
-  ghostHoverBorder: "rgba(240, 237, 230, 0.30)",
-  success: "#28A745",
-  successBg: "rgba(40, 167, 69, 0.12)",
-  successShadow: "rgba(40, 167, 69, 0.22)",
-  danger: "#A85A50",
-  dangerBg: "rgba(168, 90, 80, 0.10)",
-  dangerBar: "#8B3A30",
-  navBlurBg: "rgba(8, 8, 8, 0.92)",
-  brandMuted: "#3A3632",
+  bg: "#0D1713",
+  surface: "#121F19",
+  elevated: "#16241D",
+  panel: "#1A2A22",
+  text: "#F2EDE1",
+  textMuted: "#B7B1A4",
+  textSoft: "#A9A396",
+  textDim: "#989286",
+  textFaint: "#8A857A",
+  border: "rgba(242, 237, 225, 0.10)",
+  borderSoft: "rgba(242, 237, 225, 0.06)",
+  borderStrong: "rgba(242, 237, 225, 0.18)",
+  cardBg: "rgba(242, 237, 225, 0.035)",
+  cardBgHover: "rgba(242, 237, 225, 0.055)",
+  gridLine: "rgba(242, 237, 225, 0.03)",
+  glowGold: "rgba(185, 208, 192, 0.10)",
+  gold: "#B9D0C0",
+  goldHover: "#D0E0D4",
+  goldSoft: "rgba(185, 208, 192, 0.10)",
+  goldSurface: "rgba(185, 208, 192, 0.06)",
+  goldBorder: "rgba(185, 208, 192, 0.22)",
+  goldBorderStrong: "rgba(185, 208, 192, 0.38)",
+  ctaText: "#10231A",
+  ghostHoverBg: "rgba(242, 237, 225, 0.06)",
+  ghostHoverBorder: "rgba(242, 237, 225, 0.32)",
+  success: "#8FB7A1",
+  successBg: "rgba(143, 183, 161, 0.12)",
+  successShadow: "rgba(143, 183, 161, 0.22)",
+  danger: "#D08A6E",
+  dangerBg: "rgba(208, 138, 110, 0.10)",
+  dangerBar: "#B45B3E",
+  navBlurBg: "rgba(13, 23, 19, 0.90)",
+  brandMuted: "#3E4A43",
+  highlight: "#D08A6E",
 } as const;
 
 type LandingTheme = typeof LIGHT | typeof DARK;
@@ -111,6 +113,7 @@ function themeVars(T: LandingTheme): CSSProperties {
     "--kiosk-danger-bar": T.dangerBar,
     "--kiosk-nav-blur-bg": T.navBlurBg,
     "--kiosk-brand-muted": T.brandMuted,
+    "--kiosk-highlight": T.highlight,
     backgroundColor: T.bg,
     color: T.text,
   } as CSSProperties;
@@ -128,10 +131,10 @@ export function landingDarkSectionStyle(): CSSProperties {
 export { LIGHT as LANDING_LIGHT, DARK as LANDING_DARK };
 
 export const goldCtaClass =
-  "inline-flex items-center justify-center gap-2 rounded-none bg-[var(--kiosk-gold)] px-6 py-3 text-sm font-medium text-[var(--kiosk-cta-text)] transition-all duration-200 hover:bg-[var(--kiosk-gold-hover)] hover:-translate-y-px active:translate-y-0 disabled:pointer-events-none disabled:opacity-50";
+  "group/cta inline-flex items-center justify-center gap-2.5 rounded-[2px] bg-[var(--kiosk-gold)] px-6 py-3 text-[13px] font-semibold tracking-[0.01em] text-[var(--kiosk-cta-text)] transition-[background-color,transform,box-shadow] duration-200 hover:bg-[var(--kiosk-gold-hover)] hover:-translate-y-px hover:shadow-[0_10px_28px_-14px_rgba(18,26,22,0.45)] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50";
 
 export const ghostCtaClass =
-  "inline-flex items-center justify-center gap-2 rounded-none border border-[var(--kiosk-border-strong)] bg-transparent px-6 py-3 text-sm font-normal text-[var(--kiosk-text)] transition-all duration-200 hover:border-[var(--kiosk-ghost-hover-border)] hover:bg-[var(--kiosk-ghost-hover-bg)] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[2px] border border-[var(--kiosk-border-strong)] bg-transparent px-6 py-3 text-[13px] font-medium tracking-[0.01em] text-[var(--kiosk-text)] transition-[border-color,background-color,color] duration-200 hover:border-[var(--kiosk-ghost-hover-border)] hover:bg-[var(--kiosk-ghost-hover-bg)] disabled:pointer-events-none disabled:opacity-50";
 
 /** Bordered card with subtle hover effect — used across landing sections. */
 export const landingCardClass =
@@ -151,21 +154,21 @@ export const landingIconWrapClass =
 
 /** Bento / feature card with register-corner accents. */
 export const landingBentoCardClass =
-  "landing-bento-card group relative overflow-hidden rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] transition-all duration-300 hover:border-[var(--kiosk-gold-border)] hover:shadow-[0_12px_40px_-16px_var(--kiosk-success-shadow)]";
+  "landing-bento-card group relative overflow-hidden rounded-[2px] border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] transition-all duration-300 hover:border-[var(--kiosk-gold-border)] hover:shadow-[0_12px_40px_-16px_var(--kiosk-success-shadow)]";
 
 /** Logo pill badge. */
 export const logoPillClass =
   "inline-flex items-center gap-1.5 rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3.5 py-1.5 text-xs font-medium tracking-[0.02em] text-[var(--kiosk-gold)]";
 
 /** Standard landing section padding — tighter on phones. */
-export const landingSectionClass = "px-4 py-12 sm:px-10 sm:py-28";
+export const landingSectionClass = "px-4 py-16 sm:px-10 sm:py-32 lg:py-36";
 
 export const landingSectionBorderClass = `${landingSectionClass} border-t border-[var(--kiosk-border-soft)]`;
 
-export const landingSectionHeaderMb = "mb-10 sm:mb-16 md:mb-[72px]";
+export const landingSectionHeaderMb = "mb-12 sm:mb-20 md:mb-24";
 
 export const landingSectionHeadingClass =
-  "font-heading text-[clamp(26px,6vw,54px)] leading-[1.1] tracking-[-0.02em] text-[var(--kiosk-text)]";
+  "font-heading text-[clamp(30px,5.4vw,60px)] leading-[1.04] tracking-[-0.02em] text-[var(--kiosk-text)]";
 
 export const landingCardPadding = "p-5 sm:p-8";
 

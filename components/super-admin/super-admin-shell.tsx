@@ -39,9 +39,9 @@ import {
   type SuperAdminMe,
 } from "@/lib/super-admin-api";
 import {
-  OXANIUM_SURFACE_CLASS,
-  OXANIUM_SURFACE_STYLE,
-} from "@/lib/oxanium-surface";
+  OPERATOR_SURFACE_CLASS,
+  OPERATOR_SURFACE_STYLE,
+} from "@/lib/operator-surface";
 import { cn } from "@/lib/utils";
 
 type Crumb = { label: string; href?: string };
@@ -397,8 +397,8 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div
-        className={cn("flex min-h-[100dvh] bg-background", OXANIUM_SURFACE_CLASS)}
-        style={OXANIUM_SURFACE_STYLE}
+        className={cn("sa-console flex min-h-[100dvh] bg-background", OPERATOR_SURFACE_CLASS)}
+        style={OPERATOR_SURFACE_STYLE}
       >
         <aside
           className={cn(

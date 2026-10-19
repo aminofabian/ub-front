@@ -113,9 +113,6 @@ export function LandingStats() {
       <div className="relative z-10 mx-auto max-w-[1100px]">
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 sm:flex-row sm:items-end sm:justify-between sm:gap-10">
           <div>
-            <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
-              One platform · four pillars
-            </p>
             <h2 className="font-heading text-[clamp(26px,5vw,44px)] leading-[1.12] tracking-[-0.02em] text-[var(--kiosk-text)]">
               The whole Kenyan shop,
               <br className="hidden sm:block" /> one till.

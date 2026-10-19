@@ -39,34 +39,32 @@ export function BusinessHubEmptyState({
 
   return (
     <section
-      className={cn(HUB_SURFACE, "px-4 py-5 sm:px-7 sm:py-7")}
+      className={cn(
+        HUB_SURFACE,
+        "hub-empty-state border-x-0 border-t-0 px-5 py-8 sm:px-10 sm:py-12",
+      )}
       aria-label={`No sales ${label}`}
     >
-      <p
-        className="text-lg font-medium tracking-tight text-[#141414] sm:text-2xl"
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        Ready when you are
-      </p>
-      <p className={cn("mt-1.5 max-w-lg text-[13px] leading-relaxed sm:text-sm", HUB_MUTED)}>
+      <p className="hub-empty-state-title">Ready when you are</p>
+      <p className={cn("hub-empty-state-lede", HUB_MUTED)}>
         No sales {label} yet. Open the till, count the float (0 is fine), and
-        ring the first one — this board updates as money comes in.
+        ring the first one. This board updates as money comes in.
       </p>
-      <div className="mt-4 flex flex-col gap-2.5 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+      <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3">
         <Link
           href={tillHref}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-none bg-[#0f766e] px-4 text-[15px] font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 sm:h-auto sm:w-auto sm:rounded-none sm:px-3.5 sm:py-2 sm:text-sm sm:font-medium"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-[var(--hub-accent)] px-5 text-[13px] font-semibold tracking-[0.01em] text-[var(--hub-paper)] transition-colors hover:bg-[var(--hub-accent-deep)] active:scale-[0.995] sm:h-10 sm:w-auto"
         >
-          <ShoppingCart className="size-4 sm:size-3.5" aria-hidden />
-          Open till & take first sale
+          <ShoppingCart className="size-4" aria-hidden />
+          Open till and take first sale
         </Link>
         {extras.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-0.5">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-0.5">
             {extras.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-[13px] font-medium text-[#0f766e] underline-offset-4 hover:underline"
+                className="text-[13px] font-medium text-[var(--hub-accent)] underline-offset-4 hover:underline"
               >
                 {item.text}
               </Link>

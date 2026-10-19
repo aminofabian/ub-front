@@ -77,7 +77,7 @@ export function MarketplaceBrowseWorkspace({
             "flex items-center justify-center bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,#0f766e_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-sm text-muted-foreground",
             variant === "tenant" ? "h-full min-h-[20rem]" : "min-h-dvh",
           )}
-          style={{ ["--pos-primary" as string]: "#0f766e" }}
+          style={{ ["--pos-primary" as string]: "#1D4B3B", ["--pos-primary-ink" as string]: "#FCFAF5", ["--pos-ink" as string]: "#121A16", ["--pos-paper" as string]: "#F4F1EA" }}
         >
           <Loader2 className="mr-2 size-4 animate-spin" />
           Loading marketplace…
@@ -408,10 +408,10 @@ function MarketplaceBrowseWorkspaceInner({
   return (
     <div
       className={cn(
-        "bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,#f7f4ef),#efeae2_42%,#e7e1d6)] text-[var(--pos-ink,#1c1915)]",
+        "marketplace-page bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_srgb,var(--pos-primary,#1D4B3B)_9%,#F4F1EA),#F4F1EA_42%,#EFEAE0)] text-[var(--pos-ink,#121A16)]",
         isTenant ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-dvh",
       )}
-      style={{ ["--pos-primary" as string]: "#0f766e" }}
+      style={{ ["--pos-primary" as string]: "#1D4B3B", ["--pos-primary-ink" as string]: "#FCFAF5", ["--pos-ink" as string]: "#121A16", ["--pos-paper" as string]: "#F4F1EA" }}
     >
       {!isTenant ? (
         <header className="sticky top-0 z-30 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,#faf8f4_88%,transparent)] backdrop-blur-md">

@@ -16,18 +16,18 @@ import { cn } from "@/lib/utils";
 
 /** Shared input chrome for auth split + simple auth pages. */
 export const authInputClassName = cn(
-  "w-full min-h-12 rounded-2xl border px-4 py-3 text-base outline-none sm:min-h-11 sm:rounded-lg sm:text-[15px]",
+  "w-full min-h-12 rounded-[2px] border px-4 py-3 text-base outline-none sm:min-h-11 sm:text-[15px]",
   "transition-[border-color,box-shadow] duration-200 ease-out",
-  "border-black/[0.1] bg-white text-foreground placeholder:text-muted-foreground/60",
+  "border-[var(--op-rule,rgba(18,26,22,0.12))] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-ink,#121A16)] placeholder:text-[var(--op-faint,#626D66)]",
   "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--auth-primary)_18%,transparent)]",
   "dark:border-white/12 dark:bg-white/[0.05]",
 );
 
 /** Primary CTA — shared across staff/customer auth forms. */
 export const authPrimaryCtaClass = cn(
-  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg",
-  "bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold",
-  "shadow-[0_1px_2px_rgba(0,0,0,0.06),0_4px_12px_color-mix(in_srgb,var(--auth-primary)_22%,transparent)]",
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[2px]",
+  "bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[13px] font-semibold tracking-[0.01em]",
+  "shadow-[0_1px_2px_rgba(0,0,0,0.06),0_4px_12px_color-mix(in_srgb,var(--auth-primary)_18%,transparent)]",
   "transition-[transform,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
   "hover:bg-[var(--auth-primary-hover)] active:scale-[0.98]",
   "disabled:pointer-events-none disabled:opacity-55",
@@ -148,12 +148,11 @@ export function authThemeStyle(tenant: TenantContext | null): CSSProperties {
     "--auth-secondary-ink": inkForAccent(secondary),
     "--auth-glow": glow,
     "--auth-ease-out": "cubic-bezier(0.23, 1, 0.32, 1)",
-    backgroundColor: blendWithHex("#eceef2", glow, 0.12),
+    backgroundColor: blendWithHex("#F4F1EA", glow, 0.1),
   } as CSSProperties;
 }
 
-const HERO_SRC =
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80";
+const HERO_SRC = "/home.png";
 
 type AuthSplitShellProps = {
   tenant: TenantContext | null;
@@ -306,7 +305,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
 
   return (
     <div
-      className="relative flex min-h-[100dvh] items-start justify-center overflow-x-hidden overflow-y-auto px-0 py-0 sm:items-center sm:px-6 sm:py-12"
+      className="auth-shell relative flex min-h-[100dvh] items-start justify-center overflow-x-hidden overflow-y-auto px-0 py-0 sm:items-center sm:px-6 sm:py-12"
       style={style}
     >
       {/* Ambient brand field — soft, not decorative grid noise */}
@@ -325,7 +324,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
         className={cn(
           "relative z-10 my-auto grid w-full overflow-hidden",
           "min-h-[100dvh] rounded-none border-0 bg-transparent shadow-none",
-          "sm:min-h-[min(100dvh-3rem,720px)] sm:max-w-[980px] sm:rounded-2xl sm:border sm:border-black/[0.08] sm:bg-white sm:shadow-[0_24px_48px_-20px_rgba(15,23,42,0.18)]",
+          "sm:min-h-[min(100dvh-3rem,720px)] sm:max-w-[980px] sm:rounded-[2px] sm:border sm:border-[var(--op-rule,rgba(18,26,22,0.12))] sm:bg-[var(--op-surface,#FCFAF5)] sm:shadow-[0_24px_48px_-24px_rgba(18,26,22,0.18)]",
           "dark:sm:border-white/12 dark:sm:bg-zinc-900",
           "lg:min-h-[620px] lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]",
         )}
@@ -358,7 +357,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             src={HERO_SRC}
             alt=""
             fill
-            className="object-cover object-[center_20%]"
+            className="object-cover object-[72%_center]"
             sizes="(max-width: 1024px) 100vw, 460px"
             priority
           />

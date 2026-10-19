@@ -144,7 +144,7 @@ export function HeaderPosLinks({
             </span>
             <span
               className={cn(
-                "absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[var(--tablet-header-accent,#0f766e)] transition-transform duration-300",
+                "absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[var(--tablet-header-accent,#1D4B3B)] transition-transform duration-300",
                 active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100",
               )}
               aria-hidden
@@ -190,7 +190,7 @@ export function TabletAppHeader({
 }: TabletAppHeaderProps) {
   const pathname = usePathname();
   const title = pageTitle ?? shellPageTitle(pathname);
-  const accent = primaryColor?.trim() || "#0f766e";
+  const accent = primaryColor?.trim() || "#1D4B3B";
 
   const placeLine = [branchName?.trim(), departmentName?.trim(), shelfZoneName?.trim()]
     .filter(Boolean)
@@ -202,9 +202,9 @@ export function TabletAppHeader({
       style={
         {
           "--tablet-header-accent": accent,
-          "--tablet-header-ink": "#14201b",
-          "--tablet-header-paper": "#eef3f0",
-          "--tablet-header-leaf": "#1a3d30",
+          "--tablet-header-ink": "#121A16",
+          "--tablet-header-paper": "#FCFAF5",
+          "--tablet-header-leaf": "#1D4B3B",
         } as CSSProperties
       }
     >
@@ -242,7 +242,7 @@ export function TabletAppHeader({
               type="button"
               onClick={onOpenMore}
               aria-label="Open menu"
-              className="ml-1 inline-flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_12%,white)] text-[13px] font-semibold text-[var(--tablet-header-accent,#0f766e)]"
+              className="ml-1 inline-flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#1D4B3B)_12%,white)] text-[13px] font-semibold text-[var(--tablet-header-accent,#1D4B3B)]"
             >
               {userInitial}
             </button>
@@ -306,7 +306,7 @@ export function TabletAppHeader({
               ) : null}
             </div>
 
-            <div className="flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
+            <div className="tablet-header-tools flex shrink-0 items-stretch self-stretch border border-[var(--tablet-header-ink)]/12 bg-[var(--tablet-header-paper)]/70">
               <HeaderPosLinks links={posLinks} pathname={pathname} />
               {headerTools}
               <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
@@ -316,7 +316,7 @@ export function TabletAppHeader({
                 type="button"
                 onClick={onOpenMore}
                 aria-label="Open menu"
-                className="tablet-header-avatar inline-flex size-11 shrink-0 cursor-pointer items-center justify-center self-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_12%,white)] text-sm font-semibold text-[var(--tablet-header-accent,#0f766e)] transition-colors hover:bg-[color-mix(in_srgb,var(--tablet-header-accent,#0f766e)_20%,white)]"
+                className="tablet-header-avatar inline-flex size-11 shrink-0 cursor-pointer items-center justify-center self-center rounded-full bg-[color-mix(in_srgb,var(--tablet-header-accent,#1D4B3B)_12%,white)] text-sm font-semibold text-[var(--tablet-header-accent,#1D4B3B)] transition-colors hover:bg-[color-mix(in_srgb,var(--tablet-header-accent,#1D4B3B)_20%,white)]"
               >
                 {userInitial}
               </button>
@@ -407,7 +407,7 @@ export function TabletBottomNav({
             const primaryBody = (
               <>
                 <span className="relative flex size-[1.35rem] items-center justify-center">
-                  <span className="absolute inset-0 m-auto flex size-[3.25rem] -translate-y-3 items-center justify-center rounded-full bg-[#0f766e] text-white shadow-[0_8px_20px_-8px_rgba(15,118,110,0.55)]">
+                  <span className="absolute inset-0 m-auto flex size-[3.25rem] -translate-y-3 items-center justify-center rounded-full bg-[#1D4B3B] text-white shadow-[0_8px_20px_-8px_rgba(29,75,59,0.35)]">
                     <Icon
                       className="size-[1.45rem]"
                       strokeWidth={2.25}
@@ -415,7 +415,7 @@ export function TabletBottomNav({
                     />
                   </span>
                 </span>
-                <span className="w-full truncate text-center text-[11px] font-semibold leading-none tracking-[-0.01em] text-[#0f766e]">
+                <span className="w-full truncate text-center text-[11px] font-semibold leading-none tracking-[-0.01em] text-[#1D4B3B]">
                   {tab.label}
                 </span>
               </>
@@ -716,8 +716,8 @@ function MoreWorkspaceConsole({
       className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
       aria-label="Workspace scope"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-3 py-2">
-        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
+      <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_6%,white)] px-3 py-2">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#1D4B3B)]">
           <Compass className="size-3" aria-hidden />
           Scope
         </p>
@@ -736,7 +736,7 @@ function MoreWorkspaceConsole({
           {showBranchPicker ? (
             <div className="relative">
               <MapPin
-                className="pointer-events-none absolute left-0 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pos-primary,#0f766e)]"
+                className="pointer-events-none absolute left-0 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pos-primary,#1D4B3B)]"
                 aria-hidden
               />
               <select
@@ -772,7 +772,7 @@ function MoreWorkspaceConsole({
               {branchLocked ? (
                 <Lock className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)]" />
               ) : (
-                <MapPin className="size-3.5 shrink-0 text-[var(--pos-primary,#0f766e)]" />
+                <MapPin className="size-3.5 shrink-0 text-[var(--pos-primary,#1D4B3B)]" />
               )}
               <span className="truncate">{branchName}</span>
             </p>
@@ -915,7 +915,7 @@ export function TabletMoreSheet({
   walletTools,
   onOpenWorkspace,
 }: TabletMoreSheetProps) {
-  const accent = primaryColor?.trim() || "#0f766e";
+  const accent = primaryColor?.trim() || "#1D4B3B";
   const greeting = greetingForHour(new Date().getHours());
   const [search, setSearch] = useState("");
   const [sectionId, setSectionId] = useState(() =>
@@ -1093,8 +1093,8 @@ export function TabletMoreSheet({
               "flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
               hair,
               mute,
-              "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              "hover:border-[var(--pos-primary,#1D4B3B)] hover:text-[var(--pos-primary,#1D4B3B)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
             )}
             aria-label="Close menu"
           >
@@ -1133,11 +1133,11 @@ export function TabletMoreSheet({
               className={cn(
                 "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
                 hair,
-                "hover:border-[var(--pos-primary,#0f766e)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                "hover:border-[var(--pos-primary,#1D4B3B)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_12%,white)] text-[var(--pos-primary,#1D4B3B)]">
                 <UserRound className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1163,11 +1163,11 @@ export function TabletMoreSheet({
               className={cn(
                 "group flex items-center gap-3 border bg-white px-3.5 py-3 transition-colors",
                 hair,
-                "hover:border-[var(--pos-primary,#0f766e)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                "hover:border-[var(--pos-primary,#1D4B3B)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
+              <span className="flex size-9 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_12%,white)] text-[var(--pos-primary,#1D4B3B)]">
                 <Banknote className="size-4" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -1205,13 +1205,13 @@ export function TabletMoreSheet({
               const Icon = link.icon;
               const className = cn(
                 "group flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 bg-white px-1.5 py-2.5 text-center transition-colors",
-                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
-                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                "active:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,white)]",
+                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_5%,white)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
               );
               const body = (
                 <>
-                  <span className="flex size-8 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]">
+                  <span className="flex size-8 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_10%,white)] text-[var(--pos-primary,#1D4B3B)]">
                     <Icon className="size-4" strokeWidth={1.9} aria-hidden />
                   </span>
                   <span
@@ -1293,8 +1293,8 @@ export function TabletMoreSheet({
               hair,
               ink,
               "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]",
-              "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
-              "focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              "focus-visible:border-[var(--pos-primary,#1D4B3B)] focus-visible:outline-none",
+              "focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
             )}
             aria-label="Search navigation"
           />
@@ -1359,7 +1359,7 @@ export function TabletMoreSheet({
                         className={cn(
                           "size-3.5 shrink-0",
                           sectionHasActive
-                            ? "text-[var(--pos-primary,#0f766e)]"
+                            ? "text-[var(--pos-primary,#1D4B3B)]"
                             : mute,
                         )}
                         strokeWidth={1.75}
@@ -1369,7 +1369,7 @@ export function TabletMoreSheet({
                         className={cn(
                           "text-[10px] font-bold uppercase tracking-[0.14em]",
                           sectionHasActive
-                            ? "text-[var(--pos-primary,#0f766e)]"
+                            ? "text-[var(--pos-primary,#1D4B3B)]"
                             : mute,
                         )}
                       >
@@ -1388,9 +1388,9 @@ export function TabletMoreSheet({
                               className={cn(
                                 "tablet-more-link-tile group flex min-h-12 w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                                 active
-                                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                                  ? "bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_9%,white)]"
                                   : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
                               )}
                               style={{ animationDelay: `${index * 0.025}s` }}
                             >
@@ -1398,7 +1398,7 @@ export function TabletMoreSheet({
                                 className={cn(
                                   "size-1.5 shrink-0",
                                   active
-                                    ? "bg-[var(--pos-primary,#0f766e)]"
+                                    ? "bg-[var(--pos-primary,#1D4B3B)]"
                                     : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
                                 )}
                                 aria-hidden
@@ -1407,14 +1407,14 @@ export function TabletMoreSheet({
                                 className={cn(
                                   "min-w-0 flex-1 truncate text-[13px] tracking-[-0.01em]",
                                   active
-                                    ? "font-semibold text-[var(--pos-primary,#0f766e)]"
+                                    ? "font-semibold text-[var(--pos-primary,#1D4B3B)]"
                                     : cn("font-medium", ink),
                                 )}
                               >
                                 {item.label}
                               </span>
                               {badgeByHref?.[item.href] ? (
-                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#1D4B3B)] px-1 text-[10px] font-bold leading-none text-white">
                                   {badgeByHref[item.href] > 9
                                     ? "9+"
                                     : badgeByHref[item.href]}
@@ -1424,7 +1424,7 @@ export function TabletMoreSheet({
                                 className={cn(
                                   "size-4 shrink-0 opacity-35 transition-transform group-hover:translate-x-0.5 group-hover:opacity-70",
                                   active &&
-                                    "text-[var(--pos-primary,#0f766e)] opacity-100",
+                                    "text-[var(--pos-primary,#1D4B3B)] opacity-100",
                                 )}
                                 aria-hidden
                               />
@@ -1463,7 +1463,7 @@ export function TabletMoreSheet({
                           className={cn(
                             "tablet-more-link-tile flex min-h-12 w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                             active
-                              ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                              ? "bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_9%,white)]"
                               : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
                           )}
                           style={{ animationDelay: `${index * 0.025}s` }}
@@ -1478,7 +1478,7 @@ export function TabletMoreSheet({
                               className={cn(
                                 "block truncate text-[13px] font-medium",
                                 active
-                                  ? "font-semibold text-[var(--pos-primary,#0f766e)]"
+                                  ? "font-semibold text-[var(--pos-primary,#1D4B3B)]"
                                   : ink,
                               )}
                             >
@@ -1489,7 +1489,7 @@ export function TabletMoreSheet({
                             </span>
                           </span>
                           {badgeByHref?.[hit.href] ? (
-                            <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                            <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#1D4B3B)] px-1 text-[10px] font-bold leading-none text-white">
                               {badgeByHref[hit.href] > 9
                                 ? "9+"
                                 : badgeByHref[hit.href]}
@@ -1529,7 +1529,7 @@ export function TabletMoreSheet({
                       className={cn(
                         "tablet-more-section-pill flex shrink-0 items-center gap-2 border px-3 py-2 text-left transition-colors",
                         selected
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                          ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)] text-white"
                           : cn(
                               hair,
                               "bg-white",
@@ -1544,7 +1544,7 @@ export function TabletMoreSheet({
                           selected
                             ? "text-white"
                             : hasActive
-                              ? "text-[var(--pos-primary,#0f766e)]"
+                              ? "text-[var(--pos-primary,#1D4B3B)]"
                               : mute,
                         )}
                         strokeWidth={1.75}
@@ -1575,7 +1575,7 @@ export function TabletMoreSheet({
                             className={cn(
                               "tablet-more-link-tile group flex min-h-12 w-full items-center gap-3 px-3.5 py-3.5 text-left transition-colors sm:min-h-[4.25rem] sm:flex-col sm:items-start sm:justify-between",
                               active
-                                ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                                ? "bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_9%,white)]"
                                 : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
                             )}
                             style={{ animationDelay: `${index * 0.03}s` }}
@@ -1585,7 +1585,7 @@ export function TabletMoreSheet({
                                 className={cn(
                                   "size-1.5 shrink-0 sm:mt-1",
                                   active
-                                    ? "bg-[var(--pos-primary,#0f766e)]"
+                                    ? "bg-[var(--pos-primary,#1D4B3B)]"
                                     : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)]",
                                 )}
                                 aria-hidden
@@ -1594,7 +1594,7 @@ export function TabletMoreSheet({
                                 className={cn(
                                   "size-4 shrink-0 opacity-30 transition-transform group-hover:translate-x-0.5 sm:ml-auto",
                                   active &&
-                                    "text-[var(--pos-primary,#0f766e)] opacity-100",
+                                    "text-[var(--pos-primary,#1D4B3B)] opacity-100",
                                 )}
                                 aria-hidden
                               />
@@ -1603,13 +1603,13 @@ export function TabletMoreSheet({
                               className={cn(
                                 "flex min-w-0 flex-1 items-center justify-between gap-2 text-[13px] font-semibold tracking-[-0.01em] sm:mt-2 sm:w-full",
                                 active
-                                  ? "text-[var(--pos-primary,#0f766e)]"
+                                  ? "text-[var(--pos-primary,#1D4B3B)]"
                                   : ink,
                               )}
                             >
                               <span className="truncate">{item.label}</span>
                               {badgeByHref?.[item.href] ? (
-                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#0f766e)] px-1 text-[10px] font-bold leading-none text-white">
+                                <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center bg-[var(--pos-primary,#1D4B3B)] px-1 text-[10px] font-bold leading-none text-white">
                                   {badgeByHref[item.href] > 9
                                     ? "9+"
                                     : badgeByHref[item.href]}

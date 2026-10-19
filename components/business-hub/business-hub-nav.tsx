@@ -118,35 +118,25 @@ export function BusinessHubNav({
             title={copy.hint}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "group relative flex h-9 flex-1 items-center gap-1.5 px-3 transition-colors",
-              "active:scale-[0.99]",
+              "group relative flex h-11 flex-none items-center gap-2 px-3.5 transition-colors",
+              "border-b-2 border-transparent",
               active
-                ? "bg-[var(--hub-ink,#141414)] text-white"
-                : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_55%,transparent)] hover:bg-[color-mix(in_srgb,var(--hub-ink,#141414)_4%,transparent)] hover:text-[var(--hub-ink,#141414)]",
+                ? "border-[var(--hub-accent,#1D4B3B)] text-[var(--hub-ink,#121A16)]"
+                : "text-[color-mix(in_srgb,var(--hub-ink,#121A16)_58%,transparent)] hover:text-[var(--hub-ink,#121A16)]",
             )}
           >
             <Icon
               className={cn(
                 "size-3.5 shrink-0 transition-colors",
                 active
-                  ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
-                  : "text-[var(--hub-accent,#0f766e)]",
+                  ? "text-[var(--hub-accent,#1D4B3B)]"
+                  : "text-[color-mix(in_srgb,var(--hub-ink,#121A16)_45%,transparent)] group-hover:text-[var(--hub-accent,#1D4B3B)]",
               )}
               strokeWidth={active ? 2.25 : 2}
               aria-hidden
             />
-            <span className="truncate text-[13px] font-medium tracking-[-0.015em]">
+            <span className="truncate text-[12.5px] font-medium tracking-[0.005em]">
               {copy.label}
-            </span>
-            <span
-              className={cn(
-                "ml-auto hidden truncate text-[10px] tracking-[-0.01em] xl:block",
-                active
-                  ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
-                  : "text-[color-mix(in_srgb,var(--hub-ink,#141414)_40%,transparent)]",
-              )}
-            >
-              {copy.hint}
             </span>
           </Link>
         );

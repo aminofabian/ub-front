@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export const CATALOG_SHADOW = "shadow-none";
 
 export const CATALOG_EDGE =
-  "border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)]";
+  "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_8%,transparent)]";
 
 /** Panels, rails, sheets — never rounded. */
 export const CATALOG_SURFACE = cn(
@@ -15,24 +15,24 @@ export const CATALOG_SURFACE = cn(
 
 /** Interactive controls — sharp to match the desk. */
 export const CATALOG_BTN =
-  "rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_28%,transparent)]";
+  "rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#1D4B3B)_28%,transparent)]";
 
 export const CATALOG_BTN_OUTLINE = cn(
   CATALOG_BTN,
-  "h-8 gap-1 border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_12%,transparent)] bg-white px-2.5 text-[12px] shadow-none",
-  "text-[var(--catalog-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_22%,transparent)] hover:bg-white",
+  "h-8 gap-1 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_12%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)] px-2.5 text-[12px] shadow-none",
+  "text-[var(--catalog-ink,#121A16)] hover:border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_22%,transparent)] hover:bg-[var(--catalog-shelf,#FCFAF5)]",
 );
 
 export const CATALOG_BTN_PRIMARY = cn(
   CATALOG_BTN,
-  "h-8 gap-1.5 bg-[var(--catalog-primary,#0f766e)] px-3 text-[12px] text-white shadow-none",
-  "hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]",
+  "h-8 gap-1.5 bg-[var(--catalog-primary,#1D4B3B)] px-3 text-[12px] text-white shadow-none",
+  "hover:bg-[color-mix(in_srgb,var(--catalog-primary,#1D4B3B)_88%,#000)]",
 );
 
 export const CATALOG_BTN_GHOST = cn(
   CATALOG_BTN,
   "h-8 gap-1 px-2 text-[12px] shadow-none",
-  "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] hover:text-[var(--catalog-ink,#15231f)]",
+  "text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#121A16)_4%,transparent)] hover:text-[var(--catalog-ink,#121A16)]",
 );
 
 export const CATALOG_CHIP = cn(

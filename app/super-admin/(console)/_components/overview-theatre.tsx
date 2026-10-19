@@ -168,7 +168,7 @@ function OverviewPulse({
   className?: string;
 }) {
   const card =
-    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]";
+    "absolute z-[1] w-[min(12.5rem,calc(50%-0.75rem))] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]";
 
   return (
     <div className={cn("relative h-full min-h-0 overflow-hidden", className)}>
@@ -497,21 +497,41 @@ export function OverviewTheatre({
   );
 
   const inspect = activeSectionId ? null : (
-    <div className="flex h-full flex-col justify-between bg-white px-4 py-6">
+    <div className="flex h-full flex-col justify-between bg-white px-5 py-6">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Dossier
         </p>
         <h3
-          className="mt-2 text-[1.35rem] font-semibold leading-none tracking-[-0.03em]"
-          style={{ fontFamily: "var(--font-heading)" }}
+          className="mt-2 text-[1.65rem] font-normal leading-none tracking-[-0.02em]"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
-          Pick a section
+          Platform pulse
         </h3>
-        <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
-          Attention queues, commerce, top SKUs, and tenant health open in this
-          panel.
+        <p className={cn(dashboardHintClass(), "mt-3 max-w-[17rem]")}>
+          Attention {loading ? "—" : attentionCount}
+          {" · "}
+          {loading ? "—" : unitsToday} units today
+          {" · "}
+          {loading ? "—" : activeTenants} active tenants.
         </p>
+        <div className="mt-6 flex flex-col border-t border-[var(--op-rule)]">
+          {([
+            ["attention", "Open the attention queue"],
+            ["commerce", "Read commerce pulse"],
+            ["recent", "See newest tenants"],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => selectSection(id)}
+              className="flex items-center justify-between gap-3 border-b border-[var(--op-rule)] py-3 text-left text-[12.5px] font-medium text-[var(--op-ink)] transition-colors hover:text-[var(--op-accent)]"
+            >
+              {label}
+              <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+            </button>
+          ))}
+        </div>
       </div>
       <p className={cn(dashboardHintClass(), "flex items-center gap-1.5")}>
         <Headphones className="size-3.5 shrink-0" aria-hidden />
