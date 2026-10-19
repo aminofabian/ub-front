@@ -34,7 +34,6 @@ import {
   resolveCatalogVariantListTitle,
 } from "@/lib/catalog-display";
 import { CatalogColResizeHandle } from "./CatalogColResizeHandle";
-import { CATALOG_COL_WIDTHS_RESTORE_SCRIPT } from "./catalog-column-widths";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
 import { CatalogPriceInput } from "./CatalogPriceInput";
@@ -247,12 +246,6 @@ export const VirtualizedCatalogBody = forwardRef<
       ref={shellRef}
       className={cn(catalogListShellClass, sheetStyles.shell)}
     >
-      {/* Restores persisted widths before the sheet's first paint. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: CATALOG_COL_WIDTHS_RESTORE_SCRIPT,
-        }}
-      />
       <div
         ref={guideRef}
         className={sheetStyles.guide}

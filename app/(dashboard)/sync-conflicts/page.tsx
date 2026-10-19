@@ -125,7 +125,7 @@ export default function SyncConflictsPage() {
         <div className="py-12 text-center text-sm text-muted-foreground">
           Loading conflicts…
         </div>
-      ) : conflicts.length === 0 ? (
+      ) : error ? null : conflicts.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted-foreground">
           <CheckCircle className="mx-auto mb-2 size-8 text-green-500" />
           No pending sync conflicts.

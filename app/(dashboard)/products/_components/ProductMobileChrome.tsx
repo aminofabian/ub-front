@@ -158,7 +158,8 @@ export function ProductMobileChrome({
               aria-hidden
             />
             <input
-              id="catalog-omni"
+              id="catalog-omni-mobile"
+              data-catalog-omni
               className={cn(
                 "h-11 w-full border-0 bg-transparent pl-10 pr-9 text-[16px] text-foreground shadow-none",
                 "placeholder:text-foreground/35",

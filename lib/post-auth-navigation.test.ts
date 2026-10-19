@@ -74,6 +74,16 @@ describe("shouldHandoffToAssignedSubdomain", () => {
     ).toBe(false);
   });
 
+  it("stays on bare localhost where cookies cannot hop to a subdomain", () => {
+    expect(
+      shouldHandoffToAssignedSubdomain({
+        currentHost: "localhost",
+        slug: "sunrise",
+        preferAssignedSubdomain: true,
+      }),
+    ).toBe(false);
+  });
+
   it("leaves a custom domain after claiming a new shop there", () => {
     expect(
       shouldHandoffToAssignedSubdomain({

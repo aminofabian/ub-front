@@ -228,6 +228,13 @@ export function CustomerEmailCampaignComposer({
 
   const refreshAudience = useCallback(async () => {
     setError(null);
+    // Don't ask the API to preview an empty hand-picked list — it answers
+    // 400 "Select at least one customer", which surfaced as a red banner on
+    // first open before the user had done anything wrong.
+    if (method === "specific" && selected.length === 0) {
+      setAudience(null);
+      return null;
+    }
     try {
       const body =
         method === "specific"
@@ -248,7 +255,7 @@ export function CustomerEmailCampaignComposer({
       );
       return null;
     }
-  }, [method, selected, filterPayload]);
+  }, [method, selected, filterPayload, setAudience, setError]);
 
   useEffect(() => {
     startTransition(() => {

@@ -619,7 +619,14 @@ export function useCatalogList(
         !event.altKey
       ) {
         event.preventDefault();
-        document.getElementById("catalog-omni")?.focus();
+        const inputs =
+          document.querySelectorAll<HTMLInputElement>("[data-catalog-omni]");
+        for (const input of inputs) {
+          if (input.offsetParent !== null) {
+            input.focus();
+            break;
+          }
+        }
       }
     };
     window.addEventListener("keydown", onKey);

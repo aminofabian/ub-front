@@ -41,6 +41,54 @@ function loginErrorRedirect(
   return NextResponse.redirect(url, 303);
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Cross-host handoff after a form POST.
+ *
+ * A 303 to `{slug}.kiosk.ke` is blocked by our `form-action 'self'` CSP:
+ * browsers apply form-action to every redirect of a form navigation, so the
+ * owner login / signup handoff never left the apex. Respond with a tiny HTML
+ * bridge instead (script navigation + meta refresh fallback); the Set-Cookie
+ * headers still land on this origin before the hop.
+ */
+function handoffBridge(
+  dest: URL,
+  applyCookies: (response: NextResponse) => void,
+): NextResponse {
+  const target = dest.toString();
+  const scriptTarget = JSON.stringify(target).replace(/</g, "\\u003c");
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="refresh" content="0;url=${escapeHtmlAttribute(target)}" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Opening your shop…</title>
+<style>body{font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;color:#444}</style>
+</head>
+<body>
+<p>Opening your shop…</p>
+<script>window.location.replace(${scriptTarget});</script>
+</body>
+</html>`;
+  const response = new NextResponse(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+  applyCookies(response);
+  return response;
+}
+
 function readField(form: FormData, key: string): string {
   return String(form.get(key) ?? "").trim();
 }
@@ -152,9 +200,7 @@ export async function POST(request: NextRequest) {
     if (slug) {
       dest.searchParams.set("slug", slug);
     }
-    const redirect = NextResponse.redirect(dest, 303);
-    applySessionCookies(redirect);
-    return redirect;
+    return handoffBridge(dest, applySessionCookies);
   }
 
   // Safety net: the client could not resolve (or was not allowed to use) a shop
@@ -168,9 +214,7 @@ export async function POST(request: NextRequest) {
     const dest = new URL(APP_ROUTES.authHandoff, targetOrigin);
     dest.searchParams.set("next", nextPath);
     dest.searchParams.set("slug", businessSlug);
-    const redirect = NextResponse.redirect(dest, 303);
-    applySessionCookies(redirect);
-    return redirect;
+    return handoffBridge(dest, applySessionCookies);
   }
 
   const html = buildSessionFinalizeHtml({

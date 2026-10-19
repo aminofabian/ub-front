@@ -85,6 +85,13 @@ export function shouldHandoffToAssignedSubdomain(params: {
     return false;
   }
   const host = stripLeadingWww(params.currentHost);
+  // Bare local dev origins (localhost / 127.0.0.1) are treated as the shop
+  // itself: host-only cookies cannot be shared with `{slug}.localhost`, so a
+  // handoff there would strand the user on a signed-out shop. The README
+  // workflow signs in on http://localhost:3000 directly.
+  if (BARE_LOCAL_HOSTS.has(host)) {
+    return false;
+  }
   const assigned = assignedSubdomainHost(slug, host);
   if (tenantHostsMatch(host, assigned)) {
     return false;
