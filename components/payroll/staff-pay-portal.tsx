@@ -438,7 +438,11 @@ function PayslipSheet({
   }
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
+    <div
+      className={`premium-portal ${styles.overlay}`}
+      role="dialog"
+      aria-modal="true"
+    >
       <button
         type="button"
         className="absolute inset-0 cursor-default"

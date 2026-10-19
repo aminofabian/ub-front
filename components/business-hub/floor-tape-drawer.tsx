@@ -83,7 +83,7 @@ export function FloorTapeDrawer({
           justUpdated && "hub-scan-sweep ring-1 ring-[#0f766e]/35",
         )}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--op-accent-soft)] text-[var(--op-accent)]">
           <Receipt className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
@@ -103,7 +103,7 @@ export function FloorTapeDrawer({
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-[#141414]/40 xl:hidden"
+          className="fixed inset-0 z-50 flex flex-col bg-[rgba(18,26,22,0.35)] xl:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Floor tape"
@@ -117,16 +117,16 @@ export function FloorTapeDrawer({
 
           <div
             className={cn(
-              "relative z-10 mt-auto flex max-h-[92dvh] w-full flex-col bg-white",
-              "animate-in fade-in slide-in-from-bottom duration-300",
+              "relative z-10 mt-auto flex max-h-[92dvh] w-full flex-col rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)]",
+              "animate-in fade-in slide-in-from-bottom duration-200",
             )}
           >
-            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[color-mix(in_srgb,#141414_10%,transparent)] px-4 py-3">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--op-rule)] px-4 py-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-[#0f766e]">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--op-accent)]">
                   Floor tape
                 </p>
-                <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-[#141414]">
+                <p className="truncate font-serif text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                   {lanes.length > 1 ? "Till lanes" : primary.title}
                 </p>
               </div>
@@ -135,7 +135,7 @@ export function FloorTapeDrawer({
                 onClick={() => setOpen(false)}
                 className={cn(
                   HUB_BTN,
-                  "inline-flex h-9 items-center border border-[color-mix(in_srgb,#141414_7%,transparent)] px-3 text-[12px] font-medium text-[#141414]",
+                  "inline-flex h-9 items-center border border-[var(--op-rule)] px-3 text-[12px] font-medium text-[var(--op-ink)]",
                 )}
               >
                 Done
@@ -144,7 +144,7 @@ export function FloorTapeDrawer({
 
             {lanes.length > 1 ? (
               <div
-                className="flex shrink-0 gap-1 overflow-x-auto border-b border-[color-mix(in_srgb,#141414_8%,transparent)] px-3 py-2"
+                className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--op-rule)] px-3 py-2"
                 role="tablist"
                 aria-label="Till lanes"
               >

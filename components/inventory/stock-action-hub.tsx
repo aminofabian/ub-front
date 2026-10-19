@@ -56,50 +56,18 @@ function watchQty(n: number | string | null | undefined): number {
  * one calm family rather than a rainbow. Each tone pairs a fill with its own
  * readable ink for the icon.
  */
-const TILE_TONES = [
-  {
-    bg: "bg-[color-mix(in_srgb,#0f766e_7%,white)] dark:bg-[color-mix(in_srgb,#0f766e_22%,#0c1512)]",
-    icon: "text-[#0f766e] dark:text-[#2dd4bf]",
-  },
-  {
-    bg: "bg-[color-mix(in_srgb,#0369a1_7%,white)] dark:bg-[color-mix(in_srgb,#0369a1_24%,#0c1512)]",
-    icon: "text-[#0369a1] dark:text-[#38bdf8]",
-  },
-  {
-    bg: "bg-[color-mix(in_srgb,#b45309_8%,white)] dark:bg-[color-mix(in_srgb,#b45309_24%,#0c1512)]",
-    icon: "text-[#b45309] dark:text-[#fbbf24]",
-  },
-  {
-    bg: "bg-[color-mix(in_srgb,#6d28d9_7%,white)] dark:bg-[color-mix(in_srgb,#6d28d9_24%,#0c1512)]",
-    icon: "text-[#6d28d9] dark:text-[#a78bfa]",
-  },
-  {
-    bg: "bg-[color-mix(in_srgb,#be123c_6%,white)] dark:bg-[color-mix(in_srgb,#be123c_22%,#0c1512)]",
-    icon: "text-[#be123c] dark:text-[#fb7185]",
-  },
-  {
-    bg: "bg-[color-mix(in_srgb,#047857_7%,white)] dark:bg-[color-mix(in_srgb,#047857_22%,#0c1512)]",
-    icon: "text-[#047857] dark:text-[#34d399]",
-  },
-] as const;
+
 
 /** One services tile: label top-left, icon bottom-right, tinted fill. */
-function ServicesTile({
-  action,
-  toneIndex,
-}: {
-  action: StockHubAction;
-  toneIndex: number;
-}) {
-  const tone = TILE_TONES[toneIndex % TILE_TONES.length]!;
+function ServicesTile({ action }: { action: StockHubAction }) {
   return (
     <Link
       href={action.href}
       className={cn(
-        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-xl p-3 ring-1 ring-black/[0.05] transition-colors",
-        "active:brightness-[0.96]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-        tone.bg,
+        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-3 transition-colors",
+        "hover:border-[var(--op-accent)]",
+        "active:bg-[color-mix(in_srgb,var(--op-accent)_4%,var(--op-surface))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-accent)]",
       )}
     >
       <span
@@ -111,7 +79,7 @@ function ServicesTile({
         {action.label}
       </span>
       <action.icon
-        className={cn("size-7 self-end", tone.icon)}
+        className="size-7 self-end text-[var(--op-accent)]"
         strokeWidth={1.5}
         aria-hidden
       />
@@ -124,8 +92,8 @@ function ServicesGrid({ actions }: { actions: readonly StockHubAction[] }) {
   const fill = (3 - (actions.length % 3)) % 3;
   return (
     <div className="grid grid-cols-3 gap-2">
-      {actions.map((action, index) => (
-        <ServicesTile key={action.id} action={action} toneIndex={index} />
+      {actions.map((action) => (
+        <ServicesTile key={action.id} action={action} />
       ))}
       {Array.from({ length: fill }).map((_, index) => (
         <span
@@ -210,12 +178,12 @@ function StockToolsSheet({
       <div
         ref={panelRef}
         className={cn(
-          "absolute inset-x-0 bottom-0 z-10 flex max-h-[86dvh] flex-col",
-          "rounded-t-[1.25rem] bg-white shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.28)]",
-          "pb-[env(safe-area-inset-bottom)] dark:bg-[#0c1512]",
+          "premium-portal absolute inset-x-0 bottom-0 z-10 flex max-h-[86dvh] flex-col",
+          "rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)] shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.24)]",
+          "pb-[env(safe-area-inset-bottom)]",
           leaving
             ? "animate-out fade-out slide-out-to-bottom duration-200 ease-in"
-            : "animate-in fade-in slide-in-from-bottom duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            : "animate-in fade-in slide-in-from-bottom duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
         )}
       >
         <SheetGrabber {...grabberProps} />
@@ -229,8 +197,7 @@ function StockToolsSheet({
           <div className="min-w-0 flex-1">
             <h2
               className={cn(
-                "font-heading text-[1.05rem] font-semibold leading-none tracking-[-0.02em]",
-                ink,
+                "text-[1.35rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]",
               )}
             >
               Inventory tools
@@ -243,10 +210,10 @@ function StockToolsSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-black/[0.05] transition-colors",
+              "inline-flex size-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] transition-colors",
               ink,
-              "hover:text-[var(--pos-primary,#0f766e)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              "hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]",
             )}
             aria-label="Close"
           >
@@ -537,12 +504,8 @@ export function StockActionHub({
               Inventory tools
             </p>
             <div className="grid grid-cols-3 gap-2">
-              {teaser.map((action, index) => (
-                <ServicesTile
-                  key={action.id}
-                  action={action}
-                  toneIndex={index}
-                />
+              {teaser.map((action) => (
+                <ServicesTile key={action.id} action={action} />
               ))}
               <button
                 type="button"

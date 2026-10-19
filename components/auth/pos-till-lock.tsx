@@ -745,7 +745,7 @@ function PosTillLockOverlay() {
       <div className="fixed inset-0 z-[500] bg-black/50" aria-hidden />
       <div
         className={cn(
-          "pointer-events-auto fixed top-1/2 left-1/2 z-[510] w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl",
+          "premium-portal pointer-events-auto fixed top-1/2 left-1/2 z-[510] w-[min(26rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)]",
         )}
         role="dialog"
         aria-modal="true"
@@ -788,7 +788,11 @@ function PosTillLockOverlay() {
           <Lock className="size-5 shrink-0" aria-hidden />
           <h2
             id="pos-till-lock-title"
-            className="text-lg font-semibold tracking-tight"
+            className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+            style={{
+              fontFamily:
+                'var(--font-cormorant), Georgia, "Times New Roman", serif',
+            }}
           >
             {title}
           </h2>

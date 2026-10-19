@@ -4,10 +4,11 @@ import { useEffect, type CSSProperties } from "react";
 
 import { isStaleAssetError, reloadStaleClientOnce } from "@/lib/stale-client";
 
-const PAGE_TITLE = "This page couldn’t load";
-const PAGE_COPY = "Reload to try again, or go back.";
-const REFRESH_TITLE = "Refreshing this page";
-const REFRESH_COPY = "A newer version just went live.";
+const PAGE_TITLE = "The counter is offline.";
+const PAGE_COPY =
+  "Something interrupted this page. Reload to reopen the shop, or go back one step.";
+const REFRESH_TITLE = "A newer shelf is ready.";
+const REFRESH_COPY = "A fresh version just went live. Refreshing this page now.";
 
 export default function GlobalError({
   error,
@@ -28,18 +29,31 @@ export default function GlobalError({
   return (
     <html lang="en-KE">
       <body style={shell}>
-        <p style={heading}>{title}</p>
-        <p style={message}>{copy}</p>
-        {stale ? null : (
-          <p style={actions}>
-            <button type="button" style={primary} onClick={() => window.location.reload()}>
-              Reload
-            </button>
-            <button type="button" style={secondary} onClick={() => window.history.back()}>
-              Back
-            </button>
-          </p>
-        )}
+        <div style={frame}>
+          <span style={wordmark}>Kiosk</span>
+          <span style={rule} aria-hidden />
+          <p style={eyebrow}>{stale ? "Updating" : "Something went wrong"}</p>
+          <h1 style={heading}>{title}</h1>
+          <p style={message}>{copy}</p>
+          {stale ? null : (
+            <div style={actions}>
+              <button
+                type="button"
+                style={primary}
+                onClick={() => window.location.reload()}
+              >
+                Reload the page
+              </button>
+              <button
+                type="button"
+                style={secondary}
+                onClick={() => window.history.back()}
+              >
+                Go back
+              </button>
+            </div>
+          )}
+        </div>
       </body>
     </html>
   );
@@ -50,45 +64,92 @@ const shell: CSSProperties = {
   minHeight: "100vh",
   display: "grid",
   placeItems: "center",
-  alignContent: "center",
-  gap: 12,
-  background: "#0a0a0a",
-  color: "#ededed",
-  fontFamily: "system-ui, sans-serif",
-  textAlign: "center",
+  padding: 24,
+  background: "#F4F1EA",
+  color: "#121A16",
+  fontFamily:
+    'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  textAlign: "left",
+};
+
+const frame: CSSProperties = {
+  width: "100%",
+  maxWidth: 480,
+  padding: "32px 0 0",
+};
+
+const wordmark: CSSProperties = {
+  fontFamily: 'Georgia, "Times New Roman", serif',
+  fontSize: 28,
+  fontWeight: 400,
+  letterSpacing: "-0.02em",
+};
+
+const rule: CSSProperties = {
+  display: "block",
+  width: "100%",
+  height: 1,
+  margin: "22px 0 26px",
+  background: "rgba(18,26,22,0.12)",
+};
+
+const eyebrow: CSSProperties = {
+  margin: 0,
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontSize: 10,
+  fontWeight: 500,
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  color: "#A55237",
 };
 
 const heading: CSSProperties = {
-  margin: 0,
-  fontSize: 22,
-  fontWeight: 600,
+  margin: "10px 0 0",
+  fontFamily: 'Georgia, "Times New Roman", serif',
+  fontSize: 40,
+  lineHeight: 1.04,
+  fontWeight: 400,
+  letterSpacing: "-0.03em",
+  color: "#121A16",
 };
 
 const message: CSSProperties = {
-  margin: 0,
+  margin: "16px 0 0",
+  maxWidth: "44ch",
   fontSize: 15,
+  lineHeight: 1.7,
+  color: "#556159",
 };
 
 const actions: CSSProperties = {
   display: "flex",
-  gap: 8,
-  justifyContent: "center",
+  flexWrap: "wrap",
+  gap: 10,
+  marginTop: 28,
 };
 
 const primary: CSSProperties = {
-  background: "#ededed",
-  color: "#0a0a0a",
+  appearance: "none",
   border: 0,
-  borderRadius: 8,
-  padding: "8px 14px",
+  borderRadius: 2,
+  padding: "11px 18px",
+  background: "#1D4B3B",
+  color: "#FCFAF5",
+  fontFamily: "inherit",
+  fontSize: 13,
   fontWeight: 600,
+  cursor: "pointer",
 };
 
 const secondary: CSSProperties = {
+  appearance: "none",
+  border: "1px solid rgba(18,26,22,0.16)",
+  borderRadius: 2,
+  padding: "11px 18px",
   background: "transparent",
-  color: "#ededed",
-  border: "1px solid rgba(255,255,255,0.2)",
-  borderRadius: 8,
-  padding: "8px 14px",
+  color: "#121A16",
+  fontFamily: "inherit",
+  fontSize: 13,
   fontWeight: 600,
+  cursor: "pointer",
 };

@@ -59,7 +59,7 @@ export function TabOverlay({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex flex-col",
+        "premium-portal fixed inset-0 z-50 flex flex-col",
         destination
           ? "justify-stretch lg:items-center lg:justify-center lg:p-8"
           : "justify-end lg:items-center lg:justify-center lg:p-8",

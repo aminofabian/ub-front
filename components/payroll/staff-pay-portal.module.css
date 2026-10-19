@@ -239,15 +239,17 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(18, 26, 22, 0.38);
 }
 
 .sheet {
   max-height: 88dvh;
   overflow-y: auto;
-  border-top-left-radius: 1rem;
-  border-top-right-radius: 1rem;
-  background: var(--tab-card);
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+  border-top: 1px solid var(--op-rule, var(--tab-border));
+  background: var(--op-surface, var(--tab-card));
+  box-shadow: 0 -16px 48px -24px rgba(18, 26, 22, 0.24);
   padding: 1rem 1.15rem max(1.25rem, env(safe-area-inset-bottom));
 }
 
@@ -261,8 +263,10 @@
 
 .sheetTitle {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
 }
 
 .line {
@@ -298,8 +302,9 @@
   margin-top: 1rem;
   padding: 0.85rem;
   border: 0;
-  background: var(--tab-focus);
-  color: white;
+  border-radius: 2px;
+  background: var(--op-accent, var(--tab-focus));
+  color: var(--op-surface, #fcfaf5);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;

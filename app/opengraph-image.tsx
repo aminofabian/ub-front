@@ -1,12 +1,13 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { ImageResponse } from "next/og";
 
 import {
   PlatformMarkOg,
   platformAppIconDataUrl,
-  platformOgBackground,
 } from "@/lib/platform-mark-og";
 import {
-  PLATFORM_OG_DESCRIPTION,
   PLATFORM_TAGLINE,
   PLATFORM_TITLE,
 } from "@/lib/platform-seo";
@@ -18,7 +19,18 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  const markSrc = await platformAppIconDataUrl();
+  const [markSrc, cormorant, manrope] = await Promise.all([
+    platformAppIconDataUrl(),
+    readFile(
+      join(
+        process.cwd(),
+        "app/fonts/og/cormorant-garamond-400.ttf",
+      ),
+    ),
+    readFile(
+      join(process.cwd(), "app/fonts/og/manrope-400.ttf"),
+    ),
+  ]);
 
   return new ImageResponse(
     (
@@ -30,12 +42,12 @@ export default async function OpenGraphImage() {
           alignItems: "center",
           justifyContent: "center",
           padding: 56,
-          background: platformOgBackground(),
+          background: "#F4F1EA",
           fontFamily:
             'Georgia, "Times New Roman", ui-serif, serif',
         }}
       >
-        <PlatformMarkOg markSize={220} showWordmark={false} markSrc={markSrc} />
+        <PlatformMarkOg markSize={190} showWordmark={false} markSrc={markSrc} />
         <div
           style={{
             display: "flex",
@@ -46,47 +58,61 @@ export default async function OpenGraphImage() {
         >
           <div
             style={{
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 600,
-              letterSpacing: "0.16em",
-              color: "#45D078",
+              letterSpacing: "0.18em",
+              color: "#A55237",
               textTransform: "uppercase",
               marginBottom: 18,
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+              fontFamily: "Manrope",
             }}
           >
             {PLATFORM_TAGLINE}
           </div>
           <div
             style={{
-              fontSize: 52,
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
-              color: "#f4f7f4",
-              lineHeight: 1.1,
+              fontSize: 66,
+              fontWeight: 400,
+              letterSpacing: "-0.035em",
+              color: "#121A16",
+              lineHeight: 1.02,
               marginBottom: 22,
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+              fontFamily: "Cormorant",
             }}
           >
             Kiosk.ke
           </div>
           <div
             style={{
-              fontSize: 30,
+              fontSize: 27,
               fontWeight: 400,
-              color: "#b8c4ba",
-              lineHeight: 1.4,
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+              color: "#556159",
+              lineHeight: 1.45,
+              fontFamily: "Manrope",
             }}
           >
-            {PLATFORM_OG_DESCRIPTION}
+            Point of sale, M-Pesa at the counter, offline sales, and a
+            storefront from one stock count.
           </div>
         </div>
       </div>
     ),
-    { ...size },
+    {
+      ...size,
+      fonts: [
+        {
+          name: "Cormorant",
+          data: cormorant,
+          style: "normal",
+          weight: 400,
+        },
+        {
+          name: "Manrope",
+          data: manrope,
+          style: "normal",
+          weight: 400,
+        },
+      ],
+    },
   );
 }

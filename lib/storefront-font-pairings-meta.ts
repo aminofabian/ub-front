@@ -14,6 +14,7 @@ export type StorefrontFontPairingId =
   | "heritage"
   | "playful"
   | "elegant"
+  | "kiosk"
   | "modern"
   | "loud"
   | "clean";
@@ -39,6 +40,7 @@ export const STOREFRONT_FONT_PAIRING_IDS: readonly StorefrontFontPairingId[] = [
   "heritage",
   "playful",
   "elegant",
+  "kiosk",
   "modern",
   "loud",
   "clean",
@@ -88,6 +90,15 @@ export const STOREFRONT_FONT_PAIRING_META: readonly StorefrontFontPairingMeta[] 
       vibe: "Refined high-contrast serif with a quiet geometric body",
       displayVar: "--font-cormorant",
       bodyVar: "--sf-font-jost",
+      displayFallback: 'Georgia, "Times New Roman", serif',
+      bodyFallback: 'system-ui, "Segoe UI", sans-serif',
+    },
+    {
+      id: "kiosk",
+      name: "Kiosk Editorial",
+      vibe: "Cormorant headlines over a calm Manrope body",
+      displayVar: "--font-cormorant",
+      bodyVar: "--sf-font-manrope",
       displayFallback: 'Georgia, "Times New Roman", serif',
       bodyFallback: 'system-ui, "Segoe UI", sans-serif',
     },

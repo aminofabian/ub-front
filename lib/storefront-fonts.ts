@@ -257,6 +257,11 @@ const FACES: Record<
     body: manrope,
     variables: [spaceGrotesk.variable, manrope.variable].join(" "),
   },
+  kiosk: {
+    display: cormorant,
+    body: manrope,
+    variables: [cormorant.variable, manrope.variable].join(" "),
+  },
   loud: {
     display: passionOne,
     body: archivo,

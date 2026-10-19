@@ -28,19 +28,22 @@ export function DraftConflictModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-[80] bg-black/40"
+        className="fixed inset-0 z-[80] bg-[rgba(18,26,22,0.38)]"
         onClick={onDismiss}
         aria-hidden
       />
       <div
-        className="fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-none border border-border bg-card p-5 shadow-xl sm:inset-x-auto"
+        className="premium-portal fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)] sm:inset-x-auto"
         style={brandTheme}
         role="dialog"
         aria-labelledby="draft-conflict-title"
       >
         <h2
           id="draft-conflict-title"
-          className="text-lg font-semibold text-foreground"
+          className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+          style={{
+            fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif',
+          }}
         >
           Sale sync conflict
         </h2>

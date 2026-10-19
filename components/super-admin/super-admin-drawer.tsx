@@ -41,27 +41,33 @@ export function SuperAdminDrawer({
         />
         <Dialog.Content
           className={cn(
-            "fixed z-50 flex max-h-[100dvh] flex-col overflow-hidden outline-none",
-            "inset-y-0 right-0 h-[100dvh] w-full border-l border-border/80 bg-background/98 shadow-xl",
+            "premium-portal fixed z-50 flex max-h-[100dvh] flex-col overflow-hidden outline-none",
+            "inset-y-0 right-0 h-[100dvh] w-full border-l border-[var(--op-rule)] bg-[var(--op-surface)] shadow-[-20px_0_56px_-28px_rgba(18,26,22,0.22)]",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
-            "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            "sm:rounded-l-2xl",
+            "duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            "sm:rounded-l-[2px]",
             width === "wide" ? "sm:max-w-2xl" : "sm:max-w-md",
           )}
         >
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary/80 via-primary/40 to-primary/20"
+            className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[var(--op-accent)]"
             aria-hidden
           />
-          <header className="relative flex shrink-0 items-start justify-between gap-4 border-b border-border/50 px-5 py-4 sm:px-6">
-            <div className="min-w-0 pl-1 pt-0.5">
-              <Dialog.Title className="font-heading text-lg font-semibold tracking-tight text-foreground">
+          <header className="relative flex shrink-0 items-start justify-between gap-4 border-b border-[var(--op-rule)] px-5 py-4 sm:px-6">
+            <div className="min-w-0 pt-0.5">
+              <Dialog.Title
+                className="text-[1.6rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
                 {title}
               </Dialog.Title>
               {description ? (
-                <Dialog.Description className="mt-1.5 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                <Dialog.Description className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-[var(--op-muted)]">
                   {description}
                 </Dialog.Description>
               ) : (
@@ -73,14 +79,14 @@ export function SuperAdminDrawer({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="shrink-0 rounded-xl border border-border/80"
+                className="shrink-0 rounded-[2px] border border-[var(--op-rule)] text-[var(--op-muted)] hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
                 aria-label="Close panel"
               >
                 <X className="size-4" strokeWidth={2} />
               </Button>
             </Dialog.Close>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6 sm:py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--op-surface)] px-5 py-5 sm:px-6 sm:py-6">
             {children}
           </div>
         </Dialog.Content>

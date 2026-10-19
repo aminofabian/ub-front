@@ -614,7 +614,7 @@ export function ProductCreateModal({
           "gap-0 overflow-hidden p-0",
           desktop
             ? "w-[min(100%,60rem)] max-w-[60rem] sm:rounded-none"
-            : "max-h-[min(92dvh,44rem)] rounded-t-[1.25rem] bg-[#FBF9F5]",
+            : "max-h-[min(92dvh,44rem)] rounded-t-[2px] bg-[var(--op-surface)]",
         )}
       >
         {!desktop ? (
@@ -629,7 +629,7 @@ export function ProductCreateModal({
         >
           <header className={styles.header}>
             <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="flex items-center gap-2 text-lg text-[var(--catalog-ink,#15231f)]">
+              <DialogTitle className="flex items-center gap-2 text-[1.5rem] text-[var(--catalog-ink,#121A16)]">
                 <span className={styles.iconMark}>
                   <PackagePlus className="size-3.5" aria-hidden />
                 </span>
@@ -1391,7 +1391,7 @@ export function ProductCreateModal({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 flex-col gap-2.5 border-t border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_8%,transparent)] bg-white px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:pb-3">
+          <DialogFooter className="shrink-0 flex-col gap-2.5 border-t border-[var(--op-rule)] bg-[var(--op-surface)] px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:pb-3">
             <button
               type="button"
               role="switch"
