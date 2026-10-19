@@ -58,6 +58,21 @@ function toNum(n: number | string | null | undefined): number {
   return typeof n === "number" ? n : Number(n);
 }
 
+function formatQty(n: number | string | null | undefined): string {
+  const value = toNum(n);
+  return value.toLocaleString("en-KE", {
+    maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
+  });
+}
+
+type ProductSortKey = "quantitySold" | "netRevenue" | "netProfit";
+
+const PRODUCT_SORTS: { key: ProductSortKey; label: string }[] = [
+  { key: "quantitySold", label: "Qty" },
+  { key: "netRevenue", label: "Revenue" },
+  { key: "netProfit", label: "Profit" },
+];
+
 function compactMoney(
   n: number | string | null | undefined,
   currency: string,
@@ -571,6 +586,11 @@ export function AnalyticsWorkspace({
   const [owedTotal, setOwedTotal] = useState(0);
   const [audit, setAudit] = useState<AuditEventRecord[]>([]);
   const [openShifts, setOpenShifts] = useState(0);
+  const [reportView, setReportView] = useState<"products" | "categories">(
+    "products",
+  );
+  const [productSort, setProductSort] = useState<ProductSortKey>("quantitySold");
+  const [productQuery, setProductQuery] = useState("");
 
   const dateRange = useMemo(() => {
     if (preset === "custom") {
@@ -652,7 +672,7 @@ export function AnalyticsWorkspace({
           categoryId: catFilter,
           branchId: branchFilter,
           itemTypeId: typeFilter,
-          limit: 10,
+          limit: showCategoryTable ? 500 : 10,
         }).catch(() => []),
         fetchCogsByBranch(
           dateRange.from,
@@ -708,7 +728,14 @@ export function AnalyticsWorkspace({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, branchId, categoryId, headerItemTypeId, canViewAuditLog]);
+  }, [
+    dateRange,
+    branchId,
+    categoryId,
+    headerItemTypeId,
+    canViewAuditLog,
+    showCategoryTable,
+  ]);
 
   useEffect(() => {
     void load();
@@ -726,7 +753,7 @@ export function AnalyticsWorkspace({
     ? totalRevenue - totalProfit
     : toNum(pl?.cogs);
 
-  const productBars = itemsByProfit.map((row) => ({
+  const productBars = (showCategoryTable ? itemsByProfit.slice(0, 8) : itemsByProfit).map((row) => ({
     key: row.itemId,
     label: row.itemName,
     value: toNum(row.netProfit),
@@ -770,6 +797,18 @@ export function AnalyticsWorkspace({
   const incompleteMonth =
     dateRange && dateRange.to === todayStr ? currentMonthKey : undefined;
 
+  const productRows = useMemo(() => {
+    const query = productQuery.trim().toLowerCase();
+    const matched = query
+      ? itemsByProfit.filter((row) =>
+          `${row.itemName} ${row.sku ?? ""}`.toLowerCase().includes(query),
+        )
+      : itemsByProfit;
+    return [...matched].sort(
+      (a, b) => toNum(b[productSort]) - toNum(a[productSort]),
+    );
+  }, [itemsByProfit, productQuery, productSort]);
+
   const categoryItems = [
     { id: "", label: "All categories" },
     ...categories.map((c) => ({ id: c.id, label: c.name })),
@@ -812,12 +851,9 @@ export function AnalyticsWorkspace({
     branchItems.find((b) => b.id === branchId)?.label ?? "Branch";
   const filtersActive = Boolean(categoryId || (!branchLocked && branchId));
 
-  const primaryPeriods: DatePreset[] = [
-    "today",
-    "last7",
-    "last30",
-    "thisMonth",
-  ];
+  const primaryPeriods: DatePreset[] = showCategoryTable
+    ? ["thisMonth", "lastMonth", "last30", "today"]
+    : ["today", "last7", "last30", "thisMonth"];
 
   return (
     <div
@@ -1174,75 +1210,238 @@ export function AnalyticsWorkspace({
 
       {showCategoryTable ? (
         <Panel className="overflow-hidden">
-          <h2 className="border-b border-border px-3 py-3 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            Net revenue by category
-          </h2>
-          <div className="divide-y divide-border sm:hidden">
-            {categoryRevenue.length === 0 ? (
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                No category rows for this window.
-              </p>
-            ) : (
-              categoryRevenue.map((row) => (
-                <div
-                  key={row.categoryId}
-                  className="flex items-start justify-between gap-3 px-3 py-3"
+          <div className="flex flex-col gap-2 border-b border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-1" role="group" aria-label="Report breakdown">
+              {(
+                [
+                  ["products", "By product"],
+                  ["categories", "By category"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setReportView(id)}
+                  aria-pressed={reportView === id}
+                  className={cn(
+                    "h-8 border px-2.5 text-[12px] font-semibold tracking-[-0.01em]",
+                    reportView === id
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
                 >
-                  <p className="min-w-0 text-[14px] font-medium">
-                    {row.categoryName}
-                  </p>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[14px] font-semibold tabular-nums">
-                      {money(row.netRevenue)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground tabular-nums">
-                      Profit {money(row.netProfit)}
-                    </p>
-                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {reportView === "products" ? (
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-md sm:justify-end">
+                <input
+                  value={productQuery}
+                  onChange={(e) => setProductQuery(e.target.value)}
+                  placeholder="Find a product"
+                  aria-label="Find a product"
+                  className="h-8 min-w-0 flex-1 border border-border bg-transparent px-2.5 text-[13px] outline-none focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:ring-1 focus-visible:ring-[var(--pos-primary,#0f766e)]/30"
+                />
+                <div className="flex shrink-0" role="group" aria-label="Sort products">
+                  {PRODUCT_SORTS.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setProductSort(option.key)}
+                      aria-pressed={productSort === option.key}
+                      className={cn(
+                        "h-8 border px-2 text-[11px] font-semibold",
+                        option.key !== "quantitySold" && "-ml-px",
+                        productSort === option.key
+                          ? "z-[1] border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
-              ))
+              </div>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                {categoryRevenue.length.toLocaleString("en-KE")} categories
+              </p>
             )}
           </div>
-          <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="border-b border-border text-[11px] text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Category</th>
-                  <th className="px-3 py-2 text-right font-medium">
-                    Net revenue
-                  </th>
-                  <th className="px-3 py-2 text-right font-medium">Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryRevenue.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="px-3 py-6 text-center text-muted-foreground"
-                    >
-                      No category rows for this window.
-                    </td>
-                  </tr>
+
+          {reportView === "products" ? (
+            <>
+              <p className="border-b border-border px-3 py-2 text-[12px] text-muted-foreground">
+                <span className="font-semibold tabular-nums text-foreground">
+                  {productRows.length.toLocaleString("en-KE")}
+                </span>
+                {" products sold"}
+                {itemsByProfit.length >= 500 ? " · first 500 by profit" : ""}
+                {". Qty is what left the shelf in this period."}
+              </p>
+              <div className="divide-y divide-border sm:hidden">
+                {productRows.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {productQuery.trim()
+                      ? "No product matches that search."
+                      : "No products sold in this period."}
+                  </p>
                 ) : (
-                  categoryRevenue.map((row) => (
-                    <tr
-                      key={row.categoryId}
-                      className="border-b border-border last:border-0"
+                  productRows.map((row) => (
+                    <div
+                      key={row.itemId}
+                      className="flex items-start justify-between gap-3 px-3 py-3"
                     >
-                      <td className="px-3 py-2">{row.categoryName}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {money(row.netRevenue)}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {money(row.netProfit)}
-                      </td>
-                    </tr>
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-medium">
+                          {row.itemName}
+                        </p>
+                        {row.sku ? (
+                          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                            {row.sku}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                          {money(row.netRevenue)}
+                          <span className="mx-1 opacity-40">·</span>
+                          Profit {money(row.netProfit)}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-right">
+                        <span className="block text-[1.15rem] font-semibold tabular-nums leading-none">
+                          {formatQty(row.quantitySold)}
+                        </span>
+                        <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
+                          qty
+                        </span>
+                      </p>
+                    </div>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[36rem] text-left text-sm">
+                  <thead className="border-b border-border text-[11px] text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Product</th>
+                      <th className="px-3 py-2 text-right font-medium">Qty sold</th>
+                      <th className="px-3 py-2 text-right font-medium">Net revenue</th>
+                      <th className="px-3 py-2 text-right font-medium">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productRows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-3 py-6 text-center text-muted-foreground"
+                        >
+                          {productQuery.trim()
+                            ? "No product matches that search."
+                            : "No products sold in this period."}
+                        </td>
+                      </tr>
+                    ) : (
+                      productRows.map((row) => (
+                        <tr
+                          key={row.itemId}
+                          className="border-b border-border last:border-0"
+                        >
+                          <td className="px-3 py-2">
+                            <p className="font-medium">{row.itemName}</p>
+                            {row.sku ? (
+                              <p className="font-mono text-[10px] text-muted-foreground/70">
+                                {row.sku}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2 text-right text-[15px] font-semibold tabular-nums">
+                            {formatQty(row.quantitySold)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {money(row.netRevenue)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {money(row.netProfit)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="divide-y divide-border sm:hidden">
+                {categoryRevenue.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    No category rows for this window.
+                  </p>
+                ) : (
+                  categoryRevenue.map((row) => (
+                    <div
+                      key={row.categoryId}
+                      className="flex items-start justify-between gap-3 px-3 py-3"
+                    >
+                      <p className="min-w-0 text-[14px] font-medium">
+                        {row.categoryName}
+                      </p>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[14px] font-semibold tabular-nums">
+                          {money(row.netRevenue)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground tabular-nums">
+                          Profit {money(row.netProfit)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[28rem] text-left text-sm">
+                  <thead className="border-b border-border text-[11px] text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Category</th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        Net revenue
+                      </th>
+                      <th className="px-3 py-2 text-right font-medium">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryRevenue.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-3 py-6 text-center text-muted-foreground"
+                        >
+                          No category rows for this window.
+                        </td>
+                      </tr>
+                    ) : (
+                      categoryRevenue.map((row) => (
+                        <tr
+                          key={row.categoryId}
+                          className="border-b border-border last:border-0"
+                        >
+                          <td className="px-3 py-2">{row.categoryName}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {money(row.netRevenue)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {money(row.netProfit)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </Panel>
       ) : null}
     </div>

@@ -26,6 +26,13 @@ const hair =
   "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 const teal = "var(--pos-primary,#0f766e)";
 
+type StockWatchItem = {
+  itemId: string;
+  itemName: string;
+  currentStock: number | string;
+  reorderLevel: number | string;
+};
+
 type StockActionHubProps = {
   actions: readonly StockHubAction[];
   outCount: number | null;
@@ -34,7 +41,15 @@ type StockActionHubProps = {
   onOpenLevels: (status?: "out" | "low" | "all") => void;
   /** Batch-by-batch full count still running at this branch. */
   fullCountProgress?: FullCountProgress | null;
+  /** Products already under their reorder point for this branch. */
+  watchlist?: readonly StockWatchItem[];
 };
+
+function watchQty(n: number | string | null | undefined): number {
+  if (n == null || n === "") return 0;
+  const value = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(value) ? value : 0;
+}
 
 /**
  * Soft washes for the services tiles, cycled by position so the board reads as
@@ -255,6 +270,7 @@ export function StockActionHub({
   countsLoading,
   onOpenLevels,
   fullCountProgress,
+  watchlist = [],
 }: StockActionHubProps) {
   const hero = actions.find((a) => a.rank === "hero");
   const pair = actions.filter((a) => a.rank === "pair");
@@ -275,6 +291,7 @@ export function StockActionHub({
       : 0;
   const outN = outCount ?? 0;
   const lowN = lowCount ?? 0;
+  const watch = watchlist.slice(0, 5);
 
   // Phone home keeps a single closed row of teasers; the full board lives in
   // the sheet. The last cell is the sheet trigger, so one tap reaches anything.
@@ -373,7 +390,7 @@ export function StockActionHub({
                 outN > 0 ? "text-[#b42318]" : "text-[var(--pos-primary,#0f766e)]",
               )}
             >
-              Fix →
+              {outN > 0 ? "Open" : "Clear"}
             </span>
           </span>
         </button>
@@ -416,11 +433,60 @@ export function StockActionHub({
                 lowN > 0 ? "text-[#b45309]" : "text-[var(--pos-primary,#0f766e)]",
               )}
             >
-              Fix →
+              {lowN > 0 ? "Open" : "Clear"}
             </span>
           </span>
         </button>
       </div>
+
+      {watch.length > 0 ? (
+        <section aria-label="Under reorder">
+          <div className="flex items-baseline justify-between gap-3 px-0.5">
+            <h2 className={cn("text-[13px] font-semibold tracking-[-0.01em]", ink)}>
+              Under reorder
+            </h2>
+            <button
+              type="button"
+              onClick={() => onOpenLevels("low")}
+              className="text-[12px] font-semibold text-[var(--pos-primary,#0f766e)]"
+            >
+              Open the low list
+            </button>
+          </div>
+          <ul className={cn("mt-1.5 divide-y", "divide-black/[0.06]")}>
+            {watch.map((item) => {
+              const onHand = watchQty(item.currentStock);
+              const reorder = watchQty(item.reorderLevel);
+              return (
+                <li key={item.itemId}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenLevels("low")}
+                    className={cn(
+                      "flex w-full items-center gap-3 py-2.5 text-left transition-colors",
+                      "hover:text-[var(--pos-primary,#0f766e)]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block truncate text-[14px] font-medium", ink)}>
+                        {item.itemName}
+                      </span>
+                      <span className={cn("mt-0.5 block text-[12px]", mute)}>
+                        {onHand.toLocaleString("en-KE")} on hand
+                        {reorder > 0
+                          ? ` · reorder at ${reorder.toLocaleString("en-KE")}`
+                          : ""}
+                      </span>
+                    </span>
+                    <ChevronRight className={cn("size-4 shrink-0", mute)} aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {hero ? (
         <Link
@@ -445,8 +511,10 @@ export function StockActionHub({
               <span className="block text-[1.55rem] font-semibold tracking-[-0.025em] sm:text-[1.55rem]">
                 {hero.label}
               </span>
-              <span className="mt-1.5 block max-w-[16rem] text-[13px] leading-snug text-white/85">
-                {hero.hint || "Tap a product, set the shelf qty, save."}
+              <span className="mt-1.5 block max-w-[18rem] text-[13px] leading-snug text-white/85">
+                {watch.length > 0
+                  ? `${watchlist.length.toLocaleString("en-KE")} under reorder. Open the shelf and correct the ones that sell.`
+                  : hero.hint || "Find a product and set what’s on the shelf."}
               </span>
             </span>
             <span className="mb-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15">

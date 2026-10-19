@@ -449,7 +449,7 @@ export default function AnalyticsActivityPage() {
 
   if (loading && !refreshing) {
     return (
-      <div className="h-full overflow-y-auto overscroll-contain">
+      <div className="min-h-full bg-white">
         <div className={DASHBOARD_MAX_WIDE}>
           <DashboardLoading label="Loading activity…" />
         </div>
@@ -458,11 +458,11 @@ export default function AnalyticsActivityPage() {
   }
 
   return (
-    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain bg-white">
+    <div className="relative min-h-full bg-white">
       <div
         className={cn(
           DASHBOARD_MAX_WIDE,
-          "!space-y-1 !pb-[calc(var(--shell-bottom-inset)+1.65rem)] md:!pb-8",
+          "!space-y-1 !pb-[calc(var(--shell-bottom-inset)+4.75rem)] md:!pb-8",
         )}
       >
         <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
@@ -486,7 +486,7 @@ export default function AnalyticsActivityPage() {
                     </span>
                   ) : (
                     <span className="hidden truncate text-[11px] leading-none text-muted-foreground/70 sm:inline">
-                      Today · Yesterday · 3–30 days
+                      What’s moving, and how many days are left on the shelf
                     </span>
                   )}
                 </div>

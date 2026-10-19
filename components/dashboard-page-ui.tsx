@@ -24,13 +24,18 @@ const MUTED =
   "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]";
 const TEAL = "text-[var(--pos-primary,#0f766e)]";
 
-/** Standard admin page shell (vertical rhythm + max width) */
+/**
+ * Standard admin page shell. Height stays content-sized so AppShell’s main
+ * (`overflow-y-auto`) is the one scrollport — nested `h-full overflow-y-auto`
+ * pages trap wheel/touch and feel “stuck”. Pages that need an internal scroll
+ * pane (spreadsheets, split desks) should add `h-full min-h-0` themselves.
+ */
 export const DASHBOARD_MAX =
-  "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
+  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
 
 /** Wider shell for dense consoles (products, categories, users) */
 export const DASHBOARD_MAX_WIDE =
-  "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
+  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
 
 /** Primary content card (CTA blocks, filter panels, etc.) */
 export const DASHBOARD_SECTION_SURFACE = cn(
