@@ -7926,6 +7926,65 @@ export async function fetchFinanceExpensesRange(options: {
   );
 }
 
+export type FinanceExpenseSummaryResponse = {
+  from: string;
+  to: string;
+  branchId: string | null;
+  totalAmount: number | string;
+  postedAmount: number | string;
+  pendingAmount: number | string;
+  rejectedAmount: number | string;
+  postedFixedAmount: number | string;
+  postedVariableAmount: number | string;
+  totalCount: number;
+  postedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  categories: {
+    categoryCode: string;
+    postedAmount: number | string;
+    pendingAmount: number | string;
+    rejectedAmount: number | string;
+    count: number;
+  }[];
+};
+
+/**
+ * Exact totals for a period/filter combination without paging the list.
+ * Posted, pending, and rejected money stay separate so a pending bill is
+ * never counted as an operating expense.
+ */
+export async function fetchFinanceExpenseSummary(options: {
+  from: string;
+  to: string;
+  branchId?: string;
+  categoryType?: string;
+  categoryCode?: string;
+  source?: string;
+  approvalStatus?: string;
+  q?: string;
+}): Promise<FinanceExpenseSummaryResponse> {
+  const params = new URLSearchParams();
+  params.set("from", options.from.trim());
+  params.set("to", options.to.trim());
+  if (options.branchId?.trim()) params.set("branchId", options.branchId.trim());
+  if (options.categoryType?.trim()) {
+    params.set("categoryType", options.categoryType.trim());
+  }
+  if (options.categoryCode?.trim()) {
+    params.set("categoryCode", options.categoryCode.trim());
+  }
+  if (options.source?.trim()) params.set("source", options.source.trim());
+  if (options.approvalStatus?.trim()) {
+    params.set("approvalStatus", options.approvalStatus.trim());
+  }
+  if (options.q?.trim()) params.set("q", options.q.trim());
+  return request<FinanceExpenseSummaryResponse>(
+    `/api/v1/finance/expenses/summary?${params.toString()}`,
+    { toast: false },
+  );
+}
+
 export async function patchFinanceExpense(
   expenseId: string,
   body: {
@@ -8095,6 +8154,23 @@ export async function fetchExpenseScheduleOccurrences(
   if (options?.branchId?.trim()) params.set("branchId", options.branchId.trim());
   return request<ExpenseScheduleOccurrenceRecord[]>(
     `/api/v1/finance/expense-schedules/occurrences?${params}`,
+  );
+}
+
+/** Occurrences across an arbitrary window — fixes ranges that cross month ends. */
+export async function fetchExpenseScheduleOccurrencesRange(
+  from: string,
+  to: string,
+  options?: { branchId?: string },
+): Promise<ExpenseScheduleOccurrenceRecord[]> {
+  const params = new URLSearchParams({
+    from: from.trim(),
+    to: to.trim(),
+  });
+  if (options?.branchId?.trim()) params.set("branchId", options.branchId.trim());
+  return request<ExpenseScheduleOccurrenceRecord[]>(
+    `/api/v1/finance/expense-schedules/occurrences/range?${params}`,
+    { toast: false },
   );
 }
 
@@ -15480,7 +15556,7 @@ export type PayrollRunRow = {
   prorationFactor: number | null;
   /** full | half | prorate | deferred */
   joinPayMode: JoinPayMode;
-  /** False until the 25th of the labeled month — payable base is zero until then. */
+  /** True once the labeled month reaches its scheduled pay day (25th). */
   salaryReleased: boolean;
   /** Employment start / join date, if set (YYYY-MM-DD). */
   startDate: string | null;
@@ -15500,6 +15576,73 @@ export type PayrollRunRow = {
   alreadyPaid: boolean;
   payslipId: string | null;
   paidAt: string | null;
+  /** Local 07… M-Pesa number used for the payment schedule. */
+  phone?: string | null;
+  /** Finance expense linked to this period's payslip, when already paid. */
+  expenseId?: string | null;
+  paymentMethod?: string | null;
+};
+
+export type PayrollSummaryIssueSeverity = "blocker" | "warning" | "info";
+
+export type PayrollSummaryStaffRef = {
+  userId: string | null;
+  displayName: string;
+};
+
+export type PayrollSummaryIssue = {
+  code: string;
+  label: string;
+  detail: string;
+  severity: PayrollSummaryIssueSeverity;
+  count: number;
+  staff: PayrollSummaryStaffRef[];
+};
+
+export type PayrollSummaryBranch = {
+  branchId: string | null;
+  branchName: string;
+  headcount: number;
+  paidCount: number;
+  pendingCount: number;
+  gross: number;
+  netPayable: number;
+};
+
+export type PayrollSummary = {
+  year: number;
+  month: number;
+  salaryReleased: boolean;
+  unlockDate: string;
+  headcount: number;
+  paidCount: number;
+  pendingCount: number;
+  onLeaveCount: number;
+  missingSalaryCount: number;
+  currentGross: number;
+  arrearsGross: number;
+  gross: number;
+  statutory: number;
+  advancesScheduled: number;
+  netPayable: number;
+  paidNet: number;
+  cashRequired: number;
+  previous: {
+    year: number;
+    month: number;
+    gross: number;
+    paidNet: number;
+    headcount: number;
+    grossDeltaPct: number | null;
+  };
+  finance: {
+    postedCount: number;
+    unpostedCount: number;
+    postedAmount: number;
+    unpostedNet: number;
+  };
+  issues: PayrollSummaryIssue[];
+  branches: PayrollSummaryBranch[];
 };
 
 export type PayrollCalendarStatus =
@@ -15720,6 +15863,20 @@ export async function fetchPayrollRun(
   if (options?.branchId) params.set("branchId", options.branchId);
   if (options?.statutory) params.set("statutory", "true");
   return request<PayrollRunRow[]>(`${API_ROUTES.payroll}/runs?${params}`);
+}
+
+export async function fetchPayrollSummary(
+  year: number,
+  month: number,
+  options?: { branchId?: string; statutory?: boolean },
+): Promise<PayrollSummary> {
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  if (options?.branchId) params.set("branchId", options.branchId);
+  if (options?.statutory) params.set("statutory", "true");
+  return request<PayrollSummary>(`${API_ROUTES.payroll}/summary?${params}`);
 }
 
 export async function payStaffPayroll(

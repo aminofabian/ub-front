@@ -397,6 +397,104 @@ export function formatPayrollMoney(n: number): string {
   });
 }
 
+/**
+ * Kenya statutory estimate for the employee share. Mirrors
+ * `KenyaPayrollStatutoryCalculator` on the backend so the pay-confirm preview
+ * matches what is actually withheld — the API only returns statutory numbers
+ * when the run was loaded with `statutory=true`, and the confirm drawer lets
+ * the user switch it on locally.
+ *
+ * Rates: NSSF 6% tiered to 36k, SHIF 2.75% (min 300), Housing Levy 1.5%,
+ * PAYE bands with the KES 2,400 personal relief. Estimate only — confirm with
+ * an accountant before filing.
+ */
+export type KenyaStatutoryBreakdown = {
+  nssf: number;
+  shif: number;
+  housingLevy: number;
+  paye: number;
+  total: number;
+};
+
+export function estimateKenyaStatutory(
+  grossMonthly: number,
+): KenyaStatutoryBreakdown {
+  const gross = roundMoney(Math.max(0, Number(grossMonthly) || 0));
+  if (gross <= 0) {
+    return { nssf: 0, shif: 0, housingLevy: 0, paye: 0, total: 0 };
+  }
+
+  const tierI = Math.min(gross, 7000) * 0.06;
+  const tierII = Math.max(0, Math.min(gross, 36000) - 7000) * 0.06;
+  const nssf = roundMoney(tierI + tierII);
+  const shif = roundMoney(Math.max(gross * 0.0275, 300));
+  const housingLevy = roundMoney(gross * 0.015);
+  const taxable = Math.max(0, gross - nssf - shif - housingLevy);
+
+  const taxBeforeRelief = (() => {
+    let remaining = taxable;
+    let tax = 0;
+    const bands: Array<[number, number]> = [
+      [24000, 0.1],
+      [8333, 0.25],
+      [467667, 0.3],
+      [300000, 0.325],
+      [Number.POSITIVE_INFINITY, 0.35],
+    ];
+    for (const [width, rate] of bands) {
+      if (remaining <= 0) break;
+      const slice = Math.min(remaining, width);
+      tax += slice * rate;
+      remaining -= slice;
+    }
+    return tax;
+  })();
+
+  const paye = roundMoney(Math.max(0, taxBeforeRelief - 2400));
+  const total = roundMoney(nssf + shif + housingLevy + paye);
+  return { nssf, shif, housingLevy, paye, total };
+}
+
+export function payrollPaymentMethodLabel(
+  method: string | null | undefined,
+): string {
+  switch (method) {
+    case "cash":
+      return "Cash";
+    case "bank":
+      return "Bank transfer";
+    case "mpesa_manual":
+      return "M-Pesa";
+    default:
+      return method ? method.replace(/_/g, " ") : "M-Pesa";
+  }
+}
+
+/** Rows the payment schedule should include (same rule as the run's pending list). */
+export function payrollPaymentScheduleRows<
+  T extends {
+    displayName: string;
+    phone?: string | null;
+    branchName: string | null;
+    employmentStatus: string;
+    baseSalary: number;
+    monthlySalary?: number;
+    arrearPeriods?: PayrollArrearPeriod[];
+    suggestedNet: number;
+    alreadyPaid: boolean;
+  },
+>(rows: T[]): T[] {
+  return rows
+    .filter(
+      (row) =>
+        !row.alreadyPaid &&
+        row.employmentStatus !== "on_leave" &&
+        Number(row.baseSalary) > 0 &&
+        Number(row.suggestedNet) > 0,
+    )
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
 /** Pay cycle unlocks on this day of the labeled month. */
 export const PAYROLL_SALARY_UNLOCK_DAY = 25;
 
@@ -513,7 +611,12 @@ export function payrollArrearSummary(row: {
 
 export function formatPayrollDate(value: string | null | undefined): string {
   if (!value) return "—";
-  const d = new Date(value);
+  // Date-only values (start date, advance date, pay day) must not shift a day
+  // when the browser is west of UTC — parse them as local midnight.
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  const d = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
   if (Number.isNaN(d.getTime())) return value.slice(0, 10);
   return d.toLocaleDateString(undefined, {
     day: "numeric",
@@ -730,6 +833,60 @@ export function exportPayrollRunCsv(
       row.alreadyPaid ? "Paid" : "Pending",
       row.paidAt ? formatPayrollDate(row.paidAt) : "",
     ]),
+  );
+}
+
+/**
+ * Practical pay-day list for a Kenyan shop: who to pay, on which number, and
+ * how much. The accounting CSV answers "what did payroll cost?"; this one
+ * answers "what do I actually send on M-Pesa / the bank right now?".
+ */
+export function exportPayrollPaymentScheduleCsv(
+  rows: Array<{
+    displayName: string;
+    phone?: string | null;
+    branchName: string | null;
+    employmentStatus: string;
+    baseSalary: number;
+    monthlySalary?: number;
+    arrearPeriods?: PayrollArrearPeriod[];
+    suggestedNet: number;
+    alreadyPaid: boolean;
+  }>,
+  year: number,
+  month: number,
+  paymentMethod = "mpesa_manual",
+): void {
+  const payable = payrollPaymentScheduleRows(rows);
+  downloadPayrollCsv(
+    `payroll-payment-schedule-${year}-${String(month).padStart(2, "0")}.csv`,
+    [
+      "Employee",
+      "Phone",
+      "Amount",
+      "Payment method",
+      "Branch",
+      "Period",
+      "Note",
+    ],
+    payable.map((row) => {
+      const arrears = payrollArrearMonthsLabel(row.arrearPeriods ?? []);
+      const notes = [
+        arrears ? `Includes arrears: ${arrears}` : "",
+        row.phone?.trim() ? "" : "No phone on file",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return [
+        row.displayName,
+        row.phone?.trim() || "",
+        Number(row.suggestedNet).toFixed(2),
+        payrollPaymentMethodLabel(paymentMethod),
+        row.branchName ?? "",
+        payrollMonthLabel(year, month),
+        notes,
+      ];
+    }),
   );
 }
 
