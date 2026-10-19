@@ -178,7 +178,8 @@ export function ProductFilterSidebar({ catalog }: Props) {
               aria-hidden
             />
             <input
-              id="catalog-omni"
+              id="catalog-omni-desktop"
+              data-catalog-omni
               className={cn(catalogFilterInputClass, "pl-6 pr-6")}
               value={catalog.search}
               onChange={(e) => catalog.setSearch(e.target.value)}

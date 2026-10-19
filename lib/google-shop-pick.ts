@@ -1,4 +1,4 @@
-import { applyAuthSessionPayload } from "@/lib/auth";
+import { applyAuthSessionPayload, type AuthSessionClaims } from "@/lib/auth";
 import {
   parseSignInDestinations,
   type PublicSignInDestination,
@@ -78,7 +78,7 @@ export async function completeGoogleShopPick(
     slug?: unknown;
     nextPath?: unknown;
     returnHost?: unknown;
-    session?: { businessId?: unknown };
+    session?: AuthSessionClaims;
   } | null;
   if (!response.ok || !payload) {
     const detail = typeof payload?.detail === "string" ? payload.detail : "";

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useEffect,
   useRef,
@@ -57,7 +56,6 @@ import { CurrentLookLink } from "@/components/business/branding-template-section
 import { FrontWindowLandingEditor } from "@/components/business/front-window-landing-editor";
 import { BrandPosterLandingEditor } from "@/components/business/brand-poster-landing-editor";
 import type { BranchRecord } from "@/lib/api";
-import { APP_ROUTES } from "@/lib/config";
 import { SettingsTheatre } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
 import type { ShopSnapshotOverview } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
 import { cn } from "@/lib/utils";
@@ -353,7 +351,14 @@ export function BusinessSettingsForm({
       legend="Profile & billing"
       hint="How your business appears internally and your plan label."
     >
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          <div
+              className={cn(
+                "grid gap-2.5",
+                theatreFieldsOnly
+                  ? "grid-cols-1 [&>*]:!col-span-1"
+                  : "sm:grid-cols-2",
+              )}
+            >
             <div className="space-y-1.5 sm:col-span-2">
               <label className={labelClass()} htmlFor="biz-name">
                 Business name
@@ -493,7 +498,14 @@ export function BusinessSettingsForm({
                     Shoppers can send the cart straight to this number — no
                     payment gateway needed. Works on every theme.
                   </p>
-                  <div className="grid gap-2.5 sm:grid-cols-2">
+                  <div
+              className={cn(
+                "grid gap-2.5",
+                theatreFieldsOnly
+                  ? "grid-cols-1 [&>*]:!col-span-1"
+                  : "sm:grid-cols-2",
+              )}
+            >
                     <div className="space-y-1.5 sm:col-span-2">
                       <label className={labelClass()} htmlFor="sf-wa-number">
                         WhatsApp number
@@ -605,7 +617,14 @@ export function BusinessSettingsForm({
                 )
               ) : null}
 
-              <div className="grid gap-2.5 sm:grid-cols-2">
+              <div
+              className={cn(
+                "grid gap-2.5",
+                theatreFieldsOnly
+                  ? "grid-cols-1 [&>*]:!col-span-1"
+                  : "sm:grid-cols-2",
+              )}
+            >
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className={labelClass()} htmlFor="sf-branch">
                     Catalog branch
