@@ -1,48 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import {
-  BookUser,
-  Link2,
-  PackagePlus,
-  Plus,
-  Search,
-  Truck,
-} from "lucide-react";
+import { PackagePlus, Plus, Search, Truck } from "lucide-react";
 
 import type { SupplierRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
-import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-import { statusBadgeClass, statusDotClass } from "./supplier-ui-tokens";
-
-const STEPS = [
-  {
-    n: 1,
-    title: "Pick a vendor",
-    body: "Search or tap a name in the directory.",
-  },
-  {
-    n: 2,
-    title: "Review the record",
-    body: "Check contacts, payment details, and purchase history.",
-  },
-  {
-    n: 3,
-    title: "Link & receive",
-    body: "Attach products, then post supply on the receive till.",
-  },
-] as const;
 
 export function SupplierWorkspaceEmpty({
   canWrite,
   canOpenNewSupply,
-  canReadCatalog,
+  canReadCatalog: _canReadCatalog,
   totalCount,
-  suggestions,
-  onSelectSupplier,
+  suggestions: _suggestions,
+  onSelectSupplier: _onSelectSupplier,
   onNewSupplier,
   onNewSupply,
   compact = false,
@@ -59,8 +31,6 @@ export function SupplierWorkspaceEmpty({
   compact?: boolean;
   className?: string;
 }) {
-  const picks = suggestions.slice(0, compact ? 4 : 6);
-
   return (
     <div
       className={cn(
@@ -71,7 +41,7 @@ export function SupplierWorkspaceEmpty({
     >
       <div
         className={cn(
-          "mx-auto my-auto flex w-full max-w-[42rem] flex-col gap-5 rounded-[2px] border-0",
+          "mx-auto my-auto flex w-full max-w-[28rem] flex-col gap-6",
           compact ? "p-4 sm:p-5" : "p-5 sm:p-8",
         )}
       >
@@ -85,59 +55,61 @@ export function SupplierWorkspaceEmpty({
           >
             {totalCount > 0 ? "Select a supplier" : "Start with a supplier"}
           </h2>
-          <p className="max-w-md text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+          <p className="max-w-[36ch] text-[13px] leading-relaxed text-[var(--op-muted)]">
             {totalCount > 0
-              ? "Choose a vendor from the directory to open profile, contacts, catalog links, and purchase history in one place."
-              : "Add your first vendor to track purchases, link products, and receive stock."}
+              ? "Pick a name in the directory — profile, contacts, payment, and history open here."
+              : "Add who you buy from. A name is enough; payment details make paying them one tap later."}
           </p>
         </div>
 
-        <div
-          className={cn(
-            "grid gap-2",
-            compact ? "grid-cols-1 sm:grid-cols-2" : "sm:grid-cols-2",
-          )}
-        >
+        <div className="flex flex-col gap-2">
           {canWrite ? (
             <Button
               type="button"
-              className="h-12 justify-start gap-2 rounded-[2px] bg-[var(--op-accent)] px-3 font-semibold text-[var(--op-surface)] hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] sm:h-9"
+              className="h-11 justify-start gap-2 rounded-[2px] bg-[var(--op-accent)] px-3 font-semibold text-[var(--op-surface)] hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)]"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
               New supplier
             </Button>
           ) : null}
-          {canOpenNewSupply ? (
+          <div
+            className={cn(
+              "grid gap-2",
+              canOpenNewSupply ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1",
+            )}
+          >
+            {canOpenNewSupply ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 justify-start gap-2 rounded-[2px] border-[var(--op-rule)] px-3 font-medium"
+                onClick={onNewSupply}
+              >
+                <PackagePlus className="size-3.5" aria-hidden />
+                New supply
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
-              className="h-12 justify-start gap-2 rounded-[2px] border-[var(--op-rule)] px-3 font-medium sm:h-9"
-              onClick={onNewSupply}
+              className="h-10 justify-start gap-2 rounded-[2px] border-[var(--op-rule)] px-3 font-medium"
+              onClick={() =>
+                document.getElementById("supplier-directory-search")?.focus()
+              }
             >
-              <PackagePlus className="size-3.5" aria-hidden />
-              New supply
+              <Search className="size-3.5" aria-hidden />
+              Search directory
+              <kbd className="ml-auto hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--op-muted)] sm:inline">
+                /
+              </kbd>
             </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
-            onClick={() =>
-              document.getElementById("supplier-directory-search")?.focus()
-            }
-          >
-            <Search className="size-3.5" aria-hidden />
-            Search directory
-            <kbd className="ml-auto hidden rounded-md border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 py-0.5 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
-              /
-            </kbd>
-          </Button>
+          </div>
           <Button
             type="button"
             variant="outline"
             asChild
-            className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
+            className="h-10 justify-start gap-2 rounded-[2px] border-[var(--op-rule)] px-3 font-medium"
           >
             <Link href={APP_ROUTES.supplierDirectory}>
               <Truck className="size-3.5" aria-hidden />
@@ -146,93 +118,9 @@ export function SupplierWorkspaceEmpty({
           </Button>
         </div>
 
-        {picks.length > 0 ? (
-          <section className="overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-            <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
-              <div className="flex items-center gap-1.5">
-                <BookUser
-                  className="size-3.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_42%,transparent)]"
-                  aria-hidden
-                />
-                <h3 className="text-xs font-semibold tracking-tight text-[var(--order-ink,#15231f)]">
-                  Jump to a vendor
-                </h3>
-              </div>
-              <span className="text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                {totalCount.toLocaleString()} total
-              </span>
-            </div>
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]">
-              {picks.map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectSupplier(row.id)}
-                    className={cn(
-                      "flex min-h-12 w-full items-center gap-2 px-3 py-2.5 text-left transition-colors sm:min-h-0",
-                      "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "size-1.5 shrink-0 rounded-full",
-                        statusDotClass(row.status),
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--order-ink,#15231f)]">
-                      <SupplierDisplayName name={row.name} code={row.code} />
-                    </span>
-                    {row.code ? (
-                      <span className="hidden shrink-0 font-mono text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] sm:inline">
-                        {row.code}
-                      </span>
-                    ) : null}
-                    <span
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
-                        statusBadgeClass(row.status),
-                      )}
-                    >
-                      {row.status}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <ol
-          className={cn(
-            "grid gap-2",
-            compact ? "grid-cols-1" : "sm:grid-cols-3",
-          )}
-        >
-          {STEPS.map((step) => (
-            <li
-              key={step.n}
-              className="rounded-2xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-3"
-            >
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
-                <span className="flex size-5 items-center justify-center rounded-full border border-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-[var(--pos-primary,#0f766e)]">
-                  {step.n}
-                </span>
-                {step.title}
-              </p>
-              <p className="mt-1.5 text-xs leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-                {step.body}
-              </p>
-            </li>
-          ))}
-        </ol>
-
-        {canReadCatalog ? (
-          <p className="flex items-start gap-1.5 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-            <Link2 className="mt-0.5 size-3 shrink-0 opacity-70" aria-hidden />
-            After you select a supplier, use Catalog to link products and set
-            primary vendors.
+        {totalCount > 0 ? (
+          <p className="text-[11px] leading-snug text-[var(--op-muted)]">
+            {totalCount.toLocaleString()} vendors in the directory.
           </p>
         ) : null}
       </div>

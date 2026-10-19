@@ -39,6 +39,10 @@ import {
   SupFieldTable,
   SupSection,
 } from "./supplier-layout-primitives";
+import {
+  SupplierPayoutChooser,
+  type SupplierPayoutType,
+} from "./SupplierPayoutChooser";
 import { SupplierPurchaseHistorySection } from "./SupplierPurchaseHistorySection";
 import {
   statusBadgeClass,
@@ -488,21 +492,21 @@ export function SupplierEditColumn({
           bodyClassName="p-0"
         >
           {contacts.length === 0 ? (
-            <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-              No contacts on file yet.
+            <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                No contacts on file yet.
+              </p>
               {canWrite && onAddContact ? (
-                <>
-                  {" "}
-                  <button
-                    type="button"
-                    className="font-semibold text-primary underline-offset-2 hover:underline"
-                    onClick={onAddContact}
-                  >
-                    Add one
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] px-2.5 text-[11px] font-semibold text-[var(--op-accent,#1D4B3B)] hover:bg-[color-mix(in_srgb,var(--op-accent,#1D4B3B)_8%,white)]"
+                  onClick={onAddContact}
+                >
+                  <UserPlus className="size-3" aria-hidden />
+                  Add contact card
+                </button>
               ) : null}
-            </p>
+            </div>
           ) : (
             <table className="w-full border-collapse text-left text-xs">
               <thead className={supTableHead}>
@@ -685,12 +689,21 @@ function SupplierSidebarContactsDock({
         ) : null}
       </div>
       {sorted.length === 0 ? (
-        <p className="px-3 pb-3 text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-          No contacts yet.
-          {canWrite && onAddContact
-            ? " Add a phone or email for this vendor."
-            : null}
-        </p>
+        <div className="px-3 pb-3">
+          <p className="text-[11px] leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+            No contacts yet.
+          </p>
+          {canWrite && onAddContact ? (
+            <button
+              type="button"
+              onClick={onAddContact}
+              className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] px-2.5 text-[11px] font-semibold text-[var(--op-accent,#1D4B3B)] transition-colors hover:bg-[color-mix(in_srgb,var(--op-accent,#1D4B3B)_8%,white)]"
+            >
+              <UserPlus className="size-3" aria-hidden />
+              Add contact card
+            </button>
+          ) : null}
+        </div>
       ) : (
         <ul className="max-h-[min(11rem,28vh)] space-y-0 overflow-y-auto overscroll-contain border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] [scrollbar-width:thin]">
           {sorted.map((c) => {
@@ -785,9 +798,8 @@ function SupplierSidebarPaymentSection({
         })
       : null;
 
-  type PayoutType = "manual" | "mobile_wallet" | "till" | "paybill";
-  const savedType = (detail.payoutType as PayoutType) || "manual";
-  const [payoutType, setPayoutType] = useState<PayoutType>(savedType);
+  const savedType = (detail.payoutType as SupplierPayoutType) || "manual";
+  const [payoutType, setPayoutType] = useState<SupplierPayoutType>(savedType);
   const [payoutPhone, setPayoutPhone] = useState(
     detail.payoutPhone?.trim() ?? "",
   );
@@ -808,7 +820,7 @@ function SupplierSidebarPaymentSection({
   const [otpMasked, setOtpMasked] = useState<string | null>(null);
 
   useEffect(() => {
-    setPayoutType((detail.payoutType as PayoutType) || "manual");
+    setPayoutType((detail.payoutType as SupplierPayoutType) || "manual");
     setPayoutPhone(detail.payoutPhone?.trim() ?? "");
     setPayoutTillNumber(detail.payoutTillNumber?.trim() ?? "");
     setPayoutPaybillNumber(detail.payoutPaybillNumber?.trim() ?? "");
@@ -1015,60 +1027,53 @@ function SupplierSidebarPaymentSection({
 
       {payoutOpen ? (
         <div className="space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-2.5">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-              Send Money destination
-            </span>
-            <select
-              className="h-8 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs"
-              value={payoutType}
-              disabled={!canWrite || !onSavePayout || savingPayout}
-              onChange={(e) => setPayoutType(e.target.value as PayoutType)}
-            >
-              <option value="manual">Off — record manually</option>
-              <option value="mobile_wallet">M-Pesa phone</option>
-              <option value="till">Till (Buy Goods)</option>
-              <option value="paybill">Paybill</option>
-            </select>
-            <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-              Supplies → Pay can Send Money to this destination (and auto-pay if
-              enabled under Payments settings). SMS verification is optional —
-              a saved phone is enough to pay.
-            </span>
-          </label>
+          <SupplierPayoutChooser
+            compact
+            supplierName={detail.name}
+            showBankNotes={false}
+            disabled={!canWrite || !onSavePayout || savingPayout}
+            values={{
+              payoutType,
+              payoutPhone,
+              payoutTillNumber,
+              payoutPaybillNumber,
+              payoutPaybillAccount,
+            }}
+            onChange={(partial) => {
+              if (partial.payoutType != null) {
+                setPayoutType(partial.payoutType as SupplierPayoutType);
+              }
+              if (partial.payoutPhone !== undefined) {
+                setPayoutPhone(partial.payoutPhone);
+              }
+              if (partial.payoutTillNumber !== undefined) {
+                setPayoutTillNumber(partial.payoutTillNumber);
+              }
+              if (partial.payoutPaybillNumber !== undefined) {
+                setPayoutPaybillNumber(partial.payoutPaybillNumber);
+              }
+              if (partial.payoutPaybillAccount !== undefined) {
+                setPayoutPaybillAccount(partial.payoutPaybillAccount);
+              }
+            }}
+          />
 
-          {payoutType === "mobile_wallet" ? (
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                M-Pesa payout phone
-                {phoneVerified && savedPhoneMatches ? (
-                  <span className="ml-1.5 font-medium text-emerald-700">
-                    Verified
-                  </span>
-                ) : null}
-              </span>
-              <input
-                className="h-8 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tabular-nums"
-                value={payoutPhone}
-                onChange={(e) => setPayoutPhone(e.target.value)}
-                placeholder="0710514157 or 2547…"
-                inputMode="tel"
-                disabled={!canWrite || !onSavePayout || savingPayout}
-              />
-            </label>
+          {phoneVerified && savedPhoneMatches ? (
+            <p className="text-[11px] font-medium text-[var(--op-accent,#1D4B3B)]">
+              M-Pesa number verified
+            </p>
           ) : null}
 
           {needsPhoneVerify ? (
-            <div className="space-y-2 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 px-2.5 py-2">
+            <div className="space-y-2 rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[var(--op-panel,#EFEBE2)] px-2.5 py-2">
               <p className="text-[11px] leading-snug text-muted-foreground">
-                Optional: verify this phone with an SMS code to confirm the
-                number belongs to the supplier.
+                Optional: verify this phone with an SMS code.
                 {otpMasked ? ` Code sent to ${otpMasked}.` : null}
               </p>
               {otpSent ? (
                 <div className="flex gap-2">
                   <input
-                    className="h-8 flex-1 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tracking-[0.2em] tabular-nums"
+                    className="h-8 flex-1 rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tracking-[0.2em] tabular-nums"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                     placeholder="4-digit code"
@@ -1079,7 +1084,7 @@ function SupplierSidebarPaymentSection({
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 rounded-xl text-xs"
+                    className="h-8 rounded-[2px] text-xs"
                     disabled={otpBusy || otpCode.trim().length !== 4}
                     onClick={() => void confirmOtp()}
                   >
@@ -1091,7 +1096,7 @@ function SupplierSidebarPaymentSection({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 w-full rounded-xl text-xs"
+                className="h-8 w-full rounded-[2px] text-xs"
                 disabled={otpBusy}
                 onClick={() => void sendOtp()}
               >
@@ -1104,55 +1109,8 @@ function SupplierSidebarPaymentSection({
             </div>
           ) : null}
 
-          {payoutType === "till" ? (
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                Till number
-              </span>
-              <input
-                className="h-8 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tabular-nums"
-                value={payoutTillNumber}
-                onChange={(e) => setPayoutTillNumber(e.target.value)}
-                placeholder="e.g. 567890"
-                inputMode="numeric"
-                disabled={!canWrite || !onSavePayout || savingPayout}
-              />
-            </label>
-          ) : null}
-
-          {payoutType === "paybill" ? (
-            <>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Paybill number
-                </span>
-                <input
-                  className="h-8 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tabular-nums"
-                  value={payoutPaybillNumber}
-                  onChange={(e) => setPayoutPaybillNumber(e.target.value)}
-                  placeholder="e.g. 247247"
-                  inputMode="numeric"
-                  disabled={!canWrite || !onSavePayout || savingPayout}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-                  Account number
-                </span>
-                <input
-                  className="h-8 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-xs tabular-nums"
-                  value={payoutPaybillAccount}
-                  onChange={(e) => setPayoutPaybillAccount(e.target.value)}
-                  placeholder="Account or reference"
-                  disabled={!canWrite || !onSavePayout || savingPayout}
-                />
-              </label>
-            </>
-          ) : null}
-
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Auto-pay schedule (override 12:00 AM / 6:00 PM) is set for the whole
-            business under{" "}
+            Auto-pay schedule lives under{" "}
             <Link
               href="/payments/settings#supplier-payouts"
               className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
@@ -1167,10 +1125,10 @@ function SupplierSidebarPaymentSection({
               type="button"
               size="sm"
               className={cn(
-                "h-8 w-full rounded-xl text-xs font-semibold shadow-none",
+                "h-9 w-full rounded-[2px] text-xs font-semibold shadow-none",
                 dirty
-                  ? "bg-[var(--pos-primary,#0f766e)] text-white hover:bg-[#0d6b63]"
-                  : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]",
+                  ? "bg-[var(--op-accent,#1D4B3B)] text-[var(--op-surface,#FCFAF5)] hover:bg-[var(--op-accent-hover,#163B2E)]"
+                  : "bg-[color-mix(in_srgb,var(--op-accent,#1D4B3B)_12%,transparent)] text-[var(--op-accent,#1D4B3B)] hover:bg-[color-mix(in_srgb,var(--op-accent,#1D4B3B)_18%,transparent)]",
               )}
               disabled={savingPayout || !dirty}
               onClick={() => void savePayout()}
@@ -1183,8 +1141,8 @@ function SupplierSidebarPaymentSection({
             </Button>
           ) : savedType === "manual" ? (
             <p className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-              Open Edit profile to enable Send Money destination if you have write
-              access.
+              Open Edit profile to set a Send Money destination if you have
+              write access.
             </p>
           ) : (
             <p className="tabular-nums text-xs text-[var(--order-ink,#15231f)]">

@@ -71,6 +71,7 @@ import {
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
 import { NewSupplierForm } from "./_components/NewSupplierForm";
+import { SupplierContactForm } from "./_components/SupplierContactForm";
 import {
   SupDrawerFooter,
   SupMobileSelectionBar,
@@ -85,8 +86,6 @@ import {
   ROSTER,
   supChipActive,
   supChipIdle,
-  supFieldLabel,
-  supInput,
   supPanelBodyFill,
   supPanelHeader,
   supPanelHeaderIcon,
@@ -1555,7 +1554,7 @@ export default function SuppliersPage() {
               open={contactDrawerOpen}
               onOpenChange={onContactDrawerOpenChange}
               title={editingContactId ? "Edit contact" : "Add contact"}
-              description="Optional fields — include at least one way to reach this person."
+              description="Fill the card — phone or email is enough to reach them later."
               contextLabel="Workspace"
               icon={
                 editingContactId ? (
@@ -1581,72 +1580,15 @@ export default function SuppliersPage() {
                 onSubmit={onSaveContact}
               >
                 <FormDrawerFields
-                  legend="Contact details"
-                  hint="Stored against this supplier only."
+                  legend="Business card"
+                  hint="Stored on this supplier only."
                 >
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={supFieldLabel}>Full name</span>
-                      <input
-                        className={supInput}
-                        placeholder="e.g. Jane Smith"
-                        value={contactDraft.name ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({
-                            ...d,
-                            name: e.target.value,
-                          }))
-                        }
-                        aria-label="Contact name"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className={supFieldLabel}>Role / title</span>
-                      <input
-                        className={supInput}
-                        placeholder="Optional"
-                        value={contactDraft.roleLabel ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({
-                            ...d,
-                            roleLabel: e.target.value,
-                          }))
-                        }
-                        aria-label="Role or title"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className={supFieldLabel}>Email</span>
-                      <input
-                        className={supInput}
-                        placeholder="name@company.com"
-                        type="email"
-                        value={contactDraft.email ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({
-                            ...d,
-                            email: e.target.value,
-                          }))
-                        }
-                        aria-label="Email"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={supFieldLabel}>Phone</span>
-                      <input
-                        className={supInput}
-                        placeholder="Optional"
-                        value={contactDraft.phone ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({
-                            ...d,
-                            phone: e.target.value,
-                          }))
-                        }
-                        aria-label="Phone"
-                      />
-                    </label>
-                  </div>
+                  <SupplierContactForm
+                    draft={contactDraft}
+                    onChange={(partial) =>
+                      setContactDraft((d) => ({ ...d, ...partial }))
+                    }
+                  />
                 </FormDrawerFields>
               </form>
             </FormDrawer>
@@ -1659,7 +1601,7 @@ export default function SuppliersPage() {
             onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
             onOpenChange={onCreateDrawerOpenChange}
             title="New supplier"
-            description="Add who you buy from. A name is enough to start — add payment details so you can pay them in one tap."
+            description="Name first. Add how you pay them so Supplies → Pay is one tap later."
             contextLabel="Purchasing"
             icon={<Truck className="size-5 text-primary" aria-hidden />}
             width="wide"

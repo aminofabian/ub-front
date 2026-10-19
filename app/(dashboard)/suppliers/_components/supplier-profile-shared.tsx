@@ -9,51 +9,15 @@ import {
   SupFormSection,
   SupFormTable,
 } from "./supplier-layout-primitives";
+import { SupplierPayoutChooser } from "./SupplierPayoutChooser";
 import {
+  HAIRLINE,
   supFormCellInput,
   supFormCellSelect,
   supFormCellTextarea,
 } from "./supplier-ui-tokens";
 
 const SUPPLIER_STATUS_OPTIONS = ["active", "inactive", "blocked"] as const;
-
-/** Payout methods a supplier can be paid through. "Not set" keeps it manual. */
-const PAYOUT_OPTIONS = [
-  { value: "manual", label: "Not set" },
-  { value: "mobile_wallet", label: "M-Pesa" },
-  { value: "till", label: "Till" },
-  { value: "paybill", label: "Paybill" },
-] as const;
-
-/** Clear the fields that don't belong to the newly chosen payout method. */
-function payoutTypePatch(next: string): Partial<SupplierProfileDraft> {
-  if (next === "manual") {
-    return {
-      payoutType: next,
-      payoutPhone: "",
-      payoutTillNumber: "",
-      payoutPaybillNumber: "",
-      payoutPaybillAccount: "",
-    };
-  }
-  if (next === "mobile_wallet") {
-    return {
-      payoutType: next,
-      payoutTillNumber: "",
-      payoutPaybillNumber: "",
-      payoutPaybillAccount: "",
-    };
-  }
-  if (next === "till") {
-    return {
-      payoutType: next,
-      payoutPhone: "",
-      payoutPaybillNumber: "",
-      payoutPaybillAccount: "",
-    };
-  }
-  return { payoutType: next, payoutPhone: "", payoutTillNumber: "" };
-}
 
 export type SupplierProfileDraft = {
   name: string;
@@ -166,8 +130,8 @@ export function SupplierProfileFields({
     return (
       <div className="space-y-3">
         <SupFormSection
-          title="Supplier"
-          hint="Who you buy from. The name is all you need to get started."
+          title="Who you buy from"
+          hint="A name is enough to start. Phone helps catch duplicates and becomes the order number."
         >
           <SupFormTable>
             <SupFormRow label="Supplier name" required>
@@ -182,7 +146,7 @@ export function SupplierProfileFields({
             </SupFormRow>
             <SupFormRow
               label="Phone"
-              hint="Used to spot duplicates and for order follow-up."
+              hint="WhatsApp / call line — also used to spot duplicates."
             >
               <input
                 className={cn(supFormCellInput, "tabular-nums")}
@@ -194,6 +158,17 @@ export function SupplierProfileFields({
                 inputMode="tel"
                 autoComplete="tel"
                 maxLength={32}
+              />
+            </SupFormRow>
+            <SupFormRow label="Contact person">
+              <input
+                className={supFormCellInput}
+                value={draft.contactName}
+                onChange={(e) =>
+                  onDraftChange({ contactName: e.target.value })
+                }
+                placeholder="Who you deal with day to day"
+                maxLength={255}
               />
             </SupFormRow>
             <SupFormRow label="Email">
@@ -209,136 +184,43 @@ export function SupplierProfileFields({
                 maxLength={255}
               />
             </SupFormRow>
-            <SupFormRow label="Contact person">
-              <input
-                className={supFormCellInput}
-                value={draft.contactName}
-                onChange={(e) =>
-                  onDraftChange({ contactName: e.target.value })
-                }
-                placeholder="Optional — who you deal with"
-                maxLength={255}
-              />
-            </SupFormRow>
           </SupFormTable>
         </SupFormSection>
 
         {slotAfterIdentity}
 
         <SupFormSection
-          title="Payment details"
-          hint="How you pay them — till, paybill, bank, or M-Pesa. Optional, but it makes paying them one tap later."
+          title="How you pay them"
+          hint="Pick a destination now — Supplies → Pay can Send Money in one tap. Skip if you only need the name."
         >
-          <SupFormTable>
-            <SupFormRow label="Pay via" hint="Where the money goes.">
-              <div className="flex flex-wrap gap-1.5 py-0.5">
-                {PAYOUT_OPTIONS.map((opt) => {
-                  const active = (draft.payoutType || "manual") === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => onDraftChange(payoutTypePatch(opt.value))}
-                      className={cn(
-                        "inline-flex h-8 items-center rounded-full border px-3 text-[12px] font-semibold transition-colors",
-                        active
-                          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
-                          : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </SupFormRow>
-            {draft.payoutType === "mobile_wallet" ? (
-              <SupFormRow
-                label="M-Pesa number"
-                hint="SMS verification is optional."
-              >
-                <input
-                  className={cn(supFormCellInput, "tabular-nums")}
-                  value={draft.payoutPhone}
-                  onChange={(e) =>
-                    onDraftChange({ payoutPhone: e.target.value })
-                  }
-                  maxLength={32}
-                  placeholder="0710514157 or 2547XXXXXXXX"
-                  inputMode="tel"
-                />
-              </SupFormRow>
-            ) : null}
-            {draft.payoutType === "till" ? (
-              <SupFormRow label="Till number" hint="Supplier’s Buy Goods till.">
-                <input
-                  className={cn(supFormCellInput, "tabular-nums")}
-                  value={draft.payoutTillNumber}
-                  onChange={(e) =>
-                    onDraftChange({ payoutTillNumber: e.target.value })
-                  }
-                  maxLength={32}
-                  placeholder="e.g. 567890"
-                  inputMode="numeric"
-                />
-              </SupFormRow>
-            ) : null}
-            {draft.payoutType === "paybill" ? (
-              <>
-                <SupFormRow label="Paybill number">
-                  <input
-                    className={cn(supFormCellInput, "tabular-nums")}
-                    value={draft.payoutPaybillNumber}
-                    onChange={(e) =>
-                      onDraftChange({ payoutPaybillNumber: e.target.value })
-                    }
-                    maxLength={32}
-                    placeholder="e.g. 247247"
-                    inputMode="numeric"
-                  />
-                </SupFormRow>
-                <SupFormRow
-                  label="Account number"
-                  hint="Account / reference the paybill asks for."
-                >
-                  <input
-                    className={cn(supFormCellInput, "tabular-nums")}
-                    value={draft.payoutPaybillAccount}
-                    onChange={(e) =>
-                      onDraftChange({ payoutPaybillAccount: e.target.value })
-                    }
-                    maxLength={64}
-                    placeholder="Account or reference"
-                  />
-                </SupFormRow>
-              </>
-            ) : null}
-            <SupFormRow
-              label="Bank / other details"
-              hint="Bank name, account number, branch, SWIFT — anything you’ll need to pay them."
-            >
-              <textarea
-                className={cn(supFormCellTextarea, "min-h-[5.5rem]")}
-                value={draft.paymentDetails}
-                onChange={(e) =>
-                  onDraftChange({ paymentDetails: e.target.value })
-                }
-                maxLength={2000}
-                placeholder="Bank account, IBAN, SWIFT, cheque notes…"
-              />
-            </SupFormRow>
-          </SupFormTable>
+          <div className="p-2.5">
+            <SupplierPayoutChooser
+              values={{
+                payoutType: draft.payoutType,
+                payoutPhone: draft.payoutPhone,
+                payoutTillNumber: draft.payoutTillNumber,
+                payoutPaybillNumber: draft.payoutPaybillNumber,
+                payoutPaybillAccount: draft.payoutPaybillAccount,
+                paymentDetails: draft.paymentDetails,
+              }}
+              onChange={onDraftChange}
+              supplierName={draft.name}
+              showBankNotes
+            />
+          </div>
         </SupFormSection>
 
         <button
           type="button"
           onClick={() => setMoreOpen((value) => !value)}
           aria-expanded={moreOpen}
-          className="flex min-h-11 w-full items-center justify-between rounded-xl border border-[#E8E4DC] bg-white px-3.5 text-sm font-medium text-[#0f766e] sm:min-h-9"
+          className={cn(
+            "flex min-h-11 w-full items-center justify-between rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-3.5 text-sm font-medium text-[var(--op-accent,#1D4B3B)] sm:min-h-9",
+            HAIRLINE,
+          )}
         >
           {moreOpen ? "Hide extra details" : "More details"}
-          <span className="text-xs font-normal text-[#667085]">
+          <span className="text-xs font-normal text-[var(--op-muted,#556159)]">
             Code, VAT, credit terms
           </span>
         </button>
@@ -528,8 +410,8 @@ export function SupplierProfileFields({
       {slotAfterIdentity}
 
       <SupFormSection
-        title="Commercial & payments"
-        hint="Credit, tax, and how you settle invoices with this supplier."
+        title="Commercial"
+        hint="Credit, tax, and how you usually settle with this supplier."
       >
         <SupFormTable>
           <SupFormRow label="VAT / tax ID">
@@ -588,92 +470,28 @@ export function SupplierProfileFields({
               placeholder="Bank transfer, card on file, cheque…"
             />
           </SupFormRow>
-          <SupFormRow label="Payment & remittance details">
-            <textarea
-              className={cn(supFormCellTextarea, "min-h-[5.5rem]")}
-              value={draft.paymentDetails}
-              onChange={(e) =>
-                onDraftChange({ paymentDetails: e.target.value })
-              }
-              maxLength={2000}
-              placeholder="Bank account, IBAN, SWIFT, PO references…"
-            />
-          </SupFormRow>
-          <SupFormRow
-            label="Send Money destination"
-            hint="Automated payout when paying supplies (M-Pesa, till, or paybill)."
-          >
-            <select
-              className={supFormCellSelect}
-              value={draft.payoutType || "manual"}
-              onChange={(e) => onDraftChange(payoutTypePatch(e.target.value))}
-            >
-              <option value="manual">Off — record payments manually</option>
-              <option value="mobile_wallet">M-Pesa phone</option>
-              <option value="till">Till (Buy Goods)</option>
-              <option value="paybill">Paybill</option>
-            </select>
-          </SupFormRow>
-          {draft.payoutType === "mobile_wallet" ? (
-            <SupFormRow
-              label="M-Pesa payout phone"
-              hint="Save an M-Pesa number to enable automated Send Money. SMS verification is optional."
-            >
-              <input
-                className={cn(supFormCellInput, "tabular-nums")}
-                value={draft.payoutPhone}
-                onChange={(e) => onDraftChange({ payoutPhone: e.target.value })}
-                maxLength={32}
-                placeholder="0710514157 or 2547XXXXXXXX"
-                inputMode="tel"
-              />
-            </SupFormRow>
-          ) : null}
-          {draft.payoutType === "till" ? (
-            <SupFormRow label="Till number" hint="Supplier Buy Goods till.">
-              <input
-                className={cn(supFormCellInput, "tabular-nums")}
-                value={draft.payoutTillNumber}
-                onChange={(e) =>
-                  onDraftChange({ payoutTillNumber: e.target.value })
-                }
-                maxLength={32}
-                placeholder="e.g. 567890"
-                inputMode="numeric"
-              />
-            </SupFormRow>
-          ) : null}
-          {draft.payoutType === "paybill" ? (
-            <>
-              <SupFormRow label="Paybill number">
-                <input
-                  className={cn(supFormCellInput, "tabular-nums")}
-                  value={draft.payoutPaybillNumber}
-                  onChange={(e) =>
-                    onDraftChange({ payoutPaybillNumber: e.target.value })
-                  }
-                  maxLength={32}
-                  placeholder="e.g. 247247"
-                  inputMode="numeric"
-                />
-              </SupFormRow>
-              <SupFormRow
-                label="Account number"
-                hint="Account / reference the paybill requires."
-              >
-                <input
-                  className={cn(supFormCellInput, "tabular-nums")}
-                  value={draft.payoutPaybillAccount}
-                  onChange={(e) =>
-                    onDraftChange({ payoutPaybillAccount: e.target.value })
-                  }
-                  maxLength={64}
-                  placeholder="Account or reference"
-                />
-              </SupFormRow>
-            </>
-          ) : null}
         </SupFormTable>
+      </SupFormSection>
+
+      <SupFormSection
+        title="How you pay them"
+        hint="Send Money destination for Supplies → Pay. Optional bank notes stay on the record."
+      >
+        <div className="p-2.5">
+          <SupplierPayoutChooser
+            values={{
+              payoutType: draft.payoutType,
+              payoutPhone: draft.payoutPhone,
+              payoutTillNumber: draft.payoutTillNumber,
+              payoutPaybillNumber: draft.payoutPaybillNumber,
+              payoutPaybillAccount: draft.payoutPaybillAccount,
+              paymentDetails: draft.paymentDetails,
+            }}
+            onChange={onDraftChange}
+            supplierName={draft.name}
+            showBankNotes
+          />
+        </div>
       </SupFormSection>
     </div>
   );
