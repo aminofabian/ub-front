@@ -247,7 +247,7 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                 href="/#pricing"
                 className={`${goldCtaClass} !px-7 !text-[13px] shadow-[0_8px_22px_-8px_var(--kiosk-success-shadow)]`}
               >
-                Start selling
+                Start free
               </Link>
             </div>
 

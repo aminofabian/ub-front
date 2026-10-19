@@ -36,7 +36,6 @@ export function LandingHowItWorks() {
     >
       <div className="relative mx-auto max-w-[1100px]">
         <LandingSectionHeader
-          index="01"
           label="Getting started"
           title="Set up your POS in Kenya today."
           description="Three deliberate steps — no consultants, no six-week rollout. Sell the same day."

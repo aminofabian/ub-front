@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils";
 import { CATALOG_SURFACE } from "./catalog-chrome";
 
 export const PRODUCTS_CATALOG_VARS = {
-  ["--catalog-primary" as string]: "#0f766e",
-  ["--catalog-ink" as string]: "#15231f",
-  ["--catalog-shelf" as string]: "#ffffff",
-  ["--catalog-slip" as string]: "#ffffff",
+  ["--catalog-primary" as string]: "#1D4B3B",
+  ["--catalog-ink" as string]: "#121A16",
+  ["--catalog-shelf" as string]: "#FCFAF5",
+  ["--catalog-slip" as string]: "#FCFAF5",
+  ["--font-sans" as string]: "var(--font-manrope), system-ui, sans-serif",
+  ["--font-heading" as string]: "var(--font-manrope), system-ui, sans-serif",
 } as const;
 
 export function ProductsPageLayout({
@@ -37,7 +39,7 @@ export function ProductsPageLayout({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-white max-lg:hidden"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[var(--catalog-shelf)] max-lg:hidden"
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col gap-0 sm:gap-2">

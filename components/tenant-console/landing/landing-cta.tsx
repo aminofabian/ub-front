@@ -10,18 +10,15 @@ type LandingCtaProps = {
 export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
   return (
     <section className={`section-reveal ${landingSectionClass}`}>
-      <div className="mx-auto max-w-[720px] px-1">
+      <div className="mx-auto max-w-[1240px] px-1">
         <div className="landing-cta-panel relative z-10 text-center">
-          <p className="relative z-[1] mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
-            Ready when you are
-          </p>
           <h2 className="relative z-[1] mb-4 font-heading text-[clamp(28px,7vw,52px)] leading-[1.08] tracking-[-0.03em] text-[var(--kiosk-text)]">
             Open your POS tonight.
             <br />
             Sell in the morning.
           </h2>
           <p className="relative z-[1] mx-auto mb-8 max-w-md text-base leading-[1.65] text-[var(--kiosk-text-soft)] sm:mb-10">
-            Start free on Kiosk.ke — Kenya&apos;s point of sale with M-Pesa,
+            Start free on Kiosk.ke, Kenya&apos;s point of sale with M-Pesa,
             offline sales, and a storefront. No credit card. Need setup help?{" "}
             <a
               href="#contact"
@@ -37,7 +34,7 @@ export function LandingCta({ onCreateShop, onTalkToUs }: LandingCtaProps) {
               className={`${goldCtaClass} w-full justify-center !px-8 !py-3.5 !text-[15px] shadow-[0_8px_24px_-6px_var(--kiosk-success-shadow)] sm:w-auto`}
               onClick={onCreateShop}
             >
-              Start your shop
+              Start free
             </button>
             <button
               type="button"

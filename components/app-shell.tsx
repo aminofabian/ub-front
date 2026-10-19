@@ -94,9 +94,9 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
 import {
-  OXANIUM_SURFACE_CLASS,
-  OXANIUM_SURFACE_STYLE,
-} from "@/lib/oxanium-surface";
+  OPERATOR_SURFACE_CLASS,
+  OPERATOR_SURFACE_STYLE,
+} from "@/lib/operator-surface";
 
 const BRANCHES_LINK = {
   href: APP_ROUTES.branches,
@@ -1810,10 +1810,10 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div
       className={cn(
-        "tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30",
-        OXANIUM_SURFACE_CLASS,
+        "tablet-app-root flex h-[100dvh] overflow-hidden bg-[var(--op-bg)]",
+        OPERATOR_SURFACE_CLASS,
       )}
-      style={OXANIUM_SURFACE_STYLE}
+      style={OPERATOR_SURFACE_STYLE}
     >
       {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
       <div className={cn("shrink-0", desktopChromeVisible)}>
@@ -2062,17 +2062,17 @@ export function AppShell({ children }: AppShellProps) {
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main
           className={cn(
-            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-white",
+            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-[var(--op-bg)]",
             mainContentPadding,
           )}
           style={{
-            ["--pos-primary" as string]: "#0f766e",
-            ["--order-ink" as string]: "#15231f",
-            ["--order-shelf" as string]: "#ffffff",
-            ["--order-slip" as string]: "#ffffff",
-            ["--catalog-primary" as string]: "#0f766e",
-            ["--catalog-ink" as string]: "#15231f",
-            ["--catalog-shelf" as string]: "#ffffff",
+            ["--pos-primary" as string]: "#1D4B3B",
+            ["--order-ink" as string]: "#121A16",
+            ["--order-shelf" as string]: "#FCFAF5",
+            ["--order-slip" as string]: "#FCFAF5",
+            ["--catalog-primary" as string]: "#1D4B3B",
+            ["--catalog-ink" as string]: "#121A16",
+            ["--catalog-shelf" as string]: "#FCFAF5",
           }}
         >
           {IS_DESKTOP ? <DesktopReadOnlyOverlay /> : null}

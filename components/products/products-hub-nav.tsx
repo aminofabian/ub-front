@@ -74,40 +74,24 @@ export function ProductsHubNav({ className }: { className?: string }) {
             href={tab.href}
             title={tab.hint}
             className={cn(
-              "group relative flex h-8 shrink-0 items-center gap-1.5 rounded-none px-2.5 transition-colors sm:h-9 sm:flex-1 sm:px-3",
+              "group relative flex h-11 shrink-0 items-center gap-2 rounded-none border-b-2 border-transparent px-3.5 transition-colors",
               active
-                ? "bg-[var(--catalog-ink,#15231f)] text-white"
-                : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)] hover:bg-[color-mix(in_srgb,var(--catalog-ink,#15231f)_4%,transparent)] hover:text-[var(--catalog-ink,#15231f)]",
+                ? "border-[var(--catalog-primary,#1D4B3B)] text-[var(--catalog-ink,#121A16)]"
+                : "text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_58%,transparent)] hover:text-[var(--catalog-ink,#121A16)]",
             )}
           >
             <Icon
               className={cn(
                 "size-3.5 shrink-0 transition-colors",
                 active
-                  ? "text-[color-mix(in_srgb,#fff_88%,transparent)]"
-                  : "text-[var(--catalog-primary,#0f766e)]",
+                  ? "text-[var(--catalog-primary,#1D4B3B)]"
+                  : "text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_45%,transparent)] group-hover:text-[var(--catalog-primary,#1D4B3B)]",
               )}
               aria-hidden
             />
-            <span className="truncate text-[12px] font-medium tracking-[-0.015em] sm:text-[13px]">
+            <span className="truncate text-[12.5px] font-medium tracking-[0.005em]">
               {tab.label}
             </span>
-            <span
-              className={cn(
-                "ml-auto hidden truncate text-[10px] tracking-[-0.01em] lg:block",
-                active
-                  ? "text-[color-mix(in_srgb,#fff_62%,transparent)]"
-                  : "text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_42%,transparent)]",
-              )}
-            >
-              {tab.hint}
-            </span>
-            {active ? (
-              <span
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[var(--catalog-primary,#0f766e)]"
-                aria-hidden
-              />
-            ) : null}
           </Link>
         );
       })}

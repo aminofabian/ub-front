@@ -29,7 +29,7 @@ type LandingOnboardingProps = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#6E6B66] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
+  "w-full rounded-[2px] border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-3.5 text-base text-[var(--kiosk-text)] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[var(--kiosk-text-faint)] outline-none transition-colors focus:border-[var(--kiosk-gold-border-strong)] focus:ring-2 focus:ring-[var(--kiosk-gold-soft)]";
 
 function hostFromSlug(slug: string): string | null {
   const url = slugDerivedShopUrl(slug);
@@ -98,7 +98,7 @@ export function LandingOnboarding({
         <div>
           <label
             htmlFor="landing-business-name"
-            className="mb-2 block text-sm font-medium text-[#141412]"
+            className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
           >
             Business name
           </label>
@@ -118,13 +118,13 @@ export function LandingOnboarding({
           <div className="mb-2 flex items-end justify-between gap-3">
             <label
               htmlFor="landing-shop-slug"
-              className="block text-sm font-medium text-[#141412]"
+              className="block text-sm font-medium text-[var(--kiosk-text)]"
             >
               Your shop address
             </label>
             <button
               type="button"
-              className="-my-3.5 inline-flex min-h-11 items-center text-xs font-medium text-[#20863B] transition-colors hover:text-[#166B2E] disabled:opacity-50"
+              className="-my-3.5 inline-flex min-h-11 items-center text-xs font-medium text-[var(--kiosk-gold)] transition-colors hover:text-[var(--kiosk-gold)] disabled:opacity-50"
               onClick={() => void checkAvailability()}
               disabled={isSubmitting || shopSlug.trim().length < 2 || availability === "checking"}
             >
@@ -133,18 +133,18 @@ export function LandingOnboarding({
           </div>
           <div
             className={cn(
-              "flex overflow-hidden rounded-xl border bg-white shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] transition-colors",
+              "flex overflow-hidden rounded-[2px] border bg-[var(--kiosk-elevated)] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] transition-colors",
               availability === "taken" || availability === "invalid"
                 ? "border-[rgba(185,28,28,0.35)]"
                 : availability === "available"
-                  ? "border-[rgba(40,167,69,0.45)]"
-                  : "border-[rgba(20,20,18,0.14)]",
-              "focus-within:border-[rgba(40,167,69,0.45)] focus-within:ring-2 focus-within:ring-[rgba(40,167,69,0.14)]",
+                  ? "border-[var(--kiosk-gold-border-strong)]"
+                  : "border-[var(--kiosk-border)]",
+              "focus-within:border-[var(--kiosk-gold-border-strong)] focus-within:ring-2 focus-within:ring-[var(--kiosk-gold-soft)]",
             )}
           >
             <input
               id="landing-shop-slug"
-              className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] tracking-tight text-[#141412] outline-none placeholder:text-[#6E6B66]"
+              className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] tracking-tight text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)]"
               value={shopSlug}
               onChange={(e) =>
                 onShopSlugChange(
@@ -156,7 +156,7 @@ export function LandingOnboarding({
               aria-describedby="landing-shop-slug-help"
               required
             />
-            <span className="hidden items-center border-l border-[rgba(20,20,18,0.08)] bg-[#F6F5F2] px-3 font-mono text-[13px] text-[#6B6863] min-[380px]:flex">
+            <span className="hidden items-center border-l border-[var(--kiosk-border-soft)] bg-[var(--kiosk-surface)] px-3 font-mono text-[13px] text-[var(--kiosk-text-faint)] min-[380px]:flex">
               {suffix}
             </span>
           </div>
@@ -165,10 +165,10 @@ export function LandingOnboarding({
             className={cn(
               "mt-1.5 text-xs",
               availability === "taken" || availability === "invalid"
-                ? "text-[#B91C1C]"
+                ? "text-[var(--kiosk-danger)]"
                 : availability === "available"
-                  ? "text-[#166B2E]"
-                  : "text-[#6E6B66]",
+                  ? "text-[var(--kiosk-gold)]"
+                  : "text-[var(--kiosk-text-faint)]",
             )}
           >
             {availability === "checking" ? (
@@ -196,7 +196,7 @@ export function LandingOnboarding({
         <div>
           <label
             htmlFor="landing-country"
-            className="mb-2 block text-sm font-medium text-[#141412]"
+            className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
           >
             Country
           </label>

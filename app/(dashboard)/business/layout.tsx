@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 import {
-  OXANIUM_SURFACE_CLASS,
-  OXANIUM_SURFACE_STYLE,
-} from "@/lib/oxanium-surface";
+  OPERATOR_SURFACE_CLASS,
+  OPERATOR_SURFACE_STYLE,
+} from "@/lib/operator-surface";
 
 /**
  * Business hub + business admin pages share Oxanium for body and headings.
@@ -14,7 +14,7 @@ export default function BusinessSectionLayout({
   children: ReactNode;
 }) {
   return (
-    <div className={OXANIUM_SURFACE_CLASS} style={OXANIUM_SURFACE_STYLE}>
+    <div className={OPERATOR_SURFACE_CLASS} style={OPERATOR_SURFACE_STYLE}>
       {children}
     </div>
   );

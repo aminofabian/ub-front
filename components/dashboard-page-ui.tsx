@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const INK = "text-[var(--order-ink,#15231f)]";
+  "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]";
+const INK = "text-[var(--order-ink,#121A16)]";
 const MUTED =
-  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]";
-const TEAL = "text-[var(--pos-primary,#0f766e)]";
+  "text-[color-mix(in_srgb,var(--order-ink,#121A16)_52%,transparent)]";
+const TEAL = "text-[var(--pos-primary,#1D4B3B)]";
 
 /**
  * Standard admin page shell. Height stays content-sized so AppShell’s main
@@ -31,42 +31,42 @@ const TEAL = "text-[var(--pos-primary,#0f766e)]";
  * pane (spreadsheets, split desks) should add `h-full min-h-0` themselves.
  */
 export const DASHBOARD_MAX =
-  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
+  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-[var(--op-bg,#F4F1EA)] px-0 pb-4";
 
 /** Wider shell for dense consoles (products, categories, users) */
 export const DASHBOARD_MAX_WIDE =
-  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-white px-0 pb-4";
+  "relative mx-auto flex min-h-full w-full max-w-[1400px] flex-col gap-1 bg-[var(--op-bg,#F4F1EA)] px-0 pb-4";
 
 /** Primary content card (CTA blocks, filter panels, etc.) */
 export const DASHBOARD_SECTION_SURFACE = cn(
-  "rounded-2xl border bg-white p-3",
+  "rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] p-3",
   HAIRLINE,
 );
 
 /** Table / list outer shell */
 export const DASHBOARD_TABLE_SURFACE = cn(
-  "overflow-hidden rounded-2xl border bg-white",
+  "overflow-hidden rounded-[2px] border bg-[var(--op-surface,#FCFAF5)]",
   HAIRLINE,
 );
 
 /** Header strip inside {@link DASHBOARD_TABLE_SURFACE} */
 export const DASHBOARD_TABLE_HEAD = cn(
-  "border-b bg-white px-3 py-1.5 sm:px-3.5",
+  "border-b bg-[var(--op-surface,#FCFAF5)] px-3 py-1.5 sm:px-3.5",
   HAIRLINE,
 );
 
 /** Inset well for grouped controls (e.g. filter fields) */
 export const DASHBOARD_FILTER_WELL = cn(
-  "mt-1 rounded-xl border bg-white p-3",
+  "mt-1 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] p-3",
   HAIRLINE,
 );
 
 export function dashboardInputClass(disabled?: boolean, className?: string) {
   return cn(
-    "h-11 w-full rounded-xl border bg-white px-2.5 text-sm leading-snug sm:h-8",
+    "h-11 w-full rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-2.5 text-sm leading-snug sm:h-8",
     HAIRLINE,
-    "placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]",
-    "focus-visible:border-[var(--pos-primary,#0f766e)] focus-visible:outline-none",
+    "placeholder:text-[color-mix(in_srgb,var(--order-ink,#121A16)_38%,transparent)]",
+    "focus-visible:border-[var(--pos-primary,#1D4B3B)] focus-visible:outline-none",
     disabled && "cursor-not-allowed opacity-60",
     className,
   );
@@ -89,11 +89,11 @@ export function dashboardTextareaClass(disabled?: boolean, className?: string) {
  */
 export function dashboardIconButtonClass(className?: string) {
   return cn(
-    "inline-flex size-11 items-center justify-center rounded-xl border bg-white sm:size-8",
+    "inline-flex size-11 items-center justify-center rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] sm:size-8",
     HAIRLINE,
     INK,
-    "hover:border-[var(--pos-primary,#0f766e)] hover:text-[var(--pos-primary,#0f766e)]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+    "hover:border-[var(--pos-primary,#1D4B3B)] hover:text-[var(--pos-primary,#1D4B3B)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
     "disabled:cursor-not-allowed disabled:opacity-60",
     className,
   );
@@ -127,9 +127,9 @@ export function DashboardFeedback({
     <div
       role="status"
       className={cn(
-        "flex items-start gap-2 rounded-xl border bg-white px-3 py-2 text-sm leading-relaxed",
+        "flex items-start gap-2 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-3 py-2 text-sm leading-relaxed",
         kind === "success" &&
-          "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
+          "border-[var(--pos-primary,#1D4B3B)] text-[var(--pos-primary,#1D4B3B)]",
         kind === "error" && "border-destructive/40 text-destructive",
         kind === "warning" &&
           "border-amber-700/40 text-amber-800 dark:text-amber-200",
@@ -202,8 +202,8 @@ export function DashboardQuickLinks({
               "inline-flex h-9 items-center gap-1 rounded-full border bg-white px-2 text-[11px] font-semibold tracking-[-0.02em] sm:h-7 sm:px-1.5",
               HAIRLINE,
               MUTED,
-              "hover:text-[var(--order-ink,#15231f)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+              "hover:text-[var(--order-ink,#121A16)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
             )}
           >
             <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
@@ -222,8 +222,8 @@ export function DashboardQuickLinks({
           className={cn(
             "group flex items-center gap-2 rounded-xl border bg-white px-3 py-2",
             HAIRLINE,
-            "hover:border-[var(--pos-primary,#0f766e)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            "hover:border-[var(--pos-primary,#1D4B3B)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
           )}
         >
           <span
@@ -282,7 +282,7 @@ export function DashboardPageHero({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1 sm:px-3",
+        "dashboard-page-hero flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1 sm:px-3",
         HAIRLINE,
       )}
     >
@@ -291,7 +291,7 @@ export function DashboardPageHero({
           <span
             className={cn(
               "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border bg-white",
-              "border-[var(--pos-primary,#0f766e)]",
+              "border-[var(--pos-primary,#1D4B3B)]",
               TEAL,
             )}
           >
@@ -310,7 +310,7 @@ export function DashboardPageHero({
           <>
             <span
               aria-hidden
-              className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:block"
+              className="hidden h-3.5 w-px bg-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] sm:block"
             />
             <div className={cn("min-w-0 truncate text-[11px]", MUTED)}>
               {showActiveScope ? (

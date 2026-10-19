@@ -43,7 +43,8 @@ export default function SuperAdminLoginPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-10">
+    <div className="auth-shell flex min-h-screen w-full items-center justify-center bg-[var(--op-bg,#F4F1EA)] px-4 py-10">
+      <div className="w-full max-w-md">
       <AuthBranding tagline="Super admin" showApiHint />
       <AuthCard>
         <AuthPageHeader
@@ -92,6 +93,7 @@ export default function SuperAdminLoginPage() {
           </Link>
         </p>
       </AuthCard>
+      </div>
     </div>
   );
 }

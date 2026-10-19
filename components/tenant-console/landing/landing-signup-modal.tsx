@@ -41,11 +41,7 @@ import { useResendCooldown } from "@/lib/resend-cooldown";
 import { cn } from "@/lib/utils";
 
 import { LandingOnboarding } from "./landing-onboarding";
-import {
-  goldCtaClass,
-  landingRootStyle,
-  sectionLabelPillClass,
-} from "./landing-styles";
+import { goldCtaClass, landingRootStyle } from "./landing-styles";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 
@@ -58,7 +54,7 @@ type LandingSignupModalProps = {
 type SignupStep = 1 | 2;
 
 const landingInputClass =
-  "w-full rounded-xl border border-[rgba(20,20,18,0.14)] bg-white px-4 py-3.5 text-base text-[#141412] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[#6E6B66] outline-none transition-colors focus:border-[rgba(40,167,69,0.45)] focus:ring-2 focus:ring-[rgba(40,167,69,0.14)]";
+  "w-full rounded-[2px] border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] px-4 py-3.5 text-base text-[var(--kiosk-text)] shadow-[inset_0_1px_2px_rgba(20,20,18,0.04)] placeholder:text-[var(--kiosk-text-faint)] outline-none transition-colors focus:border-[var(--kiosk-gold-border-strong)] focus:ring-2 focus:ring-[var(--kiosk-gold-soft)]";
 
 export function LandingSignupModal({
   open,
@@ -337,29 +333,29 @@ export function LandingSignupModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "landing-page max-h-[min(92dvh,760px)] w-[calc(100vw-2rem)] max-w-lg gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none",
-          "[&>button]:right-4 [&>button]:top-4 [&>button]:size-11 [&>button]:rounded-full [&>button]:border [&>button]:border-[rgba(20,20,18,0.1)] [&>button]:bg-white [&>button]:text-[#6B6863] [&>button]:shadow-sm",
-          "[&>button]:hover:bg-[#F6F5F2] [&>button]:hover:text-[#141412]",
+          "landing-page landing-signup-dialog max-h-[min(92dvh,760px)] w-[calc(100vw-2rem)] max-w-lg gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none",
+          "[&>button]:right-4 [&>button]:top-4 [&>button]:size-11 [&>button]:rounded-full [&>button]:border [&>button]:border-[var(--kiosk-border)] [&>button]:bg-[var(--kiosk-elevated)] [&>button]:text-[var(--kiosk-text-faint)] [&>button]:shadow-sm",
+          "[&>button]:hover:bg-[var(--kiosk-surface)] [&>button]:hover:text-[var(--kiosk-text)]",
         )}
         overlayClassName="bg-[rgba(20,20,18,0.62)] backdrop-blur-[3px]"
         style={landingRootStyle()}
       >
-        <div className="overflow-y-auto rounded-2xl border border-[rgba(20,20,18,0.12)] bg-white shadow-[0_28px_80px_-24px_rgba(20,20,18,0.42)]">
-          <div className="h-1 bg-gradient-to-r from-[#20863B] via-[#28A745] to-[#32B85A]" />
+        <div className="overflow-y-auto rounded-[2px] border border-[var(--kiosk-border)] bg-[var(--kiosk-bg)] shadow-[0_28px_80px_-24px_rgba(20,20,18,0.42)]">
+          <div className="h-1 bg-gradient-to-r bg-[var(--kiosk-gold)]" />
 
           <div className="p-6 sm:p-8">
             <div className="mb-6 flex items-center gap-2">
               <span
                 className={cn(
                   "h-1.5 flex-1 rounded-full",
-                  step >= 1 ? "bg-[#28A745]" : "bg-[rgba(20,20,18,0.08)]",
+                  step >= 1 ? "bg-[var(--kiosk-gold)]" : "bg-[var(--kiosk-border-soft)]",
                 )}
                 aria-hidden
               />
               <span
                 className={cn(
                   "h-1.5 flex-1 rounded-full",
-                  step >= 2 ? "bg-[#28A745]" : "bg-[rgba(20,20,18,0.08)]",
+                  step >= 2 ? "bg-[var(--kiosk-gold)]" : "bg-[var(--kiosk-border-soft)]",
                 )}
                 aria-hidden
               />
@@ -368,11 +364,11 @@ export function LandingSignupModal({
             {step === 1 ? (
               <>
                 <DialogHeader className="gap-3 text-left">
-                  <p className={sectionLabelPillClass}>Step 1 of 2</p>
-                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[#141412] sm:text-[2rem]">
+                  <p className="landing-signup-step">Step 1 of 2</p>
+                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[2rem]">
                     Name your business
                   </DialogTitle>
-                  <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
+                  <DialogDescription className="text-sm leading-relaxed text-[var(--kiosk-text-muted)] sm:text-[15px]">
                     Pick a name and a shop address. You&apos;ll create your
                     owner account on the next step.
                   </DialogDescription>
@@ -404,11 +400,11 @@ export function LandingSignupModal({
             ) : verifyPending ? (
               <>
                 <DialogHeader className="gap-3 text-left">
-                  <p className={sectionLabelPillClass}>Check your email</p>
-                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[#141412] sm:text-[2rem]">
+                  <p className="landing-signup-step">Check your email</p>
+                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[2rem]">
                     Confirm your account
                   </DialogTitle>
-                  <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
+                  <DialogDescription className="text-sm leading-relaxed text-[var(--kiosk-text-muted)] sm:text-[15px]">
                     Open the link or enter the 6-digit code. If you verify on
                     another device, come back and sign in on this one.
                   </DialogDescription>
@@ -423,7 +419,7 @@ export function LandingSignupModal({
                   {verifyLink ? (
                     <a
                       href={verifyLink}
-                      className="block break-all text-sm font-medium text-[#20863B] underline underline-offset-2"
+                      className="block break-all text-sm font-medium text-[var(--kiosk-gold)] underline underline-offset-2"
                     >
                       Open verification link
                     </a>
@@ -432,7 +428,7 @@ export function LandingSignupModal({
                     <div>
                       <label
                         htmlFor="landing-signup-verify-code"
-                        className="mb-2 block text-sm font-medium text-[#141412]"
+                        className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
                       >
                         6-digit code
                       </label>
@@ -466,7 +462,7 @@ export function LandingSignupModal({
                   </form>
                   <div className="flex flex-col gap-2 text-center text-sm">
                     {resendCooldown.coolingDown ? (
-                      <p className="text-[#6E6B66]">
+                      <p className="text-[var(--kiosk-text-faint)]">
                         Resend in {resendCooldown.remaining}s
                       </p>
                     ) : (
@@ -474,14 +470,14 @@ export function LandingSignupModal({
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => void onResendVerification()}
-                        className="font-medium text-[#20863B] underline-offset-2 hover:underline disabled:opacity-50"
+                        className="font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline disabled:opacity-50"
                       >
                         Resend code
                       </button>
                     )}
                     <a
                       href={`${APP_ROUTES.verifyEmail}?email=${encodeURIComponent(email.trim())}`}
-                      className="text-[#6E6B66] underline-offset-2 hover:text-[#5F5D58] hover:underline"
+                      className="text-[var(--kiosk-text-faint)] underline-offset-2 hover:text-[var(--kiosk-text-muted)] hover:underline"
                     >
                       Open full verification page
                     </a>
@@ -491,19 +487,19 @@ export function LandingSignupModal({
             ) : (
               <>
                 <DialogHeader className="gap-3 text-left">
-                  <p className={sectionLabelPillClass}>Step 2 of 2</p>
-                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[#141412] sm:text-[2rem]">
+                  <p className="landing-signup-step">Step 2 of 2</p>
+                  <DialogTitle className="font-heading text-2xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-[2rem]">
                     Create your account
                   </DialogTitle>
-                  <DialogDescription className="text-sm leading-relaxed text-[#5F5D58] sm:text-[15px]">
+                  <DialogDescription className="text-sm leading-relaxed text-[var(--kiosk-text-muted)] sm:text-[15px]">
                     {shopHostLabel ? (
                       <>
                         Continue setting up{" "}
-                        <span className="font-medium text-[#141412]">
+                        <span className="font-medium text-[var(--kiosk-text)]">
                           {businessName.trim() || "your shop"}
                         </span>{" "}
                         at{" "}
-                        <span className="font-medium text-[#20863B]">
+                        <span className="font-medium text-[var(--kiosk-gold)]">
                           {shopHostLabel}
                         </span>
                         . Confirm your email, then sign in to your dashboard.
@@ -511,7 +507,7 @@ export function LandingSignupModal({
                     ) : (
                       <>
                         Finish your owner account for{" "}
-                        <span className="font-medium text-[#141412]">
+                        <span className="font-medium text-[var(--kiosk-text)]">
                           {businessName.trim() || "your shop"}
                         </span>
                         .
@@ -534,7 +530,7 @@ export function LandingSignupModal({
                   <div>
                     <label
                       htmlFor="landing-signup-name"
-                      className="mb-2 block text-sm font-medium text-[#141412]"
+                      className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
                     >
                       Full name
                     </label>
@@ -551,7 +547,7 @@ export function LandingSignupModal({
                   <div>
                     <label
                       htmlFor="landing-signup-email"
-                      className="mb-2 block text-sm font-medium text-[#141412]"
+                      className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
                     >
                       Email
                     </label>
@@ -568,7 +564,7 @@ export function LandingSignupModal({
                   <div>
                     <label
                       htmlFor="landing-signup-password"
-                      className="mb-2 block text-sm font-medium text-[#141412]"
+                      className="mb-2 block text-sm font-medium text-[var(--kiosk-text)]"
                     >
                       Password
                     </label>
@@ -585,7 +581,7 @@ export function LandingSignupModal({
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#6E6B66] transition hover:bg-[rgba(20,20,18,0.04)] hover:text-[#141412]"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[var(--kiosk-text-faint)] transition hover:bg-[var(--kiosk-ghost-hover-bg)] hover:text-[var(--kiosk-text)]"
                         onClick={() => setShowPassword((s) => !s)}
                         aria-label={
                           showPassword ? "Hide password" : "Show password"
@@ -598,7 +594,7 @@ export function LandingSignupModal({
                         )}
                       </button>
                     </div>
-                    <p className="mt-1.5 text-xs text-[#6E6B66]">
+                    <p className="mt-1.5 text-xs text-[var(--kiosk-text-faint)]">
                       At least 8 characters.
                     </p>
                   </div>
@@ -614,7 +610,7 @@ export function LandingSignupModal({
 
                 <button
                   type="button"
-                  className="mt-5 w-full text-center text-sm text-[#6E6B66] transition-colors hover:text-[#5F5D58]"
+                  className="mt-5 w-full text-center text-sm text-[var(--kiosk-text-faint)] transition-colors hover:text-[var(--kiosk-text-muted)]"
                   onClick={() => {
                     resetToFreshSignup();
                   }}
@@ -633,11 +629,11 @@ export function LandingSignupModal({
                         >
                           Open verification page
                         </a>
-                        <p className="text-center text-sm text-[#6E6B66]">
+                        <p className="text-center text-sm text-[var(--kiosk-text-faint)]">
                           Already verified?{" "}
                           <a
                             href={`${APP_ROUTES.staffLogin}?mode=office&email=${encodeURIComponent(email.trim())}&next=${encodeURIComponent(APP_ROUTES.business)}`}
-                            className="font-medium text-[#20863B] underline-offset-2 hover:underline"
+                            className="font-medium text-[var(--kiosk-gold)] underline-offset-2 hover:underline"
                           >
                             Continue to your account
                           </a>

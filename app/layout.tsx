@@ -3,8 +3,10 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { barlowCondensed } from "@/app/fonts/barlow-condensed";
+import { cormorant } from "@/app/fonts/cormorant";
 import { geistMono } from "@/app/fonts/geist-mono";
 import { inter } from "@/app/fonts/inter";
+import { manrope } from "@/app/fonts/manrope";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { PlatformSupportLauncher } from "@/components/support/platform-support-launcher";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
@@ -22,7 +24,7 @@ import {
 } from "@/lib/storefront-slug";
 import "./globals.css";
 
-const BRAND_THEME_COLOR = "#28A745";
+const BRAND_THEME_COLOR = "#1D4B3B";
 
 export async function generateViewport(): Promise<Viewport> {
   const tenant = await resolveTenantContext();
@@ -83,7 +85,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-KE"
-      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${cormorant.variable} ${manrope.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
