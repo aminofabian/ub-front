@@ -45,12 +45,24 @@ function panelCopy(cycle: CountCycleRecord): PanelCopy {
 export function TodayBatchPanel({ cycle, canRun, opening, onOpenBatch }: Props) {
   const copy = panelCopy(cycle);
   return (
-    <section className={cn("flex flex-col gap-3 rounded-2xl p-4", COUNT_TONE.tealWash)}>
-      <div className="flex flex-col gap-0.5">
-        <h3 className={cn("font-heading text-[20px] font-semibold tracking-[-0.01em]", COUNT_TONE.ink)}>
+    <section
+      className={cn(
+        "flex flex-col gap-3 border border-l-[3px] border-l-[var(--op-accent,#1d4b3b)] px-4 py-4",
+        COUNT_TONE.hair,
+        COUNT_TONE.surface,
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <h3
+          className={cn(
+            "text-[1.45rem] font-normal leading-tight tracking-[-0.02em]",
+            COUNT_TONE.ink,
+            COUNT_TONE.display,
+          )}
+        >
           {copy.title}
         </h3>
-        <p className={cn("text-[14px]", COUNT_TONE.mute)}>{copy.body}</p>
+        <p className={cn("text-[13px] leading-relaxed", COUNT_TONE.mute)}>{copy.body}</p>
       </div>
       {canRun ? (
         <button

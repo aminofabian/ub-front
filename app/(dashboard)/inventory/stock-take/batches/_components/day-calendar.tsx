@@ -26,7 +26,7 @@ export function DayCalendar({ tiles, caption }: { tiles: DayTile[]; caption: str
           <DaySquare key={tile.key} tile={tile} />
         ))}
       </ol>
-      <figcaption className={cn("mt-2 text-[13px]", COUNT_TONE.mute)}>
+      <figcaption className={cn("mt-2 text-[12.5px] leading-relaxed", COUNT_TONE.mute)}>
         {caption}
         {hiddenDays > 0 ? ` · ${hiddenDays} more days not shown` : ""}
       </figcaption>
@@ -40,16 +40,18 @@ function DaySquare({ tile }: { tile: DayTile }) {
     <li
       aria-label={`${formatCountDay(tile.date)}, ${STATE_LABEL[tile.state]}`}
       className={cn(
-        "relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-[10px] border tabular-nums",
-        tile.state === "done" && "border-transparent bg-[var(--pos-primary,#0f766e)] text-white",
-        tile.state === "current" && "border-2 border-[var(--pos-primary,#0f766e)] bg-white",
-        tile.state === "upcoming" && cn("bg-white", COUNT_TONE.hair, COUNT_TONE.faint),
+        "relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-[2px] border tabular-nums",
+        tile.state === "done" &&
+          "border-transparent bg-[var(--op-accent,#1d4b3b)] text-[var(--op-surface,#fcfaf5)]",
+        tile.state === "current" &&
+          cn("border-2 border-[var(--op-accent,#1d4b3b)]", COUNT_TONE.surface),
+        tile.state === "upcoming" && cn(COUNT_TONE.surface, COUNT_TONE.hair, COUNT_TONE.faint),
       )}
     >
       {tile.state === "current" ? (
         <span
           aria-hidden
-          className="absolute inset-x-0 bottom-0 bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,white)] transition-[height] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+          className="absolute inset-x-0 bottom-0 bg-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_18%,var(--op-surface,#fcfaf5))] transition-[height] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
           style={{ height: `${Math.round(tile.fill * 100)}%` }}
         />
       ) : null}
@@ -58,7 +60,7 @@ function DaySquare({ tile }: { tile: DayTile }) {
       </span>
       <span
         className={cn(
-          "relative font-heading text-[17px] font-semibold leading-tight",
+          "relative text-[17px] font-semibold leading-tight",
           tile.state === "current" && COUNT_TONE.ink,
         )}
       >

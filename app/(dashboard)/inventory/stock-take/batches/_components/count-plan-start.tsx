@@ -30,9 +30,9 @@ export function CountPlanStart(props: Props) {
   const finishLine =
     plan.days === 1 ? "Done today." : `${plan.days} counting days, done by ${formatCountDay(plan.finishDate)}.`;
   return (
-    <section className="flex flex-col gap-6 px-1 pt-3">
+    <section className="flex flex-col gap-6 px-0 pt-0">
       <div className="flex flex-col gap-2">
-        <h2 className={cn("font-heading text-[30px] font-semibold leading-[1.05] tracking-[-0.02em] text-balance", COUNT_TONE.ink)}>
+        <h2 className={cn("font-heading text-[2rem] font-semibold leading-[1.05] tracking-[-0.02em] text-balance sm:text-[2.5rem]", COUNT_TONE.ink)}>
           Count the whole shop, a little each day
         </h2>
         <p className={cn("max-w-[60ch] text-[15px] leading-relaxed", COUNT_TONE.mute)}>
@@ -49,10 +49,12 @@ export function CountPlanStart(props: Props) {
       />
       <DayCalendar tiles={props.previewTiles} caption={finishLine} />
       {props.canStart ? (
-        <button type="button" className={COUNT_TONE.primaryButton} disabled={props.starting} onClick={props.onStart}>
-          {props.starting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Start the full count
-        </button>
+        <div className="sticky bottom-[calc(var(--shell-bottom-inset,0px)+0.5rem)] z-10 -mx-1 bg-[linear-gradient(to_top,var(--op-surface)_72%,transparent)] px-1 pb-1 pt-3">
+          <button type="button" className={COUNT_TONE.primaryButton} disabled={props.starting} onClick={props.onStart}>
+            {props.starting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            Start the full count
+          </button>
+        </div>
       ) : (
         <p className={cn("rounded-xl px-4 py-3 text-[14px]", COUNT_TONE.tealWash, COUNT_TONE.ink)}>
           A manager with stock-take approval starts the full count. Once it&apos;s running, today&apos;s batch shows up here.

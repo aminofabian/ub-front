@@ -929,15 +929,15 @@ type BottomTab = {
 const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "home",
-    label: "Home",
-    icon: Warehouse,
-    href: APP_ROUTES.inventoryStock,
+    label: "Count",
+    icon: ClipboardList,
+    href: APP_ROUTES.inventoryStockTakeBatches,
     matchSectionIds: ["inventory"],
   },
   {
     id: "take-stock",
-    label: "Inventory",
-    icon: ClipboardList,
+    label: "Stock",
+    icon: Warehouse,
     href: `${APP_ROUTES.inventoryStock}?view=levels`,
     matchSectionIds: ["inventory"],
   },
@@ -1243,9 +1243,16 @@ export function AppShell({ children }: AppShellProps) {
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
     return NAV_SECTIONS.map((section) => {
-      const items = section.items.filter((item) =>
+      let items = section.items.filter((item) =>
         isNavItemVisible(item, gate),
       );
+      // The batch workflow is the current full count; the legacy page would
+      // light up alongside it and read as a second active destination.
+      if (gate.roleKey === "stock_manager") {
+        items = items.filter(
+          (item) => item.href !== APP_ROUTES.inventoryStockTake,
+        );
+      }
       const preferredEntry =
         items.find((item) => item.href === section.entryHref)?.href ??
         items[0]?.href ??
@@ -1496,10 +1503,7 @@ export function AppShell({ children }: AppShellProps) {
           icon: Truck,
         });
       }
-      tabs.push(
-        STOCK_MANAGER_BOTTOM_TABS[4], // Profile
-        STOCK_MANAGER_BOTTOM_TABS[5], // More
-      );
+      tabs.push(STOCK_MANAGER_BOTTOM_TABS[5]); // More (profile lives here)
       return tabs;
     }
     if (roleKey === "cashier") {
@@ -1844,9 +1848,7 @@ export function AppShell({ children }: AppShellProps) {
           faviconUrl={business?.branding?.faviconUrl}
           primaryColor={business?.branding?.primaryColor}
           sections={visibleSections}
-          flat={
-            isStockManager || isCashier || isButcherCashier || isGroceryClerk
-          }
+          flat={isCashier || isButcherCashier || isGroceryClerk}
           badgeByHref={navBadgeByHref}
         />
       </div>
@@ -2074,7 +2076,7 @@ export function AppShell({ children }: AppShellProps) {
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
         <ImpersonationBanner />
         <SubscriptionGraceBanner />
-        <SubscriptionPlanFitBanner />
+        {isStockManager ? null : <SubscriptionPlanFitBanner />}
         <BranchRequiredBanner />
         {canManageBusinessSettings ? <SetupProgressContextStrip /> : null}
 

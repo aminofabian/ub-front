@@ -310,3 +310,24 @@ with the “Preview my shop” draft URL.
 - Verified shelf/ledger, shift modal, suppliers modal, add-product, checkout,
   till settings, mobile cart; no console errors or overflow.
 - A local QA till and test shift were registered/opened to reach the till.
+
+## Stock manager portal
+
+- The stock manager now gets the grouped desktop rail (Stock / Buying /
+  Store / Sales / Setup) instead of a flat 13-icon strip; labels are readable
+  and the legacy "Full count" duplicate is removed from the rail.
+- The plan-fit upsell is hidden for stock managers; it is an owner decision,
+  not a floor task.
+- Mobile tabs are now **Count / Stock / Order / Receive / More**, so the two
+  counting destinations no longer collide.
+- Count in batches is a desktop two-column layout: plan or cycle on paper,
+  with "The counting loop" and quick links in a side rail. Mobile keeps one
+  column and drops the duplicate page title.
+- Batch count is a 4xl paper floor (not a 32rem phone column), with sticky
+  batch header, search, filters, shelf groups and Finish batch.
+- Daily audit has a paper empty state and compact controls; noisy "no manifest"
+  toasts are suppressed in favour of the inline empty copy.
+- Restock review has a paper filter card and serif empty state; the hand-rolled
+  dashboard hero was replaced with the Cormorant page header.
+- Full-count banner now uses 2px edges, paper and forest instead of rounded
+  pills.

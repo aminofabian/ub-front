@@ -19,29 +19,36 @@ export function CycleHeadline({ cycle }: { cycle: CountCycleRecord }) {
   const done = cycle.status === "completed";
   return (
     <div className="flex flex-col gap-2">
-      <h2 className={cn("font-heading font-semibold leading-none tracking-[-0.02em] tabular-nums", COUNT_TONE.ink)}>
+      <h2 className={cn("leading-none tracking-[-0.02em] tabular-nums", COUNT_TONE.ink)}>
         {done ? (
-          <span className="text-[34px]">Every product counted.</span>
+          <span className={cn("text-[2rem] font-normal", COUNT_TONE.display)}>
+            Every product counted.
+          </span>
         ) : (
           <>
-            <span className="text-[44px]">{cycle.countedItems.toLocaleString()}</span>
-            <span className={cn("ml-2 text-[22px]", COUNT_TONE.mute)}>
+            <span className={cn("text-[2.75rem] font-normal", COUNT_TONE.display)}>
+              {cycle.countedItems.toLocaleString()}
+            </span>
+            <span className={cn("ml-2 text-[15px] font-medium", COUNT_TONE.mute)}>
               of {cycle.totalItems.toLocaleString()} counted
             </span>
           </>
         )}
       </h2>
-      <p className={cn("text-[14px]", COUNT_TONE.mute)}>{paceLine(cycle)}</p>
+      <p className={cn("text-[13px] leading-relaxed", COUNT_TONE.mute)}>{paceLine(cycle)}</p>
       <div
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={cycle.totalItems}
         aria-valuenow={cycle.countedItems}
         aria-label="Products counted"
-        className={cn("mt-1 h-1.5 overflow-hidden rounded-full", COUNT_TONE.track)}
+        className={cn("mt-1 h-1 overflow-hidden rounded-[1px]", COUNT_TONE.track)}
       >
         <div
-          className={cn("h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none", COUNT_TONE.tealFill)}
+          className={cn(
+            "h-full rounded-[1px] transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+            COUNT_TONE.tealFill,
+          )}
           style={{ width: `${Math.round(share * 100)}%` }}
         />
       </div>
