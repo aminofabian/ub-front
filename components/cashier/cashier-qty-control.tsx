@@ -560,8 +560,8 @@ export function CashierQtyControl({
             className={cn(
               "fixed z-[80] w-[min(21.25rem,calc(100vw-1.25rem))]",
               "origin-top animate-in fade-in-0 zoom-in-95 duration-200",
-              "overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
-              "bg-[color-mix(in_srgb,var(--popover)_96%,var(--pos-primary)_4%)] text-popover-foreground",
+              "premium-portal overflow-hidden rounded-[2px] border border-[var(--op-rule)]",
+              "bg-[var(--op-surface)] text-[var(--op-ink)]",
               "shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45),0_8px_16px_-10px_rgba(0,0,0,0.2)]",
               "dark:border-border/50",
             )}

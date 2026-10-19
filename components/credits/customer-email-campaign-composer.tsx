@@ -1524,7 +1524,7 @@ function ReviewSheet({
   onSend: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+    <div className="premium-portal fixed inset-0 z-50 flex items-end justify-center bg-[rgba(18,26,22,0.38)] p-0 backdrop-blur-[2px] sm:items-center sm:p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
       <div
         role="dialog"
         aria-modal="true"

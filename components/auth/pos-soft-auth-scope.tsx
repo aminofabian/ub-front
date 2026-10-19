@@ -72,14 +72,18 @@ function PosSessionExpiredModal() {
     <>
       <div className="fixed inset-0 z-[80] bg-black/40" aria-hidden />
       <div
-        className="fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-xl sm:inset-x-auto"
+        className="premium-portal fixed inset-x-4 top-1/2 z-[90] mx-auto max-w-md -translate-y-1/2 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)] sm:inset-x-auto"
         role="dialog"
         aria-labelledby="pos-session-expired-title"
         aria-modal="true"
       >
         <h2
           id="pos-session-expired-title"
-          className="text-lg font-semibold text-foreground"
+          className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+          style={{
+            fontFamily:
+              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+          }}
         >
           Sign in to keep selling
         </h2>

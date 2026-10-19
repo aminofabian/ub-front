@@ -170,3 +170,91 @@ zero horizontal-overflow or console/API-error failures:
 storefront remains merchant-themed (`data-store-theme-id="mart"` in the QA
 shop, `--storefront-brand` still the merchant's blue); the platform
 marketplace is the premium public storefront surface.
+
+## Brand moments
+
+- **404** (`app/not-found.tsx`): “This shelf is empty.” on the landing paper,
+  with Back to the shop, Browse the marketplace, and Get help. The footer
+  clears the mobile support launcher.
+- **Loading** (`app/loading.tsx`): a quiet Cormorant wordmark, “Opening the
+  shop”, and a 1px forest sweep. Sweep is disabled by reduced-motion.
+- **Forbidden** (`app/forbidden.tsx`): “This door is locked.” in the same
+  editorial frame, with a sign-in action and a way back to the shop.
+- **Global error** (`app/global-error.tsx`): self-contained ivory/forest serif
+  fallback that still works if the stylesheet fails.
+- **OG card** (`app/opengraph-image.tsx`): ivory ground, Cormorant wordmark,
+  Manrope description, terracotta kicker, bundled TTF fonts for reliable
+  rendering.
+- **PWA manifest**: forest theme colour and ivory background instead of the
+  old green/white.
+- **Motion/accessibility**: one forest keyboard focus treatment, warm
+  selection colour, and a global `prefers-reduced-motion` guard.
+
+## Kiosk Premium storefront preset (opt-in)
+
+The premium storefront is a **personality preset**, not a platform override.
+It lives in Business → Design → “Start from a mood” as **Kiosk Premium**:
+
+- surface `#F4F1EA`
+- sharp edges, solid buttons, cozy density
+- new **Kiosk Editorial** font pairing: Cormorant display + Manrope body
+  (`kiosk` pairing, mapped to the bundled storefront faces)
+- the merchant’s logo, primary colour, copy, products, and chosen theme remain
+
+Selecting it changes only the design draft; nothing is saved until the
+merchant presses **Save design**. Verified in the running design studio and
+with the “Preview my shop” draft URL.
+
+## Drawers and sheets
+
+- Shared `FormDrawer` and `Dialog` now carry a `premium-portal` token scope
+  because Radix portals render outside `.tablet-app-root`.
+- Header: ivory paper, hairline rule, Cormorant title, Manrope description,
+  square 2px close control. No gradient orbs, no 5px brand rail.
+- Panel: paper surface, 2px edges, soft one-direction shadow, 200ms slide.
+- Phone bottom sheets: 2px top corners, grabber, full-width forest primary.
+- Footer: paper, hairline top, one forest action; secondary actions stay
+  quiet.
+- `FormDrawerFields`, product creation, supplier guide, catalogue add/edit,
+  filter sheets, super-admin panels, floor tape, and till gallery all inherit
+  the same tokens.
+- Tenant storefront dialogs use the same paper chrome; the merchant's page
+  identity remains outside the portal.
+
+## App menu and navigation sheets
+
+- The mobile “More” menu now uses the forest operator accent even when the
+  tenant brand is blue; the tenant logo remains next to the user’s initial.
+- “Jump to” is a 3-column hairline grid with surface fillers for incomplete
+  rows, so no dark empty cell remains.
+- The super-admin mobile navigation uses the paper sidebar, forest active
+  state, and the same close control.
+- Storefront slide-overs (cart/checkout) stay on the merchant’s storefront
+  tokens; they are shop UI, not platform chrome.
+
+## More drawers
+
+- Stock tools sheet: uniform paper tiles, hairline borders, forest icons,
+  Cormorant “Inventory tools” title; the pastel six-tone palette is gone.
+- Cashier draft-conflict and POS session/till-lock modals: paper panel, 2px
+  edges, Cormorant titles, forest actions.
+- Onboarding catalogue, cashier quantity popover, and Kiosk Guide panel carry
+  the same portal and paper tokens.
+- Supplier-portal mobile navigation uses the paper sheet and Cormorant
+  wordmark.
+
+## Drawer coverage close-out
+
+- Shared `FormDrawer` and `Dialog` cover the form drawers, filters, product
+  creation, catalogue, suppliers, super-admin, credits, and campaign panels.
+- Custom operator overlays covered: stock tools, cashier draft/conflict and
+  POS lock/session panels, onboarding catalogue, quantity popover, Kiosk
+  Guide, payroll payslip, grocery invoice/cart, floor tape, till gallery,
+  More menu, and super-admin navigation.
+- Storefront slide-over chrome uses the merchant’s own palette; only its
+  shape and motion were tightened. Merchant checkout sheets keep their
+  storefront identity.
+- Verified open/close behaviour and no console errors on supplier, product,
+  stock tools, and More drawer paths. `tsc --noEmit` exits 0; ESLint has no
+  errors on the touched drawer files (remaining warnings are pre-existing
+  hook dependency warnings).

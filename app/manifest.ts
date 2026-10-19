@@ -11,8 +11,8 @@ import {
 import { resolveTenantContext } from "@/lib/storefront-slug";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 
-const THEME_COLOR = "#28A745";
-const BACKGROUND_COLOR = "#fafafa";
+const THEME_COLOR = "#1D4B3B";
+const BACKGROUND_COLOR = "#F4F1EA";
 
 /**
  * Do not export `dynamic` here. Next.js requires that value to be a string

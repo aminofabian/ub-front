@@ -188,14 +188,6 @@ export function FormDrawer({
     [dash?.business?.branding],
   );
 
-  const headerOrbPrimary = brandStops
-    ? { background: `color-mix(in srgb, ${brandStops.from} 12%, transparent)` }
-    : undefined;
-  const headerOrbSecondary = brandStops
-    ? {
-        background: `color-mix(in srgb, ${brandStops.secondary} 10%, transparent)`,
-      }
-    : undefined;
   const iconChromeStyle = brandStops
     ? {
         borderColor: `color-mix(in srgb, ${brandStops.from} 32%, transparent)`,
@@ -221,7 +213,7 @@ export function FormDrawer({
               "supports-[backdrop-filter]:bg-black/20 supports-[backdrop-filter]:backdrop-blur-[3px]",
               "supports-[backdrop-filter]:dark:bg-black/40",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
-              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300",
+              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200",
             )}
           />
         ) : null}
@@ -232,51 +224,43 @@ export function FormDrawer({
             ? { "data-onboarding-target": onboardingTarget }
             : {})}
           className={cn(
-            "flex flex-col overflow-hidden outline-none",
+            "form-drawer premium-portal flex flex-col overflow-hidden outline-none",
             inColumn
               ? "absolute inset-0 z-10 h-full max-h-full w-full max-w-none"
               : "fixed",
             !inColumn && (onboardingTarget ? "z-[250]" : "z-50"),
             inColumn
               ? cn(
-                  "rounded-none border-0 bg-background shadow-none",
+                  "rounded-none border-0 bg-[var(--op-surface)] shadow-none",
                   "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 )
               : centered
                 ? cn(
                     "fixed inset-0 m-auto h-fit max-h-[min(92dvh,46rem)] w-[calc(100%-1.5rem)]",
                     "sm:w-[min(48rem,calc(100vw-4rem))]",
-                    "rounded-2xl border border-border/70 bg-background",
-                    "shadow-[0_24px_64px_-24px_rgba(15,23,42,0.35)] dark:border-border/60 dark:shadow-[0_24px_64px_-24px_rgba(0,0,0,0.6)]",
+                    "rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)]",
+                    "shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)] dark:border-border/60 dark:shadow-[0_24px_64px_-24px_rgba(0,0,0,0.6)]",
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                   )
                 : isFull
                 ? cn(
                     // No zoom — a transform on this panel traps `position: fixed`
                     // descendants (e.g. the Sell cart dock) and pins them mid-screen.
-                    "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-background shadow-none",
+                    "inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none border-0 bg-[var(--op-bg)] shadow-none",
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                   )
                 : sheetBottom
                   ? cn(
                       "inset-x-0 bottom-0 top-auto h-auto max-h-[min(92dvh,44rem)] w-full",
-                      "rounded-t-[1.25rem] border border-border/60 border-b-0 bg-background",
-                      "shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]",
+                      "rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)]",
+                      "shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.22)]",
                       "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
                     )
                   : cn(
-                    sharp
-                      ? "border-l border-border bg-background shadow-none dark:bg-background"
-                      : cn(
-                          // The panel itself must be fully opaque so page text
-                          // behind it can never bleed through on browsers
-                          // without `backdrop-filter` support.
-                          "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-16px_0_48px_-24px_rgba(0,0,0,0.1)]",
-                          "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-16px_0_48px_-24px_rgba(0,0,0,0.4)]",
-                        ),
+                    "border-l border-[var(--op-rule)] bg-[var(--op-surface)] shadow-[-16px_0_48px_-28px_rgba(18,26,22,0.22)]",
                     "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
                     "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full",
-                    sharp ? "rounded-none" : "sm:rounded-l-2xl",
+                    "sm:rounded-l-[2px]",
                     width === "third"
                       ? "w-full min-w-0 sm:w-[38vw] sm:min-w-[22rem] sm:max-w-[40rem]"
                       : width === "half"
@@ -290,7 +274,7 @@ export function FormDrawer({
                               : "sm:max-w-xl",
                   ),
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            "duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
             !inColumn &&
               (sheetBottom
                 ? "pb-[env(safe-area-inset-bottom)]"
@@ -308,37 +292,26 @@ export function FormDrawer({
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0 opacity-[0.92]",
-                sharp ? "w-0.5" : "w-[5px]",
+                "w-px",
               )}
-              style={{
-                background: sharp
-                  ? brandStops.from
-                  : `linear-gradient(180deg, ${brandStops.from}, ${brandStops.via}, ${brandStops.to})`,
-              }}
+              style={{ background: brandStops.from }}
               aria-hidden
             />
           ) : !inColumn && !sheetBottom && !centered ? (
             <div
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0",
-                sharp
-                  ? "w-0.5 bg-primary"
-                  : "w-[5px] bg-gradient-to-b from-primary via-primary/75 to-primary/35 opacity-90",
+                "w-px bg-[var(--op-accent)]",
               )}
               aria-hidden
             />
           ) : null}
-          {!inColumn && !sharp && !sheetBottom && !centered ? (
-            <div
-              className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary-foreground/25 via-transparent to-primary-foreground/15 dark:from-primary-foreground/20 dark:to-transparent"
-              aria-hidden
-            />
-          ) : null}
+
 
           <div
             className={cn(
               "relative flex min-h-0 flex-1 flex-col",
-              !inColumn && !sheetBottom && !centered && (sharp ? "pl-0.5" : "pl-[5px]"),
+              !inColumn && !sheetBottom && !centered && "pl-px",
             )}
           >
             {sheetBottom ? (
@@ -357,7 +330,7 @@ export function FormDrawer({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="absolute right-2 top-2 z-40 size-9 rounded-none border border-border/80 bg-background/90 text-foreground/60 shadow-none hover:bg-muted hover:text-foreground"
+                    className="absolute right-2 top-2 z-40 size-9 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)] shadow-none hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
                     aria-label="Close panel"
                   >
                     <X className="size-3.5" strokeWidth={2} />
@@ -367,7 +340,7 @@ export function FormDrawer({
             ) : (
             <header
               className={cn(
-                "relative shrink-0 overflow-hidden border-b border-border",
+                "relative shrink-0 overflow-hidden border-b border-[var(--op-rule)]",
                 compactHeader
                   ? "px-3 py-1.5"
                   : sheetBottom
@@ -375,35 +348,9 @@ export function FormDrawer({
                     : isFull
                       ? "px-3 py-2 sm:px-6 sm:py-5"
                       : "px-5 py-4 sm:px-6 sm:py-5",
-                sharp
-                  ? "bg-muted/30 shadow-none"
-                  : cn(
-                      "shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.04)] dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.06)]",
-                      "bg-gradient-to-br from-muted/35 via-background to-background",
-                    ),
+                "bg-[var(--op-surface)] shadow-none",
               )}
             >
-              {!sharp && !compactHeader ? (
-                <>
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute -right-16 -top-24 h-48 w-48 rounded-full blur-3xl dark:opacity-90",
-                      !brandStops && "bg-primary/[0.08] dark:bg-primary/[0.12]",
-                    )}
-                    style={headerOrbPrimary}
-                    aria-hidden
-                  />
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute -bottom-8 left-1/3 h-28 w-72 -translate-x-1/2 rounded-full blur-2xl dark:opacity-90",
-                      !brandStops && "bg-primary/[0.05] dark:bg-primary/[0.08]",
-                    )}
-                    style={headerOrbSecondary}
-                    aria-hidden
-                  />
-                </>
-              ) : null}
-
               <div
                 className={cn(
                   "relative flex justify-between gap-2",
@@ -440,7 +387,13 @@ export function FormDrawer({
                             </span>
                           </>
                         ) : null}
-                        <Dialog.Title className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+                        <Dialog.Title
+                          className="truncate text-[1.05rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                          style={{
+                            fontFamily:
+                              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                          }}
+                        >
                           {title}
                         </Dialog.Title>
                       </div>
@@ -462,8 +415,8 @@ export function FormDrawer({
                         variant="ghost"
                         size="icon-sm"
                         className={cn(
-                          "size-7 shrink-0 rounded-none border border-border bg-background text-foreground/50 shadow-none hover:bg-muted/70 hover:text-foreground",
-                          sheetBottom && "size-10 rounded-full sm:size-7",
+                          "size-7 shrink-0 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)] shadow-none hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
+                          sheetBottom && "size-10 sm:size-7",
                         )}
                         aria-label="Close panel"
                       >
@@ -478,23 +431,17 @@ export function FormDrawer({
                         <span
                           className={cn(
                             "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background sm:size-12",
-                            sharp ? "rounded-none" : "rounded-2xl",
+                            "rounded-[2px]",
                             brandStops
                               ? cn(
                                   "border border-border bg-muted/40",
-                                  !sharp &&
-                                    "bg-gradient-to-br from-muted/40 to-background/95 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_4px_14px_-4px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] dark:from-muted/25 dark:to-background dark:ring-white/[0.08]",
+
                                 )
                               : cn(
                                   "text-primary border border-border",
                                   sharp
                                     ? "bg-muted/30"
-                                    : cn(
-                                        "border-primary/15 bg-gradient-to-br from-primary/[0.06] to-muted/50",
-                                        "ring-1 ring-primary/10",
-                                        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.55),0_4px_14px_-4px_rgba(0,0,0,0.1)]",
-                                        "dark:from-primary/[0.12] dark:to-background dark:ring-primary/20 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_4px_20px_-6px_rgba(0,0,0,0.45)]",
-                                      ),
+                                    : "bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))]",
                                 ),
                           )}
                           style={iconChromeStyle}
@@ -508,11 +455,8 @@ export function FormDrawer({
                             <span
                               className={cn(
                                 "inline-flex max-w-full items-center",
-                                sharp ? "rounded-none" : "rounded-full",
-                                "border border-border bg-muted/50 px-2 py-px sm:px-2.5 sm:py-0.5",
-                                !sharp && "border-primary/20 bg-primary/[0.07]",
-                                "text-[11px] font-semibold tracking-[-0.02em] text-[var(--pos-primary,#0f766e)]",
-                                "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
+                                "px-0 py-0",
+                                "text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--op-accent)]",
                               )}
                             >
                               {contextLabel}
@@ -526,9 +470,13 @@ export function FormDrawer({
                         </div>
                         <Dialog.Title
                           className={cn(
-                            "font-heading font-semibold tracking-tight text-foreground",
-                            sheetBottom ? "text-lg" : "text-sm sm:text-xl",
+                            "font-normal tracking-[-0.02em] text-[var(--op-ink)]",
+                            sheetBottom ? "text-[1.35rem]" : "text-[1.35rem] sm:text-[1.6rem]",
                           )}
+                          style={{
+                            fontFamily:
+                              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                          }}
                         >
                           {title}
                         </Dialog.Title>
@@ -554,10 +502,10 @@ export function FormDrawer({
                         variant="ghost"
                         size="icon-sm"
                         className={cn(
-                          "relative z-50 shrink-0 rounded-lg border border-border bg-background text-muted-foreground",
-                          "hover:bg-muted/70 hover:text-foreground",
-                          "shadow-none transition-[border-color,background-color,color] duration-150",
-                          sheetBottom && "size-10 rounded-full sm:size-8",
+                          "relative z-50 shrink-0 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)]",
+                          "hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
+                          "shadow-none transition-colors duration-150",
+                          sheetBottom && "size-10 sm:size-8",
                         )}
                         aria-label="Close panel"
                       >
@@ -573,14 +521,9 @@ export function FormDrawer({
             {banner ? (
               <div
                 className={cn(
-                  "shrink-0 border-b border-border",
+                  "shrink-0 border-b border-[var(--op-rule)]",
                   compactHeader ? "px-3 py-2" : "px-5 py-3.5 sm:px-6",
-                  sharp
-                    ? "bg-muted/25"
-                    : cn(
-                        "bg-gradient-to-b from-muted/25 via-muted/15 to-background/80 backdrop-blur-[2px]",
-                        "dark:from-muted/20 dark:via-muted/12 dark:to-background/90",
-                      ),
+                  "bg-[var(--op-surface)]",
                 )}
               >
                 {sharp && React.isValidElement(banner)
@@ -622,19 +565,13 @@ export function FormDrawer({
             {footer ? (
               <footer
                 className={cn(
-                  "relative shrink-0 border-t border-border",
+                  "relative shrink-0 border-t border-[var(--op-rule)]",
                   compactHeader
                     ? "px-3 py-2"
                     : isFull
                       ? "px-2.5 py-2 sm:px-6 sm:py-4"
                       : "px-5 py-3.5 sm:px-6 sm:py-4",
-                  sharp
-                    ? "bg-muted/25 shadow-none"
-                    : cn(
-                        "bg-gradient-to-t from-muted/30 via-background/95 to-background backdrop-blur-md",
-                        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_-12px_40px_-18px_rgba(0,0,0,0.1)]",
-                        "dark:from-muted/15 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-12px_40px_-18px_rgba(0,0,0,0.4)]",
-                      ),
+                  "bg-[var(--op-surface)] shadow-none",
                 )}
               >
                 {footer}
@@ -685,30 +622,22 @@ export function FormDrawerFields({
         "relative overflow-hidden",
         sharp || compact
           ? cn(
-              "bg-background shadow-none",
+              "bg-[var(--op-surface)] shadow-none",
               compact ? "space-y-2" : "space-y-2.5",
               embedded
                 ? cn("rounded-none border-0", compact ? "p-2.5" : "p-3")
-                : "rounded-none border border-border p-2.5",
+                : "rounded-none border border-[var(--op-rule)] p-2.5",
             )
           : cn(
-              "relative overflow-hidden rounded-xl border border-border/50 bg-card/80",
+              "relative overflow-hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)]",
               compact
                 ? "space-y-2 p-2.5 shadow-sm"
                 : cn(
-                    "space-y-3 rounded-2xl bg-gradient-to-br from-card/90 via-background to-muted/15",
-                    "p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.04)] sm:p-5",
-                    "dark:from-card/35 dark:via-background dark:to-muted/8 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+                    "space-y-3 bg-[var(--op-surface)] p-4 sm:p-5",
                   ),
             ),
       )}
     >
-      {!compact && !sharp ? (
-        <div
-          className="pointer-events-none absolute inset-y-4 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/30 to-primary/0"
-          aria-hidden
-        />
-      ) : null}
       {hasLegend ? (
         <legend
           className={cn(
@@ -768,7 +697,7 @@ export function FormDrawerSheet({
   return (
     <div
       className={cn(
-        "flex flex-col divide-y divide-border overflow-hidden rounded-none border border-border bg-background shadow-none",
+        "flex flex-col divide-y divide-[var(--op-rule)] overflow-hidden rounded-none border border-[var(--op-rule)] bg-[var(--op-surface)] shadow-none",
         className,
       )}
     >

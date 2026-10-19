@@ -7218,3 +7218,129 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 .tablet-app-root [class*="border-[#0f766e]"] {
     border-color: color-mix(in srgb, var(--op-accent) 35%, transparent) !important;
 }
+
+/* Branded route loading. */
+@keyframes premium-loading-sweep {
+    0% {
+        transform: translateX(-110%);
+    }
+    100% {
+        transform: translateX(310%);
+    }
+}
+
+.premium-loading-line > span {
+    animation: premium-loading-sweep 1.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+/* A single forest focus treatment for keyboard users. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--op-accent, #1d4b3b) 72%, transparent);
+    outline-offset: 2px;
+}
+
+::selection {
+    background: color-mix(in srgb, var(--op-accent, #1d4b3b) 20%, transparent);
+    color: var(--op-ink, #121a16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Portal surfaces escape the app shell; give every drawer/dialog the same paper. */
+.premium-portal {
+    --op-bg: #f4f1ea;
+    --op-surface: #fcfaf5;
+    --op-ink: #121a16;
+    --op-muted: #556159;
+    --op-faint: #626d66;
+    --op-accent: #1d4b3b;
+    --op-rule: rgba(18, 26, 22, 0.12);
+    --background: #fcfaf5;
+    --foreground: #121a16;
+    --card: #fcfaf5;
+    --card-foreground: #121a16;
+    --popover: #fcfaf5;
+    --popover-foreground: #121a16;
+    --primary: #1d4b3b;
+    --primary-foreground: #fcfaf5;
+    --secondary: #ece7dc;
+    --secondary-foreground: #121a16;
+    --muted: #ece7dc;
+    --muted-foreground: #556159;
+    --accent: #ece7dc;
+    --accent-foreground: #121a16;
+    --border: rgba(18, 26, 22, 0.12);
+    --input: rgba(18, 26, 22, 0.12);
+    --ring: #1d4b3b;
+    --font-sans: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    --font-heading: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    --font-serif: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+    color: var(--op-ink);
+}
+
+.premium-portal .rounded-2xl,
+.premium-portal .rounded-xl,
+.premium-portal .rounded-lg {
+    border-radius: 2px;
+}
+
+.premium-portal .bg-white {
+    background-color: var(--op-surface);
+}
+
+.premium-portal [class*="bg-[#e6f4f0]"],
+.premium-portal [class*="bg-[#e7f3ee]"],
+.premium-portal [class*="bg-[#e9f5f1]"],
+.premium-portal [class*="bg-[#e6f2f0]"],
+.premium-portal [class*="bg-[#f0f9f7]"],
+.premium-portal [class*="bg-[#d9ede7]"] {
+    background-color: var(--op-accent-soft);
+}
+
+.premium-portal [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent);
+}
+
+.premium-portal [class*="text-[#0f766e]"] {
+    color: var(--op-accent);
+}
+
+.premium-portal [class*="border-[#0f766e]"] {
+    border-color: color-mix(in srgb, var(--op-accent) 35%, transparent);
+}
+
+.premium-portal [class*="bg-[#f4f7f5]"] {
+    background-color: var(--op-bg);
+}
+
+.tablet-more-sheet {
+    color: var(--op-ink);
+}
+
+.tablet-more-sheet .bg-white {
+    background-color: var(--op-surface);
+}
+
+.tablet-more-sheet .rounded-2xl,
+.tablet-more-sheet .rounded-xl,
+.tablet-more-sheet .rounded-lg {
+    border-radius: 2px;
+}
+
+.tablet-more-sheet .bg-muted {
+    background-color: color-mix(in srgb, var(--op-ink) 3%, var(--op-surface));
+}

@@ -161,7 +161,7 @@ export function ProductMobileDetailDrawer({
         <Dialog.Content
           aria-describedby={undefined}
           className={cn(
-            "catalog-mobile-detail fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col bg-background outline-none",
+            "premium-portal catalog-mobile-detail fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col bg-[var(--op-bg)] outline-none",
             "pt-[env(safe-area-inset-top)]",
             exiting && "is-exiting",
           )}

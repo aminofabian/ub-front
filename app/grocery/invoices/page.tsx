@@ -903,18 +903,18 @@ function InvoiceDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
+      className="premium-portal fixed inset-0 z-50 flex items-end justify-center bg-[rgba(18,26,22,0.38)] p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Invoice detail"
     >
       <div
-        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl bg-card shadow-2xl ring-1 ring-black/[0.06] dark:ring-white/[0.08] animate-in slide-in-from-bottom-4 fade-in duration-300 sm:rounded-2xl"
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)] animate-in slide-in-from-bottom-4 fade-in duration-200 sm:rounded-[2px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky header strip */}
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/50 bg-card/95 px-5 py-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[var(--op-rule)] bg-[var(--op-surface)] px-5 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               className={cn(
@@ -929,7 +929,13 @@ function InvoiceDetailModal({
               {statusLabel}
             </span>
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-bold tracking-tight text-foreground sm:text-base">
+              <h3
+                className="truncate text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
                 Invoice detail
               </h3>
               {invoice.createdAt && (
@@ -942,7 +948,7 @@ function InvoiceDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-8 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)] transition-colors hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
             aria-label="Close detail"
           >
             <X className="size-4" />
@@ -962,7 +968,7 @@ function InvoiceDetailModal({
               {/* Barcode block */}
               <div
                 className={cn(
-                  "relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-muted/50 via-card to-card p-4 shadow-sm",
+                  "relative overflow-hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-4 shadow-none",
                   theme && `ring-1 ${theme.ring}`,
                 )}
               >

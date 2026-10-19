@@ -75,7 +75,7 @@ export function CashierTillDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#141414]/40"
+      className="fixed inset-0 z-50 flex flex-col bg-[rgba(18,26,22,0.35)]"
       role="dialog"
       aria-modal="true"
       aria-label="Cashier till gallery"
@@ -89,30 +89,29 @@ export function CashierTillDrawer({
 
       <div
         className={cn(
-          "relative z-10 flex h-[100dvh] w-full flex-col bg-white",
-          "animate-in fade-in slide-in-from-bottom duration-300 sm:slide-in-from-right",
+          "relative z-10 flex h-[100dvh] w-full flex-col bg-[var(--op-surface)] sm:rounded-l-[2px] sm:border-l sm:border-[var(--op-rule)]",
+          "animate-in fade-in slide-in-from-bottom duration-200 sm:slide-in-from-right",
         )}
       >
-        <header className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <header className="shrink-0 border-b border-[var(--op-rule)] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[-0.02em] text-[#0f766e]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--op-accent)]">
                 Till gallery
               </p>
               <p
-                className="mt-1 text-xl font-medium tracking-tight text-[#141414]"
-                style={{ fontFamily: "var(--font-heading)" }}
+                className="mt-1 font-serif text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
               >
                 {cashiers.length} cashiers on stage
               </p>
-              <p className="mt-0.5 text-[11px] text-[#8A8A8A]">
+              <p className="mt-0.5 text-[11px] text-[var(--op-muted)]">
                 Switch tabs to read each till tape · Esc to close
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-9 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-[#666666] transition-colors hover:border-[#0f766e] hover:text-[#0f766e]"
+              className="inline-flex size-9 items-center justify-center border border-[var(--op-rule)] text-[var(--op-muted)] transition-colors hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
               aria-label="Close"
             >
               <X className="size-4" aria-hidden />
@@ -140,10 +139,10 @@ export function CashierTillDrawer({
                       : name
                   }
                   className={cn(
-                    "relative flex min-w-[5.5rem] max-w-[9rem] shrink-0 flex-col items-center gap-1 border bg-white px-3 py-2 transition-colors",
+                    "relative flex min-w-[5.5rem] max-w-[9rem] shrink-0 flex-col items-center gap-1 border bg-[var(--op-surface)] px-3 py-2 transition-colors",
                     active
-                      ? "border-[#0f766e] text-[#141414]"
-                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-[#666666] hover:border-[#0f766e]",
+                      ? "border-[var(--op-accent)] text-[var(--op-ink)]"
+                      : "border-[var(--op-rule)] text-[var(--op-muted)] hover:border-[var(--op-accent)]",
                   )}
                 >
                   <span

@@ -915,7 +915,7 @@ export function TabletMoreSheet({
   walletTools,
   onOpenWorkspace,
 }: TabletMoreSheetProps) {
-  const accent = primaryColor?.trim() || "#1D4B3B";
+  const accent = "#1D4B3B";
   const greeting = greetingForHour(new Date().getHours());
   const [search, setSearch] = useState("");
   const [sectionId, setSectionId] = useState(() =>
@@ -1020,9 +1020,9 @@ export function TabletMoreSheet({
   if (!open) return null;
 
   const sheetStyle = {
-    "--tablet-accent": accent,
-    "--pos-primary": accent,
-    "--order-ink": "#15231f",
+    "--tablet-accent": "#1D4B3B",
+    "--pos-primary": "#1D4B3B",
+    "--order-ink": "#121A16",
   } as CSSProperties;
 
   const ink = "text-[var(--order-ink,#15231f)]";
@@ -1033,7 +1033,7 @@ export function TabletMoreSheet({
 
   return (
     <div
-      className="tablet-more-sheet fixed inset-0 z-50 flex flex-col bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,#f7f5f1)]"
+      className="tablet-more-sheet premium-portal fixed inset-0 z-50 flex flex-col bg-[var(--op-bg)]"
       role="dialog"
       aria-modal="true"
       aria-label="App menu"
@@ -1041,7 +1041,7 @@ export function TabletMoreSheet({
     >
       {/* Identity */}
       <header
-        className="relative shrink-0 border-b bg-white px-4 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-5"
+        className="relative shrink-0 border-b bg-[var(--op-surface)] px-4 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-5"
         style={{
           borderColor:
             "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)",
@@ -1053,11 +1053,11 @@ export function TabletMoreSheet({
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <div
-              className="relative flex size-10 shrink-0 items-center justify-center bg-[var(--order-ink,#15231f)] text-[14px] font-semibold tracking-[-0.02em] text-white"
+              className="relative flex size-10 shrink-0 items-center justify-center bg-[var(--op-accent)] text-[14px] font-semibold tracking-[-0.02em] text-[var(--op-surface)]"
               aria-hidden
             >
               {userInitial}
-              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center overflow-hidden bg-white ring-2 ring-white">
+              <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center overflow-hidden bg-[var(--op-surface)] ring-2 ring-[var(--op-surface)]">
                 <TenantLogo
                   brand={tenantTitle}
                   logoUrl={logoUrl}
@@ -1090,7 +1090,7 @@ export function TabletMoreSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center border bg-white transition-colors",
+              "flex size-9 shrink-0 items-center justify-center border bg-[var(--op-surface)] transition-colors",
               hair,
               mute,
               "hover:border-[var(--pos-primary,#1D4B3B)] hover:text-[var(--pos-primary,#1D4B3B)]",
@@ -1115,7 +1115,7 @@ export function TabletMoreSheet({
           </p>
           <div
             className={cn(
-              "flex flex-wrap items-center gap-2 border bg-white p-2.5",
+              "flex flex-wrap items-center gap-2 border bg-[var(--op-surface)] p-2.5",
               hair,
             )}
           >
@@ -1251,6 +1251,15 @@ export function TabletMoreSheet({
                 </Link>
               );
             })}
+            {Array.from({
+              length: (3 - (quickLinks.length % 3)) % 3,
+            }).map((_, index) => (
+              <span
+                key={`jump-filler-${index}`}
+                aria-hidden
+                className="min-h-[4.5rem] bg-[var(--op-surface)]"
+              />
+            ))}
           </div>
         </div>
       ) : null}

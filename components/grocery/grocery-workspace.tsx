@@ -2081,22 +2081,22 @@ export function GroceryWorkspace() {
       {/* ── Cart drawer (phones only) ── */}
       {showCartDrawer && (
         <div
-          className="fixed inset-0 z-50 md:hidden"
+          className="premium-portal fixed inset-0 z-50 md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Cart"
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
+            className="absolute inset-0 bg-[rgba(18,26,22,0.38)] animate-in fade-in duration-200"
             onClick={() => setShowCartDrawer(false)}
           />
 
           <div
             className={cn(
               "absolute bottom-0 left-0 right-0 flex max-h-[88vh] flex-col",
-              "rounded-t-none border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white",
-              "animate-in slide-in-from-bottom duration-300",
+              "rounded-t-[2px] border-t border-[var(--op-rule)] bg-[var(--op-surface)]",
+              "animate-in slide-in-from-bottom duration-200",
               "dark:bg-card",
             )}
           >

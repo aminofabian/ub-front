@@ -348,10 +348,10 @@ export function SokoMindGuide() {
         title="Ask Kiosk Guide (⌘J)"
         onClick={() => setOpen(true)}
         className={cn(
-          "group fixed z-40 flex h-12 items-center gap-2 rounded-full max-2xl:hidden",
+          "group fixed z-40 flex h-12 items-center gap-2 rounded-[2px] max-2xl:hidden",
           FAB_POSITION,
-          "bg-primary pl-3.5 pr-4 text-white",
-          "shadow-[0_14px_34px_-12px_rgba(22,101,52,0.7)] ring-1 ring-white/20",
+          "bg-[var(--op-accent)] pl-3.5 pr-4 text-[var(--op-surface)]",
+          "shadow-[0_14px_34px_-12px_rgba(18,26,22,0.45)] ring-1 ring-white/10",
           "transition-all duration-200 ease-out",
           "hover:bg-[var(--primary-hover)] hover:shadow-[0_18px_40px_-12px_rgba(22,101,52,0.75)] hover:scale-[1.04]",
           "active:scale-95",
@@ -374,9 +374,9 @@ export function SokoMindGuide() {
         aria-hidden={!open}
         inert={!open}
         className={cn(
-          "fixed z-50 flex flex-col overflow-hidden border border-border/70 bg-background",
+          "premium-portal fixed z-50 flex flex-col overflow-hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)]",
           // Phone/tablet: full-bleed sheet above the dock. Desktop: anchor at FAB.
-          "inset-x-3 bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] top-auto h-[min(72dvh,34rem)] max-h-[calc(100dvh-5.5rem)] rounded-2xl",
+          "inset-x-3 bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] top-auto h-[min(72dvh,34rem)] max-h-[calc(100dvh-5.5rem)] rounded-[2px]",
           "2xl:inset-auto 2xl:bottom-6 2xl:right-6 2xl:top-auto 2xl:max-h-[calc(100dvh-7rem)] 2xl:w-96",
           "shadow-[0_28px_64px_-20px_rgba(0,0,0,0.4)]",
           "transition-all duration-200 ease-out",
@@ -390,7 +390,15 @@ export function SokoMindGuide() {
             <Sparkles className="size-4" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold tracking-tight">Kiosk Guide</p>
+            <p
+              className="text-[1.05rem] font-normal tracking-[-0.02em]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
+              Kiosk Guide
+            </p>
             <p className="flex items-center gap-1.5 text-[11px] text-white/75">
               <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden />
               Online · replies instantly

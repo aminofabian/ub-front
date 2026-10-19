@@ -312,9 +312,9 @@ function MoreSheet({
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col",
-          "border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-          "bg-[#faf8f4] shadow-[0_-12px_40px_rgba(28,25,21,0.18)]",
-          "animate-in slide-in-from-bottom duration-300",
+          "premium-portal border-t border-[var(--op-rule)]",
+          "bg-[var(--op-surface)] shadow-[0_-12px_40px_-28px_rgba(18,26,22,0.24)]",
+          "animate-in slide-in-from-bottom duration-200",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         )}
         role="dialog"
@@ -326,7 +326,13 @@ function MoreSheet({
         </div>
         <div className="flex items-start justify-between gap-3 px-4 pb-3">
           <div className="min-w-0">
-            <p className="font-[family-name:var(--font-heading)] text-2xl leading-none font-semibold text-[var(--pos-ink,#1c1915)]">
+            <p
+              className="text-[1.6rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               Kiosk
             </p>
             <p className={cn(spEyebrow, "mt-1.5")}>

@@ -309,7 +309,7 @@ function InstallDetailDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/50"
+      className="premium-portal fixed inset-0 z-50 flex justify-end bg-black/50"
       role="dialog"
       aria-modal="true"
       aria-label={`Install ${install.installId}`}

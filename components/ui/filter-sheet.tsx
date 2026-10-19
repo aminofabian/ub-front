@@ -44,8 +44,8 @@ export function FilterSheet({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent side="bottom" sheetDrag className="gap-0 p-0 sm:max-w-md">
-        <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3 pr-12">
-          <DialogTitle className="text-base">{title}</DialogTitle>
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--op-rule)] px-4 py-3 pr-12">
+          <DialogTitle className="text-[1.35rem]">{title}</DialogTitle>
           {onReset ? (
             <button
               type="button"
@@ -64,7 +64,7 @@ export function FilterSheet({
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
           {children}
         </div>
-        <div className="border-t border-border/70 bg-background p-3">
+        <div className="border-t border-[var(--op-rule)] bg-[var(--op-surface)] p-3">
           <Button
             type="button"
             className="h-11 w-full rounded-none"

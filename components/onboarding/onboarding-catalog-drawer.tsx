@@ -549,7 +549,7 @@ export function OnboardingCatalogDrawer({
       tabIndex={-1}
       onKeyDown={handleDialogKeyDown}
       className={cn(
-        "fixed inset-0 z-[650] flex flex-col bg-white focus:outline-none",
+        "premium-portal fixed inset-0 z-[650] flex flex-col bg-[var(--op-bg)] focus:outline-none",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
       )}
       role="dialog"

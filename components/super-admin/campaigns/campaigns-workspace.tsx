@@ -655,7 +655,7 @@ function MobileDrawer({
   side: "left" | "right";
 }) {
   return (
-    <div className="fixed inset-0 z-50 xl:hidden">
+    <div className="premium-portal fixed inset-0 z-50 xl:hidden">
       <button
         type="button"
         className="absolute inset-0 bg-black/40"

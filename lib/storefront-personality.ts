@@ -50,11 +50,11 @@ export const STORE_PERSONALITY_PRESETS: readonly StorePersonalityPreset[] = [
   },
   {
     id: "premium",
-    emoji: "✨",
-    name: "Modern & Premium",
-    vibe: "Sharp edges, quiet off-white, tidy spacing",
-    font: "clean",
-    tokens: { radius: "sharp", buttons: "solid", density: "cozy", surface: "#FAFAF8" },
+    emoji: "◆",
+    name: "Kiosk Premium",
+    vibe: "Ivory paper, sharp edges, Cormorant headlines",
+    font: "kiosk",
+    tokens: { radius: "sharp", buttons: "solid", density: "cozy", surface: "#F4F1EA" },
   },
   {
     id: "bold",
