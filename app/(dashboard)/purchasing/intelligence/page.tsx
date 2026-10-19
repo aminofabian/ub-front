@@ -28,6 +28,7 @@ import {
   Banknote,
   BarChart3,
   CalendarRange,
+  ChartNoAxesColumn,
   CheckCircle2,
   CreditCard,
   LineChart,
@@ -572,6 +573,11 @@ export default function PurchasingIntelligencePage() {
                 href: APP_ROUTES.purchasingApAging,
                 label: "AP aging",
                 icon: BarChart3,
+              },
+              {
+                href: APP_ROUTES.purchasingSpend,
+                label: "Spend",
+                icon: ChartNoAxesColumn,
               },
               {
                 href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,

@@ -39,22 +39,22 @@ export function OrderStatsStrip() {
   const phoneDue = confirmActive ? (
     <Link
       href={APP_ROUTES.orderReceive}
-      className="flex items-center gap-3 rounded-2xl bg-[#fff6e8] px-3.5 py-3 active:scale-[0.99]"
+      className="flex items-center gap-3 rounded-[2px] border border-[color-mix(in_srgb,var(--op-highlight,#A55237)_28%,transparent)] bg-[color-mix(in_srgb,var(--op-highlight,#A55237)_8%,var(--op-surface,#FCFAF5))] px-3.5 py-3 active:scale-[0.99]"
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f6e4c4] text-[#7a4518]">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--op-highlight,#A55237)_28%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-highlight,#A55237)]">
         <ClipboardCheck className="size-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold leading-tight tracking-[-0.02em] text-[#7a4518]">
+        <span className="block text-[15px] font-semibold leading-tight tracking-[-0.02em] text-[var(--op-highlight,#A55237)]">
           {loading
             ? "Checking arrivals"
             : `${sentStats.awaitingUnits.toLocaleString()} units still to receive`}
         </span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-[#7a4518]">
+        <span className="mt-0.5 block text-[13px] leading-snug text-[color-mix(in_srgb,var(--op-highlight,#A55237)_78%,transparent)]">
           Booked in when the delivery arrives
         </span>
       </span>
-      <span className="inline-flex h-11 shrink-0 items-center rounded-xl bg-[#7a4518] px-4 text-[14px] font-semibold text-white">
+      <span className="inline-flex h-11 shrink-0 items-center rounded-[2px] bg-[var(--op-highlight,#A55237)] px-4 text-[14px] font-semibold text-[var(--op-surface,#FCFAF5)]">
         Receive
       </span>
     </Link>
@@ -63,27 +63,34 @@ export function OrderStatsStrip() {
   const compactPulse = (
     <section
       aria-label="Order pulse"
-      className="flex items-center justify-between gap-3 rounded-2xl bg-[#e9f5f1] p-3.5"
+      className="flex items-center justify-between gap-3 rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] p-3"
     >
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
-          Building
-        </p>
-        <p className="mt-0.5 truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[#101828]">
+        <p className="truncate text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--op-ink,#121A16)]">
           {loading ? (
             "—"
           ) : (
             <>
-              <span className={cn(buildingActive && "text-[#0f766e]")}>
+              <span
+                className={cn(
+                  buildingActive && "text-[var(--pos-primary,#1D4B3B)]",
+                )}
+              >
                 {localStats.units}
               </span>
-              <span className="mx-1 font-normal text-[#667085]">
+              <span className="mx-1 font-normal text-[var(--op-muted,#556159)]">
                 in basket
               </span>
-              <span className={cn(confirmActive && "text-[#b45309]")}>
+              <span
+                className={cn(
+                  confirmActive && "text-[var(--op-highlight,#A55237)]",
+                )}
+              >
                 {sentStats.awaitingUnits}
               </span>
-              <span className="ml-1 font-normal text-[#667085]">due in</span>
+              <span className="ml-1 font-normal text-[var(--op-muted,#556159)]">
+                due in
+              </span>
             </>
           )}
         </p>
@@ -91,7 +98,7 @@ export function OrderStatsStrip() {
       {confirmActive ? (
         <Link
           href={APP_ROUTES.orderReceive}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05]"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-[2px] border border-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_28%,transparent)] bg-[var(--op-surface,#FCFAF5)] px-3 py-2 text-[13px] font-semibold text-[var(--pos-primary,#1D4B3B)]"
         >
           <ClipboardCheck className="size-3.5" aria-hidden />
           Receive

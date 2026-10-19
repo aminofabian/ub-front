@@ -12098,6 +12098,8 @@ export type PathBSupplyListRowRecord = {
   supplierName: string;
   invoiceNumber: string;
   createdAt: string;
+  /** Business date printed on the supplier bill (`YYYY-MM-DD`). */
+  invoiceDate?: string | null;
   lineCount: number;
   grandTotal: number | string;
   amountPaid: number | string;

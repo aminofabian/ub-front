@@ -301,6 +301,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         flow: true,
       },
       {
+        href: APP_ROUTES.purchasingSpend,
+        label: "Supply spend",
+        group: "Buying",
+      },
+      {
         href: APP_ROUTES.findSuppliers,
         label: "Find suppliers",
         group: "Suppliers",
@@ -567,6 +572,7 @@ type NavGate = {
   canViewCategories: boolean;
   canViewPurchasingIntelligence: boolean;
   canAddSupplies: boolean;
+  canPathBRead: boolean;
   canPathAOrder: boolean;
   canViewApAging: boolean;
   canViewSuppliers: boolean;
@@ -756,6 +762,13 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
     return gate.canAddSupplies;
+  if (item.href === APP_ROUTES.purchasingSpend)
+    return (
+      gate.canPathBRead ||
+      gate.canViewPurchasingIntelligence ||
+      gate.canViewApAging ||
+      gate.canAddSupplies
+    );
   if (item.href === APP_ROUTES.order || item.href === APP_ROUTES.orderReceive)
     return gate.canViewSuppliers && gate.canAddSupplies;
   if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
@@ -873,6 +886,9 @@ function itemIsActive(
     return path === APP_ROUTES.butcher;
   }
   if (hrefPath === APP_ROUTES.order) {
+    return path === hrefPath;
+  }
+  if (hrefPath === APP_ROUTES.purchasingAddSupplies) {
     return path === hrefPath;
   }
   if (hrefPath === APP_ROUTES.analytics) {
@@ -1048,6 +1064,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewPurchasingIntelligence,
     canPathARead,
     canPathAWrite,
+    canPathBRead,
     canPathBWrite,
     canViewApAging,
     canViewSuppliers,
@@ -1185,6 +1202,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewCategories,
       canViewPurchasingIntelligence,
       canAddSupplies,
+      canPathBRead,
       canPathAOrder,
       canViewApAging,
       canViewSuppliers,
@@ -1250,6 +1268,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewCategories,
     canViewPurchasingIntelligence,
     canAddSupplies,
+    canPathBRead,
     canPathAOrder,
     canViewApAging,
     canViewSuppliers,

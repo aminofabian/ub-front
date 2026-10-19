@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Package } from "lucide-react";
+import { Package, type LucideIcon } from "lucide-react";
 
 import {
   PROCUREMENT_VARS,
@@ -27,6 +27,9 @@ export function SuppliesPageLayout({
   headerActions,
   branchScope,
   meta,
+  title = "Records",
+  subtitle = "Deliveries · bills · deposits",
+  icon: Icon = Package,
   className,
 }: {
   children: ReactNode;
@@ -34,6 +37,9 @@ export function SuppliesPageLayout({
   branchScope?: string | null;
   /** Short status line next to the title (e.g. unpaid count). */
   meta?: ReactNode;
+  title?: string;
+  subtitle?: string;
+  icon?: LucideIcon;
   className?: string;
 }) {
   return (
@@ -58,7 +64,7 @@ export function SuppliesPageLayout({
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-accent)]">
-                <Package className="size-5" aria-hidden />
+                <Icon className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
                 <h1
@@ -68,10 +74,10 @@ export function SuppliesPageLayout({
                       'var(--font-cormorant), Georgia, "Times New Roman", serif',
                   }}
                 >
-                  Records
+                  {title}
                 </h1>
-                <p className="hidden truncate text-[12px] text-[#667085] sm:block">
-                  Deliveries · bills · deposits
+                <p className="hidden truncate text-[12px] text-[var(--op-muted)] sm:block">
+                  {subtitle}
                 </p>
               </div>
             </div>
@@ -92,7 +98,7 @@ export function SuppliesPageLayout({
           </div>
 
           {headerActions ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-1">
+            <div className="flex w-full shrink-0 flex-wrap items-center gap-1 sm:w-auto">
               {headerActions}
             </div>
           ) : null}

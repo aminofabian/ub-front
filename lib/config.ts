@@ -162,6 +162,8 @@ export const APP_ROUTES = {
   creditsPaymentClaims: "/credits/payment-claims",
   purchasingIntelligence: "/purchasing/intelligence",
   purchasingAddSupplies: "/supplies",
+  /** Supply spend report: period totals, trend, and supplier/category mix. */
+  purchasingSpend: "/supplies/spend",
   purchasingApAging: "/purchasing/ap-aging",
   purchasingRecordPayment: "/purchasing/record-payment",
   inventoryStock: "/inventory/stock",

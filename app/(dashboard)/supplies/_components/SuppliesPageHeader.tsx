@@ -3,6 +3,7 @@
 import {
   BarChart3,
   BookOpen,
+  ChartNoAxesColumn,
   CreditCard,
   PackagePlus,
   RefreshCw,
@@ -57,6 +58,11 @@ export function SuppliesPageHeader({
           },
         ]
       : []),
+    {
+      href: APP_ROUTES.purchasingSpend,
+      label: "Spend",
+      icon: ChartNoAxesColumn,
+    },
     {
       href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`,
       label: "Pay open",
