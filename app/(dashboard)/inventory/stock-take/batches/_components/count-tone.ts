@@ -1,16 +1,18 @@
-/** Shared colour classes for the batch-count screens, from the app's ink + teal tokens. */
+/** Shared colour + control classes for batch-count screens — Operate forest on ivory. */
 export const COUNT_TONE = {
-  ink: "text-[var(--order-ink,#15231f)]",
-  mute: "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]",
-  faint: "text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]",
-  hair: "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
-  divide: "divide-[color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-  teal: "text-[var(--pos-primary,#0f766e)]",
-  tealFill: "bg-[var(--pos-primary,#0f766e)]",
-  tealWash: "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
-  track: "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+  ink: "text-[var(--op-ink,#121a16)]",
+  mute: "text-[var(--op-muted,#556159)]",
+  faint: "text-[var(--op-faint,#626d66)]",
+  hair: "border-[var(--op-rule,rgba(18,26,22,0.1))]",
+  divide: "divide-[var(--op-rule-soft,rgba(18,26,22,0.06))]",
+  teal: "text-[var(--op-accent,#1d4b3b)]",
+  tealFill: "bg-[var(--op-accent,#1d4b3b)]",
+  tealWash: "bg-[var(--op-accent-soft,color-mix(in_srgb,#1d4b3b_7%,#fcfaf5))]",
+  track: "bg-[color-mix(in_srgb,var(--op-ink,#121a16)_8%,transparent)]",
+  surface: "bg-[var(--op-surface,#fcfaf5)]",
+  display: "[font-family:var(--font-cormorant),Georgia,serif]",
   primaryButton:
-    "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] px-5 font-heading text-[17px] font-semibold tracking-[-0.01em] text-white transition-[background-color,transform] duration-150 hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,black)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
+    "inline-flex h-12 w-full items-center justify-center gap-2 rounded-[2px] bg-[var(--op-accent,#1d4b3b)] px-5 text-[16px] font-semibold tracking-[-0.01em] text-[var(--op-surface,#fcfaf5)] transition-[background-color,transform] duration-150 hover:bg-[var(--op-accent-deep,#163b2e)] active:scale-[0.985] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent,#1d4b3b)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--op-surface,#fcfaf5)]",
   quietButton:
-    "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-4 text-[15px] font-medium text-[var(--order-ink,#15231f)] transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+    "inline-flex h-11 items-center justify-center gap-2 rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.1))] bg-[var(--op-surface,#fcfaf5)] px-4 text-[15px] font-medium text-[var(--op-ink,#121a16)] transition-colors hover:bg-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_5%,var(--op-surface,#fcfaf5))] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent,#1d4b3b)]",
 } as const;

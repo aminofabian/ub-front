@@ -28,10 +28,11 @@ function metaLine(line: CountCycleBatchLine): string {
 export function BatchCountRow({ line, showSystemStock, saving, inputRef, onCommit, onNext }: Props) {
   const counted = line.countedQty != null;
   const meta = metaLine(line);
+
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-3 py-3 transition-colors duration-300",
+        "flex items-center gap-3 px-3 py-3.5 transition-colors duration-300",
         counted && COUNT_TONE.tealWash,
       )}
     >
@@ -40,14 +41,22 @@ export function BatchCountRow({ line, showSystemStock, saving, inputRef, onCommi
         <p className={cn("line-clamp-2 text-[15px] font-medium leading-snug", COUNT_TONE.ink)}>
           {line.itemName}
         </p>
-        {meta ? <p className={cn("mt-0.5 truncate text-[12.5px]", COUNT_TONE.mute)}>{meta}</p> : null}
+        {meta ? (
+          <p className={cn("mt-0.5 truncate text-[12px] leading-snug", COUNT_TONE.mute)}>{meta}</p>
+        ) : null}
         {showSystemStock && line.systemQty != null ? (
-          <p className={cn("mt-0.5 text-[12.5px] tabular-nums", COUNT_TONE.faint)}>
+          <p className={cn("mt-0.5 text-[12px] tabular-nums", COUNT_TONE.faint)}>
             System says {Number(line.systemQty)}
           </p>
         ) : null}
       </div>
-      <span className={cn("flex size-5 shrink-0 items-center justify-center", COUNT_TONE.teal)} aria-hidden>
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center",
+          COUNT_TONE.teal,
+        )}
+        aria-hidden
+      >
         {saving ? <Loader2 className="size-4 animate-spin" /> : null}
         {!saving && counted ? <Check className="size-4 stroke-[2.5]" /> : null}
       </span>

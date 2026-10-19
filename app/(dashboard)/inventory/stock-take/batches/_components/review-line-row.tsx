@@ -31,7 +31,9 @@ export function ReviewLineRow({ line }: { line: ReviewLine }) {
       <span
         className={cn(
           "shrink-0 tabular-nums",
-          showsGap ? "rounded-lg px-2.5 py-1 font-heading text-[18px] font-semibold" : "text-[13px]",
+          showsGap
+            ? "rounded-[2px] px-2.5 py-1 text-[18px] font-semibold"
+            : "text-[13px]",
           chip.tone,
         )}
       >

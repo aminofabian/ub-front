@@ -6,15 +6,14 @@ import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
-  PackagePlus,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
@@ -110,8 +109,13 @@ export default function StockTakeRestockReviewPage() {
       setDraftPrices(prices);
       setDraftQty(qtys);
     } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Restock review not available";
       setReview(null);
-      setError(e instanceof Error ? e.message : "Restock review not available");
+      setError(message);
+      if (/no products were sold|no daily audit manifest/i.test(message)) {
+        toast.dismiss();
+      }
     } finally {
       setLoading(false);
     }
@@ -227,13 +231,26 @@ export default function StockTakeRestockReviewPage() {
         </Link>
       </div>
 
-      <DashboardPageHero
-        icon={PackagePlus}
-        eyebrow="Stock Take"
-        title="Restock review"
-        description="Review daily audit restock suggestions, adjust prices, and generate supplier orders."
-      />
+      <header className="flex flex-col gap-1.5 pb-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--op-muted)]">
+          Stock take
+        </p>
+        <h1
+          className="text-[2.2rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)] sm:text-[2.5rem]"
+          style={{
+            fontFamily:
+              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+          }}
+        >
+          Restock review
+        </h1>
+        <p className="max-w-[62ch] text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
+          Review daily audit restock suggestions, adjust prices, and generate
+          supplier orders.
+        </p>
+      </header>
 
+      <div className="rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-muted-foreground">Branch</span>
@@ -278,7 +295,7 @@ export default function StockTakeRestockReviewPage() {
         </label>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="mt-4 flex flex-wrap items-center gap-4">
         <Button
           variant="outline"
           disabled={actionId === "generate" || status !== "approved"}
@@ -314,7 +331,11 @@ export default function StockTakeRestockReviewPage() {
         ) : null}
       </div>
 
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      </div>
+
+      {error && totalItems > 0 ? (
+        <DashboardFeedback kind="error" text={error} />
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -322,8 +343,26 @@ export default function StockTakeRestockReviewPage() {
           Loading restock suggestions…
         </div>
       ) : totalItems === 0 ? (
-        <div className="rounded-none border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No restock suggestions yet.
+        <div className="rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-6 py-14 text-center">
+          <p
+            className="text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+            style={{
+              fontFamily:
+                'var(--font-cormorant), Georgia, "Times New Roman", serif',
+            }}
+          >
+            No restock suggestions.
+          </p>
+          <p className="mx-auto mt-2 max-w-[36ch] text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
+            {error ??
+              "Once a daily audit is approved for this branch and date, the products that need buying appear here."}
+          </p>
+          <Link
+            href={APP_ROUTES.inventoryStockTakeDailyAudit}
+            className="mt-5 inline-flex h-10 items-center justify-center rounded-[2px] border border-[var(--op-rule)] px-4 text-[12px] font-semibold text-[var(--op-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--op-accent)_5%,var(--op-surface))]"
+          >
+            Open daily audit
+          </Link>
         </div>
       ) : (
         review?.groups.map((group) => (

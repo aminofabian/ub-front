@@ -43,7 +43,7 @@ export function CountQtyInput({ label, savedQty, inputRef, onCommit, onNext }: P
       inputMode="decimal"
       enterKeyHint="next"
       autoComplete="off"
-      placeholder="0"
+      placeholder="—"
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onFocus={(e) => e.currentTarget.select()}
@@ -55,12 +55,16 @@ export function CountQtyInput({ label, savedQty, inputRef, onCommit, onNext }: P
         onNext();
       }}
       className={cn(
-        "h-12 w-[84px] shrink-0 rounded-xl border bg-white px-3 text-right font-heading text-[20px] font-semibold tabular-nums transition-[border-color,box-shadow] placeholder:text-[color-mix(in_srgb,var(--order-ink,#15231f)_25%,transparent)] focus:outline-none focus:ring-4",
+        "h-14 w-[5.5rem] shrink-0 rounded-[2px] border bg-[var(--op-surface,#fcfaf5)] px-2.5 text-right text-[22px] font-semibold tabular-nums tracking-tight transition-[border-color,box-shadow]",
+        "placeholder:text-[color-mix(in_srgb,var(--op-ink,#121a16)_22%,transparent)]",
+        "focus:outline-none focus:ring-4",
         COUNT_TONE.ink,
         invalid
-          ? "border-red-500 focus:ring-red-500/15"
-          : "focus:border-[var(--pos-primary,#0f766e)] focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_16%,transparent)]",
-        !invalid && savedQty != null ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_45%,white)]" : null,
+          ? "border-[var(--op-highlight,#a55237)] focus:ring-[color-mix(in_srgb,var(--op-highlight,#a55237)_18%,transparent)]"
+          : "focus:border-[var(--op-accent,#1d4b3b)] focus:ring-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_16%,transparent)]",
+        !invalid && savedQty != null
+          ? "border-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_42%,var(--op-surface,#fcfaf5))]"
+          : null,
         !invalid && savedQty == null ? COUNT_TONE.hair : null,
       )}
     />

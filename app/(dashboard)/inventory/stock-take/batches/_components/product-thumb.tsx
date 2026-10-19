@@ -11,7 +11,7 @@ export function ProductThumb({ name, imageUrl }: { name: string; imageUrl: strin
         src={imageUrl}
         alt=""
         loading="lazy"
-        className="size-11 shrink-0 rounded-lg bg-white object-contain ring-1 ring-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]"
+        className="size-12 shrink-0 rounded-[2px] bg-[var(--op-surface,#fcfaf5)] object-contain ring-1 ring-[var(--op-rule,rgba(18,26,22,0.1))]"
       />
     );
   }
@@ -19,8 +19,9 @@ export function ProductThumb({ name, imageUrl }: { name: string; imageUrl: strin
     <span
       aria-hidden
       className={cn(
-        "flex size-11 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)] font-heading text-[18px] font-semibold uppercase",
+        "flex size-12 shrink-0 items-center justify-center rounded-[2px] bg-[color-mix(in_srgb,var(--op-ink,#121a16)_5%,var(--op-surface,#fcfaf5))] text-[18px] font-semibold uppercase",
         COUNT_TONE.mute,
+        COUNT_TONE.display,
       )}
     >
       {name.trim().charAt(0) || "?"}

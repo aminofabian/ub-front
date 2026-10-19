@@ -15,10 +15,18 @@ type Props = {
   counts: Record<BatchLineFilter, number>;
 };
 
-/** To count / Counted / All, each with how many products it holds. */
+/** Segmented To count / Counted / All — thumb-wide, not a pill cluster. */
 export function FilterChips({ value, onChange, counts }: Props) {
   return (
-    <div role="radiogroup" aria-label="Show" className="flex gap-1.5">
+    <div
+      role="radiogroup"
+      aria-label="Show"
+      className={cn(
+        "grid grid-cols-3 gap-px overflow-hidden rounded-[2px] border p-px",
+        COUNT_TONE.hair,
+        "bg-[color-mix(in_srgb,var(--op-ink,#121a16)_6%,var(--op-surface,#fcfaf5))]",
+      )}
+    >
       {CHIPS.map((chip) => {
         const selected = chip.value === value;
         return (
@@ -29,14 +37,19 @@ export function FilterChips({ value, onChange, counts }: Props) {
             aria-checked={selected}
             onClick={() => onChange(chip.value)}
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-medium transition-colors",
+              "inline-flex h-10 items-center justify-center gap-1.5 rounded-[1px] text-[13px] font-medium transition-colors",
               selected
-                ? "border-transparent bg-[var(--order-ink,#15231f)] text-white"
-                : cn("bg-white", COUNT_TONE.hair, COUNT_TONE.ink),
+                ? "bg-[var(--op-accent,#1d4b3b)] text-[var(--op-surface,#fcfaf5)]"
+                : cn("bg-[var(--op-surface,#fcfaf5)]", COUNT_TONE.ink),
             )}
           >
             {chip.label}
-            <span className={cn("tabular-nums", selected ? "text-white/65" : COUNT_TONE.faint)}>
+            <span
+              className={cn(
+                "tabular-nums",
+                selected ? "text-[color-mix(in_srgb,var(--op-surface,#fcfaf5)_70%,transparent)]" : COUNT_TONE.faint,
+              )}
+            >
               {counts[chip.value]}
             </span>
           </button>

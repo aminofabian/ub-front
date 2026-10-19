@@ -15,12 +15,12 @@ export function FullCountBanner({ progress }: { progress: FullCountProgress }) {
     <Link
       href={APP_ROUTES.inventoryStockTakeBatches}
       className={cn(
-        "flex shrink-0 items-center gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 transition-colors md:gap-2 md:px-2.5 md:py-1.5",
-        "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+        "flex shrink-0 items-center gap-3 border-b border-[var(--op-rule)] px-3 py-2.5 transition-colors md:gap-2 md:px-2.5 md:py-1.5",
+        "bg-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_4%,var(--op-surface))] hover:bg-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_7%,var(--op-surface))]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
       )}
     >
-      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--pos-primary,#0f766e)] shadow-[0_1px_2px_rgba(21,35,31,0.08)] md:size-6 md:rounded-lg">
+      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-accent)] md:size-6">
         <ClipboardList className="size-4 md:size-3.5" strokeWidth={1.75} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
@@ -29,17 +29,17 @@ export function FullCountBanner({ progress }: { progress: FullCountProgress }) {
         </span>
         <span className={cn("block truncate text-[12.5px] md:text-[10.5px]", MUTE)}>{progress.detail}</span>
         <span
-          className="mt-1.5 block h-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,white)] md:mt-1 md:h-0.5"
+          className="mt-1.5 block h-1 overflow-hidden rounded-[1px] bg-[color-mix(in_srgb,var(--op-ink)_8%,var(--op-surface))] md:mt-1 md:h-0.5"
           role="progressbar"
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label="Full count progress"
         >
-          <span className="block h-full rounded-full bg-[var(--pos-primary,#0f766e)]" style={{ width: `${pct}%` }} />
+          <span className="block h-full rounded-[1px] bg-[var(--op-accent)]" style={{ width: `${pct}%` }} />
         </span>
       </span>
-      <span className="inline-flex h-9 shrink-0 items-center rounded-full bg-[var(--pos-primary,#0f766e)] px-3.5 text-[13px] font-semibold text-white md:h-6 md:px-2.5 md:text-[10px]">
+      <span className="inline-flex h-9 shrink-0 items-center rounded-[2px] bg-[var(--op-accent)] px-3.5 text-[13px] font-semibold text-[var(--op-surface)] md:h-6 md:px-2.5 md:text-[10px]">
         Count
       </span>
     </Link>

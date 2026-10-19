@@ -7668,3 +7668,13 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     font-weight: 400;
     letter-spacing: -0.02em;
 }
+
+.premium-audit [class*="rounded-full"] {
+    border-radius: 2px;
+}
+
+.premium-audit input,
+.premium-audit select,
+.premium-audit button {
+    border-radius: 2px;
+}

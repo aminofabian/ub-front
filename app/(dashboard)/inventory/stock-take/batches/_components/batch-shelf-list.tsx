@@ -25,25 +25,45 @@ type Props = {
 };
 
 /** The batch walked shelf by shelf, each shelf headed by its category. */
-export function BatchShelfList({ shelves, emptyCopy, filter, showSystemStock, savingLineIds, register, onCommit, onNext }: Props) {
+export function BatchShelfList({
+  shelves,
+  emptyCopy,
+  filter,
+  showSystemStock,
+  savingLineIds,
+  register,
+  onCommit,
+  onNext,
+}: Props) {
   if (shelves.length === 0) {
     return (
-      <p className={cn("px-3 py-12 text-center text-[15px]", COUNT_TONE.mute)}>
+      <p className={cn("px-4 py-14 text-center text-[15px]", COUNT_TONE.mute)}>
         {emptyCopy ?? EMPTY_COPY[filter]}
       </p>
     );
   }
+
   return (
-    <div className="flex flex-col">
+    <div className={cn("flex flex-col pb-2", COUNT_TONE.surface)}>
       {shelves.map((shelf, index) => (
         <section key={`${shelf.category}-${index}`} aria-label={shelf.category}>
-          <h3 className={cn("px-3 pb-1.5 pt-5 font-heading text-[15px] font-semibold uppercase tracking-[0.04em]", COUNT_TONE.mute)}>
+          <h3
+            className={cn(
+              "px-3 pb-1.5 pt-5 text-[11px] font-semibold uppercase tracking-[0.12em]",
+              COUNT_TONE.mute,
+            )}
+          >
             {shelf.category}
-            <span className={cn("ml-2 font-sans text-[12px] normal-case tracking-normal tabular-nums", COUNT_TONE.faint)}>
+            <span
+              className={cn(
+                "ml-2 font-sans text-[11px] normal-case tracking-normal tabular-nums",
+                COUNT_TONE.faint,
+              )}
+            >
               {shelf.lines.length}
             </span>
           </h3>
-          <ul className={cn("divide-y border-y", COUNT_TONE.divide, COUNT_TONE.hair)}>
+          <ul className={cn("divide-y border-b", COUNT_TONE.divide, COUNT_TONE.hair)}>
             {shelf.lines.map((line) => (
               <li key={line.lineId}>
                 <BatchCountRow

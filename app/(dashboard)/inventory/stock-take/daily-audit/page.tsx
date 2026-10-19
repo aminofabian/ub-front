@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DashboardAccessDenied,
@@ -251,9 +252,14 @@ export default function DailyAuditPage() {
         setNoteOpen(false);
       }
     } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Daily audit not available";
       setToday(null);
       setSession(null);
-      setError(e instanceof Error ? e.message : "Daily audit not available");
+      setError(message);
+      if (/no products were sold|no daily audit manifest/i.test(message)) {
+        toast.dismiss();
+      }
     } finally {
       setLoading(false);
     }
@@ -496,24 +502,32 @@ export default function DailyAuditPage() {
   return (
     <div
       className={cn(
-        /* Fill the shell main (incl. padding box) so one item fits on screen */
-        "absolute inset-0 z-0 mx-auto flex min-h-0 w-full max-w-lg flex-col overflow-hidden",
-        "px-3 pt-3 pb-[calc(var(--shell-bottom-inset)+1.5rem)]",
-        "2xl:static 2xl:h-full 2xl:max-w-lg 2xl:overflow-visible 2xl:p-0",
+        "premium-audit absolute inset-0 z-0 mx-auto flex min-h-0 w-full max-w-2xl flex-col overflow-hidden",
+        "px-3 pt-3 pb-[calc(var(--shell-bottom-inset)+1.5rem)] sm:px-5 sm:pt-5",
+        "2xl:static 2xl:h-full 2xl:max-w-2xl 2xl:overflow-visible 2xl:p-0",
       )}
     >
-      {/* Soft app atmosphere */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[1.35rem]"
-      >
-        <div className="absolute -left-16 top-0 size-44 rounded-full bg-primary/[0.07] blur-3xl" />
-        <div className="absolute -right-10 bottom-24 size-52 rounded-full bg-emerald-400/[0.08] blur-3xl" />
-        <div className="absolute inset-x-6 top-1/3 h-40 rounded-full bg-primary/[0.03] blur-2xl" />
-      </div>
-
       {/* Top chrome */}
       <header className="shrink-0 space-y-2.5 px-0.5 pb-1">
+        <div className="hidden flex-col gap-1 pb-1 sm:flex">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--op-muted)]">
+            Stock take
+          </p>
+          <div className="flex items-end justify-between gap-3">
+            <h1
+              className="text-[2.2rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
+              Daily audit
+            </h1>
+            <span className="pb-1 text-[11px] text-[var(--op-muted)]">
+              Morning and evening sample
+            </span>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           {!branchLocked ? (
             <select
@@ -657,7 +671,7 @@ export default function DailyAuditPage() {
         ) : null}
       </header>
 
-      {error ? (
+      {error && today ? (
         <div className="shrink-0 px-0.5 pt-1">
           <DashboardFeedback kind="error" text={error} />
         </div>
@@ -670,8 +684,26 @@ export default function DailyAuditPage() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : !today ? (
-          <div className="flex flex-1 items-center justify-center rounded-none border border-dashed px-4 text-center text-sm text-muted-foreground">
-            No audit today
+          <div className="mt-3 flex min-h-[22rem] flex-col items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-6 py-12 text-center">
+            <p
+              className="text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
+              Nothing to audit today.
+            </p>
+            <p className="mt-2 max-w-[34ch] text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
+              {error ??
+                "No products were sold yesterday at this branch, so there is no daily audit for this date."}
+            </p>
+            <Link
+              href={`${APP_ROUTES.inventoryStock}?view=levels`}
+              className="mt-5 inline-flex h-10 items-center justify-center rounded-[2px] border border-[var(--op-rule)] px-4 text-[12px] font-semibold text-[var(--op-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--op-accent)_5%,var(--op-surface))]"
+            >
+              Review stock levels
+            </Link>
           </div>
         ) : sessionDone || todaySessionDone ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-none border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">

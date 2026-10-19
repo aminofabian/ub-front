@@ -29,16 +29,29 @@ export function BatchReviewScreen({ sessionId, onBack }: Props) {
   if (!review.batch) return <DashboardFeedback kind="error" text={review.error ?? "Batch not found"} />;
 
   return (
-    <section className="flex flex-col gap-4 pt-1">
-      <button type="button" onClick={onBack} className={cn("-ml-1 inline-flex h-11 w-fit items-center gap-0.5 pl-1 pr-2 text-[15px] font-medium", COUNT_TONE.teal)}>
+    <section className="flex flex-col gap-4 px-0.5 pt-1">
+      <button
+        type="button"
+        onClick={onBack}
+        className={cn(
+          "-ml-1 inline-flex h-11 w-fit items-center gap-0.5 rounded-[2px] pl-1 pr-2 text-[14px] font-medium",
+          COUNT_TONE.teal,
+        )}
+      >
         <ChevronLeft className="size-5" aria-hidden />
         Batches
       </button>
-      <div className="flex flex-col gap-1 px-1">
-        <h2 className={cn("font-heading text-[28px] font-semibold leading-tight tracking-[-0.02em]", COUNT_TONE.ink)}>
+      <div className="flex flex-col gap-1">
+        <h2
+          className={cn(
+            "text-[1.85rem] font-normal leading-tight tracking-[-0.02em]",
+            COUNT_TONE.ink,
+            COUNT_TONE.display,
+          )}
+        >
           Batch {review.batch.batchNumber} review
         </h2>
-        <p className={cn("text-[14px]", COUNT_TONE.mute)}>
+        <p className={cn("text-[13px] leading-relaxed", COUNT_TONE.mute)}>
           {lines.length} counted · {differing} differ from the system
         </p>
       </div>

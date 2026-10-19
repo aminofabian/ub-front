@@ -18,14 +18,22 @@ function finishCopy(counted: number, total: number): string {
   return `${left} still to count. Finish now and ${left === 1 ? "it goes" : "they go"} to the front of tomorrow's batch.`;
 }
 
-/** End of the list: wrap the batch up, with what happens to anything skipped. */
+/** Pinned end-of-floor bar — always in thumb reach on the phone. */
 export function BatchFinishPanel({ counted, total, finishing, onFinish }: Props) {
   return (
-    <section className="flex flex-col gap-3 px-3 pb-6 pt-5">
-      <p className={cn("text-[14px] leading-relaxed", COUNT_TONE.mute)}>{finishCopy(counted, total)}</p>
+    <section
+      className={cn(
+        "flex flex-col gap-2 border-t px-3 pb-3 pt-2.5",
+        COUNT_TONE.surface,
+        COUNT_TONE.hair,
+      )}
+    >
+      <p className={cn("text-[12.5px] leading-snug", COUNT_TONE.mute)}>
+        {finishCopy(counted, total)}
+      </p>
       <button
         type="button"
-        className={COUNT_TONE.primaryButton}
+        className={cn(COUNT_TONE.primaryButton, "min-h-12 text-[17px]")}
         disabled={counted === 0 || finishing}
         onClick={onFinish}
       >
