@@ -62,10 +62,12 @@ export function PipelineStat({
   );
 
   const className = cn(
-    "relative flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-white px-2 py-1 ring-1 ring-black/[0.05] transition-shadow duration-150",
-    active ? "ring-2 ring-[#0f766e]" : "hover:ring-black/[0.14]",
+    "relative flex min-w-0 flex-1 items-center gap-1.5 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-2 py-1.5 transition-[border-color] duration-150",
+    active
+      ? "border-[var(--pos-primary,#1D4B3B)]"
+      : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#121A16)_22%,transparent)]",
     href &&
-      "group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]",
+      "group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
   );
 
   if (href) {

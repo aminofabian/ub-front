@@ -1,7 +1,20 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Loader2, Lock, ShieldCheck, Smartphone, Stamp } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  Delete,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Smartphone,
+  Stamp,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -38,6 +51,12 @@ type Props = {
 
 type ManageStep = "idle" | "code" | "pin" | "unseal";
 
+function scopeNoun(scope: Scope): string {
+  if (scope === "supplier") return "passport";
+  if (scope === "shop-supplier") return "supplier page";
+  return "credit tab";
+}
+
 export function PageSealGate({
   scope,
   subjectKey,
@@ -52,7 +71,12 @@ export function PageSealGate({
 
   if (!status) {
     return (
-      <div className={cn("flex min-h-[40vh] items-center justify-center gap-2 text-muted-foreground", className)}>
+      <div
+        className={cn(
+          "flex min-h-[40vh] items-center justify-center gap-2 text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_55%,transparent)]",
+          className,
+        )}
+      >
         <Loader2 className="size-5 animate-spin" />
         Checking seal…
       </div>
@@ -61,7 +85,12 @@ export function PageSealGate({
 
   if (locked) {
     return (
-      <div className={className}>
+      <div
+        className={cn(
+          "flex min-h-[min(100%,70dvh)] flex-1 flex-col",
+          className,
+        )}
+      >
         <SealUnlockPad
           scope={scope}
           subjectKey={subjectKey}
@@ -70,7 +99,7 @@ export function PageSealGate({
           onUnlocked={onUnlocked}
         />
         {canManage ? (
-          <div className="mx-auto mt-4 max-w-md px-4">
+          <div className="mx-auto mt-auto w-full max-w-md px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
             <SealManager
               scope={scope}
               subjectKey={subjectKey}
@@ -87,7 +116,7 @@ export function PageSealGate({
   return (
     <div className={className}>
       {canManage ? (
-        <div className="mb-1.5">
+        <div className="mb-1.5 px-0 md:px-0">
           <SealManager
             scope={scope}
             subjectKey={subjectKey}
@@ -115,126 +144,222 @@ function SealUnlockPad({
   phoneHint: string | null;
   onUnlocked: () => void;
 }) {
+  const titleId = useId();
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [shake, setShake] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const submit = async (value: string) => {
-    if (value.length !== 4 || busy) return;
-    setBusy(true);
-    try {
-      if (scope === "supplier") {
-        await unlockSupplierPageSeal(subjectKey, value);
-      } else if (scope === "shop-supplier") {
-        await unlockShopSupplierPageSeal(subjectKey, value);
-      } else {
-        await unlockCustomerTabSeal(subjectKey, value);
+  const submit = useCallback(
+    async (value: string) => {
+      if (value.length !== 4 || busy) return;
+      setBusy(true);
+      setError(null);
+      try {
+        if (scope === "supplier") {
+          await unlockSupplierPageSeal(subjectKey, value);
+        } else if (scope === "shop-supplier") {
+          await unlockShopSupplierPageSeal(subjectKey, value);
+        } else {
+          await unlockCustomerTabSeal(subjectKey, value);
+        }
+        toast.success("Seal broken — welcome back");
+        onUnlocked();
+      } catch (err) {
+        setShake(true);
+        setPin("");
+        setError(err instanceof Error ? err.message : "Incorrect PIN");
+        window.setTimeout(() => setShake(false), 480);
+      } finally {
+        setBusy(false);
       }
-      toast.success("Seal broken — welcome back");
-      onUnlocked();
-    } catch (err) {
-      setShake(true);
-      setPin("");
-      window.setTimeout(() => setShake(false), 450);
-      toast.error(err instanceof Error ? err.message : "Incorrect PIN");
-    } finally {
-      setBusy(false);
-    }
-  };
+    },
+    [busy, onUnlocked, scope, subjectKey],
+  );
 
-  const press = (digit: string) => {
-    if (busy || pin.length >= 4) return;
-    const next = pin + digit;
-    setPin(next);
-    if (next.length === 4) void submit(next);
-  };
-  const back = () => {
+  const press = useCallback(
+    (digit: string) => {
+      if (busy) return;
+      setError(null);
+      setPin((current) => {
+        if (current.length >= 4) return current;
+        const next = current + digit;
+        if (next.length === 4) {
+          queueMicrotask(() => {
+            void submit(next);
+          });
+        }
+        return next;
+      });
+    },
+    [busy, submit],
+  );
+
+  const back = useCallback(() => {
     if (busy) return;
+    setError(null);
     setPin((p) => p.slice(0, -1));
-  };
+  }, [busy]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (busy) return;
+      if (e.key >= "0" && e.key <= "9") {
+        e.preventDefault();
+        press(e.key);
+        return;
+      }
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        back();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [back, busy, press]);
+
+  const noun = scopeNoun(scope);
 
   return (
-    <section className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 py-10">
+    <section
+      className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-5 py-8"
+      aria-labelledby={titleId}
+    >
       <div
         className={cn(
-          "relative flex size-28 items-center justify-center",
-          "rounded-full border-[3px] border-[color-mix(in_srgb,#7f1d1d_55%,#1c1915)]",
-          "bg-[radial-gradient(circle_at_35%_30%,#b91c1c,#7f1d1d_55%,#450a0a)]",
-          "text-[#fef2f2] shadow-[0_18px_40px_-18px_rgba(127,29,29,0.85)]",
-          "animate-[sp-card-in_0.55s_cubic-bezier(0.22,1,0.36,1)_both]",
+          "relative flex size-[5.5rem] items-center justify-center rounded-[2px]",
+          "border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_14%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--tab-focus,var(--op-accent,#1D4B3B))_10%,var(--tab-card,#FCFAF5))]",
+          "text-[var(--tab-focus,var(--op-accent,#1D4B3B))]",
+          "shadow-[0_18px_36px_-22px_color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_45%,transparent)]",
         )}
+        aria-hidden
       >
-        <Stamp className="size-10 opacity-90" strokeWidth={1.5} />
-        <span className="absolute -bottom-1 rounded-sm bg-[#450a0a] px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em]">
+        <Stamp className="size-9 opacity-90" strokeWidth={1.4} />
+        <span
+          className={cn(
+            "absolute -bottom-2 rounded-[2px] px-2 py-0.5",
+            "bg-[var(--tab-fg,var(--op-ink,#121A16))] text-[var(--tab-bg,#F4F1EA)]",
+            "font-mono text-[9px] font-bold uppercase tracking-[0.18em]",
+          )}
+        >
           Sealed
         </span>
       </div>
 
-      <h1 className="mt-7 text-center font-[family-name:var(--font-heading)] text-[1.75rem] font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+      <h1
+        id={titleId}
+        className="mt-8 text-balance text-center text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--tab-fg,var(--op-ink,#121A16))]"
+        style={{
+          fontFamily:
+            'var(--font-cormorant), Georgia, "Times New Roman", serif',
+        }}
+      >
         {displayName || "Protected page"}
       </h1>
-      <p className="mt-2 max-w-sm text-center text-[13px] leading-relaxed text-muted-foreground">
-        This{" "}
-        {scope === "supplier"
-          ? "passport"
-          : scope === "shop-supplier"
-            ? "supplier page"
-            : "credit tab"}{" "}
-        is sealed. Enter the 4-digit PIN to break the seal
-        {phoneHint ? ` · phone on file ${phoneHint}` : ""}.
+      <p className="mt-2 max-w-[28ch] text-center text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_58%,transparent)]">
+        Enter your 4-digit PIN to open this {noun}
+        {phoneHint ? (
+          <>
+            {" "}
+            · phone {phoneHint}
+          </>
+        ) : null}
+        .
       </p>
 
       <div
-        className={cn(
-          "mt-6 flex gap-2 transition-transform",
-          shake && "-translate-x-1",
-        )}
-        style={shake ? { animation: "none" } : undefined}
+        className={cn("mt-7 flex gap-3", shake && "seal-pin-shake")}
+        role="status"
+        aria-live="polite"
+        aria-label={`${pin.length} of 4 digits entered`}
       >
-        {[0, 1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className={cn(
-              "flex size-3.5 items-center justify-center rounded-full border",
-              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)]",
-              i < pin.length
-                ? "bg-[var(--pos-ink,#1c1915)]"
-                : "bg-transparent",
-            )}
-          />
-        ))}
-      </div>
-
-      <div className="mt-7 grid w-full max-w-[240px] grid-cols-3 gap-2">
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((key) => {
-          if (key === "") return <span key="pad" />;
-          const isBack = key === "⌫";
+        {[0, 1, 2, 3].map((i) => {
+          const filled = i < pin.length;
+          const active = i === pin.length && !busy;
           return (
-            <button
-              key={key}
-              type="button"
-              disabled={busy}
-              onClick={() => (isBack ? back() : press(key))}
+            <span
+              key={i}
               className={cn(
-                "flex h-14 items-center justify-center border text-[1.15rem] font-semibold tabular-nums",
-                "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-                "bg-white/80 text-[var(--pos-ink,#1c1915)]",
-                "transition active:scale-95 disabled:opacity-50",
-                "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+                "flex h-12 w-10 items-center justify-center rounded-[2px] border transition-[border-color,background-color,transform] duration-150",
+                "ease-[cubic-bezier(0.22,1,0.36,1)]",
+                filled
+                  ? "border-[var(--tab-fg,var(--op-ink,#121A16))] bg-[var(--tab-card,#FCFAF5)]"
+                  : active
+                    ? "border-[var(--tab-focus,var(--op-accent,#1D4B3B))] bg-[var(--tab-card,#FCFAF5)]"
+                    : "border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_16%,transparent)] bg-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_4%,var(--tab-card,#FCFAF5))]",
               )}
             >
-              {isBack ? "⌫" : key}
-            </button>
+              <span
+                className={cn(
+                  "size-2 rounded-full transition-transform duration-150",
+                  filled
+                    ? "scale-100 bg-[var(--tab-fg,var(--op-ink,#121A16))]"
+                    : "scale-0 bg-transparent",
+                )}
+              />
+            </span>
           );
         })}
       </div>
 
+      {error ? (
+        <p
+          className="mt-3 max-w-[28ch] text-center text-[12px] font-medium text-[var(--tab-error-fg,#A55237)]"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      <div
+        className="mt-8 grid w-full max-w-[17.5rem] grid-cols-3 gap-2"
+        role="group"
+        aria-label="PIN keypad"
+      >
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"].map(
+          (key) => {
+            if (key === "") return <span key="pad" aria-hidden />;
+            const isBack = key === "back";
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={busy}
+                aria-label={isBack ? "Delete last digit" : `Digit ${key}`}
+                onClick={() => (isBack ? back() : press(key))}
+                className={cn(
+                  "flex h-[3.35rem] items-center justify-center rounded-[2px] border text-[1.2rem] font-semibold tabular-nums",
+                  "border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_12%,transparent)]",
+                  "bg-[var(--tab-card,#FCFAF5)] text-[var(--tab-fg,var(--op-ink,#121A16))]",
+                  "transition-[background-color,transform] duration-150",
+                  "ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  "hover:bg-[color-mix(in_srgb,var(--tab-focus,var(--op-accent,#1D4B3B))_8%,var(--tab-card,#FCFAF5))]",
+                  "active:scale-[0.97] disabled:opacity-45",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tab-focus,var(--op-accent,#1D4B3B))] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-bg,#F4F1EA)]",
+                )}
+              >
+                {isBack ? (
+                  <Delete className="size-5 opacity-80" strokeWidth={1.75} />
+                ) : (
+                  key
+                )}
+              </button>
+            );
+          },
+        )}
+      </div>
+
       {busy ? (
-        <p className="mt-4 flex items-center gap-2 text-[12px] text-muted-foreground">
+        <p className="mt-5 flex items-center gap-2 text-[12px] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_55%,transparent)]">
           <Loader2 className="size-3.5 animate-spin" />
           Checking PIN…
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-5 text-[11px] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_42%,transparent)]">
+          You can also type on a keyboard
+        </p>
+      )}
     </section>
   );
 }
@@ -341,11 +466,16 @@ function SealManager({
     }
   };
 
+  const ink = "var(--tab-fg,var(--op-ink,#121A16))";
+  const card = "var(--tab-card,#FCFAF5)";
+  const accent = "var(--tab-focus,var(--op-accent,#1D4B3B))";
+
   return (
     <div
       className={cn(
-        "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
-        "bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)]",
+        "overflow-hidden rounded-[2px] border",
+        "border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_12%,transparent)]",
+        "bg-[var(--tab-card,#FCFAF5)]",
       )}
     >
       <button
@@ -354,28 +484,35 @@ function SealManager({
           setOpen((v) => !v);
           setStep(sealed ? "unseal" : "idle");
         }}
-        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left"
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
       >
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--pos-ink,#1c1915)]">
+        <span
+          className="flex items-center gap-1.5 text-[12px] font-medium"
+          style={{ color: ink }}
+        >
           {sealed ? (
-            <ShieldCheck className="size-3 text-[var(--pos-primary,#0f766e)]" />
+            <ShieldCheck className="size-3.5" style={{ color: accent }} />
           ) : (
-            <Lock className="size-3 text-muted-foreground" />
+            <Lock
+              className="size-3.5 opacity-55"
+              style={{ color: ink }}
+            />
           )}
           {sealed ? "Page sealed" : "Protect this page"}
         </span>
-        <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_48%,transparent)]">
           {open ? "Close" : sealed ? "Manage" : "Seal"}
         </span>
       </button>
 
       {open ? (
-        <div className="space-y-3 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3.5 py-3.5">
+        <div className="space-y-3 border-t border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_10%,transparent)] px-3 py-3">
           {!sealed && step === "idle" ? (
             <>
-              <p className="text-[12px] leading-relaxed text-muted-foreground">
-                We&apos;ll text a code by WhatsApp and SMS to verify this phone, then you set a
-                4-digit PIN. Visitors will need that PIN to open balances and history
+              <p className="text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_58%,transparent)]">
+                We&apos;ll text a code by WhatsApp and SMS to verify this phone,
+                then you set a 4-digit PIN. Visitors will need that PIN to open
+                balances and history
                 {phoneHint ? ` · ${phoneHint}` : ""}.
               </p>
               <button
@@ -383,12 +520,16 @@ function SealManager({
                 disabled={busy}
                 onClick={() => void sendCode()}
                 className={cn(
-                  "inline-flex h-9 items-center gap-2 border px-3 text-[11px] font-bold uppercase tracking-[0.12em]",
-                  "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white",
+                  "inline-flex h-10 items-center gap-2 rounded-[2px] px-3 text-[13px] font-semibold text-white",
                   "disabled:opacity-50",
                 )}
+                style={{ backgroundColor: accent }}
               >
-                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Smartphone className="size-3.5" />}
+                {busy ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Smartphone className="size-3.5" />
+                )}
                 Send code
               </button>
             </>
@@ -396,10 +537,10 @@ function SealManager({
 
           {!sealed && step === "code" ? (
             <>
-              <p className="text-[12px] text-muted-foreground">
-                Enter the code we sent by WhatsApp and SMS, then choose your PIN.
+              <p className="text-[12px] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_58%,transparent)]">
+                Enter the code we sent, then choose your PIN.
                 {devCode ? (
-                  <span className="ml-1 font-mono text-[var(--pos-primary,#0f766e)]">
+                  <span className="ml-1 font-mono" style={{ color: accent }}>
                     stub {devCode}
                   </span>
                 ) : null}
@@ -410,14 +551,18 @@ function SealManager({
                 maxLength={6}
                 placeholder="6-digit code"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="h-10 w-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-3 font-mono text-sm"
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                className="h-11 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_14%,transparent)] px-3 font-mono text-sm tabular-nums"
+                style={{ backgroundColor: card, color: ink }}
               />
               <button
                 type="button"
                 disabled={code.length < 4}
                 onClick={() => setStep("pin")}
-                className="inline-flex h-9 items-center border border-[var(--pos-ink,#1c1915)] bg-[var(--pos-ink,#1c1915)] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-40"
+                className="inline-flex h-10 items-center rounded-[2px] px-3 text-[13px] font-semibold text-white disabled:opacity-40"
+                style={{ backgroundColor: ink }}
               >
                 Continue
               </button>
@@ -426,8 +571,9 @@ function SealManager({
 
           {!sealed && step === "pin" ? (
             <>
-              <p className="text-[12px] text-muted-foreground">
-                Create a 4-digit seal PIN. You’ll use it every time you open this page.
+              <p className="text-[12px] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_58%,transparent)]">
+                Create a 4-digit seal PIN. You&apos;ll use it every time you
+                open this page.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <input
@@ -435,25 +581,36 @@ function SealManager({
                   maxLength={4}
                   placeholder="PIN"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  className="h-10 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-3 font-mono text-sm tracking-[0.3em]"
+                  onChange={(e) =>
+                    setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                  }
+                  className="h-11 rounded-[2px] border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_14%,transparent)] px-3 font-mono text-sm tracking-[0.3em]"
+                  style={{ backgroundColor: card, color: ink }}
                 />
                 <input
                   inputMode="numeric"
                   maxLength={4}
                   placeholder="Confirm"
                   value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  className="h-10 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-3 font-mono text-sm tracking-[0.3em]"
+                  onChange={(e) =>
+                    setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                  }
+                  className="h-11 rounded-[2px] border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_14%,transparent)] px-3 font-mono text-sm tracking-[0.3em]"
+                  style={{ backgroundColor: card, color: ink }}
                 />
               </div>
               <button
                 type="button"
                 disabled={busy || pin.length !== 4 || confirmPin.length !== 4}
                 onClick={() => void confirmSeal()}
-                className="inline-flex h-9 items-center gap-2 border border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-40"
+                className="inline-flex h-10 items-center gap-2 rounded-[2px] px-3 text-[13px] font-semibold text-white disabled:opacity-40"
+                style={{ backgroundColor: accent }}
               >
-                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Stamp className="size-3.5" />}
+                {busy ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Stamp className="size-3.5" />
+                )}
                 Seal page
               </button>
             </>
@@ -461,22 +618,26 @@ function SealManager({
 
           {sealed && step === "unseal" ? (
             <>
-              <p className="text-[12px] text-muted-foreground">
-                Enter your PIN to remove the seal and make this page public again.
+              <p className="text-[12px] text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_58%,transparent)]">
+                Enter your PIN to remove the seal and make this page public
+                again.
               </p>
               <input
                 inputMode="numeric"
                 maxLength={4}
                 placeholder="PIN"
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className="h-10 w-full max-w-[10rem] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white px-3 font-mono text-sm tracking-[0.3em]"
+                onChange={(e) =>
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                className="h-11 w-full max-w-[10rem] rounded-[2px] border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_14%,transparent)] px-3 font-mono text-sm tracking-[0.3em]"
+                style={{ backgroundColor: card, color: ink }}
               />
               <button
                 type="button"
                 disabled={busy || pin.length !== 4}
                 onClick={() => void confirmUnseal()}
-                className="inline-flex h-9 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground disabled:opacity-40"
+                className="inline-flex h-10 items-center gap-2 rounded-[2px] border border-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_16%,transparent)] px-3 text-[13px] font-semibold text-[color-mix(in_srgb,var(--tab-fg,var(--op-ink,#121A16))_70%,transparent)] disabled:opacity-40"
               >
                 {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
                 Remove seal

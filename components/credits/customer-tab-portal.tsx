@@ -311,29 +311,29 @@ function portalSurfaceStyle(
     ...storefrontVars,
     ["--tab-bg" as string]: isDark
       ? `color-mix(in oklab, ${primary} 14%, #0a0c0b)`
-      : `color-mix(in oklab, ${primary} 7%, #f3f4f2)`,
-    ["--tab-fg" as string]: isDark ? "#f7faf8" : "#122017",
+      : `color-mix(in oklab, ${primary} 6%, #F4F1EA)`,
+    ["--tab-fg" as string]: isDark ? "#f7faf8" : "#121A16",
     ["--tab-muted" as string]: isDark
       ? `color-mix(in oklab, ${primary} 22%, #c5cdc8)`
-      : `color-mix(in oklab, ${primary} 18%, #4b554f)`,
+      : `color-mix(in oklab, ${primary} 14%, #556159)`,
     ["--tab-card" as string]: isDark
       ? `color-mix(in oklab, ${primary} 8%, #121614)`
-      : "#ffffff",
+      : "#FCFAF5",
     ["--tab-border" as string]: isDark
       ? `color-mix(in oklab, ${primary} 22%, #2a2e2c)`
-      : `color-mix(in oklab, ${primary} 14%, #d5d8d4)`,
-    ["--tab-input" as string]: isDark ? "#0f1211" : "#ffffff",
+      : `color-mix(in oklab, ${primary} 10%, rgba(18, 26, 22, 0.12))`,
+    ["--tab-input" as string]: isDark ? "#0f1211" : "#FCFAF5",
     ["--tab-chip" as string]: isDark
       ? `color-mix(in oklab, ${primary} 12%, #1a1e1c)`
-      : `color-mix(in oklab, ${primary} 6%, #f4f6f4)`,
+      : `color-mix(in oklab, ${primary} 5%, #EFEBE2)`,
     ["--tab-cta-bg" as string]: isDark ? "#fafafa" : primary,
     ["--tab-cta-fg" as string]: isDark ? "#0a0a0a" : "#ffffff",
     ["--tab-success-fg" as string]: isDark ? "#86efac" : primary,
     ["--tab-success-bg" as string]: isDark
       ? `color-mix(in oklab, ${primary} 28%, #052e16)`
-      : `color-mix(in oklab, ${primary} 12%, white)`,
-    ["--tab-error-fg" as string]: isDark ? "#fca5a5" : "#b91c1c",
-    ["--tab-error-bg" as string]: isDark ? "#450a0a" : "#fef2f2",
+      : `color-mix(in oklab, ${primary} 12%, #FCFAF5)`,
+    ["--tab-error-fg" as string]: isDark ? "#fca5a5" : "#A55237",
+    ["--tab-error-bg" as string]: isDark ? "#450a0a" : "#F8EDE8",
     ["--tab-focus" as string]: primary,
     ["--primary" as string]: primary,
     backgroundColor: "var(--tab-bg)",
@@ -343,13 +343,13 @@ function portalSurfaceStyle(
 }
 
 const fieldClass =
-  "w-full border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3 text-[17px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
+  "w-full rounded-[2px] border border-[var(--tab-border)] bg-[var(--tab-input)] px-3 py-3 text-[17px] font-semibold tabular-nums outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--tab-focus)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] disabled:opacity-50";
 
 const btnPrimaryClass =
-  "flex w-full items-center justify-center gap-2 py-3.5 text-[15px] font-semibold transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:opacity-85 disabled:cursor-not-allowed disabled:opacity-45";
+  "flex w-full items-center justify-center gap-2 rounded-[2px] py-3.5 text-[15px] font-semibold tracking-[-0.02em] transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tab-card)] active:scale-[0.99] active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45";
 
 const btnSecondaryClass =
-  "flex w-full items-center justify-center gap-2 border border-[var(--tab-border)] py-3 text-[14px] font-medium text-[var(--tab-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] active:bg-[var(--tab-bg)] disabled:opacity-45";
+  "flex w-full items-center justify-center gap-2 rounded-[2px] border border-[var(--tab-border)] py-3 text-[14px] font-medium text-[var(--tab-muted)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--tab-focus)_28%,transparent)] active:bg-[var(--tab-bg)] disabled:opacity-45";
 
 const PURCHASE_PAGE_SIZE = 8;
 
@@ -516,7 +516,7 @@ function QuickAmountChips({
             disabled={disabled}
             onClick={() => onPick(n)}
             className={cn(
-              "border px-2 py-3 text-[13px] font-semibold tabular-nums transition active:scale-[0.98] disabled:opacity-40",
+              "rounded-[2px] border px-2 py-3 text-[13px] font-semibold tabular-nums transition active:scale-[0.98] disabled:opacity-40",
               active
                 ? "border-[var(--tab-fg)] bg-[var(--tab-fg)] text-[var(--tab-bg)]"
                 : "border-[var(--tab-border)] bg-[var(--tab-chip)] text-[var(--tab-fg)]",
@@ -620,7 +620,7 @@ function PaySheet({
         closeLabel="Back to tab"
         kicker={
           <>
-            Outstanding{" "}
+            Owed{" "}
             <span className="font-semibold tabular-nums text-[var(--tab-fg)]">
               {fmtMoney(owed, currency)}
             </span>
@@ -1566,9 +1566,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   <div className="min-w-0">
                     <h2
                       className={cn(
-                        "text-[1.85rem] font-bold leading-none tabular-nums tracking-[-0.035em]",
+                        "text-[2.15rem] font-normal leading-none tabular-nums tracking-[-0.03em]",
                         owed <= 0 && "text-[var(--tab-success-fg)]",
                       )}
+                      style={{
+                        fontFamily:
+                          'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                      }}
                     >
                       {fmtMoney(owed, currency)}
                     </h2>

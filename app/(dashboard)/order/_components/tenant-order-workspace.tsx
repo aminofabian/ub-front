@@ -2019,7 +2019,7 @@ export function TenantOrderWorkspace({
               )}
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#121A16)_55%,transparent)]">
                   Cash snap
                 </p>
                 {snapMode ? (
@@ -2080,7 +2080,7 @@ export function TenantOrderWorkspace({
           {canDeposit && activeSupplier ? (
             <div className="mt-3 flex items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-2.5 py-2">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#121A16)_55%,transparent)]">
                   Supplier wallet
                 </p>
                 <p className="truncate text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)]">
@@ -2274,17 +2274,11 @@ export function TenantOrderWorkspace({
   return (
     <div
       className={cn(
-        "relative flex w-full flex-col font-sans text-[var(--order-ink,#15231f)] selection:bg-[#cde8e3] selection:text-[#15231f]",
+        "relative flex w-full flex-col font-sans text-[var(--order-ink,#121A16)] selection:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_18%,transparent)] selection:text-[var(--order-ink,#121A16)]",
         embedded
           ? "h-full min-h-0 flex-1 overflow-hidden border-0"
-          : "max-lg:bg-[#f4f7f5] lg:min-h-0 lg:flex-1 lg:overflow-hidden",
+          : "max-lg:bg-[var(--op-bg,#F4F1EA)] lg:min-h-0 lg:flex-1 lg:overflow-hidden",
       )}
-      style={{
-        ["--pos-primary" as string]: "#0f766e",
-        ["--order-ink" as string]: "#15231f",
-        ["--order-shelf" as string]: "#ffffff",
-        ["--order-slip" as string]: "#ffffff",
-      }}
     >
       <div className="relative z-[1] flex shrink-0 items-center gap-2 px-3 pt-2 sm:hidden">
         <button
@@ -2293,22 +2287,25 @@ export function TenantOrderWorkspace({
             setSupplierPickerOpen(true);
             setSupplierQuery("");
           }}
-          className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-2xl border border-black/[0.06] bg-white px-3.5 py-2 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.99]"
+          className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] px-3.5 py-2 text-left active:scale-[0.99]"
         >
           <span className="min-w-0">
-            <span className="block text-[12px] font-medium text-[#667085]">
+            <span className="block text-[12px] font-medium text-[var(--op-muted,#556159)]">
               Supplier
             </span>
-            <span className="block truncate text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[#15231f]">
+            <span className="block truncate text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[var(--op-ink,#121A16)]">
               {activeSupplier?.name ?? "Select supplier"}
             </span>
           </span>
-          <ChevronDown className="size-5 shrink-0 text-[#667085]" aria-hidden />
+          <ChevronDown
+            className="size-5 shrink-0 text-[var(--op-muted,#556159)]"
+            aria-hidden
+          />
         </button>
         <button
           type="button"
           onClick={() => setToolsOpen(true)}
-          className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-black/[0.06] bg-white text-[#15231f] shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.97]"
+          className="flex size-14 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-ink,#121A16)] active:scale-[0.97]"
           aria-label="Order tools"
         >
           <Ellipsis className="size-5" aria-hidden />
@@ -2349,7 +2346,7 @@ export function TenantOrderWorkspace({
         <button
           type="button"
           onClick={() => setToolsOpen(true)}
-          className="mr-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[#15231f] ring-1 ring-black/[0.06] transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] sm:hidden"
+          className="mr-1 inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-ink,#121A16)] transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] sm:hidden"
           aria-label="Order tools"
         >
           <Ellipsis className="size-5" aria-hidden />
@@ -2364,7 +2361,7 @@ export function TenantOrderWorkspace({
             <button
               type="button"
               onClick={onOpenConfirm}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#0f766e] px-3 text-[12px] font-semibold text-white transition-colors hover:bg-[#0d6b63] active:scale-[0.98]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-3 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] active:scale-[0.98]"
             >
               <ClipboardList className="size-3.5" aria-hidden />
               Confirm
@@ -2372,7 +2369,7 @@ export function TenantOrderWorkspace({
           ) : (
             <Link
               href={APP_ROUTES.orderReceive}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#0f766e] px-3 text-[12px] font-semibold text-white transition-colors hover:bg-[#0d6b63] active:scale-[0.98]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-3 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] active:scale-[0.98]"
             >
               <ClipboardList className="size-3.5" aria-hidden />
               Confirm
@@ -2550,7 +2547,7 @@ export function TenantOrderWorkspace({
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
               <input
-                className="h-12 w-full rounded-2xl bg-white pl-10 pr-3 text-base caret-[#0f766e] ring-1 ring-black/[0.06] outline-none placeholder:text-[#667085] focus:ring-2 focus:ring-[#0f766e]/40 sm:h-11 sm:rounded-full sm:text-[14px]"
+                className="h-12 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-3 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-11 sm:text-[14px]"
                 placeholder={
                   orderTemplate === "ledger"
                     ? "Search products in this list…"
@@ -2564,7 +2561,7 @@ export function TenantOrderWorkspace({
             <button
               type="button"
               onClick={() => setScannerOpen(true)}
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#0f766e] ring-1 ring-black/[0.06] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] sm:hidden"
+              className="flex size-12 shrink-0 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--pos-primary,#1D4B3B)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] sm:hidden"
               aria-label="Scan a barcode"
             >
               <Camera className="size-5" aria-hidden />
@@ -2600,10 +2597,10 @@ export function TenantOrderWorkspace({
                     setInOrderOnly(false);
                   }}
                   className={cn(
-                    "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 py-2 text-[13px] font-semibold transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                    "inline-flex min-h-11 shrink-0 items-center rounded-[2px] border px-3 py-2 text-[13px] font-semibold tracking-[-0.02em] transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
                     !parentFilterId && !inOrderOnly
-                      ? "bg-[#0f766e] text-white"
-                      : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
+                      ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-muted,#556159)] hover:text-[var(--op-ink,#121A16)]",
                   )}
                 >
                   All
@@ -2615,10 +2612,10 @@ export function TenantOrderWorkspace({
                     setParentFilterId(null);
                   }}
                   className={cn(
-                    "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 py-2 text-[13px] font-semibold tabular-nums transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                    "inline-flex min-h-11 shrink-0 items-center rounded-[2px] border px-3 py-2 text-[13px] font-semibold tabular-nums tracking-[-0.02em] transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
                     inOrderOnly
-                      ? "bg-[#0f766e] text-white"
-                      : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
+                      ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)]"
+                      : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-muted,#556159)] hover:text-[var(--op-ink,#121A16)]",
                   )}
                 >
                   In order · {cartLines.length}
@@ -2634,10 +2631,10 @@ export function TenantOrderWorkspace({
                       );
                     }}
                     className={cn(
-                      "inline-flex min-h-11 max-w-[11rem] shrink-0 items-center truncate rounded-full px-3.5 py-2 text-[13px] font-semibold transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                      "inline-flex min-h-11 max-w-[11rem] shrink-0 items-center truncate rounded-[2px] border px-3 py-2 text-[13px] font-semibold tracking-[-0.02em] transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
                       parentFilterId === opt.id
-                        ? "bg-[#0f766e] text-white"
-                        : "bg-white text-[#475467] ring-1 ring-black/[0.06] hover:text-[#101828]",
+                        ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)]"
+                        : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-muted,#556159)] hover:text-[var(--op-ink,#121A16)]",
                     )}
                   >
                     {opt.label}
@@ -2654,14 +2651,20 @@ export function TenantOrderWorkspace({
             )}
           >
             {!supplierId ? (
-              <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-6 text-center">
+              <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] px-6 text-center">
                 <Package
-                  className="size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
+                  className="size-8 text-[color-mix(in_srgb,var(--order-ink,#121A16)_28%,transparent)]"
                   strokeWidth={1.25}
                   aria-hidden
                 />
                 <div>
-                  <p className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+                  <p
+                    className="text-[1.45rem] font-normal tracking-[-0.02em] text-[var(--op-ink,#121A16)]"
+                    style={{
+                      fontFamily:
+                        'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                    }}
+                  >
                     Choose a supplier
                   </p>
                   <p className="mt-1 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
@@ -2791,25 +2794,29 @@ export function TenantOrderWorkspace({
           type="button"
           onClick={() => setMobileOrderOpen(true)}
           className={cn(
-            "order-phone-rise flex w-full items-center justify-between gap-3 rounded-full bg-[#0f766e] px-4 py-3 text-left text-white shadow-[0_12px_28px_-16px_rgba(15,118,110,0.95)] active:scale-[0.99]",
-            flashItemId && "ring-2 ring-white/80",
+            "order-phone-rise flex w-full items-center justify-between gap-3 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-4 py-3 text-left text-[var(--op-surface,#FCFAF5)] shadow-[0_14px_32px_-20px_color-mix(in_srgb,var(--pos-primary,#1D4B3B)_70%,transparent)] active:scale-[0.99]",
+            flashItemId && "ring-2 ring-[var(--op-surface,#FCFAF5)]/80",
           )}
         >
           <span className="min-w-0">
-            <span className="block text-[13px] font-medium text-white/80">
+            <span className="block text-[13px] font-medium text-[var(--op-surface,#FCFAF5)]/80">
               {cartUnits.toLocaleString()} {cartUnits === 1 ? "item" : "items"}
             </span>
             <span
               key={cartUnits}
               className={cn(
-                "block truncate font-heading text-[18px] font-semibold leading-tight tracking-[-0.03em] tabular-nums",
+                "block truncate text-[1.25rem] font-normal leading-tight tracking-[-0.02em] tabular-nums",
                 cartUnits > 0 && "order-phone-pop",
               )}
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
             >
               {formatMoney(effectiveTotal, currency)}
             </span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-[15px] font-semibold">
+          <span className="inline-flex shrink-0 items-center gap-1 text-[14px] font-semibold tracking-[-0.02em]">
             Review order
             <ChevronRight className="size-4" aria-hidden />
           </span>

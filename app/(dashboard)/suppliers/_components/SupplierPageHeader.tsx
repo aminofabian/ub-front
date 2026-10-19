@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   BookOpen,
+  ChartNoAxesColumn,
   CircleDollarSign,
   LayoutGrid,
   Package,
@@ -34,6 +35,11 @@ const RELATED_LINKS: {
     href: APP_ROUTES.categories,
     label: "Categories",
     icon: LayoutGrid,
+  },
+  {
+    href: APP_ROUTES.purchasingSpend,
+    label: "Spend",
+    icon: ChartNoAxesColumn,
   },
   {
     href: APP_ROUTES.purchasingIntelligence,

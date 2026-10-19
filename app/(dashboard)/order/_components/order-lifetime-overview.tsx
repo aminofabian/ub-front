@@ -56,7 +56,7 @@ export function OrderLifetimeOverview({
       : 0;
 
   return (
-    <div className="rounded-2xl bg-white p-3 ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
+    <div className="rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-nowrap sm:gap-x-4">
         <LedgerMetric
           label="Spend"
