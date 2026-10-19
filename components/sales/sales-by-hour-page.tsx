@@ -12,13 +12,24 @@ import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
-import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import {
   DATE_FILTER_OPTIONS,
   type SalesDatePreset,
 } from "@/components/sales/sales-feed-filters";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesHeroMetric,
+  SalesMetricTile,
+  SalesPeriodChip,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
 import {
   fetchSalesByHour,
@@ -73,9 +84,6 @@ function formatStamp(
     hour12: false,
   });
 }
-
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 
 export function SalesByHourPage() {
   const { me, branchId, itemTypeId, headerScopeReady } = useDashboard();
@@ -164,29 +172,24 @@ export function SalesByHourPage() {
   }
 
   const timeZone = data?.timezone || "Africa/Nairobi";
+  const saleCountLabel =
+    loading && !data ? "—" : (data?.saleCount ?? 0).toLocaleString("en-KE");
+  const takenLabel = loading && !data ? "—" : fmtKes(data?.revenue);
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper)}>
       <DashboardPageHero
         icon={Clock}
         title="By the hour"
         description={periodLabel || "How many sales landed in each hour."}
         showActiveScope
       >
-        <Button
+        <Link href={APP_ROUTES.sales} className={salesToolBtnClass()}>
+          Sales
+        </Link>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none shadow-none"
-          asChild
-        >
-          <Link href={APP_ROUTES.sales}>Sales</Link>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none shadow-none"
+          className={salesToolBtnClass()}
           onClick={() => void load({ silent: true })}
           disabled={loading}
         >
@@ -195,35 +198,29 @@ export function SalesByHourPage() {
             aria-hidden
           />
           Refresh
-        </Button>
+        </button>
       </DashboardPageHero>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <div className={cn("border bg-white px-2.5 py-1.5", HAIRLINE)}>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <span className="shrink-0 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground/80">
+      <div className={cn(salesSurface, "px-3 py-2.5 sm:px-3.5")}>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          <span className={cn("shrink-0 text-[11px] font-semibold", salesMute)}>
             When
           </span>
           <div
             role="group"
             aria-label="Period"
-            className="inline-flex flex-wrap items-center gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5"
+            className="flex flex-wrap items-center gap-1.5"
           >
             {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-              <button
+              <SalesPeriodChip
                 key={id}
-                type="button"
+                active={datePreset === id}
                 onClick={() => setDatePreset(id)}
-                className={cn(
-                  "rounded-none px-2 py-1 text-[11px] font-semibold",
-                  datePreset === id
-                    ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
               >
                 {label}
-              </button>
+              </SalesPeriodChip>
             ))}
           </div>
           {datePreset === "custom" ? (
@@ -232,14 +229,14 @@ export function SalesByHourPage() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className={cn(dashboardInputClass(), "h-8 py-1 text-sm")}
+                className={cn(dashboardInputClass(), "h-9 py-1 text-sm")}
                 aria-label="From"
               />
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className={cn(dashboardInputClass(), "h-8 py-1 text-sm")}
+                className={cn(dashboardInputClass(), "h-9 py-1 text-sm")}
                 aria-label="To"
               />
             </div>
@@ -247,131 +244,168 @@ export function SalesByHourPage() {
         </div>
       </div>
 
-      <section className={cn("border bg-white", HAIRLINE)}>
-        <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3.5 py-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Completed sales
-            </p>
-            <p
-              className="mt-1 text-[1.65rem] font-semibold leading-none tabular-nums tracking-[-0.04em]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {loading && !data ? "—" : (data?.saleCount ?? 0).toLocaleString("en-KE")}
-            </p>
-          </div>
-          <p className="text-right">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Taken
-            </span>
-            <span className="mt-1 block text-[15px] font-semibold tabular-nums">
-              {loading && !data ? "—" : fmtKes(data?.revenue)}
-            </span>
-          </p>
-        </header>
+      <div className={cn(salesSurface, "overflow-hidden")}>
+        <div
+          className={cn(
+            "grid sm:grid-cols-[minmax(0,1fr)_auto]",
+            salesHair,
+            "border-b",
+          )}
+        >
+          <SalesHeroMetric
+            label="Completed sales"
+            value={saleCountLabel}
+            hint={periodLabel || undefined}
+          />
+          <SalesMetricTile
+            label="Taken"
+            value={takenLabel}
+            className={cn(
+              "border-t sm:border-l sm:border-t-0",
+              salesHair,
+              "sm:min-w-[11rem]",
+            )}
+          />
+        </div>
+      </div>
 
-        {loading && !data ? (
-          <p className={cn(dashboardHintClass(), "px-3.5 py-8")}>Loading the day…</p>
-        ) : !data || data.hours.length === 0 ? (
-          <p className={cn(dashboardHintClass(), "px-3.5 py-8")}>
-            No completed sales in this period.
-          </p>
-        ) : (
-          <ol>
-            {data.hours.map((row) => {
-              const open = openHour === row.hour;
-              const width = Math.max(row.saleCount > 0 ? 4 : 0, (row.saleCount / maxCount) * 100);
-              return (
-                <li
-                  key={row.hour}
-                  className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] last:border-b-0"
-                >
-                  <button
-                    type="button"
-                    aria-expanded={open}
-                    onClick={() => setOpenHour(open ? null : row.hour)}
-                    className="grid w-full grid-cols-[7.5rem_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3 text-left hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]"
+      <SalesStage title="Hour by hour" hint="Tap an hour to see receipts." bodyClassName="p-0">
+          {loading && !data ? (
+            <p className={cn(dashboardHintClass(), "px-3.5 py-8")}>
+              Loading the day…
+            </p>
+          ) : !data || data.hours.length === 0 ? (
+            <p className={cn(dashboardHintClass(), "px-3.5 py-8")}>
+              No completed sales in this period.
+            </p>
+          ) : (
+            <ol>
+              {data.hours.map((row) => {
+                const open = openHour === row.hour;
+                const width = Math.max(
+                  row.saleCount > 0 ? 4 : 0,
+                  (row.saleCount / maxCount) * 100,
+                );
+                return (
+                  <li
+                    key={row.hour}
+                    className={cn("border-b last:border-b-0", salesHair)}
                   >
-                    <span className="font-mono text-[12px] font-medium tabular-nums text-[#141414]">
-                      {hourLabel(row.hour)}
-                    </span>
-                    <span className="flex min-w-0 items-center gap-2">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => setOpenHour(open ? null : row.hour)}
+                      className="grid w-full grid-cols-[7.5rem_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]"
+                    >
                       <span
-                        className="h-2 bg-[var(--pos-primary,#0f766e)]"
-                        style={{ width: `${width}%`, opacity: row.saleCount > 0 ? 1 : 0.15 }}
-                        aria-hidden
-                      />
-                    </span>
-                    <span className="text-right">
-                      <span className="block font-mono text-[12px] font-medium tabular-nums text-[#141414]">
-                        {row.saleCount.toLocaleString("en-KE")}
-                        <span className="ml-1 text-[10px] font-normal text-[#8A8A8A]">
-                          {row.saleCount === 1 ? "sale" : "sales"}
+                        className={cn(
+                          "font-mono text-[12px] font-medium tabular-nums",
+                          salesInk,
+                        )}
+                      >
+                        {hourLabel(row.hour)}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          className="h-2 rounded-sm bg-[var(--pos-primary,#0f766e)]"
+                          style={{
+                            width: `${width}%`,
+                            opacity: row.saleCount > 0 ? 1 : 0.15,
+                          }}
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="text-right">
+                        <span
+                          className={cn(
+                            "block font-mono text-[12px] font-medium tabular-nums",
+                            salesInk,
+                          )}
+                        >
+                          {row.saleCount.toLocaleString("en-KE")}
+                          <span className={cn("ml-1 text-[10px] font-normal", salesMute)}>
+                            {row.saleCount === 1 ? "sale" : "sales"}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "block font-mono text-[11px] tabular-nums",
+                            salesMute,
+                          )}
+                        >
+                          {fmtKes(row.revenue)}
                         </span>
                       </span>
-                      <span className="block font-mono text-[11px] tabular-nums text-[#3A3A3A]">
-                        {fmtKes(row.revenue)}
-                      </span>
-                    </span>
-                  </button>
-                  {open ? (
-                    <ul className="border-t border-dashed border-[color-mix(in_srgb,#141414_8%,transparent)] bg-[#FBFCFB] px-3.5 py-2">
-                      {row.sales.length === 0 ? (
-                        <li className="py-2 text-[12px] text-[#8A8A8A]">
-                          Nothing sold in this hour.
-                        </li>
-                      ) : (
-                        row.sales.map((sale) => (
-                          <li
-                            key={sale.saleId}
-                            className={cn(
-                              "grid items-baseline gap-x-3 py-1.5",
-                              spansDays
-                                ? "grid-cols-[8.75rem_minmax(0,1fr)_auto]"
-                                : "grid-cols-[3.75rem_minmax(0,1fr)_auto]",
-                            )}
-                          >
-                            <time
-                              dateTime={sale.soldAt}
-                              className="font-mono text-[12px] tabular-nums text-[#141414]"
-                            >
-                              {formatStamp(sale.soldAt, timeZone, spansDays)}
-                            </time>
-                            <span className="min-w-0 truncate text-[12px] text-[#3A3A3A]">
-                              <span className="font-medium text-[#141414]">
-                                {sale.receiptNo != null ? `#${sale.receiptNo}` : "Receipt"}
-                              </span>
-                              {sale.cashierName?.trim() ? (
-                                <span className="text-[#8A8A8A]">
-                                  {" "}
-                                  · {sale.cashierName.trim()}
-                                </span>
-                              ) : null}
-                              <span className="text-[#8A8A8A]">
-                                {" "}
-                                · {formatSalePaymentDisplay(sale.paymentMethod)}
-                              </span>
-                            </span>
-                            <span className="font-mono text-[12px] font-medium tabular-nums text-[#141414]">
-                              {fmtKes(sale.total)}
-                            </span>
+                    </button>
+                    {open ? (
+                      <ul
+                        className={cn(
+                          "border-t border-dashed px-3.5 py-2",
+                          salesHair,
+                          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+                        )}
+                      >
+                        {row.sales.length === 0 ? (
+                          <li className={cn("py-2 text-[12px]", salesMute)}>
+                            Nothing sold in this hour.
                           </li>
-                        ))
-                      )}
-                      {row.omitted > 0 ? (
-                        <li className="py-1.5 text-[11px] text-[#8A8A8A]">
-                          {row.omitted.toLocaleString("en-KE")} more{" "}
-                          {row.omitted === 1 ? "sale" : "sales"} in this hour.
-                        </li>
-                      ) : null}
-                    </ul>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </section>
+                        ) : (
+                          row.sales.map((sale) => (
+                            <li
+                              key={sale.saleId}
+                              className={cn(
+                                "grid items-baseline gap-x-3 py-1.5",
+                                spansDays
+                                  ? "grid-cols-[8.75rem_minmax(0,1fr)_auto]"
+                                  : "grid-cols-[3.75rem_minmax(0,1fr)_auto]",
+                              )}
+                            >
+                              <time
+                                dateTime={sale.soldAt}
+                                className={cn(
+                                  "font-mono text-[12px] tabular-nums",
+                                  salesInk,
+                                )}
+                              >
+                                {formatStamp(sale.soldAt, timeZone, spansDays)}
+                              </time>
+                              <span className={cn("min-w-0 truncate text-[12px]", salesMute)}>
+                                <span className={cn("font-medium", salesInk)}>
+                                  {sale.receiptNo != null ? `#${sale.receiptNo}` : "Receipt"}
+                                </span>
+                                {sale.cashierName?.trim() ? (
+                                  <span> · {sale.cashierName.trim()}</span>
+                                ) : null}
+                                <span>
+                                  {" "}
+                                  · {formatSalePaymentDisplay(sale.paymentMethod)}
+                                </span>
+                              </span>
+                              <span
+                                className={cn(
+                                  "font-mono text-[12px] font-medium tabular-nums",
+                                  salesInk,
+                                )}
+                              >
+                                {fmtKes(sale.total)}
+                              </span>
+                            </li>
+                          ))
+                        )}
+                        {row.omitted > 0 ? (
+                          <li className={cn("py-1.5 text-[11px]", salesMute)}>
+                            {row.omitted.toLocaleString("en-KE")} more{" "}
+                            {row.omitted === 1 ? "sale" : "sales"} in this hour.
+                          </li>
+                        ) : null}
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+      </SalesStage>
     </div>
   );
 }

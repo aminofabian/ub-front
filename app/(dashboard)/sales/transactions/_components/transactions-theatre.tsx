@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import {
-  dashboardHintClass,
   dashboardInputClass,
   DashboardFeedback,
 } from "@/components/dashboard-page-ui";
@@ -23,6 +22,14 @@ import {
   type SalesDatePreset,
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { Button } from "@/components/ui/button";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { APP_ROUTES } from "@/lib/config";
@@ -41,8 +48,6 @@ import {
 import { fetchSaleReceiptPdf } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
 const RUST = "text-[#9a2e16]";
 
 function LiveDot() {
@@ -156,9 +161,9 @@ function statusForTx(tx: SaleTransaction): {
         ? "Refunded"
         : "Completed";
   const className = isOnline
-    ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-[var(--order-ink,#15231f)]"
+    ? cn(salesHair, "border bg-transparent", salesInk)
     : voided
-      ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-transparent text-muted-foreground"
+      ? cn(salesHair, "border bg-transparent", salesMute)
       : refunded
         ? "border-[#9a2e16]/35 bg-transparent text-[#9a2e16]"
         : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-transparent text-[var(--pos-primary,#0f766e)]";
@@ -250,49 +255,54 @@ function TransactionsContextBanner({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-        HAIRLINE,
+        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-2.5 py-1.5 sm:px-3",
+        salesHair,
       )}
     >
-      <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
+      <p
+        className={cn(
+          "flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]",
+          salesInk,
+        )}
+      >
         <span className="inline-flex items-center gap-1.5 font-semibold">
           <LiveDot />
           {dateRange ? fmtKes(summary.revenue) : "Pick dates"}
         </span>
         {dateRange ? (
           <>
-            <span className={dashboardHintClass()}>
+            <span className={salesMute}>
               {summary.count.toLocaleString("en-KE")} receipts
             </span>
-            <span className={dashboardHintClass()}>
+            <span className={salesMute}>
               · {summary.units.toLocaleString("en-KE", { maximumFractionDigits: 1 })}{" "}
               units
             </span>
             {summary.refundCount > 0 ? (
-              <span className={cn(dashboardHintClass(), RUST)}>
+              <span className={cn(salesMute, RUST)}>
                 · {summary.refundCount} refunds ({fmtKes(summary.refundTotal)})
               </span>
             ) : null}
           </>
         ) : null}
         {periodLabel ? (
-          <span className={cn(dashboardHintClass(), "hidden sm:inline")}>
+          <span className={cn(salesMute, "hidden sm:inline")}>
             · {periodLabel}
           </span>
         ) : null}
         {updated ? (
-          <span className={cn(dashboardHintClass(), "hidden md:inline")}>
+          <span className={cn(salesMute, "hidden md:inline")}>
             · updated {updated}
           </span>
         ) : null}
         {feedFiltered && filteredCount !== totalCount ? (
-          <span className={dashboardHintClass()}>
+          <span className={salesMute}>
             · showing {filteredCount} of {totalCount}
           </span>
         ) : null}
       </p>
       {summary.completed > 0 ? (
-        <span className={cn(dashboardHintClass(), "hidden lg:inline")}>
+        <span className={cn(salesMute, "hidden lg:inline")}>
           Avg ticket {fmtKes(summary.avgTicket)}
         </span>
       ) : null}
@@ -309,8 +319,10 @@ function TransactionsPulse({
   periodLabel: string;
   className?: string;
 }) {
-  const card =
-    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]";
+  const card = cn(
+    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
+    salesHair,
+  );
 
   return (
     <div className={cn("relative h-full min-h-0 overflow-hidden", className)}>
@@ -339,16 +351,19 @@ function TransactionsPulse({
       </svg>
 
       <article className={cn(card, "left-[8%] top-[18%]")}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", salesMute)}>
           Revenue
         </p>
         <p
-          className="mt-2 text-[2.05rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground"
+          className={cn(
+            "mt-2 text-[2.05rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
+            salesInk,
+          )}
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {fmtKes(summary.revenue)}
         </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>
+        <p className={cn(salesMute, "mt-2 text-[12px]")}>
           {summary.completed > 0
             ? `${fmtKes(summary.avgTicket)} average ticket`
             : "Completed sales in period"}
@@ -356,7 +371,7 @@ function TransactionsPulse({
       </article>
 
       <article className={cn(card, "right-[6%] top-[32%]")}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", salesMute)}>
           Receipts
         </p>
         <p
@@ -365,20 +380,20 @@ function TransactionsPulse({
         >
           {summary.count.toLocaleString("en-KE")}
         </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>
+        <p className={cn(salesMute, "mt-2 text-[12px]")}>
           {summary.units.toLocaleString("en-KE", { maximumFractionDigits: 1 })}{" "}
           units sold
         </p>
       </article>
 
       <article className={cn(card, "left-[10%] bottom-[14%]")}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", salesMute)}>
           {summary.refundCount > 0 ? "Refunds" : "Period"}
         </p>
         <p
           className={cn(
             "mt-2 text-[1.65rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
-            summary.refundCount > 0 ? RUST : "text-foreground",
+            summary.refundCount > 0 ? RUST : salesInk,
           )}
           style={{ fontFamily: "var(--font-heading)" }}
         >
@@ -386,7 +401,7 @@ function TransactionsPulse({
             ? fmtKes(summary.refundTotal)
             : periodLabel.split("–")[0]?.trim() || "—"}
         </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>
+        <p className={cn(salesMute, "mt-2 text-[12px]")}>
           {summary.refundCount > 0
             ? `${summary.refundCount} refunded`
             : "Select a receipt on the left"}
@@ -438,21 +453,28 @@ function TransactionsFocus({
       </svg>
       <div className="relative z-[1] flex max-w-md flex-col items-center text-center">
         <span
-          className="grid size-14 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white font-mono text-sm font-bold tracking-wide text-foreground shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+          className={cn(
+            "grid size-14 place-items-center rounded-2xl border bg-white font-mono text-sm font-bold tracking-wide shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+            salesHair,
+            salesInk,
+          )}
           aria-hidden
         >
           #{txDisplayNo(tx)}
         </span>
         <h3
-          className="mt-4 text-[1.45rem] font-semibold leading-none tracking-[-0.03em] text-foreground"
+          className={cn(
+            "mt-4 text-[1.45rem] font-semibold leading-none tracking-[-0.03em]",
+            salesInk,
+          )}
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {fmtKes(Math.abs(tx.total))}
         </h3>
-        <p className="mt-2 max-w-full truncate text-sm text-muted-foreground">
+        <p className={cn("mt-2 max-w-full truncate text-sm", salesMute)}>
           {itemPreview(tx)}
         </p>
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className={cn("mt-1 text-[11px]", salesMute)}>
           {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
           {payment ? ` · ${payment}` : ""}
         </p>
@@ -471,7 +493,11 @@ function TransactionsFocus({
           {meta.slice(0, 2).map((part) => (
             <span
               key={part}
-              className="inline-flex max-w-[10rem] truncate border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-foreground"
+              className={cn(
+                "inline-flex max-w-[10rem] truncate rounded-lg border bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
+                salesHair,
+                salesInk,
+              )}
             >
               {part}
             </span>
@@ -528,16 +554,16 @@ function TransactionDetailPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
-      <div className="shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 sm:px-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className={cn("shrink-0 border-b px-3 py-2.5 sm:px-4", salesHair)}>
+        <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", salesMute)}>
           Line items
         </p>
-        <p className="mt-0.5 text-[12px] text-muted-foreground">
+        <p className={cn("mt-0.5 text-[12px]", salesMute)}>
           {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"}
           {payment ? ` · ${payment}` : ""}
         </p>
         {meta.length > 0 ? (
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+          <p className={cn("mt-1 truncate text-[11px]", salesMute)}>
             {meta.join(" · ")}
           </p>
         ) : null}
@@ -558,7 +584,11 @@ function TransactionDetailPanel({
           return (
             <li
               key={`${line.itemId}-${i}`}
-              className="flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] py-2 text-[11px] leading-snug text-muted-foreground last:border-0 sm:text-xs"
+              className={cn(
+                "flex items-baseline justify-between gap-3 border-b py-2 text-[11px] leading-snug last:border-0 sm:text-xs",
+                salesHair,
+                salesMute,
+              )}
             >
               <span className="min-w-0 truncate">
                 <span className="tabular-nums opacity-70">
@@ -576,7 +606,7 @@ function TransactionDetailPanel({
           );
         })}
       </ul>
-      <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-3 py-2.5 sm:px-4">
+      <div className={cn("shrink-0 border-t px-3 py-2.5 sm:px-4", salesHair)}>
         {!isOnline ? (
           <div className="flex flex-wrap items-center gap-1.5">
             <Button
@@ -637,7 +667,10 @@ function ListSkeletonInner() {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-3 last:border-0"
+          className={cn(
+            "space-y-2 border-b px-3 py-3 last:border-0",
+            salesHair,
+          )}
         >
           <div className="h-3 w-24 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]" />
           <div className="h-3 w-40 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)]" />
@@ -718,13 +751,17 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
       >
         <div
           className={cn(
-            "shrink-0 space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3",
+            "shrink-0 space-y-2 border-b px-2.5 py-2 sm:px-3",
+            salesHair,
             fill ? "bg-transparent" : "sticky top-0 z-[1] bg-white",
           )}
         >
           <label className="relative block min-w-0">
             <Search
-              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              className={cn(
+                "pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2",
+                salesMute,
+              )}
               aria-hidden
             />
             <input
@@ -774,7 +811,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
             compact
           />
           {feedFiltered && filteredCount !== totalCount ? (
-            <p className={dashboardHintClass()}>
+            <p className={cn("text-[11px]", salesMute)}>
               {filteredCount} of {totalCount} match filters
             </p>
           ) : null}
@@ -789,7 +826,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
           {loading ? (
             listSkeleton ?? <ListSkeletonInner />
           ) : filtered.length === 0 ? (
-            <p className="px-3 py-10 text-center text-[12px] text-muted-foreground">
+            <p className={cn("px-3 py-10 text-center text-[12px]", salesMute)}>
               {!dateRange
                 ? "Pick a from and to date."
                 : feedFiltered
@@ -797,7 +834,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
                   : "No transactions in this period."}
             </p>
           ) : (
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+            <ul className={cn("divide-y", salesHairDivide)}>
               {filtered.map((tx) => {
                 const selected = selectedId === tx.saleId;
                 const refunded = isRefunded(tx.status);
@@ -894,35 +931,36 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
   ) : (
     <div className="flex h-full flex-col justify-between bg-white px-4 py-6">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", salesMute)}>
           Dossier
         </p>
         <h3
-          className="mt-2 text-[1.35rem] font-semibold leading-none tracking-[-0.03em]"
+          className={cn(
+            "mt-2 text-[1.35rem] font-semibold leading-none tracking-[-0.03em]",
+            salesInk,
+          )}
           style={{ fontFamily: "var(--font-heading)" }}
         >
           Pick a receipt
         </h3>
-        <p className={cn(dashboardHintClass(), "mt-3 max-w-[16rem]")}>
+        <p className={cn(salesMute, "mt-3 max-w-[16rem] text-[12px] leading-snug")}>
           The map in the middle is this period. The list on the left names each
           sale — open one for line items, payment, and receipt actions.
         </p>
       </div>
       <div className="space-y-2">
-        <Button
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 w-full gap-1.5 rounded-none text-[12px] shadow-none"
+          className={cn(salesToolBtnClass(), "h-8 w-full justify-center")}
           onClick={onDownloadPdf}
           disabled={loading || !dateRange || pdfLoading}
         >
           <FileDown className="size-3.5" aria-hidden />
           {pdfLoading ? "PDF…" : "Download PDF"}
-        </Button>
+        </button>
         {recentRefunds.length > 0 ? (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", salesMute)}>
               Recent refunds
             </p>
             <ul className="mt-2 space-y-1">
@@ -945,7 +983,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-1.5">
+    <div className={cn(salesSurface, "flex min-h-0 flex-col overflow-hidden ring-0 shadow-none")}>
       <TransactionsContextBanner
         periodLabel={periodLabel}
         lastUpdated={lastUpdated}
@@ -957,17 +995,23 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
       />
 
       {error ? (
-        <DashboardFeedback kind="error" text={error} />
+        <div className="px-3 py-2">
+          <DashboardFeedback kind="error" text={error} />
+        </div>
       ) : null}
 
       <div
         className={cn(
-          "hidden h-[min(80dvh,52rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] lg:grid",
-          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+          "hidden h-[min(80dvh,52rem)] overflow-hidden lg:grid",
           "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
         )}
       >
-        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]">
+        <div
+          className={cn(
+            "flex h-full min-h-0 flex-col border-r bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)]",
+            salesHair,
+          )}
+        >
           {roster({ fill: true, denser: true })}
         </div>
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
@@ -981,16 +1025,17 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
         </div>
         <div
           ref={setDockRoot}
-          className="relative flex h-full min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+          className={cn(
+            "relative flex h-full min-h-0 flex-col overflow-hidden border-l bg-white",
+            salesHair,
+          )}
         >
           {isLg && selectedTx ? null : inspect}
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-          {roster({ fill: false, denser: false })}
-        </div>
+      <div className={cn("overflow-hidden lg:hidden", salesHair, "border-t")}>
+        {roster({ fill: false, denser: false })}
       </div>
 
       <FormDrawer

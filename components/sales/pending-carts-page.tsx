@@ -16,9 +16,6 @@ import {
 
 import {
   DASHBOARD_MAX,
-  DASHBOARD_FILTER_WELL,
-  DASHBOARD_TABLE_HEAD,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
@@ -26,6 +23,17 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesMetricTile,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { Button } from "@/components/ui/button";
 import { FilterSheet, FilterSheetTrigger } from "@/components/ui/filter-sheet";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -64,31 +72,6 @@ const HOURS_OPTIONS = [
 ];
 
 const STALE_MINUTES = 30;
-
-const SUMMARY_CARD =
-  "flex min-h-[88px] flex-col rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4 shadow-none ring-1 ring-black/[0.02]";
-
-function SummaryCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className={SUMMARY_CARD}>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-foreground">
-        {value}
-      </p>
-      {hint ? (
-        <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
 
 function StatusBadge({ status }: { status: PosDraftStatus }) {
   return (
@@ -502,12 +485,12 @@ export function PendingCartsPage() {
 
   if (!featureOn) {
     return (
-      <div className={cn(DASHBOARD_MAX, "py-8")}>
-        <section className={cn(DASHBOARD_TABLE_SURFACE, "p-6")}>
-          <h1 className="text-xl font-semibold tracking-tight">
+      <div className={cn(DASHBOARD_MAX, salesPaper, "py-8")}>
+        <section className={cn(salesSurface, "p-6")}>
+          <h1 className={cn("text-xl font-semibold tracking-tight", salesInk)}>
             Pending sales
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className={cn("mt-2 text-sm", salesMute)}>
             POS draft persistence is not enabled for this business. Open{" "}
             <Link
               href={APP_ROUTES.business}
@@ -516,9 +499,7 @@ export function PendingCartsPage() {
               Business settings
             </Link>
             , edit settings, and turn on{" "}
-            <span className="font-medium text-foreground">
-              Cashier POS drafts
-            </span>
+            <span className={cn("font-medium", salesInk)}>Cashier POS drafts</span>
             .
           </p>
         </section>
@@ -572,10 +553,15 @@ export function PendingCartsPage() {
           onClick={() => setStaleOnly((value) => !value)}
           aria-pressed={staleOnly}
           className={cn(
-            "inline-flex h-11 w-full items-center justify-center gap-2 rounded-none border px-3 text-sm font-medium transition-colors lg:h-auto lg:py-2 sm:w-auto",
+            "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors lg:h-auto lg:py-2 sm:w-auto",
             staleOnly
               ? "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100"
-              : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+              : cn(
+                  salesHair,
+                  "bg-white",
+                  salesMute,
+                  "hover:text-[var(--order-ink,#15231f)]",
+                ),
           )}
         >
           <Clock className="size-4 shrink-0" aria-hidden />
@@ -586,7 +572,7 @@ export function PendingCartsPage() {
   );
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-1 pb-4")}>
+    <div className={cn(DASHBOARD_MAX, salesPaper)}>
       <header className="flex flex-wrap items-center justify-between gap-1">
         <DashboardPageHero
           compact
@@ -597,7 +583,7 @@ export function PendingCartsPage() {
           description={
             <>
               In-progress register carts at{" "}
-              <span className="font-medium text-foreground">{branchName}</span>
+              <span className={cn("font-medium", salesInk)}>{branchName}</span>
               {lastUpdated ? (
                 <>
                   {" "}
@@ -612,29 +598,22 @@ export function PendingCartsPage() {
           }
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Button
+          <Link href={APP_ROUTES.cashier} className={salesToolBtnClass()}>
+            Open cashier
+            <ArrowUpRight className="size-3.5" aria-hidden />
+          </Link>
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            asChild
-          >
-            <Link href={APP_ROUTES.cashier}>
-              Open cashier
-              <ArrowUpRight className="size-3.5" aria-hidden />
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
             disabled={loading || !online}
             onClick={() => void loadDrafts()}
-            className="gap-2"
+            className={salesToolBtnClass()}
           >
-            <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+            <RefreshCw
+              className={cn("size-3.5", loading && "animate-spin")}
+              aria-hidden
+            />
             Refresh
-          </Button>
+          </button>
         </div>
       </header>
 
@@ -645,64 +624,85 @@ export function PendingCartsPage() {
         />
       ) : null}
 
-      <section
-        aria-label="Draft summary"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <SummaryCard
-          label="Pending now"
-          value={summary.pendingCount.toLocaleString("en-KE")}
-          hint={
-            summary.staleCount > 0
-              ? `${summary.staleCount} idle ${STALE_MINUTES}+ min`
-              : "Active register carts"
-          }
-        />
-        <SummaryCard
-          label="In view"
-          value={summary.filteredCount.toLocaleString("en-KE")}
-          hint={
-            hasActiveFilters
-              ? "Matching current filters"
-              : `${STATUS_TABS.find((t) => t.value === statusTab)?.label ?? "All"} tab`
-          }
-        />
-        <SummaryCard
-          label="Line items"
-          value={summary.filteredItems.toLocaleString("en-KE")}
-          hint="Across filtered sales"
-        />
-        <SummaryCard
-          label="Cart value"
-          value={fmtKes(summary.filteredTotal, currency)}
-          hint={`Last ${hoursBack === 168 ? "7 days" : `${hoursBack} hours`}`}
-        />
-      </section>
-
-      <div className="relative min-w-0">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search ticket # or cashier name…"
-          className={cn(dashboardInputClass(), "pl-9")}
-          aria-label="Search pending sales"
-        />
-      </div>
-
-      <section className={DASHBOARD_TABLE_SURFACE}>
+      <div className={cn(salesSurface, "overflow-hidden")}>
         <div
           className={cn(
-            DASHBOARD_TABLE_HEAD,
-            "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+            "grid sm:grid-cols-2 lg:grid-cols-4",
+            salesHair,
+            "border-b",
+          )}
+        >
+          <SalesMetricTile
+            label="Pending now"
+            value={summary.pendingCount.toLocaleString("en-KE")}
+            hint={
+              summary.staleCount > 0
+                ? `${summary.staleCount} idle ${STALE_MINUTES}+ min`
+                : "Active register carts"
+            }
+          />
+          <SalesMetricTile
+            label="In view"
+            value={summary.filteredCount.toLocaleString("en-KE")}
+            hint={
+              hasActiveFilters
+                ? "Matching current filters"
+                : `${STATUS_TABS.find((t) => t.value === statusTab)?.label ?? "All"} tab`
+            }
+            className={cn("border-t sm:border-l sm:border-t-0", salesHair)}
+          />
+          <SalesMetricTile
+            label="Line items"
+            value={summary.filteredItems.toLocaleString("en-KE")}
+            hint="Across filtered sales"
+            className={cn("border-t lg:border-l lg:border-t-0", salesHair)}
+          />
+          <SalesMetricTile
+            label="Cart value"
+            value={fmtKes(summary.filteredTotal, currency)}
+            hint={`Last ${hoursBack === 168 ? "7 days" : `${hoursBack} hours`}`}
+            className={cn("border-t sm:border-l sm:border-t-0 lg:border-l", salesHair)}
+          />
+        </div>
+      </div>
+
+      <SalesStage
+        title="Register carts"
+        hint="Search, filter, and open a parked sale."
+        bodyClassName="space-y-0 p-0 sm:p-0"
+      >
+        <div className={cn("border-b px-3.5 py-3 sm:px-4", salesHair)}>
+          <div className="relative min-w-0">
+            <Search
+              className={cn(
+                "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2",
+                salesMute,
+              )}
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ticket # or cashier name…"
+              className={cn(dashboardInputClass(), "pl-9")}
+              aria-label="Search pending sales"
+            />
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "flex flex-col gap-4 border-b px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4",
+            salesHair,
           )}
         >
           <div
-            className="inline-flex w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/35 p-1 sm:w-auto"
+            className={cn(
+              "inline-flex w-full rounded-full p-1 sm:w-auto",
+              salesHair,
+              "border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
+            )}
             role="tablist"
             aria-label="Sale status"
           >
@@ -714,17 +714,17 @@ export function PendingCartsPage() {
                 aria-selected={statusTab === tab.value}
                 onClick={() => setStatusTab(tab.value)}
                 className={cn(
-                  "flex-1 rounded-none px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none",
+                  "flex-1 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors sm:flex-none",
                   statusTab === tab.value
-                    ? "bg-background text-foreground shadow-none"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-white text-[var(--order-ink,#15231f)] shadow-sm ring-1 ring-black/[0.04]"
+                    : cn(salesMute, "hover:text-[var(--order-ink,#15231f)]"),
                 )}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className={cn("text-xs", salesMute)}>
             {filteredDrafts.length.toLocaleString("en-KE")} result
             {filteredDrafts.length === 1 ? "" : "s"}
             {hasActiveFilters && drafts.length !== filteredDrafts.length ? (
@@ -738,7 +738,7 @@ export function PendingCartsPage() {
           />
         </div>
 
-        <div className={cn(DASHBOARD_FILTER_WELL, "mx-5 mb-0 mt-0 hidden sm:mx-6 sm:block")}>
+        <div className={cn("hidden border-b px-3.5 py-4 sm:block sm:px-4", salesHair)}>
           {filterFields}
         </div>
 
@@ -752,7 +752,13 @@ export function PendingCartsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-y border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/25 text-xs tracking-[-0.02em] text-muted-foreground">
+            <thead
+              className={cn(
+                "border-b bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] text-xs tracking-[-0.02em]",
+                salesHair,
+                salesMute,
+              )}
+            >
               <tr>
                 <th className="px-5 py-3 font-semibold sm:px-6">Sale #</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
@@ -762,7 +768,7 @@ export function PendingCartsPage() {
                 <th className="px-5 py-3 font-semibold sm:px-6">Updated</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className={cn("divide-y", salesHairDivide)}>
               {loading && filteredDrafts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center sm:px-6">
@@ -848,7 +854,7 @@ export function PendingCartsPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </SalesStage>
 
       {selectedId && (
         <>
@@ -857,18 +863,23 @@ export function PendingCartsPage() {
             onClick={closeDetail}
             aria-hidden
           />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-4 py-3">
+          <aside
+            className={cn(
+              "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l bg-white shadow-xl",
+              salesHair,
+            )}
+          >
+            <div className={cn("flex items-center justify-between border-b px-4 py-3", salesHair)}>
               <div className="flex items-center gap-2">
-                <span className="flex size-9 items-center justify-center rounded-none bg-primary/10 text-primary">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <ShoppingCart className="size-4" aria-hidden />
                 </span>
                 <div>
-                  <h2 className="text-lg font-semibold leading-tight">
+                  <h2 className={cn("text-lg font-semibold leading-tight", salesInk)}>
                     {detail ? `Sale #${detail.ticketNumber}` : "Sale details"}
                   </h2>
                   {detail ? (
-                    <p className="text-xs text-muted-foreground capitalize">
+                    <p className={cn("text-xs capitalize", salesMute)}>
                       {detail.status}
                     </p>
                   ) : null}
@@ -877,7 +888,11 @@ export function PendingCartsPage() {
               <button
                 type="button"
                 onClick={closeDetail}
-                className="rounded-none p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className={cn(
+                  "rounded-xl p-2 transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                  salesMute,
+                  "hover:text-[var(--order-ink,#15231f)]",
+                )}
                 aria-label="Close details"
               >
                 <X className="size-5" />
@@ -891,19 +906,20 @@ export function PendingCartsPage() {
                 </div>
               ) : detail ? (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/20 p-4 text-sm">
+                  <div
+                    className={cn(
+                      "grid grid-cols-2 gap-3 rounded-2xl border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] p-4 text-sm",
+                      salesHair,
+                    )}
+                  >
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Status
-                      </p>
+                      <p className={cn("text-xs font-medium", salesMute)}>Status</p>
                       <div className="mt-1">
                         <StatusBadge status={detail.status} />
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Total
-                      </p>
+                      <p className={cn("text-xs font-medium", salesMute)}>Total</p>
                       <p className="mt-1 font-semibold tabular-nums">
                         {fmtKes(Number(detail.grandTotal), currency)}
                       </p>
@@ -915,27 +931,31 @@ export function PendingCartsPage() {
                       />
                       <span>{detail.createdByName || "Staff"}</span>
                     </div>
-                    <div className="col-span-2 flex items-center gap-2 text-muted-foreground">
+                    <div className={cn("col-span-2 flex items-center gap-2", salesMute)}>
                       <Clock className="size-4" aria-hidden />
                       Updated {formatDateTime(detail.updatedAt)}
                     </div>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+                    <p className={cn("mb-2 text-xs font-semibold tracking-[-0.02em]", salesMute)}>
                       Lines
                     </p>
-                    <ul className="divide-y divide-border/50 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
+                    <ul
+                      className={cn(
+                        "divide-y overflow-hidden rounded-2xl border",
+                        salesHair,
+                        salesHairDivide,
+                      )}
+                    >
                       {detail.lines.map((line) => (
                         <li
                           key={line.id}
                           className="flex items-start justify-between gap-3 bg-white px-3 py-2.5 text-sm"
                         >
                           <div className="min-w-0">
-                            <p className="font-medium text-foreground">
-                              {line.itemName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className={cn("font-medium", salesInk)}>{line.itemName}</p>
+                            <p className={cn("text-xs", salesMute)}>
                               {line.quantity} ×{" "}
                               {fmtKes(Number(line.unitPrice), currency)}
                             </p>
@@ -950,7 +970,7 @@ export function PendingCartsPage() {
 
                   {/* ── Activity timeline ── */}
                   <div>
-                    <p className="mb-2 text-xs font-semibold tracking-[-0.02em] text-muted-foreground">
+                    <p className={cn("mb-2 text-xs font-semibold tracking-[-0.02em]", salesMute)}>
                       Activity
                     </p>
                     {auditLoading ? (
@@ -962,7 +982,7 @@ export function PendingCartsPage() {
                         No activity recorded yet.
                       </p>
                     ) : (
-                      <ol className="relative ml-3 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pl-4">
+                      <ol className={cn("relative ml-3 border-l pl-4", salesHair)}>
                         {auditEntries.map((entry) => {
                           const change = formatAuditChange(
                             entry,
@@ -974,16 +994,26 @@ export function PendingCartsPage() {
                               key={entry.id}
                               className="relative mb-3 last:mb-0"
                             >
-                              <span className="absolute -left-[1.15rem] top-1.5 size-2 rounded-full border border-border bg-white" />
-                              <p className="text-xs font-medium text-foreground">
+                              <span
+                                className={cn(
+                                  "absolute -left-[1.15rem] top-1.5 size-2 rounded-full border bg-white",
+                                  salesHair,
+                                )}
+                              />
+                              <p className={cn("text-xs font-medium", salesInk)}>
                                 {formatAuditAction(entry.action)}
                               </p>
-                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              <p className={cn("mt-0.5 text-[11px]", salesMute)}>
                                 {entry.userName || "Staff"} ·{" "}
                                 {formatDateTime(entry.createdAt)}
                               </p>
                               {change ? (
-                                <p className="mt-0.5 whitespace-normal break-words text-[11px] leading-snug text-muted-foreground">
+                                <p
+                                  className={cn(
+                                    "mt-0.5 whitespace-normal break-words text-[11px] leading-snug",
+                                    salesMute,
+                                  )}
+                                >
                                   {change}
                                 </p>
                               ) : null}
@@ -997,7 +1027,7 @@ export function PendingCartsPage() {
                   {detail.status === "pending" ? (
                     <Link
                       href={`${APP_ROUTES.cashier}?resumeDraft=${encodeURIComponent(detail.id)}`}
-                      className="inline-flex w-full items-center justify-center rounded-none bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                     >
                       Resume at register
                     </Link>
@@ -1006,7 +1036,11 @@ export function PendingCartsPage() {
                   {detail.status === "completed" && detail.saleId ? (
                     <Link
                       href={APP_ROUTES.salesTransactions}
-                      className="inline-flex w-full items-center justify-center rounded-none border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted/50"
+                      className={cn(
+                        "inline-flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+                        salesHair,
+                        salesInk,
+                      )}
                     >
                       View in transactions
                     </Link>
@@ -1017,7 +1051,7 @@ export function PendingCartsPage() {
 
             {detail?.status === "pending" &&
             (canCancelAny || (canCancelOwn && detail.createdBy === myId)) ? (
-              <div className="border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] p-4">
+              <div className={cn("border-t p-4", salesHair)}>
                 <Button
                   type="button"
                   variant="destructive"

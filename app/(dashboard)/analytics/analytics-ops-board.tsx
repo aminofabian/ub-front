@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesSurface,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
@@ -60,15 +66,25 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-h-0 flex-col border border-border">
-      <div className="flex min-h-11 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-foreground sm:text-[11px] sm:text-muted-foreground">
+    <section className={cn(salesSurface, "flex min-h-0 flex-col overflow-hidden")}>
+      <div
+        className={cn(
+          "flex min-h-11 items-center justify-between gap-2 border-b px-3.5 py-2.5",
+          salesHair,
+        )}
+      >
+        <h2
+          className={cn(
+            "text-[13px] font-semibold tracking-[-0.02em]",
+            salesInk,
+          )}
+        >
           {title}
         </h2>
         {href ? (
           <Link
             href={href}
-            className="inline-flex h-8 items-center px-1 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 active:opacity-70 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-auto sm:font-medium sm:text-muted-foreground sm:hover:text-foreground"
+            className="inline-flex h-8 items-center px-1 text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 transition-opacity hover:underline active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]"
           >
             {hrefLabel ?? "Open"}
           </Link>
@@ -81,7 +97,7 @@ function Panel({
 
 function MobileEmpty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+    <p className={cn("px-3 py-6 text-center text-[13px]", salesMute)}>
       {children}
     </p>
   );
@@ -101,7 +117,7 @@ function StatusMark({
         tone === "ok" && "text-[var(--pos-primary,#0f766e)]",
         tone === "warn" && "text-[#9a2e16]",
         tone === "bad" && "text-[#9a2e16]",
-        tone === "info" && "text-muted-foreground",
+        tone === "info" && salesMute,
       )}
     >
       {children}
@@ -120,7 +136,7 @@ function EmptyRow({
     <tr>
       <td
         colSpan={cols}
-        className="px-3 py-6 text-center text-xs text-muted-foreground"
+        className="px-3 py-6 text-center text-xs text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]"
       >
         {children}
       </td>
@@ -247,7 +263,7 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Day ledger"
         >
-          <div className="divide-y divide-border sm:hidden">
+          <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:hidden">
             {shownPayments.length === 0 ? (
               <MobileEmpty>No tenders in this window.</MobileEmpty>
             ) : (
@@ -262,7 +278,7 @@ export function AnalyticsOpsBoard({
                       <p className="truncate text-[14px] font-semibold tracking-[-0.015em]">
                         {row.customerName || row.cashierName || "Walk-in"}
                       </p>
-                      <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {formatPaymentMethodLabel(row.method)}
                         <span className="mx-1 opacity-40">·</span>
                         {formatWhen(row.soldAt)}
@@ -281,7 +297,7 @@ export function AnalyticsOpsBoard({
           </div>
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead className="border-b border-border text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">When</th>
                   <th className="px-3 py-2 font-medium">Channel</th>
@@ -299,9 +315,9 @@ export function AnalyticsOpsBoard({
                     return (
                       <tr
                         key={row.paymentId}
-                        className="border-b border-border last:border-0"
+                        className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                       >
-                        <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                        <td className="whitespace-nowrap px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                           {formatWhen(row.soldAt)}
                         </td>
                         <td className="px-3 py-2">
@@ -330,7 +346,7 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Review"
         >
-          <div className="divide-y divide-border sm:hidden">
+          <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:hidden">
             {shownReview.length === 0 ? (
               <MobileEmpty>Nothing waiting to review.</MobileEmpty>
             ) : (
@@ -343,7 +359,7 @@ export function AnalyticsOpsBoard({
                     <p className="truncate text-[14px] font-semibold">
                       {row.customerName || row.cashierName || "Walk-in"}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                       {row.receiptNo != null ? `#${row.receiptNo}` : "No receipt"}
                       <span className="mx-1 opacity-40">·</span>
                       {formatPaymentMethodLabel(row.method)}
@@ -355,7 +371,7 @@ export function AnalyticsOpsBoard({
                   </div>
                   <Link
                     href={APP_ROUTES.paymentsDayLedger}
-                    className="inline-flex h-10 shrink-0 items-center border border-border px-3 text-[12px] font-semibold active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex h-10 shrink-0 items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 text-[12px] font-semibold active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Review
                   </Link>
@@ -365,7 +381,7 @@ export function AnalyticsOpsBoard({
           </div>
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead className="border-b border-border text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Receipt</th>
                   <th className="px-3 py-2 font-medium">Match</th>
@@ -381,7 +397,7 @@ export function AnalyticsOpsBoard({
                   shownReview.map((row) => (
                     <tr
                       key={row.paymentId}
-                      className="border-b border-border last:border-0"
+                      className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                     >
                       <td className="px-3 py-2 tabular-nums">
                         {row.receiptNo != null
@@ -391,7 +407,7 @@ export function AnalyticsOpsBoard({
                       <td className="max-w-[10rem] truncate px-3 py-2">
                         {row.customerName || row.cashierName || "Walk-in"}
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">
+                      <td className="px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {formatPaymentMethodLabel(row.method)}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
@@ -400,7 +416,7 @@ export function AnalyticsOpsBoard({
                       <td className="px-3 py-2">
                         <Link
                           href={APP_ROUTES.paymentsDayLedger}
-                          className="inline-flex h-8 items-center border border-border px-2.5 text-[11px] font-semibold hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="inline-flex h-8 items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 text-[11px] font-semibold hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           Review
                         </Link>
@@ -418,7 +434,7 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.creditsOnTab}
           hrefLabel="Credits"
         >
-          <div className="divide-y divide-border sm:hidden">
+          <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:hidden">
             {shownTabs.length === 0 && shownPaid.length === 0 ? (
               <MobileEmpty>No open tabs in this slice.</MobileEmpty>
             ) : (
@@ -461,7 +477,7 @@ export function AnalyticsOpsBoard({
                         <StatusMark tone="ok">Collected</StatusMark>
                       </div>
                     </div>
-                    <p className="shrink-0 text-[15px] font-semibold tabular-nums text-muted-foreground">
+                    <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                       {money(row.amount)}
                     </p>
                   </div>
@@ -471,7 +487,7 @@ export function AnalyticsOpsBoard({
           </div>
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead className="border-b border-border text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Customer</th>
                   <th className="px-3 py-2 text-right font-medium">Owed</th>
@@ -486,7 +502,7 @@ export function AnalyticsOpsBoard({
                     {shownTabs.map((row) => (
                       <tr
                         key={row.customerId}
-                        className="border-b border-border last:border-0"
+                        className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                       >
                         <td className="px-3 py-2">{row.name}</td>
                         <td
@@ -507,10 +523,10 @@ export function AnalyticsOpsBoard({
                     {shownPaid.map((row) => (
                       <tr
                         key={row.id}
-                        className="border-b border-border last:border-0"
+                        className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                       >
                         <td className="px-3 py-2">{row.name}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        <td className="px-3 py-2 text-right tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                           {money(row.amount)}
                         </td>
                         <td className="px-3 py-2">
@@ -530,7 +546,7 @@ export function AnalyticsOpsBoard({
           href={APP_ROUTES.paymentsDayLedger}
           hrefLabel="Ledger"
         >
-          <div className="divide-y divide-border sm:hidden">
+          <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:hidden">
             {exceptions.length === 0 ? (
               <MobileEmpty>No exceptions in this window.</MobileEmpty>
             ) : (
@@ -541,7 +557,7 @@ export function AnalyticsOpsBoard({
                 >
                   <div className="min-w-0">
                     <p className="text-[14px] font-semibold">{row.type}</p>
-                    <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                    <p className="mt-0.5 truncate text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                       {row.detail}
                     </p>
                   </div>
@@ -554,7 +570,7 @@ export function AnalyticsOpsBoard({
           </div>
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[28rem] text-left text-[12px]">
-              <thead className="border-b border-border text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">Type</th>
                   <th className="px-3 py-2 font-medium">Detail</th>
@@ -569,10 +585,10 @@ export function AnalyticsOpsBoard({
                   exceptions.map((row) => (
                     <tr
                       key={row.key}
-                      className="border-b border-border last:border-0"
+                      className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                     >
                       <td className="px-3 py-2">{row.type}</td>
-                      <td className="max-w-[12rem] truncate px-3 py-2 text-muted-foreground">
+                      <td className="max-w-[12rem] truncate px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {row.detail}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
@@ -594,19 +610,19 @@ export function AnalyticsOpsBoard({
         <Panel title="Reconciliation">
           <div className="space-y-2.5 px-3 py-3.5 text-[14px] sm:text-[13px]">
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Imported</span>
+              <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">Imported</span>
               <span className="tabular-nums font-semibold">
                 {money(imported)}
               </span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Allocated</span>
+              <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">Allocated</span>
               <span className="tabular-nums font-semibold">
                 {money(allocated)}
               </span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Unallocated</span>
+              <span className="text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">Unallocated</span>
               <span
                 className="tabular-nums font-semibold"
                 style={{ color: unallocated > 0 ? OWED : undefined }}
@@ -614,7 +630,7 @@ export function AnalyticsOpsBoard({
                 {money(unallocated)}
               </span>
             </div>
-            <div className="mt-2 border-t border-border pt-3">
+            <div className="mt-2 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] pt-3">
               <p
                 className={cn(
                   "flex items-center gap-1.5 text-[14px] font-bold tracking-[-0.02em] sm:text-[13px]",
@@ -624,7 +640,7 @@ export function AnalyticsOpsBoard({
                 {balanced ? <Check className="size-3.5" aria-hidden /> : null}
                 {balanced ? "Balanced" : "Needs review"}
               </p>
-              <p className="mt-1 text-[12px] text-muted-foreground sm:text-[11px]">
+              <p className="mt-1 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] sm:text-[11px]">
                 {balanced
                   ? "Posted tenders match the period total."
                   : "Open tenders or tabs still need a pass."}
@@ -638,7 +654,7 @@ export function AnalyticsOpsBoard({
             {checks.map((item) => (
               <li
                 key={item.label}
-                className="border-b border-border last:border-0"
+                className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
               >
                 <Link
                   href={item.href}
@@ -646,7 +662,7 @@ export function AnalyticsOpsBoard({
                 >
                   <span
                     className={cn(
-                      "flex size-5 shrink-0 items-center justify-center border border-border sm:size-4",
+                      "flex size-5 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] sm:size-4",
                       item.done &&
                         "border-[var(--pos-primary,#0f766e)] text-[var(--pos-primary,#0f766e)]",
                     )}
@@ -657,7 +673,7 @@ export function AnalyticsOpsBoard({
                   <span
                     className={
                       item.done
-                        ? "text-muted-foreground line-through"
+                        ? "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)] line-through"
                         : undefined
                     }
                   >
@@ -674,7 +690,7 @@ export function AnalyticsOpsBoard({
           href={canViewAudit ? APP_ROUTES.businessLogs : undefined}
           hrefLabel="Full log"
         >
-          <div className="divide-y divide-border sm:hidden">
+          <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] sm:hidden">
             {!canViewAudit ? (
               <MobileEmpty>You do not have the activity log.</MobileEmpty>
             ) : audit.length === 0 ? (
@@ -685,7 +701,7 @@ export function AnalyticsOpsBoard({
                   <p className="text-[14px] font-semibold">
                     {humanizeEvent(row.eventType)}
                   </p>
-                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  <p className="mt-0.5 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                     {row.actorName || row.actorType || "System"}
                     <span className="mx-1 opacity-40">·</span>
                     {formatDay(row.createdAt)}
@@ -696,7 +712,7 @@ export function AnalyticsOpsBoard({
           </div>
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[20rem] text-left text-[12px]">
-              <thead className="border-b border-border text-muted-foreground">
+              <thead className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 <tr className="text-[11px]">
                   <th className="px-3 py-2 font-medium">When</th>
                   <th className="px-3 py-2 font-medium">Who</th>
@@ -714,9 +730,9 @@ export function AnalyticsOpsBoard({
                   audit.slice(0, 6).map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b border-border last:border-0"
+                      className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                     >
-                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                      <td className="whitespace-nowrap px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {formatDay(row.createdAt)}
                       </td>
                       <td className="max-w-[7rem] truncate px-3 py-2">

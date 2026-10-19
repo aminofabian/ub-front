@@ -11,11 +11,16 @@ import {
   type SalesDatePreset,
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
-import { Button } from "@/components/ui/button";
 import {
   DASHBOARD_MAX_WIDE,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
+import {
+  salesMute,
+  salesPaper,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { cn } from "@/lib/utils";
@@ -61,8 +66,6 @@ function toNum(n: number | string | null | undefined): number {
 function isRefunded(status: string | undefined): boolean {
   return (status?.toLowerCase() ?? "").includes("refund");
 }
-
-const MUTED = "text-muted-foreground";
 
 export function TransactionsPage() {
   const {
@@ -351,7 +354,7 @@ export function TransactionsPage() {
     return (
       <div className="mx-auto max-w-lg py-16 text-center">
         <h1 className="text-lg font-semibold text-foreground">Transactions</h1>
-        <p className={cn("mt-2 text-sm", MUTED)}>
+        <p className={cn("mt-2 text-sm", salesMute)}>
           You do not have permission to view transactions.
         </p>
         <Link
@@ -377,7 +380,7 @@ export function TransactionsPage() {
     .join(" · ");
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper)}>
       <DashboardPageHero
         icon={List}
         eyebrow="Sales"
@@ -385,24 +388,18 @@ export function TransactionsPage() {
         description={
           <>
             {statusLine || "Receipts for the selected period."}{" "}
-            <ActiveScopeSubtitle className="inline text-[11px] text-muted-foreground" />
+            <ActiveScopeSubtitle
+              className={cn("inline text-[11px]", salesMute)}
+            />
           </>
         }
       >
-        <Button
+        <Link href={APP_ROUTES.sales} className={salesToolBtnClass()}>
+          Activity
+        </Link>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
-          asChild
-        >
-          <Link href={APP_ROUTES.sales}>Activity</Link>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
+          className={salesToolBtnClass()}
           onClick={() => void load({ silent: true })}
           disabled={loading}
         >
@@ -411,21 +408,24 @@ export function TransactionsPage() {
             aria-hidden
           />
           Refresh
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none px-2.5 text-[12px] shadow-none"
+          className={salesToolBtnClass()}
           onClick={downloadPdf}
           disabled={loading || !dateRange || pdfLoading}
         >
           <FileDown className="size-3.5" aria-hidden />
           {pdfLoading ? "PDF…" : "PDF"}
-        </Button>
+        </button>
       </DashboardPageHero>
 
-      <TransactionsTheatre
+      <SalesStage
+        title="Receipt register"
+        hint="Search and open a receipt for line items and actions."
+        bodyClassName="flex min-h-0 flex-col gap-2 p-0 sm:p-0"
+      >
+        <TransactionsTheatre
         periodLabel={periodLabel}
         lastUpdated={lastUpdated}
         dateRange={dateRange}
@@ -475,7 +475,8 @@ export function TransactionsPage() {
         }}
         pdfLoading={pdfLoading}
         onDownloadPdf={downloadPdf}
-      />
+        />
+      </SalesStage>
 
       <AdjustSalePaymentDialog
         open={adjustSaleId != null}

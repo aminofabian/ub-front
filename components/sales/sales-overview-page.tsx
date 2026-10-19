@@ -29,7 +29,6 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
-import { StatStrip, type StatItem } from "@/components/dashboard/stat-strip";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -40,6 +39,18 @@ import {
   type SalesDatePreset,
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
+import {
+  salesHair,
+  salesHairDivide,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesHeroMetric,
+  SalesMetricTile,
+  SalesPeriodChip,
+  SalesStage,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 import {
@@ -134,11 +145,6 @@ function canAdjustSalePayment(tx: SaleTransaction): boolean {
   return true;
 }
 
-const INK_RULE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const PAPER =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]";
-
 function RevenueBars({
   values,
   labels,
@@ -169,55 +175,155 @@ function RevenueBars({
   );
 }
 
-function PulseCard({
-  label,
-  value,
-  hint,
-  chart,
-  tone,
-  className,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  chart?: ReactNode;
-  tone?: "ink" | "owed";
-  className?: string;
-}) {
+function MetricsSkeleton() {
   return (
-    <article
-      className={cn(
-        "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-        INK_RULE,
-        className,
-      )}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-2 font-semibold leading-none tracking-[-0.04em] tabular-nums",
-          tone === "owed" ? "text-[#9a2e16]" : "text-foreground",
-          value.length > 18 ? "text-[1.35rem]" : "text-[2.05rem]",
-        )}
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        {value}
-      </p>
-      {chart}
-      {hint ? (
-        <p className={cn(dashboardHintClass(), "mt-2")}>{hint}</p>
-      ) : null}
-    </article>
+    <div className="space-y-3 p-4 sm:p-5">
+      <div className="h-24 animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]" />
+      <div className="grid grid-cols-2 gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-[4.75rem] animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]"
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
-function MetricsSkeleton() {
+function SalesTillMetrics({
+  datePreset,
+  onDatePresetChange,
+  isLivePeriod,
+  dateRange,
+  error,
+  loading,
+  summary,
+  statusLine,
+  trendChart,
+}: {
+  datePreset: SalesDatePreset;
+  onDatePresetChange: (id: SalesDatePreset) => void;
+  isLivePeriod: boolean;
+  dateRange: { from: string; to: string } | null;
+  error: string | null;
+  loading: boolean;
+  summary: {
+    revenue: number;
+    transactions: number;
+    units: number;
+    lineCount: number;
+    refundLines: number;
+    refundTotal: number;
+    avgTicket: number;
+    topItem: string;
+  };
+  statusLine: string;
+  trendChart: ReactNode;
+}) {
+  const takenHint =
+    trendChart && dateRange
+      ? `${statusLine || "Sold this period."} · ${
+          datePreset === "today" || datePreset === "yesterday" ? "by hour" : "by day"
+        }`
+      : statusLine || "Sold this period.";
+
   return (
-    <div className="relative h-full min-h-[22rem]">
-      <div className="absolute left-[8%] top-[22%] h-36 w-56 animate-pulse bg-white/80" />
-      <div className="absolute right-[7%] top-[14%] h-24 w-40 animate-pulse bg-white/70" />
+    <div className={cn(salesSurface, "flex min-h-0 flex-col overflow-hidden")}>
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 border-b px-3 py-2.5 sm:px-3.5",
+          salesHair,
+        )}
+      >
+        <div
+          role="group"
+          aria-label="Period"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+            <SalesPeriodChip
+              key={id}
+              active={datePreset === id}
+              onClick={() => onDatePresetChange(id)}
+            >
+              {label}
+            </SalesPeriodChip>
+          ))}
+        </div>
+        {isLivePeriod ? (
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium",
+              salesMute,
+            )}
+          >
+            <span
+              className="size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)]"
+              aria-hidden
+            />
+            Live
+          </span>
+        ) : null}
+      </div>
+
+      {!dateRange || error ? (
+        <p className={cn(dashboardHintClass(), "px-4 py-10 text-center sm:px-5")}>
+          Pick a period to see what the till took.
+        </p>
+      ) : loading ? (
+        <MetricsSkeleton />
+      ) : (
+        <>
+          <SalesHeroMetric
+            label="Taken"
+            value={fmtKes(summary.revenue)}
+            hint={takenHint}
+          />
+          {trendChart ? (
+            <div className="px-4 pb-1 sm:px-5">{trendChart}</div>
+          ) : null}
+          <div className={cn("grid grid-cols-2 border-t", salesHair, salesHairDivide)}>
+            <SalesMetricTile
+              label="Tickets"
+              value={summary.transactions.toLocaleString("en-KE")}
+              hint={
+                summary.transactions > 0
+                  ? `${fmtKes(summary.avgTicket)} average`
+                  : "No tickets yet"
+              }
+            />
+            <SalesMetricTile
+              label="Units"
+              value={summary.units.toLocaleString("en-KE", {
+                maximumFractionDigits: 1,
+              })}
+              hint={
+                summary.lineCount > 0
+                  ? `${summary.lineCount.toLocaleString("en-KE")} lines`
+                  : undefined
+              }
+            />
+            <SalesMetricTile
+              className="col-span-2 border-t"
+              label={summary.refundLines > 0 ? "Refunds" : "Top product"}
+              value={
+                summary.refundLines > 0
+                  ? fmtKes(summary.refundTotal)
+                  : summary.topItem || "—"
+              }
+              hint={
+                summary.refundLines > 0
+                  ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
+                  : summary.topItem
+                    ? "Highest revenue"
+                    : "Nothing sold yet"
+              }
+              warn={summary.refundLines > 0}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -281,7 +387,7 @@ function buildRevenueTrend(
 
 function FeedSkeleton() {
   return (
-    <div className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]">
+    <div className={cn("divide-y", salesHairDivide)}>
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="space-y-2 px-4 py-3">
           <div className="flex justify-between gap-4">
@@ -347,7 +453,7 @@ function SaleGroup({
     <article
       className={cn(
         "border-b last:border-0 transition-colors duration-150",
-        INK_RULE,
+        salesHair,
         isNew && "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
         refunded && "bg-destructive/[0.03]",
       )}
@@ -434,7 +540,7 @@ function SaleGroup({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 rounded-none px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1 rounded-lg px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={onAdjust}
             >
               <Pencil className="size-3" aria-hidden />
@@ -444,7 +550,12 @@ function SaleGroup({
         </div>
       </div>
 
-      <ul className="space-y-0.5 border-t px-3.5 py-1.5 pl-7 sm:px-4 sm:pl-8" style={{ borderColor: "color-mix(in srgb, var(--order-ink, #15231f) 10%, transparent)" }}>
+      <ul
+        className={cn(
+          "space-y-0.5 border-t px-3.5 py-1.5 pl-7 sm:px-4 sm:pl-8",
+          salesHair,
+        )}
+      >
         {tx.lines.map((line, i) => {
           const lineRefunded = isRefunded(line.status);
           return (
@@ -822,216 +933,35 @@ export function SalesOverviewPage() {
       />
     ) : null;
 
-  const pulseStats: StatItem[] = [
-    {
-      id: "taken",
-      label: "Taken",
-      value: fmtKes(summary.revenue),
-      hint: statusLine || "Sold this period.",
-      tone: "teal",
-    },
-    {
-      id: "tickets",
-      label: "Tickets",
-      value: summary.transactions.toLocaleString("en-KE"),
-      hint:
-        summary.transactions > 0
-          ? `${fmtKes(summary.avgTicket)} average`
-          : "No tickets yet",
-      tone: "emerald",
-    },
-    {
-      id: "units",
-      label: "Units",
-      value: summary.units.toLocaleString("en-KE", {
-        maximumFractionDigits: 1,
-      }),
-      hint:
-        summary.lineCount > 0
-          ? `${summary.lineCount.toLocaleString("en-KE")} lines`
-          : undefined,
-      tone: "violet",
-    },
-    {
-      id: "top",
-      label: summary.refundLines > 0 ? "Refunds" : "Top product",
-      tone: summary.refundLines > 0 ? "owed" : "amber",
-      value:
-        summary.refundLines > 0
-          ? fmtKes(summary.refundTotal)
-          : summary.topItem || "—",
-      hint:
-        summary.refundLines > 0
-          ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
-          : summary.topItem
-            ? "Highest revenue"
-            : "Nothing sold yet",
-    },
-  ];
-
-  const pulse = (
-    <div className="relative h-full min-h-[22rem] overflow-hidden">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          d="M22 42 C 38 28, 58 22, 72 28"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M28 48 C 48 58, 62 52, 74 62"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M24 52 C 30 72, 48 78, 38 86"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-
-      <div className="absolute left-3 top-3 z-[2] flex max-w-[min(100%-6rem,28rem)] flex-wrap items-center gap-0.5">
-        {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setDatePreset(id)}
-            className={cn(
-              "px-2 py-1 text-[11px] font-semibold",
-              datePreset === id
-                ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                : "bg-white/90 text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {isLivePeriod ? (
-        <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1.5 bg-white/90 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-          <span
-            className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          />
-          Live
-        </span>
-      ) : null}
-
-      <p
-        className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
-        aria-hidden
-      >
-        The till
-      </p>
-
-      {dateRange && !error ? (
-        loading ? (
-          <MetricsSkeleton />
-        ) : (
-          <>
-            <PulseCard
-              className="left-[8%] top-[26%]"
-              label="Taken"
-              value={fmtKes(summary.revenue)}
-              chart={trendChart}
-              hint={
-                trendChart
-                  ? `${statusLine || "Sold this period."} · ${
-                      datePreset === "today" || datePreset === "yesterday"
-                        ? "by hour"
-                        : "by day"
-                    }`
-                  : statusLine || "Sold this period."
-              }
-            />
-            <PulseCard
-              className="right-[7%] top-[16%] !w-[min(13.5rem,calc(100%-1.5rem))]"
-              label="Tickets"
-              value={summary.transactions.toLocaleString("en-KE")}
-              hint={
-                summary.transactions > 0
-                  ? `${fmtKes(summary.avgTicket)} average`
-                  : "No tickets yet"
-              }
-            />
-            <PulseCard
-              className="right-[10%] top-[48%] !w-[min(13.5rem,calc(100%-1.5rem))]"
-              label="Units"
-              value={summary.units.toLocaleString("en-KE", {
-                maximumFractionDigits: 1,
-              })}
-              hint={
-                summary.lineCount > 0
-                  ? `${summary.lineCount.toLocaleString("en-KE")} lines`
-                  : undefined
-              }
-            />
-            <PulseCard
-              className="left-[12%] bottom-[10%] !w-[min(15rem,calc(100%-1.5rem))]"
-              label={summary.refundLines > 0 ? "Refunds" : "Top product"}
-              tone={summary.refundLines > 0 ? "owed" : "ink"}
-              value={
-                summary.refundLines > 0
-                  ? fmtKes(summary.refundTotal)
-                  : summary.topItem || "—"
-              }
-              hint={
-                summary.refundLines > 0
-                  ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
-                  : summary.topItem
-                    ? "Highest revenue"
-                    : "Nothing sold yet"
-              }
-            />
-          </>
-        )
-      ) : (
-        <p className={cn(dashboardHintClass(), "absolute left-[8%] top-[36%] max-w-[16rem]")}>
-          Pick a period to see what the till took.
-        </p>
-      )}
-    </div>
+  const tillMetrics = (
+    <SalesTillMetrics
+      datePreset={datePreset}
+      onDatePresetChange={setDatePreset}
+      isLivePeriod={isLivePeriod}
+      dateRange={dateRange}
+      error={error}
+      loading={loading}
+      summary={summary}
+      statusLine={statusLine}
+      trendChart={trendChart}
+    />
   );
 
+  const feedHint =
+    loading
+      ? "Loading…"
+      : feedFiltered
+        ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
+        : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`;
+
   const feed = (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div
-        className={cn(
-          "flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:px-3.5",
-          INK_RULE,
-        )}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2
-              className="text-[15px] font-semibold tracking-[-0.02em]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              Tickets
-            </h2>
-            <p className={dashboardHintClass()}>
-              {loading
-                ? "Loading…"
-                : feedFiltered
-                  ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
-                  : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+    <SalesStage
+      title="Tickets"
+      hint={feedHint}
+      className="h-full min-h-0"
+      bodyClassName="flex min-h-0 flex-1 flex-col p-0"
+    >
+        <div className="flex flex-col gap-1.5 px-3 py-2 sm:flex-row sm:items-center sm:px-3.5">
           <div className="relative min-w-0 flex-1">
             <Search
               className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
@@ -1080,8 +1010,7 @@ export function SalesOverviewPage() {
           onChannelFilterChange={setChannelFilter}
           showChannelFilter={canViewWebOrders}
         />
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={cn("min-h-0 flex-1 overflow-y-auto border-t", salesHair)}>
         {loading ? (
           <FeedSkeleton />
         ) : transactions.length === 0 ? (
@@ -1109,11 +1038,11 @@ export function SalesOverviewPage() {
           ))
         )}
       </div>
-    </div>
+    </SalesStage>
   );
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper)}>
       <DashboardPageHero
         icon={Receipt}
         title="Sales"
@@ -1121,36 +1050,18 @@ export function SalesOverviewPage() {
         showActiveScope
       >
         {hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 rounded-none shadow-none"
-            asChild
-          >
-            <Link href={APP_ROUTES.salesByHour}>
-              <Clock className="size-3.5" aria-hidden />
-              By the hour
-            </Link>
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none shadow-none"
-          asChild
-        >
-          <Link href={APP_ROUTES.salesTransactions}>
-            <List className="size-3.5" aria-hidden />
-            Transactions
+          <Link href={APP_ROUTES.salesByHour} className={salesToolBtnClass()}>
+            <Clock className="size-3.5" aria-hidden />
+            By the hour
           </Link>
-        </Button>
-        <Button
+        ) : null}
+        <Link href={APP_ROUTES.salesTransactions} className={salesToolBtnClass()}>
+          <List className="size-3.5" aria-hidden />
+          Transactions
+        </Link>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none shadow-none"
+          className={salesToolBtnClass()}
           onClick={() => void load({ silent: true })}
           disabled={loading}
         >
@@ -1159,94 +1070,38 @@ export function SalesOverviewPage() {
             aria-hidden
           />
           Refresh
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 rounded-none shadow-none"
+          className={salesToolBtnClass()}
           onClick={downloadPdf}
           disabled={loading || !dateRange || pdfLoading}
         >
           <Download className="size-3.5" aria-hidden />
           {pdfLoading ? "PDF…" : "PDF"}
-        </Button>
-        <Button size="sm" asChild className="h-8 gap-1.5 rounded-none shadow-none">
-          <Link href={APP_ROUTES.salesQuick}>
-            <Receipt className="size-3.5" aria-hidden />
-            Record sale
-          </Link>
-        </Button>
+        </button>
+        <Link href={APP_ROUTES.salesQuick} className={salesToolBtnClass(true)}>
+          <Receipt className="size-3.5" aria-hidden />
+          Record sale
+        </Link>
       </DashboardPageHero>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <div className="flex min-h-0 flex-col gap-1.5">
+      <div className="flex min-h-0 flex-col gap-2">
         <div
           className={cn(
-            "hidden overflow-hidden border lg:grid",
-            "h-[min(80dvh,52rem)]",
-            INK_RULE,
-            PAPER,
+            "hidden h-[min(80dvh,52rem)] gap-2 lg:grid",
             "lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]",
           )}
         >
-          <div className={cn("min-h-0 overflow-hidden border-r", INK_RULE)}>
-            {feed}
-          </div>
-          <div className="relative min-h-0 overflow-hidden">{pulse}</div>
+          <div className="min-h-0 overflow-hidden">{feed}</div>
+          <div className="min-h-0 overflow-hidden">{tillMetrics}</div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-1.5 lg:hidden">
-          <div className={cn("space-y-2 border p-2", INK_RULE, PAPER)}>
-            <div className="flex flex-wrap items-center gap-1">
-              {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setDatePreset(id)}
-                  aria-pressed={datePreset === id}
-                  className={cn(
-                    "inline-flex h-9 items-center px-3 text-[12px] font-semibold",
-                    datePreset === id
-                      ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                      : "bg-white text-muted-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-              {isLivePeriod ? (
-                <span className="ml-auto inline-flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground">
-                  <span
-                    className="size-1.5 bg-[var(--pos-primary,#0f766e)]"
-                    aria-hidden
-                  />
-                  Live
-                </span>
-              ) : null}
-            </div>
-            {!dateRange ? (
-              <p className={cn(dashboardHintClass(), "px-1 py-4 text-center")}>
-                Pick a period to see what the till took.
-              </p>
-            ) : loading ? (
-              <div className="grid grid-cols-2 gap-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "h-[4.75rem] animate-pulse border bg-white/70",
-                      INK_RULE,
-                    )}
-                  />
-                ))}
-              </div>
-            ) : (
-              <StatStrip items={pulseStats} />
-            )}
-          </div>
-          <div className={cn("border", INK_RULE)}>{feed}</div>
+        <div className="flex min-h-0 flex-col gap-2 lg:hidden">
+          {tillMetrics}
+          {feed}
         </div>
       </div>
 

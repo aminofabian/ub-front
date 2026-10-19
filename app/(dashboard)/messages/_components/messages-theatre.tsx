@@ -23,6 +23,15 @@ import type {
   ContactMessageListItem,
   ContactReplyChannel,
 } from "@/lib/contact-messages";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesSurface,
+  SalesPeriodChip,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 
 export type MessagesFilter = "ALL" | "UNREAD" | "READ";
@@ -57,7 +66,7 @@ export type MessagesTheatreProps = {
 function LiveDot() {
   return (
     <span
-      className="inline-block size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
+      className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--pos-primary,#0f766e)]"
       aria-hidden
     />
   );
@@ -111,11 +120,16 @@ function MessagesContextBanner({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+        salesSurface,
+        "flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-3.5",
       )}
     >
-      <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
+      <p
+        className={cn(
+          "flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]",
+          salesInk,
+        )}
+      >
         <span className="inline-flex items-center gap-1.5 font-semibold">
           <LiveDot />
           {listLoading
@@ -142,28 +156,20 @@ function MessagesContextBanner({
       </p>
 
       <div
-        className="flex flex-wrap gap-0.5 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5"
         role="group"
         aria-label="Message status filter"
+        className="flex flex-wrap items-center gap-1.5"
       >
-        {chips.map((chip) => {
-          const active = filter === chip.id;
-          return (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => onFilterChange(chip.id)}
-              className={cn(
-                "inline-flex h-7 items-center justify-center px-2 text-[10px] font-semibold transition-colors",
-                active
-                  ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                  : "text-muted-foreground hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-foreground",
-              )}
-            >
-              {chip.label}
-            </button>
-          );
-        })}
+        {chips.map((chip) => (
+          <SalesPeriodChip
+            key={chip.id}
+            active={filter === chip.id}
+            onClick={() => onFilterChange(chip.id)}
+            className="h-8 px-2.5 text-[11px]"
+          >
+            {chip.label}
+          </SalesPeriodChip>
+        ))}
       </div>
     </div>
   );
@@ -182,8 +188,10 @@ function MessagesPulse({
   onSelect: (id: string) => void;
   className?: string;
 }) {
-  const card =
-    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]";
+  const card = cn(
+    salesSurface,
+    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
+  );
 
   const recentUnread = useMemo(
     () => rows.filter((r) => r.status === "UNREAD").slice(0, 5),
@@ -221,8 +229,10 @@ function MessagesPulse({
           Inbox
         </p>
         <p
-          className="mt-2 text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-foreground"
-          style={{ fontFamily: "var(--font-heading)" }}
+          className={cn(
+            "mt-2 font-heading text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
+            salesInk,
+          )}
         >
           {totalCount.toLocaleString()}
         </p>
@@ -334,14 +344,20 @@ function MessagesFocus({
       </svg>
       <div className="relative z-[1] flex max-w-md flex-col items-center text-center">
         <span
-          className="grid size-16 place-items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)] bg-white text-[1.1rem] font-bold tracking-wide text-foreground shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]"
+          className={cn(
+            salesSurface,
+            "grid size-16 place-items-center rounded-2xl text-[1.1rem] font-bold tracking-wide shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
+            salesInk,
+          )}
           aria-hidden
         >
           {messageInitials(name)}
         </span>
         <h3
-          className="mt-4 text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-foreground"
-          style={{ fontFamily: "var(--font-heading)" }}
+          className={cn(
+            "mt-4 font-heading text-[1.45rem] font-semibold leading-tight tracking-[-0.03em]",
+            salesInk,
+          )}
         >
           {subject}
         </h3>
@@ -450,7 +466,7 @@ function MessageDossier({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-none"
+                className="rounded-xl"
                 onClick={() => void onOpenTicket(detail.id)}
               >
                 Open serving ticket
@@ -460,7 +476,7 @@ function MessageDossier({
               <Button
                 type="button"
                 size="sm"
-                className="rounded-none"
+                className="rounded-xl"
                 onClick={() => void onOrganize(detail.id)}
               >
                 Break into 1, 2, 3…
@@ -478,7 +494,10 @@ function MessageDossier({
               {detail.replies.map((reply) => (
                 <li
                   key={reply.id}
-                  className="border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2 text-[13px]"
+                  className={cn(
+                    salesSurface,
+                    "rounded-xl px-3 py-2 text-[13px]",
+                  )}
                 >
                   <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                     <span>{reply.channel}</span>
@@ -510,7 +529,10 @@ function MessageDossier({
 
       {canReply ? (
         <form
-          className="shrink-0 space-y-2.5 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-3 sm:px-4"
+          className={cn(
+            "shrink-0 space-y-2.5 border-t px-3 py-3 sm:px-4",
+            salesHair,
+          )}
           onSubmit={(e) => void onSendReply(e)}
         >
           <div className="flex flex-wrap gap-1.5">
@@ -526,7 +548,7 @@ function MessageDossier({
                 type="button"
                 size="sm"
                 variant={channel === id ? "default" : "outline"}
-                className="h-7 rounded-none px-2 text-[11px]"
+                className="h-7 rounded-full px-2.5 text-[11px]"
                 disabled={disabled}
                 onClick={() => onChannelChange(id)}
               >
@@ -546,7 +568,7 @@ function MessageDossier({
             <Button
               type="submit"
               size="sm"
-              className="rounded-none"
+              className="rounded-xl"
               disabled={
                 sending || (channel === "EMAIL" ? emailDisabled : phoneDisabled)
               }
@@ -558,7 +580,7 @@ function MessageDossier({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-none lg:hidden"
+                className="rounded-xl lg:hidden"
                 onClick={onCancel}
               >
                 Close
@@ -567,12 +589,17 @@ function MessageDossier({
           </div>
         </form>
       ) : onCancel ? (
-        <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-3 lg:hidden sm:px-4">
+        <div
+          className={cn(
+            "shrink-0 border-t px-3 py-3 lg:hidden sm:px-4",
+            salesHair,
+          )}
+        >
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="rounded-none"
+            className="rounded-xl"
             onClick={onCancel}
           >
             Close
@@ -644,7 +671,8 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
       >
         <div
           className={cn(
-            "shrink-0 space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3",
+            "shrink-0 space-y-2 border-b px-2.5 py-2 sm:px-3",
+            salesHair,
             fill ? "bg-transparent" : "sticky top-0 z-[1] bg-white",
           )}
         >
@@ -670,11 +698,9 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
               {filteredRows.length === 1 ? "message" : "messages"}
               {search.trim() ? " matching" : ""}
             </p>
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 shrink-0 gap-1 rounded-none px-2 text-[11px]"
+              className={cn(salesToolBtnClass(), "h-7 shrink-0 gap-1 px-2 text-[11px]")}
               disabled={listLoading}
               onClick={onRefresh}
             >
@@ -684,7 +710,7 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
                 <RefreshCw className="size-3" aria-hidden />
               )}
               Refresh
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -722,7 +748,7 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+            <ul className={cn("divide-y", salesHairDivide)}>
               {filteredRows.map((row) => {
                 const active = selectedId === row.id;
                 const unread = row.status === "UNREAD";
@@ -743,16 +769,16 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
                     >
                       <span
                         className={cn(
-                          "relative grid size-7 shrink-0 place-items-center border text-[10px] font-bold uppercase tracking-wide",
+                          "relative grid size-7 shrink-0 place-items-center rounded-xl text-[10px] font-bold uppercase tracking-wide ring-1 ring-black/[0.05]",
                           active || unread
-                            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
+                            : cn(salesMute, "bg-white"),
                         )}
                         aria-hidden
                       >
                         {messageInitials(row.name)}
                         {unread ? (
-                          <span className="absolute -right-0.5 -top-0.5 size-1.5 bg-[var(--pos-primary,#0f766e)]" />
+                          <span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)]" />
                         ) : null}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -867,12 +893,18 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
 
       <div
         className={cn(
-          "hidden h-[min(80dvh,52rem)] overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] lg:grid",
-          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
+          salesSurface,
+          "hidden h-[min(80dvh,52rem)] overflow-hidden lg:grid",
+          "bg-[#f4f7f5]",
           "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
         )}
       >
-        <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]">
+        <div
+          className={cn(
+            "flex h-full min-h-0 flex-col border-r bg-white/80",
+            salesHair,
+          )}
+        >
           {roster({ fill: true, denser: true })}
         </div>
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
@@ -886,14 +918,17 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
         </div>
         <div
           ref={setDockRoot}
-          className="relative flex h-full min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white"
+          className={cn(
+            "relative flex h-full min-h-0 flex-col overflow-hidden border-l bg-white",
+            salesHair,
+          )}
         >
           {isLg && selectedId ? null : inspect}
         </div>
       </div>
 
       <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-        <div className="overflow-hidden border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
+        <div className={cn(salesSurface, "overflow-hidden bg-white")}>
           {roster({ fill: false, denser: false })}
         </div>
       </div>
