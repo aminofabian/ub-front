@@ -2062,7 +2062,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main
           className={cn(
-            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto bg-white",
+            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-white",
             mainContentPadding,
           )}
           style={{

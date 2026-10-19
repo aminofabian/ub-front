@@ -93,7 +93,6 @@ import {
 import sheetStyles from "./stock-table-columns.module.css";
 import {
   STOCK_COL_CSS_VARS,
-  STOCK_COL_WIDTHS_RESTORE_SCRIPT,
   STOCK_COLUMN_LABELS,
   STOCK_COLUMN_ORDER,
   type StockResizableCol,
@@ -2440,7 +2439,7 @@ export function StockLevelsPage() {
 
   if (!isLevelsView) {
     return (
-      <div className={cn(DASHBOARD_MAX, "!h-auto !min-h-full !pb-[calc(var(--shell-bottom-inset)+1.5rem)]")}>
+      <div className={cn(DASHBOARD_MAX, "!pb-[calc(var(--shell-bottom-inset)+1.5rem)]")}>
         <DashboardPageHero
           icon={Warehouse}
           title="Stock"
@@ -2468,7 +2467,7 @@ export function StockLevelsPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={cn(DASHBOARD_MAX, "h-full min-h-0")}>
       <div className="flex h-full min-h-0 flex-1 flex-col gap-0 md:gap-1">
         <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-white/95 backdrop-blur-md sm:mx-0">
           <DashboardPageHero
@@ -2965,12 +2964,6 @@ export function StockLevelsPage() {
                 ref={shellRef}
                 className={cn(sheetStyles.shell, "hidden md:block")}
               >
-                {/* Restores persisted widths before the table's first paint. */}
-                <script
-                  dangerouslySetInnerHTML={{
-                    __html: STOCK_COL_WIDTHS_RESTORE_SCRIPT,
-                  }}
-                />
                 <div
                   ref={guideRef}
                   className={sheetStyles.guide}

@@ -449,8 +449,8 @@ export default function AnalyticsActivityPage() {
 
   if (loading && !refreshing) {
     return (
-      <div className="min-h-full">
-        <div className={cn(DASHBOARD_MAX_WIDE, "!h-auto !min-h-full")}>
+      <div className="min-h-full bg-white">
+        <div className={DASHBOARD_MAX_WIDE}>
           <DashboardLoading label="Loading activity…" />
         </div>
       </div>
@@ -462,7 +462,7 @@ export default function AnalyticsActivityPage() {
       <div
         className={cn(
           DASHBOARD_MAX_WIDE,
-          "!h-auto !min-h-full !space-y-1 !pb-[calc(var(--shell-bottom-inset)+4.75rem)] md:!pb-8",
+          "!space-y-1 !pb-[calc(var(--shell-bottom-inset)+4.75rem)] md:!pb-8",
         )}
       >
         <div className="sticky top-0 z-30 overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
