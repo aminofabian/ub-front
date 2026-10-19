@@ -1848,7 +1848,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1600px]",
+        "premium-cashier mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
           ? cn(
               "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6 [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",

@@ -32,12 +32,12 @@ export function DesktopBootShell({
   return (
     <main
       className={cn(
-        "relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-10 sm:px-8",
+        "premium-portal relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-10 sm:px-8",
         className,
       )}
       style={{
         background:
-          "radial-gradient(120% 80% at 10% 0%, #e8f2ea 0%, transparent 55%), radial-gradient(90% 70% at 100% 100%, #dfe8e2 0%, transparent 50%), linear-gradient(165deg, #f7faf7 0%, #eef3ef 45%, #f4f6f4 100%)",
+          "radial-gradient(120% 80% at 8% 0%, color-mix(in srgb, var(--op-accent) 7%, transparent) 0%, transparent 52%), radial-gradient(90% 70% at 100% 100%, color-mix(in srgb, var(--op-highlight, #a55237) 5%, transparent) 0%, transparent 48%), linear-gradient(165deg, #f7f4ed 0%, #f4f1ea 48%, #f7f4ed 100%)",
       }}
     >
       <div
@@ -63,20 +63,26 @@ export function DesktopBootShell({
           showTagline
           tagline="Point of sale"
           layout="inline"
-          markClassName={status === "loading" ? "animate-pulse" : undefined}
+          markClassName={cn(
+            "saturate-50",
+            status === "loading" && "animate-pulse",
+          )}
         />
 
         <div className="space-y-1.5 px-1">
           {title ? (
             <h1
-              className="text-[1.35rem] font-semibold tracking-[-0.02em] text-foreground sm:text-2xl"
-              style={{ fontFamily: "var(--font-heading), sans-serif" }}
+              className="text-[1.6rem] font-normal tracking-[-0.02em] text-[var(--op-ink)] sm:text-[2rem]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
             >
               {title}
             </h1>
           ) : null}
           <p
-            className="mx-auto max-w-[36ch] text-sm leading-relaxed text-[#3d4a40]"
+            className="mx-auto max-w-[38ch] text-[13.5px] leading-[1.7] text-[var(--op-muted)]"
             role={status === "loading" ? "status" : undefined}
             aria-live="polite"
           >
@@ -89,7 +95,7 @@ export function DesktopBootShell({
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="h-1.5 w-1.5 rounded-full bg-[#1f7a3a]/75 animate-pulse"
+                className="h-1.5 w-1.5 rounded-full bg-[var(--op-accent)] animate-pulse"
                 style={{ animationDelay: `${i * 180}ms` }}
               />
             ))}

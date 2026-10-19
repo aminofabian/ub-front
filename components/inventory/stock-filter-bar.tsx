@@ -10,19 +10,19 @@ import {
 import { cn } from "@/lib/utils";
 
 const TONE_TEXT: Record<StockStatusTone, string> = {
-  default: "text-[var(--order-ink,#15231f)]",
-  success: "text-emerald-700 dark:text-emerald-400",
-  warning: "text-amber-700 dark:text-amber-400",
-  danger: "text-rose-700 dark:text-rose-400",
-  loss: "text-orange-700 dark:text-orange-300",
+  default: "text-[var(--op-ink)]",
+  success: "text-[var(--op-accent)]",
+  warning: "text-[var(--op-muted)]",
+  danger: "text-[var(--op-muted)]",
+  loss: "text-[var(--op-muted)]",
 };
 
 const TONE_FILL: Record<StockStatusTone, string> = {
-  default: "bg-[var(--pos-primary,#0f766e)]",
-  success: "bg-emerald-600",
-  warning: "bg-amber-600",
-  danger: "bg-rose-600",
-  loss: "bg-orange-600",
+  default: "bg-[var(--op-accent)]",
+  success: "bg-[var(--op-accent)]",
+  warning: "bg-[var(--op-highlight,#a55237)]",
+  danger: "bg-[var(--op-highlight,#a55237)]",
+  loss: "bg-[var(--op-highlight,#a55237)]",
 };
 
 const HAIRLINE =
@@ -60,7 +60,7 @@ export function StockFilterBar({
         {STOCK_STATUS_GROUPS.map((group) => (
           <section
             key={group.id}
-            className="rounded-2xl bg-white p-2.5 ring-1 ring-black/[0.05]"
+            className="rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-2.5"
           >
             <h3 className="text-[11px] font-semibold tracking-[-0.02em]">
               {group.label}
@@ -151,13 +151,13 @@ function FilterSegment({
       aria-pressed={active}
       title={option.hint}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full transition-colors duration-150",
+        "inline-flex shrink-0 items-center gap-1 rounded-[2px] transition-colors duration-150",
         touch ? "h-9 gap-1.5 px-3.5 text-[13px]" : "h-7 px-2.5 text-[11px]",
         "tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
         active
           ? cn("font-semibold text-white", TONE_FILL[option.tone])
           : cn(
-              "bg-white font-medium ring-1 ring-black/[0.05] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]",
+              "bg-[var(--op-surface)] font-medium ring-1 ring-[var(--op-rule)] hover:bg-[color-mix(in_srgb,var(--op-ink)_5%,transparent)]",
               quiet ? cn("opacity-45", MUTE) : cn(TONE_TEXT[option.tone]),
             ),
       )}
@@ -190,12 +190,12 @@ function FilterChip({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        "inline-flex min-h-11 items-center gap-2 rounded-2xl border px-3 text-[13px] transition-colors",
+        "inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 text-[13px] transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
         active
           ? cn("border-transparent font-semibold text-white", TONE_FILL[option.tone])
           : cn(
-              "bg-white",
+              "bg-[var(--op-surface)]",
               HAIRLINE,
               quiet
                 ? cn("opacity-50", MUTE)

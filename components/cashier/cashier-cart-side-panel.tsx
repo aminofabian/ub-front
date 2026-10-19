@@ -123,7 +123,13 @@ export function CashierCartSidePanel({
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Till slip
             </p>
-            <h2 className="pos-market-section-label mt-0.5 text-lg leading-none text-foreground">
+            <h2
+              className="mt-0.5 text-[1.35rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               Current cart
             </h2>
             <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
@@ -138,11 +144,16 @@ export function CashierCartSidePanel({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1">
           {lines.length === 0 ? (
             <div className="flex h-full min-h-0 flex-col items-center justify-center px-4 py-6 text-center">
-              <ShoppingCart className="mb-3 size-5 text-muted-foreground/50" aria-hidden />
-              <p className="pos-market-section-label text-base text-foreground/85">
-                Cart is empty
+              <p
+                className="text-[1.8rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
+                Nothing in this sale.
               </p>
-              <p className="mt-1 max-w-[14rem] text-[11px] leading-relaxed text-muted-foreground">
+              <p className="mt-2 max-w-[18rem] text-[12px] leading-[1.7] text-[var(--op-muted)]">
                 Search, scan, or tap a shelf item to start a line.
               </p>
             </div>
@@ -300,7 +311,7 @@ export function CashierCartSidePanel({
           <Button
             type="button"
             className={cn(
-              "h-12 w-full rounded-none text-[15px] font-semibold tracking-wide",
+              "h-12 w-full rounded-[2px] text-[13px] font-semibold tracking-[0.01em]",
               "disabled:opacity-40",
             )}
             style={{

@@ -43,7 +43,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[#f4f7f5] px-0 pt-0 sm:px-5 sm:pt-1.5 xl:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
+        "premium-procurement relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[var(--op-bg)] px-0 pt-0 sm:px-5 sm:pt-1.5",
         mobileScroll
           ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
           : "h-full min-h-0 overflow-hidden",
@@ -56,7 +56,7 @@ export function OrderPageLayout({
       <div className="relative flex min-h-0 flex-1 flex-col gap-1">
         <div
           className={cn(
-            "shrink-0 border-b border-[color-mix(in_srgb,var(--order-ink)_8%,transparent)] bg-white sm:rounded-2xl sm:border",
+            "shrink-0 border-b border-[var(--op-rule)] bg-[var(--op-surface)] sm:rounded-[2px] sm:border",
             hideHubOnPhone && "max-sm:hidden",
             isStockManager &&
               "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
@@ -71,7 +71,13 @@ export function OrderPageLayout({
 
         {showHeader && title && !header ? (
           <header className="shrink-0 px-0.5 sm:px-1">
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.03em] text-[var(--order-ink)] sm:text-[1.65rem]">
+            <h1
+              className="text-[1.7rem] font-normal tracking-[-0.03em] text-[var(--op-ink)] sm:text-[2rem]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               {title}
             </h1>
             {description ? (

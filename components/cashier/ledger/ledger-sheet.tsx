@@ -140,7 +140,13 @@ function EmptySheet({ onFocusEntry }: { onFocusEntry: () => void }) {
       onClick={onFocusEntry}
       className="flex w-full flex-col items-start gap-1 px-4 py-8 text-left"
     >
-      <span className="text-sm font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_92%,transparent)]">
+      <span
+        className="text-[1.6rem] font-normal leading-[1.08] tracking-[-0.02em] text-[var(--op-ink)]"
+        style={{
+          fontFamily:
+            'var(--font-cormorant), Georgia, "Times New Roman", serif',
+        }}
+      >
         Waiting for the next item
       </span>
       <span className="max-w-[42ch] text-[12px] leading-relaxed text-muted-foreground">

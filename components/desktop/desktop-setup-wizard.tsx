@@ -58,7 +58,7 @@ const COUNTRY_DEFAULTS = WORLD_COUNTRY_DEFAULTS;
 const CLOUD_API = REMOTE_API_ORIGIN.replace(/\/$/, "");
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-black/[0.1] bg-[#fafbfa] px-3 text-sm text-foreground outline-none transition placeholder:text-[#8a968c] focus:border-[#1f7a3a]/50 focus:bg-white focus:ring-2 focus:ring-[#1f7a3a]/15";
+  "h-11 w-full rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-3 text-[13.5px] text-[var(--op-ink)] outline-none transition placeholder:text-[var(--op-faint)] focus:border-[var(--op-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--op-accent)_16%,transparent)]";
 
 /**
  * Turn a raw connect failure into something a shopkeeper can act on. The
@@ -406,27 +406,27 @@ export function DesktopSetupWizard() {
                 setSubmitState({ kind: "idle" });
               }}
               className={cn(
-                "group flex w-full items-start gap-4 rounded-2xl border border-[#1f7a3a]/25 bg-white p-5 text-left shadow-[0_8px_30px_-12px_rgba(31,122,58,0.35)]",
+                "group flex w-full items-start gap-4 rounded-[2px] border border-[color-mix(in_srgb,var(--op-accent)_25%,transparent)] bg-[var(--op-surface)] p-5 text-left shadow-[0_8px_30px_-18px_rgba(18,26,22,0.28)]",
                 "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-                "hover:-translate-y-0.5 hover:border-[#1f7a3a]/50",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a3a]/35",
+                "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--op-accent)_50%,transparent)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--op-accent)_35%,transparent)]",
               )}
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ea] text-[#1f7a3a]">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-[2px] bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))] text-[var(--op-accent)]">
                 <CloudDownload className="size-5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
                 <span
-                  className="block text-base font-semibold tracking-tight text-foreground"
-                  style={{ fontFamily: "var(--font-heading), sans-serif" }}
+                  className="block text-base font-semibold tracking-tight text-[var(--op-ink)]"
+                  style={{ fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif' }}
                 >
                   I already have a shop on kiosk.ke
                 </span>
-                <span className="mt-1 block text-sm leading-snug text-[#3d4a40]">
+                <span className="mt-1 block text-sm leading-snug text-[var(--op-muted)]">
                   Find it by email or shop name, then copy products and staff onto
                   this till.
                 </span>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#1f7a3a]">
+                <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[var(--op-accent)]">
                   Find my shop
                   <ArrowRight
                     className="size-3.5 transition-transform group-hover:translate-x-0.5"
@@ -443,19 +443,19 @@ export function DesktopSetupWizard() {
                 setSubmitState({ kind: "idle" });
               }}
               className={cn(
-                "group flex w-full items-start gap-4 rounded-2xl border border-black/[0.08] bg-white/80 p-5 text-left",
-                "transition hover:border-black/15 hover:bg-white",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a3a]/25",
+                "group flex w-full items-start gap-4 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 text-left",
+                "transition hover:border-[color-mix(in_srgb,var(--op-ink)_18%,transparent)] hover:bg-[var(--op-surface)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--op-accent)_25%,transparent)]",
               )}
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#f0f2f0] text-[#3d4a40]">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-[2px] bg-[color-mix(in_srgb,var(--op-ink)_4%,var(--op-surface))] text-[var(--op-muted)]">
                 <Building2 className="size-5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">
+                <span className="block text-sm font-semibold text-[var(--op-ink)]">
                   Start a new shop on this PC only
                 </span>
-                <span className="mt-1 block text-sm leading-snug text-[#5a665e]">
+                <span className="mt-1 block text-sm leading-snug text-[var(--op-muted)]">
                   Offline-first. You can connect an online shop later from Settings.
                 </span>
               </span>
@@ -469,7 +469,7 @@ export function DesktopSetupWizard() {
             <div
               role="tablist"
               aria-label="How to find your shop"
-              className="grid grid-cols-2 gap-1 rounded-xl bg-[#eef3ef] p-1"
+              className="grid grid-cols-2 gap-1 rounded-[2px] bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))] p-1"
             >
               {(
                 [
@@ -485,8 +485,8 @@ export function DesktopSetupWizard() {
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm font-medium transition",
                     findTab === tab.id
-                      ? "bg-white text-foreground shadow-sm"
-                      : "text-[#5a665e] hover:text-foreground",
+                      ? "bg-[var(--op-surface)] text-[var(--op-ink)] shadow-sm"
+                      : "text-[var(--op-muted)] hover:text-[var(--op-ink)]",
                   )}
                   onClick={() => {
                     setFindTab(tab.id);
@@ -501,7 +501,7 @@ export function DesktopSetupWizard() {
             {findTab === "email" ? (
               <form className="space-y-3" onSubmit={onFindByEmail}>
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium text-[var(--op-ink)]">
                     Email you use on kiosk.ke
                   </span>
                   <input
@@ -527,12 +527,12 @@ export function DesktopSetupWizard() {
             ) : (
               <form className="space-y-3" onSubmit={onFindByShop}>
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium text-[var(--op-ink)]">
                     Shop name or address
                   </span>
                   <div className="relative">
                     <Search
-                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#5a665e]"
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--op-muted)]"
                       aria-hidden
                     />
                     <input
@@ -544,7 +544,7 @@ export function DesktopSetupWizard() {
                       required
                     />
                   </div>
-                  <span className="block text-xs text-[#5a665e]">
+                  <span className="block text-xs text-[var(--op-muted)]">
                     Same name customers see on your online shop.
                   </span>
                 </label>
@@ -570,8 +570,8 @@ export function DesktopSetupWizard() {
               }}
               label="Change search"
             />
-            <p className="text-sm text-[#3d4a40]">
-              <span className="font-medium text-foreground">{lookupEmail}</span>{" "}
+            <p className="text-sm text-[var(--op-muted)]">
+              <span className="font-medium text-[var(--op-ink)]">{lookupEmail}</span>{" "}
               is linked to {foundShops.length} shops. Pick the one for this till.
             </p>
             <ul className="max-h-[min(50dvh,280px)] space-y-2 overflow-y-auto">
@@ -585,27 +585,27 @@ export function DesktopSetupWizard() {
                       setSubmitState({ kind: "idle" });
                     }}
                     className={cn(
-                      "group flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-[#fafbfa] px-3.5 py-3 text-left",
-                      "transition hover:border-[#1f7a3a]/40 hover:bg-[#e8f2ea]/50",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a3a]/30",
+                      "group flex w-full items-center gap-3 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-3.5 py-3 text-left",
+                      "transition hover:border-[color-mix(in_srgb,var(--op-accent)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--op-accent)_5%,var(--op-surface))]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--op-accent)_30%,transparent)]",
                     )}
                   >
                     <ShopAvatar shop={shop} />
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block truncate font-semibold text-foreground"
+                        className="block truncate font-semibold text-[var(--op-ink)]"
                         style={{
-                          fontFamily: "var(--font-heading), sans-serif",
+                          fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif',
                         }}
                       >
                         {shop.name}
                       </span>
-                      <span className="block truncate text-xs text-[#5a665e]">
+                      <span className="block truncate text-xs text-[var(--op-muted)]">
                         {shop.host}
                       </span>
                     </span>
                     <ArrowRight
-                      className="size-4 shrink-0 text-[#1f7a3a] opacity-70 transition group-hover:translate-x-0.5"
+                      className="size-4 shrink-0 text-[var(--op-accent)] opacity-70 transition group-hover:translate-x-0.5"
                       aria-hidden
                     />
                   </button>
@@ -624,28 +624,28 @@ export function DesktopSetupWizard() {
               }}
               label="Different shop"
             />
-            <div className="flex items-center gap-3 rounded-xl border border-[#1f7a3a]/20 bg-[#e8f2ea]/60 px-3.5 py-3">
+            <div className="flex items-center gap-3 rounded-[2px] border border-[color-mix(in_srgb,var(--op-accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--op-accent)_5%,var(--op-surface))] px-3.5 py-3">
               <ShopAvatar shop={selectedShop} />
               <div className="min-w-0 flex-1">
                 <p
-                  className="truncate font-semibold text-foreground"
-                  style={{ fontFamily: "var(--font-heading), sans-serif" }}
+                  className="truncate font-semibold text-[var(--op-ink)]"
+                  style={{ fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif' }}
                 >
                   {selectedShop.name}
                 </p>
-                <p className="truncate text-xs text-[#3d4a40]">
+                <p className="truncate text-xs text-[var(--op-muted)]">
                   {selectedShop.host}
                 </p>
               </div>
               <CheckCircle2
-                className="size-5 shrink-0 text-[#1f7a3a]"
+                className="size-5 shrink-0 text-[var(--op-accent)]"
                 aria-hidden
               />
             </div>
 
             <form className="space-y-3" onSubmit={onConnect}>
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-[var(--op-ink)]">
                   Owner or staff email
                 </span>
                 <input
@@ -659,7 +659,7 @@ export function DesktopSetupWizard() {
                 />
               </label>
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-[var(--op-ink)]">
                   Online password
                 </span>
                 <div className="relative">
@@ -674,7 +674,7 @@ export function DesktopSetupWizard() {
                   />
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2 text-xs font-medium text-[#1f7a3a]"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2 text-xs font-medium text-[var(--op-accent)]"
                     onClick={() => setShowPassword((v) => !v)}
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -692,9 +692,9 @@ export function DesktopSetupWizard() {
                   onClick={() => void onResetThisPc()}
                   disabled={resetting || submitting}
                   className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-xl border border-[#1f7a3a]/30 bg-white px-4 py-3 text-sm font-semibold text-[#1f7a3a]",
-                    "transition hover:bg-[#e8f2ea]/60",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f7a3a]/30",
+                    "flex w-full items-center justify-center gap-2 rounded-[2px] border border-[color-mix(in_srgb,var(--op-accent)_30%,transparent)] bg-[var(--op-surface)] px-4 py-3 text-sm font-semibold text-[var(--op-accent)]",
+                    "transition hover:bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))]/60",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--op-accent)_30%,transparent)]",
                     "disabled:cursor-not-allowed disabled:opacity-60",
                   )}
                 >
@@ -719,21 +719,21 @@ export function DesktopSetupWizard() {
           <Panel>
             <div className="flex items-start gap-3">
               <Store
-                className="mt-0.5 size-5 shrink-0 text-[#1f7a3a]"
+                className="mt-0.5 size-5 shrink-0 text-[var(--op-accent)]"
                 aria-hidden
               />
               <div>
-                <p className="font-semibold text-foreground">
+                <p className="font-semibold text-[var(--op-ink)]">
                   {selectedShop?.name ?? "Your shop"} is connected
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-[#3d4a40]">
+                <p className="mt-1 text-sm leading-relaxed text-[var(--op-muted)]">
                   Copying product photos onto this PC so the counter keeps
                   working offline. Keep this computer online until it finishes.
                 </p>
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-medium text-foreground">
+              <div className="flex justify-between text-xs font-medium text-[var(--op-ink)]">
                 <span>
                   {mediaStatus
                     ? `${mediaStatus.done} of ${mediaStatus.total} photos`
@@ -746,9 +746,9 @@ export function DesktopSetupWizard() {
                   %
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[#eef3ef]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))]">
                 <div
-                  className="h-full rounded-full bg-[#1f7a3a] transition-all duration-500"
+                  className="h-full rounded-full bg-[var(--op-accent)] transition-all duration-500"
                   style={{
                     width: `${
                       mediaStatus && mediaStatus.total > 0
@@ -763,7 +763,7 @@ export function DesktopSetupWizard() {
             </div>
             <button
               type="button"
-              className="h-10 w-full rounded-xl text-sm font-medium text-[#5a665e] transition hover:text-foreground"
+              className="h-10 w-full rounded-[2px] text-sm font-medium text-[var(--op-muted)] transition hover:text-[var(--op-ink)]"
               onClick={() => router.replace("/login/staff")}
             >
               {"Skip photos \u2014 sign in now"}
@@ -773,12 +773,12 @@ export function DesktopSetupWizard() {
 
         {path === "create" ? (
           <form
-            className="space-y-4 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_10px_40px_-18px_rgba(15,20,16,0.35)]"
+            className="space-y-4 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 shadow-[0_10px_40px_-18px_rgba(15,20,16,0.35)]"
             onSubmit={onSubmitCreate}
           >
             <BackLink onClick={goChoose} label="All options" />
             <fieldset className="space-y-3" disabled={submitting}>
-              <legend className="text-xs font-semibold uppercase tracking-wide text-[#5a665e]">
+              <legend className="text-xs font-semibold uppercase tracking-wide text-[var(--op-muted)]">
                 Your shop
               </legend>
               <label className="block space-y-1">
@@ -847,7 +847,7 @@ export function DesktopSetupWizard() {
               </label>
             </fieldset>
             <fieldset className="space-y-3" disabled={submitting}>
-              <legend className="text-xs font-semibold uppercase tracking-wide text-[#5a665e]">
+              <legend className="text-xs font-semibold uppercase tracking-wide text-[var(--op-muted)]">
                 Owner account
               </legend>
               <label className="block space-y-1">
@@ -887,7 +887,7 @@ export function DesktopSetupWizard() {
                   minLength={8}
                   maxLength={100}
                 />
-                <span className="text-xs text-[#5a665e]">
+                <span className="text-xs text-[var(--op-muted)]">
                   At least 8 characters.
                 </span>
               </label>
@@ -912,7 +912,7 @@ export function DesktopSetupWizard() {
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-4 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_10px_40px_-18px_rgba(15,20,16,0.35)]">
+    <div className="space-y-4 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-5 shadow-[0_10px_40px_-18px_rgba(15,20,16,0.35)]">
       {children}
     </div>
   );
@@ -925,15 +925,15 @@ function ShopAvatar({ shop }: { shop: DesktopFoundShop }) {
       <img
         src={shop.logoUrl}
         alt=""
-        className="size-11 shrink-0 rounded-xl object-cover"
+        className="size-11 shrink-0 rounded-[2px] object-cover"
       />
     );
   }
   const initial = shop.name.trim().charAt(0).toUpperCase() || "S";
   return (
     <span
-      className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#1f7a3a] text-base font-semibold text-white"
-      style={{ fontFamily: "var(--font-heading), sans-serif" }}
+      className="flex size-11 shrink-0 items-center justify-center rounded-[2px] bg-[var(--op-accent)] text-base font-semibold text-[var(--op-surface)]"
+      style={{ fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif' }}
       aria-hidden
     >
       {initial}
@@ -946,7 +946,7 @@ function BackLink({ onClick, label }: { onClick: () => void; label: string }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1 text-xs font-medium text-[#5a665e] transition hover:text-foreground"
+      className="inline-flex items-center gap-1 text-xs font-medium text-[var(--op-muted)] transition hover:text-[var(--op-ink)]"
     >
       <ArrowLeft className="size-3.5" aria-hidden />
       {label}
@@ -959,7 +959,7 @@ function ErrorBox({ message }: { message: string | null }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-900"
+      className="rounded-[2px] border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-900"
     >
       {message}
     </div>
@@ -979,7 +979,7 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={disabled}
-      className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#1f7a3a] text-sm font-semibold text-white transition hover:bg-[#196532] disabled:opacity-60"
+      className="flex h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-[var(--op-accent)] text-sm font-semibold text-[var(--op-surface)] transition hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] disabled:opacity-60"
     >
       {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
       {children}

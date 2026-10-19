@@ -65,18 +65,24 @@ export function SupplierWorkspaceEmpty({
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:thin]",
-        "bg-white",
+        "bg-[var(--op-surface)]",
         className,
       )}
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-2xl flex-col gap-5 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
+          "mx-auto my-auto flex w-full max-w-[42rem] flex-col gap-5 rounded-[2px] border-0",
           compact ? "p-4 sm:p-5" : "p-5 sm:p-8",
         )}
       >
         <div className="space-y-2">
-          <h2 className="font-heading text-xl font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)] sm:text-2xl">
+          <h2
+            className="text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+            style={{
+              fontFamily:
+                'var(--font-cormorant), Georgia, "Times New Roman", serif',
+            }}
+          >
             {totalCount > 0 ? "Select a supplier" : "Start with a supplier"}
           </h2>
           <p className="max-w-md text-[13px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
@@ -95,7 +101,7 @@ export function SupplierWorkspaceEmpty({
           {canWrite ? (
             <Button
               type="button"
-              className="h-12 justify-start gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] px-3 font-semibold hover:bg-[#0d6b63] sm:h-9"
+              className="h-12 justify-start gap-2 rounded-[2px] bg-[var(--op-accent)] px-3 font-semibold text-[var(--op-surface)] hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] sm:h-9"
               onClick={onNewSupplier}
             >
               <Plus className="size-3.5" aria-hidden />
@@ -106,7 +112,7 @@ export function SupplierWorkspaceEmpty({
             <Button
               type="button"
               variant="outline"
-              className="h-12 justify-start gap-2 rounded-xl border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 font-medium sm:h-9"
+              className="h-12 justify-start gap-2 rounded-[2px] border-[var(--op-rule)] px-3 font-medium sm:h-9"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-3.5" aria-hidden />

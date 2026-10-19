@@ -193,15 +193,13 @@ export const supPanelKicker = supKickerPrimary;
 export const supPanelKickerViolet = supKickerViolet;
 
 export const supEmptyState = cn(
-  "flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed",
-  HAIRLINE,
-  "bg-white px-4 py-10 text-center",
+  "flex flex-col items-center justify-center gap-4 rounded-[2px] border-0",
+  "bg-transparent px-4 py-16 text-center",
 );
 
 export const supEmptyIconWrap = cn(
-  "flex size-11 items-center justify-center rounded-xl border",
-  HAIRLINE,
-  "bg-white text-muted-foreground/50",
+  "flex size-10 items-center justify-center rounded-[2px] border border-[var(--op-rule)]",
+  "bg-[var(--op-surface)] text-[var(--op-muted)]",
 );
 
 export const supChip = cn(

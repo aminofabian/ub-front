@@ -78,11 +78,17 @@ export function SupEmptyState({
       <div className={supEmptyIconWrap}>
         <Icon className="size-4" aria-hidden />
       </div>
-      <div className="max-w-sm space-y-0.5">
-        <p className="text-sm font-semibold tracking-tight text-foreground">
+      <div className="max-w-[34ch] space-y-1.5">
+        <p
+          className="text-[1.6rem] font-normal leading-[1.08] tracking-[-0.02em] text-[var(--op-ink)]"
+          style={{
+            fontFamily:
+              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+          }}
+        >
           {title}
         </p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
           {description}
         </p>
       </div>

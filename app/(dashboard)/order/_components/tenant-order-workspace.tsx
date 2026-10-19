@@ -22,7 +22,6 @@ import {
   Printer,
   Save,
   Search,
-  ShoppingCart,
   Truck,
   Wallet,
   X,
@@ -1540,22 +1539,19 @@ export function TenantOrderWorkspace({
     <>
       {cartLines.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-            <ShoppingCart
-              className="size-5 text-[var(--pos-primary,#0f766e)]/70"
-              strokeWidth={1.5}
-              aria-hidden
-            />
-          </span>
-          <div className="space-y-1">
-            <p className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
-              Empty slip
-            </p>
-            <p className="max-w-[16rem] text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-              Tap a product on the shelf to start this order. Pack sizes appear
-              on each line when the supplier offers them.
-            </p>
-          </div>
+          <p
+            className="text-[1.9rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+            style={{
+              fontFamily:
+                'var(--font-cormorant), Georgia, "Times New Roman", serif',
+            }}
+          >
+            Nothing on the slip.
+          </p>
+          <p className="max-w-[20rem] text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
+            Tap a product on the shelf to start this order. Pack sizes appear
+            on each line when the supplier offers them.
+          </p>
         </div>
       ) : (
         cartLines.map(({ link, qty, pack, priceOverride, totalOverride }) => {
@@ -2333,7 +2329,13 @@ export function TenantOrderWorkspace({
           )}
         >
           <div className="min-w-0">
-            <p className="truncate font-heading text-[20px] font-semibold leading-tight tracking-[-0.03em] text-[var(--order-ink,#15231f)] sm:text-[17px]">
+            <p
+              className="truncate text-[1.45rem] font-normal leading-tight tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               {activeSupplier?.name ?? "Select supplier"}
             </p>
           </div>
@@ -2463,7 +2465,13 @@ export function TenantOrderWorkspace({
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-2.5">
-            <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+            <p
+              className="text-[1.25rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               Suppliers
             </p>
             {canAddSupplier ? (
@@ -2727,7 +2735,13 @@ export function TenantOrderWorkspace({
           )}
         >
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
-            <p className="font-heading text-[16px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+            <p
+              className="text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               Order slip
             </p>
             <div className="flex items-center gap-2">
