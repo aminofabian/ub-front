@@ -11,13 +11,11 @@ const KIOSK_CATEGORY_PILL_PRESETS = [
 
 /** Ink-wash backgrounds for no-image product / aisle placeholders (market till). */
 const KIOSK_PLACEHOLDER_WASH_PRESETS = [
-  "from-[#e8dfd0] to-[#d9cfc0] text-[#5c5348]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#dce6df] to-[#c9d6cd] text-[#3f5248]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#e4dfe8] to-[#d2ccd8] text-[#4a4454]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#e6e2d4] to-[#d4cfbd] text-[#555040]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#dce4e8] to-[#c8d3d9] text-[#3e4d54]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#e8ddd8] to-[#d8c8c2] text-[#5a4740]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
-  "from-[#e0e4d6] to-[#cdd4bf] text-[#47503c]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#efeae0] to-[#e4ddd1] text-[#5c5348]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e7ede8] to-[#d8e1da] text-[#3f5248]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#f0e5dd] to-[#e5d6cc] text-[#5a4740]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#ece8df] to-[#dfd9cd] text-[#555040]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e6ecec] to-[#d6e0e0] text-[#3e4d54]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
 ] as const;
 
 function hashLabel(label: string): number {

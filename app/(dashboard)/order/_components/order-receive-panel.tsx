@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
-  ClipboardList,
   Copy,
   FileDown,
   Loader2,
@@ -1294,14 +1293,20 @@ export function OrderReceivePanel({
               Loading orders…
             </p>
           ) : orders.length === 0 ? (
-            <div className="mx-1 rounded-2xl border border-dashed border-[#e6eaec] bg-white px-4 py-10 text-center">
-              <Package className="mx-auto size-8 text-[color-mix(in_srgb,var(--order-ink,#15231f)_20%,transparent)]" />
-              <p className="mt-3 text-[13px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
-                No open orders yet
+            <div className="mx-1 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-4 py-12 text-center">
+              <Package className="mx-auto size-7 text-[var(--op-faint)]" />
+              <p
+                className="mt-4 text-[1.55rem] font-normal leading-[1.08] tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
+                No open orders yet.
               </p>
               <Link
                 href={APP_ROUTES.order}
-                className="mt-3 inline-flex h-8 items-center rounded-xl bg-[var(--pos-primary,#0f766e)] px-4 text-[12px] font-semibold text-white transition hover:bg-[#0d6b63]"
+                className="mt-4 inline-flex h-9 items-center rounded-[2px] bg-[var(--op-accent)] px-4 text-[12px] font-semibold text-[var(--op-surface)] transition hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)]"
               >
                 Place an order
               </Link>
@@ -1464,13 +1469,18 @@ export function OrderReceivePanel({
             </p>
           ) : !detail ? (
             <div className="flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 px-6 text-center">
-              <ClipboardList
-                className="size-9 text-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
-                strokeWidth={1.25}
-              />
-              <p className="max-w-xs text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]">
-                Select an open order to adjust prices, quantities, and confirm
-                delivery.
+              <p
+                className="text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
+                Select an order.
+              </p>
+              <p className="max-w-[30ch] text-[13px] leading-[1.7] text-[var(--op-muted)]">
+                Pick an open purchase order to adjust prices, quantities, and
+                confirm the delivery.
               </p>
             </div>
           ) : displayLines.length === 0 ? (

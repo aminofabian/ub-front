@@ -1394,7 +1394,7 @@ export function GroceryWorkspace() {
   // ── Render ───────────────────────────────────────────────────────
 
   return (
-    <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
+    <div className="grocery-app-root premium-grocery relative flex h-[100dvh] min-h-0 w-full flex-col">
       <div
         className={cn(
           "grocery-app-stage grocery-workspace grocery-market-paper relative flex min-h-0 w-full flex-1 flex-col overflow-hidden touch-manipulation [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MousePointerClick } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
 import {
@@ -815,12 +815,13 @@ export function ProductsWorkspace() {
                         <ProductDetailPanel {...p} />
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
-                        <div className="flex size-10 items-center justify-center rounded-none border border-dashed border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_60%,transparent)]">
-                          <MousePointerClick className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_35%,transparent)]" />
-                        </div>
-                        <p className="text-[12px] font-medium tracking-tight text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
-                          Select a product from the list
+                      <div className="flex flex-col items-center justify-center gap-3 px-8 py-16 text-center">
+                        <p className="max-w-[18ch] font-serif text-[2rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]">
+                          Select a product
+                        </p>
+                        <p className="max-w-[32ch] text-[13px] leading-[1.7] text-[var(--op-muted)]">
+                          Price, stock, supplier links, and the shelf zone appear
+                          here.
                         </p>
                       </div>
                     )}

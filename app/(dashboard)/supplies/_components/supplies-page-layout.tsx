@@ -9,10 +9,9 @@ import {
 } from "@/components/procurement/procurement-hub-nav";
 import { cn } from "@/lib/utils";
 
-import { salesPaper, salesSurface } from "@/components/sales/sales-surface";
+import { salesSurface } from "@/components/sales/sales-surface";
 
-const SUPPLIES_ROSTER_WASH =
-  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]";
+const SUPPLIES_ROSTER_WASH = "bg-[var(--op-surface)]";
 
 export const SUPPLIES_SURFACE = cn(salesSurface, "overflow-hidden");
 
@@ -40,8 +39,7 @@ export function SuppliesPageLayout({
   return (
     <div
       className={cn(
-        salesPaper,
-        "relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-transparent px-3 pt-1 sm:px-5 sm:pt-1.5",
+        "premium-procurement relative mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col bg-[var(--op-bg)] px-3 pt-1 sm:px-5 sm:pt-1.5",
         className,
       )}
       style={PROCUREMENT_VARS}
@@ -59,13 +57,16 @@ export function SuppliesPageLayout({
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e6f4f0] text-[#0f766e]">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-accent)]">
                 <Package className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
                 <h1
-                  className="truncate text-[18px] font-semibold tracking-[-0.02em] text-[#101828]"
-                  style={{ fontFamily: "var(--font-heading)" }}
+                  className="truncate text-[1.6rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                  style={{
+                    fontFamily:
+                      'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                  }}
                 >
                   Records
                 </h1>

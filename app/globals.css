@@ -7344,3 +7344,298 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 .tablet-more-sheet .bg-muted {
     background-color: color-mix(in srgb, var(--op-ink) 3%, var(--op-surface));
 }
+
+/* Procurement pages: order, receive, records, suppliers. */
+.premium-procurement {
+    --pos-primary: #1d4b3b;
+    --order-ink: #121a16;
+    --order-shelf: #fcfaf5;
+    --order-slip: #fcfaf5;
+    color: var(--op-ink);
+}
+
+.premium-procurement .bg-white {
+    background-color: var(--op-surface);
+}
+
+.premium-procurement .rounded-2xl,
+.premium-procurement .rounded-xl,
+.premium-procurement .rounded-lg {
+    border-radius: 2px;
+}
+
+.premium-procurement [class*="bg-[#f4f7f5]"],
+.premium-procurement [class*="bg-[#f2f7f5]"],
+.premium-procurement [class*="bg-[#eef3ef]"] {
+    background-color: var(--op-bg);
+}
+
+.premium-procurement [class*="bg-[#e6f4f0]"],
+.premium-procurement [class*="bg-[#e9f5f1]"],
+.premium-procurement [class*="bg-[#d9f0eb]"] {
+    background-color: var(--op-accent-soft);
+}
+
+.premium-procurement [class*="text-[#0f766e]"],
+.premium-procurement [class*="text-[#047857]"] {
+    color: var(--op-accent);
+}
+
+.premium-procurement [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent);
+}
+
+.premium-procurement [class*="border-[#0f766e]"] {
+    border-color: color-mix(in srgb, var(--op-accent) 35%, transparent);
+}
+
+.premium-procurement [class*="text-[#101828]"],
+.premium-procurement [class*="text-[#141414]"] {
+    color: var(--op-ink);
+}
+
+.premium-procurement [class*="text-[#667085]"],
+.premium-procurement [class*="text-[#98a2b3]"] {
+    color: var(--op-muted);
+}
+
+.premium-procurement [class*="bg-[#fff6e8]"],
+.premium-procurement [class*="bg-[#fdf6ec]"],
+.premium-procurement [class*="bg-[#fdecec]"],
+.premium-procurement [class*="bg-[#fef3f2]"] {
+    background-color: color-mix(in srgb, var(--op-highlight) 7%, var(--op-surface));
+}
+
+.premium-procurement [class*="text-[#7a4518]"],
+.premium-procurement [class*="text-[#b45309]"],
+.premium-procurement [class*="text-[#b42318]"] {
+    color: #8f3f2f;
+}
+
+.premium-procurement h1 {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif !important;
+    font-weight: 400 !important;
+}
+
+/* Stock levels table: paper, hairline, restrained status colour. */
+.premium-stock-levels {
+    color: var(--op-ink);
+}
+
+.premium-stock-levels .bg-white {
+    background-color: var(--op-surface);
+}
+
+.premium-stock-levels .rounded-2xl,
+.premium-stock-levels .rounded-xl,
+.premium-stock-levels .rounded-lg {
+    border-radius: 2px;
+}
+
+.premium-stock-levels [class*="bg-[#fdecec]"],
+.premium-stock-levels [class*="bg-[#fef3f2]"],
+.premium-stock-levels [class*="bg-[#fff1f2]"],
+.premium-stock-levels [class*="bg-[#fdf6ec]"],
+.premium-stock-levels [class*="bg-[#fffaeb]"] {
+    background-color: color-mix(in srgb, var(--op-highlight) 7%, var(--op-surface)) !important;
+}
+
+.premium-stock-levels [class*="bg-[#ecfdf3]"],
+.premium-stock-levels [class*="bg-[#e6f4f0]"],
+.premium-stock-levels [class*="bg-[#e9f5f1]"] {
+    background-color: var(--op-accent-soft) !important;
+}
+
+.premium-stock-levels [class*="text-[#b42318]"],
+.premium-stock-levels [class*="text-[#d92d20]"],
+.premium-stock-levels [class*="text-[#b54708]"],
+.premium-stock-levels [class*="text-[#b45309]"] {
+    color: #8f3f2f !important;
+}
+
+.premium-stock-levels [class*="text-[#067647]"],
+.premium-stock-levels [class*="text-[#047857]"],
+.premium-stock-levels [class*="text-[#0f766e]"] {
+    color: var(--op-accent) !important;
+}
+
+.premium-stock-levels [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent) !important;
+}
+
+/* Grocery counter: paper chrome and forest accents. */
+.premium-grocery {
+    --pos-primary: #1d4b3b;
+    --order-ink: #121a16;
+    --pos-paper: #f4f1ea;
+    --pos-paper-deep: #ece7dc;
+    background: var(--op-bg);
+    color: var(--op-ink);
+}
+
+.premium-grocery .bg-white {
+    background-color: var(--op-surface);
+}
+
+.premium-grocery header {
+    background: var(--op-surface) !important;
+    border-color: var(--op-rule) !important;
+    color: var(--op-ink);
+}
+
+.premium-grocery .rounded-2xl,
+.premium-grocery .rounded-xl,
+.premium-grocery .rounded-lg {
+    border-radius: 2px;
+}
+
+.premium-grocery [class*="text-[#0f766e]"],
+.premium-grocery [class*="text-[#047857]"] {
+    color: var(--op-accent) !important;
+}
+
+.premium-grocery [class*="bg-[#0f766e]"] {
+    background-color: var(--op-accent) !important;
+}
+
+.premium-grocery [class*="bg-[#f4f7f5]"],
+.premium-grocery [class*="bg-[#e8efeb]"] {
+    background-color: var(--op-bg) !important;
+}
+
+.premium-grocery .grocery-app-stage {
+    background: var(--op-bg);
+}
+
+.premium-grocery .grocery-bottom-nav {
+    background: var(--op-surface);
+    border-color: var(--op-rule);
+}
+
+/* Cashier POS — shelf and ledger share the operator paper system. */
+.premium-cashier {
+    --pos-primary: #1d4b3b !important;
+    --pos-primary-ink: #fcfaf5 !important;
+    --pos-ink: #121a16 !important;
+    --pos-paper: #f4f1ea !important;
+    --pos-paper-deep: #ece7dc !important;
+    --card: #fcfaf5;
+    --background: #fcfaf5;
+    --border: rgba(18, 26, 22, 0.12);
+    background: var(--op-bg);
+    color: var(--op-ink);
+}
+
+.premium-cashier .bg-white {
+    background-color: var(--op-surface);
+}
+
+.premium-cashier .rounded-2xl,
+.premium-cashier .rounded-xl,
+.premium-cashier .rounded-lg {
+    border-radius: 2px;
+}
+
+.premium-cashier [class*="bg-[#f4f7f5]"],
+.premium-cashier [class*="bg-[#f1ece3]"] {
+    background-color: var(--op-bg) !important;
+}
+
+.premium-cashier .pos-ledger {
+    background: var(--op-bg);
+}
+
+.premium-cashier .pos-ledger [class*="bg-blue-"],
+.premium-cashier .pos-ledger [class*="bg-sky-"],
+.premium-cashier .pos-ledger [class*="bg-cyan-"] {
+    background-color: var(--op-accent-soft) !important;
+}
+
+.premium-cashier .pos-ledger [class*="text-blue-"],
+.premium-cashier .pos-ledger [class*="text-sky-"],
+.premium-cashier .pos-ledger [class*="text-cyan-"] {
+    color: var(--op-accent) !important;
+}
+
+.premium-cashier .pos-ledger [class*="border-blue-"],
+.premium-cashier .pos-ledger [class*="border-sky-"] {
+    border-color: var(--op-rule) !important;
+}
+
+.premium-cashier .grocery-bottom-nav,
+.premium-cashier .tablet-bottom-nav {
+    background: var(--op-surface);
+    border-color: var(--op-rule);
+}
+
+.premium-portal {
+    --pos-primary: #1d4b3b !important;
+    --pos-primary-ink: #fcfaf5 !important;
+}
+
+/* Cashier tool modals that predate the shared paper chrome. */
+.cashier-premium-modal [class*="bg-[#f0f0f0]"],
+.cashier-premium-modal [class*="bg-[#f3f3f3]"],
+.cashier-premium-modal [class*="bg-[#ebebeb]"],
+.cashier-premium-modal [class*="bg-[#f7f7f7]"],
+.cashier-premium-modal [class*="bg-[#fafafa]"],
+.cashier-premium-modal [class*="bg-[#e1e1e1]"] {
+    background-color: var(--op-surface) !important;
+}
+
+.cashier-premium-modal [class*="border-[#6d6d6d]"],
+.cashier-premium-modal [class*="border-[#707070]"],
+.cashier-premium-modal [class*="border-[#8a8a8a]"],
+.cashier-premium-modal [class*="border-[#a0a0a0]"],
+.cashier-premium-modal [class*="border-[#c8c8c8]"],
+.cashier-premium-modal [class*="border-[#E8E4DC]"] {
+    border-color: var(--op-rule) !important;
+}
+
+.cashier-premium-modal [class*="bg-[#F0FDFA]"],
+.cashier-premium-modal [class*="bg-[#e8f0fc]"] {
+    background-color: var(--op-accent-soft) !important;
+}
+
+.cashier-premium-modal [class*="text-[#0D9488]"],
+.cashier-premium-modal [class*="border-[#0D9488]"] {
+    color: var(--op-accent) !important;
+    border-color: var(--op-accent) !important;
+}
+
+.cashier-premium-modal [class*="bg-[#fff]"],
+.cashier-premium-modal [class*="bg-white"] {
+    background-color: var(--op-surface);
+}
+
+.cashier-premium-modal ul,
+.cashier-premium-modal button {
+    border-radius: 2px;
+}
+
+.cashier-premium-modal [class*="bg-[#1E88E5]"],
+.cashier-premium-modal [class*="bg-[#1e88e5]"],
+.cashier-premium-modal [class*="bg-blue-"],
+.cashier-premium-modal [class*="bg-sky-"] {
+    background-color: var(--op-accent-soft) !important;
+}
+
+.cashier-premium-modal [class*="text-[#1E88E5]"],
+.cashier-premium-modal [class*="text-[#1e88e5]"],
+.cashier-premium-modal [class*="text-blue-"],
+.cashier-premium-modal [class*="text-sky-"] {
+    color: var(--op-accent) !important;
+}
+
+.premium-cashier > header .pos-market-section-label {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}
+
+.cashier-premium-modal h1,
+.cashier-premium-modal h2 {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}

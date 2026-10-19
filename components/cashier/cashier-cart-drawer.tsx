@@ -711,7 +711,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     className={
                       desktop
                         ? "text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-                        : "text-base font-semibold tracking-tight text-foreground"
+                        : "text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                    }
+                    style={
+                      desktop
+                        ? undefined
+                        : {
+                            fontFamily:
+                              'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                          }
                     }
                   >
                     Checkout
@@ -1736,13 +1744,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 </section>
 
                 {lines.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 rounded-none border border-dashed border-border/55 py-6 text-center">
-                    <ShoppingBag
-                      className="size-5 text-muted-foreground/40"
-                      aria-hidden
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Tap products to build the cart
+                  <div className="flex flex-col items-center gap-2 py-10 text-center">
+                    <p
+                      className="text-[1.8rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+                      style={{
+                        fontFamily:
+                          'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                      }}
+                    >
+                      Nothing in this sale.
+                    </p>
+                    <p className="max-w-[18rem] text-[12px] leading-[1.7] text-[var(--op-muted)]">
+                      Tap a product or scan a barcode to build the cart.
                     </p>
                   </div>
                 ) : null}

@@ -406,7 +406,7 @@ export function CashierShell({ children }: CashierShellProps) {
       shellMore={<ShellMoreCloseOnNavigate>{shellMore}</ShellMoreCloseOnNavigate>}
     >
       <div
-        className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
+        className="premium-cashier relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
         style={shellTheme}
       >
         <header

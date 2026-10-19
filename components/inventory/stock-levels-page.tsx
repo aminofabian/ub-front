@@ -593,10 +593,10 @@ function stockStatusMeta(row: StockRow): {
   const loss = isPriceLoss(row.buyPrice, row.sellPrice);
   const label = out ? "Out" : low ? "Low" : "OK";
   const className = out
-    ? "bg-rose-500/12 text-rose-800 dark:text-rose-300"
+    ? "bg-[color-mix(in_srgb,var(--op-highlight,#a55237)_5%,transparent)] text-[#8f3f2f]"
     : low
-      ? "bg-amber-500/12 text-amber-900 dark:text-amber-200"
-      : cn("bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent)]", stockMute);
+      ? "bg-transparent text-[#8f3f2f]"
+      : "bg-transparent text-[var(--op-muted)]";
   return { out, low, loss, label, className };
 }
 
@@ -2424,7 +2424,7 @@ export function StockLevelsPage() {
 
   if (!isLevelsView) {
     return (
-      <div className="relative min-h-full max-lg:bg-[#f4f7f5]">
+      <div className="premium-stock-levels relative min-h-full bg-[var(--op-bg)]">
         <div className={cn(DASHBOARD_MAX, salesPaper)}>
         <DashboardPageHero
           icon={Warehouse}
@@ -2454,10 +2454,10 @@ export function StockLevelsPage() {
   }
 
   return (
-    <div className="relative min-h-full max-lg:bg-[#f4f7f5]">
+    <div className="premium-stock-levels relative min-h-full bg-[var(--op-bg)]">
       <div className={cn(DASHBOARD_MAX, salesPaper, "flex min-h-0 flex-1 flex-col")}>
       <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-[#f4f7f5]/95 backdrop-blur-md sm:mx-0 max-lg:bg-[#f4f7f5]/95 lg:bg-white/95">
+        <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-[color-mix(in_srgb,var(--op-bg)_94%,transparent)] backdrop-blur-md sm:mx-0">
           <DashboardPageHero
             icon={Package}
             title="Stock levels"

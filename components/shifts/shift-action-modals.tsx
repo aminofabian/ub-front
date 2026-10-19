@@ -58,22 +58,21 @@ import { cn } from "@/lib/utils";
 
 /** Centered shift / cash modals — marketplace paper shelf grammar. */
 const SHIFT_MODAL_CONTENT = cn(
-  "flex max-h-[min(92dvh,40rem)] w-full max-w-2xl flex-col gap-0 overflow-hidden overscroll-contain !rounded-none p-0",
-  "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_42%,var(--card))]",
-  "shadow-[4px_4px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+  "premium-portal flex max-h-[min(92dvh,40rem)] w-full max-w-2xl flex-col gap-0 overflow-hidden overscroll-contain rounded-[2px] border border-[var(--op-rule)] p-0",
+  "bg-[var(--op-surface)]",
+  "shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)]",
   PHONE_BOTTOM_SHEET,
 );
 
 const SHIFT_MODAL_HEADER = cn(
-  "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
-  "bg-[var(--pos-primary,#0f766e)] px-3 py-2 sm:px-4",
-  "text-[var(--pos-primary-ink,#fff)]",
+  "shrink-0 border-b border-[var(--op-rule)]",
+  "bg-[var(--op-surface)] px-4 py-3 sm:px-5",
+  "text-[var(--op-ink)]",
 );
 
 const SHIFT_MODAL_ICON = cn(
-  "flex size-7 shrink-0 items-center justify-center rounded-none border border-white/30",
-  "bg-white/10 text-[var(--pos-primary-ink,#fff)]",
+  "flex size-8 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)]",
+  "bg-[var(--op-accent-soft)] text-[var(--op-accent)]",
 );
 
 /** Tight body so the denomination grid fits without scrolling. */
@@ -81,8 +80,7 @@ const SHIFT_MODAL_BODY =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2 sm:px-4";
 
 const SHIFT_MODAL_SECTION = cn(
-  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-  "bg-[color-mix(in_srgb,#fff_88%,var(--pos-paper,#f1ece3))] overflow-hidden p-0",
+  "overflow-hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-0",
   "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
 );
 
@@ -92,23 +90,17 @@ const SHIFT_MODAL_SECTION_TITLE = cn(
 );
 
 const SHIFT_MODAL_FOOTER = cn(
-  "shrink-0 gap-2 border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
-  "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,transparent)] px-3 py-2 sm:px-4",
+  "shrink-0 gap-2 border-t border-[var(--op-rule)] bg-[var(--op-surface)] px-4 py-2.5 sm:px-5",
 );
 
 const SHIFT_MODAL_BTN_OUTLINE = cn(
-  "rounded-none border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
-  "bg-[color-mix(in_srgb,#fff_80%,var(--pos-paper,#f1ece3))]",
-  "text-[var(--pos-ink,#1c1915)] shadow-none",
-  "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_85%,transparent)]",
+  "rounded-[2px] border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-ink)] shadow-none",
+  "hover:bg-[color-mix(in_srgb,var(--op-accent)_5%,var(--op-surface))]",
 );
 
 const SHIFT_MODAL_BTN_PRIMARY = cn(
-  "rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_20%,transparent)]",
-  "bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]",
-  "shadow-[2px_2px_0_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
-  "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_88%,#000)]",
-  "active:translate-x-px active:translate-y-px active:shadow-none",
+  "rounded-[2px] border border-[var(--op-accent)] bg-[var(--op-accent)] text-[var(--op-surface)]",
+  "shadow-none hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] active:translate-y-0",
 );
 
 const SHIFT_MODAL_CLOSE = cn(
@@ -811,10 +803,10 @@ export function OpenShiftModal({
               <Building2 className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
-              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
+              <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                 {allowZeroFloat ? "Open till for first sale" : "Open New Shift"}
               </DialogTitle>
-              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
+              <DialogDescription className="text-[12px] leading-relaxed text-[var(--op-muted)]">
                 {allowZeroFloat
                   ? "Count what's in the drawer, or start with an empty float — then ring your first sale."
                   : requireAction
@@ -1054,10 +1046,10 @@ export function EditOpeningCountModal({
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
-              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
+              <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                 Edit Opening Count
               </DialogTitle>
-              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
+              <DialogDescription className="text-[12px] leading-relaxed text-[var(--op-muted)]">
                 Updates opening float only. Cash sales and drawouts are left as
                 recorded; expected closing shifts by the same opening delta.
               </DialogDescription>
@@ -1453,10 +1445,10 @@ export function CloseShiftModal({
               <DoorClosed className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
-              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
+              <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                 {onContinue ? "This till is still open" : "Close Shift"}
               </DialogTitle>
-              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
+              <DialogDescription className="text-[12px] leading-relaxed text-[var(--op-muted)]">
                 {staleDuration
                   ? `Open for ${staleDuration} without a close. Count out, or continue this shift.`
                   : "Count the till, then record the cash you are taking out. Closing voids unfinished sales on this shift."}
@@ -1828,10 +1820,10 @@ export function DrawoutModal({
               <Banknote className="size-4 sm:size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
-              <DialogTitle className="font-heading text-[15px] font-semibold tracking-tight text-[var(--pos-primary-ink,#fff)] sm:text-base">
+              <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                 New Cash Drawout
               </DialogTitle>
-              <DialogDescription className="text-[11px] leading-snug text-[var(--pos-primary-ink,#fff)]/80">
+              <DialogDescription className="text-[12px] leading-relaxed text-[var(--op-muted)]">
                 Record cash removed from the till during this shift.
               </DialogDescription>
             </div>

@@ -9,7 +9,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.businessSettings]: "Settings",
     [APP_ROUTES.businessLogs]: "What happened",
     [APP_ROUTES.businessConfiguration]: "How the shop runs",
-    [APP_ROUTES.products]: "Add products",
+    [APP_ROUTES.products]: "Products",
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
@@ -81,7 +81,7 @@ export function shellPageTitle(pathname: string): string {
 
   if (exact[path]) return exact[path];
 
-  if (path.startsWith(APP_ROUTES.products)) return "Add products";
+  if (path.startsWith(APP_ROUTES.products)) return "Products";
   if (path.startsWith("/inventory")) return "Stock";
   if (
     path.startsWith("/purchasing") ||

@@ -53,7 +53,7 @@ function sameIdSet(a: string[], b: string[]): boolean {
 export function CashierAdminCapabilitiesModal({
   open,
   onOpenChange,
-  brandTheme,
+  brandTheme: _brandTheme,
   priceEditEnabled,
   createProductEnabled,
   weighedToggleEnabled,
@@ -225,23 +225,27 @@ export function CashierAdminCapabilitiesModal({
         overlayClassName="bg-black/45 backdrop-blur-[3px] dark:bg-black/55"
         className={cn(
           "gap-0 overflow-hidden p-0 [&>button]:rounded-none",
-          "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,white)]",
-          "dark:bg-background",
-          phone && "max-h-[min(92dvh,44rem)] rounded-t-none",
+          "bg-[var(--op-surface)]",
+          phone && "max-h-[min(92dvh,44rem)] rounded-t-[2px]",
         )}
-        style={brandTheme}
       >
         <div
           className={cn(
-            "shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] px-5 pb-4",
+            "shrink-0 border-b border-[var(--op-rule)] px-5 pb-4",
             phone ? "pt-1" : "pt-5 pr-12",
           )}
         >
           <div className="flex items-start gap-3">
           <DialogHeader className="min-w-0 flex-1 space-y-1 text-left">
-            <DialogTitle className="flex items-center gap-2 text-[1.0625rem] tracking-[-0.02em]">
+            <DialogTitle
+              className="flex items-center gap-2 text-[1.5rem] tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               <Settings2
-                className="size-4 text-[var(--pos-primary)]"
+                className="size-4 text-[var(--op-accent)]"
                 aria-hidden
               />
               Till settings

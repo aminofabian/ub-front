@@ -979,7 +979,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   return (
     <div
-      className="pos-ledger relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f4f7f5] text-[var(--pos-ink,#1c1915)] dark:bg-background dark:text-foreground"
+      className="premium-cashier pos-ledger relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--op-bg)] text-[var(--op-ink)]"
       style={brandTheme}
     >
       <header

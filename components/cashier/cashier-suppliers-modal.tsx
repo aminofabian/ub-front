@@ -111,7 +111,7 @@ const classicPrimary = cn(
 export function CashierSuppliersModal({
   open,
   onOpenChange,
-  brandTheme,
+  brandTheme: _brandTheme,
   canWrite,
   canLink,
   canReceive = false,
@@ -652,41 +652,31 @@ export function CashierSuppliersModal({
         sheetDrag={phone}
         showCloseButton={!phone}
         className={cn(
-          "gap-0 overflow-hidden p-0 [&>button]:rounded-none",
+          "cashier-premium-modal gap-0 overflow-hidden p-0 [&>button]:rounded-none",
           phone
-            ? "max-h-[min(92dvh,44rem)] rounded-t-none border-0 bg-[#FBF9F5] shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)]"
-            : cn(
-                "max-h-[min(92dvh,44rem)] max-w-lg rounded-none border-2 border-[#6d6d6d]",
-                "bg-[#f0f0f0] shadow-[4px_4px_0_rgba(0,0,0,0.18)]",
-                "dark:border-border dark:bg-background dark:shadow-none",
-                "sm:rounded-none",
-              ),
+            ? "max-h-[min(92dvh,44rem)] rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)] shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.24)]"
+            : "max-h-[min(92dvh,44rem)] max-w-lg rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] shadow-[0_24px_64px_-24px_rgba(18,26,22,0.3)]",
         )}
-        style={brandTheme}
         overlayClassName="bg-[rgba(0,0,0,0.45)] supports-[backdrop-filter]:backdrop-blur-none"
       >
         {phone ? (
           <>
             <DialogHeader className="space-y-1 px-5 pb-3 pt-3 text-left">
-              <DialogTitle className="text-lg font-semibold tracking-tight">
+              <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
                 {title}
               </DialogTitle>
-              <DialogDescription className="text-[13px] leading-relaxed text-[#6B7280]">
+              <DialogDescription className="text-[12.5px] leading-relaxed text-[var(--op-muted)]">
                 Find who delivers, add a vendor, or link products from this till.
               </DialogDescription>
             </DialogHeader>
           </>
         ) : (
         <div
-          className={cn(
-            "flex items-center gap-2 border-b border-[#707070] px-3 py-2",
-            "bg-[linear-gradient(180deg,#6ba3d8_0%,#3a7ab8_8%,#2b5f96_100%)]",
-            "dark:border-border dark:bg-primary",
-          )}
+          className="flex items-center gap-2.5 border-b border-[var(--op-rule)] bg-[var(--op-surface)] px-4 py-3"
         >
-          <Truck className="size-4 shrink-0 text-white" aria-hidden />
+          <Truck className="size-4 shrink-0 text-[var(--op-accent)]" aria-hidden />
           <DialogHeader className="min-w-0 flex-1 space-y-0 p-0 text-left">
-            <DialogTitle className="truncate text-sm font-semibold text-white">
+            <DialogTitle className="truncate text-[1.4rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
               {title}
             </DialogTitle>
             <DialogDescription className="sr-only">

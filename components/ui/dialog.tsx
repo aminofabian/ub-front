@@ -4,6 +4,7 @@ import * as React from "react";
 import { Dialog as RadixDialog } from "radix-ui";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { SheetGrabber, useSheetDragDismiss } from "@/components/ui/sheet-drag";
@@ -119,6 +120,8 @@ const DialogContent = React.forwardRef<
     ref,
   ) => {
     const dragEnabled = side === "bottom" && sheetDrag;
+    const pathname = usePathname();
+    const cashierModal = pathname.startsWith("/cashier");
     const closeRef = React.useRef<HTMLButtonElement | null>(null);
     const { panelRef, grabberProps, dragging } = useSheetDragDismiss({
       enabled: dragEnabled,
@@ -139,7 +142,11 @@ const DialogContent = React.forwardRef<
         <RadixDialog.Content
           ref={setPanelRef}
           {...(dragEnabled ? { "data-phone-sheet": "" } : {})}
-          className={cn(dialogContentVariants({ side }), className)}
+          className={cn(
+            dialogContentVariants({ side }),
+            cashierModal && "cashier-premium-modal",
+            className,
+          )}
           {...props}
         >
           {dragEnabled ? (

@@ -258,3 +258,55 @@ with the “Preview my shop” draft URL.
   stock tools, and More drawer paths. `tsc --noEmit` exits 0; ESLint has no
   errors on the touched drawer files (remaining warnings are pre-existing
   hook dependency warnings).
+
+## Desktop app
+
+- `DesktopBootShell` now uses the `premium-portal` paper scope: ivory ground
+  with a faint forest/terracotta wash, Cormorant title, Manrope message, and
+  forest loading dots. The old green radial gradient is gone.
+- The first-run `DesktopSetupWizard` uses paper cards, 2px edges, forest
+  inputs and buttons, forest tabs, and a Cormorant step title. No `#1f7a3a`
+  green remains.
+- Main dashboard drawers on desktop inherit the same `FormDrawer`, `Dialog`,
+  and `premium-portal` changes as cloud.
+- Desktop setup was previewed at 1440 through a temporary harness (removed
+  after verification); choose and find-shop steps render with no console
+  errors.
+
+## Procurement, catalogue, stock, grocery
+
+- Order, Receive, Records, and Suppliers now sit in a `premium-procurement`
+  scope: forest tokens, ivory ground, 2px surfaces, hairline rules, serif
+  supplier and empty-state headings.
+- Order slip empty state: “Nothing on the slip.” with a 20ch body measure.
+- Receive: “No open orders yet.” and “Select an order.” in Cormorant, with a
+  forest primary action.
+- Records: paper empty state, serif “No today receipts”, forest Walk-in supply.
+- Suppliers: serif “Select a supplier”, quiet paper directory, forest actions,
+  no dashed empty card.
+- Products: shell title corrected to **Products**; the shelf-zone notice is now
+  a quiet paper strip with text actions; the detail placeholder is a serif
+  “Select a product”.
+- Stock levels: restrained filter palette; terracotta only for genuine
+  out/low status; paper table and hairlines.
+- Grocery: paper chrome, forest accents, serif “Current Sale” and
+  “Nothing in this sale.” empty state.
+- Verified all seven routes at 1440 with no overflow or console errors;
+  supplier selection, stock filtering, and order supplier switching work.
+
+## Cashier / POS
+
+- `premium-cashier` gives the whole till (shelf and ledger templates) forest
+  actions, ivory paper, 2px edges, and Manrope/Cormorant hierarchy.
+- Both templates verified: Shelf (tile grid + cart rail) and Ledger
+  (spreadsheet + keypad). Cart empty state is serif; totals and keypad stay
+  dense.
+- Cashier dialogs are auto-tagged `cashier-premium-modal` from the route so
+  legacy cashier tools inherit paper chrome without per-component edits.
+- Shift open/close modal: paper header, Cormorant title, forest denomination
+  bar, forest primary action, 2px edges.
+- Suppliers/receive-till modal, till settings, add-product, checkout/payment
+  sheet, and mobile cart drawer are covered.
+- Verified shelf/ledger, shift modal, suppliers modal, add-product, checkout,
+  till settings, mobile cart; no console errors or overflow.
+- A local QA till and test shift were registered/opened to reach the till.

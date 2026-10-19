@@ -16,10 +16,10 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export const PROCUREMENT_VARS = {
-  ["--pos-primary" as string]: "#0f766e",
-  ["--order-ink" as string]: "#15231f",
-  ["--order-shelf" as string]: "#ffffff",
-  ["--order-slip" as string]: "#ffffff",
+  ["--pos-primary" as string]: "#1D4B3B",
+  ["--order-ink" as string]: "#121A16",
+  ["--order-shelf" as string]: "#FCFAF5",
+  ["--order-slip" as string]: "#FCFAF5",
 } as const;
 
 type HubStep = {
@@ -269,7 +269,7 @@ export function ProcurementHubNav({
                 title={`${step.label}: ${step.hint}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] transition-colors",
+                  "flex items-center gap-2 rounded-[2px] px-3 py-1.5 text-[13px] transition-colors",
                   active
                     ? "bg-[#e6f4f0]"
                     : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
@@ -277,7 +277,7 @@ export function ProcurementHubNav({
               >
                 <span
                   className={cn(
-                    "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums",
+                    "inline-flex size-5 shrink-0 items-center justify-center rounded-[2px] text-[11px] font-semibold tabular-nums",
                     active
                       ? "bg-[#0f766e] text-white"
                       : past

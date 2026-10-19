@@ -288,7 +288,13 @@ export function GroceryInvoiceCart({
       >
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-baseline gap-1.5">
-            <h2 className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+            <h2
+              className="truncate text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
               {title}
             </h2>
             {!isEmpty ? (
@@ -341,9 +347,17 @@ export function GroceryInvoiceCart({
               strokeWidth={1.5}
               aria-hidden
             />
-            <p className="text-[12px] font-medium text-foreground">Empty</p>
-            <p className="max-w-[14rem] text-[10px] leading-snug text-muted-foreground">
-              Tap a product or scan a barcode.
+            <p
+              className="mt-2 text-[1.8rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
+            >
+              Nothing in this sale.
+            </p>
+            <p className="max-w-[18rem] text-[12px] leading-[1.7] text-[var(--op-muted)]">
+              Tap a product or scan a barcode to begin.
             </p>
           </div>
         ) : (
