@@ -92,6 +92,12 @@ import {
   CASHIER_TOOL_ICONS,
   CASHIER_TOOL_SECTIONS,
 } from "../cashier-pos-tools";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
 
@@ -139,8 +145,10 @@ function backspaceAmount(current: string): string {
 const CASH_QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const;
 
 const HEADER_SELECT = cn(
-  "h-7 max-w-[9.5rem] rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium",
-  "text-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+  "h-8 max-w-[9.5rem] rounded-xl border bg-white px-2 text-[12px] font-semibold ring-1 ring-black/[0.05]",
+  salesHair,
+  salesMute,
+  "outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/30",
   "disabled:opacity-50",
 );
 
@@ -971,22 +979,41 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   return (
     <div
-      className="pos-ledger relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--pos-paper,#f1ece3)] text-[var(--pos-ink,#1c1915)] dark:bg-background dark:text-foreground"
+      className="pos-ledger relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#f4f7f5] text-[var(--pos-ink,#1c1915)] dark:bg-background dark:text-foreground"
       style={brandTheme}
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-2 bg-[var(--pos-primary)] px-3 py-1.5 text-[var(--pos-primary-ink,#fff)]">
+      <header
+        className={cn(
+          "flex shrink-0 flex-wrap items-center gap-2 border-b bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+          salesHair,
+        )}
+      >
         <div className="min-w-0">
-          <p className="pos-market-section-label truncate text-[1.05rem] leading-none">
+          <p
+            className={cn(
+              "truncate font-heading text-[15px] font-semibold leading-none tracking-[-0.02em]",
+              salesInk,
+            )}
+          >
             {shopName}
           </p>
-          <p className="truncate text-[9px] font-semibold uppercase tracking-[0.14em] opacity-80">
+          <p
+            className={cn(
+              "truncate text-[10px] font-semibold uppercase tracking-[0.12em]",
+              salesMute,
+            )}
+          >
             {[tillLabel, cashierName].filter(Boolean).join(" · ")}
           </p>
         </div>
         {branchLocked ? (
           currentBranch ? (
             <span
-              className="inline-flex h-7 max-w-[9.5rem] items-center gap-1 truncate rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium"
+              className={cn(
+                "inline-flex h-8 max-w-[9.5rem] items-center gap-1 truncate rounded-xl border bg-white px-2 text-[11px] font-semibold ring-1 ring-black/[0.05]",
+                salesHair,
+                salesMute,
+              )}
               title="Branch switching is disabled for your role"
             >
               <Lock className="size-3 shrink-0" aria-hidden />
@@ -1037,7 +1064,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
             </>
           )}
         </select>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold">
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold",
+            online ? "text-[var(--pos-primary,#0f766e)]" : salesMute,
+          )}
+        >
           {online ? <Wifi className="size-3.5" aria-hidden /> : <WifiOff className="size-3.5" aria-hidden />}
           {online ? "Online" : "Offline"}
         </span>
@@ -1045,7 +1077,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           type="button"
           disabled={tillLocked}
           onClick={() => tillLock?.lock({ reason: "manual" })}
-          className="inline-flex h-7 items-center gap-1 rounded-none border border-white/25 bg-card/10 px-2 text-[11px] font-medium hover:bg-card/20 disabled:opacity-40"
+          className={cn(salesToolBtnClass(), "disabled:opacity-40")}
         >
           <LockKeyhole className="size-3.5" aria-hidden />
           Lock
@@ -1059,7 +1091,12 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {toolbarExtras ? (
-        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card px-3 py-1 dark:border-border/40">
+        <div
+          className={cn(
+            "flex shrink-0 items-center justify-end gap-2 border-b bg-white/80 px-3 py-1.5 dark:border-border/40",
+            salesHair,
+          )}
+        >
           {toolbarExtras}
         </div>
       ) : null}
@@ -1067,8 +1104,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
       <div className={cn("flex min-h-0 flex-1", isLg ? "flex-row" : "flex-col")}>
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-2">
           <div className="relative flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-card px-2.5 py-2 focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] dark:border-border/40">
-              <ScanLine className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
+            <div
+              className={cn(
+                "flex min-w-0 flex-1 items-center gap-2 rounded-xl border bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.05)] ring-1 ring-black/[0.05] focus-within:border-[var(--pos-primary,#0f766e)] focus-within:ring-[var(--pos-primary,#0f766e)]/20 dark:border-border/40 dark:bg-card",
+                salesHair,
+              )}
+            >
+              <ScanLine className={cn("size-4 shrink-0", salesMute)} aria-hidden />
               <input
                 ref={searchInputRef}
                 value={search}
@@ -1743,7 +1785,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
           aria-expanded={moreOpen}
           aria-label="Open the till menu"
           className={cn(
-            "ml-1 inline-flex h-[2.6rem] shrink-0 items-center gap-1.5 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-card px-2.5 text-[12px] font-semibold tracking-tight hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] dark:border-border/40",
+            salesToolBtnClass(moreOpen),
+            "ml-1 h-[2.6rem] shrink-0 px-2.5 text-[12px] tracking-tight",
             !isLg && "flex-1 justify-center",
           )}
         >

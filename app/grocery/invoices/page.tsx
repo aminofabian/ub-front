@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  Receipt,
   Loader2,
   AlertTriangle,
   Plus,
@@ -15,12 +14,10 @@ import {
   Copy,
   CheckCircle2,
   XCircle,
-  Hourglass,
   CalendarClock,
   User,
   StickyNote,
   ShoppingBasket,
-  FileText,
   LayoutGrid,
   Table2,
   ArrowDownUp,
@@ -40,6 +37,16 @@ import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesMetricTile,
+  SalesPeriodChip,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   GroceryInvoicesList,
@@ -454,18 +461,33 @@ export default function GroceryInvoicesPage() {
         style={{ paddingBottom: GROCERY_TAB_BAR_CLEARANCE }}
       >
         <BranchRequiredBanner />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:gap-5 sm:px-5 sm:pt-4">
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:gap-5 sm:px-5 sm:pt-4",
+            salesPaper,
+          )}
+        >
       {/* ── Compact app header ───────────────────────────────────────── */}
-      <section className="relative shrink-0 border-b border-border/60 pb-3">
+      <section className={cn("relative shrink-0 border-b pb-3", salesHair)}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <span
+              className={cn(
+                "block text-[10px] font-bold uppercase tracking-[0.14em]",
+                salesMute,
+              )}
+            >
               {branchName || "Grocery"}
             </span>
-            <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            <h1
+              className={cn(
+                "font-heading text-xl font-semibold tracking-tight sm:text-2xl",
+                salesInk,
+              )}
+            >
               Invoices
             </h1>
-            <p className="mt-1 max-w-prose text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className={cn("mt-1 max-w-prose text-xs leading-relaxed sm:text-sm", salesMute)}>
               Pending pickups, paid sales, and expired barcodes.
             </p>
           </div>
@@ -473,10 +495,10 @@ export default function GroceryInvoicesPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-black/[0.05]",
                 online
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
-                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+                  ? "bg-emerald-50 text-emerald-800"
+                  : "bg-amber-50 text-amber-800",
               )}
             >
               {online ? (
@@ -487,90 +509,130 @@ export default function GroceryInvoicesPage() {
               {online ? "Online" : "Offline"}
             </span>
             <RealtimeConnectionIndicator />
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
               onClick={() => void fetchInvoices({ silent: true })}
               disabled={loading || refreshing || !branchId}
-              className="gap-1.5"
+              className={cn(
+                salesToolBtnClass(),
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
             >
               <RefreshCw
                 className={cn("size-3.5", refreshing && "animate-spin")}
               />
               <span className="hidden sm:inline">Refresh</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => lockCounter({ reason: "manual" })}
               disabled={counterLocked}
-              className="gap-1.5"
+              className={cn(
+                salesToolBtnClass(),
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
             >
               <LockKeyhole className="size-3.5" />
               <span className="hidden sm:inline">Lock</span>
-            </Button>
-            <Button asChild size="sm" className="gap-1.5">
-              <Link href="/grocery">
-                <Plus className="size-3.5" />
-                New invoice
-              </Link>
-            </Button>
+            </button>
+            <Link
+              href="/grocery"
+              className={cn(
+                salesToolBtnClass(true),
+                "bg-[var(--pos-primary,#0f766e)] text-white ring-0 hover:brightness-105",
+              )}
+            >
+              <Plus className="size-3.5" />
+              New invoice
+            </Link>
           </div>
         </div>
 
         {/* Stat tiles */}
-        <div className="relative mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:grid-cols-4 sm:gap-3">
-          <StatTile
-            icon={<FileText className="size-3.5" />}
-            label="Total"
-            value={String(counts.all)}
-            hint={`${counts.all === 1 ? "invoice" : "invoices"} all time`}
-            loading={loading}
-          />
-          <StatTile
-            icon={<Hourglass className="size-3.5" />}
-            label="Pending"
-            value={String(counts.pending_payment)}
-            hint={formatCurrency(currency, totals.pending)}
-            tone="amber"
-            loading={loading}
-          />
-          <StatTile
-            icon={<CheckCircle2 className="size-3.5" />}
-            label="Paid"
-            value={String(counts.paid)}
-            hint={formatCurrency(currency, totals.paid)}
-            tone="emerald"
-            loading={loading}
-          />
-          <StatTile
-            icon={<XCircle className="size-3.5" />}
-            label="Closed"
-            value={String(counts.cancelled + counts.expired)}
-            hint={`${counts.cancelled} cancelled · ${counts.expired} expired`}
-            tone="muted"
-            loading={loading}
-          />
+        <div
+          className={cn(
+            "relative mt-5 grid grid-cols-2 sm:mt-6 sm:grid-cols-4",
+            salesSurface,
+            salesHair,
+          )}
+        >
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "min-h-[5rem] animate-pulse px-3.5 py-3.5",
+                  i > 0 && "border-t sm:border-t-0 sm:border-l",
+                  salesHair,
+                )}
+              >
+                <span className="block h-3 w-16 rounded bg-black/[0.06]" />
+                <span className="mt-3 block h-7 w-12 rounded bg-black/[0.08]" />
+              </div>
+            ))
+          ) : (
+            <>
+              <SalesMetricTile
+                label="Total"
+                value={String(counts.all)}
+                hint={`${counts.all === 1 ? "invoice" : "invoices"} all time`}
+              />
+              <SalesMetricTile
+                className={cn("border-t sm:border-t-0 sm:border-l", salesHair)}
+                label="Pending"
+                value={String(counts.pending_payment)}
+                hint={formatCurrency(currency, totals.pending)}
+              />
+              <SalesMetricTile
+                className={cn("border-t sm:border-t-0 sm:border-l", salesHair)}
+                label="Paid"
+                value={String(counts.paid)}
+                hint={formatCurrency(currency, totals.paid)}
+              />
+              <SalesMetricTile
+                className={cn("border-t sm:border-t-0 sm:border-l", salesHair)}
+                label="Closed"
+                value={String(counts.cancelled + counts.expired)}
+                hint={`${counts.cancelled} cancelled · ${counts.expired} expired`}
+              />
+            </>
+          )}
         </div>
       </section>
 
       {/* ── Filter bar: search + view toggle + sort + tabs ────────── */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <section className={cn(salesSurface, "overflow-hidden")}>
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 border-b px-3 py-2.5 sm:px-3.5",
+            salesHair,
+          )}
+        >
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
+            <Search
+              className={cn(
+                "pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2",
+                salesMute,
+              )}
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by barcode or cashier name…"
-              className="h-10 pl-9 pr-9"
+              className={cn(
+                "h-9 border-0 bg-transparent pl-9 pr-9 shadow-none ring-1 ring-black/[0.05] focus-visible:ring-[var(--pos-primary,#0f766e)]/30",
+                salesInk,
+              )}
               aria-label="Search invoices"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className={cn(
+                  "absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors hover:bg-black/[0.04]",
+                  salesMute,
+                )}
                 aria-label="Clear search"
               >
                 <X className="size-3.5" />
@@ -578,19 +640,21 @@ export default function GroceryInvoicesPage() {
             )}
           </div>
 
-          {/* Sort dropdown — native select wrapped to look like a button so it
-              stays accessible (keyboard + mobile native picker) without
-              dragging in a popover dependency. */}
-          <label className="relative inline-flex h-10 items-center">
+          <label className="relative inline-flex h-9 items-center">
             <span className="sr-only">Sort invoices</span>
-            <ArrowDownUp className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <ArrowDownUp
+              className={cn(
+                "pointer-events-none absolute left-2.5 size-3.5",
+                salesMute,
+              )}
+            />
             <select
               value={sort}
               onChange={(e) => updateSort(e.target.value as SortKey)}
               className={cn(
-                "h-10 appearance-none rounded-lg border border-input bg-background pl-8 pr-7 text-sm font-medium text-foreground shadow-sm",
-                "hover:bg-muted focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-                "cursor-pointer transition-colors",
+                salesToolBtnClass(),
+                "h-9 appearance-none cursor-pointer pl-8 pr-7",
+                salesInk,
               )}
               aria-label="Sort order"
             >
@@ -603,7 +667,10 @@ export default function GroceryInvoicesPage() {
             <svg
               aria-hidden
               viewBox="0 0 12 12"
-              className="pointer-events-none absolute right-2 size-3 text-muted-foreground"
+              className={cn(
+                "pointer-events-none absolute right-2 size-3",
+                salesMute,
+              )}
             >
               <path
                 d="M2 4l4 4 4-4"
@@ -616,14 +683,13 @@ export default function GroceryInvoicesPage() {
             </svg>
           </label>
 
-          {/* View mode segmented control */}
           <ViewModeToggle value={viewMode} onChange={updateViewMode} />
         </div>
 
         <div
           role="tablist"
           aria-label="Invoice status"
-          className="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-card p-1 shadow-sm"
+          className="flex flex-wrap gap-1.5 overflow-x-auto px-3 py-2.5 sm:px-3.5"
         >
           {STATUS_TABS.map((tab) => {
             const count = counts[tab.value];
@@ -633,39 +699,28 @@ export default function GroceryInvoicesPage() {
                 ? null
                 : STATUS_THEME[tab.value];
             return (
-              <button
+              <SalesPeriodChip
                 key={tab.value}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
+                active={isActive}
                 onClick={() => setActiveTab(tab.value)}
-                className={cn(
-                  "group inline-flex flex-1 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
+                className="gap-1.5"
               >
-                {theme && (
+                {theme && !isActive ? (
                   <span
-                    className={cn(
-                      "size-1.5 rounded-full transition-colors",
-                      isActive ? "bg-white/90" : theme.dot,
-                    )}
+                    className={cn("size-1.5 rounded-full", theme.dot)}
+                    aria-hidden
                   />
-                )}
+                ) : null}
                 <span className="truncate">{tab.label}</span>
                 <span
                   className={cn(
-                    "ml-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums",
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-muted text-muted-foreground/90",
+                    "tabular-nums text-[10.5px] font-bold opacity-80",
+                    isActive && "opacity-90",
                   )}
                 >
                   {count}
                 </span>
-              </button>
+              </SalesPeriodChip>
             );
           })}
         </div>
@@ -715,9 +770,9 @@ export default function GroceryInvoicesPage() {
       {!loading &&
         !error &&
         (activeTab === "drafts" ? drafts.length > 0 : invoices.length > 0) && (
-          <p className="text-center text-xs text-muted-foreground">
+          <p className={cn("text-center text-xs", salesMute)}>
             Showing{" "}
-            <span className="font-semibold text-foreground">
+            <span className={cn("font-semibold", salesInk)}>
               {activeTab === "drafts" ? filteredDrafts.length : filteredInvoices.length}
             </span>{" "}
             of{" "}
@@ -778,13 +833,15 @@ function ViewModeToggle({
     <div
       role="radiogroup"
       aria-label="Layout"
-      className="relative inline-flex h-10 items-center rounded-lg border border-input bg-background p-0.5 shadow-sm"
+      className={cn(
+        "relative inline-flex h-9 items-center rounded-xl p-0.5 ring-1 ring-black/[0.05]",
+        "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
+      )}
     >
-      {/* Sliding thumb — sits behind the labels and slides between segments. */}
       <span
         aria-hidden
         className={cn(
-          "absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-primary shadow-sm transition-transform duration-200 ease-out",
+          "absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-lg bg-white shadow-sm ring-1 ring-black/[0.05] transition-transform duration-200 ease-out",
           value === "grid" && "translate-x-full",
         )}
       />
@@ -799,10 +856,10 @@ function ViewModeToggle({
             aria-checked={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "relative z-[1] inline-flex h-9 min-w-[3.5rem] items-center justify-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors",
+              "relative z-[1] inline-flex h-8 min-w-[3.25rem] items-center justify-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold transition-colors",
               active
-                ? "text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
+                ? cn(salesInk)
+                : cn(salesMute, "hover:text-[var(--order-ink,#15231f)]"),
             )}
           >
             <Icon className="size-3.5" strokeWidth={2.25} />
@@ -810,71 +867,6 @@ function ViewModeToggle({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-// ── Stat tile ────────────────────────────────────────────────────────
-
-function StatTile({
-  icon,
-  label,
-  value,
-  hint,
-  tone = "default",
-  loading = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "default" | "emerald" | "amber" | "muted";
-  loading?: boolean;
-}) {
-  const toneStyles: Record<string, string> = {
-    default:
-      "border-border/70 bg-card/80 text-foreground [&_[data-icon]]:bg-primary/10 [&_[data-icon]]:text-primary",
-    emerald:
-      "border-emerald-200/60 bg-emerald-50/60 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-50 [&_[data-icon]]:bg-emerald-500/15 [&_[data-icon]]:text-emerald-600 dark:[&_[data-icon]]:text-emerald-300",
-    amber:
-      "border-amber-200/60 bg-amber-50/70 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-50 [&_[data-icon]]:bg-amber-500/15 [&_[data-icon]]:text-amber-700 dark:[&_[data-icon]]:text-amber-300",
-    muted:
-      "border-border/70 bg-muted/30 text-foreground [&_[data-icon]]:bg-muted [&_[data-icon]]:text-muted-foreground",
-  };
-
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col gap-2 rounded-xl border p-3 shadow-sm transition-colors sm:p-3.5",
-        toneStyles[tone],
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] opacity-75">
-          {label}
-        </span>
-        <span
-          data-icon
-          className="flex size-6 items-center justify-center rounded-md"
-          aria-hidden
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="flex items-baseline justify-between gap-2">
-        {loading ? (
-          <span className="block h-6 w-12 animate-pulse rounded-md bg-foreground/10" />
-        ) : (
-          <span className="text-2xl font-bold tabular-nums leading-none tracking-tight sm:text-[1.6rem]">
-            {value}
-          </span>
-        )}
-      </div>
-      {hint && (
-        <span className="truncate text-[11px] font-medium opacity-70">
-          {hint}
-        </span>
-      )}
     </div>
   );
 }

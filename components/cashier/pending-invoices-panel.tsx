@@ -17,6 +17,14 @@ import {
   Smartphone,
   Ban,
 } from "lucide-react";
+import {
+  salesHair,
+  salesHairDivide,
+  salesInk,
+  salesMute,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -459,11 +467,9 @@ export function PendingInvoicesPanel({
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-medium transition-colors",
-          open
-            ? "bg-primary/10 text-primary"
-            : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
-          badgePulse && "ring-2 ring-primary/40 ring-offset-1",
+          salesToolBtnClass(open),
+          "gap-1.5 px-3 py-1.5 text-xs",
+          badgePulse && "ring-2 ring-[var(--pos-primary,#0f766e)]/30 ring-offset-1",
         )}
       >
         <ClipboardList className="size-3.5" />
@@ -471,7 +477,7 @@ export function PendingInvoicesPanel({
         {pendingCount > 0 && (
           <span
             className={cn(
-              "inline-flex size-4 items-center justify-center rounded-none bg-primary text-[10px] font-bold text-primary-foreground",
+              "inline-flex size-4 min-w-4 items-center justify-center rounded-full bg-[var(--pos-primary,#0f766e)] text-[10px] font-bold text-white",
               badgePulse && "animate-pulse",
             )}
           >
@@ -491,9 +497,21 @@ export function PendingInvoicesPanel({
             onClick={() => setOpen(false)}
           />
 
-          <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] rounded-none border border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
-              <span className="text-sm font-semibold">Pending Invoices</span>
+          <div
+            className={cn(
+              salesSurface,
+              "absolute right-0 top-full z-50 mt-2 w-[22rem] overflow-hidden",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center justify-between border-b px-4 py-3",
+                salesHair,
+              )}
+            >
+              <span className={cn("text-sm font-semibold", salesInk)}>
+                Pending Invoices
+              </span>
               {loading && (
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
               )}
@@ -513,7 +531,7 @@ export function PendingInvoicesPanel({
                   No pending invoices.
                 </p>
               ) : (
-                <div className="divide-y divide-border/30">
+                <div className={cn("divide-y", salesHairDivide)}>
                   {invoices.map((inv) => {
                     const stkLabel = stkBadgeLabel(inv.lastStkStatus);
                     const isBusy = busyId === inv.id || voidingId === inv.id;
@@ -534,23 +552,23 @@ export function PendingInvoicesPanel({
                     const badges = (
                       <>
                         {inv.remote ? (
-                          <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                          <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
                             Remote
                           </span>
                         ) : null}
-                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                        <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                           {inv.lineCount}{" "}
                           {inv.lineCount === 1 ? "item" : "items"}
                         </span>
                         {onThisTill ? (
-                          <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                          <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
                             On this till
                           </span>
                         ) : null}
                         {stkLabel ? (
                           <span
                             className={cn(
-                              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                              "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                               stkBadgeClass(inv.lastStkStatus),
                             )}
                           >
@@ -777,14 +795,17 @@ export function PendingInvoicesPanel({
             </div>
 
             {invoices.length > 0 && (
-              <div className="border-t border-border/40 px-4 py-2">
+              <div className={cn("border-t px-4 py-2", salesHair)}>
                 <button
                   type="button"
                   onClick={() => {
                     void fetchInvoices();
                     toast.success("Invoice list refreshed");
                   }}
-                  className="w-full text-center text-[11px] text-muted-foreground hover:text-foreground"
+                  className={cn(
+                    "w-full text-center text-[11px] hover:text-[var(--order-ink,#15231f)]",
+                    salesMute,
+                  )}
                 >
                   Refresh list
                 </button>
