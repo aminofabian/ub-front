@@ -33,10 +33,10 @@ import {
   supplyPaymentStatusBadge,
 } from "./supplies-shared";
 import type { SupplyBillFilterId } from "./supplies-bill-filters";
-import {
-  HAIRLINE,
-  ROSTER,
-} from "../../suppliers/_components/supplier-ui-tokens";
+import { salesHair } from "@/components/sales/sales-surface";
+
+const SUPPLIES_ROSTER_WASH =
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]";
 
 export type UnpaidSupplierGroup = {
   supplierId: string;
@@ -117,7 +117,12 @@ export function UnpaidSettleWorkspace({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
-      <div className={cn("flex shrink-0 flex-wrap items-center gap-2 border-b bg-white px-3 py-2 sm:px-3.5", HAIRLINE)}>
+      <div
+        className={cn(
+          "flex shrink-0 flex-wrap items-center gap-2 border-b bg-white px-3 py-2 sm:px-3.5",
+          salesHair,
+        )}
+      >
         <div className="min-w-0 flex-1">
           <h2
             className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground"
@@ -162,7 +167,13 @@ export function UnpaidSettleWorkspace({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className={cn("hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r p-2.5 lg:flex", HAIRLINE, ROSTER)}>
+        <aside
+          className={cn(
+            "hidden w-[10.5rem] shrink-0 flex-col overflow-y-auto border-r p-2.5 lg:flex",
+            salesHair,
+            SUPPLIES_ROSTER_WASH,
+          )}
+        >
           <SuppliesFilterPanel
             layout="rail"
             value={billFilter}
@@ -172,8 +183,14 @@ export function UnpaidSettleWorkspace({
           />
         </aside>
 
-        <aside className={cn("flex w-full min-w-0 shrink-0 flex-col border-r-0 md:w-[15.5rem] md:border-r lg:w-[17rem]", HAIRLINE, ROSTER)}>
-          <div className={cn("shrink-0 border-b px-3 py-1.5", HAIRLINE)}>
+        <aside
+          className={cn(
+            "flex w-full min-w-0 shrink-0 flex-col border-r-0 md:w-[15.5rem] md:border-r lg:w-[17rem]",
+            salesHair,
+            SUPPLIES_ROSTER_WASH,
+          )}
+        >
+          <div className={cn("shrink-0 border-b px-3 py-1.5", salesHair)}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Vendors
             </p>
@@ -414,7 +431,12 @@ function VendorBillsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className={cn("flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-white px-3 py-2.5 sm:px-3.5", HAIRLINE)}>
+      <div
+        className={cn(
+          "flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-white px-3 py-2.5 sm:px-3.5",
+          salesHair,
+        )}
+      >
         <div className="min-w-0">
           <p
             className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]"

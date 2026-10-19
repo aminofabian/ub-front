@@ -62,6 +62,12 @@ import {
   type DatePreset,
 } from "@/lib/analytics-date-range";
 import { APP_ROUTES } from "@/lib/config";
+import {
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesPeriodChip,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import styles from "@/components/credits/tab-book.module.css";
 
@@ -566,8 +572,9 @@ export function CreditActivityPage({
     <div
       className={cn(
         !embedded && DASHBOARD_MAX_WIDE,
+        !embedded && salesPaper,
         styles.shell,
-        embedded ? "gap-1.5 pb-8" : "gap-1.5 pb-16",
+        embedded ? "gap-1.5 pb-8" : "flex flex-col gap-1.5",
       )}
     >
       {embedded ? (
@@ -628,24 +635,30 @@ export function CreditActivityPage({
       ) : null}
 
       <section className={styles.book}>
-        <div className={styles.banner}>
-          <div className={styles.stamps} role="group" aria-label="Credit period">
-            {PERIOD_OPTIONS.map(({ id, label, hint }) => {
-              const active = period === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  title={hint}
+        <div
+          className={cn(
+            salesSurface,
+            "!rounded-2xl flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-3.5",
+          )}
+        >
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="group"
+            aria-label="Credit period"
+          >
+            {PERIOD_OPTIONS.map(({ id, label, hint }) => (
+              <span key={id} title={hint}>
+                <SalesPeriodChip
+                  active={period === id}
                   onClick={() => setPeriod(id)}
-                  className={cn(styles.stamp, active && styles.stampActive)}
+                  className="!h-9 !rounded-full"
                 >
                   {label}
-                </button>
-              );
-            })}
+                </SalesPeriodChip>
+              </span>
+            ))}
           </div>
-          <p className={styles.sideHint}>
+          <p className={cn("text-[12px]", salesMute)}>
             {periodLabel}
             {listLoading || tabCount === 0
               ? null
@@ -655,7 +668,7 @@ export function CreditActivityPage({
           </p>
         </div>
 
-        <div className={styles.theatre}>
+        <div className={cn(styles.theatre, "mt-1.5")}>
             <div className={styles.spread}>
               <div className={styles.index}>
                 <div className={styles.indexHead}>

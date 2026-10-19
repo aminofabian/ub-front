@@ -99,6 +99,12 @@ import {
 } from "./stock-column-widths";
 import { useStockColumnWidths } from "./use-stock-column-widths";
 import { StockPriceListDownload } from "./stock-price-list-download";
+import {
+  SalesPeriodChip,
+  salesPaper,
+  salesSurface,
+  salesToolBtnClass,
+} from "@/components/sales/sales-surface";
 
 const PAGE_SIZE = 50;
 
@@ -2352,46 +2358,25 @@ export function StockLevelsPage() {
           role="group"
           aria-label="Department"
         >
-          <button
-            type="button"
+          <SalesPeriodChip
+            active={!headerItemTypeId.trim()}
+            className="h-7 px-2.5 text-[11px]"
             onClick={() => setItemTypeId("")}
-            className={cn(
-              "h-7 shrink-0 rounded-full px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
-              !headerItemTypeId.trim()
-                ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                : cn(
-                    "border bg-white",
-                    stockHair,
-                    stockMute,
-                    "active:text-[var(--order-ink,#15231f)] hover:text-[var(--order-ink,#15231f)]",
-                  ),
-            )}
           >
             All
-          </button>
+          </SalesPeriodChip>
           {sessionItemTypes.map((t) => {
             const active = headerItemTypeId === t.id;
             return (
-              <button
+              <SalesPeriodChip
                 key={t.id}
-                type="button"
+                active={active}
+                className="h-7 max-w-[9rem] truncate px-2.5 text-[11px]"
                 onClick={() => setItemTypeId(t.id)}
-                className={cn(
-                  "h-7 max-w-[9rem] shrink-0 truncate rounded-full px-2.5 text-[11px] font-semibold tracking-[-0.01em] transition-colors",
-                  active
-                    ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                    : cn(
-                        "border bg-white",
-                        stockHair,
-                        stockMute,
-                        "active:text-[var(--order-ink,#15231f)] hover:text-[var(--order-ink,#15231f)]",
-                      ),
-                )}
-                title={t.label}
               >
                 {t.label}
                 {t.isDefault ? " ★" : ""}
-              </button>
+              </SalesPeriodChip>
             );
           })}
         </div>
@@ -2439,7 +2424,8 @@ export function StockLevelsPage() {
 
   if (!isLevelsView) {
     return (
-      <div className={cn(DASHBOARD_MAX, "!pb-[calc(var(--shell-bottom-inset)+1.5rem)]")}>
+      <div className="relative min-h-full max-lg:bg-[#f4f7f5]">
+        <div className={cn(DASHBOARD_MAX, salesPaper)}>
         <DashboardPageHero
           icon={Warehouse}
           title="Stock"
@@ -2448,7 +2434,7 @@ export function StockLevelsPage() {
             "Choose a branch to see in-store stock"
           }
         />
-        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
+        <div className={cn(salesSurface, "overflow-hidden")}>
           {departmentRail}
           <div className="px-3 pt-3 sm:px-4 sm:pt-4">
             <StockActionHub
@@ -2462,14 +2448,16 @@ export function StockLevelsPage() {
             />
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "h-full min-h-0")}>
-      <div className="flex h-full min-h-0 flex-1 flex-col gap-0 md:gap-1">
-        <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-white/95 backdrop-blur-md sm:mx-0">
+    <div className="relative min-h-full max-lg:bg-[#f4f7f5]">
+      <div className={cn(DASHBOARD_MAX, salesPaper, "flex min-h-0 flex-1 flex-col")}>
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <header className="sticky top-0 z-20 shrink-0 -mx-3 bg-[#f4f7f5]/95 backdrop-blur-md sm:mx-0 max-lg:bg-[#f4f7f5]/95 lg:bg-white/95">
           <DashboardPageHero
             icon={Package}
             title="Stock levels"
@@ -2481,11 +2469,7 @@ export function StockLevelsPage() {
             <button
               type="button"
               onClick={closeLevels}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-[12px] font-semibold ring-1 ring-black/[0.05] transition-colors",
-                stockMute,
-                "hover:text-[var(--pos-primary,#0f766e)]",
-              )}
+              className={salesToolBtnClass()}
             >
               <ArrowLeft className="size-3.5" aria-hidden />
               Stock
@@ -2493,7 +2477,7 @@ export function StockLevelsPage() {
           </DashboardPageHero>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.05]">
+        <div className={cn(salesSurface, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
           {departmentRail}
 
           {fullCountProgress ? <FullCountBanner progress={fullCountProgress} /> : null}
@@ -3185,6 +3169,7 @@ export function StockLevelsPage() {
           await saveBuyPrice(target.row, String(unitPrice));
         }}
       />
+      </div>
     </div>
   );
 }

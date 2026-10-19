@@ -68,6 +68,7 @@ import {
 } from "@/lib/category-suggestions";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { CategoryBulkSuggestions } from "./_components/category-bulk-suggestions";
+import { salesPaper, salesSurface } from "@/components/sales/sales-surface";
 import { cn, categoryIconImageUrl } from "@/lib/utils";
 
 const ROOT_PARENT_VALUE = "";
@@ -1504,7 +1505,7 @@ export default function CategoriesPage() {
   return (
     <>
       <div className="h-full min-h-0 overflow-y-auto overscroll-contain">
-        <div className={cn(DASHBOARD_MAX_WIDE, "!h-auto")}>
+        <div className={cn(DASHBOARD_MAX_WIDE, salesPaper, "!h-auto flex flex-col gap-3")}>
           {/* Header */}
           <div className="space-y-2">
             <DashboardPageHero
@@ -1614,7 +1615,12 @@ export default function CategoriesPage() {
 
           {/* Selected row actions */}
           {selectedCategory && canManageCategories ? (
-            <div className="flex flex-col gap-2 rounded-none border border-[var(--pos-primary,#0f766e)] bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className={cn(
+                salesSurface,
+                "flex flex-col gap-2 p-2.5 ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] sm:flex-row sm:items-center sm:justify-between",
+              )}
+            >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-none border bg-white">
                   {categoryCoverUrl(selectedCategory) ? (
@@ -1703,7 +1709,7 @@ export default function CategoriesPage() {
           ) : null}
 
           {/* Table */}
-          <section className="overflow-hidden rounded-none border border-border/60 bg-card shadow-none">
+          <section className={cn(salesSurface, "overflow-hidden")}>
             {/* Mobile cards */}
             <ul className="divide-y divide-border/40 md:hidden">
               {visibleSorted.length === 0 ? (

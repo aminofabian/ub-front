@@ -84,12 +84,19 @@ import {
 } from "@/lib/fixed-costs-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
+import {
+  salesHair,
+  salesInk,
+  salesMute,
+  salesPaper,
+  salesSurface,
+  SalesPeriodChip,
+} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const HAIRLINE = salesHair;
 const PRIMARY_BTN =
   "h-9 rounded-none border-0 bg-[var(--pos-primary,#0f766e)] px-3 text-[13px] font-semibold text-white shadow-none hover:bg-[#0d6b63]";
 const OUTLINE_BTN =
@@ -747,10 +754,7 @@ export function ExpensesHubWorkspace() {
 
   return (
     <div
-      className={cn(
-        DASHBOARD_MAX_WIDE,
-        "gap-1.5 bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,#f7f5f1)]",
-      )}
+      className={cn(DASHBOARD_MAX_WIDE, salesPaper, "flex flex-col gap-1.5")}
       style={
         {
           "--pos-primary": brandPrimary,
@@ -801,13 +805,13 @@ export function ExpensesHubWorkspace() {
 
       <section
         className={cn(
-          "flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border bg-white px-2.5 py-2",
-          HAIRLINE,
+          salesSurface,
+          "flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2.5 sm:px-3.5",
         )}
       >
         <div className="flex flex-wrap items-center gap-1.5">
           <div
-            className="flex flex-wrap gap-0.5"
+            className="flex flex-wrap gap-1.5"
             role="group"
             aria-label="Period"
           >
@@ -820,21 +824,13 @@ export function ExpensesHubWorkspace() {
                 ["custom", "Custom"],
               ] as const
             ).map(([key, label]) => (
-              <Button
+              <SalesPeriodChip
                 key={key}
-                type="button"
-                size="sm"
-                variant={preset === key ? "default" : "ghost"}
-                className={cn(
-                  "h-8 rounded-none px-2.5 text-[12px] font-semibold shadow-none",
-                  preset === key
-                    ? "border-0 bg-[var(--order-ink,#15231f)] text-white hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_88%,black)]"
-                    : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)] hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,white)] hover:text-[var(--order-ink,#15231f)]",
-                )}
+                active={preset === key}
                 onClick={() => applyPreset(key)}
               >
                 {label}
-              </Button>
+              </SalesPeriodChip>
             ))}
           </div>
           {preset === "custom" ? (
@@ -882,36 +878,39 @@ export function ExpensesHubWorkspace() {
         </div>
         <nav
           aria-label="Related finance"
-          className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)]"
+          className={cn(
+            "flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium",
+            salesMute,
+          )}
         >
           <Link
             href={APP_ROUTES.fixedCosts}
-            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
+            className={cn("underline-offset-2 hover:underline", salesInk)}
           >
             Fixed costs
           </Link>
           <Link
             href={APP_ROUTES.payroll}
-            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
+            className={cn("underline-offset-2 hover:underline", salesInk)}
           >
             Payroll
           </Link>
           <Link
             href={APP_ROUTES.purchasingApAging}
-            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
+            className={cn("underline-offset-2 hover:underline", salesInk)}
           >
             Supplier bills
           </Link>
           <Link
             href={APP_ROUTES.paymentsDayLedger}
-            className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
+            className={cn("underline-offset-2 hover:underline", salesInk)}
           >
             Today&apos;s takings
           </Link>
           {canViewShifts ? (
             <Link
               href={APP_ROUTES.shifts}
-              className="underline-offset-2 hover:text-[var(--order-ink,#15231f)] hover:underline"
+              className={cn("underline-offset-2 hover:underline", salesInk)}
             >
               Shifts
             </Link>
@@ -1049,12 +1048,17 @@ export function ExpensesHubWorkspace() {
           {canViewPayroll ? (
             <section
               className={cn(
-                "space-y-2 border border-x-0 bg-white p-3 sm:border-x sm:p-3.5",
-                HAIRLINE,
+                salesSurface,
+                "space-y-2 p-3 sm:p-3.5",
               )}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                <h2
+                  className={cn(
+                    "font-heading text-[13px] font-semibold tracking-[-0.02em]",
+                    salesInk,
+                  )}
+                >
                   Salaries
                 </h2>
                 <Link
@@ -1116,12 +1120,17 @@ export function ExpensesHubWorkspace() {
           {canReadFinanceExpenses ? (
             <section
               className={cn(
-                "space-y-2 border border-x-0 bg-white p-3 sm:border-x sm:p-3.5",
-                HAIRLINE,
+                salesSurface,
+                "space-y-2 p-3 sm:p-3.5",
               )}
             >
               <div className="max-w-xl">
-                <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                <h2
+                  className={cn(
+                    "font-heading text-[13px] font-semibold tracking-[-0.02em]",
+                    salesInk,
+                  )}
+                >
                   Regular costs
                 </h2>
                 <p className={cn("mt-0.5", dashboardHintClass())}>
@@ -1249,13 +1258,18 @@ export function ExpensesHubWorkspace() {
           {canViewShifts ? (
             <section
               className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
-                HAIRLINE,
+                salesSurface,
+                "space-y-3 p-3 sm:p-4",
               )}
             >
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  <h2
+                    className={cn(
+                      "font-heading text-base font-semibold tracking-[-0.02em]",
+                      salesInk,
+                    )}
+                  >
                     Till drawouts
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
@@ -1488,11 +1502,16 @@ export function ExpensesHubWorkspace() {
           {canManageFinanceExpenses && pendingApprovals.length > 0 ? (
             <section
               className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
-                HAIRLINE,
+                salesSurface,
+                "space-y-3 p-3 sm:p-4",
               )}
             >
-              <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              <h2
+                className={cn(
+                  "font-heading text-base font-semibold tracking-[-0.02em]",
+                  salesInk,
+                )}
+              >
                 Pending approval
               </h2>
               <ul
@@ -1545,11 +1564,16 @@ export function ExpensesHubWorkspace() {
           {canReadFinanceExpenses && upcoming.length > 0 ? (
             <section
               className={cn(
-                "space-y-3 border border-x-0 bg-white p-3 sm:border-x sm:p-4",
-                HAIRLINE,
+                salesSurface,
+                "space-y-3 p-3 sm:p-4",
               )}
             >
-              <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+              <h2
+                className={cn(
+                  "font-heading text-base font-semibold tracking-[-0.02em]",
+                  salesInk,
+                )}
+              >
                 Upcoming &amp; overdue
               </h2>
               <ul
@@ -1604,15 +1628,20 @@ export function ExpensesHubWorkspace() {
           </div>
           <div className="order-1 min-w-0 lg:max-h-[min(78dvh,52rem)] lg:overflow-y-auto">
           {canReadFinanceExpenses ? (
-            <section
-              className={cn(
-                "border bg-white",
-                HAIRLINE,
-              )}
-            >
-              <div className="flex flex-wrap items-end justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2">
+            <section className={cn(salesSurface, "overflow-hidden")}>
+              <div
+                className={cn(
+                  "flex flex-wrap items-end justify-between gap-2 border-b px-3 py-2.5 sm:px-3.5",
+                  salesHair,
+                )}
+              >
                 <div>
-                  <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+                  <h2
+                    className={cn(
+                      "font-heading text-[13px] font-semibold tracking-[-0.02em]",
+                      salesInk,
+                    )}
+                  >
                     Expenses
                   </h2>
                   <p className={cn("mt-1", dashboardHintClass())}>
@@ -1934,9 +1963,14 @@ function ProfitStatement({
   ] as const;
 
   return (
-    <section className={cn("border border-x-0 bg-white sm:border-x", HAIRLINE)}>
+    <section className={salesSurface}>
       <div className="flex items-baseline justify-between gap-3 px-3 pt-3 sm:px-4">
-        <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-[var(--order-ink,#15231f)]">
+        <h2
+          className={cn(
+            "font-heading text-[13px] font-semibold tracking-[-0.02em]",
+            salesInk,
+          )}
+        >
           Profit
         </h2>
         <p className={dashboardHintClass()}>{periodLabel}</p>
