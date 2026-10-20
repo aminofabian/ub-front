@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ExternalLink,
   Inbox,
+  MoreHorizontal,
   Printer,
   RotateCw,
   Search,
@@ -19,12 +20,13 @@ import {
   Avatar,
   ChatEmptyState,
   ChatMessageShape,
+  ChatThreadSkeleton,
   Composer,
   type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
-  LiveStatusPill,
   MessageBubble,
+  NewMessagesDivider,
   ResolvedBanner,
   TypingBubble,
   chatDayLabel,
@@ -34,7 +36,15 @@ import {
   replyFromRealtime,
   toReplyTarget,
 } from "@/components/support/support-chat-ui";
+import { ConversationListSkeleton, ConversationRow } from "@/components/conversations/conversation-row";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
 import {
   getSuperAdminRealtimeClient,
@@ -59,6 +69,7 @@ import {
   resolveSaSupportConversation,
   sendSaSupportMessage,
 } from "@/lib/super-admin-api";
+import { newClientId } from "@/lib/client-id";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
 import {
   PRINTER_INSTALL_CANNED_REPLY,
@@ -145,28 +156,6 @@ function lastSeenLabel(iso: string | null | undefined): string | null {
   return `${days}d ago`;
 }
 
-/** Live presence dot + label for a tenant row in the inbox list. */
-function PresenceLine({ presence }: { presence: SaSupportPresence | undefined }) {
-  if (presence?.online) {
-    return (
-      <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-        <span className="relative flex size-1.5">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-          <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-        </span>
-        Online
-      </p>
-    );
-  }
-  const lastSeen = lastSeenLabel(presence?.lastSeenAt);
-  return (
-    <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-      <span className="size-1.5 rounded-full bg-muted-foreground/40" />
-      {lastSeen ? `Last seen ${lastSeen}` : "Offline"}
-    </p>
-  );
-}
-
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "OPEN", label: "Open" },
   { key: "RESOLVED", label: "Resolved" },
@@ -241,64 +230,41 @@ function previewFromIncoming(data: Record<string, unknown>): string {
   const body = String(data.body ?? "").trim();
   if (body) return body;
   const attachment = attachmentFromRealtime(data);
-  if (attachment?.fileName) return `📎 ${attachment.fileName}`;
-  if (attachment?.url) return "📎 Attachment";
+  if (attachment?.fileName) return `Attachment · ${attachment.fileName}`;
+  if (attachment?.url) return "Attachment";
   return "New message";
 }
 
 /** Soft crossfade rail of waiting unread threads across tenants + visitors. */
 function UnreadCycleRail({
   items,
-  activeTab,
   onOpen,
 }: {
   items: UnreadHeadline[];
-  activeTab: InboxTab;
   onOpen: (id: string, type: InboxTab) => void;
 }) {
-  const [index, setIndex] = React.useState(0);
-  const [phase, setPhase] = React.useState<"in" | "out">("in");
-  const reducedMotion = usePrefersReducedMotion();
-
-  React.useEffect(() => {
-    setIndex(0);
-    setPhase("in");
-  }, [items.length, items[0]?.id]);
-
-  React.useEffect(() => {
-    if (items.length <= 1 || reducedMotion) return;
-    const timer = window.setInterval(() => {
-      setPhase("out");
-      window.setTimeout(() => {
-        setIndex((i) => (i + 1) % items.length);
-        setPhase("in");
-      }, 280);
-    }, 3800);
-    return () => window.clearInterval(timer);
-  }, [items.length, reducedMotion]);
-
   if (items.length === 0) {
     return (
-      <div className="mx-1 mb-1.5 flex items-center gap-2 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.06] px-3 py-2.5">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/50 opacity-60" />
-          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-        </span>
-        <p className="text-[11px] font-medium tracking-wide text-emerald-700 dark:text-emerald-400">
+      <div className="mx-1 mb-2 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2">
+        <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+        <p className="text-[11px] font-medium text-muted-foreground">
           Inbox clear — nothing waiting
         </p>
       </div>
     );
   }
 
-  const current = items[Math.min(index, items.length - 1)]!;
-  const tenantUnread = items.filter((i) => i.type === "TENANT").reduce((s, i) => s + i.unread, 0);
-  const visitorUnread = items.filter((i) => i.type === "VISITOR").reduce((s, i) => s + i.unread, 0);
+  const tenantUnread = items
+    .filter((i) => i.type === "TENANT")
+    .reduce((s, i) => s + i.unread, 0);
+  const visitorUnread = items
+    .filter((i) => i.type === "VISITOR")
+    .reduce((s, i) => s + i.unread, 0);
 
   return (
-    <div className="mx-1 mb-1.5 overflow-hidden rounded-xl border border-primary/20 bg-[linear-gradient(135deg,rgba(40,167,69,0.12),rgba(40,167,69,0.03)_55%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
-      <div className="flex items-center justify-between gap-2 border-b border-primary/10 px-3 py-1.5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+    <div className="mx-1 mb-2 rounded-xl border border-border/60 bg-card/80">
+      <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Waiting replies
         </p>
         <div className="flex items-center gap-1.5 text-[10px] font-medium tabular-nums text-muted-foreground">
@@ -311,85 +277,26 @@ function UnreadCycleRail({
           </span>
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => onOpen(current.id, current.type)}
-        className="group relative flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-primary/[0.06]"
-      >
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 items-start gap-2.5 transition-all duration-300 ease-out",
-            phase === "in" && !reducedMotion
-              ? "translate-y-0 opacity-100"
-              : reducedMotion
-                ? "opacity-100"
-                : "translate-y-1.5 opacity-0",
-          )}
-        >
-          <Avatar name={current.name} seed={current.seed} className="size-8" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate text-[13px] font-semibold text-foreground">
-                {current.name}
-              </span>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                  current.type === "VISITOR"
-                    ? "bg-sky-500/12 text-sky-700 dark:text-sky-400"
-                    : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
-                  current.type !== activeTab && "opacity-80",
-                )}
-              >
-                {current.type === "VISITOR" ? "Visitor" : "Tenant"}
-              </span>
-              <span className="ml-auto inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {current.unread > 9 ? "9+" : current.unread}
-              </span>
-            </div>
-            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-foreground/70">
-              {current.preview}
-            </p>
-          </div>
-        </div>
-      </button>
-
-      {items.length > 1 ? (
-        <div className="flex items-center justify-center gap-1 pb-2">
-          {items.slice(0, 8).map((item, i) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-label={`Show unread from ${item.name}`}
-              onClick={() => {
-                setPhase("in");
-                setIndex(i);
-              }}
-              className={cn(
-                "h-1 rounded-full transition-all duration-300",
-                i === index % Math.min(items.length, 8)
-                  ? "w-4 bg-primary"
-                  : "w-1.5 bg-primary/25 hover:bg-primary/45",
-              )}
-            />
-          ))}
-        </div>
-      ) : null}
+      <div className="support-chat-scroll flex gap-1.5 overflow-x-auto px-2 pb-2">
+        {items.slice(0, 6).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onOpen(item.id, item.type)}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-background px-2 py-1 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.05]"
+          >
+            <Avatar name={item.name} seed={item.seed} className="size-5" />
+            <span className="max-w-[7.5rem] truncate text-[11px] font-medium text-foreground">
+              {item.name}
+            </span>
+            <span className="inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+              {item.unread > 9 ? "9+" : item.unread}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
-}
-
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = React.useState(false);
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
 }
 
 export function SaSupportInbox() {
@@ -422,6 +329,7 @@ export function SaSupportInbox() {
   const [showJump, setShowJump] = React.useState(false);
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
+  const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
   const [onlineOnly, setOnlineOnly] = React.useState(false);
   const [linkedTicket, setLinkedTicket] = React.useState<{
@@ -574,7 +482,7 @@ export function SaSupportInbox() {
     [],
   );
 
-  const clearUnreadFor = React.useCallback((id: string, _type: InboxTab) => {
+  const clearUnreadFor = React.useCallback((id: string) => {
     setUnreadHeadlines((prev) => {
       if (!prev.some((h) => h.id === id)) return prev;
       const headlines = prev.filter((h) => h.id !== id);
@@ -601,17 +509,21 @@ export function SaSupportInbox() {
     setActiveId(id);
     setMobileView("chat");
     setDetailLoading(true);
+    setFirstUnreadId(null);
     setTypingByConv((prev) => ({ ...prev, [id]: false }));
     try {
-      const fetched = await fetchSaSupportConversation(id); // marks read server-side
+      const fetched = await fetchSaSupportConversation(id);
+      void markSaSupportConversationRead(id).catch(() => {});
       setDetail(fetched.conversation);
       for (const message of fetched.messages ?? []) {
         seenIdsRef.current.add(message.id);
       }
+      const firstUnread = (fetched.messages ?? []).find(
+        (m) => (m.senderType === "TENANT" || m.senderType === "GUEST") && !m.readAt,
+      );
+      setFirstUnreadId(firstUnread?.id ?? null);
       setMessages((fetched.messages ?? []).map(toLocalMessage));
-      const clearedType: InboxTab =
-        fetched.conversation?.conversationType === "VISITOR" ? "VISITOR" : "TENANT";
-      clearUnreadFor(id, clearedType);
+      clearUnreadFor(id);
       setConversations((prev) => {
         const mapped = prev.map((c) =>
           c.id === id
@@ -710,10 +622,7 @@ export function SaSupportInbox() {
               ),
             );
             void markSaSupportConversationRead(convId).catch(() => {});
-            clearUnreadFor(
-              convId,
-              conversationType === "VISITOR" ? "VISITOR" : "TENANT",
-            );
+            clearUnreadFor(convId);
           }
         }
 
@@ -838,7 +747,15 @@ export function SaSupportInbox() {
         fetchSaSupportConversation(activeId)
           .then((fetched) => {
             setDetail(fetched.conversation);
-            setMessages((prev) => mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)));
+            setMessages((prev) =>
+              mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)),
+            );
+            const hasUnread = (fetched.messages ?? []).some(
+              (m) => (m.senderType === "TENANT" || m.senderType === "GUEST") && !m.readAt,
+            );
+            if (hasUnread) {
+              void markSaSupportConversationRead(activeId).catch(() => {});
+            }
           })
           .catch(() => {});
       }
@@ -850,7 +767,15 @@ export function SaSupportInbox() {
         fetchSaSupportConversation(activeId)
           .then((fetched) => {
             setDetail(fetched.conversation);
-            setMessages((prev) => mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)));
+            setMessages((prev) =>
+              mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)),
+            );
+            const hasUnread = (fetched.messages ?? []).some(
+              (m) => (m.senderType === "TENANT" || m.senderType === "GUEST") && !m.readAt,
+            );
+            if (hasUnread) {
+              void markSaSupportConversationRead(activeId).catch(() => {});
+            }
           })
           .catch(() => {});
       }
@@ -910,6 +835,9 @@ export function SaSupportInbox() {
         typeof payload === "string" ? null : payload.attachment ?? null;
       const replyToMessageId =
         typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
+      const clientMessageId =
+        (typeof payload === "string" ? null : payload.clientMessageId?.trim()) ||
+        newClientId();
       if (!body && !file && !existingAttachment) return;
       setSending(true);
       setReplyTo(null);
@@ -948,8 +876,12 @@ export function SaSupportInbox() {
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
+        localFile: file,
+        clientMessageId,
       };
       setMessages((prev) => [...prev, optimistic]);
+      let confirmed = false;
+      let uploadedAttachment = existingAttachment;
       try {
         let attachment = existingAttachment;
         if (file) {
@@ -959,8 +891,16 @@ export function SaSupportInbox() {
             (folder) => getSaCloudinarySignature(folder, "auto"),
             saUploadMediaViaBackend,
           );
+          uploadedAttachment = attachment;
         }
-        const saved = await sendSaSupportMessage(activeId, body, attachment, replyToMessageId);
+        const saved = await sendSaSupportMessage(
+          activeId,
+          body,
+          attachment,
+          replyToMessageId,
+          clientMessageId,
+        );
+        confirmed = true;
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -978,7 +918,7 @@ export function SaSupportInbox() {
                     lastMessagePreview:
                       saved.body?.trim() ||
                       (saved.attachment?.fileName
-                        ? `📎 ${saved.attachment.fileName}`
+                        ? `Attachment · ${saved.attachment.fileName}`
                         : saved.body),
                   }
                 : c,
@@ -987,10 +927,20 @@ export function SaSupportInbox() {
         );
       } catch {
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  pending: false,
+                  failed: true,
+                  attachment: uploadedAttachment ?? m.attachment,
+                  localFile: file,
+                }
+              : m,
+          ),
         );
       } finally {
-        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+        if (localPreviewUrl && confirmed) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -1001,6 +951,8 @@ export function SaSupportInbox() {
     setMessages((prev) => prev.filter((m) => m.id !== message.id));
     void send({
       body: message.body,
+      file: message.localFile ?? null,
+      clientMessageId: message.clientMessageId ?? null,
       attachment:
         message.attachment?.url && message.attachment.url !== "#"
           ? message.attachment
@@ -1023,13 +975,39 @@ export function SaSupportInbox() {
     }
   };
 
+  const promoteToTicket = async () => {
+    if (!activeConversation || promoteBusy) return;
+    setPromoteBusy(true);
+    try {
+      const ticket = await promoteSaConversationToTicket(activeConversation.id);
+      setLinkedTicket({ id: ticket.id, displayNumber: ticket.displayNumber });
+    } finally {
+      setPromoteBusy(false);
+    }
+  };
+
+  const organizeToTicket = async () => {
+    if (!activeConversation || organizeBusy) return;
+    setOrganizeBusy(true);
+    try {
+      const result = await organizeSaConversationToTicket(activeConversation.id);
+      const ticket = result.ticket.ticket;
+      setLinkedTicket({
+        id: ticket.id,
+        displayNumber: ticket.shopSeq ? `#${ticket.shopSeq}` : ticket.displayNumber,
+        pointCount: ticket.pointCount,
+      });
+    } finally {
+      setOrganizeBusy(false);
+    }
+  };
+
   // ── Derived ─────────────────────────────────────────────────────────────
   const normalizedSearch = search.trim().toLowerCase();
   const presenceKey = (c: SaSupportConversation) =>
     c.conversationType === "VISITOR" ? c.guestId ?? c.id : c.businessId;
   const displayName = (c: SaSupportConversation) =>
     c.businessName?.trim() || (c.conversationType === "VISITOR" ? "Visitor" : "Tenant");
-  const onlineCount = conversations.filter((c) => presence[presenceKey(c)]?.online === true).length;
   const tenantPresence = activeConversation ? presence[presenceKey(activeConversation)] : undefined;
   const tenantLastSeen = tenantPresence ? lastSeenLabel(tenantPresence.lastSeenAt) : null;
   const liveTenantsLoggedIn = liveCounts.tenantsOnline;
@@ -1071,8 +1049,8 @@ export function SaSupportInbox() {
 
   const listPane = (
     <div className="flex min-h-0 w-full flex-col bg-background md:w-[19.5rem] md:shrink-0 md:border-r md:border-border/50">
-      <div className="border-b border-border/50 bg-[linear-gradient(180deg,rgba(40,167,69,0.06),transparent_70%)] p-3">
-        <div className="flex items-center gap-1 rounded-xl bg-muted/60 p-1">
+      <div className="border-b border-border/50 bg-card/60 p-3">
+        <div className="flex items-center gap-1 rounded-full bg-muted/50 p-1">
           {(["TENANT", "VISITOR"] as InboxTab[]).map((key) => {
             const stats = tabStats[key];
             const selected = tab === key;
@@ -1083,7 +1061,7 @@ export function SaSupportInbox() {
                 onClick={() => switchTab(key)}
                 aria-pressed={selected}
                 className={cn(
-                  "relative inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200",
+                  "relative inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200",
                   selected
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -1099,21 +1077,11 @@ export function SaSupportInbox() {
                         : key === "VISITOR"
                           ? "bg-sky-500 text-white"
                           : "bg-emerald-600 text-white",
-                      !selected && "animate-pulse",
                     )}
                   >
                     {stats.unread > 99 ? "99+" : stats.unread}
                   </span>
-                ) : (
-                  <span
-                    className={cn(
-                      "text-[10px] font-medium tabular-nums",
-                      selected ? "text-muted-foreground" : "text-muted-foreground/55",
-                    )}
-                  >
-                    0
-                  </span>
-                )}
+                ) : null}
               </button>
             );
           })}
@@ -1125,7 +1093,7 @@ export function SaSupportInbox() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={tab === "VISITOR" ? "Search visitors…" : "Search tenants…"}
-            className="h-10 w-full rounded-xl border border-border/70 bg-background/90 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-[border-color,box-shadow] focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+            className="h-9 w-full rounded-full border border-border/60 bg-background pl-9 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground/70 transition-[border-color,box-shadow] focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
 
@@ -1141,7 +1109,7 @@ export function SaSupportInbox() {
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
+                  "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full text-xs font-medium transition-colors",
                   filter === f.key
                     ? "bg-primary/12 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -1164,7 +1132,7 @@ export function SaSupportInbox() {
                 : `${liveTenantsLoggedIn} tenants logged in · ${liveCounts.tenantsOnSupport} on support`
             }
             className={cn(
-              "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
+              "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full text-xs font-medium transition-colors",
               onlineOnly
                 ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -1183,55 +1151,18 @@ export function SaSupportInbox() {
           </button>
         </div>
 
-        <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[11px] text-muted-foreground">
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              (tab === "VISITOR" ? liveCounts.visitorsOnline : liveTenantsLoggedIn) > 0
-                ? "bg-emerald-500"
-                : "bg-muted-foreground/35",
-            )}
-            aria-hidden
-          />
-          {tab === "VISITOR" ? (
-            <>
-              <span className="font-medium tabular-nums text-foreground">
-                {liveCounts.visitorsOnline}
-              </span>{" "}
-              visitors connected
-              <span className="text-muted-foreground/50">·</span>
-              <span className="tabular-nums">{liveCounts.visitorsOnSupport}</span> in inbox
-            </>
-          ) : (
-            <>
-              <span className="font-medium tabular-nums text-foreground">{liveTenantsLoggedIn}</span>{" "}
-              tenants logged in
-              <span className="text-muted-foreground/50">·</span>
-              <span className="tabular-nums">{liveCounts.tenantsOnSupport}</span> on support
-              {onlineOnly ? (
-                <>
-                  <span className="text-muted-foreground/50">·</span>
-                  <span className="tabular-nums">{onlineCount}</span> in this list
-                </>
-              ) : null}
-            </>
-          )}
-        </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="support-chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="sticky top-0 z-10 bg-background/95 px-1.5 pt-2 backdrop-blur-sm">
           <UnreadCycleRail
             items={unreadHeadlines}
-            activeTab={tab}
             onOpen={(id, type) => void openConversation(id, type)}
           />
         </div>
 
         {listLoading ? (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            Loading conversations…
-          </div>
+          <ConversationListSkeleton />
         ) : listError ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
             <p className="text-sm text-muted-foreground">{listError}</p>
@@ -1255,104 +1186,28 @@ export function SaSupportInbox() {
           </div>
         ) : (
           <ul key={`${tab}-${listPulse}`} className="space-y-0.5 p-1.5 pt-0">
-            {visible.map((conversation, index) => {
+            {visible.map((conversation) => {
               const isActive = conversation.id === activeId;
               const isResolved = conversation.status === "RESOLVED";
               const unread = conversation.unreadCount ?? 0;
               return (
-                <li
-                  key={conversation.id}
-                  className="animate-in fade-in slide-in-from-left-1 fill-mode-both duration-300"
-                  style={{ animationDelay: `${Math.min(index, 10) * 28}ms` }}
-                >
-                  <button
-                    type="button"
+                <li key={conversation.id}>
+                  <ConversationRow
+                    active={isActive}
+                    name={displayName(conversation)}
+                    seed={conversation.guestId ?? conversation.businessId}
+                    phone={conversation.guestPhone}
+                    preview={
+                      theirTyping && conversation.id === activeId
+                        ? "typing…"
+                        : conversation.lastMessagePreview
+                    }
+                    time={listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
+                    unread={unread}
+                    resolved={isResolved}
+                    online={presence[presenceKey(conversation)]?.online ?? null}
                     onClick={() => void openConversation(conversation.id)}
-                    className={cn(
-                      "flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-[background-color,box-shadow,transform] duration-200",
-                      isActive
-                        ? "bg-primary/[0.09] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.18)]"
-                        : "hover:bg-muted/60",
-                      unread > 0 && !isActive && "bg-primary/[0.04]",
-                    )}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar
-                        name={displayName(conversation)}
-                        seed={conversation.guestId ?? conversation.businessId}
-                        className="size-10"
-                      />
-                      {isResolved ? (
-                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full border-2 border-background bg-card">
-                          <CheckCircle2 className="size-3 text-emerald-500" aria-hidden />
-                        </span>
-                      ) : unread > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-[0_0_0_2px_hsl(var(--background))]">
-                          {unread > 9 ? "9+" : unread}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="flex min-w-0 items-baseline gap-1.5">
-                          <span
-                            className={cn(
-                              "truncate text-sm",
-                              isResolved
-                                ? "text-muted-foreground"
-                                : unread > 0
-                                  ? "font-bold text-foreground"
-                                  : "font-semibold text-foreground",
-                            )}
-                          >
-                            {displayName(conversation)}
-                          </span>
-                          {conversation.guestPhone ? (
-                            <span className="shrink-0 text-[10px] text-muted-foreground/70">
-                              · {conversation.guestPhone}
-                            </span>
-                          ) : null}
-                          <span
-                            className={cn(
-                              "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                              conversation.conversationType === "VISITOR"
-                                ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                            )}
-                          >
-                            {conversation.conversationType === "VISITOR" ? "Visitor" : "Tenant"}
-                          </span>
-                        </p>
-                        <span
-                          className={cn(
-                            "shrink-0 text-[10px] tabular-nums",
-                            unread > 0 ? "font-semibold text-primary" : "text-muted-foreground",
-                          )}
-                        >
-                          {listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
-                        </span>
-                      </div>
-                      <p
-                        className={cn(
-                          "mt-0.5 flex items-center gap-1.5 truncate text-xs",
-                          unread > 0 ? "font-medium text-foreground/80" : "text-muted-foreground",
-                        )}
-                      >
-                        {theirTyping && conversation.id === activeId ? (
-                          <span className="font-medium text-primary">typing…</span>
-                        ) : conversation.lastMessagePreview ? (
-                          <span className="truncate">
-                            {conversation.lastMessagePreview.length > 60
-                              ? `${conversation.lastMessagePreview.slice(0, 60)}…`
-                              : conversation.lastMessagePreview}
-                          </span>
-                        ) : (
-                          <span className="italic">No messages yet</span>
-                        )}
-                      </p>
-                      <PresenceLine presence={presence[presenceKey(conversation)]} />
-                    </div>
-                  </button>
+                  />
                 </li>
               );
             })}
@@ -1364,15 +1219,15 @@ export function SaSupportInbox() {
 
   const chatPane = activeConversation ? (
     <section
-      className="relative flex h-full min-h-0 flex-col overflow-hidden border-border/50 bg-background md:border-l-0 md:rounded-none"
+      className="support-chat-theme support-chat-theme--platform relative flex h-full min-h-0 flex-col overflow-hidden border-border/50 support-surface md:border-l-0 md:rounded-none"
       aria-label={`Support chat with ${displayName(activeConversation)}`}
     >
-      <header className="flex items-center gap-3 border-b border-border/50 bg-[linear-gradient(135deg,rgba(40,167,69,0.07)_0%,transparent_62%)] px-3 py-3.5 sm:px-4">
+      <header className="support-chat-header flex items-center gap-2.5 border-b border-border/50 px-3 py-2.5 sm:gap-3 sm:px-4">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="md:hidden"
+          className="rounded-full md:hidden"
           aria-label="Back to conversations"
           onClick={() => {
             setMobileView("list");
@@ -1381,13 +1236,26 @@ export function SaSupportInbox() {
         >
           <ChevronLeft className="size-5" />
         </Button>
-        <Avatar
-          name={displayName(activeConversation)}
-          seed={activeConversation.guestId ?? activeConversation.businessId}
-          className="size-10"
-        />
+        <div className="relative shrink-0">
+          <Avatar
+            name={displayName(activeConversation)}
+            seed={activeConversation.guestId ?? activeConversation.businessId}
+            className="size-10"
+          />
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
+              tenantPresence?.online
+                ? "bg-emerald-500"
+                : tenantPresence
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground/30",
+            )}
+            aria-hidden
+          />
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-baseline gap-1.5 text-sm font-semibold text-foreground">
+          <p className="flex min-w-0 items-baseline gap-1.5 text-[15px] font-semibold leading-tight tracking-[-0.01em] text-foreground">
             {tenantTitleHref ? (
               <a
                 href={tenantTitleHref}
@@ -1406,118 +1274,132 @@ export function SaSupportInbox() {
             ) : (
               <span className="truncate">{displayName(activeConversation)}</span>
             )}
-            {activeConversation.guestPhone ? (
-              <span className="shrink-0 text-[10px] font-normal text-muted-foreground/70">
-                · {activeConversation.guestPhone}
-              </span>
-            ) : null}
-            {shopHref && activeConversation.businessSlug ? (
-              <span className="hidden shrink-0 font-mono text-[10px] font-normal text-muted-foreground/70 sm:inline">
-                {activeConversation.businessSlug}.{PLATFORM_DOMAIN}
-              </span>
-            ) : null}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-[11.5px] text-muted-foreground">
             {theirTyping ? (
-              "typing…"
+              <span className="font-medium text-primary">typing…</span>
+            ) : connectionState === "reconnecting" ||
+              connectionState === "connecting" ? (
+              <span>Reconnecting…</span>
             ) : resolved ? (
-              "Resolved"
-            ) : tenantPresence?.online ? (
-              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-                </span>
-                Online now
-              </span>
-            ) : tenantLastSeen ? (
-              `Last seen ${tenantLastSeen}`
-            ) : tenantPresence ? (
-              "Offline"
+              <span>Resolved</span>
             ) : (
-              "Open conversation"
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    tenantPresence?.online ? "bg-emerald-500" : "bg-muted-foreground/40",
+                  )}
+                  aria-hidden
+                />
+                {tenantPresence?.online
+                  ? "Online now"
+                  : tenantLastSeen
+                    ? `Last seen ${tenantLastSeen}`
+                    : "Offline"}
+              </span>
             )}
+            <span className="text-muted-foreground/40">·</span>
+            <span>
+              {activeConversation.conversationType === "VISITOR" ? "Visitor" : "Tenant"}
+            </span>
+            {activeConversation.guestPhone ? (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="truncate">{activeConversation.guestPhone}</span>
+              </>
+            ) : shopHref && activeConversation.businessSlug ? (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="truncate font-mono text-[10.5px]">
+                  {activeConversation.businessSlug}.{PLATFORM_DOMAIN}
+                </span>
+              </>
+            ) : null}
           </p>
         </div>
-        <div className="hidden sm:block">
-          <LiveStatusPill state={connectionState} />
-        </div>
-        <div className="hidden sm:block">
-          <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
-        </div>
-        {linkedTicket ? (
-          <Button asChild size="sm" variant="outline">
-            <a href={APP_ROUTES.superAdminServingTicket(linkedTicket.id)}>
-              <Ticket className="size-3.5" />
-              {linkedTicket.pointCount
-                ? `${linkedTicket.displayNumber} · ${linkedTicket.pointCount} pts`
-                : linkedTicket.displayNumber}
-            </a>
-          </Button>
-        ) : (
+        {!resolved ? (
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            disabled={promoteBusy}
-            onClick={async () => {
-              if (!activeConversation) return;
-              setPromoteBusy(true);
-              try {
-                const ticket = await promoteSaConversationToTicket(activeConversation.id);
-                setLinkedTicket({ id: ticket.id, displayNumber: ticket.displayNumber });
-              } finally {
-                setPromoteBusy(false);
-              }
-            }}
+            variant="ghost"
+            className="shrink-0 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground"
+            disabled={statusBusy}
+            onClick={() => void toggleStatus()}
+            aria-label="Resolve conversation"
+            title="Resolve conversation. A new message reopens it."
           >
-            <Ticket className="size-3.5" />
-            {promoteBusy ? "Opening…" : "Turn into ticket"}
+            <CheckCircle2 className="size-3.5" aria-hidden />
+            <span className="hidden sm:inline">Resolve</span>
           </Button>
-        )}
-        <Button
-          type="button"
-          size="sm"
-          disabled={organizeBusy || !activeConversation}
-          onClick={async () => {
-            if (!activeConversation) return;
-            setOrganizeBusy(true);
-            try {
-              const result = await organizeSaConversationToTicket(activeConversation.id);
-              const ticket = result.ticket.ticket;
-              setLinkedTicket({
-                id: ticket.id,
-                displayNumber: ticket.shopSeq ? `#${ticket.shopSeq}` : ticket.displayNumber,
-                pointCount: ticket.pointCount,
-              });
-            } finally {
-              setOrganizeBusy(false);
-            }
-          }}
-        >
-          <Sparkles className="size-3.5" />
-          {organizeBusy ? "Splitting…" : "Break into 1, 2, 3…"}
-        </Button>
+        ) : null}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+              aria-label="More conversation actions"
+            >
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {linkedTicket ? (
+              <DropdownMenuItem asChild>
+                <a href={APP_ROUTES.superAdminServingTicket(linkedTicket.id)}>
+                  <Ticket className="size-4" aria-hidden />
+                  Open ticket {linkedTicket.displayNumber}
+                  {linkedTicket.pointCount ? ` · ${linkedTicket.pointCount} pts` : ""}
+                </a>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={promoteBusy || !activeConversation}
+                onSelect={() => void promoteToTicket()}
+              >
+                <Ticket className="size-4" aria-hidden />
+                {promoteBusy ? "Opening…" : "Turn into ticket"}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={organizeBusy || !activeConversation}
+              onSelect={() => void organizeToTicket()}
+            >
+              <Sparkles className="size-4" aria-hidden />
+              {organizeBusy ? "Splitting…" : "Split into ticket points"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {activeConversation ? (
-        <div className="sm:hidden">
-          <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
-        </div>
+        <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
       ) : null}
 
       <div className="relative min-h-0 flex-1 support-chat-wallpaper">
-        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation messages"
+          className="support-chat-scroll h-full overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-5"
+        >
           {detailLoading ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Loading conversation…
-            </div>
+            <ChatThreadSkeleton />
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <p className="text-sm font-medium text-foreground">
+              <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
+                <Inbox className="size-5" aria-hidden />
+              </span>
+              <p className="text-[15px] font-semibold text-foreground">
                 {resolved ? "This conversation is resolved" : "Nothing here yet"}
               </p>
-              <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+              <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">
                 {resolved
                   ? "Reopen it to message the tenant again."
                   : "Say hi and let the tenant know you're on it — they'll get it live."}
@@ -1533,6 +1415,7 @@ export function SaSupportInbox() {
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
+                    {message.id === firstUnreadId ? <NewMessagesDivider /> : null}
                     <div className={cn("flex flex-col", mine ? "items-end" : "items-start", cluster.gapClass)}>
                       <MessageBubble
                         message={message}
@@ -1542,17 +1425,8 @@ export function SaSupportInbox() {
                         highlighted={highlightMessageId === message.id}
                         onReply={resolved ? undefined : (target) => setReplyTo(toReplyTarget(target))}
                         onScrollToMessage={scrollToMessage}
+                        onRetry={message.failed ? () => retry(message) : undefined}
                       />
-                      {message.failed ? (
-                        <button
-                          type="button"
-                          onClick={() => retry(message)}
-                          className="mr-2 inline-flex items-center gap-1 text-[11px] font-medium text-destructive underline-offset-2 hover:underline"
-                        >
-                          <RotateCw className="size-3" />
-                          Failed to send — tap to retry
-                        </button>
-                      ) : null}
                     </div>
                   </React.Fragment>
                 );

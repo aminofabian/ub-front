@@ -1,5 +1,6 @@
 import { API_ROUTES } from "@/lib/config";
 import { apiRequest } from "@/lib/api";
+import { shareInflight } from "@/lib/share-inflight";
 
 export type SokoMindContextPacket = {
   surface?: string;
@@ -50,6 +51,18 @@ export type SokoMindRouteGuide = {
 export function surfaceFromPathname(pathname: string): string {
   const path = (pathname || "/").split("?")[0] || "/";
   if (path.startsWith("/business/settings")) return "business.settings";
+  // The shop's look and address are not the morning pulse — give these their
+  // own surface instead of explaining the hub on Themes, Branding, Design,
+  // Store app or Domains.
+  if (
+    path.startsWith("/business/themes") ||
+    path.startsWith("/business/branding") ||
+    path.startsWith("/business/design") ||
+    path.startsWith("/business/mobile") ||
+    path.startsWith("/business/domains")
+  ) {
+    return "business.storefront";
+  }
   if (path === "/business" || path.startsWith("/business/")) return "business.hub";
   if (path.startsWith("/purchasing/ap-aging")) return "purchasing.ap";
   if (path.startsWith("/purchasing/record-payment")) return "purchasing.pay";
@@ -142,17 +155,56 @@ export async function fetchSokoMindStatus(): Promise<SokoMindStatus> {
   return apiRequest<SokoMindStatus>(API_ROUTES.aiStatus);
 }
 
+/**
+ * Route guides are static per (route, surface) — the same page must not ask the
+ * server again every time it is revisited.
+ */
+const ROUTE_GUIDE_TTL_MS = 10 * 60_000;
+const routeGuideCache = new Map<
+  string,
+  { at: number; value: SokoMindRouteGuide }
+>();
+
+function routeGuideKey(route: string, surface?: string): string {
+  return `${route}|${surface ?? ""}`;
+}
+
+export function peekSokoMindRouteGuide(
+  route: string,
+  surface?: string,
+): SokoMindRouteGuide | null {
+  const key = routeGuideKey(route, surface);
+  const hit = routeGuideCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > ROUTE_GUIDE_TTL_MS) {
+    routeGuideCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
 export async function fetchSokoMindRouteGuide(
   route: string,
   surface?: string,
 ): Promise<SokoMindRouteGuide> {
+  const cached = peekSokoMindRouteGuide(route, surface);
+  if (cached) return cached;
   const params = new URLSearchParams();
   if (route) params.set("route", route);
   if (surface) params.set("surface", surface);
   const qs = params.toString();
-  return apiRequest<SokoMindRouteGuide>(
-    `${API_ROUTES.aiRouteGuide}${qs ? `?${qs}` : ""}`,
+  const value = await shareInflight(
+    `ai/route-guide:${routeGuideKey(route, surface)}`,
+    () =>
+      apiRequest<SokoMindRouteGuide>(
+        `${API_ROUTES.aiRouteGuide}${qs ? `?${qs}` : ""}`,
+      ),
   );
+  routeGuideCache.set(routeGuideKey(route, surface), {
+    at: Date.now(),
+    value,
+  });
+  return value;
 }
 
 export type ProductPolishSuggestion = {

@@ -276,12 +276,11 @@ export function OrderReceivePanel({
   const refreshOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const [sent, draft, supplierRows] = await Promise.all([
-        fetchPathAPurchaseOrders({ status: "sent" }),
-        fetchPathAPurchaseOrders({ status: "draft" }),
+      const [openOrders, supplierRows] = await Promise.all([
+        fetchPathAPurchaseOrders({ statuses: ["sent", "draft"] }),
         fetchSuppliers(),
       ]);
-      const merged = [...sent, ...draft].filter((o) => {
+      const merged = openOrders.filter((o) => {
         const ordered = toNum(o.totalOrdered);
         const received = toNum(o.totalReceived);
         return ordered > received;

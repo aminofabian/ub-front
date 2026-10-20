@@ -336,6 +336,9 @@ export function NewMerchantGuideDrawer() {
     mountedRef.current = true;
   }, []);
 
+  const onboardingCompletedAt = business?.onboarding?.completedAt ?? null;
+  const onboardingDismissedAt = business?.onboarding?.dismissedAt ?? null;
+
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -348,6 +351,20 @@ export function NewMerchantGuideDrawer() {
             (state.status === "active" &&
               state.step >= 8);
           if (!awaitingStock || readDismissed(businessId)) {
+            return;
+          }
+          // The guide is for fresh shops. Once onboarding was dismissed (or
+          // finished months ago) it can never fire again, so skip the catalog
+          // aggregation that only exists to prove the catalog is still empty.
+          if (onboardingDismissedAt) return;
+          const completedAt = onboardingCompletedAt
+            ? Date.parse(onboardingCompletedAt)
+            : NaN;
+          const GUIDE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
+          if (
+            Number.isFinite(completedAt) &&
+            Date.now() - completedAt > GUIDE_MAX_AGE_MS
+          ) {
             return;
           }
           const stats = await fetchCatalogListStats(undefined);
@@ -364,7 +381,11 @@ export function NewMerchantGuideDrawer() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [businessId]);
+  }, [
+    businessId,
+    onboardingCompletedAt,
+    onboardingDismissedAt,
+  ]);
 
   const close = useCallback(() => {
     writeDismissed(businessId);

@@ -87,7 +87,7 @@ export function SupportUnreadWatcher() {
           (fromPlatform ? "Kiosk Support" : "Storefront buyer");
         const rawPreview =
           body ||
-          (attachment?.fileName ? `📎 ${attachment.fileName}` : "") ||
+          (attachment?.fileName ? `Attachment · ${attachment.fileName}` : "") ||
           (fromPlatform ? "Sent you a message" : "New storefront message");
         const preview =
           rawPreview.length > 120 ? `${rawPreview.slice(0, 120)}…` : rawPreview;
@@ -97,7 +97,12 @@ export function SupportUnreadWatcher() {
           duration: 7000,
           action: {
             label: "Open",
-            onClick: () => router.push(APP_ROUTES.support),
+            onClick: () =>
+              router.push(
+                fromStorefrontBuyer && conversationId
+                  ? `${APP_ROUTES.support}?tab=storefront&c=${encodeURIComponent(conversationId)}`
+                  : APP_ROUTES.support,
+              ),
           },
         });
       },

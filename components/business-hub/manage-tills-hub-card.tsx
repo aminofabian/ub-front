@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Loader2, MonitorSmartphone } from "lucide-react";
 
@@ -70,8 +70,18 @@ export function ManageTillsHubCard({
     void refreshCounts();
   }, [refreshCounts]);
 
+  // The drawer starts closed, so this must not fire on mount. Trusting or
+  // revoking a till inside the drawer can change the counts, so refresh only
+  // on a real open → closed transition.
+  const hasOpenedRef = useRef(false);
   useEffect(() => {
-    if (!open) void refreshCounts();
+    if (open) {
+      hasOpenedRef.current = true;
+      return;
+    }
+    if (!hasOpenedRef.current) return;
+    hasOpenedRef.current = false;
+    void refreshCounts();
   }, [open, refreshCounts]);
 
   useEffect(() => {

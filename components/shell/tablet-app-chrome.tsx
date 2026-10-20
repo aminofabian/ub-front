@@ -26,6 +26,7 @@ import {
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { BranchSwitcher } from "@/components/branches/branch-switcher";
 import { NotificationBell } from "@/components/notification-bell";
+import { ChromeSlot } from "@/components/shell/chrome-slot";
 import type { BranchRecord } from "@/lib/api";
 import {
   SHELL_WORKSPACE_BY_HREF,
@@ -239,7 +240,9 @@ export function TabletAppHeader({
           <div className="flex shrink-0 items-center">
             {/* Phone keeps only the badge + menu. Kiosk Pay / SMS credits move
                 into the More sheet's Wallet band so the title is never squeezed. */}
-            <NotificationBell />
+            <ChromeSlot slot="phone">
+              <NotificationBell />
+            </ChromeSlot>
             <button
               type="button"
               onClick={onOpenMore}
@@ -312,7 +315,9 @@ export function TabletAppHeader({
               <HeaderPosLinks links={posLinks} pathname={pathname} />
               {headerTools}
               <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
-                <NotificationBell />
+                <ChromeSlot slot={["tablet", "wide"]}>
+                  <NotificationBell />
+                </ChromeSlot>
               </span>
               <button
                 type="button"

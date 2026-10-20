@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, Inbox, RotateCw, Search, ShoppingBag } from "lucide-react";
+import { ArrowDown, ChevronLeft, Inbox, RotateCw, Search, ShoppingBag } from "lucide-react";
 
 import {
   type ChatMessageShape,
   Avatar,
+  ChatThreadSkeleton,
   Composer,
   type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
-  LiveStatusPill,
   MessageBubble,
+  NewMessagesDivider,
   TypingBubble,
   chatDayLabel,
   getMessageCluster,
@@ -20,6 +21,8 @@ import {
   replyFromRealtime,
   toReplyTarget,
 } from "@/components/support/support-chat-ui";
+import { ConversationListSkeleton, ConversationRow } from "@/components/conversations/conversation-row";
+import { newClientId } from "@/lib/client-id";
 import { Button } from "@/components/ui/button";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
@@ -131,8 +134,10 @@ const TYPING_STOP_MS = 4000;
  */
 export function StorefrontBuyerInbox({
   initialConversationId = null,
+  canReply = true,
 }: {
   initialConversationId?: string | null;
+  canReply?: boolean;
 }) {
   const [filter, setFilter] = React.useState<Filter>("OPEN");
   const [search, setSearch] = React.useState("");
@@ -154,6 +159,7 @@ export function StorefrontBuyerInbox({
   const [showJump, setShowJump] = React.useState(false);
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
+  const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -197,11 +203,17 @@ export function StorefrontBuyerInbox({
     setActiveId(id);
     setMobileView("chat");
     setDetailLoading(true);
+    setFirstUnreadId(null);
     try {
-      const fetched = await fetchStorefrontBuyerConversation(id); // marks read server-side
+      const fetched = await fetchStorefrontBuyerConversation(id);
+      void markStorefrontBuyerConversationRead(id).catch(() => {});
       for (const message of fetched.messages ?? []) {
         seenIdsRef.current.add(message.id);
       }
+      const firstUnread = (fetched.messages ?? []).find(
+        (m) => m.senderType === "GUEST" && !m.readAt,
+      );
+      setFirstUnreadId(firstUnread?.id ?? null);
       setMessages((fetched.messages ?? []).map(toLocalMessage));
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c)));
       setMessages((prev) =>
@@ -332,9 +344,17 @@ export function StorefrontBuyerInbox({
       void loadList(true);
       if (activeId) {
         fetchStorefrontBuyerConversation(activeId)
-          .then((fetched) =>
-            setMessages((prev) => mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage))),
-          )
+          .then((fetched) => {
+            setMessages((prev) =>
+              mergeByTimestamp(prev, (fetched.messages ?? []).map(toLocalMessage)),
+            );
+            const hasUnread = (fetched.messages ?? []).some(
+              (m) => m.senderType === "GUEST" && !m.readAt,
+            );
+            if (hasUnread) {
+              void markStorefrontBuyerConversationRead(activeId).catch(() => {});
+            }
+          })
           .catch(() => {});
       }
     }, 5000);
@@ -383,7 +403,16 @@ export function StorefrontBuyerInbox({
         typeof payload === "string" ? null : payload.attachment ?? null;
       const replyToMessageId =
         typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
-      if ((!body && !file && !existingAttachment) || !activeId || sending) return;
+      const clientMessageId =
+        (typeof payload === "string" ? null : payload.clientMessageId?.trim()) ||
+        newClientId();
+      if (
+        (!body && !file && !existingAttachment) ||
+        !activeId ||
+        !canReply ||
+        sending
+      )
+        return;
       setSending(true);
       setReplyTo(null);
       const tempId =
@@ -419,15 +448,27 @@ export function StorefrontBuyerInbox({
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
+        localFile: file,
+        clientMessageId,
       };
       setMessages((prev) => [...prev, optimistic]);
       setDraft("");
+      let confirmed = false;
+      let uploadedAttachment = existingAttachment;
       try {
         let attachment = existingAttachment;
         if (file) {
           attachment = await uploadSupportAttachmentToCloudinary(activeId, file);
+          uploadedAttachment = attachment;
         }
-        const saved = await sendStorefrontBuyerReply(activeId, body, attachment, replyToMessageId);
+        const saved = await sendStorefrontBuyerReply(
+          activeId,
+          body,
+          attachment,
+          replyToMessageId,
+          clientMessageId,
+        );
+        confirmed = true;
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -443,7 +484,7 @@ export function StorefrontBuyerInbox({
                   lastMessageAt: saved.createdAt,
                   lastMessagePreview:
                     body ||
-                    (attachment?.fileName ? `📎 ${attachment.fileName}` : body),
+                    (attachment?.fileName ? `Attachment · ${attachment.fileName}` : body),
                   status: "OPEN",
                 }
               : c,
@@ -451,15 +492,38 @@ export function StorefrontBuyerInbox({
         );
       } catch {
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  pending: false,
+                  failed: true,
+                  attachment: uploadedAttachment ?? m.attachment,
+                  localFile: file,
+                }
+              : m,
+          ),
         );
       } finally {
-        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+        if (localPreviewUrl && confirmed) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
-    [activeId, replyTo, sending],
+    [activeId, replyTo, sending, canReply],
   );
+
+  const retry = (message: LocalMessage) => {
+    setMessages((prev) => prev.filter((m) => m.id !== message.id));
+    void send({
+      body: message.body,
+      file: message.localFile ?? null,
+      clientMessageId: message.clientMessageId ?? null,
+      attachment:
+        message.attachment?.url && message.attachment.url !== "#"
+          ? message.attachment
+          : null,
+    });
+  };
 
   const normalizedSearch = search.trim().toLowerCase();
   const visible = conversations.filter((c) => {
@@ -475,18 +539,18 @@ export function StorefrontBuyerInbox({
   });
 
   const listPane = (
-    <div className="flex min-h-0 w-full flex-col md:w-72 md:shrink-0 md:border-r md:border-border/60">
-      <div className="border-b border-border/60 p-3">
+    <div className="flex min-h-0 w-full flex-col md:w-[20rem] md:shrink-0 md:border-r md:border-border/60">
+      <div className="border-b border-border/60 bg-card/50 p-2.5">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search buyers…"
-            className="h-9 w-full rounded-lg border border-border/70 bg-muted/40 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
+            className="h-9 w-full rounded-full border border-border/60 bg-background pl-8 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
-        <div className="mt-2 flex items-center gap-1">
+        <div className="mt-2 flex items-center gap-1 rounded-full bg-muted/50 p-1">
           {(
             [
               { key: "OPEN", label: "Open" },
@@ -500,10 +564,10 @@ export function StorefrontBuyerInbox({
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors",
+                  "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-full text-xs font-medium transition-all",
                   filter === f.key
-                    ? "bg-primary/12 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {f.label}
@@ -514,11 +578,9 @@ export function StorefrontBuyerInbox({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="support-chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {listLoading ? (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            Loading buyer chats…
-          </div>
+          <ConversationListSkeleton />
         ) : listError ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
             <p className="text-sm text-muted-foreground">{listError}</p>
@@ -538,52 +600,23 @@ export function StorefrontBuyerInbox({
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-border/50">
+          <ul className="space-y-0.5 px-1.5 py-1.5">
             {visible.map((conversation) => {
               const isActive = conversation.id === activeId;
               const unread = conversation.unreadCount ?? 0;
               return (
                 <li key={conversation.id}>
-                  <button
-                    type="button"
+                  <ConversationRow
+                    active={isActive}
+                    name={conversation.guestName ?? "Storefront buyer"}
+                    seed={conversation.guestId ?? conversation.id}
+                    phone={conversation.guestPhone}
+                    preview={conversation.lastMessagePreview}
+                    time={listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
+                    unread={unread}
+                    resolved={conversation.status === "RESOLVED"}
                     onClick={() => void openConversation(conversation.id)}
-                    className={cn(
-                      "flex w-full items-start gap-2.5 px-3 py-3 text-left transition-colors",
-                      isActive ? "bg-primary/8" : "hover:bg-muted/50",
-                    )}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar name={conversation.guestName ?? "Buyer"} seed={conversation.guestId ?? conversation.id} className="size-10" />
-                      {unread > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-                          {unread > 9 ? "9+" : unread}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="flex min-w-0 items-baseline gap-1.5">
-                          <span className={cn("truncate text-sm", conversation.status === "RESOLVED" ? "text-muted-foreground" : "font-semibold text-foreground")}>
-                            {conversation.guestName ?? "Storefront buyer"}
-                          </span>
-                          {conversation.guestPhone ? (
-                            <span className="shrink-0 text-[10px] text-muted-foreground/70">
-                              · {conversation.guestPhone}
-                            </span>
-                          ) : null}
-                          <span className="shrink-0 rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
-                            Storefront
-                          </span>
-                        </p>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
-                          {listTime(conversation.lastMessageAt ?? conversation.updatedAt)}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {conversation.lastMessagePreview ?? <span className="italic">No messages yet</span>}
-                      </p>
-                    </div>
-                  </button>
+                  />
                 </li>
               );
             })}
@@ -595,45 +628,61 @@ export function StorefrontBuyerInbox({
 
   const chatPane = activeConversation ? (
     <section
-      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:rounded-l-none"
+      className="support-chat-theme support-chat-theme--shop relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 support-surface shadow-sm md:rounded-l-none"
       aria-label={`Chat with ${activeConversation.guestName ?? "buyer"}`}
     >
-      <header className="flex items-center gap-3 border-b border-border/60 bg-background/60 px-3 py-3 backdrop-blur sm:px-4">
+      <header className="flex items-center gap-2.5 border-b border-border/60 bg-background/70 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-4">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="md:hidden"
+          className="rounded-full md:hidden"
           aria-label="Back to conversations"
           onClick={() => {
             setMobileView("list");
             setActiveId(null);
           }}
         >
-          <ArrowDown className="size-5 rotate-90" />
+          <ChevronLeft className="size-5" />
         </Button>
-        <Avatar name={activeConversation.guestName ?? "Buyer"} seed={activeConversation.guestId ?? activeConversation.id} className="size-10" />
-        <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-baseline gap-1.5 text-sm font-semibold text-foreground">
-            <span className="truncate">{activeConversation.guestName ?? "Storefront buyer"}</span>
-            {activeConversation.guestPhone ? (
-              <span className="shrink-0 text-[10px] font-normal text-muted-foreground/70">
-                · {activeConversation.guestPhone}
-              </span>
-            ) : null}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {theirTyping ? "typing…" : "Storefront chat"}
-          </p>
+        <div className="relative shrink-0">
+          <Avatar
+            name={activeConversation.guestName ?? "Buyer"}
+            seed={activeConversation.guestId ?? activeConversation.id}
+            className="size-10"
+          />
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
+              connectionState === "connected"
+                ? "bg-emerald-500"
+                : connectionState === "connecting" ||
+                    connectionState === "reconnecting"
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground/40",
+            )}
+            aria-hidden
+          />
         </div>
-        <div className="hidden sm:block">
-          <LiveStatusPill state={connectionState} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold leading-tight tracking-[-0.01em] text-foreground">
+            {activeConversation.guestName ?? "Storefront buyer"}
+          </p>
+          <p className="truncate text-[11.5px] text-muted-foreground">
+            {theirTyping
+              ? "typing…"
+              : activeConversation.guestPhone
+                ? `Storefront chat · ${activeConversation.guestPhone}`
+                : "Storefront chat"}
+          </p>
         </div>
         <Button
           type="button"
           size="sm"
           variant="outline"
-          disabled={escalateBusy}
+          className="shrink-0 rounded-full"
+          disabled={!canReply || escalateBusy}
+          title={!canReply ? "You do not have permission to reply to buyers" : undefined}
           onClick={async () => {
             if (!activeConversation) return;
             setEscalateBusy(true);
@@ -645,20 +694,34 @@ export function StorefrontBuyerInbox({
             }
           }}
         >
-          {escalatedLabel ? escalatedLabel : escalateBusy ? "Escalating…" : "Escalate to Palmart"}
+          <span className="hidden sm:inline">
+            {escalatedLabel ? escalatedLabel : escalateBusy ? "Escalating…" : "Escalate to Kiosk"}
+          </span>
+          <span className="sm:hidden">
+            {escalatedLabel ? escalatedLabel : escalateBusy ? "…" : "Escalate"}
+          </span>
         </Button>
       </header>
 
       <div className="relative min-h-0 flex-1 support-chat-wallpaper">
-        <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation messages"
+          className="support-chat-scroll h-full overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-5"
+        >
           {detailLoading ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Loading conversation…
-            </div>
+            <ChatThreadSkeleton />
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <p className="text-sm font-medium text-foreground">Nothing here yet</p>
-              <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+              <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
+                <Inbox className="size-5" aria-hidden />
+              </span>
+              <p className="text-[15px] font-semibold text-foreground">Nothing here yet</p>
+              <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">
                 Say hi — the buyer will see it live on the storefront.
               </p>
             </div>
@@ -672,6 +735,7 @@ export function StorefrontBuyerInbox({
                 return (
                   <React.Fragment key={message.id}>
                     {newDay && index > 0 ? <DayDivider iso={message.createdAt} /> : null}
+                    {message.id === firstUnreadId ? <NewMessagesDivider /> : null}
                     <div className={cn("flex w-full", mine ? "justify-end" : "justify-start", cluster.gapClass)}>
                       <MessageBubble
                         message={message}
@@ -681,6 +745,7 @@ export function StorefrontBuyerInbox({
                         highlighted={highlightMessageId === message.id}
                         onReply={(target) => setReplyTo(toReplyTarget(target))}
                         onScrollToMessage={scrollToMessage}
+                        onRetry={message.failed ? () => retry(message) : undefined}
                       />
                     </div>
                   </React.Fragment>
@@ -711,7 +776,8 @@ export function StorefrontBuyerInbox({
           value={draft}
           onChange={setDraft}
           onSend={(payload) => void send(payload)}
-          disabled={sending}
+          disabled={!canReply || sending}
+          disabledHint="You do not have permission to reply to buyers."
           sending={sending}
           replyTo={replyTo}
           onClearReply={() => setReplyTo(null)}
@@ -731,7 +797,7 @@ export function StorefrontBuyerInbox({
   );
 
   return (
-    <div className="flex h-[calc(100dvh-16rem)] min-h-[440px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
       <div className={cn("min-h-0 flex-1 md:flex", mobileView === "chat" && "hidden")}>{listPane}</div>
       <div className={cn("min-h-0 flex-1", mobileView === "list" && "hidden md:block")}>{chatPane}</div>
     </div>

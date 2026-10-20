@@ -17,6 +17,7 @@ import {
   type SubscriptionRenewalQuoteRecord,
 } from "@/lib/api";
 import { clearLoginBillingGate } from "@/lib/auth";
+import { notifySubscriptionStatusChanged } from "@/lib/subscription-events";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -67,6 +68,7 @@ export function SubscriptionRenewalForm({
               pollRef.current = null;
             }
             setPolling(false);
+            notifySubscriptionStatusChanged();
             toast.error("Payment did not complete. Try again.");
           }
         } catch {
@@ -91,6 +93,7 @@ export function SubscriptionRenewalForm({
         tier: quote.tier,
       });
       if (row.status === "FAILED") {
+        notifySubscriptionStatusChanged();
         toast.error(row.message || "Could not start M-Pesa payment.");
         return;
       }

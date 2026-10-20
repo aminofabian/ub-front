@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 
+import { MessageBody } from "@/components/conversations/message-body";
 import {
   DashboardFeedback,
   dashboardHintClass,
@@ -45,6 +46,10 @@ export type MessagesTheatreProps = {
   onSearchChange: (value: string) => void;
   listLoading: boolean;
   unreadCount: number;
+  totalCount: number;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   selectedId: string | null;
   detail: ContactMessageDetail | null;
   detailLoading: boolean;
@@ -455,9 +460,10 @@ function MessageDossier({
           </p>
         </div>
 
-        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
-          {detail.body}
-        </p>
+        <MessageBody
+          text={detail.body}
+          className="text-[13px] leading-relaxed text-foreground"
+        />
 
         {onOpenTicket || onOrganize ? (
           <div className="flex flex-wrap gap-2">
@@ -514,7 +520,7 @@ function MessageDossier({
                     <span>·</span>
                     <span>{formatWhen(reply.createdAt)}</span>
                   </div>
-                  <p className="whitespace-pre-wrap">{reply.body}</p>
+                  <MessageBody text={reply.body} />
                   {reply.outcome === "failed" && reply.detail ? (
                     <p className="mt-1 text-[11px] text-destructive/80">
                       {reply.detail}
@@ -620,6 +626,10 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
     onSearchChange,
     listLoading,
     unreadCount,
+    totalCount,
+    hasMore,
+    loadingMore,
+    onLoadMore,
     selectedId,
     detail,
     detailLoading,
@@ -803,6 +813,20 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
               })}
             </ul>
           )}
+          {hasMore && !listLoading ? (
+            <div className="flex justify-center border-t px-3 py-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                disabled={loadingMore}
+                onClick={() => void onLoadMore?.()}
+              >
+                {loadingMore ? "Loading older…" : "Load older messages"}
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -823,7 +847,7 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
   ) : (
     <MessagesPulse
       unreadCount={unreadCount}
-      totalCount={rows.length}
+      totalCount={totalCount}
       rows={rows}
       onSelect={onSelect}
       className="h-full min-h-0"
@@ -888,7 +912,7 @@ export function MessagesTheatre(props: MessagesTheatreProps) {
         onFilterChange={onFilterChange}
         canReply={canReply}
         shownCount={filteredRows.length}
-        totalCount={rows.length}
+        totalCount={totalCount}
       />
 
       <div

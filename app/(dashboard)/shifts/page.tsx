@@ -1698,6 +1698,11 @@ export default function ShiftsPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  /**
+   * `useSyncBranchFilter` copies the header branch in after mount. Fetching the
+   * list before that adds an unscoped twin of the branch-scoped query.
+   */
+  const [branchesReady, setBranchesReady] = useState(false);
 
   // Load branches on mount
   useEffect(() => {
@@ -1707,7 +1712,10 @@ export default function ShiftsPage() {
       .then((list) => {
         if (!cancelled) setBranches(list.filter((b) => b.active));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setBranchesReady(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -1716,6 +1724,7 @@ export default function ShiftsPage() {
   // Load shifts
   const loadShifts = useCallback(
     async (pageNum: number, append = false) => {
+      if (!branchesReady) return;
       setError("");
       setLoading(true);
       try {
@@ -1740,7 +1749,7 @@ export default function ShiftsPage() {
         setLoading(false);
       }
     },
-    [branchFilter, statusFilter, search],
+    [branchFilter, branchesReady, statusFilter, search],
   );
 
   // Load shifts on mount and when filters change

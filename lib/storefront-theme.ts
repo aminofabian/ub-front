@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { readableInkOn } from "@/lib/color-contrast";
+
 import {
   brandingLogoScaleCss,
   STOREFRONT_LOGO_SCALE_VAR,
@@ -12,7 +14,7 @@ import {
 } from "@/lib/storefront-design";
 import { storefrontFontPairingCssStacks } from "@/lib/storefront-font-pairings-meta";
 
-/** Label on solid primary buttons (always white per storefront UX). */
+/** Fallback label on solid primary buttons; light brand colours get dark ink. */
 export const STOREFRONT_ON_PRIMARY = "#ffffff";
 
 export function parseStorefrontHex(value?: string | null): string | null {
@@ -130,7 +132,9 @@ export function buildStorefrontThemeVars(
   if (primary) {
     const accent = parseStorefrontHex(accentHex) ?? primary;
     vars["--primary"] = primary;
-    vars["--primary-foreground"] = STOREFRONT_ON_PRIMARY;
+    vars["--primary-foreground"] = readableInkOn(primary);
+    vars["--conversation-accent"] = primary;
+    vars["--conversation-accent-ink"] = readableInkOn(primary);
     vars["--primary-hover"] = `color-mix(in srgb, ${primary} 88%, black)`;
     vars["--ring"] = `color-mix(in srgb, ${primary} 35%, transparent)`;
     vars["--storefront-brand"] = primary;
@@ -138,7 +142,7 @@ export function buildStorefrontThemeVars(
     vars["--chart-1"] = primary;
     vars["--chart-2"] = accent;
     vars["--sidebar-primary"] = primary;
-    vars["--sidebar-primary-foreground"] = STOREFRONT_ON_PRIMARY;
+    vars["--sidebar-primary-foreground"] = readableInkOn(primary);
     vars["--sidebar-ring"] = `color-mix(in srgb, ${primary} 35%, transparent)`;
   }
 

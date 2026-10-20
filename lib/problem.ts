@@ -36,6 +36,8 @@ export type ProblemValidationFieldError = {
 export const DEFAULT_PROBLEM_TITLE = "Something went wrong. Please try again.";
 
 const TENANT_NOT_FOUND_PROBLEM_TYPE = "urn:problem:tenant-not-found";
+export const SUBSCRIPTION_BLOCKED_PROBLEM_TYPE =
+  "urn:problem:subscription-blocked";
 const UNMAPPED_TENANT_HOST_DETAIL_PREFIX =
   "No active tenant mapping found for host:";
 
@@ -331,10 +333,20 @@ export function isUnmappedTenantHostProblem(payload: unknown): boolean {
   return detail.startsWith(UNMAPPED_TENANT_HOST_DETAIL_PREFIX);
 }
 
+export function isSubscriptionBlockedProblem(
+  status: number,
+  payload: unknown,
+): boolean {
+  if (status !== 423) return false;
+  const problem = parseProblem(payload);
+  return problem?.type === SUBSCRIPTION_BLOCKED_PROBLEM_TYPE;
+}
+
 /** Prefer machine-readable detail for types where the title alone is easy to confuse with auth failures. */
 const PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY = new Set([
   "urn:problem:tenant-not-found",
   "urn:problem:tenant-not-active",
+  "urn:problem:subscription-blocked",
 ]);
 
 export function getProblemTitle(payload: unknown): string {
@@ -542,6 +554,9 @@ export function shouldOmitHttpErrorToast(
     status != null &&
     isSessionRelatedProblem(status, payload, { requiresAuth: true })
   ) {
+    return true;
+  }
+  if (status != null && isSubscriptionBlockedProblem(status, payload)) {
     return true;
   }
   return isAuthRecoveryUserMessage(message);

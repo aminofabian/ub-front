@@ -1400,6 +1400,13 @@ export async function changeSuperAdminPassword(
   });
 }
 
+export async function fetchSaContactMessageUnreadCount(): Promise<number> {
+  const payload = await saRequest<{ count?: number }>(
+    "/api/v1/super-admin/contact-messages/unread-count",
+  );
+  return typeof payload?.count === "number" ? payload.count : 0;
+}
+
 export async function fetchSaContactMessages(opts?: {
   status?: "UNREAD" | "READ";
   page?: number;
@@ -3782,6 +3789,7 @@ export async function sendSaSupportMessage(
     bytes?: number | null;
   } | null,
   replyToMessageId?: string | null,
+  clientMessageId?: string | null,
 ): Promise<SaSupportMessage> {
   return saRequest<SaSupportMessage>(
     `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages`,
@@ -3790,6 +3798,7 @@ export async function sendSaSupportMessage(
       body: JSON.stringify({
         body: body || "",
         replyToMessageId: replyToMessageId ?? undefined,
+        clientMessageId: clientMessageId ?? undefined,
         attachment: attachment
           ? {
               url: attachment.url,
@@ -3973,6 +3982,7 @@ export async function updateSaSmsCreditAccount(
 
 export type SaSubscriptionSettingsRecord = {
   billingEnabled: boolean;
+  autoBlockEnabled: boolean;
   defaultGraceDays: number;
   renewalBaseUrl: string;
   notificationCadenceDays: string;
@@ -3995,6 +4005,7 @@ export type SaSubscriptionPlanRecord = {
 
 export type SaSubscriptionDunningRecord = {
   billingEnabled: boolean;
+  autoBlockEnabled: boolean;
   tenantsInGrace: number;
   tenantsSuspended: number;
   monthlyRevenueAtRiskKes: number;
@@ -4013,6 +4024,7 @@ export async function fetchSaSubscriptionSettings(): Promise<SaSubscriptionSetti
 export async function updateSaSubscriptionSettings(
   body: Partial<{
     billingEnabled: boolean;
+    autoBlockEnabled: boolean;
     defaultGraceDays: number;
     renewalBaseUrl: string;
     notificationCadenceDays: string;

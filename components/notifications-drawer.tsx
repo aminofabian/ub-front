@@ -7,6 +7,7 @@ import {
   Bell,
   CheckCheck,
   HandCoins,
+  Mail,
   MessageCircle,
   Package,
   ShoppingCart,
@@ -21,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSupportUnreadBreakdown } from "@/hooks/use-support-unread";
+import { APP_ROUTES } from "@/lib/config";
 import {
   getNotificationPresentation,
   toClientNavigationHref,
@@ -234,6 +236,36 @@ export function NotificationsDrawer() {
                         </span>
                         <span className="mt-0.5 block text-xs text-muted-foreground">
                           Open inbox to reply to shoppers
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ) : null}
+
+                {support.messages > 0 ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        requestCloseNotifications();
+                        window.setTimeout(() => router.push(APP_ROUTES.messages), 0);
+                      }}
+                      className="flex w-full items-start gap-3 bg-primary/[0.04] px-4 py-3.5 text-left transition-colors hover:bg-muted/60"
+                    >
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-400">
+                        <Mail className="size-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-medium leading-snug">
+                            New Talk to Us message{support.messages > 1 ? "s" : ""}
+                          </span>
+                          <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                            {support.messages > 9 ? "9+" : support.messages}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          Open Messages to reply
                         </span>
                       </span>
                     </button>

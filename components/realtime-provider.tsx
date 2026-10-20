@@ -15,6 +15,7 @@ import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useClientHasAccessTokens } from "@/hooks/use-client-session";
 import {
   fetchStaffNotifications,
+  markAllStaffNotificationsRead,
   markStaffNotificationRead,
   type StaffNotificationRow,
 } from "@/lib/api";
@@ -85,6 +86,10 @@ function staffRowToFrame(row: StaffNotificationRow): RealtimeFrame {
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Read in effects without making them depend on the route: the socket and the
+  // inbox snapshot outlive navigation, and only the mount-time guard needs it.
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const hasAccessTokens = useClientHasAccessTokens();
   const dash = useOptionalDashboard();
   const currency = dash?.business?.currency?.trim() || "KES";
@@ -103,7 +108,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Never connect on auth pages — no tenant context is available
-    if (pathname.startsWith(APP_ROUTES.login)) {
+    if (pathnameRef.current.startsWith(APP_ROUTES.login)) {
       return;
     }
 
@@ -123,12 +128,24 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
                 const data = frame.data as {
                   id?: string;
                   notificationId?: string;
+                  all?: boolean;
                 };
+                const now = new Date().toISOString();
+                // Another session cleared the bell.
+                if (data.all === true) {
+                  setNotifications((prev) =>
+                    prev.map((n) => {
+                      const row = n.data as Record<string, unknown>;
+                      if (row.readAt) return n;
+                      return { ...n, data: { ...row, readAt: now } };
+                    }),
+                  );
+                  return;
+                }
                 const id = String(
                   data.id ?? data.notificationId ?? frame.eventId ?? "",
                 );
                 if (!id) return;
-                const now = new Date().toISOString();
                 setNotifications((prev) =>
                   prev.map((n) => {
                     const row = n.data as Record<string, unknown>;
@@ -165,14 +182,16 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       window.clearTimeout(connectTimer);
       unregister();
     };
-  }, [canReadNotifications, hasAccessTokens, pathname]);
+  }, [canReadNotifications, hasAccessTokens]);
 
-  // Hydrate tenant staff inbox from REST — welcome (and other offline inserts)
-  // are created before any WS session exists, and poll baselines without emitting history.
-  // Keep read + unread so the drawer stays populated after mark-read.
+  // Hydrate tenant staff inbox from REST once per session — welcome (and other
+  // offline inserts) are created before any WS session exists, and poll
+  // baselines without emitting history. Keep read + unread so the drawer stays
+  // populated after mark-read. Navigation must not replay this: the inbox is a
+  // shell-wide snapshot, not a per-route one.
   useEffect(() => {
     if (!hasAccessTokens || !canReadNotifications) return;
-    if (pathname.startsWith(APP_ROUTES.login)) return;
+    if (pathnameRef.current.startsWith(APP_ROUTES.login)) return;
 
     let cancelled = false;
     void (async () => {
@@ -202,28 +221,23 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [canReadNotifications, hasAccessTokens, pathname]);
+  }, [canReadNotifications, hasAccessTokens]);
 
   const markAllRead = useCallback(() => {
     const now = new Date().toISOString();
-    setNotifications((prev) => {
-      for (const frame of prev) {
-        const data = frame.data as { id?: string; readAt?: string | null };
-        if (data.readAt) continue;
-        const id = String(data.id ?? frame.eventId ?? "");
-        if (id) {
-          void markStaffNotificationRead(id).catch(() => {});
-        }
-      }
-      return prev.map((frame) => {
+    // One request clears the whole bell; firing a POST per unread row was the
+    // old behaviour and scaled with the size of the inbox.
+    void markAllStaffNotificationsRead().catch(() => {});
+    setNotifications((prev) =>
+      prev.map((frame) => {
         const data = frame.data as Record<string, unknown>;
         if (data.readAt) return frame;
         return {
           ...frame,
           data: { ...data, readAt: now },
         };
-      });
-    });
+      }),
+    );
   }, []);
 
   const markRead = useCallback((notificationId: string) => {

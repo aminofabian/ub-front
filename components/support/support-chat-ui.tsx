@@ -4,6 +4,8 @@ import * as React from "react";
 import {
   Check,
   CheckCheck,
+  Clock,
+  Copy,
   CornerUpLeft,
   FileText,
   Paperclip,
@@ -13,7 +15,9 @@ import {
   X,
 } from "lucide-react";
 
+import { MessageBody } from "@/components/conversations/message-body";
 import { Button } from "@/components/ui/button";
+import { readableInkOn } from "@/lib/color-contrast";
 import { APP_ROUTES } from "@/lib/config";
 import {
   SUPPORT_ATTACHMENT_ACCEPT,
@@ -92,6 +96,13 @@ export type ChatMessageShape = {
   pending?: boolean;
   /** The POST failed; show a retry affordance. */
   failed?: boolean;
+  /**
+   * Local-only file kept on a failed optimistic row so "Retry" can re-upload
+   * it. Never serialized to the server.
+   */
+  localFile?: File | null;
+  /** Stable idempotency key reused when a failed send is retried. */
+  clientMessageId?: string | null;
 };
 
 export type ComposerReplyTarget = {
@@ -108,27 +119,22 @@ export type ComposerSendPayload = {
   /** Local file still uploading when send is pressed — parent uploads then sends. */
   file?: File | null;
   replyToMessageId?: string | null;
+  /** Stable id reused on retry so the server does not create a duplicate. */
+  clientMessageId?: string | null;
 };
 
-const AVATAR_HUES = [
-  "bg-emerald-700",
-  "bg-teal-700",
-  "bg-cyan-700",
-  "bg-sky-700",
-  "bg-indigo-700",
-  "bg-violet-700",
-  "bg-fuchsia-700",
-  "bg-rose-700",
-  "bg-orange-700",
-  "bg-amber-700",
-];
-
-function hueFor(seed: string): string {
+function avatarTone(seed: string): string {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return AVATAR_HUES[hash % AVATAR_HUES.length];
+  const tones = [
+    "bg-[#1D4B3B] text-[#F2EDE1]",
+    "bg-[#E7E0D3] text-[#3E4A44]",
+    "bg-[#DCE5DE] text-[#2C4A3B]",
+    "bg-[#EFE3DC] text-[#6B3B2B]",
+  ];
+  return tones[hash % tones.length];
 }
 
 export function initialsOf(name: string | null | undefined): string {
@@ -152,8 +158,8 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full text-[11px] font-semibold tracking-wide text-white ring-2 ring-background",
-        hueFor(seed),
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full text-[11px] font-semibold tracking-wide",
+        avatarTone(seed),
         className ?? "size-9",
       )}
     >
@@ -168,7 +174,7 @@ export function PlatformAvatar({ className }: { className?: string }) {
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full bg-primary font-bold text-primary-foreground shadow-[0_2px_8px_-2px_rgba(40,167,69,0.45)] ring-2 ring-background",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full support-accent-bg font-bold support-accent-ink",
         className ?? "size-9",
       )}
     >
@@ -217,11 +223,29 @@ export function listTime(iso: string | null | undefined): string {
   return d.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
+export function NewMessagesDivider({ count }: { count?: number }) {
+  const label =
+    count && count > 1 ? `${count} new messages` : "New messages";
+  return (
+    <div
+      role="separator"
+      aria-label={label}
+      className="my-4 flex items-center gap-3 px-1"
+    >
+      <span className="h-px flex-1 bg-border/50" />
+      <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+        {label}
+      </span>
+      <span className="h-px flex-1 bg-border/50" />
+    </div>
+  );
+}
+
 export function DayDivider({ iso }: { iso: string }) {
   return (
     <div className="my-5 flex items-center gap-3 px-1" role="separator" aria-label={chatDayLabel(iso)}>
       <span className="h-px flex-1 bg-border/50" />
-      <span className="shrink-0 rounded-full border border-border/50 bg-card/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground shadow-sm backdrop-blur-sm">
+      <span className="shrink-0 rounded-full border support-rule support-panel px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] support-muted">
         {chatDayLabel(iso)}
       </span>
       <span className="h-px flex-1 bg-border/50" />
@@ -262,22 +286,9 @@ export function getMessageCluster(
   else clusterPosition = "last";
 
   const showAvatar = !mine && !nextInCluster;
-  const gapClass = prevInCluster ? "mt-0.5" : "mt-2";
+  const gapClass = prevInCluster ? "mt-1" : "mt-4";
 
   return { showAvatar, clusterPosition, gapClass, mine };
-}
-
-function bubbleRadius(mine: boolean, cluster: ClusterPosition): string {
-  if (mine) {
-    if (cluster === "single") return "rounded-[1.15rem] rounded-br-[0.35rem]";
-    if (cluster === "first") return "rounded-[1.15rem] rounded-br-[0.45rem]";
-    if (cluster === "middle") return "rounded-[1.15rem] rounded-r-[0.45rem]";
-    return "rounded-[1.15rem] rounded-tr-[0.45rem] rounded-br-[0.35rem]";
-  }
-  if (cluster === "single") return "rounded-[1.15rem] rounded-bl-[0.35rem]";
-  if (cluster === "first") return "rounded-[1.15rem] rounded-bl-[0.45rem]";
-  if (cluster === "middle") return "rounded-[1.15rem] rounded-l-[0.45rem]";
-  return "rounded-[1.15rem] rounded-tl-[0.45rem] rounded-bl-[0.35rem]";
 }
 
 function replyAuthorLabel(reply: ChatReplyShape, mine: boolean): string {
@@ -309,7 +320,7 @@ function ReplyQuote({
       type="button"
       onClick={onJump}
       className={cn(
-        "mb-2 flex w-full max-w-full items-stretch gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors",
+        "mb-2 flex w-full max-w-full items-stretch gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors",
         mine ? "support-reply-quote--out" : "support-reply-quote--in",
         onJump && "cursor-pointer hover:brightness-[1.03]",
       )}
@@ -354,14 +365,12 @@ export function MessageBubble({
     message.messageKind === "ORDER_CARD" && message.orderCard != null;
   const isWelcomeCard =
     message.messageKind === "WELCOME_CARD" && message.welcomeCard != null;
+  const [copied, setCopied] = React.useState(false);
 
   if (isWelcomeCard) {
     return (
       <div
-        className={cn(
-          "group flex w-full items-end gap-2 justify-start",
-          "animate-in fade-in slide-in-from-bottom-1 duration-200",
-        )}
+        className="group flex w-full items-end gap-2 justify-start"
       >
         {showAvatar ? (
           <PlatformAvatar className="mb-5 size-7" />
@@ -370,7 +379,7 @@ export function MessageBubble({
         )}
         <div className="flex max-w-[min(88%,22.5rem)] flex-col items-start">
           {message.senderName ? (
-            <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+            <p className="mb-1 px-0.5 text-[12px] font-medium support-muted">
               {message.senderName}
             </p>
           ) : null}
@@ -391,7 +400,6 @@ export function MessageBubble({
         className={cn(
           "group flex w-full items-end gap-2",
           mine ? "justify-end" : "justify-start",
-          "animate-in fade-in slide-in-from-bottom-1 duration-200",
         )}
       >
         {!mine && showAvatar ? (
@@ -401,7 +409,7 @@ export function MessageBubble({
         ) : null}
         <div className={cn("flex max-w-[min(92%,24rem)] flex-col", mine ? "items-end" : "items-start")}>
           {!mine && message.senderName ? (
-            <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-primary/90">
+            <p className="mb-1 px-0.5 text-[12px] font-medium support-muted">
               {message.senderName}
             </p>
           ) : null}
@@ -416,56 +424,62 @@ export function MessageBubble({
     );
   }
 
+  const showMeta = clusterPosition === "single" || clusterPosition === "last";
+
+  const copyMessage = async () => {
+    const text = message.body?.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Older/insecure contexts: fall back to the hidden-textarea path.
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      try {
+        document.execCommand("copy");
+      } finally {
+        area.remove();
+      }
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
   return (
     <div
       data-message-id={message.id}
       className={cn(
         "group/msg relative flex w-full items-end gap-2",
         mine ? "justify-end" : "justify-start",
-        "animate-in fade-in slide-in-from-bottom-1 duration-200",
         highlighted && "support-message-highlight",
       )}
     >
       {!mine && showAvatar ? (
-        <Avatar name={message.senderName} seed={message.senderUserId} className="mb-5 size-7" />
+        <Avatar name={message.senderName} seed={message.senderUserId ?? message.id} className="mb-1 size-7" />
       ) : !mine ? (
-        <span className="mb-5 size-7 shrink-0" aria-hidden />
+        <span className="mb-1 size-7 shrink-0" aria-hidden />
       ) : null}
-      <div className={cn("flex min-w-0 flex-col", mine ? "items-end" : "items-start")}>
-        {!mine && message.senderName && clusterPosition !== "middle" && clusterPosition !== "last" ? (
-          <p className="mb-1 px-1 text-[11px] font-semibold tracking-wide text-emerald-800/80 dark:text-emerald-300/90">
+      <div className={cn("flex min-w-0 max-w-[min(32rem,82%)] flex-col", mine ? "items-end" : "items-start")}>
+        {!mine && message.senderName && (clusterPosition === "single" || clusterPosition === "first") ? (
+          <p className="mb-1 px-0.5 text-[12px] font-medium support-muted">
             {message.senderName}
           </p>
         ) : null}
-        <div className="relative">
-          {onReply ? (
-            <button
-              type="button"
-              onClick={() => onReply(message)}
-              aria-label="Reply to this message"
-              className={cn(
-                "absolute right-1 top-1 z-10 inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-slate-600 shadow-sm transition-all dark:bg-neutral-800/95 dark:text-neutral-300",
-                "opacity-0 group-hover/msg:opacity-100 focus-visible:opacity-100",
-                "hover:border-primary/35 hover:bg-primary/[0.08] hover:text-primary",
-              )}
-            >
-              <CornerUpLeft className="size-3" />
-            </button>
-          ) : null}
+        <div className={cn("flex max-w-full items-end gap-1.5", mine && "flex-row-reverse")}>
           <div
+            title={chatTime(message.createdAt)}
             className={cn(
-              "support-bubble",
-              bubbleRadius(mine, clusterPosition),
+              "support-bubble max-w-full",
               mine ? "support-bubble--out" : "support-bubble--in",
+              `support-bubble--${clusterPosition}`,
               isPending && "opacity-70",
-              isFailed && "border-destructive/40 !bg-destructive/10 !text-foreground opacity-100 shadow-none",
+              isFailed && "border-destructive/40 !bg-destructive/10 !text-foreground opacity-100",
             )}
           >
-            {!mine && message.senderName && (clusterPosition === "middle" || clusterPosition === "last") ? (
-              <p className="mb-1 text-[11px] font-semibold tracking-wide text-emerald-700 dark:text-emerald-400">
-                {message.senderName}
-              </p>
-            ) : null}
             {message.replyTo ? (
               <ReplyQuote
                 reply={message.replyTo}
@@ -480,21 +494,47 @@ export function MessageBubble({
             {message.attachment?.url ? (
               <AttachmentBlock attachment={message.attachment} mine={mine} />
             ) : null}
-            {message.body?.trim() ? (
-              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
+            {message.body?.trim() ? <MessageBody text={message.body} /> : null}
+            {showMeta || isFailed || isPending ? (
+              <span className="support-bubble-time mt-1 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums">
+                {showMeta ? <span>{chatTime(message.createdAt)}</span> : null}
+                {mine ? (
+                  isFailed ? (
+                    <span className="font-medium text-destructive">Failed</span>
+                  ) : isPending ? (
+                    <Clock className="size-3 opacity-80" aria-label="Sending" />
+                  ) : message.readAt ? (
+                    <CheckCheck className="size-3 opacity-90" aria-label="Read" />
+                  ) : (
+                    <Check className="size-3 opacity-80" aria-label="Sent" />
+                  )
+                ) : null}
+              </span>
             ) : null}
-            <span className="support-bubble-time mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums">
-              <span>{chatTime(message.createdAt)}</span>
-              {mine ? (
-                isFailed ? (
-                  <span className="font-medium text-destructive">Failed</span>
-                ) : message.readAt ? (
-                  <CheckCheck className="size-3.5 opacity-95" aria-label="Read" />
-                ) : (
-                  <Check className="size-3.5 opacity-90" aria-label="Sent" />
-                )
-              ) : null}
-            </span>
+          </div>
+          <div className="mb-0.5 hidden shrink-0 flex-col gap-1 sm:flex">
+            {onReply ? (
+              <button
+                type="button"
+                onClick={() => onReply(message)}
+                aria-label="Reply to this message"
+                title="Reply"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/msg:opacity-100"
+              >
+                <CornerUpLeft className="size-3.5" />
+              </button>
+            ) : null}
+            {message.body?.trim() ? (
+              <button
+                type="button"
+                onClick={() => void copyMessage()}
+                aria-label={copied ? "Copied" : "Copy message"}
+                title={copied ? "Copied" : "Copy"}
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/msg:opacity-100"
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              </button>
+            ) : null}
           </div>
         </div>
         {isFailed && onRetry ? (
@@ -503,9 +543,39 @@ export function MessageBubble({
             onClick={onRetry}
             className="mt-1 px-1 text-[11px] font-medium text-destructive underline-offset-2 hover:underline"
           >
-            Tap to retry
+            Retry
           </button>
         ) : null}
+        {(onReply || message.body?.trim()) &&
+        (clusterPosition === "single" || clusterPosition === "last") ? (
+          <div className="mt-1 flex items-center gap-3 px-1 sm:hidden">
+            {onReply ? (
+              <button
+                type="button"
+                onClick={() => onReply(message)}
+                aria-label="Reply to this message"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+              >
+                <CornerUpLeft className="size-3" aria-hidden />
+                Reply
+              </button>
+            ) : null}
+            {message.body?.trim() ? (
+              <button
+                type="button"
+                onClick={() => void copyMessage()}
+                aria-label={copied ? "Copied" : "Copy message"}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+              >
+                {copied ? <Check className="size-3" aria-hidden /> : <Copy className="size-3" aria-hidden />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <span className="sr-only" role="status">
+          {copied ? "Message copied" : ""}
+        </span>
       </div>
     </div>
   );
@@ -532,35 +602,31 @@ function WelcomeCardBubble({
   return (
     <div
       className={cn(
-        "relative rounded-[1.2rem] rounded-bl-md border border-border/60 bg-card px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.06)]",
+        "relative rounded-[0.9rem] border support-rule support-panel px-4 py-3 text-[13px] leading-[1.55] support-ink",
         pending && "opacity-70",
       )}
     >
-      <p className="text-foreground/95">
-        Hi {name} —
+      <p className="text-[13.5px] font-semibold text-foreground">
+        Hi {name} — welcome to Kiosk.
       </p>
-      <p className="mt-2 text-foreground/95">
-        Karibu. <span className="font-medium text-foreground">{business}</span> is on
-        Kiosk now, and this chat is yours whenever something feels sticky.
-      </p>
-      <p className="mt-2 text-foreground/90">
-        Setup, themes, your domain, M-Pesa, custom bits — a real human helps with
-        all of it, free. No ticket queue.
+      <p className="mt-1.5 text-foreground/85">
+        A real person is here for {business} — setup, your domain, M-Pesa, and
+        anything else, with no ticket queue.
       </p>
 
       {helpItems.length > 0 ? (
-        <div className="mt-3 space-y-1.5">
-          <p className="text-[12px] font-medium text-foreground/80">
-            Shops usually ping us about:
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Common asks
           </p>
-          <ul className="space-y-1">
-            {helpItems.map((item) => (
+          <ul className="mt-1.5 space-y-1">
+            {helpItems.slice(0, 4).map((item) => (
               <li
                 key={item}
                 className="flex items-baseline gap-2 text-[12.5px] text-foreground/85"
               >
-                <span className="select-none text-primary/70" aria-hidden>
-                  ·
+                <span className="select-none text-primary/60" aria-hidden>
+                  —
                 </span>
                 <span>{item}</span>
               </li>
@@ -569,7 +635,7 @@ function WelcomeCardBubble({
         </div>
       ) : null}
 
-      <p className="mt-3 text-foreground/90">
+      <p className="mt-3 text-[12.5px] text-foreground/80">
         Reply here anytime
         {phone ? (
           <>
@@ -584,7 +650,7 @@ function WelcomeCardBubble({
         ) : null}
         {email ? (
           <>
-            , or email{" "}
+            {phone ? " or" : ", or"} email{" "}
             <a
               href={`mailto:${email}`}
               className="font-medium text-primary underline-offset-2 hover:underline"
@@ -596,9 +662,7 @@ function WelcomeCardBubble({
         .
       </p>
 
-      <p className="mt-2 text-[12.5px] text-foreground/75">— Kiosk</p>
-
-      <span className="mt-1.5 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums text-muted-foreground">
+      <span className="mt-2 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums text-muted-foreground">
         <span>{chatTime(createdAt)}</span>
         {readAt ? (
           <CheckCheck className="size-3.5 opacity-90" aria-label="Read" />
@@ -649,33 +713,30 @@ function OrderCardBubble({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-2xl border border-emerald-500/25 bg-[linear-gradient(165deg,rgba(40,167,69,0.12),rgba(255,255,255,0.92)_42%)] shadow-[0_10px_28px_-18px_rgba(15,23,42,0.45)]",
+        "w-full overflow-hidden rounded-2xl border support-rule support-panel",
         pending && "opacity-70",
       )}
     >
-      <div className="flex items-start gap-2.5 border-b border-emerald-500/15 px-3.5 py-3">
-        <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_6px_16px_-8px_rgba(40,167,69,0.9)]">
+      <div className="flex items-start gap-2.5 border-b support-rule px-3.5 py-3">
+        <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full support-accent-bg support-accent-ink">
           <ShoppingBag className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800/80 dark:text-emerald-300/90">
-              Online order
+            <p className="text-[14px] font-semibold tracking-[-0.01em] text-foreground">
+              {card.orderCode}
             </p>
             {status ? (
-              <span className="rounded-full bg-emerald-600/12 px-2 py-0.5 text-[10px] font-semibold capitalize text-emerald-800 dark:text-emerald-300">
+              <span className="rounded-full border support-rule px-2 py-0.5 text-[9.5px] font-medium capitalize support-muted">
                 {status}
               </span>
             ) : null}
           </div>
-          <p className="mt-0.5 font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-foreground">
-            {card.orderCode}
-          </p>
           {card.branchName ? (
             <p className="text-[11px] text-muted-foreground">{card.branchName}</p>
           ) : null}
         </div>
-        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+        <span className="support-bubble-time shrink-0 text-[10px] tabular-nums text-muted-foreground">
           {chatTime(createdAt)}
         </span>
       </div>
@@ -702,7 +763,7 @@ function OrderCardBubble({
         ) : null}
       </div>
 
-      <div className="flex items-end justify-between gap-3 border-t border-dashed border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-3">
+      <div className="flex items-end justify-between gap-3 border-t support-rule px-3.5 py-3">
         <div className="min-w-0">
           {card.customerPhone ? (
             <p className="truncate text-[11px] text-muted-foreground">{card.customerPhone}</p>
@@ -710,14 +771,14 @@ function OrderCardBubble({
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">
             Total
           </p>
-          <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tabular-nums tracking-tight text-foreground">
+          <p className="text-[16px] font-semibold tabular-nums tracking-[-0.01em] text-foreground">
             {formatMoney(card.currency, card.grandTotal)}
           </p>
         </div>
         {staffActions ? (
           <Link
             href={`${APP_ROUTES.storefrontWebOrders}?q=${encodeURIComponent(card.orderCode)}`}
-            className="inline-flex shrink-0 items-center rounded-full bg-emerald-700 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] hover:bg-emerald-800"
+            className="inline-flex shrink-0 items-center rounded-full support-accent-bg px-3 py-1.5 text-[11px] font-semibold support-accent-ink transition-opacity hover:opacity-90"
           >
             Open order
           </Link>
@@ -731,9 +792,13 @@ function OrderCardBubble({
 
 export function TypingBubble({ label }: { label: string }) {
   return (
-    <div className="flex w-full items-end gap-2 animate-in fade-in duration-200">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex w-full items-end gap-2"
+    >
       <span className="mb-1 size-7 shrink-0" aria-hidden />
-      <div className="support-bubble support-bubble--in rounded-[1.15rem] rounded-bl-[0.35rem] px-4 py-3">
+      <div className="support-bubble support-bubble--in px-3.5 py-2.5">
         <span className="flex items-center gap-1.5" aria-label={label}>
           {[0, 1, 2].map((i) => (
             <span
@@ -923,10 +988,10 @@ export function Composer({
         : replyTo?.body?.trim() || "Message";
 
   return (
-    <div className="w-full min-w-0 max-w-full shrink-0 overflow-hidden bg-gradient-to-t from-background via-background to-background/80 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+    <div className="mx-auto w-full min-w-0 max-w-[40rem] shrink-0 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 sm:px-4">
       {replyTo ? (
-        <div className="mb-2 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.05] px-2.5 py-2 shadow-sm">
-          <span className="w-1 shrink-0 self-stretch rounded-full bg-primary" aria-hidden />
+        <div className="mb-2 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-[2px] border support-rule support-panel px-2.5 py-2">
+          <span className="w-px shrink-0 self-stretch support-accent-bg" aria-hidden />
           <div className="min-w-0 flex-1 overflow-hidden">
             <p className="truncate text-[11px] font-semibold text-primary">
               Replying to{" "}
@@ -952,7 +1017,7 @@ export function Composer({
         </div>
       ) : null}
       {file ? (
-        <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-card px-3 py-2 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 rounded-xl border support-rule support-panel px-2.5 py-2">
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={previewUrl} alt="" className="size-10 rounded-lg object-cover" />
@@ -984,7 +1049,7 @@ export function Composer({
       ) : null}
       <div
         className={cn(
-          "flex w-full min-w-0 max-w-full items-end gap-1 overflow-hidden rounded-[1.35rem] border border-border/70 bg-muted/25 py-1.5 pl-1.5 pr-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[border-color,box-shadow,background-color] duration-200 focus-within:border-primary/35 focus-within:bg-background focus-within:shadow-[0_0_0_3px_rgba(40,167,69,0.12)]",
+          "flex w-full min-w-0 max-w-full items-end gap-1 overflow-hidden rounded-[1.35rem] border support-rule support-panel py-1 pl-1 pr-1 transition-[border-color,box-shadow,background-color] duration-150 focus-within:border-[var(--conversation-accent,#1d4b3b)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--conversation-accent,#1d4b3b)_14%,transparent)]",
           disabled && "opacity-60",
         )}
       >
@@ -1016,7 +1081,7 @@ export function Composer({
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-[color-mix(in_srgb,var(--conversation-ink,#121a16)_6%,transparent)] hover:text-foreground"
               aria-label="Attach file"
               disabled={disabled || sending}
               onClick={() => fileInputRef.current?.click()}
@@ -1031,7 +1096,7 @@ export function Composer({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="mb-0.5 size-9 shrink-0 rounded-full text-muted-foreground hover:bg-[color-mix(in_srgb,var(--conversation-ink,#121a16)_6%,transparent)] hover:text-foreground"
             aria-label="Add emoji"
             aria-expanded={emojiOpen}
             onClick={() => setEmojiOpen((v) => !v)}
@@ -1040,13 +1105,13 @@ export function Composer({
             <Smile className="size-4" />
           </Button>
           {emojiOpen ? (
-            <div className="absolute bottom-12 left-0 z-20 w-60 origin-bottom-left animate-in fade-in zoom-in-95 duration-150 rounded-2xl border border-border/70 bg-card p-2 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)]">
+            <div className="absolute bottom-12 left-0 z-20 w-60 origin-bottom-left rounded-2xl border support-rule support-panel p-1.5 shadow-[0_16px_40px_-24px_rgba(18,26,22,0.45)]">
               <div className="grid grid-cols-5 gap-0.5">
                 {QUICK_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
-                    className="rounded-xl p-1.5 text-lg transition-colors hover:bg-muted"
+                    className="rounded-xl p-1.5 text-lg transition-colors hover:bg-[color-mix(in_srgb,var(--conversation-ink,#121a16)_6%,transparent)]"
                     onClick={() => {
                       onChange(`${value}${emoji}`);
                       textareaRef.current?.focus();
@@ -1066,10 +1131,15 @@ export function Composer({
           value={value}
           disabled={disabled}
           placeholder={disabled ? (disabledHint ?? "This conversation is closed") : "Write a message…"}
-          className="max-h-[120px] min-h-[2.25rem] min-w-0 flex-1 basis-0 resize-none bg-transparent px-1 py-1.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/80 focus:outline-none disabled:cursor-not-allowed"
+          aria-label={disabled ? (disabledHint ?? "This conversation is closed") : "Write a message"}
+          className="max-h-[140px] min-h-[2.5rem] min-w-0 flex-1 basis-0 resize-none bg-transparent px-1.5 py-2 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.nativeEvent.isComposing) return;
+            const coarse =
+              typeof window !== "undefined" &&
+              window.matchMedia("(pointer: coarse)").matches;
+            if (e.key === "Enter" && !e.shiftKey && !coarse) {
               e.preventDefault();
               submit();
             }
@@ -1080,78 +1150,23 @@ export function Composer({
           type="button"
           size="icon"
           className={cn(
-            "mb-0.5 size-9 shrink-0 rounded-full transition-transform duration-150",
-            canSend && !sending && "hover:scale-105 active:scale-95",
+            "mb-0.5 size-9 shrink-0 rounded-full transition-transform duration-100 active:scale-[0.96]",
+            !canSend && "opacity-40",
           )}
-          style={
-            accentHex && canSend
-              ? { backgroundColor: accentHex, color: "#fff" }
-              : undefined
-          }
+          style={{
+            backgroundColor: accentHex || "var(--conversation-accent, var(--primary))",
+            color: accentHex
+              ? readableInkOn(accentHex)
+              : "var(--conversation-accent-ink, var(--primary-foreground))",
+          }}
           onClick={submit}
           disabled={!canSend || sending}
           aria-label="Send message"
         >
-          <Send className={cn("size-3.5 transition-transform", canSend && "-translate-x-px translate-y-px")} />
+          <Send className="size-4" />
         </Button>
       </div>
-      <p className="mt-2 px-1 text-center text-[10px] leading-snug tracking-wide text-muted-foreground/65 [overflow-wrap:anywhere]">
-        Enter to send · Shift+Enter for new line
-        {attachmentsEnabled ? " · Attach files" : ""}
-      </p>
     </div>
-  );
-}
-
-// ─── Live status pill ──────────────────────────────────────────────────────
-
-export function LiveStatusPill({
-  state,
-  className,
-}: {
-  state: "connected" | "connecting" | "reconnecting" | "disconnected";
-  className?: string;
-}) {
-  const cfg = {
-    connected: {
-      label: "Live",
-      dot: "bg-emerald-500",
-      pill: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    },
-    connecting: {
-      label: "Connecting…",
-      dot: "bg-amber-500",
-      pill: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    },
-    reconnecting: {
-      label: "Reconnecting…",
-      dot: "bg-amber-500",
-      pill: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    },
-    disconnected: {
-      label: "Offline",
-      dot: "bg-muted-foreground/50",
-      pill: "bg-muted text-muted-foreground",
-    },
-  }[state];
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
-        cfg.pill,
-        className,
-      )}
-      title="Realtime connection status"
-    >
-      <span className="relative flex size-1.5">
-        {state === "connected" ? (
-          <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-50", cfg.dot)} />
-        ) : null}
-        <span className={cn("relative inline-flex size-1.5 rounded-full", cfg.dot)} />
-      </span>
-      {cfg.label}
-    </span>
   );
 }
 
@@ -1159,32 +1174,20 @@ export function LiveStatusPill({
 
 export function ResolvedBanner({
   onReopen,
-  onResolve,
   resolved,
   busy,
 }: {
   resolved: boolean;
   onReopen?: () => void;
-  onResolve?: () => void;
   busy?: boolean;
 }) {
   if (!resolved) {
-    return onResolve ? (
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onResolve}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/25 hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
-      >
-        <Check className="size-3" />
-        Mark resolved
-      </button>
-    ) : null;
+    return null;
   }
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 border-b border-border/50 bg-emerald-500/[0.06] px-4 py-2.5 text-xs text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
-        <Check className="size-3.5 text-emerald-600" aria-hidden />
+    <div className="flex flex-wrap items-center justify-center gap-2 border-b support-rule bg-muted/25 px-4 py-2 text-[12px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+        <Check className="size-3.5 support-accent-text" aria-hidden />
         Conversation resolved
       </span>
       {onReopen ? (
@@ -1192,7 +1195,7 @@ export function ResolvedBanner({
           type="button"
           disabled={busy}
           onClick={onReopen}
-          className="font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
+          className="inline-flex h-7 items-center rounded-full border support-rule bg-background px-3 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
         >
           Reopen
         </button>
@@ -1202,6 +1205,26 @@ export function ResolvedBanner({
 }
 
 // ─── Empty state ───────────────────────────────────────────────────────────
+
+/** Bubble-shaped placeholders so opening a thread does not flash a spinner. */
+export function ChatThreadSkeleton() {
+  return (
+    <div className="mx-auto flex w-full max-w-[40rem] flex-col gap-2.5 px-1 py-2" aria-hidden>
+      <div className="mx-auto mb-2 h-6 w-24 animate-pulse rounded-full bg-muted/70 motion-reduce:animate-none" />
+      {[64, 46, 72, 38, 56].map((width, i) => (
+        <div
+          key={i}
+          className={cn(
+            "h-10 animate-pulse rounded-[16px] bg-muted/70 motion-reduce:animate-none",
+            i % 2 === 1 ? "ml-auto" : "",
+          )}
+          style={{ width: `${width}%` }}
+        />
+      ))}
+      <span className="sr-only">Loading messages…</span>
+    </div>
+  );
+}
 
 export function ChatEmptyState({
   icon,
@@ -1214,13 +1237,15 @@ export function ChatEmptyState({
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border border-border/60 bg-card text-muted-foreground shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)]">
+      <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
         {icon}
       </div>
-      <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
+      <p className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
         {title}
       </p>
-      <p className="mt-1.5 max-w-[18rem] text-sm leading-relaxed text-muted-foreground">{body}</p>
+      <p className="mt-1.5 max-w-[18rem] text-[13px] leading-relaxed text-muted-foreground">
+        {body}
+      </p>
     </div>
   );
 }
@@ -1238,7 +1263,7 @@ export function ChatThreadSurface({
 }) {
   return (
     <div className={cn("support-chat-wallpaper relative min-h-0 flex-1 overflow-hidden", className)}>
-      <div className="relative z-[1] h-full">{children}</div>
+      <div className="absolute inset-0 z-[1]">{children}</div>
     </div>
   );
 }

@@ -92,6 +92,8 @@ export function TransactionsPage() {
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  /** The header branch is applied after mount — don't fetch an unscoped twin. */
+  const [branchesReady, setBranchesReady] = useState(false);
   const [branchId, setBranchId] = useState("");
   const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
   const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<
@@ -152,7 +154,8 @@ export function TransactionsPage() {
   useEffect(() => {
     void fetchBranches()
       .then(setBranches)
-      .catch(() => setBranches([]));
+      .catch(() => setBranches([]))
+      .finally(() => setBranchesReady(true));
   }, []);
 
   useEffect(() => {
@@ -162,7 +165,7 @@ export function TransactionsPage() {
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!allowed || !headerScopeReady) return;
+      if (!allowed || !headerScopeReady || !branchesReady) return;
       const silent = opts?.silent ?? false;
       if (!silent) setLoading(true);
       else setRefreshing(true);
@@ -199,7 +202,15 @@ export function TransactionsPage() {
         setRefreshing(false);
       }
     },
-    [allowed, branchId, canViewWebOrders, dateRange, headerScopeReady, itemTypeId],
+    [
+      allowed,
+      branchId,
+      branchesReady,
+      canViewWebOrders,
+      dateRange,
+      headerScopeReady,
+      itemTypeId,
+    ],
   );
 
   useEffect(() => {

@@ -605,6 +605,12 @@ export function SalesOverviewPage() {
   );
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  /**
+   * `useSyncBranchFilter` applies the header branch in an effect after mount.
+   * Loading before that lands the (large) all-branches report and then repeats
+   * the same query scoped to the branch, so wait for the scope first.
+   */
+  const [branchesReady, setBranchesReady] = useState(false);
   const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
   const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<
     string | undefined
@@ -662,7 +668,8 @@ export function SalesOverviewPage() {
   useEffect(() => {
     void fetchBranches()
       .then(setBranches)
-      .catch(() => setBranches([]));
+      .catch(() => setBranches([]))
+      .finally(() => setBranchesReady(true));
   }, []);
 
   useEffect(() => {
@@ -672,7 +679,7 @@ export function SalesOverviewPage() {
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!allowed || !headerScopeReady) return;
+      if (!allowed || !headerScopeReady || !branchesReady) return;
       const silent = opts?.silent ?? false;
       if (!silent) setLoading(true);
       else setRefreshing(true);
@@ -723,6 +730,7 @@ export function SalesOverviewPage() {
     [
       allowed,
       branchId,
+      branchesReady,
       canViewWebOrders,
       dateRange,
       headerScopeReady,

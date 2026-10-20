@@ -143,33 +143,35 @@ export function useOrderPipelineStats() {
       // Optional enrichment calls use toast:false — .catch alone still lets
       // the API client toast "Access Denied" for roles without those perms
       // (e.g. stock_manager vs purchasing.intelligence.read).
-      const [sentRows, draftRows, cancelledRows, receivedRows, supplyRows, intel] =
-        await Promise.all([
-          fetchPathAPurchaseOrders({ status: "sent" }),
-          fetchPathAPurchaseOrders({ status: "draft" }),
-          fetchPathAPurchaseOrders({
-            status: "cancelled",
-            toast: false,
-          }).catch(() => []),
-          fetchPathAPurchaseOrders({
-            status: "received",
-            toast: false,
-          }).catch(() => []),
-          canPathBRead
-            ? fetchPathBSupplies({
-                branchId: branchId || undefined,
-                toast: false,
-              }).catch(() => [])
-            : Promise.resolve([]),
-          canViewPurchasingIntelligence
-            ? fetchPurchasingIntelligenceDashboard(
-                undefined,
-                undefined,
-                branchId || undefined,
-                { toast: false },
-              ).catch(() => null)
-            : Promise.resolve(null),
-        ]);
+      // One purchase-order request covers all four board columns; the rows are
+      // split by status below.
+      const [poRows, supplyRows, intel] = await Promise.all([
+        fetchPathAPurchaseOrders({
+          statuses: ["sent", "draft", "received", "cancelled"],
+        }),
+        canPathBRead
+          ? fetchPathBSupplies({
+              branchId: branchId || undefined,
+              toast: false,
+            }).catch(() => [])
+          : Promise.resolve([]),
+        canViewPurchasingIntelligence
+          ? fetchPurchasingIntelligenceDashboard(
+              undefined,
+              undefined,
+              branchId || undefined,
+              { toast: false },
+            ).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      const rowsByStatus = (status: string) =>
+        poRows.filter(
+          (row) => row.status?.trim().toLowerCase() === status,
+        );
+      const sentRows = rowsByStatus("sent");
+      const draftRows = rowsByStatus("draft");
+      const cancelledRows = rowsByStatus("cancelled");
+      const receivedRows = rowsByStatus("received");
       setSent(sentRows);
       setSavedDrafts(draftRows);
       setCancelled(cancelledRows);

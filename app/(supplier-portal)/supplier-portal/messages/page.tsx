@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { MessageBody } from "@/components/conversations/message-body";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -140,7 +141,7 @@ export default function SupplierPortalMessagesPage() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {row.direction === "from_shop" ? "From shop" : "You"} · {row.shopName}
                     </p>
-                    <p className="mt-1 text-sm">{row.body}</p>
+                    <MessageBody text={row.body} className="mt-1 text-sm" />
                     <p className="mt-1 text-xs text-muted-foreground">
                       {row.authorName} · {fmtDate(row.createdAt)}
                     </p>

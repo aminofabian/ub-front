@@ -41,7 +41,6 @@ import { ShopCartPreviewProvider } from "@/hooks/use-shop-cart";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import {
   fetchBusiness,
-  fetchItemsPage,
   updateBusiness,
   type BusinessRecord,
 } from "@/lib/api";
@@ -65,6 +64,7 @@ import {
   type StorefrontTemplateMeta,
 } from "@/lib/storefront-templates";
 import {
+  loadThemeSampleItems,
   pickTryOnProducts,
   catalogRecommendTokens,
   type ThemeTryOnProduct,
@@ -148,17 +148,14 @@ export function StorefrontThemesStudio({
 
   useEffect(() => {
     let cancelled = false;
-    void fetchItemsPage(undefined, {
-      catalogScope: "SKUS_ONLY",
-      page: 0,
-      size: 24,
-    })
-      .then((page) => {
+    // Same sample branding's template section uses — fetched once, cached.
+    void loadThemeSampleItems()
+      .then((items) => {
         if (cancelled) return;
         setTryOnProducts(
-          pickTryOnProducts(page.content, business?.currency ?? "KES"),
+          pickTryOnProducts(items, business?.currency ?? "KES"),
         );
-        setCatalogTokens(catalogRecommendTokens(page.content));
+        setCatalogTokens(catalogRecommendTokens(items));
       })
       .catch(() => {
         if (cancelled) return;

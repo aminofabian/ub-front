@@ -280,6 +280,23 @@ export function OnboardingQuestionnaireProvider({
         storeType: business?.profile?.storeType ?? null,
       });
 
+      // A shop that already finished onboarding does not need a catalog
+      // aggregation on every cold load just to prove it has stock.
+      if (configured) {
+        const configuredStatus =
+          business?.onboarding?.status?.trim().toLowerCase() ??
+          getOnboardingQuestionnaireState().status;
+        if (
+          configuredStatus === "pending" ||
+          configuredStatus === "active"
+        ) {
+          completeOnboardingQuestionnaire(
+            getOnboardingQuestionnaireState().answers,
+          );
+        }
+        return;
+      }
+
       const stats = await fetchCatalogListStats(undefined).catch(() => null);
       if (cancelled) {
         return;
@@ -288,7 +305,7 @@ export function OnboardingQuestionnaireProvider({
         ? stats.parents + stats.variants + stats.standalones
         : 0;
 
-      if (configured || sellable > 0) {
+      if (sellable > 0) {
         const status =
           business?.onboarding?.status?.trim().toLowerCase() ??
           getOnboardingQuestionnaireState().status;

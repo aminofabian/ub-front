@@ -57,12 +57,19 @@ export async function listTillDevices(opts: {
   if (opts.includeRevoked) {
     sp.set("includeRevoked", "true");
   }
-  const payload = await apiRequest<TillDeviceListResponse>(
-    `/api/v1/till-devices?${sp.toString()}`,
+  // The hub mounts its tills card in several responsive slots; one shared
+  // request keeps the counts identical without refetching per copy.
+  return shareInflight(
+    `till-devices:${sp.toString()}`,
+    async (): Promise<TillDeviceRecord[]> => {
+      const payload = await apiRequest<TillDeviceListResponse>(
+        `/api/v1/till-devices?${sp.toString()}`,
+      );
+      return Array.isArray(payload?.devices)
+        ? payload.devices.map(normalizeTillDevice)
+        : [];
+    },
   );
-  return Array.isArray(payload?.devices)
-    ? payload.devices.map(normalizeTillDevice)
-    : [];
 }
 
 export async function registerTillDevice(opts: {
@@ -162,10 +169,15 @@ export async function listTillAccessRequests(opts?: {
     sp.set("status", opts.status);
   }
   const qs = sp.toString();
-  const payload = await apiRequest<TillAccessRequestListResponse>(
-    `/api/v1/till-access-requests${qs ? `?${qs}` : ""}`,
+  return shareInflight(
+    `till-access-requests:${qs}`,
+    async (): Promise<TillAccessRequestRecord[]> => {
+      const payload = await apiRequest<TillAccessRequestListResponse>(
+        `/api/v1/till-access-requests${qs ? `?${qs}` : ""}`,
+      );
+      return Array.isArray(payload?.requests) ? payload.requests : [];
+    },
   );
-  return Array.isArray(payload?.requests) ? payload.requests : [];
 }
 
 export async function approveTillAccessRequest(

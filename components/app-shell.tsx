@@ -34,7 +34,7 @@ import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { BranchSwitcher } from "@/components/branches/branch-switcher";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
-import { SubscriptionGraceBanner } from "@/components/subscription-grace-banner";
+import { SubscriptionStatusBanner } from "@/components/subscription-status-banner";
 import { SubscriptionPlanFitBanner } from "@/components/subscription-plan-fit-banner";
 import { SetupProgressContextStrip } from "@/components/setup-progress/setup-progress-context-strip";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
@@ -60,7 +60,8 @@ import {
   useFeatureFlags,
 } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
-import { useSupportUnread } from "@/hooks/use-support-unread";
+import { ChromeSlot } from "@/components/shell/chrome-slot";
+import { useSupportUnreadBreakdown } from "@/hooks/use-support-unread";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -529,11 +530,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
         href: APP_ROUTES.storefrontWebOrders,
         label: "Online pickups",
         featureFlag: "shop",
-        group: "Reports",
-      },
-      {
-        href: APP_ROUTES.messages,
-        label: "Messages",
         group: "Reports",
       },
       { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
@@ -1451,10 +1447,16 @@ export function AppShell({ children }: AppShellProps) {
 
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
-  // Live unread badge for the support thread (org → Inbox nav row + More sheet).
-  const supportUnread = useSupportUnread();
-  const navBadgeByHref: Readonly<Record<string, number>> =
-    supportUnread > 0 ? { [APP_ROUTES.support]: supportUnread } : {};
+  // Live unread badges for the Inbox destinations (org → Inbox nav rows + More).
+  const inboxUnread = useSupportUnreadBreakdown();
+  const navBadgeByHref: Readonly<Record<string, number>> = {
+    ...(inboxUnread.total > 0
+      ? { [APP_ROUTES.support]: inboxUnread.total }
+      : {}),
+    ...(inboxUnread.messages > 0
+      ? { [APP_ROUTES.messages]: inboxUnread.messages }
+      : {}),
+  };
 
   const headerPosLinks = useMemo((): HeaderPosLink[] => {
     const links: HeaderPosLink[] = [];
@@ -1848,227 +1850,243 @@ export function AppShell({ children }: AppShellProps) {
       style={OPERATOR_SURFACE_STYLE}
     >
       {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
-      <div className={cn("shrink-0", desktopChromeVisible)}>
-        <DesktopNavRail
-          pathname={pathname}
-          homeHref={homeHref}
-          tenantTitle={tenantTitle}
-          logoUrl={business?.branding?.logoUrl}
-          faviconUrl={business?.branding?.faviconUrl}
-          primaryColor={business?.branding?.primaryColor}
-          sections={visibleSections}
-          flat={isCashier || isButcherCashier || isGroceryClerk}
-          badgeByHref={navBadgeByHref}
-        />
-      </div>
+      <ChromeSlot slot="desktop">
+        <div className={cn("shrink-0", desktopChromeVisible)}>
+          <DesktopNavRail
+            pathname={pathname}
+            homeHref={homeHref}
+            tenantTitle={tenantTitle}
+            logoUrl={business?.branding?.logoUrl}
+            faviconUrl={business?.branding?.faviconUrl}
+            primaryColor={business?.branding?.primaryColor}
+            sections={visibleSections}
+            flat={isCashier || isButcherCashier || isGroceryClerk}
+            badgeByHref={navBadgeByHref}
+          />
+        </div>
+      </ChromeSlot>
 
       {/* ── Right panel — on iPad/tablet this becomes the rounded “app stage”. ── */}
       <div className="tablet-app-stage flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Desktop top header — paired with the desktop sidebar. Appears at
             xl+ for grocery clerks, md+ for everyone else. */}
-        <header
-          className={cn(
-            "items-center justify-between gap-4 border-b bg-background px-6 py-3",
-            desktopChromeVisible,
-          )}
-        >
-          <div className="flex min-w-0 flex-col">
-            <p className="text-sm text-muted-foreground truncate">
-              {headerSubtitle ? headerSubtitle : ""}
-            </p>
-            {currentBranch ? (
-              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80 truncate">
-                <MapPin className="size-3 shrink-0" aria-hidden />
-                {currentBranch.name}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <HeaderPosLinks
-              links={headerPosLinks}
-              pathname={pathname}
-              variant="desktop"
-            />
-            {showOwnerKioskPay ? (
-              <KioskPayHeaderBalance
-                canWithdraw={canWritePaymentGateways}
-                currencyFallback={business?.currency?.trim() || "KES"}
-                variant="desktop"
-              />
-            ) : null}
-            <SmsCreditsHeader
-              canBuy={canBuySmsCredits}
-              canViewLedger={canViewSmsCreditLedger}
-              defaultPhone={me?.phone}
-              variant="desktop"
-            />
-            <NotificationBell />
-            {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
-            {isStockManager ||
-            isCashier ||
-            isButcherCashier ||
-            isGroceryClerk ? (
-              currentBranch ? (
-                <span
-                  className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
-                  title="Branch switching is disabled for your role"
-                >
-                  <Lock className="size-3" aria-hidden />
-                  <MapPin className="size-3.5" aria-hidden />
+        <ChromeSlot slot="desktop">
+          <header
+            className={cn(
+              "items-center justify-between gap-4 border-b bg-background px-6 py-3",
+              desktopChromeVisible,
+            )}
+          >
+            <div className="flex min-w-0 flex-col">
+              <p className="text-sm text-muted-foreground truncate">
+                {headerSubtitle ? headerSubtitle : ""}
+              </p>
+              {currentBranch ? (
+                <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80 truncate">
+                  <MapPin className="size-3 shrink-0" aria-hidden />
                   {currentBranch.name}
                 </span>
-              ) : null
-            ) : multiBranch ||
-              (canManageBusinessSettings && branches.length === 0) ? (
-              <BranchSwitcher
-                branches={branches}
-                branchId={branchId}
-                onChange={setBranchId}
-                loading={branchesLoading}
-                canManage={canManageBusinessSettings}
-                onCreated={handleBranchCreated}
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <HeaderPosLinks
+                links={headerPosLinks}
+                pathname={pathname}
+                variant="desktop"
               />
-            ) : currentBranch ? (
-              <span className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30">
-                <MapPin className="size-3.5" aria-hidden />
-                {currentBranch.name}
-              </span>
-            ) : null}
-
-            {/* Item type selector */}
-            {departmentLocked && currentItemType ? (
-              <span
-                className="inline-flex h-8 max-w-[11rem] items-center gap-1.5 truncate rounded-md border bg-muted/30 px-2 text-xs font-medium text-muted-foreground"
-                title="Department switching is disabled for your role"
-              >
-                <Lock className="size-3 shrink-0" aria-hidden />
-                {currentItemType.label}
-              </span>
-            ) : (
-              <select
-                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-                value={itemTypeId}
-                onChange={(e) => setItemTypeId(e.target.value)}
-                disabled={itemTypesLoading || itemTypes.length === 0}
-                aria-label="Select department"
-              >
-                {itemTypes.length === 0 ? (
-                  <option value="">
-                    {itemTypesLoading ? "Loading…" : "No departments"}
-                  </option>
-                ) : (
-                  <>
-                    <option value="">{ALL_DEPARTMENTS_LABEL}</option>
-                    {itemTypes.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label}
-                        {t.isDefault ? " ★" : ""}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-            )}
-
-            {showShelfZonePicker ? (
-              <select
-                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-                value={aisleId}
-                onChange={(e) => setAisleId(e.target.value)}
-                disabled={
-                  aislesLoading ||
-                  (itemTypeId.trim() ? departmentScoped.loading : false) ||
-                  activeAisles.length === 0
-                }
-                aria-label="Select shelf zone"
-                title={
-                  itemTypeId.trim() && !departmentScoped.loading
-                    ? "Zones with products in the selected department"
-                    : undefined
-                }
-              >
-                {activeAisles.length === 0 ? (
-                  <option value="">
-                    {aislesLoading || departmentScoped.loading
-                      ? "Loading…"
-                      : itemTypeId.trim()
-                        ? "No zones in department"
-                        : "No shelf zones"}
-                  </option>
-                ) : (
-                  <>
-                    <option value="">{ALL_SHELF_ZONES_LABEL}</option>
-                    {showUnassignedOption ? (
-                      <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
-                        No shelf zone
-                      </option>
-                    ) : null}
-                    {activeAisles.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.code})
-                        {itemTypeId.trim() ? ` · ${a.productCount}` : ""}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-            ) : null}
-
-            <Button variant="outline" onClick={onLogout}>
-              Log out
-            </Button>
-          </div>
-        </header>
-
-        <div className={tabletChromeVisible}>
-          <TabletAppHeader
-            tenantTitle={tenantTitle}
-            businessName={business?.name}
-            logoUrl={business?.branding?.logoUrl}
-            faviconUrl={business?.branding?.faviconUrl}
-            primaryColor={business?.branding?.primaryColor}
-            pageTitle={
-              pathname === APP_ROUTES.inventoryStock &&
-              searchParams.get("view") === "levels"
-                ? "Inventory"
-                : undefined
-            }
-            branchName={currentBranch?.name}
-            departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
-            shelfZoneName={
-              aisleId === UNASSIGNED_SHELF_ZONE_VALUE
-                ? "No shelf zone"
-                : aisleId
-                  ? activeAisles.find((a) => a.id === aisleId)?.name
-                  : undefined
-            }
-            userInitial={userInitial}
-            headerTools={
-              <>
-                {showOwnerKioskPay ? (
+              {showOwnerKioskPay ? (
+                <ChromeSlot slot="desktop">
                   <KioskPayHeaderBalance
                     canWithdraw={canWritePaymentGateways}
                     currencyFallback={business?.currency?.trim() || "KES"}
-                    variant="tablet"
+                    variant="desktop"
                   />
-                ) : null}
+                </ChromeSlot>
+              ) : null}
+              <ChromeSlot slot="desktop">
                 <SmsCreditsHeader
                   canBuy={canBuySmsCredits}
                   canViewLedger={canViewSmsCreditLedger}
                   defaultPhone={me?.phone}
-                  variant="tablet"
+                  variant="desktop"
                 />
-              </>
-            }
-            posLinks={headerPosLinks}
-            onOpenMore={() => setMoreOpen(true)}
-          />
-        </div>
+              </ChromeSlot>
+              <ChromeSlot slot="desktop">
+                <NotificationBell />
+              </ChromeSlot>
+              {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
+              {isStockManager ||
+              isCashier ||
+              isButcherCashier ||
+              isGroceryClerk ? (
+                currentBranch ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
+                    title="Branch switching is disabled for your role"
+                  >
+                    <Lock className="size-3" aria-hidden />
+                    <MapPin className="size-3.5" aria-hidden />
+                    {currentBranch.name}
+                  </span>
+                ) : null
+              ) : multiBranch ||
+                (canManageBusinessSettings && branches.length === 0) ? (
+                <BranchSwitcher
+                  branches={branches}
+                  branchId={branchId}
+                  onChange={setBranchId}
+                  loading={branchesLoading}
+                  canManage={canManageBusinessSettings}
+                  onCreated={handleBranchCreated}
+                />
+              ) : currentBranch ? (
+                <span className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30">
+                  <MapPin className="size-3.5" aria-hidden />
+                  {currentBranch.name}
+                </span>
+              ) : null}
+
+              {/* Item type selector */}
+              {departmentLocked && currentItemType ? (
+                <span
+                  className="inline-flex h-8 max-w-[11rem] items-center gap-1.5 truncate rounded-md border bg-muted/30 px-2 text-xs font-medium text-muted-foreground"
+                  title="Department switching is disabled for your role"
+                >
+                  <Lock className="size-3 shrink-0" aria-hidden />
+                  {currentItemType.label}
+                </span>
+              ) : (
+                <select
+                  className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  value={itemTypeId}
+                  onChange={(e) => setItemTypeId(e.target.value)}
+                  disabled={itemTypesLoading || itemTypes.length === 0}
+                  aria-label="Select department"
+                >
+                  {itemTypes.length === 0 ? (
+                    <option value="">
+                      {itemTypesLoading ? "Loading…" : "No departments"}
+                    </option>
+                  ) : (
+                    <>
+                      <option value="">{ALL_DEPARTMENTS_LABEL}</option>
+                      {itemTypes.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                          {t.isDefault ? " ★" : ""}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              )}
+
+              {showShelfZonePicker ? (
+                <select
+                  className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  value={aisleId}
+                  onChange={(e) => setAisleId(e.target.value)}
+                  disabled={
+                    aislesLoading ||
+                    (itemTypeId.trim() ? departmentScoped.loading : false) ||
+                    activeAisles.length === 0
+                  }
+                  aria-label="Select shelf zone"
+                  title={
+                    itemTypeId.trim() && !departmentScoped.loading
+                      ? "Zones with products in the selected department"
+                      : undefined
+                  }
+                >
+                  {activeAisles.length === 0 ? (
+                    <option value="">
+                      {aislesLoading || departmentScoped.loading
+                        ? "Loading…"
+                        : itemTypeId.trim()
+                          ? "No zones in department"
+                          : "No shelf zones"}
+                    </option>
+                  ) : (
+                    <>
+                      <option value="">{ALL_SHELF_ZONES_LABEL}</option>
+                      {showUnassignedOption ? (
+                        <option value={UNASSIGNED_SHELF_ZONE_VALUE}>
+                          No shelf zone
+                        </option>
+                      ) : null}
+                      {activeAisles.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.code})
+                          {itemTypeId.trim() ? ` · ${a.productCount}` : ""}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              ) : null}
+
+              <Button variant="outline" onClick={onLogout}>
+                Log out
+              </Button>
+            </div>
+          </header>
+        </ChromeSlot>
+
+        <ChromeSlot slot={["phone", "tablet", "wide"]}>
+          <div className={tabletChromeVisible}>
+            <TabletAppHeader
+              tenantTitle={tenantTitle}
+              businessName={business?.name}
+              logoUrl={business?.branding?.logoUrl}
+              faviconUrl={business?.branding?.faviconUrl}
+              primaryColor={business?.branding?.primaryColor}
+              pageTitle={
+                pathname === APP_ROUTES.inventoryStock &&
+                searchParams.get("view") === "levels"
+                  ? "Inventory"
+                  : undefined
+              }
+              branchName={currentBranch?.name}
+              departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
+              shelfZoneName={
+                aisleId === UNASSIGNED_SHELF_ZONE_VALUE
+                  ? "No shelf zone"
+                  : aisleId
+                    ? activeAisles.find((a) => a.id === aisleId)?.name
+                    : undefined
+              }
+              userInitial={userInitial}
+              headerTools={
+                <>
+                  {showOwnerKioskPay ? (
+                    <ChromeSlot slot={["tablet", "wide"]}>
+                      <KioskPayHeaderBalance
+                        canWithdraw={canWritePaymentGateways}
+                        currencyFallback={business?.currency?.trim() || "KES"}
+                        variant="tablet"
+                      />
+                    </ChromeSlot>
+                  ) : null}
+                  <ChromeSlot slot={["tablet", "wide"]}>
+                    <SmsCreditsHeader
+                      canBuy={canBuySmsCredits}
+                      canViewLedger={canViewSmsCreditLedger}
+                      defaultPhone={me?.phone}
+                      variant="tablet"
+                    />
+                  </ChromeSlot>
+                </>
+              }
+              posLinks={headerPosLinks}
+              onOpenMore={() => setMoreOpen(true)}
+            />
+          </div>
+        </ChromeSlot>
 
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
         <ImpersonationBanner />
-        <SubscriptionGraceBanner />
+        <SubscriptionStatusBanner />
         {isStockManager ? null : <SubscriptionPlanFitBanner />}
         <BranchRequiredBanner />
         {canManageBusinessSettings ? <SetupProgressContextStrip /> : null}
@@ -2093,19 +2111,21 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
 
-        <div className={tabletChromeVisible}>
-          <TabletBottomNav
-            tabs={visibleBottomTabs}
-            activeTabId={activeBottomTabId}
-            onMore={() => setMoreOpen(true)}
-            onOpenWorkspace={setShellWorkspace}
-            layout={
-              isStockManager && visibleBottomTabs.length >= 4
-                ? "compact"
-                : "default"
-            }
-          />
-        </div>
+        <ChromeSlot slot={["phone", "tablet", "wide"]}>
+          <div className={tabletChromeVisible}>
+            <TabletBottomNav
+              tabs={visibleBottomTabs}
+              activeTabId={activeBottomTabId}
+              onMore={() => setMoreOpen(true)}
+              onOpenWorkspace={setShellWorkspace}
+              layout={
+                isStockManager && visibleBottomTabs.length >= 4
+                  ? "compact"
+                  : "default"
+              }
+            />
+          </div>
+        </ChromeSlot>
 
         <div className={tabletChromeVisible}>
           <TabletMoreSheet

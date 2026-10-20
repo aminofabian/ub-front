@@ -16,6 +16,7 @@ import {
   fetchSokoMindStatus,
   inferSokoMindSkill,
   isSokoMindGuideHiddenRoute,
+  peekSokoMindRouteGuide,
   sendSokoMindChat,
   sendSokoMindFeedback,
   type SokoMindChatMessage,
@@ -230,11 +231,18 @@ export function SokoMindGuide() {
     setSuggestions([]);
     setError("");
     setInput("");
-    if (hidden || !status?.guideEnabled) return;
+    // Suggestions only render in the open panel, and the page guide is static
+    // per route: don't call the API on every navigation while the Guide is shut.
+    if (hidden || !status?.guideEnabled || !open) return;
+    const cached = peekSokoMindRouteGuide(pathname, context.surface);
+    if (cached) {
+      setSuggestions(cached.suggestions ?? []);
+      return;
+    }
     void fetchSokoMindRouteGuide(pathname, context.surface)
       .then((g) => setSuggestions(g.suggestions ?? []))
       .catch(() => setSuggestions([]));
-  }, [pathname, hidden, status?.guideEnabled, context.surface]);
+  }, [pathname, hidden, status?.guideEnabled, context.surface, open]);
 
   const ask = async (message: string) => {
     const trimmed = message.trim();

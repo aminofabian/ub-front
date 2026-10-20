@@ -1,18 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, Headset, MessageCircle, X } from "lucide-react";
+import { ArrowDown, Headset, MessageCircle, RotateCw, X } from "lucide-react";
 
 import {
   type ChatMessageShape,
   Avatar,
   ChatThreadSurface,
+  ChatThreadSkeleton,
   Composer,
   type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
-  LiveStatusPill,
   MessageBubble,
+  NewMessagesDivider,
   PlatformAvatar,
   TypingBubble,
   chatDayLabel,
@@ -44,6 +45,7 @@ import {
   setGuestName,
   setGuestPhone,
   startGuestThread,
+  subscribeGuestIdentityChange,
 } from "@/lib/public-support-api";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
@@ -52,6 +54,8 @@ import {
   type RealtimeFrame,
 } from "@/lib/realtime";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
+import { newClientId } from "@/lib/client-id";
+import { readableInkOn } from "@/lib/color-contrast";
 import { cn } from "@/lib/utils";
 
 /**
@@ -158,8 +162,26 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
   const busy =
     connectionState === "connecting" || connectionState === "reconnecting";
 
+  // Browsers need a gesture before WebAudio can play the reply chime while the
+  // chat is closed.
+  React.useEffect(() => {
+    const unlock = () => unlockSupportAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   return (
     <>
+      <GuestUnreadWatcher
+        context={context}
+        open={open}
+        onUnread={setUnread}
+        onConnectionState={setConnectionState}
+      />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           side="right"
@@ -196,14 +218,14 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
             ? "bg-foreground text-background shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
             : "text-primary-foreground shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
         )}
-        style={{ backgroundColor: !open ? context.accentHex || "var(--primary)" : undefined }}
+        style={{
+          backgroundColor: !open
+            ? context.type === "VISITOR"
+              ? "#1d4b3b"
+              : context.accentHex || "var(--primary)"
+            : undefined,
+        }}
       >
-        {unread > 0 && !open ? (
-          <span
-            className="absolute inset-0 animate-ping rounded-full bg-current opacity-[0.18]"
-            aria-hidden
-          />
-        ) : null}
         <span className="relative transition-transform duration-200 group-hover:scale-105">
           {open ? (
             <X className="size-5" strokeWidth={2.25} aria-hidden />
@@ -229,6 +251,91 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
   );
 }
 
+/**
+ * Keeps the guest socket subscribed and the launcher badge live while the chat
+ * dialog is closed. Radix unmounts DialogContent when closed, so the panel's
+ * own listener cannot do this job.
+ */
+function GuestUnreadWatcher({
+  context,
+  open,
+  onUnread,
+  onConnectionState,
+}: {
+  context: GuestSupportContext;
+  open: boolean;
+  onUnread: React.Dispatch<React.SetStateAction<number>>;
+  onConnectionState: React.Dispatch<React.SetStateAction<RealtimeConnectionState>>;
+}) {
+  const [guestId, setGuestId] = React.useState(() => ensureGuestId());
+  const channel = guestRealtimeChannel(guestId);
+
+  React.useEffect(
+    () =>
+      subscribeGuestIdentityChange(context.ns, () =>
+        setGuestId(ensureGuestId()),
+      ),
+    [context.ns],
+  );
+
+  const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const seenRef = React.useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    if (open) {
+      onUnread(0);
+      return;
+    }
+    let cancelled = false;
+    void resumeGuestThread(context.ns, {
+      type: context.type,
+      businessSlug: context.businessSlug,
+    })
+      .then((payload) => {
+        if (cancelled) return;
+        if (!payload?.conversation) {
+          setConversationId(null);
+          onUnread(0);
+          return;
+        }
+        setConversationId(payload.conversation.id);
+        onUnread(payload.conversation.unreadCount ?? 0);
+        getGuestRealtimeClient().connect().catch(() => {});
+      })
+      .catch(() => {
+        // Offline — keep whatever count we last knew.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [context.ns, context.type, context.businessSlug, guestId, open, onUnread]);
+
+  React.useEffect(() => {
+    if (!conversationId) return;
+    const client = getGuestRealtimeClient();
+    const unregister = client.registerListener(`guest-unread-${context.ns}`, {
+      channels: [channel],
+      onSupportMessage: (frame: RealtimeFrame) => {
+        if (open) return;
+        const data = frame.data as Record<string, unknown>;
+        const convId = String(data.conversationId ?? "");
+        if (!convId || convId !== conversationId) return;
+        if (String(data.senderType ?? "GUEST") === "GUEST") return;
+        const messageId = String(data.messageId ?? "");
+        if (messageId && seenRef.current.has(messageId)) return;
+        if (messageId) seenRef.current.add(messageId);
+        onUnread((n) => n + 1);
+        playSupportMessageSound();
+      },
+      onConnectionStateChange: (state) => onConnectionState(state),
+    });
+    client.connect().catch(() => {});
+    return () => unregister();
+  }, [channel, conversationId, context.ns, open, onUnread, onConnectionState]);
+
+  return null;
+}
+
 function GuestSupportPanel({
   context,
   open,
@@ -242,13 +349,22 @@ function GuestSupportPanel({
   onConnectionStateChange: (state: RealtimeConnectionState) => void;
   onClose: () => void;
 }) {
-  const guestId = React.useMemo(() => ensureGuestId(), []);
+  const [guestId, setGuestId] = React.useState(() => ensureGuestId());
   const channel = guestRealtimeChannel(guestId);
+
+  React.useEffect(
+    () =>
+      subscribeGuestIdentityChange(context.ns, () =>
+        setGuestId(ensureGuestId()),
+      ),
+    [context.ns],
+  );
 
   const [conversation, setConversation] = React.useState<GuestConversation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessageShape[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState("");
+  const [syncError, setSyncError] = React.useState("");
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [theirTyping, setTheirTyping] = React.useState(false);
@@ -261,6 +377,7 @@ function GuestSupportPanel({
     React.useState<RealtimeConnectionState>("disconnected");
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
+  const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
@@ -286,6 +403,12 @@ function GuestSupportPanel({
   const applyPayload = React.useCallback((payload: GuestThreadPayload, silent: boolean) => {
     const list = (payload.messages ?? []).map(toLocalMessage);
     for (const message of list) seenIdsRef.current.add(message.id);
+    if (!silent) {
+      const firstUnread = list.find(
+        (m) => m.senderType !== "GUEST" && !m.readAt,
+      );
+      setFirstUnreadId(firstUnread?.id ?? null);
+    }
     setConversation(payload.conversation);
     setMessages((prev) => (silent ? mergeByTimestamp(prev, list) : list));
     setLoadError("");
@@ -305,15 +428,26 @@ function GuestSupportPanel({
           return;
         }
         applyPayload(payload, silent);
+        setSyncError("");
         setShowIntro(false);
         if (open) {
-          void markGuestThreadRead(context.ns, payload.conversation.id).catch(() => {});
+          const hasUnread = (payload.messages ?? []).some(
+            (m) => m.senderType !== "GUEST" && !m.readAt,
+          );
+          if (hasUnread) {
+            void markGuestThreadRead(context.ns, payload.conversation.id).catch(() => {});
+          }
           onUnreadChange(0);
         } else {
           onUnreadChange(payload.conversation.unreadCount ?? 0);
         }
       } catch (e) {
-        setLoadError(e instanceof Error ? e.message : "Could not load the chat.");
+        const message = e instanceof Error ? e.message : "Could not load the chat.";
+        if (silent) {
+          setSyncError(message);
+        } else {
+          setLoadError(message);
+        }
       } finally {
         if (!silent) setLoading(false);
       }
@@ -324,6 +458,23 @@ function GuestSupportPanel({
 
   React.useEffect(() => {
     void loadThread();
+  }, [loadThread]);
+
+  // Silent fallback sync: the socket can drop on a flaky mobile network, and
+  // guests have no dashboard-level unread poll to recover the thread.
+  React.useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void loadThread(true);
+    }, 5000);
+    const onVisible = () => {
+      if (!document.hidden) void loadThread(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [loadThread]);
 
   // Connect (or reconnect) once a thread token exists — mint needs a valid secret.
@@ -462,6 +613,9 @@ function GuestSupportPanel({
         typeof payload === "string" ? null : payload.attachment ?? null;
       const replyToMessageId =
         typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
+      const clientMessageId =
+        (typeof payload === "string" ? null : payload.clientMessageId?.trim()) ||
+        newClientId();
       if ((!body && !file && !existingAttachment) || sending) return;
 
       // First message may need to create the thread (and mint the guest token).
@@ -476,6 +630,7 @@ function GuestSupportPanel({
             businessSlug: context.businessSlug,
             body: file || existingAttachment ? "" : body,
             name: savedName,
+            clientMessageId,
           });
           if (!payloadStart.conversation) {
             throw new Error("Could not start the conversation.");
@@ -535,9 +690,13 @@ function GuestSupportPanel({
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
+        localFile: file,
+        clientMessageId,
       };
       setMessages((prev) => [...prev, optimistic]);
       setDraft("");
+      let confirmed = false;
+      let uploadedAttachment = existingAttachment;
       try {
         let attachment = existingAttachment;
         if (file) {
@@ -547,13 +706,16 @@ function GuestSupportPanel({
             async () => getGuestCloudinarySignature(context.ns, threadId!),
             (upload) => uploadGuestAttachment(context.ns, threadId!, upload),
           );
+          uploadedAttachment = attachment;
         }
         const saved = await sendGuestMessage(context.ns, threadId, body, {
           type: context.type,
           businessSlug: context.businessSlug,
           attachment,
           replyToMessageId,
+          clientMessageId,
         });
+        confirmed = true;
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -561,13 +723,24 @@ function GuestSupportPanel({
           }
           return prev.map((m) => (m.id === tempId ? toLocalMessage(saved) : m));
         });
-      } catch (e) {
+      } catch {
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  pending: false,
+                  failed: true,
+                  attachment: uploadedAttachment ?? m.attachment,
+                  localFile: file,
+                }
+              : m,
+          ),
         );
-        setLoadError(e instanceof Error ? e.message : "Message failed to send.");
+        // Do not set loadError: a failed send must leave the conversation
+        // readable and show the failed bubble + Retry, not blank the thread.
       } finally {
-        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+        if (localPreviewUrl && confirmed) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -584,6 +757,19 @@ function GuestSupportPanel({
       replyTo,
     ],
   );
+
+  const retry = (message: ChatMessageShape) => {
+    setMessages((prev) => prev.filter((m) => m.id !== message.id));
+    void send({
+      body: message.body,
+      file: message.localFile ?? null,
+      clientMessageId: message.clientMessageId ?? null,
+      attachment:
+        message.attachment?.url && message.attachment.url !== "#"
+          ? message.attachment
+          : null,
+    });
+  };
 
   const beginIntro = () => {
     const name = introName.trim();
@@ -603,52 +789,58 @@ function GuestSupportPanel({
   const accent = context.accentHex || undefined;
 
   return (
-    <section className="flex h-full min-h-0 flex-col" aria-label={`Chat with ${context.teamName}`}>
-      <header
-        className="relative flex items-center gap-3 border-b border-border/50 px-4 py-3.5"
-        style={
-          accent
-            ? {
-                backgroundImage: `linear-gradient(135deg, ${accent}14 0%, transparent 62%)`,
-              }
-            : {
-                backgroundImage:
-                  "linear-gradient(135deg, rgba(40,167,69,0.08) 0%, transparent 62%)",
-              }
-        }
-      >
+    <section
+      className={cn(
+        "support-chat-theme flex h-full min-h-0 flex-col support-surface",
+        context.type === "VISITOR"
+          ? "support-chat-theme--platform"
+          : "support-chat-theme--shop",
+      )}
+      aria-label={`Chat with ${context.teamName}`}
+    >
+      <header className="support-chat-header flex items-center gap-2.5 border-b border-border/50 px-4 py-2.5">
         <div className="relative shrink-0">
           {context.type === "VISITOR" ? (
-            <PlatformAvatar className="size-11" />
+            <PlatformAvatar className="size-10" />
           ) : (
-            <Avatar name={context.title} seed={context.ns} className="size-11 text-sm" />
+            <Avatar name={context.title} seed={context.ns} className="size-10 text-sm" />
           )}
           <span
             className={cn(
-              "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background",
-              connectionState === "connected" ? "bg-emerald-500" : "bg-muted-foreground/50",
+              "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
+              connectionState === "connected"
+                ? "bg-emerald-500"
+                : connectionState === "connecting" ||
+                    connectionState === "reconnecting"
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground/40",
             )}
             aria-hidden
           />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-[family-name:var(--font-heading)] text-[1.05rem] font-semibold tracking-tight text-foreground">
+          <p className="truncate text-[15px] font-semibold leading-tight tracking-[-0.01em] text-foreground">
             {context.title}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[11.5px] text-muted-foreground">
             {theirTyping ? (
-              <span className="font-medium text-primary">{context.teamName} is typing…</span>
+              <span className="font-medium text-primary">
+                {context.teamName} is typing…
+              </span>
             ) : resolved ? (
               "Conversation resolved"
+            ) : connectionState === "connecting" ||
+              connectionState === "reconnecting" ? (
+              "Reconnecting…"
+            ) : connectionState === "disconnected" ? (
+              "Offline — messages still sync"
+            ) : context.type === "VISITOR" ? (
+              "Kiosk platform team"
             ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-                Usually replies in minutes
-              </span>
+              "Storefront chat"
             )}
           </p>
         </div>
-        <LiveStatusPill state={connectionState} className="hidden sm:inline-flex" />
         <button
           type="button"
           onClick={onClose}
@@ -659,32 +851,42 @@ function GuestSupportPanel({
         </button>
       </header>
 
+      {syncError && !loading && !loadError && !showIntro ? (
+        <div
+          role="status"
+          className="flex shrink-0 items-center justify-center gap-2 border-b border-border/50 bg-amber-500/[0.06] px-3 py-1.5 text-[11px] text-muted-foreground"
+        >
+          <RotateCw className="size-3" aria-hidden />
+          <span>Showing the last synced messages — reconnecting…</span>
+          <button
+            type="button"
+            onClick={() => void loadThread(true)}
+            className="font-medium text-foreground underline-offset-2 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       {showIntro ? (
         <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: accent
-                ? `radial-gradient(90% 60% at 50% 0%, ${accent}18, transparent 70%)`
-                : "radial-gradient(90% 60% at 50% 0%, rgba(40,167,69,0.12), transparent 70%)",
-            }}
-            aria-hidden
-          />
-          <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-6 py-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-6 text-center">
             <span
-              className="flex size-12 items-center justify-center rounded-2xl shadow-[0_12px_28px_-14px_rgba(40,167,69,0.7)]"
+              className="flex size-12 items-center justify-center rounded-full"
               style={{
-                backgroundColor: accent || "var(--primary)",
-                color: accent ? "#fff" : "var(--primary-foreground)",
+                backgroundColor: accent || "var(--conversation-accent)",
+                color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
               }}
             >
               <Headset className="size-6" aria-hidden />
             </span>
             <div className="max-w-[17.5rem]">
-              <p className="font-[family-name:var(--font-heading)] text-xl font-semibold tracking-tight text-foreground">
+              <p className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">
                 We&apos;re here to help
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{context.blurb}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                {context.blurb}
+              </p>
             </div>
             <div className="flex w-full max-w-[17.5rem] flex-col gap-2 text-left">
               <label className="space-y-1">
@@ -697,7 +899,7 @@ function GuestSupportPanel({
                   }}
                   placeholder="e.g. Wanjiru"
                   aria-label="Your name"
-                  className="h-11 w-full rounded-xl border border-border/70 bg-background/90 px-3.5 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] placeholder:text-muted-foreground/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="h-11 w-full rounded-xl border border-border/60 bg-background px-3.5 text-[14px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
               </label>
               <label className="space-y-1">
@@ -712,7 +914,7 @@ function GuestSupportPanel({
                   autoComplete="tel"
                   placeholder="0712 345 678"
                   aria-label="Phone number"
-                  className="h-11 w-full rounded-xl border border-border/70 bg-background/90 px-3.5 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] placeholder:text-muted-foreground/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="h-11 w-full rounded-xl border border-border/60 bg-background px-3.5 text-[14px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
               </label>
               {introError ? (
@@ -721,17 +923,17 @@ function GuestSupportPanel({
               <button
                 type="button"
                 onClick={beginIntro}
-                className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold shadow-[0_10px_24px_-14px_rgba(40,167,69,0.85)] transition-[opacity,transform] hover:opacity-95 active:scale-[0.99]"
+                className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-[opacity,transform] hover:opacity-95 active:scale-[0.99]"
                 style={{
-                  backgroundColor: accent || "var(--primary)",
-                  color: accent ? "#fff" : "var(--primary-foreground)",
+                  backgroundColor: accent || "var(--conversation-accent)",
+                  color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
                 }}
               >
                 Start chatting
               </button>
             </div>
             <p className="max-w-[16rem] text-[11px] leading-relaxed text-muted-foreground">
-              No account needed — we use this to keep your conversation in one place when you come back.
+              No account needed. We keep this chat on this device so you can pick it up where you left off.
             </p>
           </div>
         </div>
@@ -741,13 +943,14 @@ function GuestSupportPanel({
             <div
               ref={scrollRef}
               onScroll={onScroll}
-              className="h-full space-y-2.5 overflow-x-hidden overflow-y-auto px-4 py-4"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+              aria-label="Conversation messages"
+              className="support-chat-scroll h-full space-y-2.5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4"
             >
               {loading ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-                  <span className="size-8 animate-pulse rounded-full bg-primary/15" aria-hidden />
-                  Loading conversation…
-                </div>
+                <ChatThreadSkeleton />
               ) : loadError ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
                   <p className="text-sm text-muted-foreground">{loadError}</p>
@@ -762,10 +965,10 @@ function GuestSupportPanel({
               ) : messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-4 px-5 text-center">
                   <div className="max-w-[16rem]">
-                    <p className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-foreground">
+                    <p className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
                       Say hello to {context.teamName}
                     </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
                       Pick a prompt or write your own — we&apos;ll pick it up from here.
                     </p>
                   </div>
@@ -793,6 +996,7 @@ function GuestSupportPanel({
                     return (
                       <React.Fragment key={message.id}>
                         {newDay ? <DayDivider iso={message.createdAt} /> : null}
+                        {message.id === firstUnreadId ? <NewMessagesDivider /> : null}
                         <div className={cluster.gapClass}>
                           <MessageBubble
                             message={message}
@@ -802,6 +1006,7 @@ function GuestSupportPanel({
                             highlighted={highlightMessageId === message.id}
                             onReply={(target) => setReplyTo(toReplyTarget(target))}
                             onScrollToMessage={scrollToMessage}
+                            onRetry={message.failed ? () => retry(message) : undefined}
                             staffActions={false}
                           />
                         </div>

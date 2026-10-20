@@ -1,7 +1,38 @@
 import {
+  fetchItemsPage,
   itemListThumbnailUrl,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { shareInflight } from "@/lib/share-inflight";
+
+/** How many real SKUs the door phones sample from. */
+const SAMPLE_SIZE = 24;
+/** Branding and the atelier paint previews from this list; keep it briefly. */
+const SAMPLE_TTL_MS = 5 * 60_000;
+
+let sampleCache: { at: number; items: ItemSummaryRecord[] } | null = null;
+
+/**
+ * The real catalogue slice every theme door phone is painted from.
+ *
+ * Branding's template section and the themes atelier each mount previews, and
+ * flipping between the two screens used to download the same 24 SKUs again.
+ * One shared, briefly cached page serves both.
+ */
+export function loadThemeSampleItems(): Promise<ItemSummaryRecord[]> {
+  if (sampleCache && Date.now() - sampleCache.at < SAMPLE_TTL_MS) {
+    return Promise.resolve(sampleCache.items);
+  }
+  return shareInflight("items/theme-try-on-sample", async () => {
+    const page = await fetchItemsPage(undefined, {
+      catalogScope: "SKUS_ONLY",
+      page: 0,
+      size: SAMPLE_SIZE,
+    });
+    sampleCache = { at: Date.now(), items: page.content };
+    return page.content;
+  });
+}
 
 export type ThemeTryOnProduct = {
   name: string;

@@ -217,7 +217,7 @@ export function ServingTicketWorkspace({
               "grid min-h-[32rem] lg:h-[min(80dvh,52rem)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,23.5rem)]",
             )}
           >
-            <section className={cn("flex min-h-[28rem] flex-col border-b lg:min-h-0 lg:border-b-0 lg:border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>
+            <section className={cn("support-chat-theme support-chat-theme--platform flex min-h-[28rem] flex-col border-b lg:min-h-0 lg:border-b-0 lg:border-r", SERVING_COL_RULE, SERVING_PAPER_COL)}>
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
                 {messages.length === 0 ? (
                   <p className={cn(dashboardHintClass(), "py-10 text-center")}>No public messages yet.</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { MessagesTheatre } from "@/app/(dashboard)/messages/_components/messages-theatre";
 import type {
@@ -13,7 +13,10 @@ type ContactMessagesInboxProps = {
   canReply: boolean;
   listMessages: (opts?: {
     status?: "UNREAD" | "READ";
+    page?: number;
+    size?: number;
   }) => Promise<{ content: ContactMessageListItem[]; totalElements: number }>;
+  fetchUnreadCount: () => Promise<number>;
   getMessage: (id: string) => Promise<ContactMessageDetail>;
   replyMessage: (
     id: string,
@@ -26,6 +29,7 @@ type ContactMessagesInboxProps = {
 export function ContactMessagesInbox({
   canReply,
   listMessages,
+  fetchUnreadCount,
   getMessage,
   replyMessage,
   onOpenTicket,
@@ -46,28 +50,32 @@ export function ContactMessagesInbox({
   } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState("");
-  /** Last known unread total when the list isn’t filtered to Read. */
-  const [unreadKnown, setUnreadKnown] = useState(0);
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       setListLoading(true);
-      setMessage(null);
       try {
-        const page = await listMessages({
+        const pageData = await listMessages({
           status: filter === "ALL" ? undefined : filter,
+          page: 0,
         });
         if (!cancelled) {
-          setRows(page.content);
-          if (filter === "UNREAD") {
-            setUnreadKnown(page.content.length);
-          } else if (filter === "ALL") {
-            setUnreadKnown(
-              page.content.filter((row) => row.status === "UNREAD").length,
-            );
-          }
+          setRows(pageData.content);
+          setTotal(pageData.totalElements);
+          setPage(0);
+          void fetchUnreadCount()
+            .then((count) => {
+              if (!cancelled) setUnreadTotal(count);
+            })
+            .catch(() => {});
         }
       } catch (error) {
         if (!cancelled) {
@@ -87,7 +95,32 @@ export function ContactMessagesInbox({
     return () => {
       cancelled = true;
     };
-  }, [filter, listMessages, refreshKey]);
+  }, [filter, listMessages, fetchUnreadCount, refreshKey]);
+
+  const loadMore = async () => {
+    if (listLoading || loadingMore) return;
+    const requestFilter = filter;
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const pageData = await listMessages({
+        status: requestFilter === "ALL" ? undefined : requestFilter,
+        page: nextPage,
+      });
+      if (filterRef.current !== requestFilter) return;
+      setRows((prev) => [...prev, ...pageData.content]);
+      setTotal(pageData.totalElements);
+      setPage(nextPage);
+    } catch (error) {
+      setMessage({
+        text:
+          error instanceof Error ? error.message : "Failed to load messages.",
+        kind: "error",
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedId) {
@@ -111,6 +144,12 @@ export function ContactMessagesInbox({
           );
           if (next.email) setChannel("EMAIL");
           else if (next.phone) setChannel("WHATSAPP");
+          // The detail GET marks the message read server-side.
+          void fetchUnreadCount()
+            .then((count) => {
+              if (!cancelled) setUnreadTotal(count);
+            })
+            .catch(() => {});
         }
       } catch (error) {
         if (!cancelled) {
@@ -130,12 +169,7 @@ export function ContactMessagesInbox({
     return () => {
       cancelled = true;
     };
-  }, [selectedId, getMessage]);
-
-  useEffect(() => {
-    if (filter === "READ") return;
-    setUnreadKnown(rows.filter((row) => row.status === "UNREAD").length);
-  }, [rows, filter]);
+  }, [selectedId, getMessage, fetchUnreadCount]);
 
   const onSendReply = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -184,21 +218,20 @@ export function ContactMessagesInbox({
     setReplyBody("");
   };
 
-  const unreadCount =
-    filter === "READ"
-      ? unreadKnown
-      : rows.filter((row) => row.status === "UNREAD").length;
-
   return (
     <MessagesTheatre
       canReply={canReply}
       filter={filter}
-      onFilterChange={setFilter}
+      onFilterChange={(next) => {
+        setFilter(next);
+        setMessage(null);
+      }}
       rows={rows}
       search={search}
       onSearchChange={setSearch}
       listLoading={listLoading}
-      unreadCount={unreadCount}
+      unreadCount={unreadTotal}
+      totalCount={total}
       selectedId={selectedId}
       detail={detail}
       detailLoading={detailLoading}
@@ -213,6 +246,9 @@ export function ContactMessagesInbox({
       onSendReply={(e) => void onSendReply(e)}
       feedback={message}
       onRefresh={() => setRefreshKey((k) => k + 1)}
+      hasMore={rows.length < total}
+      loadingMore={loadingMore}
+      onLoadMore={() => void loadMore()}
       onOpenTicket={onOpenTicket}
       onOrganize={onOrganize}
     />

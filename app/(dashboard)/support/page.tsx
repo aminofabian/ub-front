@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Headset, ShoppingBag, Ticket } from "lucide-react";
+import { Headset, Lock, ShoppingBag, Ticket } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX,
   DashboardPageHero,
@@ -11,6 +12,7 @@ import {
 import { StorefrontBuyerInbox } from "@/components/support/storefront-buyer-inbox";
 import { SupportChat } from "@/components/support/support-chat";
 import { TenantServingTickets } from "@/components/support/tenant-serving-tickets";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type Tab = "platform" | "storefront" | "tickets";
@@ -23,8 +25,17 @@ function parseTab(raw: string | null): Tab {
 export default function SupportPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { me } = useDashboard();
   const tab = parseTab(searchParams.get("tab"));
   const conversationId = searchParams.get("c")?.trim() || null;
+  const canViewStorefront = hasPermission(
+    me?.permissions,
+    Permission.MessagesRead,
+  );
+  const canReplyStorefront = hasPermission(
+    me?.permissions,
+    Permission.MessagesReply,
+  );
 
   function setTab(next: Tab) {
     const params = new URLSearchParams(searchParams.toString());
@@ -36,7 +47,15 @@ export default function SupportPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX}>
+    <div
+      className={cn(
+        DASHBOARD_MAX,
+        // Fill the dashboard main so the thread scrolls inside the chat and
+        // the composer stays on screen. At 2xl, Ask Guide sits on the bottom
+        // right — leave room so it does not cover the message box.
+        "h-full min-h-0 overflow-hidden pb-0 2xl:pb-16",
+      )}
+    >
       <DashboardPageHero
         icon={Headset}
         title="Support"
@@ -44,48 +63,52 @@ export default function SupportPage() {
           tab === "platform"
             ? "A direct line to the Kiosk team — replies land here live."
             : tab === "tickets"
-              ? "Palmart tickets for this shop. Each issue has a number and an owner."
+              ? "Kiosk tickets for this shop. Each issue has a number and an owner."
               : "Shoppers who started a chat on your storefront land here."
         }
       >
-        <div className="flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-0.5">
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border/60 bg-muted/40 p-1">
           <button
             type="button"
             onClick={() => setTab("platform")}
             aria-pressed={tab === "platform"}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
+              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:px-3",
               tab === "platform"
-                ? "border border-[#0f766e] text-[#0f766e]"
-                : "text-muted-foreground hover:text-[#0f766e]",
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Headset className="size-3.5" aria-hidden />
-            Kiosk support
+            <span className="sm:hidden">Support</span>
+            <span className="hidden sm:inline">Kiosk support</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setTab("storefront")}
-            aria-pressed={tab === "storefront"}
-            className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
-              tab === "storefront"
-                ? "border border-[#0f766e] text-[#0f766e]"
-                : "text-muted-foreground hover:text-[#0f766e]",
-            )}
-          >
-            <ShoppingBag className="size-3.5" aria-hidden />
-            Storefront buyers
-          </button>
+          {canViewStorefront ? (
+            <button
+              type="button"
+              onClick={() => setTab("storefront")}
+              aria-pressed={tab === "storefront"}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:px-3",
+                tab === "storefront"
+                  ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ShoppingBag className="size-3.5" aria-hidden />
+              <span className="sm:hidden">Buyers</span>
+              <span className="hidden sm:inline">Storefront buyers</span>
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setTab("tickets")}
             aria-pressed={tab === "tickets"}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-none px-3 text-xs font-medium transition-colors",
+              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 sm:px-3",
               tab === "tickets"
-                ? "border border-[#0f766e] text-[#0f766e]"
-                : "text-muted-foreground hover:text-[#0f766e]",
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Ticket className="size-3.5" aria-hidden />
@@ -93,15 +116,38 @@ export default function SupportPage() {
           </button>
         </div>
       </DashboardPageHero>
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         {tab === "platform" ? (
-          <div className="flex min-h-[440px] flex-1 flex-col">
-            <SupportChat />
-          </div>
+          <SupportChat />
         ) : tab === "tickets" ? (
           <TenantServingTickets />
+        ) : canViewStorefront ? (
+          <StorefrontBuyerInbox
+            initialConversationId={conversationId}
+            canReply={canReplyStorefront}
+          />
         ) : (
-          <StorefrontBuyerInbox initialConversationId={conversationId} />
+          <div className="flex min-h-[320px] items-center justify-center px-6 text-center">
+            <div className="max-w-sm">
+              <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Lock className="size-5" aria-hidden />
+              </span>
+              <p className="mt-3 text-[15px] font-semibold text-foreground">
+                Storefront buyer chats are restricted
+              </p>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Ask the shop owner or an admin to grant you the Messages
+                permission to read and reply to shoppers.
+              </p>
+              <button
+                type="button"
+                onClick={() => setTab("platform")}
+                className="mt-4 inline-flex h-8 items-center justify-center rounded-full border border-border/60 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                Back to Kiosk support
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

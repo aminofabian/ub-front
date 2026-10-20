@@ -45,6 +45,7 @@ import { HubQuickActions } from "@/components/business-hub/hub-quick-actions";
 import { HubTipCard } from "@/components/business-hub/hub-tip-card";
 import { HubWorkSummary } from "@/components/business-hub/hub-work-summary";
 import { HubSectionLabel } from "@/components/business-hub/hub-section-label";
+import { ChromeSlot } from "@/components/shell/chrome-slot";
 import { OpenWorkBoard } from "@/components/business-hub/open-work-board";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { MarginLeaksDrawer } from "@/components/business-hub/margin-leaks-drawer";
@@ -163,6 +164,14 @@ import {
 const SUPPLY_DISPLAY_LIMIT = 24;
 const CREDIT_TABS_DISPLAY_LIMIT = 24;
 const WEB_ORDERS_DISPLAY_LIMIT = 12;
+/**
+ * The tape keeps {@link TICK_POOL_LIMIT} sales, but recent-sales returns sale
+ * *lines*. A few lines per sale is the norm, so this is a generous ceiling:
+ * enough ticks without downloading a week of the ledger.
+ */
+const HUB_RECENT_SALE_ROW_LIMIT = TICK_POOL_LIMIT * 5;
+/** Newest invoices are all the "today's bills" strip can show. */
+const HUB_SUPPLY_ROW_LIMIT = 120;
 
 function sortOutstandingTabs(
   rows: OutstandingTabRowRecord[],
@@ -438,14 +447,20 @@ export function BusinessHubWorkspace() {
             }).catch(() => null)
           : Promise.resolve(null),
         canViewSalesIntelligence
-          ? fetchRecentSales(ticksFrom, ticksTo, branch, type).catch(
-              () => [] as RecentSaleRow[],
-            )
+          ? fetchRecentSales(
+              ticksFrom,
+              ticksTo,
+              branch,
+              type,
+              undefined,
+              HUB_RECENT_SALE_ROW_LIMIT,
+            ).catch(() => [] as RecentSaleRow[])
           : Promise.resolve([] as RecentSaleRow[]),
         canViewSupplyBills
-          ? fetchPathBSupplies({ branchId: branch }).catch(
-              () => [] as PathBSupplyListRowRecord[],
-            )
+          ? fetchPathBSupplies({
+              branchId: branch,
+              limit: HUB_SUPPLY_ROW_LIMIT,
+            }).catch(() => [] as PathBSupplyListRowRecord[])
           : Promise.resolve([] as PathBSupplyListRowRecord[]),
         canViewCreditTabs
           ? fetchOutstandingTabs().catch(() => [] as OutstandingTabRowRecord[])
@@ -1682,10 +1697,13 @@ export function BusinessHubWorkspace() {
                   )}
 
                   {/* Quick actions — jobs the bottom tabs don't cover (the desk
-                      rail shows the wider shortcut board). */}
-                  <div className="xl:hidden">
-                    <HubQuickActions links={quickActionLinks} />
-                  </div>
+                      rail shows the wider shortcut board). The rail copy is the
+                      same board on xl+, so mount each only where it shows. */}
+                  <ChromeSlot slot={["phone", "tablet"]}>
+                    <div className="xl:hidden">
+                      <HubQuickActions links={quickActionLinks} />
+                    </div>
+                  </ChromeSlot>
 
                   {/* Phone shows the detailed "Open work" board below; this
                       summary would repeat the same supply/credit/web counts. */}
@@ -1805,25 +1823,27 @@ export function BusinessHubWorkspace() {
                   {/* 5 — Floor tape: the last ticks, one thumb away. The desk
                       reads the same tape in the lane rail beside this column. */}
                   {showTillStage && !galleryOpen ? (
-                    <section className="space-y-3 xl:hidden">
-                      <HubSectionLabel
-                        title="Floor tape"
-                        meta={
-                          recentTicks.length > 0
-                            ? `${recentTicks.length} recent`
-                            : isToday
-                              ? "Today"
-                              : "This week"
-                        }
-                        className="px-0.5"
-                      />
-                      <FloorTapeDrawer
-                        lanes={tickLanes}
-                        currency={currency}
-                        justUpdated={justUpdated}
-                        dualLanes={dualLanes}
-                      />
-                    </section>
+                    <ChromeSlot slot={["phone", "tablet"]}>
+                      <section className="space-y-3 xl:hidden">
+                        <HubSectionLabel
+                          title="Floor tape"
+                          meta={
+                            recentTicks.length > 0
+                              ? `${recentTicks.length} recent`
+                              : isToday
+                                ? "Today"
+                                : "This week"
+                          }
+                          className="px-0.5"
+                        />
+                        <FloorTapeDrawer
+                          lanes={tickLanes}
+                          currency={currency}
+                          justUpdated={justUpdated}
+                          dualLanes={dualLanes}
+                        />
+                      </section>
+                    </ChromeSlot>
                   ) : null}
 
                   {/* 6 — Stock: the checks, then what is actually moving */}
@@ -1854,102 +1874,95 @@ export function BusinessHubWorkspace() {
                     </section>
                   ) : null}
 
-                  {/* Setup & utilities — grouped into one layered panel at the
-                      end of the board instead of three floating cards. */}
-                  {showSetupPanel ? (
-                    <section className="space-y-3 xl:hidden">
-                      <HubSectionLabel
-                        title="Shop setup"
-                        meta="Payments · float · tills"
-                        className="px-0.5"
-                      />
-                      <div
-                        className={cn(
-                          "flex flex-col gap-px overflow-hidden rounded-2xl border",
-                          "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
-                          "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
-                          "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
-                          "[&_[data-hub-card]]:rounded-none",
-                        )}
-                      >
-                        {canShowPaymentMethod ? (
-                          <div className="min-w-0 bg-white">
-                            <ReceiveMpesaSetupCard
-                              rail
-                              ownerPhone={me?.phone}
-                              countryCode={business?.countryCode}
-                              permissions={me?.permissions}
-                            />
-                          </div>
-                        ) : null}
-                        {canShowAirtime ? (
-                          <div className="min-w-0 bg-white">
-                            <AirtimeFloatHubCard
-                              rail
-                              ownerPhone={me?.phone}
-                              permissions={me?.permissions}
-                            />
-                          </div>
-                        ) : null}
-                        {canManageBusinessSettings ? (
-                          <div className="min-w-0 bg-white">
-                            <ManageTillsHubCard
-                              rail
-                              branches={branches}
-                              branchId={branchId}
-                              initiallyOpen={manageTillsInitiallyOpen}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    </section>
-                  ) : null}
+                  {/* Setup & utilities now live in the rail below; the phone
+                      layout reads the same single set of cards there. */}
                 </div>
               )}
             </div>
 
             {showCleanRail ? (
-              <aside className="hidden xl:flex xl:flex-col xl:gap-3">
-                {showTillStage
-                  ? tickLanes.map((lane, index) => (
-                      <RecentTicksRail
-                        key={lane.key}
-                        ticks={lane.ticks}
-                        drawouts={lane.drawouts}
-                        currency={currency}
-                        justUpdated={justUpdated && index === 0}
-                        title={index === 0 ? "Live activity" : lane.title}
-                        subtitle={lane.subtitle}
-                        showCashier={lane.showCashier}
-                        accent={lane.accent}
-                        fillViewport={false}
-                        className="max-h-[min(24rem,46dvh)]"
-                      />
-                    ))
-                  : null}
-                <HubQuickActions links={jumpInLinks} limit={6} />
-                {canShowPaymentMethod ? (
-                  <ReceiveMpesaSetupCard
-                    rail
-                    ownerPhone={me?.phone}
-                    countryCode={business?.countryCode}
-                    permissions={me?.permissions}
-                  />
+              <aside className="flex flex-col gap-3">
+                {/* Desk-only rail content — the phone column already shows its
+                    own quick actions and floor tape, so keep these unmounted. */}
+                <ChromeSlot slot={["wide", "desktop"]}>
+                  <div className="hidden xl:flex xl:flex-col xl:gap-3">
+                    {showTillStage
+                      ? tickLanes.map((lane, index) => (
+                          <RecentTicksRail
+                            key={lane.key}
+                            ticks={lane.ticks}
+                            drawouts={lane.drawouts}
+                            currency={currency}
+                            justUpdated={justUpdated && index === 0}
+                            title={index === 0 ? "Live activity" : lane.title}
+                            subtitle={lane.subtitle}
+                            showCashier={lane.showCashier}
+                            accent={lane.accent}
+                            fillViewport={false}
+                            className="max-h-[min(24rem,46dvh)]"
+                          />
+                        ))
+                      : null}
+                    <HubQuickActions links={jumpInLinks} limit={6} />
+                  </div>
+                </ChromeSlot>
+
+                {/* Setup & utilities — one mount for both layouts: a grouped
+                    panel on phones, individual rail cards at xl, where the
+                    wrappers fall away with `display: contents`. */}
+                {showSetupPanel ? (
+                  <section className="space-y-3 xl:contents">
+                    <HubSectionLabel
+                      title="Shop setup"
+                      meta="Payments · float · tills"
+                      className="px-0.5 xl:hidden"
+                    />
+                    <div
+                      className={cn(
+                        "flex flex-col gap-px overflow-hidden rounded-2xl border",
+                        "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
+                        "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+                        "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+                        "max-xl:[&_[data-hub-card]]:rounded-none",
+                        "xl:contents",
+                      )}
+                    >
+                      {canShowPaymentMethod ? (
+                        <div className="min-w-0 bg-white xl:contents">
+                          <ReceiveMpesaSetupCard
+                            rail
+                            ownerPhone={me?.phone}
+                            countryCode={business?.countryCode}
+                            permissions={me?.permissions}
+                          />
+                        </div>
+                      ) : null}
+                      {canShowAirtime ? (
+                        <div className="min-w-0 bg-white xl:contents">
+                          <AirtimeFloatHubCard
+                            rail
+                            ownerPhone={me?.phone}
+                            permissions={me?.permissions}
+                          />
+                        </div>
+                      ) : null}
+                      {canManageBusinessSettings ? (
+                        <div className="min-w-0 bg-white xl:contents">
+                          <ManageTillsHubCard
+                            rail
+                            branches={branches}
+                            branchId={branchId}
+                            initiallyOpen={manageTillsInitiallyOpen}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
                 ) : null}
-                <AirtimeFloatHubCard
-                  rail
-                  ownerPhone={me?.phone}
-                  permissions={me?.permissions}
-                />
-                {canManageBusinessSettings ? (
-                  <ManageTillsHubCard
-                    rail
-                    branches={branches}
-                    branchId={branchId}
-                    initiallyOpen={manageTillsInitiallyOpen}
-                  />
-                ) : null}
-                <HubTipCard />
+
+                <div className="hidden xl:block">
+                  <HubTipCard />
+                </div>
               </aside>
             ) : null}
           </div>

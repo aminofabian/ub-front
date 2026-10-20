@@ -326,6 +326,9 @@ export function ExpensesHubWorkspace() {
               to,
               branchId: branch,
               source: "drawer",
+              // Only used to spot drawouts that already have an expense —
+              // one page is plenty and avoids paging the whole ledger.
+              maxPages: 1,
             }).catch(() => null)
           : Promise.resolve(null),
         canReadFinanceExpenses
@@ -334,6 +337,9 @@ export function ExpensesHubWorkspace() {
               to,
               branchId: branch,
               source: "recurring",
+              // Posted recurring bills for a month fit in one page; the hub
+              // only sums them.
+              maxPages: 1,
             }).catch(() => null)
           : Promise.resolve(null),
         canViewShifts
@@ -2463,18 +2469,22 @@ async function fetchEveryExpenseInRange(options: {
   source?: string;
   approvalStatus?: string;
   q?: string;
+  /** Stop after this many 200-row pages (derived lists only need the first). */
+  maxPages?: number;
 }): Promise<{
   expenses: FinanceExpenseResponse[];
   totalCount: number;
   hasMore: boolean;
 }> {
   const expenses: FinanceExpenseResponse[] = [];
+  const { maxPages, ...query } = options;
   let page = 0;
   let totalCount = 0;
   let hasMore = true;
-  while (hasMore && page < 25) {
+  const pageLimit = Math.min(Math.max(maxPages ?? 25, 1), 25);
+  while (hasMore && page < pageLimit) {
     const batch = await fetchFinanceExpensesRange({
-      ...options,
+      ...query,
       page,
       size: 200,
     });

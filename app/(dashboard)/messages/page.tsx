@@ -13,6 +13,7 @@ import {
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   fetchContactMessage,
+  fetchContactMessageUnreadCount,
   fetchContactMessages,
   replyToContactMessage,
 } from "@/lib/api";
@@ -58,6 +59,7 @@ export default function MessagesPage() {
       <ContactMessagesInbox
         canReply={canReplyMessages}
         listMessages={listMessages}
+        fetchUnreadCount={fetchContactMessageUnreadCount}
         getMessage={getMessage}
         replyMessage={replyMessage}
       />

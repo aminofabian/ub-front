@@ -30,6 +30,7 @@ import {
   resolveRealtimeWebSocketBaseUrl,
 } from "./config";
 import { normalizeNotificationData } from "./notification-display";
+import { parseRealtimeError } from "./realtime-error";
 import { getSuperAdminAccessToken } from "./super-admin-session";
 import { refreshSaTokenIfNeeded } from "./super-admin-api";
 
@@ -787,10 +788,16 @@ export class RealtimeClient {
     }
 
     if (frame.type === "error") {
-      this.handlers.onError?.({
-        code: (frame.data.code as number) ?? 0,
-        message: (frame.data.message as string) ?? "Unknown error",
-      });
+      const parsed = parseRealtimeError(frame) ?? {
+        code: 0,
+        message: "Unknown realtime error",
+      };
+      this.handlers.onError?.(parsed);
+      if (parsed.code === 4401) {
+        this.handleReauthAndReconnect();
+      } else if (parsed.code === 4403) {
+        console.warn("[realtime] Server rejected a channel subscription:", parsed.message);
+      }
       return;
     }
 

@@ -16,6 +16,7 @@ import { CashierTillPrintListener } from "@/components/cashier/cashier-till-prin
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { NotificationsDrawer } from "@/components/notifications-drawer";
 import { SupportLauncher } from "@/components/support/support-launcher";
+import { SupportUnreadProvider } from "@/components/support/support-unread-provider";
 import { SupportUnreadWatcher } from "@/components/support/support-unread-watcher";
 
 type DashboardLayoutProps = {
@@ -27,20 +28,22 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
     <>
       <DashboardClientGuards />
       <DashboardProvider>
-        <DashboardAccessRedirects />
-        <RealtimeProvider>
-          <Suspense fallback={null}>
-            <OnboardingQuestionnaireProvider>
-              <AppShell>{children}</AppShell>
-            </OnboardingQuestionnaireProvider>
-          </Suspense>
-          <CashierTillPrintListener />
-          <SupportUnreadWatcher />
-          <SupportLauncher />
-          <NotificationsDrawer />
-          <NewMerchantGuideDrawer />
-          <DashboardToaster />
-        </RealtimeProvider>
+        <SupportUnreadProvider>
+          <DashboardAccessRedirects />
+          <RealtimeProvider>
+            <Suspense fallback={null}>
+              <OnboardingQuestionnaireProvider>
+                <AppShell>{children}</AppShell>
+              </OnboardingQuestionnaireProvider>
+            </Suspense>
+            <CashierTillPrintListener />
+            <SupportUnreadWatcher />
+            <SupportLauncher />
+            <NotificationsDrawer />
+            <NewMerchantGuideDrawer />
+            <DashboardToaster />
+          </RealtimeProvider>
+        </SupportUnreadProvider>
       </DashboardProvider>
     </>
   );

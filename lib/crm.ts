@@ -8,6 +8,9 @@ export type CrmConversationRow = {
   assignedUserId: string | null;
   unreadCount: number;
   lastMessageAt: string | null;
+  lastMessagePreview?: string | null;
+  lastMessageType?: string | null;
+  lastMessageDirection?: string | null;
   windowExpiresAt: string | null;
   contactId: string | null;
   contactName: string | null;

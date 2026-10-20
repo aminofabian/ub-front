@@ -8,6 +8,7 @@ import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSaContactMessage,
+  fetchSaContactMessageUnreadCount,
   fetchSaContactMessages,
   openSaTicketFromContact,
   organizeSaContactToTicket,
@@ -41,6 +42,7 @@ export default function SuperAdminMessagesPage() {
       <ContactMessagesInbox
         canReply
         listMessages={listMessages}
+        fetchUnreadCount={fetchSaContactMessageUnreadCount}
         getMessage={getMessage}
         replyMessage={replyMessage}
         onOpenTicket={async (id) => {

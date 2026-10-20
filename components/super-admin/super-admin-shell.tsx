@@ -27,6 +27,7 @@ import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
 import { Button } from "@/components/ui/button";
+import { useSaContactUnread } from "@/hooks/use-sa-contact-unread";
 import { useSaSupportUnread } from "@/hooks/use-sa-support-unread";
 import { APP_ROUTES } from "@/lib/config";
 import { getSuperAdminRealtimeClient } from "@/lib/realtime";
@@ -214,6 +215,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   // Live unread badge for the support inbox; the console keeps one shared
   // realtime socket open so the count updates everywhere, not just on the page.
   const saSupportUnread = useSaSupportUnread();
+  const saMessagesUnread = useSaContactUnread();
 
   React.useEffect(() => {
     const client = getSuperAdminRealtimeClient();
@@ -307,7 +309,12 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               icon={Headset}
               badge={saSupportUnread}
             />
-            <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
+            <NavItem
+              href={APP_ROUTES.superAdminMessages}
+              label="Messages"
+              icon={Inbox}
+              badge={saMessagesUnread}
+            />
           </>
         ) : null}
         {fullConsole ? (
@@ -317,7 +324,12 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             <NavItem href={APP_ROUTES.superAdminPlatformSubscription} label="Subscriptions" icon={CreditCard} />
             <NavItem href={APP_ROUTES.superAdminAdoptions} label="Adoptions" icon={Sparkles} />
             <NavItem href={APP_ROUTES.superAdminCampaigns} label="Campaigns" icon={Mail} match="prefix" />
-            <NavItem href={APP_ROUTES.superAdminMessages} label="Messages" icon={Inbox} />
+            <NavItem
+              href={APP_ROUTES.superAdminMessages}
+              label="Messages"
+              icon={Inbox}
+              badge={saMessagesUnread}
+            />
             <NavItem
               href={APP_ROUTES.superAdminSupport}
               label="Support"

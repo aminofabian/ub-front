@@ -84,6 +84,38 @@ export type GuestSession = {
 };
 
 const NS = "ub.support.guest";
+const GUEST_IDENTITY_CHANGED_EVENT = "ub:guest-identity-changed";
+
+/**
+ * Notified when a stale thread credential forces a new browser-wide guest id.
+ * Live listeners must re-read `ensureGuestId()` so their socket channel and
+ * optimistic sender id follow the rotation.
+ */
+export function subscribeGuestIdentityChange(
+  ns: string,
+  onChange: () => void,
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = (event: Event) => {
+    const detail = (event as CustomEvent<{ ns?: string }>).detail;
+    if (detail?.ns && detail.ns !== ns) return;
+    onChange();
+  };
+  window.addEventListener(GUEST_IDENTITY_CHANGED_EVENT, handler);
+  return () => window.removeEventListener(GUEST_IDENTITY_CHANGED_EVENT, handler);
+}
+
+function regenerateGuestIdentity(ns: string): string {
+  write(`${NS}.id`, uuid());
+  write(threadKey(ns), null);
+  const next = ensureGuestId();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(GUEST_IDENTITY_CHANGED_EVENT, { detail: { ns } }),
+    );
+  }
+  return next;
+}
 
 function read(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -189,6 +221,7 @@ export async function startGuestThread(
     businessSlug?: string;
     body?: string;
     name?: string | null;
+    clientMessageId?: string | null;
   },
 ): Promise<GuestThreadPayload> {
   const attempt = async (guestId: string, token: string | null): Promise<Response> => {
@@ -202,6 +235,7 @@ export async function startGuestThread(
         guestId,
         guestName: opts.name ?? getGuestName() ?? undefined,
         body: opts.body,
+        clientMessageId: opts.clientMessageId ?? undefined,
       }),
     });
   };
@@ -211,21 +245,25 @@ export async function startGuestThread(
   let response = await attempt(guestId, session.token);
 
   if (response.status === 400 || response.status === 401) {
-    // The stored thread credential is stale (another device rotated it) or the
-    // thread was lost. Drop the stored token and retry — the phone re-claims
-    // the same thread.
+    // The stored thread credential is stale. Drop it and retry; a guest token
+    // is the only way back into an existing thread now (phone alone is not a
+    // credential).
     write(threadKey(ns), null);
     session = loadGuestSession(ns);
     response = await attempt(guestId, session.token);
+  }
+
+  if (response.status === 409) {
+    // Another tab won the create race. Do not rotate the browser-wide guest
+    // identity here — it would orphan this guest's threads in other shops.
+    throw new Error("This chat was just opened in another tab. Close it and try again.");
   }
 
   if (response.status === 401) {
     // Still rejected: this identity no longer opens the thread and there's no
     // matching phone. Regenerate the identity so the visitor is never locked
     // out — the old thread is left behind rather than blocking the chat.
-    write(`${NS}.id`, uuid());
-    write(threadKey(ns), null);
-    guestId = ensureGuestId();
+    guestId = regenerateGuestIdentity(ns);
     response = await attempt(guestId, null);
   }
 
@@ -252,9 +290,9 @@ export async function resumeGuestThread(
 ): Promise<GuestThreadPayload | null> {
   const guestId = ensureGuestId();
   const session = loadGuestSession(ns);
-  const phone = getGuestPhone();
-  // Need either a stored thread credential or a phone to reclaim one.
-  if (!session.token && !phone) {
+  // The thread token is the only credential. A phone alone must never reopen
+  // another device's transcript.
+  if (!session.token) {
     return null;
   }
   const params = new URLSearchParams({
@@ -311,6 +349,7 @@ export async function sendGuestMessage(
     businessSlug?: string;
     attachment?: GuestMessage["attachment"];
     replyToMessageId?: string | null;
+    clientMessageId?: string | null;
   },
 ): Promise<GuestMessage> {
   const guestId = ensureGuestId();
@@ -324,6 +363,7 @@ export async function sendGuestMessage(
         body: body || "",
         guestName: getGuestName() ?? undefined,
         replyToMessageId: opts.replyToMessageId ?? undefined,
+        clientMessageId: opts.clientMessageId ?? undefined,
         attachment: opts.attachment
           ? {
               url: opts.attachment.url,

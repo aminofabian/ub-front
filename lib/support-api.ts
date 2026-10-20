@@ -99,12 +99,14 @@ export async function sendSupportMessage(
   body: string,
   attachment?: SupportMessage["attachment"],
   replyToMessageId?: string | null,
+  clientMessageId?: string | null,
 ): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(`${API_ROUTES.support}/conversation/messages`, {
     method: "POST",
     body: {
       body: body || "",
       replyToMessageId: replyToMessageId ?? undefined,
+      clientMessageId: clientMessageId ?? undefined,
       attachment: attachment
         ? {
             url: attachment.url,
@@ -188,6 +190,7 @@ export async function sendStorefrontBuyerReply(
   body: string,
   attachment?: SupportMessage["attachment"],
   replyToMessageId?: string | null,
+  clientMessageId?: string | null,
 ): Promise<SupportMessage> {
   return apiRequest<SupportMessage>(
     `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(id)}/messages`,
@@ -196,6 +199,7 @@ export async function sendStorefrontBuyerReply(
       body: {
         body: body || "",
         replyToMessageId: replyToMessageId ?? undefined,
+        clientMessageId: clientMessageId ?? undefined,
         attachment: attachment
           ? {
               url: attachment.url,
@@ -220,6 +224,7 @@ export async function markStorefrontBuyerConversationRead(id: string): Promise<v
 export async function fetchStorefrontBuyerUnreadCount(): Promise<number> {
   const payload = await apiRequest<{ count?: number }>(
     `${API_ROUTES.support}/storefront/unread-count`,
+    { toast: false },
   );
   return typeof payload?.count === "number" ? payload.count : 0;
 }
@@ -240,7 +245,7 @@ export async function createTenantServingTicket(body: {
 }): Promise<import("@/lib/super-admin-api").ServingTicketSummary> {
   return apiRequest(`${API_ROUTES.support}/tickets`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body,
   });
 }
 
@@ -265,7 +270,7 @@ export async function replyTenantServingTicket(
 ): Promise<SupportMessage> {
   return apiRequest(`${API_ROUTES.support}/tickets/${encodeURIComponent(id)}/messages`, {
     method: "POST",
-    body: JSON.stringify({ body }),
+    body: { body },
   });
 }
 

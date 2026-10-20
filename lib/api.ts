@@ -61,9 +61,11 @@ import {
   getPosGuidanceKind,
   isBareRequestFailureMessage,
   isSessionRelatedProblem,
+  isSubscriptionBlockedProblem,
   isTransientBackendStatus,
   shouldOmitHttpErrorToast,
 } from "@/lib/problem";
+import { notifySubscriptionBlocked } from "@/lib/subscription-events";
 import { markApiSuccess, markApiTrouble } from "@/lib/connection-health";
 import { toast } from "sonner";
 import {
@@ -2443,6 +2445,9 @@ async function request<T>(
     }
     // 401s that reach here are auth signals (e.g. refresh-already-rotated);
     // they are recovered silently, never toasted as "request failed".
+    if (isSubscriptionBlockedProblem(response.status, payload)) {
+      notifySubscriptionBlocked();
+    }
     failRequest(response.status, payload, {
       toast: response.status === 401 ? false : suppressToast,
     });
@@ -3371,12 +3376,19 @@ export type StaffNotificationRow = {
   createdAt?: string;
 };
 
-export async function fetchStaffNotifications(): Promise<StaffNotificationRow[]> {
-  return shareInflight("notifications:list", () =>
-    request<StaffNotificationRow[]>(API_ROUTES.notifications, {
-      requiresAuth: true,
-      toast: false,
-    }),
+export async function fetchStaffNotifications(
+  limit = 60,
+): Promise<StaffNotificationRow[]> {
+  // The bell/drawer keep the newest 50 rows; asking for more only multiplies
+  // the payloadJson we download on every shell mount.
+  return shareInflight(`notifications:list:${limit}`, () =>
+    request<StaffNotificationRow[]>(
+      `${API_ROUTES.notifications}?limit=${limit}`,
+      {
+        requiresAuth: true,
+        toast: false,
+      },
+    ),
   );
 }
 
@@ -3388,6 +3400,14 @@ export async function markStaffNotificationRead(id: string): Promise<void> {
   });
 }
 
+/** Clears the whole staff bell with one request instead of one POST per row. */
+export async function markAllStaffNotificationsRead(): Promise<void> {
+  await request(`${API_ROUTES.notifications}/read-all`, {
+    method: "POST",
+    requiresAuth: true,
+    toast: false,
+  });
+}
 export type NotificationPreferencesProfile = {
   quietHoursEnabled?: boolean;
   quietHoursStart?: string;
@@ -3465,9 +3485,13 @@ export async function unsubscribeShopperNotification(
 export async function fetchBusiness(options?: {
   toast?: boolean;
 }): Promise<BusinessRecord> {
-  return request<BusinessRecord>(API_ROUTES.businessMe, {
-    toast: options?.toast,
-  });
+  // Settings, branding, themes and design each load the shop on mount; one
+  // shared read serves the whole page.
+  return shareInflight("businesses/me", () =>
+    request<BusinessRecord>(API_ROUTES.businessMe, {
+      toast: options?.toast,
+    }),
+  );
 }
 
 export async function updateBusiness(
@@ -4039,8 +4063,11 @@ export async function fetchUnassignedAisleCount(opts?: {
   const itemTypeId = opts?.itemTypeId?.trim();
   if (itemTypeId) params.set("itemTypeId", itemTypeId);
   const suffix = params.toString();
-  const res = await request<{ count: number }>(
-    `${API_ROUTES.aisles}/unassigned-count${suffix ? `?${suffix}` : ""}`,
+  // Products workspace and the department aisle hook both ask on mount.
+  const res = await shareInflight(`aisles/unassigned-count:${suffix}`, () =>
+    request<{ count: number }>(
+      `${API_ROUTES.aisles}/unassigned-count${suffix ? `?${suffix}` : ""}`,
+    ),
   );
   return res.count ?? 0;
 }
@@ -5152,7 +5179,11 @@ export async function fetchCatalogListStats(
     params.set("branchId", stockBr);
   }
   const path = `${API_ROUTES.items}/row-type-counts?${params.toString()}`;
-  const raw = await request<Record<string, unknown>>(path);
+  // Onboarding provider and the merchant guide both ask for the same counts on
+  // a cold load; one aggregation answers both.
+  const raw = await shareInflight(`items/row-type-counts:${params.toString()}`, () =>
+    request<Record<string, unknown>>(path),
+  );
   return {
     parents: Number(raw?.parents ?? 0),
     variants: Number(raw?.variants ?? 0),
@@ -7223,6 +7254,7 @@ export async function fetchRecentSales(
   branchId?: string,
   itemTypeId?: string,
   itemId?: string,
+  limit?: number,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
@@ -7230,6 +7262,9 @@ export async function fetchRecentSales(
   if (branchId?.trim()) params.set("branchId", branchId.trim());
   if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   if (itemId?.trim()) params.set("itemId", itemId.trim());
+  if (limit != null && Number.isFinite(limit) && limit > 0) {
+    params.set("limit", String(Math.floor(limit)));
+  }
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
@@ -11918,13 +11953,22 @@ export async function claimTillPrint(
 export async function fetchPathAPurchaseOrders(opts?: {
   supplierId?: string;
   status?: string;
+  /** Several board columns in one request (`status=sent,draft`). */
+  statuses?: string[];
   toast?: boolean;
 }): Promise<PathAPurchaseOrderListRowRecord[]> {
   const params = new URLSearchParams();
   const supplierId = opts?.supplierId?.trim();
   const status = opts?.status?.trim();
+  const statuses = (opts?.statuses ?? [])
+    .map((value) => value.trim())
+    .filter(Boolean);
   if (supplierId) params.set("supplierId", supplierId);
-  if (status) params.set("status", status);
+  if (statuses.length > 0) {
+    params.set("status", statuses.join(","));
+  } else if (status) {
+    params.set("status", status);
+  }
   const qs = params.toString();
   return request<PathAPurchaseOrderListRowRecord[]>(
     `${PATH_A_PURCHASE_ORDERS}${qs ? `?${qs}` : ""}`,
@@ -12206,11 +12250,16 @@ export type SupplyPaymentHistoryRecord = {
 export async function fetchPathBSupplies(opts?: {
   branchId?: string | null;
   toast?: boolean;
+  /** Newest N invoices only — the hub bill strip does not need the whole board. */
+  limit?: number;
 }): Promise<PathBSupplyListRowRecord[]> {
   const params = new URLSearchParams();
   const branchId = opts?.branchId?.trim();
   if (branchId) {
     params.set("branchId", branchId);
+  }
+  if (opts?.limit != null && Number.isFinite(opts.limit) && opts.limit > 0) {
+    params.set("limit", String(Math.floor(opts.limit)));
   }
   const qs = params.toString();
   return request<PathBSupplyListRowRecord[]>(
@@ -13481,8 +13530,11 @@ export async function fetchOutstandingTabs(
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim());
   const qs = params.toString();
-  return request<OutstandingTabRowRecord[]>(
-    `/api/v1/customers/outstanding-tabs${qs ? `?${qs}` : ""}`,
+  // The analytics board and the credits board can both ask on the same load.
+  return shareInflight(`customers/outstanding-tabs:${qs}`, () =>
+    request<OutstandingTabRowRecord[]>(
+      `/api/v1/customers/outstanding-tabs${qs ? `?${qs}` : ""}`,
+    ),
   );
 }
 
@@ -13508,8 +13560,10 @@ export async function fetchCreditsActivitySummary(
   to: string,
 ): Promise<CreditsActivitySummaryRecord> {
   const params = new URLSearchParams({ from, to });
-  return request<CreditsActivitySummaryRecord>(
-    `/api/v1/credits/activity-summary?${params}`,
+  return shareInflight(`credits/activity-summary:${from}:${to}`, () =>
+    request<CreditsActivitySummaryRecord>(
+      `/api/v1/credits/activity-summary?${params}`,
+    ),
   );
 }
 
@@ -13529,8 +13583,14 @@ export async function fetchCustomerTabPurchases(
   if (opts?.limit != null) params.set("limit", String(opts.limit));
   if (opts?.q?.trim()) params.set("q", opts.q.trim());
   const qs = params.toString();
-  return request<TabPurchasesPageRecord>(
-    `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases${qs ? `?${qs}` : ""}`,
+  // The customer drawer and the insights column can ask for the same first page
+  // in the same commit.
+  return shareInflight(
+    `customers/${customerId}/tab-purchases:${qs}`,
+    () =>
+      request<TabPurchasesPageRecord>(
+        `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases${qs ? `?${qs}` : ""}`,
+      ),
   );
 }
 
@@ -14694,8 +14754,10 @@ export type MpesaCustodyAvailabilityRecord = {
 };
 
 export async function fetchMpesaCustodyAvailability(): Promise<MpesaCustodyAvailabilityRecord> {
-  return request<MpesaCustodyAvailabilityRecord>(
-    API_ROUTES.paymentGatewaysMpesaCustody,
+  return shareInflight("payments/gateways:mpesa-custody", () =>
+    request<MpesaCustodyAvailabilityRecord>(
+      API_ROUTES.paymentGatewaysMpesaCustody,
+    ),
   );
 }
 
@@ -14734,7 +14796,10 @@ export async function runCustodyReceiveTest(
 }
 
 export async function fetchGatewayConfigs(): Promise<GatewayConfigRecord[]> {
-  return request<GatewayConfigRecord[]>(API_ROUTES.paymentGateways);
+  // Hub renders the M-Pesa card in more than one responsive slot.
+  return shareInflight("payments/gateways:list", () =>
+    request<GatewayConfigRecord[]>(API_ROUTES.paymentGateways),
+  );
 }
 
 export async function fetchGatewayConfig(
@@ -14959,6 +15024,12 @@ export type SubscriptionBillingStatusRecord = {
   daysRemainingInGrace: number;
   renewalUrl: string;
   billingEnabled: boolean;
+  autoBlockEnabled: boolean;
+  /** Effective access decision from the server's central policy. */
+  accessBlocked: boolean;
+  /** Latest renewal attempt status, or null when there has never been one. */
+  lastRenewalStatus: string | null;
+  lastRenewalAt: string | null;
   planFit?: SubscriptionPlanFitRecord | null;
 };
 
@@ -15043,7 +15114,11 @@ export async function fetchSubscriptionRenewalOrderStatus(orderId: string): Prom
 }
 
 export async function fetchKioskPayAccount(): Promise<KioskPayAccountRecord> {
-  return request<KioskPayAccountRecord>(API_ROUTES.paymentKioskPay);
+  // The desktop header, tablet header and more-sheet wallet each mount a chip;
+  // one shared request serves all of the copies.
+  return shareInflight("payments/kiosk-pay:account", () =>
+    request<KioskPayAccountRecord>(API_ROUTES.paymentKioskPay),
+  );
 }
 
 export async function updateKioskPayAccount(body: {
@@ -15129,7 +15204,11 @@ export type SmsCreditPurchaseStatusRecord = {
 };
 
 export async function fetchSmsCreditBalance(): Promise<SmsCreditBalanceRecord> {
-  return request<SmsCreditBalanceRecord>(API_ROUTES.smsCreditsBalance);
+  // Several header chips (desktop, tablet, more sheet, depleted banners) can be
+  // mounted at once; collapse their mount/visibility refreshes into one GET.
+  return shareInflight("sms-credits/balance", () =>
+    request<SmsCreditBalanceRecord>(API_ROUTES.smsCreditsBalance),
+  );
 }
 
 export async function fetchSmsCreditLedger(
@@ -15357,8 +15436,8 @@ export async function fetchAirtimeOrders(
 ): Promise<AirtimeOrderRecord[]> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (channel?.trim()) params.set("channel", channel.trim());
-  return request<AirtimeOrderRecord[]>(
-    `${API_ROUTES.airtime}/orders?${params}`,
+  return shareInflight(`airtime/orders:${limit}:${channel?.trim() ?? ""}`, () =>
+    request<AirtimeOrderRecord[]>(`${API_ROUTES.airtime}/orders?${params}`),
   );
 }
 
@@ -15378,7 +15457,9 @@ export async function fetchAirtimeOrder(
 }
 
 export async function fetchAirtimeSettings(): Promise<AirtimeSettingsRecord> {
-  return request<AirtimeSettingsRecord>(`${API_ROUTES.airtime}/settings`);
+  return shareInflight("airtime/settings", () =>
+    request<AirtimeSettingsRecord>(`${API_ROUTES.airtime}/settings`),
+  );
 }
 
 export async function updateAirtimeSettings(body: {
@@ -15399,6 +15480,13 @@ export type {
   ContactMessageReply,
   ContactReplyChannel,
 } from "@/lib/contact-messages";
+
+export async function fetchContactMessageUnreadCount(): Promise<number> {
+  const payload = await request<{ count?: number }>(
+    "/api/v1/contact-messages/unread-count",
+  );
+  return typeof payload?.count === "number" ? payload.count : 0;
+}
 
 export async function fetchContactMessages(opts?: {
   status?: "UNREAD" | "READ";
@@ -15971,7 +16059,11 @@ export type PayrollAutomationSettings = {
 };
 
 export async function fetchPayrollAutomation(): Promise<PayrollAutomationSettings> {
-  return request<PayrollAutomationSettings>(`${API_ROUTES.payroll}/automation`);
+  // The theatre mounts the automation panel in the desktop dossier and again in
+  // the mobile run block; both mount on first paint.
+  return shareInflight("payroll/automation", () =>
+    request<PayrollAutomationSettings>(`${API_ROUTES.payroll}/automation`),
+  );
 }
 
 export async function updatePayrollAutomation(

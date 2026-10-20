@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, LifeBuoy, MessageCircleQuestion, RotateCw, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowDown, Check, LifeBuoy, MessageCircleQuestion, RotateCw, Volume2, VolumeX, X } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   ChatMessageShape,
   ChatThreadSurface,
+  ChatThreadSkeleton,
   Composer,
   type ComposerReplyTarget,
   type ComposerSendPayload,
   DayDivider,
-  LiveStatusPill,
+  NewMessagesDivider,
   MessageBubble,
   PlatformAvatar,
   ResolvedBanner,
@@ -23,6 +24,7 @@ import {
   toReplyTarget,
 } from "@/components/support/support-chat-ui";
 import { Button } from "@/components/ui/button";
+import { newClientId } from "@/lib/client-id";
 import { getRealtimeClient, type RealtimeConnectionState, type RealtimeFrame } from "@/lib/realtime";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
@@ -127,6 +129,7 @@ export function SupportChat({
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState("");
+  const [syncError, setSyncError] = React.useState("");
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [statusBusy, setStatusBusy] = React.useState(false);
@@ -138,6 +141,7 @@ export function SupportChat({
   const [soundOn, setSoundOn] = React.useState(true);
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
+  const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setSoundOn(isSupportSoundEnabled());
@@ -146,6 +150,8 @@ export function SupportChat({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const stickToBottomRef = React.useRef(true);
   const seenIdsRef = React.useRef<Set<string>>(new Set());
+  /** Newest platform message we have already acknowledged with a read POST. */
+  const lastMarkedReadIdRef = React.useRef("");
   const typingTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const typingStopTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingActiveRef = React.useRef(false);
@@ -172,15 +178,40 @@ export function SupportChat({
         // Background sync: merge so optimistic rows and scroll position survive.
         setMessages((prev) => mergeByTimestamp(prev, (detail.messages ?? []).map(toLocalMessage)));
       } else {
+        const firstUnread = (detail.messages ?? []).find(
+          (m) => m.senderType === "SUPER_ADMIN" && !m.readAt,
+        );
+        setFirstUnreadId(firstUnread?.id ?? null);
         setMessages((detail.messages ?? []).map(toLocalMessage));
       }
       setLoadError("");
-      if (detail.conversation) {
-        // Opened the thread: mark our side read (server marks receipt ticks).
-        void markSupportConversationRead().catch(() => {});
+      setSyncError("");
+      // Only acknowledge what is actually unread, and only once per new
+      // platform message — the 5 s sync must not POST `read` on every tick.
+      const newestUnreadId =
+        (detail.messages ?? [])
+          .filter((m) => m.senderType === "SUPER_ADMIN" && !m.readAt)
+          .at(-1)?.id ?? "";
+      if (
+        detail.conversation &&
+        newestUnreadId &&
+        newestUnreadId !== lastMarkedReadIdRef.current
+      ) {
+        lastMarkedReadIdRef.current = newestUnreadId;
+        void markSupportConversationRead().catch(() => {
+          if (lastMarkedReadIdRef.current === newestUnreadId) {
+            lastMarkedReadIdRef.current = "";
+          }
+        });
       }
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Could not load the support chat.");
+      const message = e instanceof Error ? e.message : "Could not load the support chat.";
+      if (silent) {
+        // A background refresh failing must never replace a readable thread.
+        setSyncError(message);
+      } else {
+        setLoadError(message);
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -359,19 +390,25 @@ export function SupportChat({
 
   React.useEffect(() => () => stopTyping(), [stopTyping]);
 
-  // Always-on background sync: 5s keeps the thread fresh even if the socket is
-  // down (or a frame was dropped), and tab focus catches up instantly.
+  // Fallback sync: only poll while the socket is down. Tab focus still catches
+  // up on its own, and the listener above keeps the thread live when connected.
   React.useEffect(() => {
-    const timer = window.setInterval(() => void loadThread(true), 5000);
     const onVisible = () => {
       if (!document.hidden) void loadThread(true);
     };
     document.addEventListener("visibilitychange", onVisible);
+    const timer =
+      connectionState === "connected"
+        ? null
+        : window.setInterval(() => {
+            if (document.hidden) return;
+            void loadThread(true);
+          }, 5000);
     return () => {
-      window.clearInterval(timer);
+      if (timer != null) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [loadThread]);
+  }, [loadThread, connectionState]);
 
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
@@ -382,6 +419,9 @@ export function SupportChat({
         typeof payload === "string" ? null : payload.attachment ?? null;
       const replyToMessageId =
         typeof payload === "string" ? null : payload.replyToMessageId ?? replyTo?.messageId ?? null;
+      const clientMessageId =
+        (typeof payload === "string" ? null : payload.clientMessageId?.trim()) ||
+        newClientId();
       if ((!body && !file && !existingAttachment) || sending) return;
       stopTyping();
       setSending(true);
@@ -421,8 +461,12 @@ export function SupportChat({
         readAt: null,
         createdAt: new Date().toISOString(),
         pending: true,
+        localFile: file,
+        clientMessageId,
       };
       setMessages((prev) => [...prev, optimistic]);
+      let confirmed = false;
+      let uploadedAttachment = existingAttachment;
       try {
         let convId = conversationId;
         if ((file || existingAttachment) && !convId) {
@@ -436,8 +480,15 @@ export function SupportChat({
         if (file) {
           if (!convId) throw new Error("Could not open support thread for upload");
           attachment = await uploadSupportAttachmentToCloudinary(convId, file);
+          uploadedAttachment = attachment;
         }
-        const saved = await sendSupportMessage(body, attachment, replyToMessageId);
+        const saved = await sendSupportMessage(
+          body,
+          attachment,
+          replyToMessageId,
+          clientMessageId,
+        );
+        confirmed = true;
         seenIdsRef.current.add(saved.id);
         setMessages((prev) => {
           if (prev.some((m) => m.id === saved.id)) {
@@ -456,10 +507,22 @@ export function SupportChat({
         }
       } catch {
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)),
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  pending: false,
+                  failed: true,
+                  attachment: uploadedAttachment ?? m.attachment,
+                  localFile: file,
+                }
+              : m,
+          ),
         );
       } finally {
-        if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+        // Keep the local preview alive on failure so the retry row still shows
+        // the photo; revoke only once the server has the message.
+        if (localPreviewUrl && confirmed) URL.revokeObjectURL(localPreviewUrl);
         setSending(false);
       }
     },
@@ -470,6 +533,8 @@ export function SupportChat({
     setMessages((prev) => prev.filter((m) => m.id !== message.id));
     void send({
       body: message.body,
+      file: message.localFile ?? null,
+      clientMessageId: message.clientMessageId ?? null,
       attachment:
         message.attachment?.url && message.attachment.url !== "#"
           ? message.attachment
@@ -500,38 +565,65 @@ export function SupportChat({
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden bg-background",
+        "support-chat-theme support-chat-theme--platform flex h-full min-h-0 flex-1 flex-col overflow-hidden support-surface",
         isDrawer
-          ? "rounded-none border-0 shadow-none"
-          : "rounded-2xl border border-border/60 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.35)]",
+          ? "rounded-none border-0"
+          : "rounded-2xl border support-rule",
       )}
       aria-label="Support chat with Kiosk"
     >
       {/* Header */}
       <header
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border/50 px-4 py-3.5",
-          "bg-[linear-gradient(135deg,rgba(40,167,69,0.08)_0%,transparent_62%)]",
+          "support-chat-header flex shrink-0 items-center gap-3 border-b support-rule px-4 py-3",
           isDrawer && "pt-[max(0.875rem,env(safe-area-inset-top))]",
         )}
       >
         <div className="relative shrink-0">
-          <PlatformAvatar className="size-11" />
-          <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
+          <PlatformAvatar className="size-10" />
+          <span
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
+              connectionState === "connected"
+                ? "bg-emerald-500"
+                : connectionState === "connecting" ||
+                    connectionState === "reconnecting"
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground/40",
+            )}
+            aria-hidden
+          />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-[family-name:var(--font-heading)] text-[1.05rem] font-semibold tracking-tight text-foreground">
+          <p className="truncate text-[15px] font-semibold leading-tight tracking-[-0.01em] text-foreground">
             Kiosk Support
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[11.5px] text-muted-foreground">
             {theirTyping
               ? "Kiosk Support is typing…"
               : connectionState === "connected"
-                ? "Platform team · usually replies in minutes"
-                : "Live sync paused — messages still sync automatically"}
+                ? "Platform team"
+                : connectionState === "connecting" ||
+                    connectionState === "reconnecting"
+                  ? "Reconnecting…"
+                  : "Offline — messages still sync"}
           </p>
         </div>
-        <LiveStatusPill state={connectionState} className="hidden sm:inline-flex" />
+        {!resolved ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Resolve conversation"
+            title="Resolve conversation. A new message reopens it."
+            disabled={statusBusy}
+            onClick={() => void toggleStatus()}
+          >
+            <Check className="size-3.5" aria-hidden />
+            <span className="hidden sm:inline">Resolve</span>
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="ghost"
@@ -563,18 +655,36 @@ export function SupportChat({
 
       <ResolvedBanner resolved={resolved} onReopen={toggleStatus} busy={statusBusy} />
 
+      {syncError && !loading && !loadError ? (
+        <div
+          role="status"
+          className="flex shrink-0 items-center justify-center gap-2 border-b border-border/50 bg-amber-500/[0.06] px-3 py-1.5 text-[11px] text-muted-foreground"
+        >
+          <RotateCw className="size-3" aria-hidden />
+          <span>Showing the last synced messages — reconnecting…</span>
+          <button
+            type="button"
+            onClick={() => void loadThread(true)}
+            className="font-medium text-foreground underline-offset-2 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       {/* Messages */}
       <ChatThreadSurface>
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="h-full overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-5 sm:px-5"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation messages"
+          className="support-chat-scroll absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
         >
           {loading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              <span className="size-8 animate-pulse rounded-full bg-primary/15" aria-hidden />
-              Loading conversation…
-            </div>
+            <ChatThreadSkeleton />
           ) : loadError ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
               <p className="text-sm text-muted-foreground">{loadError}</p>
@@ -585,22 +695,23 @@ export function SupportChat({
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-5">
-              <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_28px_-14px_rgba(40,167,69,0.75)]">
-                <LifeBuoy className="size-7" aria-hidden />
+              <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <LifeBuoy className="size-6" aria-hidden />
               </div>
-              <p className="font-[family-name:var(--font-heading)] text-xl font-semibold tracking-tight text-foreground">
+              <p className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">
                 How can we help?
               </p>
-              <p className="mt-1.5 max-w-[18rem] text-center text-sm leading-relaxed text-muted-foreground">
-                Your direct line to the Kiosk team — setup, payments, your online store, or anything else.
+              <p className="mt-1.5 max-w-[22rem] text-center text-[13.5px] leading-relaxed text-muted-foreground">
+                A direct line to the Kiosk team for setup, payments, your online
+                store, or anything else.
               </p>
-              <div className="mt-6 flex w-full max-w-sm flex-col gap-2">
+              <div className="mt-5 flex w-full max-w-sm flex-col gap-1.5">
                 {QUICK_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
                     type="button"
                     onClick={() => void send(prompt)}
-                    className="group flex items-start gap-2.5 rounded-2xl border border-border/70 bg-card/90 px-3.5 py-3 text-left text-sm leading-snug text-foreground/80 shadow-sm transition-[border-color,background-color,transform] hover:border-primary/35 hover:bg-primary/[0.04] hover:text-foreground active:scale-[0.99]"
+                    className="flex items-start gap-2.5 rounded-xl border support-rule support-panel px-3.5 py-2.5 text-left text-[13.5px] leading-snug text-foreground transition-colors hover:bg-muted/40"
                   >
                     <MessageCircleQuestion
                       className="mt-0.5 size-4 shrink-0 text-primary"
@@ -612,7 +723,7 @@ export function SupportChat({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col">
+            <div className="mx-auto flex w-full max-w-[40rem] flex-col">
               {messages.map((message, index) => {
                 const mine = message.senderType === "TENANT";
                 const prev = messages[index - 1];
@@ -622,6 +733,7 @@ export function SupportChat({
                 return (
                   <React.Fragment key={message.id}>
                     {newDay ? <DayDivider iso={message.createdAt} /> : null}
+                    {message.id === firstUnreadId ? <NewMessagesDivider /> : null}
                     <div className={cluster.gapClass}>
                       <MessageBubble
                         message={message}
@@ -651,7 +763,7 @@ export function SupportChat({
           <button
             type="button"
             onClick={jumpToBottom}
-            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_8px_24px_-12px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-colors hover:bg-card"
+            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-[2px] border support-rule support-panel px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_12px_28px_-18px_rgba(18,26,22,0.45)] transition-colors hover:bg-[var(--conversation-paper,#f4f1ea)]"
           >
             <ArrowDown className="size-3.5" />
             {jumpCount > 1
@@ -662,7 +774,7 @@ export function SupportChat({
       </ChatThreadSurface>
 
       {/* Composer */}
-      <div className="min-w-0 shrink-0 overflow-hidden border-t border-border/50">
+      <div className="min-w-0 shrink-0 overflow-hidden border-t support-rule support-panel">
         <Composer
           value={draft}
           onChange={setDraft}

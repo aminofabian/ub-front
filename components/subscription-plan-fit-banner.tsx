@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  fetchSubscriptionBillingStatus,
-  type SubscriptionBillingStatusRecord,
-} from "@/lib/api";
+import { useSubscriptionBillingStatus } from "@/hooks/use-subscription-billing-status";
 import {
   formatLockInstant,
   planFitBody,
@@ -18,10 +16,10 @@ import {
   planFitSevere,
   planLockDeadline,
   remainingUntil,
-  isBillingAccessLocked,
 } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { resolveSubscriptionBanner } from "@/lib/subscription-banner";
 
 const DISMISS_KEY = "ub.planFit.dismissedTier";
 
@@ -130,9 +128,8 @@ function LockClock({
  * online plan lives under Settings → Desktop and the license card.
  */
 export function SubscriptionPlanFitBanner() {
-  const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
-    null,
-  );
+  const pathname = usePathname();
+  const { status } = useSubscriptionBillingStatus();
   const [dismissedTier, setDismissedTier] = useState<string | null>(null);
 
   useEffect(() => {
@@ -144,14 +141,6 @@ export function SubscriptionPlanFitBanner() {
     } catch {
       /* private mode */
     }
-    void (async () => {
-      try {
-        const row = await fetchSubscriptionBillingStatus();
-        if (!cancelled) setStatus(row);
-      } catch {
-        if (!cancelled) setStatus(null);
-      }
-    })();
     return () => {
       cancelled = true;
     };
@@ -160,26 +149,33 @@ export function SubscriptionPlanFitBanner() {
   if (IS_DESKTOP) {
     return null;
   }
+  if (pathname?.startsWith("/business/billing")) {
+    return null;
+  }
 
   const fit = status?.planFit;
   if (!status || !fit?.needsUpgrade) {
     return null;
   }
 
+  // The status banner owns expiry/grace/payment messages. Plan-fit only
+  // appears while the subscription itself is healthy.
   if (
-    isBillingAccessLocked({
-      status: status.status,
-      billingEnabled: status.billingEnabled,
-      graceEndsAt: status.graceEndsAt,
-      currentPeriodEnd: status.currentPeriodEnd,
-    })
+    status.status !== "ACTIVE" ||
+    status.accessBlocked
   ) {
     return null;
   }
 
+  // Keep the shell to a single subscription message: the status banner wins
+  // whenever it has something to say (blocked, grace, upcoming renewal, or a
+  // failed payment attempt).
+  if (resolveSubscriptionBanner(status)) {
+    return null;
+  }
+
   const recommendedKey = fit.recommendedTier ?? "negotiable";
-  const inGrace = status?.status === "GRACE";
-  if (dismissedTier === recommendedKey && !planFitSevere(fit) && !inGrace) {
+  if (dismissedTier === recommendedKey && !planFitSevere(fit)) {
     return null;
   }
 
@@ -223,7 +219,7 @@ export function SubscriptionPlanFitBanner() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:border-l sm:border-orange-950/10 sm:pl-5 dark:sm:border-orange-100/12">
-          {!severe && !inGrace ? (
+          {!severe ? (
             <Button
               type="button"
               size="sm"

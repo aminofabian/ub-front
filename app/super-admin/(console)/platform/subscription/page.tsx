@@ -205,6 +205,7 @@ export default function SuperAdminSubscriptionPage() {
     try {
       const updated = await updateSaSubscriptionSettings({
         billingEnabled: settings.billingEnabled,
+        autoBlockEnabled: settings.autoBlockEnabled,
         defaultGraceDays: settings.defaultGraceDays,
         renewalBaseUrl: settings.renewalBaseUrl,
         notificationCadenceDays: settings.notificationCadenceDays,
@@ -280,6 +281,11 @@ export default function SuperAdminSubscriptionPage() {
             Billing{" "}
             <span className="font-semibold">
               {settings?.billingEnabled ? "on" : "off"}
+            </span>
+            {" · "}
+            auto-block{" "}
+            <span className="font-semibold">
+              {settings?.autoBlockEnabled ? "on" : "off"}
             </span>
             {" · "}
             <span className="font-semibold tabular-nums">
@@ -369,6 +375,17 @@ export default function SuperAdminSubscriptionPage() {
             positive={dunning.billingEnabled}
             critical={!dunning.billingEnabled}
           />
+          <Metric
+            label="Expiry auto-block"
+            value={dunning.autoBlockEnabled ? "On" : "Off"}
+            hint={
+              dunning.autoBlockEnabled
+                ? "Expired shops are suspended"
+                : "Expired shops keep access + warnings"
+            }
+            positive={!dunning.autoBlockEnabled}
+            critical={dunning.autoBlockEnabled}
+          />
         </div>
       );
     }
@@ -391,6 +408,15 @@ export default function SuperAdminSubscriptionPage() {
             checked={settings.billingEnabled}
             onChange={(checked) =>
               setSettings({ ...settings, billingEnabled: checked })
+            }
+          />
+          <ToggleRow
+            id="subscription-auto-block-enabled"
+            label="Automatically block on expiry"
+            description="When off, expired subscriptions keep working and show a renewal warning. Manual tenant/user suspensions still apply."
+            checked={settings.autoBlockEnabled}
+            onChange={(checked) =>
+              setSettings({ ...settings, autoBlockEnabled: checked })
             }
           />
           <div className="grid gap-3 sm:grid-cols-2">

@@ -82,24 +82,13 @@ export function OrderPastOrdersDrawer({
     setLoading(true);
     const supplierFilter =
       scope === "supplier" && supplierId ? supplierId : undefined;
-    void Promise.all([
-      fetchPathAPurchaseOrders({
-        supplierId: supplierFilter,
-        status: "sent",
-      }),
-      fetchPathAPurchaseOrders({
-        supplierId: supplierFilter,
-        status: "draft",
-      }),
-      fetchPathAPurchaseOrders({
-        supplierId: supplierFilter,
-        status: "received",
-        toast: false,
-      }).catch(() => []),
-    ])
-      .then(([sent, draft, received]) => {
+    void fetchPathAPurchaseOrders({
+      supplierId: supplierFilter,
+      statuses: ["sent", "draft", "received"],
+    })
+      .then((rows) => {
         if (cancelled) return;
-        setRows(sortPastOrders([...sent, ...draft, ...received]));
+        setRows(sortPastOrders(rows));
       })
       .catch(() => {
         if (!cancelled) setRows([]);

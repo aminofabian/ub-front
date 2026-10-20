@@ -7,6 +7,7 @@ import { hasAccessSession } from "@/lib/auth";
 import { fetchPendingTillPrints, type BranchRecord } from "@/lib/api";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
+import { peekTillDeviceId } from "@/lib/till-device";
 import {
   announceTillSlip,
   deliverTillSlip,
@@ -114,10 +115,17 @@ export function CashierTillPrintListener() {
       void pullPending();
     };
 
-    void pullPending();
-    const timer = window.setInterval(() => {
+    // Only a device that actually acts as a till polls: an office browser on
+    // Settings or Inbox has nothing to print, and a hidden tab is not a till
+    // either. The live socket still delivers slips regardless.
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!peekTillDeviceId()) return;
       void pullPending();
-    }, 5_000);
+    };
+    void tick();
+    const timer = window.setInterval(tick, 5_000);
+    document.addEventListener("visibilitychange", tick);
 
     const client = getRealtimeClient();
     const unregister = client.registerListener("cashier-till-print", {
@@ -132,6 +140,7 @@ export function CashierTillPrintListener() {
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
       unregister();
     };
   }, [signedIn]);

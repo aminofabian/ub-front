@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import { fetchItemsPage } from "@/lib/api";
 import {
+  loadThemeSampleItems,
   pickTryOnProducts,
   type ThemeTryOnProduct,
 } from "@/lib/theme-try-on";
 
 /**
  * Up to three real catalogue items for theme door phones. Empty on failure
- * or an empty shelf — never invents SKUs. Same fetch the atelier uses.
+ * or an empty shelf — never invents SKUs. Shares the atelier's sample fetch.
  */
 export function useThemeTryOnProducts(options?: {
   currency?: string | null;
@@ -26,14 +26,10 @@ export function useThemeTryOnProducts(options?: {
       return;
     }
     let cancelled = false;
-    void fetchItemsPage(undefined, {
-      catalogScope: "SKUS_ONLY",
-      page: 0,
-      size: 24,
-    })
-      .then((page) => {
+    void loadThemeSampleItems()
+      .then((items) => {
         if (cancelled) return;
-        setProducts(pickTryOnProducts(page.content, currency));
+        setProducts(pickTryOnProducts(items, currency));
       })
       .catch(() => {
         if (cancelled) return;

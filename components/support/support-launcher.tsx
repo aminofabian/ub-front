@@ -117,13 +117,6 @@ export function SupportLauncher() {
               : "bg-primary shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
         )}
       >
-        {unread > 0 && !open ? (
-          <span
-            className="absolute inset-0 animate-ping rounded-full bg-primary opacity-30"
-            aria-hidden
-          />
-        ) : null}
-
         <Headset
           className={cn("size-6", open ? "rotate-90 transition-transform" : "")}
           aria-hidden
