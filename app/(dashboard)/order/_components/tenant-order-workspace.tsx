@@ -2718,14 +2718,24 @@ export function TenantOrderWorkspace({
                 links={visibleLinks}
                 cart={cart}
                 packByItemId={packByItemId}
+                priceByItemId={priceByItemId}
+                totalByItemId={totalOverrideByItemId}
                 onSetQty={setQty}
+                onSetPrice={setLinePrice}
+                onSetTotal={setLineTotal}
+                currency={currency}
               />
             ) : (
               <OrderProductShelf
                 links={visibleLinks}
                 cart={cart}
                 packByItemId={packByItemId}
+                priceByItemId={priceByItemId}
+                totalByItemId={totalOverrideByItemId}
                 onSetQty={setQty}
+                onSetPrice={setLinePrice}
+                onSetTotal={setLineTotal}
+                currency={currency}
               />
             )}
           </div>

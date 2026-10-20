@@ -171,8 +171,21 @@ function resolveActionUrl(
   return raw;
 }
 
+function normalizeMoneyInput(value: string): string {
+  const raw = value.trim();
+  // Treat a single comma followed by two digits as a decimal separator
+  // ("5,00" from a localised producer); otherwise drop thousands separators.
+  if (/^\d{1,3},\d{2}$/.test(raw)) {
+    return raw.replace(",", ".");
+  }
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)) {
+    return raw.replace(/,/g, "");
+  }
+  return raw;
+}
+
 function formatMoney(value: string, currency = "KES"): string {
-  const amount = Number(value);
+  const amount = Number(normalizeMoneyInput(value));
   if (!Number.isFinite(amount)) {
     return value;
   }
@@ -187,6 +200,57 @@ function formatMoney(value: string, currency = "KES"): string {
   }
 }
 
+function orderReference(payload: NotificationPayload): string {
+  const code =
+    readString(payload.orderCode) ||
+    readString(payload.order_code) ||
+    readString(payload.code) ||
+    readString(payload.reference);
+  if (code) {
+    return `#${code.replace(/^#/, "")}`;
+  }
+  const id = readString(payload.orderId) || readString(payload.order_id);
+  if (!id) {
+    return "";
+  }
+  const compact = id.replace(/-/g, "");
+  return compact ? `#${compact.slice(0, 8).toUpperCase()}` : "";
+}
+
+/** Collapse authored/legacy email copy into a notification-sized preview. */
+function cleanNotificationBody(raw: string): string {
+  let text = raw
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[`*_>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  text = text.replace(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+    (id) => `#${id.replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+  );
+  if (text.length > 180) {
+    const cut = text.slice(0, 177);
+    const lastSpace = cut.lastIndexOf(" ");
+    text = `${cut.slice(0, lastSpace > 120 ? lastSpace : 177).trimEnd()}…`;
+  }
+  return text;
+}
+
+function welcomePreview(payload: NotificationPayload | null): string {
+  const business = readString(payload?.businessName);
+  const phone = readString(payload?.supportPhone);
+  const email = readString(payload?.supportEmail);
+  const who = business || "Your shop";
+  const contact = phone
+    ? `call ${phone}`
+    : email
+      ? `email ${email}`
+      : "reply in Support";
+  return `${who} is ready. Setup, M-Pesa, storefront, and custom help are free — ${contact}.`;
+}
+
 function formatPayloadBody(
   type: string,
   payload: NotificationPayload | null,
@@ -199,7 +263,6 @@ function formatPayloadBody(
     case "storefront.order.placed": {
       const customerName = readString(payload.customerName);
       const total = readString(payload.total);
-      const orderId = readString(payload.orderId);
       const parts: string[] = [];
       if (customerName) {
         parts.push(customerName);
@@ -207,18 +270,17 @@ function formatPayloadBody(
       if (total) {
         parts.push(formatMoney(total));
       }
-      if (orderId) {
-        parts.push(`Order ${orderId}`);
+      const reference = orderReference(payload);
+      if (reference) {
+        parts.push(reference);
       }
       return parts.join(" · ");
     }
     case "order.received":
     case "order.payment_received":
-    case "storefront.order.placed":
     case "storefront.order.paid": {
       const customerName = readString(payload.customerName);
       const total = readString(payload.total);
-      const orderId = readString(payload.orderId);
       const currency = readString(payload.currency);
       const parts: string[] = [];
       if (customerName) {
@@ -229,8 +291,9 @@ function formatPayloadBody(
           currency ? `${formatMoney(total, currency)}` : total,
         );
       }
-      if (orderId) {
-        parts.push(`Order ${orderId}`);
+      const reference = orderReference(payload);
+      if (reference) {
+        parts.push(reference);
       }
       return parts.join(" · ");
     }
@@ -371,6 +434,25 @@ function formatPayloadBody(
   }
 }
 
+const STRUCTURED_NOTIFICATION_TYPES = new Set([
+  "storefront.order.placed",
+  "storefront.order.paid",
+  "order.received",
+  "order.payment_received",
+  "order.confirmed",
+  "order.dispatched",
+  "order.delivered",
+  "stock.low",
+  "batch.expiring",
+  "sales.daily_digest",
+  "inventory.restock_digest",
+  "export.completed",
+  "till.access_requested",
+  "profit_pocket.friday_reminder",
+  "drawout.approval_requested",
+  "drawout.recorded",
+]);
+
 /** Same-origin absolute URLs from email/SMS payloads become in-app paths. */
 export function toClientNavigationHref(actionUrl: string): string {
   const raw = actionUrl.trim();
@@ -404,10 +486,15 @@ export function getNotificationPresentation(data: NotificationPayload): {
     (notificationType
       ? TYPE_LABELS[notificationType] ?? humanizeType(notificationType)
       : "Notification");
+  const structured = STRUCTURED_NOTIFICATION_TYPES.has(notificationType)
+    ? formatPayloadBody(notificationType, payload)
+    : "";
+  const authored =
+    readString(data.body) || readString(payload?.body) || "";
   const body =
-    readString(data.body) ||
-    readString(payload?.body) ||
-    formatPayloadBody(notificationType, payload);
+    notificationType === "account.welcome"
+      ? cleanNotificationBody(welcomePreview(payload))
+      : cleanNotificationBody(structured || authored);
   const actionUrl = resolveActionUrl(notificationType, data, payload);
 
   return { title, body, actionUrl };

@@ -4,10 +4,21 @@ import Image from "next/image";
 import { Minus, Package, Plus } from "lucide-react";
 
 import type { SupplierItemLinkRecord } from "@/lib/api";
-import type { OrderCartPackMeta, OrderCartQty } from "@/lib/order-cart-storage";
+import type {
+  OrderCartPackMeta,
+  OrderCartPriceMeta,
+  OrderCartQty,
+} from "@/lib/order-cart-storage";
 import { orderLinkTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
+import {
+  orderLineAmount,
+  orderMoneyPrefix,
+  orderUnitPrice,
+  type OrderLinePack,
+} from "@/app/(dashboard)/order/_lib/order-line-money";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+import { OrderMoneyField } from "./order-money-field";
 import { OrderQtyField } from "./order-qty-field";
 
 const ORDER_CURRENCY = "KES";
@@ -19,18 +30,6 @@ function toNum(v: unknown): number {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
-}
-
-function packUnitPrice(
-  link: SupplierItemLinkRecord,
-  pack: { size: number; price?: number | null } | null,
-): number {
-  if (pack && pack.price != null && pack.price > 0) return pack.price;
-  return (
-    toNum(link.lastCostPrice) ||
-    toNum(link.defaultCostPrice) ||
-    toNum(link.catalogBuyingPrice)
-  );
 }
 
 function stockStatus(stock: number, reorder: number): {
@@ -47,31 +46,123 @@ function stockStatus(stock: number, reorder: number): {
   return { label: `${count} in stock`, tone: "ok" };
 }
 
+function PriceTicket({
+  amount,
+  prefix,
+  ariaLabel,
+  editable,
+  onCommit,
+  written,
+  packed,
+}: {
+  amount: number;
+  prefix: string;
+  ariaLabel: string;
+  editable: boolean;
+  onCommit?: (amount: number) => void;
+  written: boolean;
+  packed: boolean;
+}) {
+  if (!editable || !onCommit) {
+    return (
+      <p
+        className={cn(
+          "min-w-0 truncate text-[14px] font-semibold tabular-nums md:text-[13px]",
+          amount > 0
+            ? "text-[var(--order-ink,#121A16)]"
+            : "text-[var(--op-muted,#556159)]",
+        )}
+      >
+        {amount > 0 ? formatMoney(amount, ORDER_CURRENCY) : "No price"}
+        {packed && amount > 0 ? (
+          <span className="ml-1 text-[11px] font-medium text-[var(--op-muted,#556159)]">
+            / pack
+          </span>
+        ) : null}
+      </p>
+    );
+  }
+
+  return (
+    <label
+      className={cn(
+        "inline-flex h-11 w-full min-w-0 items-center gap-1 rounded-[2px] border bg-[var(--order-shelf,#FCFAF5)] px-1.5 md:h-8 md:max-w-[9.5rem] md:flex-1",
+        written
+          ? "border-[var(--pos-primary,#1D4B3B)]"
+          : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_14%,transparent)]",
+      )}
+    >
+      <span
+        className={cn(
+          "shrink-0 text-[10px] font-semibold",
+          written
+            ? "text-[var(--pos-primary,#1D4B3B)]"
+            : "text-[var(--op-muted,#556159)]",
+        )}
+      >
+        {prefix}
+      </span>
+      <OrderMoneyField
+        amount={amount}
+        onCommit={onCommit}
+        ariaLabel={ariaLabel}
+        placeholder="0"
+        className={cn(
+          "h-9 w-full text-[16px] md:h-7 md:text-[13px]",
+          written
+            ? "text-[var(--pos-primary,#1D4B3B)]"
+            : "text-[var(--order-ink,#121A16)]",
+        )}
+      />
+      {packed ? (
+        <span className="shrink-0 text-[10px] font-medium text-[var(--op-muted,#556159)]">
+          pk
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
 function OrderShelfTile({
   link,
   qty,
   pack,
+  priceOverride,
+  totalOverride,
+  currency,
   pickMode,
   picking,
   onAdd,
   onSetQty,
+  onSetPrice,
+  onSetTotal,
 }: {
   link: SupplierItemLinkRecord;
   qty: number;
-  pack: { size: number; price?: number | null } | null;
+  pack: OrderLinePack;
+  priceOverride: number | null;
+  totalOverride: number | null;
+  currency: string;
   pickMode: boolean;
   picking: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
+  onSetPrice?: (price: number) => void;
+  onSetTotal?: (total: number) => void;
 }) {
   const stock = toNum(link.currentStock);
   const reorder = toNum(link.reorderLevel);
   const packed = pack != null && pack.size > 1;
-  const cost = packUnitPrice(link, pack);
+  const cost = orderUnitPrice(link, pack, priceOverride);
+  const extension = orderLineAmount(cost, qty, totalOverride);
+  const prefix = orderMoneyPrefix(currency);
+  const written = priceOverride != null && priceOverride > 0;
+  const totalSet = totalOverride != null && totalOverride > 0;
   const thumb = posTileThumbUrl(link.itemName, link.thumbnailUrl);
   const { primary, option } = orderLinkTitleParts(link);
   const inCart = qty > 0;
   const hasPrice = cost > 0;
+  const canEdit = !pickMode && onSetPrice != null;
   const stockLine = stockStatus(stock, reorder);
 
   return (
@@ -79,11 +170,11 @@ function OrderShelfTile({
       className={cn(
         "group flex min-w-0 items-center gap-3 rounded-[2px] border bg-[var(--order-shelf,#FCFAF5)] p-2.5",
         "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]",
-        "md:h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0",
+        "md:h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:border-b-[3px] md:p-0",
         "transition-[border-color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
         inCart
-          ? "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_6%,var(--order-shelf,#FCFAF5))]"
-          : "hover:border-[color-mix(in_srgb,var(--order-ink,#121A16)_22%,transparent)]",
+          ? "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_6%,var(--order-shelf,#FCFAF5))] md:border-b-[var(--pos-primary,#1D4B3B)]"
+          : "hover:border-[color-mix(in_srgb,var(--order-ink,#121A16)_22%,transparent)] md:border-b-[color-mix(in_srgb,var(--order-ink,#121A16)_22%,transparent)]",
       )}
     >
       <button
@@ -144,29 +235,24 @@ function OrderShelfTile({
           ) : null}
         </div>
 
-        <div className="mt-1.5 md:mt-2 md:flex md:items-baseline md:justify-between md:gap-2">
+        <div className="mt-1.5 flex flex-col gap-1 md:mt-2 md:flex-row md:items-center md:justify-between md:gap-2">
+          <PriceTicket
+            amount={cost}
+            prefix={prefix}
+            ariaLabel={
+              packed ? `Pack price for ${primary}` : `Unit price for ${primary}`
+            }
+            editable={canEdit}
+            onCommit={onSetPrice}
+            written={written}
+            packed={packed}
+          />
           <p
             className={cn(
-              "min-w-0 truncate text-[14px] font-semibold tabular-nums md:text-[13px]",
-              hasPrice
-                ? "text-[var(--order-ink,#121A16)]"
-                : "text-[color-mix(in_srgb,var(--order-ink,#121A16)_42%,transparent)]",
-            )}
-          >
-            {hasPrice ? formatMoney(cost, ORDER_CURRENCY) : "No price"}
-            {packed && hasPrice ? (
-              <span className="ml-1 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#121A16)_48%,transparent)]">
-                / pack
-              </span>
-            ) : null}
-          </p>
-          <p
-            className={cn(
-              "mt-0.5 text-[12px] font-medium md:mt-0 md:shrink-0",
+              "shrink-0 text-[12px] font-medium",
               stockLine.tone === "out" && "text-[var(--op-highlight,#A55237)]",
               stockLine.tone === "low" && "text-[var(--op-highlight,#A55237)]",
-              stockLine.tone === "ok" &&
-                "text-[color-mix(in_srgb,var(--order-ink,#121A16)_55%,transparent)]",
+              stockLine.tone === "ok" && "text-[var(--op-muted,#556159)]",
             )}
           >
             {stockLine.label}
@@ -221,6 +307,41 @@ function OrderShelfTile({
             Add
           </button>
         )}
+
+        {inCart && !pickMode ? (
+          <div className="mt-2 hidden items-center justify-between gap-2 rounded-[2px] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,var(--order-shelf,#FCFAF5))] px-2 py-1.5 md:flex">
+            <p className="min-w-0 truncate text-[11px] font-medium tabular-nums text-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_78%,var(--order-ink,#121A16))]">
+              {qty} × {hasPrice ? formatMoney(cost, currency) : "no price"}
+            </p>
+            {onSetTotal ? (
+              <label className="inline-flex shrink-0 items-center gap-1">
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold",
+                    totalSet
+                      ? "text-[var(--pos-primary,#1D4B3B)]"
+                      : "text-[var(--op-muted,#556159)]",
+                  )}
+                >
+                  {prefix}
+                </span>
+                <OrderMoneyField
+                  amount={extension}
+                  onCommit={onSetTotal}
+                  ariaLabel={`Line total for ${primary}`}
+                  className={cn(
+                    "h-7 w-[4.75rem] text-[15px]",
+                    "text-[var(--pos-primary,#1D4B3B)]",
+                  )}
+                />
+              </label>
+            ) : (
+              <p className="shrink-0 font-mono text-[15px] font-semibold tabular-nums text-[var(--pos-primary,#1D4B3B)]">
+                {formatMoney(extension, currency)}
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <PhoneShelfControl
@@ -229,10 +350,13 @@ function OrderShelfTile({
         inCart={inCart}
         pickMode={pickMode}
         picking={picking}
-        hasPrice={hasPrice}
-        lineTotal={cost * qty}
+        extension={extension}
+        prefix={prefix}
+        currency={currency}
+        totalSet={totalSet}
         onAdd={onAdd}
         onSetQty={onSetQty}
+        onSetTotal={onSetTotal}
       />
     </article>
   );
@@ -244,20 +368,26 @@ function PhoneShelfControl({
   inCart,
   pickMode,
   picking,
-  hasPrice,
-  lineTotal,
+  extension,
+  prefix,
+  currency,
+  totalSet,
   onAdd,
   onSetQty,
+  onSetTotal,
 }: {
   primary: string;
   qty: number;
   inCart: boolean;
   pickMode: boolean;
   picking: boolean;
-  hasPrice: boolean;
-  lineTotal: number;
+  extension: number;
+  prefix: string;
+  currency: string;
+  totalSet: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
+  onSetTotal?: (total: number) => void;
 }) {
   if (pickMode || !inCart) {
     return (
@@ -302,9 +432,28 @@ function PhoneShelfControl({
           <Plus className="size-4" strokeWidth={2.25} aria-hidden />
         </button>
       </div>
-      {hasPrice ? (
+      {onSetTotal ? (
+        <label className="inline-flex items-center gap-1">
+          <span
+            className={cn(
+              "text-[10px] font-semibold",
+              totalSet
+                ? "text-[var(--pos-primary,#1D4B3B)]"
+                : "text-[var(--op-muted,#556159)]",
+            )}
+          >
+            {prefix}
+          </span>
+          <OrderMoneyField
+            amount={extension}
+            onCommit={onSetTotal}
+            ariaLabel={`Line total for ${primary}`}
+            className="h-8 w-[4.75rem] text-[16px] text-[var(--pos-primary,#1D4B3B)]"
+          />
+        </label>
+      ) : extension > 0 ? (
         <p className="text-[13px] font-semibold tabular-nums text-[var(--order-ink,#121A16)]">
-          {formatMoney(lineTotal, ORDER_CURRENCY)}
+          {formatMoney(extension, currency)}
         </p>
       ) : null}
     </div>
@@ -315,7 +464,16 @@ export type OrderProductShelfProps = {
   links: SupplierItemLinkRecord[];
   cart: OrderCartQty;
   packByItemId: OrderCartPackMeta;
+  /** Handwritten unit/pack prices for this order. */
+  priceByItemId?: OrderCartPriceMeta;
+  /** Snapped line totals. Wins over unit × qty. */
+  totalByItemId?: Record<string, number>;
   onSetQty: (itemId: string, qty: number) => void;
+  /** Rewrite the unit or pack price. Omit in pick-only lists. */
+  onSetPrice?: (itemId: string, price: number) => void;
+  /** Rewrite the line extension. Unit price follows. */
+  onSetTotal?: (itemId: string, total: number, qty: number) => void;
+  currency?: string;
   /** Pick mode: tap to add once (no qty stepper). */
   onPickItem?: (link: SupplierItemLinkRecord) => void;
   pickingItemId?: string | null;
@@ -325,29 +483,45 @@ export function OrderProductShelf({
   links,
   cart,
   packByItemId,
+  priceByItemId = {},
+  totalByItemId = {},
   onSetQty,
+  onSetPrice,
+  onSetTotal,
+  currency = ORDER_CURRENCY,
   onPickItem,
   pickingItemId = null,
 }: OrderProductShelfProps) {
   const pickMode = onPickItem != null;
 
   return (
-    <div className="flex flex-col gap-2 md:grid md:grid-cols-[repeat(2,minmax(0,1fr))] md:gap-2.5 lg:grid-cols-[repeat(3,minmax(0,1fr))] 2xl:grid-cols-[repeat(4,minmax(0,1fr))]">
+    <div className="flex flex-col gap-2 rounded-[2px] bg-[var(--op-panel,#EFEBE2)] p-2 md:grid md:grid-cols-[repeat(2,minmax(0,1fr))] md:gap-3 md:p-3 lg:grid-cols-[repeat(3,minmax(0,1fr))] 2xl:grid-cols-[repeat(4,minmax(0,1fr))]">
       {links.map((link) => {
         const qty = cart[link.itemId] ?? 0;
-        const pack = packByItemId[link.itemId] ?? null;
+        const pack = (packByItemId[link.itemId] ?? null) as OrderLinePack;
         return (
           <OrderShelfTile
             key={link.id}
             link={link}
             qty={qty}
             pack={pack}
+            priceOverride={priceByItemId[link.itemId] ?? null}
+            totalOverride={totalByItemId[link.itemId] ?? null}
+            currency={currency}
             pickMode={pickMode}
             picking={pickingItemId === link.itemId}
             onAdd={() =>
               pickMode ? onPickItem(link) : onSetQty(link.itemId, qty + 1)
             }
             onSetQty={(next) => onSetQty(link.itemId, next)}
+            onSetPrice={
+              onSetPrice ? (price) => onSetPrice(link.itemId, price) : undefined
+            }
+            onSetTotal={
+              onSetTotal
+                ? (total) => onSetTotal(link.itemId, total, qty)
+                : undefined
+            }
           />
         );
       })}

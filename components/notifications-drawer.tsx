@@ -150,7 +150,7 @@ export function NotificationsDrawer() {
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                 >
                   <CheckCheck className="size-3.5" aria-hidden />
                   Mark all read
@@ -323,7 +323,10 @@ export function NotificationsDrawer() {
                             </span>
                           </span>
                           {body ? (
-                            <span className="mt-0.5 block text-xs text-muted-foreground line-clamp-2">
+                            <span
+                              className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground"
+                              title={body}
+                            >
                               {body}
                             </span>
                           ) : null}
