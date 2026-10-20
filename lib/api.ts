@@ -3946,8 +3946,14 @@ export async function fetchBranches(): Promise<BranchRecord[]> {
   });
 }
 
-export async function createBranch(body: CreateBranchPayload): Promise<void> {
-  await request(API_ROUTES.branches, { method: "POST", body });
+export async function createBranch(
+  body: CreateBranchPayload,
+): Promise<BranchRecord> {
+  const payload = await request<unknown>(API_ROUTES.branches, {
+    method: "POST",
+    body,
+  });
+  return normalizeBranchRecord(payload as Record<string, unknown>);
 }
 
 export async function patchBranch(

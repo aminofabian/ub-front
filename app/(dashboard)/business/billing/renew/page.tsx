@@ -139,8 +139,8 @@ export default function BillingRenewPage() {
 
   return (
     <BusinessPageLayout
-      title="Plan that fits this shop"
-      description="We pick the cheapest published plan that covers your catalog and team."
+      title="Choose a package"
+      description="Pick the package you want. We highlight the plan that fits your catalog and team — the final choice is yours."
     >
       <div className="mx-auto max-w-2xl space-y-4">
         {fit?.needsUpgrade ? (
@@ -175,10 +175,18 @@ export default function BillingRenewPage() {
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" aria-hidden />
-              Reading this shop's usage…
+              Reading this shop’s usage…
             </div>
           ) : (
             <>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="font-heading text-base font-semibold tracking-tight text-foreground">
+                  Packages
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Switch any time · pay with M-Pesa
+                </p>
+              </div>
               {plans.length > 0 ? (
                 <div className="grid gap-2">
                   {plans.map((plan) => {

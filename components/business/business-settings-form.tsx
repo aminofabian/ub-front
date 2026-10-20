@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useRef,
@@ -34,7 +35,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
-  TIER_SUGGESTIONS,
   DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   DEFAULT_MORNING_STARTS_AT,
   DEFAULT_MORNING_ENDS_AT,
@@ -56,6 +56,7 @@ import { CurrentLookLink } from "@/components/business/branding-template-section
 import { FrontWindowLandingEditor } from "@/components/business/front-window-landing-editor";
 import { BrandPosterLandingEditor } from "@/components/business/brand-poster-landing-editor";
 import type { BranchRecord } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { SettingsTheatre } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
 import type { ShopSnapshotOverview } from "@/app/(dashboard)/business/settings/_components/settings-theatre";
 import { cn } from "@/lib/utils";
@@ -378,30 +379,31 @@ export function BusinessSettingsForm({
               />
             </div>
             <div className="space-y-1.5">
-              <label className={labelClass()} htmlFor="biz-tier">
-                Subscription tier
-              </label>
-              <input
-                id="biz-tier"
-                className={inputClass()}
-                list="tier-suggestions"
-                value={editable.subscriptionTier}
-                onChange={(event) =>
-                  setEditable((previous) => ({
-                    ...previous,
-                    subscriptionTier: event.target.value,
-                  }))
-                }
-                placeholder="starter"
-              />
-              <datalist id="tier-suggestions">
-                {TIER_SUGGESTIONS.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
+              <p className={labelClass()}>Current package</p>
+              <div className="flex h-8 items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-2.5 text-sm">
+                <span className="truncate font-medium capitalize text-foreground">
+                  {editable.subscriptionTier?.trim() || "starter"}
+                </span>
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Managed by billing
+                </span>
+              </div>
               <p className={hintClass()}>
-                Use a provisioned plan code, or pick a suggestion.
+                Pick the package you want and pay with M-Pesa. It updates here
+                automatically when payment lands.
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                asChild
+              >
+                <Link href={APP_ROUTES.billingRenew}>
+                  <Package className="size-3.5" aria-hidden />
+                  Choose a package
+                </Link>
+              </Button>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border/55 bg-muted/20 px-3 py-2">
               <div className="min-w-0">

@@ -26,6 +26,7 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
+import { ChoosePackageButton } from "@/components/billing/choose-package";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
 import { BusinessHubSkeleton } from "@/components/business-hub/business-hub-skeleton";
@@ -1555,6 +1556,7 @@ export function BusinessHubWorkspace() {
       }
       headerActions={
         <>
+          <ChoosePackageButton />
           <HubLiveStatus
             businessActive={business?.active !== false}
             lastLiveUpdateAt={lastLiveUpdateAt}

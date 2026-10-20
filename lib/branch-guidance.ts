@@ -30,9 +30,9 @@ export function focusVisibleBranchSelect(): boolean {
   if (typeof document === "undefined") {
     return false;
   }
-  const nodes = document.querySelectorAll<HTMLSelectElement>(
-    "select[data-shell-branch-select]",
-  );
+  const nodes = document.querySelectorAll<
+    HTMLElement & { disabled?: boolean }
+  >("[data-shell-branch-select]");
   for (const el of nodes) {
     if (el.disabled || el.getClientRects().length === 0) {
       continue;

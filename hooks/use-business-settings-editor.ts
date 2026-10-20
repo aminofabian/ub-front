@@ -364,7 +364,6 @@ export function useBusinessSettingsEditor() {
         const body: PatchBusinessPayload = {};
         if (includeProfile) {
           body.name = editable.name;
-          body.subscriptionTier = editable.subscriptionTier;
           body.active = editable.active;
         }
 

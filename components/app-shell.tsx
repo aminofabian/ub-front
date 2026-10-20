@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { BranchSwitcher } from "@/components/branches/branch-switcher";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { SubscriptionGraceBanner } from "@/components/subscription-grace-banner";
@@ -87,7 +88,10 @@ import {
   BUTCHER_POS_FEATURE_FLAG,
   isButcherPosEnabled,
 } from "@/lib/butcher-feature";
-import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
+import {
+  logoutRemoteAndRedirectToLogin,
+  type BranchRecord,
+} from "@/lib/api";
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -1090,6 +1094,7 @@ export function AppShell({ children }: AppShellProps) {
     branchId,
     setBranchId,
     branchesLoading,
+    refreshBranches,
     itemTypes,
     itemTypeId,
     setItemTypeId,
@@ -1692,6 +1697,10 @@ export function AppShell({ children }: AppShellProps) {
 
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
+  const handleBranchCreated = async (branch: BranchRecord) => {
+    await refreshBranches();
+    setBranchId(branch.id);
+  };
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
   const { activeAisles, showUnassignedOption, departmentScoped } =
     useHeaderShelfZoneOptions(aisles, itemTypeId);
@@ -1910,32 +1919,16 @@ export function AppShell({ children }: AppShellProps) {
                   {currentBranch.name}
                 </span>
               ) : null
-            ) : multiBranch ? (
-              <select
-                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                disabled={branchesLoading || branches.length === 0}
-                aria-label="Select branch"
-                data-shell-branch-select=""
-              >
-                {branches.length === 0 ? (
-                  <option value="">
-                    {branchesLoading ? "Loading…" : "No branches"}
-                  </option>
-                ) : (
-                  <>
-                    {!branchId ? (
-                      <option value="">Select branch…</option>
-                    ) : null}
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+            ) : multiBranch ||
+              (canManageBusinessSettings && branches.length === 0) ? (
+              <BranchSwitcher
+                branches={branches}
+                branchId={branchId}
+                onChange={setBranchId}
+                loading={branchesLoading}
+                canManage={canManageBusinessSettings}
+                onCreated={handleBranchCreated}
+              />
             ) : currentBranch ? (
               <span className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30">
                 <MapPin className="size-3.5" aria-hidden />
@@ -2140,8 +2133,11 @@ export function AppShell({ children }: AppShellProps) {
               !isCashier &&
               !isButcherCashier &&
               !isGroceryClerk &&
-              multiBranch
+              (multiBranch ||
+                (canManageBusinessSettings && branches.length === 0))
             }
+            canManageBranches={canManageBusinessSettings}
+            onBranchCreated={handleBranchCreated}
             itemTypes={itemTypes}
             itemTypeId={itemTypeId}
             itemTypesLoading={itemTypesLoading}

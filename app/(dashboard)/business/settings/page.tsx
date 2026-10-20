@@ -9,6 +9,7 @@ import {
   Globe,
   LayoutTemplate,
   MessageCircle,
+  Package,
   Palette,
   RefreshCw,
   Settings2,
@@ -106,6 +107,13 @@ export default function BusinessSettingsPage() {
         label: "Payments",
         hint: "Where customers pay",
         icon: CreditCard,
+        group: "Money",
+      },
+      {
+        href: APP_ROUTES.billingRenew,
+        label: "Plan & billing",
+        hint: "Choose a package",
+        icon: Package,
         group: "Money",
       },
       {

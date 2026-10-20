@@ -24,7 +24,9 @@ import {
 } from "lucide-react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { BranchSwitcher } from "@/components/branches/branch-switcher";
 import { NotificationBell } from "@/components/notification-bell";
+import type { BranchRecord } from "@/lib/api";
 import {
   SHELL_WORKSPACE_BY_HREF,
   type ShellWorkspaceId,
@@ -575,11 +577,13 @@ type TabletMoreSheetProps = {
   pathname: string;
   branchName?: string | null;
   branchLocked: boolean;
-  branches: { id: string; name: string }[];
+  branches: readonly BranchRecord[];
   branchId: string;
   branchesLoading: boolean;
   onBranchChange: (id: string) => void;
   showBranchPicker: boolean;
+  canManageBranches?: boolean;
+  onBranchCreated?: (branch: BranchRecord) => void | Promise<void>;
   itemTypes: { id: string; label: string; isDefault?: boolean }[];
   itemTypeId: string;
   itemTypesLoading: boolean;
@@ -674,6 +678,8 @@ function MoreWorkspaceConsole({
   branchesLoading,
   onBranchChange,
   showBranchPicker,
+  canManageBranches = false,
+  onBranchCreated,
   itemTypes,
   itemTypeId,
   itemTypesLoading,
@@ -689,11 +695,13 @@ function MoreWorkspaceConsole({
   accent: string;
   branchName?: string | null;
   branchLocked: boolean;
-  branches: { id: string; name: string }[];
+  branches: readonly BranchRecord[];
   branchId: string;
   branchesLoading: boolean;
   onBranchChange: (id: string) => void;
   showBranchPicker: boolean;
+  canManageBranches?: boolean;
+  onBranchCreated?: (branch: BranchRecord) => void | Promise<void>;
   itemTypes: { id: string; label: string; isDefault?: boolean }[];
   itemTypeId: string;
   itemTypesLoading: boolean;
@@ -734,39 +742,15 @@ function MoreWorkspaceConsole({
             Branch
           </label>
           {showBranchPicker ? (
-            <div className="relative">
-              <MapPin
-                className="pointer-events-none absolute left-0 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pos-primary,#1D4B3B)]"
-                aria-hidden
-              />
-              <select
-                className={cn(field, "pl-5")}
-                value={branchId}
-                onChange={(e) => onBranchChange(e.target.value)}
-                disabled={branchesLoading || branches.length === 0}
-                aria-label="Select branch"
-                data-shell-branch-select=""
-              >
-                {branches.length === 0 ? (
-                  <option value="">
-                    {branchesLoading ? "Loading…" : "No branches"}
-                  </option>
-                ) : (
-                  <>
-                    {!branchId ? <option value="">Select branch…</option> : null}
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-              <ChevronDown
-                className="pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]"
-                aria-hidden
-              />
-            </div>
+            <BranchSwitcher
+              variant="inline"
+              branches={branches}
+              branchId={branchId}
+              onChange={onBranchChange}
+              loading={branchesLoading}
+              canManage={canManageBranches}
+              onCreated={onBranchCreated}
+            />
           ) : branchName ? (
             <p className="flex items-center gap-2 py-2.5 text-[13px] font-medium text-[var(--order-ink,#15231f)]">
               {branchLocked ? (
@@ -894,6 +878,8 @@ export function TabletMoreSheet({
   branchesLoading,
   onBranchChange,
   showBranchPicker,
+  canManageBranches = false,
+  onBranchCreated,
   itemTypes,
   itemTypeId,
   itemTypesLoading,
@@ -1274,6 +1260,8 @@ export function TabletMoreSheet({
           branchesLoading={branchesLoading}
           onBranchChange={onBranchChange}
           showBranchPicker={showBranchPicker}
+          canManageBranches={canManageBranches}
+          onBranchCreated={onBranchCreated}
           itemTypes={itemTypes}
           itemTypeId={itemTypeId}
           itemTypesLoading={itemTypesLoading}
