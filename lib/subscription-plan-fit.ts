@@ -5,6 +5,18 @@ export function formatPlanCount(value: number): string {
   return value.toLocaleString("en-US");
 }
 
+export function formatPlanMoney(value: number): string {
+  return `KES ${Math.round(value).toLocaleString("en-US")}`;
+}
+
+/** Packages only move up: a lower sort order is a downgrade. */
+export function isPlanDowngrade(
+  planSortOrder: number,
+  currentSortOrder: number | null,
+): boolean {
+  return currentSortOrder != null && planSortOrder < currentSortOrder;
+}
+
 export function planFitHref(fit: SubscriptionPlanFitRecord): string {
   if (fit.talkToUs || fit.negotiable) {
     return APP_ROUTES.support;
@@ -45,7 +57,10 @@ export function planFitBody(
   if (fit.overUserLimit && fit.userLimit != null) {
     return `${formatPlanCount(fit.userCount)} people on a ${formatPlanCount(fit.userLimit)}-person ${currentName} team.`;
   }
-  return "Usage is above this plan. Upgrade to keep adding products and staff.";
+  if (fit.overDailyRevenueLimit && fit.dailyRevenueLimit != null) {
+    return `${formatPlanMoney(fit.dailyRevenueKes)} average daily sales on a ${formatPlanMoney(fit.dailyRevenueLimit)}/day ${currentName} cap.`;
+  }
+  return "Usage is above this plan. Upgrade to keep adding products, people, and daily sales.";
 }
 
 export function planFitCta(fit: SubscriptionPlanFitRecord): string {
@@ -58,13 +73,22 @@ export function planFitCta(fit: SubscriptionPlanFitRecord): string {
 
 export function planFitSevere(fit: SubscriptionPlanFitRecord): boolean {
   if (fit.negotiable) return true;
+  let hasCap = false;
+  let severe = false;
   if (fit.productLimit != null && fit.productLimit > 0) {
-    return fit.productCount >= fit.productLimit * 2;
+    hasCap = true;
+    severe = severe || fit.productCount >= fit.productLimit * 2;
   }
   if (fit.userLimit != null && fit.userLimit > 0) {
-    return fit.userCount >= fit.userLimit * 2;
+    hasCap = true;
+    severe = severe || fit.userCount >= fit.userLimit * 2;
   }
-  return fit.overProductLimit || fit.overUserLimit;
+  if (fit.dailyRevenueLimit != null && fit.dailyRevenueLimit > 0) {
+    hasCap = true;
+    severe = severe || fit.dailyRevenueKes >= fit.dailyRevenueLimit * 2;
+  }
+  if (hasCap) return severe;
+  return fit.overProductLimit || fit.overUserLimit || fit.overDailyRevenueLimit;
 }
 
 /** Scope default: 15 days of full access after the paid period ends. */
@@ -209,8 +233,11 @@ export function planFitsUsage(
   userLimit: number | null,
   productCount: number,
   userCount: number,
+  dailyRevenueLimit: number | null = null,
+  dailyRevenue = 0,
 ): boolean {
   if (productLimit != null && productCount > productLimit) return false;
   if (userLimit != null && userCount > userLimit) return false;
+  if (dailyRevenueLimit != null && dailyRevenue > dailyRevenueLimit) return false;
   return true;
 }

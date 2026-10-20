@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   BillingPeriodToggle,
@@ -25,7 +25,12 @@ import {
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { formatPlanCount, planFitsUsage } from "@/lib/subscription-plan-fit";
+import {
+  formatPlanCount,
+  formatPlanMoney,
+  isPlanDowngrade,
+  planFitsUsage,
+} from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 
 type BillingPeriod = 1 | 12;
@@ -50,11 +55,18 @@ export default function BillingRenewPage() {
   const fit = status?.planFit ?? null;
   const productCount = fit?.productCount ?? 0;
   const userCount = fit?.userCount ?? 0;
+  const dailyRevenue = fit?.dailyRevenueKes ?? 0;
+  const currentTier = status?.tier?.trim().toLowerCase() ?? "";
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p.tierCode === selectedTier) ?? null,
     [plans, selectedTier],
   );
+  const currentPlan = useMemo(
+    () => plans.find((p) => p.tierCode === currentTier) ?? null,
+    [plans, currentTier],
+  );
+  const currentSortOrder = currentPlan?.sortOrder ?? null;
 
   const selectedFits = selectedPlan
     ? planFitsUsage(
@@ -62,13 +74,21 @@ export default function BillingRenewPage() {
         selectedPlan.cashierLimit,
         productCount,
         userCount,
+        selectedPlan.dailyRevenueLimitKes,
+        dailyRevenue,
       )
     : false;
+  const selectedDowngrade = selectedPlan
+    ? isPlanDowngrade(selectedPlan.sortOrder, currentSortOrder)
+    : false;
+  const selectedCustomEnterprise =
+    selectedPlan?.tierCode === "enterprise" &&
+    selectedPlan.monthlyPriceKes <= 0;
 
   const talkToUs =
     Boolean(fit?.negotiable) ||
-    selectedPlan?.tierCode === "enterprise" ||
-    selectedPlan?.tierCode === "free";
+    selectedPlan?.tierCode === "free" ||
+    selectedCustomEnterprise;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,18 +105,25 @@ export default function BillingRenewPage() {
           hasPermission(me.permissions, Permission.BusinessManageSubscription),
         );
         setStatus(billing);
-        setPlans(catalogue.filter((p) => p.active));
+        const active = catalogue
+          .filter((p) => p.active)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+        setPlans(active);
         const recommended = billing.planFit?.recommendedTier
           ?.trim()
           .toLowerCase();
         const current = billing.tier?.trim().toLowerCase();
+        const currentRow = active.find((p) => p.tierCode === current);
+        const requestedRow = active.find((p) => p.tierCode === requestedTier);
+        const requestedAllowed =
+          requestedRow != null &&
+          (currentRow == null ||
+            !isPlanDowngrade(requestedRow.sortOrder, currentRow.sortOrder));
         const next =
-          (requestedTier &&
-            catalogue.some((p) => p.tierCode === requestedTier) &&
-            requestedTier) ||
+          (requestedAllowed ? requestedTier : "") ||
           recommended ||
           current ||
-          catalogue[0]?.tierCode ||
+          active[0]?.tierCode ||
           "";
         setSelectedTier(next);
       } catch {
@@ -113,26 +140,38 @@ export default function BillingRenewPage() {
     };
   }, [requestedTier]);
 
-  const loadQuote = useCallback(async (tier: string, months: BillingPeriod) => {
-    if (!tier || tier === "free" || tier === "enterprise") {
+  useEffect(() => {
+    if (
+      !selectedTier ||
+      selectedDowngrade ||
+      selectedPlan?.tierCode === "free" ||
+      selectedCustomEnterprise
+    ) {
       setQuote(null);
       return;
     }
+    let cancelled = false;
     setQuoteLoading(true);
-    try {
-      const q = await fetchSubscriptionRenewalQuote(months, tier);
-      setQuote(q);
-    } catch {
-      setQuote(null);
-    } finally {
-      setQuoteLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!selectedTier) return;
-    void loadQuote(selectedTier, periodMonths);
-  }, [loadQuote, selectedTier, periodMonths]);
+    void fetchSubscriptionRenewalQuote(periodMonths, selectedTier)
+      .then((next) => {
+        if (!cancelled) setQuote(next);
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null);
+      })
+      .finally(() => {
+        if (!cancelled) setQuoteLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedTier,
+    selectedDowngrade,
+    selectedPlan,
+    selectedCustomEnterprise,
+    periodMonths,
+  ]);
 
   const currentName =
     status?.tierDisplayName?.trim() || status?.tier || "this plan";
@@ -140,7 +179,7 @@ export default function BillingRenewPage() {
   return (
     <BusinessPageLayout
       title="Choose a package"
-      description="Pick the package you want. We highlight the plan that fits your catalog and team — the final choice is yours."
+      description="Pick a bigger package and pay with M-Pesa. We highlight the one that fits your catalog, team, and daily sales — packages only move up."
     >
       <div className="mx-auto max-w-2xl space-y-4">
         {fit?.needsUpgrade ? (
@@ -154,7 +193,7 @@ export default function BillingRenewPage() {
                   "Usage is above this plan. Choose the plan that matches the shelf you already run."}
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <BillingUsageMeter
                 label="Products"
                 used={fit.productCount}
@@ -166,6 +205,12 @@ export default function BillingRenewPage() {
                 used={fit.userCount}
                 limit={fit.userLimit}
                 unit="people"
+              />
+              <BillingUsageMeter
+                label="Daily sales (KES)"
+                used={Math.round(fit.dailyRevenueKes ?? 0)}
+                limit={fit.dailyRevenueLimit}
+                unit="KES/day"
               />
             </div>
           </BillingSurface>
@@ -195,17 +240,32 @@ export default function BillingRenewPage() {
                       plan.cashierLimit,
                       productCount,
                       userCount,
+                      plan.dailyRevenueLimitKes,
+                      dailyRevenue,
                     );
                     const isCurrent =
                       plan.tierCode === status?.tier?.trim().toLowerCase();
                     const isRecommended =
                       plan.tierCode === fit?.recommendedTier;
                     const selected = plan.tierCode === selectedTier;
+                    const downgrade = isPlanDowngrade(
+                      plan.sortOrder,
+                      currentSortOrder,
+                    );
+                    const upgrade =
+                      currentSortOrder != null &&
+                      plan.sortOrder > currentSortOrder;
+                    const customEnterprise =
+                      plan.tierCode === "enterprise" &&
+                      plan.monthlyPriceKes <= 0;
                     return (
                       <button
                         key={plan.tierCode}
                         type="button"
-                        disabled={!fits && plan.tierCode !== "enterprise"}
+                        disabled={
+                          downgrade ||
+                          (!fits && plan.tierCode !== "enterprise")
+                        }
                         onClick={() => setSelectedTier(plan.tierCode)}
                         className={cn(
                           "flex w-full items-start justify-between gap-3 rounded-none border px-4 py-3 text-left transition-colors",
@@ -223,9 +283,19 @@ export default function BillingRenewPage() {
                                 Current
                               </span>
                             ) : null}
-                            {isRecommended && !isCurrent ? (
+                            {downgrade ? (
+                              <span className="ml-2 text-xs font-medium text-muted-foreground">
+                                Lower package
+                              </span>
+                            ) : null}
+                            {isRecommended && !isCurrent && !downgrade ? (
                               <span className="ml-2 text-xs font-medium text-primary">
                                 Fits this shop
+                              </span>
+                            ) : null}
+                            {upgrade ? (
+                              <span className="ml-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                Upgrade
                               </span>
                             ) : null}
                           </p>
@@ -237,8 +307,16 @@ export default function BillingRenewPage() {
                             {plan.cashierLimit == null
                               ? "Unlimited people"
                               : `${formatPlanCount(plan.cashierLimit)} ${plan.cashierLimit === 1 ? "person" : "people"}`}
+                            {" · "}
+                            {plan.dailyRevenueLimitKes == null
+                              ? "unlimited daily sales"
+                              : `${formatPlanMoney(plan.dailyRevenueLimitKes)}/day`}
                           </p>
-                          {!fits && plan.tierCode !== "enterprise" ? (
+                          {downgrade ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Downgrades are not available — talk to us.
+                            </p>
+                          ) : !fits && plan.tierCode !== "enterprise" ? (
                             <p className="mt-1 text-xs text-red-700 dark:text-red-300">
                               Too small for this shop
                             </p>
@@ -247,11 +325,11 @@ export default function BillingRenewPage() {
                         <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
                           {plan.tierCode === "free"
                             ? "Free"
-                            : plan.tierCode === "enterprise"
+                            : customEnterprise
                               ? "Custom"
                               : formatBillingMoney(plan.monthlyPriceKes)}
                           {plan.tierCode !== "free" &&
-                          plan.tierCode !== "enterprise" ? (
+                          !customEnterprise ? (
                             <span className="block text-right text-[11px] font-medium text-muted-foreground">
                               / mo
                             </span>
@@ -267,6 +345,12 @@ export default function BillingRenewPage() {
                 </p>
               )}
 
+              <p className="rounded-none border border-border/50 bg-muted/10 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                Packages only move up. Lower packages stay visible so you can
+                see what this shop has outgrown — talk to us if you need a
+                downgrade.
+              </p>
+
               {selectedPlan && !talkToUs ? (
                 <BillingPeriodToggle
                   value={periodMonths}
@@ -274,12 +358,21 @@ export default function BillingRenewPage() {
                 />
               ) : null}
 
-              {talkToUs && selectedPlan ? (
+              {selectedDowngrade ? (
+                <p className="text-sm text-muted-foreground">
+                  Packages only move up. You cannot switch to a lower package —
+                  talk to us if you need to.
+                </p>
+              ) : talkToUs && selectedPlan ? (
                 <div className="space-y-3 rounded-none border border-border/60 bg-muted/15 px-4 py-4">
                   <p className="text-sm leading-relaxed text-foreground">
                     {selectedPlan.tierCode === "free"
-                      ? "Free does not cover this shop. Pick a paid plan that fits, or talk to us if you need a custom quote."
-                      : "This shop is past self-serve plans. We will quote Enterprise around what you already run."}
+                      ? currentTier === "free"
+                        ? "You're on Free. Pick a paid package above to upgrade — lower packages aren't available."
+                        : "Free does not cover this shop. Pick a paid plan that fits, or talk to us if you need a custom quote."
+                      : selectedCustomEnterprise
+                        ? "Enterprise is quoted around what this shop already runs. Talk to us and we will build the package."
+                        : "This shop is past self-serve plans. We will quote Enterprise around what you already run."}
                   </p>
                   <Button
                     type="button"

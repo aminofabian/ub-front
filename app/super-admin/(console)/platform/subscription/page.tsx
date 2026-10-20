@@ -228,6 +228,10 @@ export default function SuperAdminSubscriptionPage() {
         monthlyPriceKes: plan.monthlyPriceKes,
         annualPriceKes: plan.annualPriceKes,
         graceDays: plan.graceDays,
+        // -1 clears a cap back to unlimited; the backend maps it to null.
+        productLimit: plan.productLimit ?? -1,
+        cashierLimit: plan.cashierLimit ?? -1,
+        dailyRevenueLimitKes: plan.dailyRevenueLimitKes ?? -1,
         active: plan.active,
       });
       setPlans(updated);
@@ -472,8 +476,9 @@ export default function SuperAdminSubscriptionPage() {
       return (
         <div className="space-y-3">
           <p className={dashboardHintClass()}>
-            Monthly and annual pricing. Annual defaults to pay 10, get 12 when
-            left blank.
+            Monthly and annual pricing plus the caps that decide which package
+            a shop can choose. Annual defaults to pay 10, get 12 when left
+            blank; a blank cap means unlimited.
           </p>
           {plans.map((plan) => {
             const annualHint =
@@ -584,6 +589,72 @@ export default function SuperAdminSubscriptionPage() {
                             ? {
                                 ...r,
                                 graceDays: Number(e.target.value) || 15,
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    className={dashboardInputClass()}
+                    placeholder="Product cap (blank = unlimited)"
+                    value={plan.productLimit ?? ""}
+                    onChange={(e) =>
+                      setPlans((rows) =>
+                        rows.map((r) =>
+                          r.tierCode === plan.tierCode
+                            ? {
+                                ...r,
+                                productLimit:
+                                  e.target.value === ""
+                                    ? null
+                                    : Number(e.target.value) || 0,
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    className={dashboardInputClass()}
+                    placeholder="People cap (blank = unlimited)"
+                    value={plan.cashierLimit ?? ""}
+                    onChange={(e) =>
+                      setPlans((rows) =>
+                        rows.map((r) =>
+                          r.tierCode === plan.tierCode
+                            ? {
+                                ...r,
+                                cashierLimit:
+                                  e.target.value === ""
+                                    ? null
+                                    : Number(e.target.value) || 0,
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    className={dashboardInputClass()}
+                    placeholder="Daily sales cap KES (blank = unlimited)"
+                    value={plan.dailyRevenueLimitKes ?? ""}
+                    onChange={(e) =>
+                      setPlans((rows) =>
+                        rows.map((r) =>
+                          r.tierCode === plan.tierCode
+                            ? {
+                                ...r,
+                                dailyRevenueLimitKes:
+                                  e.target.value === ""
+                                    ? null
+                                    : Number(e.target.value) || 0,
                               }
                             : r,
                         ),

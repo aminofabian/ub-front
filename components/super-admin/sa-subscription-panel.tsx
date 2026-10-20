@@ -200,6 +200,9 @@ export function SaSubscriptionPanel({
                   <option key={p.tierCode} value={p.tierCode}>
                     {p.displayName}
                     {p.productLimit != null ? ` · ${p.productLimit.toLocaleString()} products` : ""}
+                    {p.dailyRevenueLimitKes != null
+                      ? ` · KES ${p.dailyRevenueLimitKes.toLocaleString()}/day`
+                      : ""}
                   </option>
                 ))}
                 {tier && !plans.some((p) => p.tierCode === tier) ? (

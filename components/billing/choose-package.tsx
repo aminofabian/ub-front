@@ -31,7 +31,7 @@ import {
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
-import { formatPlanCount, planFitsUsage } from "@/lib/subscription-plan-fit";
+import { formatPlanCount, formatPlanMoney, isPlanDowngrade, planFitsUsage } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 
 type BillingPeriod = 1 | 12;
@@ -52,7 +52,7 @@ function planPrice(
   months: BillingPeriod,
 ): { amount: string; suffix: string | null } {
   if (plan.tierCode === "free") return { amount: "Free", suffix: null };
-  if (plan.tierCode === "enterprise") {
+  if (plan.tierCode === "enterprise" && plan.monthlyPriceKes <= 0) {
     return { amount: "Custom", suffix: null };
   }
   const amount =
@@ -76,7 +76,11 @@ function planLimits(plan: SubscriptionPlanRecord): string {
       : `${formatPlanCount(plan.cashierLimit)} ${
           plan.cashierLimit === 1 ? "person" : "people"
         }`;
-  return `${products} · ${people}`;
+  const revenue =
+    plan.dailyRevenueLimitKes == null
+      ? "unlimited daily sales"
+      : `${formatPlanMoney(plan.dailyRevenueLimitKes)}/day`;
+  return `${products} · ${people} · ${revenue}`;
 }
 
 const STATUS_COPY: Record<
@@ -103,6 +107,8 @@ function PackageCard({
   selected,
   current,
   recommended,
+  upgrade,
+  downgrade,
   fits,
   onSelect,
 }: {
@@ -111,11 +117,13 @@ function PackageCard({
   selected: boolean;
   current: boolean;
   recommended: boolean;
+  upgrade: boolean;
+  downgrade: boolean;
   fits: boolean;
   onSelect: () => void;
 }) {
   const price = planPrice(plan, periodMonths);
-  const disabled = !fits && plan.tierCode !== "enterprise";
+  const disabled = downgrade || (!fits && plan.tierCode !== "enterprise");
 
   return (
     <button
@@ -143,9 +151,19 @@ function PackageCard({
                 Current
               </span>
             ) : null}
-            {recommended && !current ? (
+            {downgrade ? (
+              <span className="rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                Lower package
+              </span>
+            ) : null}
+            {recommended && !current && !downgrade ? (
               <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-primary">
                 Fits this shop
+              </span>
+            ) : null}
+            {upgrade && !current ? (
+              <span className="rounded-full border border-emerald-600/25 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-emerald-800 dark:text-emerald-200">
+                Upgrade
               </span>
             ) : null}
           </span>
@@ -165,7 +183,7 @@ function PackageCard({
         </span>
       </span>
 
-      {!fits && plan.tierCode !== "enterprise" ? (
+      {!fits && !downgrade && plan.tierCode !== "enterprise" ? (
         <span className="text-[10.5px] font-medium text-red-700 dark:text-red-300">
           Too small for this shop
         </span>
@@ -177,15 +195,19 @@ function PackageCard({
           selected ? "text-primary" : "text-muted-foreground",
         )}
       >
-        {selected ? (
+        {downgrade ? (
+          "Downgrades are not available"
+        ) : selected ? (
           <>
             <Check className="size-3" strokeWidth={2.75} aria-hidden />
             Selected
           </>
         ) : disabled ? (
           "Not available"
+        ) : upgrade ? (
+          "Upgrade to this package"
         ) : (
-          "Choose this package"
+          "Renew this package"
         )}
       </span>
     </button>
@@ -286,25 +308,41 @@ function ChoosePackageDrawer({
   const fit = status?.planFit ?? null;
   const productCount = fit?.productCount ?? 0;
   const userCount = fit?.userCount ?? 0;
+  const dailyRevenue = fit?.dailyRevenueKes ?? 0;
+  const currentTier = status?.tier?.trim().toLowerCase() ?? "";
+  const currentPlan = useMemo(
+    () => plans.find((plan) => plan.tierCode === currentTier) ?? null,
+    [plans, currentTier],
+  );
+  const currentSortOrder = currentPlan?.sortOrder ?? null;
   const selectedFits = selectedPlan
     ? planFitsUsage(
         selectedPlan.productLimit,
         selectedPlan.cashierLimit,
         productCount,
         userCount,
+        selectedPlan.dailyRevenueLimitKes,
+        dailyRevenue,
       )
     : false;
+  const selectedDowngrade = selectedPlan
+    ? isPlanDowngrade(selectedPlan.sortOrder, currentSortOrder)
+    : false;
+  const selectedCustomEnterprise =
+    selectedPlan?.tierCode === "enterprise" &&
+    selectedPlan.monthlyPriceKes <= 0;
   const talkToUs =
     Boolean(fit?.negotiable) ||
-    selectedPlan?.tierCode === "enterprise" ||
-    selectedPlan?.tierCode === "free";
+    selectedPlan?.tierCode === "free" ||
+    selectedCustomEnterprise;
 
   useEffect(() => {
     if (
       !open ||
-      !selectedTier ||
-      selectedTier === "free" ||
-      selectedTier === "enterprise" ||
+      !selectedPlan ||
+      selectedDowngrade ||
+      selectedPlan.tierCode === "free" ||
+      selectedCustomEnterprise ||
       !status?.billingEnabled
     ) {
       setQuote(null);
@@ -312,7 +350,7 @@ function ChoosePackageDrawer({
     }
     let cancelled = false;
     setQuoteLoading(true);
-    void fetchSubscriptionRenewalQuote(periodMonths, selectedTier)
+    void fetchSubscriptionRenewalQuote(periodMonths, selectedPlan.tierCode)
       .then((next) => {
         if (!cancelled) setQuote(next);
       })
@@ -325,10 +363,20 @@ function ChoosePackageDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, selectedTier, periodMonths, status?.billingEnabled]);
+  }, [
+    open,
+    selectedPlan,
+    selectedDowngrade,
+    selectedCustomEnterprise,
+    periodMonths,
+    status?.billingEnabled,
+  ]);
 
-  const currentTier = status?.tier?.trim().toLowerCase() ?? "";
   const recommendedTier = fit?.recommendedTier?.trim().toLowerCase() ?? "";
+  const atTopPackage =
+    currentSortOrder != null &&
+    plans.length > 0 &&
+    plans.every((plan) => plan.sortOrder <= currentSortOrder);
   const paidThrough = formatPeriodEnd(status?.currentPeriodEnd);
   const statusCopy = status ? STATUS_COPY[status.status] : null;
 
@@ -337,7 +385,7 @@ function ChoosePackageDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title="Choose a package"
-      description="Pick any published package. We highlight the one that fits your catalog and team — the final choice is yours."
+      description="Pick a bigger package and pay with M-Pesa. We highlight the one that fits your catalog, team, and daily sales — packages only move up."
       contextLabel="Plan & billing"
       icon={<Package className="size-4" aria-hidden />}
       headerDensity="compact"
@@ -394,7 +442,7 @@ function ChoosePackageDrawer({
             </div>
 
             {fit ? (
-              <div className="mt-3 grid gap-3 border-t border-border/50 pt-3 sm:grid-cols-2">
+              <div className="mt-3 grid gap-3 border-t border-border/50 pt-3 sm:grid-cols-3">
                 <BillingUsageMeter
                   label="Products"
                   used={fit.productCount}
@@ -406,6 +454,12 @@ function ChoosePackageDrawer({
                   used={fit.userCount}
                   limit={fit.userLimit}
                   unit="people"
+                />
+                <BillingUsageMeter
+                  label="Daily sales (KES)"
+                  used={Math.round(fit.dailyRevenueKes ?? 0)}
+                  limit={fit.dailyRevenueLimit}
+                  unit="KES/day"
                 />
               </div>
             ) : null}
@@ -448,11 +502,21 @@ function ChoosePackageDrawer({
                       recommended={
                         plan.tierCode === recommendedTier && Boolean(fit?.needsUpgrade)
                       }
+                      upgrade={
+                        currentSortOrder != null &&
+                        plan.sortOrder > currentSortOrder
+                      }
+                      downgrade={isPlanDowngrade(
+                        plan.sortOrder,
+                        currentSortOrder,
+                      )}
                       fits={planFitsUsage(
                         plan.productLimit,
                         plan.cashierLimit,
                         productCount,
                         userCount,
+                        plan.dailyRevenueLimitKes,
+                        dailyRevenue,
                       )}
                       onSelect={() => setSelectedTier(plan.tierCode)}
                     />
@@ -465,6 +529,20 @@ function ChoosePackageDrawer({
                 </p>
               )}
 
+              <p className="flex items-start gap-1.5 rounded-lg border border-border/50 bg-muted/10 px-2.5 py-2 text-[10.5px] leading-snug text-muted-foreground">
+                <Sparkles className="mt-0.5 size-3 shrink-0" aria-hidden />
+                Packages only move up. Lower packages stay visible so you can
+                see what this shop has outgrown — talk to us if you need a
+                downgrade.
+              </p>
+
+              {atTopPackage ? (
+                <p className="rounded-lg border border-emerald-600/25 bg-emerald-500/[0.07] px-2.5 py-2 text-[10.5px] leading-snug text-emerald-800 dark:text-emerald-200">
+                  You&apos;re already on the top published package. Renew below,
+                  or talk to us for a custom enterprise agreement.
+                </p>
+              ) : null}
+
               {selectedPlan && !talkToUs ? (
                 <BillingPeriodToggle
                   value={periodMonths}
@@ -476,8 +554,12 @@ function ChoosePackageDrawer({
                 <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-4">
                   <p className="text-sm leading-relaxed text-foreground">
                     {selectedPlan.tierCode === "free"
-                      ? "Free does not cover this shop. Pick a paid package that fits, or talk to us for a custom quote."
-                      : "This shop is past the self-serve packages. We will quote Enterprise around what you already run."}
+                      ? currentTier === "free"
+                        ? "You're on Free. Pick a paid package above to upgrade — lower packages aren't available."
+                        : "Free does not cover this shop. Pick a paid package that fits, or talk to us for a custom quote."
+                      : selectedCustomEnterprise
+                        ? "Enterprise is quoted around what this shop already runs. Talk to us and we will build the package."
+                        : "This shop is past every self-serve package. We will quote Enterprise around what you already run."}
                   </p>
                   <Button type="button" className="h-10 w-full sm:w-auto" asChild>
                     <Link href={APP_ROUTES.support}>

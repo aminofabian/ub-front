@@ -3988,6 +3988,7 @@ export type SaSubscriptionPlanRecord = {
   graceDays: number;
   productLimit: number | null;
   cashierLimit: number | null;
+  dailyRevenueLimitKes: number | null;
   active: boolean;
   sortOrder: number;
 };
@@ -4038,6 +4039,9 @@ export async function upsertSaSubscriptionPlan(
     monthlyPriceKes: number;
     annualPriceKes: number | null;
     graceDays: number;
+    productLimit: number | null;
+    cashierLimit: number | null;
+    dailyRevenueLimitKes: number | null;
     active: boolean;
   }>,
 ): Promise<SaSubscriptionPlanRecord[]> {

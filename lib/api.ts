@@ -14932,8 +14932,11 @@ export type SubscriptionPlanFitRecord = {
   userCount: number;
   productLimit: number | null;
   userLimit: number | null;
+  dailyRevenueKes: number;
+  dailyRevenueLimit: number | null;
   overProductLimit: boolean;
   overUserLimit: boolean;
+  overDailyRevenueLimit: boolean;
   needsUpgrade: boolean;
   negotiable: boolean;
   talkToUs: boolean;
@@ -14967,6 +14970,7 @@ export type SubscriptionPlanRecord = {
   graceDays: number;
   productLimit: number | null;
   cashierLimit: number | null;
+  dailyRevenueLimitKes: number | null;
   active: boolean;
   sortOrder: number;
 };

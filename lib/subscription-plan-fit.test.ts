@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   formatPlanCount,
+  isPlanDowngrade,
   planFitCta,
   planFitHeadline,
   planFitsUsage,
@@ -20,8 +21,11 @@ function fit(partial: Partial<Fit>): Fit {
     userCount: 0,
     productLimit: 1000,
     userLimit: 3,
+    dailyRevenueKes: 0,
+    dailyRevenueLimit: null,
     overProductLimit: false,
     overUserLimit: false,
+    overDailyRevenueLimit: false,
     needsUpgrade: true,
     negotiable: false,
     talkToUs: false,
@@ -64,6 +68,27 @@ describe("subscription-plan-fit", () => {
     ).toBe(false);
   });
 
+  it("treats double the daily-sales cap as severe", () => {
+    expect(
+      planFitSevere(
+        fit({
+          dailyRevenueKes: 30_000,
+          dailyRevenueLimit: 15_000,
+          overDailyRevenueLimit: true,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      planFitSevere(
+        fit({
+          dailyRevenueKes: 20_000,
+          dailyRevenueLimit: 15_000,
+          overDailyRevenueLimit: true,
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("says the current plan no longer fits", () => {
     expect(planFitHeadline("Starter", fit({}))).toBe(
       "Starter no longer fits this shop",
@@ -74,6 +99,15 @@ describe("subscription-plan-fit", () => {
     expect(planFitsUsage(1000, 3, 3142, 2)).toBe(false);
     expect(planFitsUsage(5000, 10, 3142, 2)).toBe(true);
     expect(planFitsUsage(null, null, 80_000, 40)).toBe(true);
+    expect(planFitsUsage(1000, 3, 500, 2, 15_000, 20_000)).toBe(false);
+    expect(planFitsUsage(1000, 3, 500, 2, 30_000, 20_000)).toBe(true);
+  });
+
+  it("treats a lower-sorted package as a downgrade", () => {
+    expect(isPlanDowngrade(1, 2)).toBe(true);
+    expect(isPlanDowngrade(2, 2)).toBe(false);
+    expect(isPlanDowngrade(3, 2)).toBe(false);
+    expect(isPlanDowngrade(1, null)).toBe(false);
   });
 
   it("splits remaining time until lock", () => {
@@ -90,22 +124,29 @@ describe("subscription-plan-fit", () => {
   });
 
   it("prefers grace end as the lock deadline", () => {
+    const now = Date.parse("2026-08-30T07:00:00.000Z");
     expect(
-      planLockDeadline({
-        status: "GRACE",
-        graceEndsAt: "2026-09-14T06:00:00.000Z",
-        currentPeriodEnd: "2026-08-30T00:00:00.000Z",
-      }),
+      planLockDeadline(
+        {
+          status: "GRACE",
+          graceEndsAt: "2026-09-14T06:00:00.000Z",
+          currentPeriodEnd: "2026-08-30T00:00:00.000Z",
+        },
+        now,
+      ),
     ).toEqual({
       at: "2026-09-14T06:00:00.000Z",
       kind: "lock",
     });
     expect(
-      planLockDeadline({
-        status: "ACTIVE",
-        graceEndsAt: null,
-        currentPeriodEnd: "2026-09-01T00:00:00.000Z",
-      })?.kind,
+      planLockDeadline(
+        {
+          status: "ACTIVE",
+          graceEndsAt: null,
+          currentPeriodEnd: "2026-09-01T00:00:00.000Z",
+        },
+        now,
+      )?.kind,
     ).toBe("grace");
   });
 
