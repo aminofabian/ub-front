@@ -247,6 +247,23 @@
   outline-offset: 2px;
 }
 
+/* Visible shopper door beside the glyph while signed out. */
+.accountBtn {
+  width: auto;
+  min-width: 42px;
+  gap: 7px;
+  padding: 0 10px;
+}
+
+.accountLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+
 .bagWrap {
   position: relative;
 }

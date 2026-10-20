@@ -435,8 +435,18 @@
 }
 
 @media (max-width: 479px) {
+  .headerInner {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .wordmark {
+    gap: 8px;
+  }
+  .wordmarkSub {
+    display: none;
+  }
   .modeToggle {
-    width: 68px;
+    width: 60px;
   }
   .modeOpt span {
     display: none;
@@ -444,8 +454,18 @@
   .modeOpt {
     padding: 0;
   }
+  .headerActions {
+    gap: 6px;
+  }
+  /* The account door stays visible on small phones. Tighten the rest of the
+     row (status line, mode toggle, cart padding) so it fits without hiding it. */
   .accountLink {
-    display: none;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+  .cartBtn {
+    padding: 8px 9px;
+    gap: 6px;
   }
 }
 

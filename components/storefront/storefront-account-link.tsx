@@ -110,12 +110,24 @@ export function StorefrontAccountLink({
   className,
   signUpClassName,
   signUpLabel = "Sign up",
+  showLabel = false,
+  labelClassName,
   children,
 }: {
   className?: string;
   /** Set to also render a sign-up link for signed-out shoppers. */
   signUpClassName?: string;
   signUpLabel?: string;
+  /**
+   * Render the theme label next to a custom glyph.
+   *
+   * Icon-only headers are the one place a shopper cannot tell an account
+   * glyph from a wishlist, so the word stays visible: "Sign in" before a
+   * session, "Account" after it. Every theme keeps its own styling.
+   */
+  showLabel?: boolean;
+  /** Class for the visible label rendered by {@link showLabel}. */
+  labelClassName?: string;
   /** Theme glyph rendered instead of the text label. */
   children?: ReactNode;
 }) {
@@ -125,7 +137,16 @@ export function StorefrontAccountLink({
   return (
     <>
       <Link href={href} className={className} aria-label={label} onClick={onActivate}>
-        {children ?? label}
+        {children ? (
+          <>
+            {children}
+            {showLabel ? (
+              <span className={labelClassName}>{label}</span>
+            ) : null}
+          </>
+        ) : (
+          label
+        )}
       </Link>
       {signUpClassName && !signedIn ? (
         <span className={styles.signUpWrap}>

@@ -205,14 +205,14 @@ function ComingSoonPageBody({
       <nav
         className={cn(
           styles.nav,
-          "fixed inset-x-0 top-0 z-[100] flex items-center justify-between border-b border-[var(--cs-border)] bg-[color-mix(in_srgb,var(--cs-warm-white)_88%,transparent)] px-6 py-5 backdrop-blur-[20px] sm:px-12",
+          "fixed inset-x-0 top-0 z-[100] flex items-center justify-between gap-2 border-b border-[var(--cs-border)] bg-[color-mix(in_srgb,var(--cs-warm-white)_88%,transparent)] px-4 py-5 backdrop-blur-[20px] sm:gap-3 sm:px-12",
         )}
       >
         <a
           href="#"
           className={cn(
             styles.serif,
-            "text-[22px] font-medium tracking-[0.04em] text-[var(--cs-charcoal)] no-underline",
+            "text-[20px] font-medium tracking-[0.04em] text-[var(--cs-charcoal)] no-underline sm:text-[22px]",
           )}
           onClick={(e) => {
             e.preventDefault();
@@ -237,10 +237,10 @@ function ComingSoonPageBody({
             />
           )}
         </a>
-        <div className="flex items-center gap-3">
-          <LandingAccountAction className="text-[13px] font-medium text-[var(--cs-warm-gray)] underline-offset-4 hover:text-[var(--cs-charcoal)] hover:underline" />
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <LandingAccountAction className="whitespace-nowrap rounded-full border border-[var(--cs-border-subtle)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--cs-charcoal)] no-underline transition-colors hover:bg-[var(--cs-cream)] sm:px-3.5 sm:text-[11px] sm:tracking-[0.14em]" />
           <span
-            className="rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="hidden whitespace-nowrap rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] min-[380px]:inline-flex"
             style={{
               borderColor: `color-mix(in srgb, ${theme.primary} 28%, transparent)`,
               backgroundColor: theme.accentPale,

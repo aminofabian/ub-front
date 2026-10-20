@@ -88,6 +88,31 @@
   color: white;
 }
 
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Shopper door in the masthead; the footer keeps the quiet Staff link. */
+.accountLink {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.72);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountLink:hover {
+    color: var(--mm-glow);
+  }
+}
+
 .openSign {
   margin: 0;
   padding: 4px 10px;

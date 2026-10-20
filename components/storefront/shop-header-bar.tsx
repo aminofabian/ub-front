@@ -16,18 +16,32 @@ function AccountNavLink({
   className,
   iconClassName,
   showLabel,
+  showCompactLabel,
 }: {
   className: string;
   iconClassName?: string;
   showLabel?: boolean;
+  /**
+   * Compact headers: the word carries the door instead of a bare glyph, which
+   * reads as a wishlist/profile icon. It reads "Sign in" before a session and
+   * "Account" after it, so the affordance is never unlabeled.
+   */
+  showCompactLabel?: boolean;
 }) {
   const { href, label, onActivate } = useStorefrontAccountLink();
   // Pre-hydration the label reads "Account" (the hook's server snapshot), so
   // the glyph follows the label rather than the raw signed-in state.
   const Icon = label === "Sign in" ? LogIn : UserRound;
+  const compactLabel = Boolean(showCompactLabel);
 
   return (
-    <Link href={href} className={className} aria-label={label} onClick={onActivate}>
+    <Link
+      href={href}
+      className={className}
+      aria-label={label}
+      onClick={onActivate}
+      style={compactLabel ? { width: "auto", paddingLeft: 6, paddingRight: 6 } : undefined}
+    >
       {showLabel ? (
         <>
           <span className="flex size-8 items-center justify-center rounded-[3px] bg-[var(--storefront-paper,#f4f5f4)] transition-colors group-hover:bg-[var(--storefront-rule,#e4e6e4)]">
@@ -35,6 +49,10 @@ function AccountNavLink({
           </span>
           <span className="hidden whitespace-nowrap sm:inline">{label}</span>
         </>
+      ) : compactLabel ? (
+        <span className="whitespace-nowrap text-[11px] font-semibold tracking-tight">
+          {label}
+        </span>
       ) : (
         <Icon className={iconClassName ?? "size-4.5"} aria-hidden />
       )}
@@ -113,6 +131,7 @@ export function ShopHeaderBar({
                 </Link>
               ) : null}
               <AccountNavLink
+                showCompactLabel
                 className="inline-flex size-9 items-center justify-center rounded-[3px] text-[var(--storefront-ink-muted,#5c6560)] transition-colors hover:bg-[var(--storefront-paper,#f4f5f4)] hover:text-[var(--storefront-ink,#141816)]"
               />
               {slug ? (

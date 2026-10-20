@@ -824,8 +824,12 @@
     grid-template-columns: 1fr;
     gap: 1.4rem;
   }
+}
 
-  .login {
+@media (max-width: 360px) {
+  /* Keep the shopper door on the row; the monogram carries the brand once the
+     name would truncate to one letter. */
+  .brandText {
     display: none;
   }
 }

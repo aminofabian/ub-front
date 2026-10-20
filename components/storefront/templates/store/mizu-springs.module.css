@@ -1710,6 +1710,40 @@
   background: rgb(255 255 255 / 0.12);
 }
 
+/* Signed-out door keeps the word "Sign in" next to the glyph. */
+.sessionGhostWide {
+  width: auto;
+  gap: 0.35rem;
+  padding: 0 0.8rem 0 0.65rem;
+}
+
+.sessionLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  /* The word is the identity here; drop the avatar so the brand name keeps
+     its width on the narrowest phones. */
+  .sessionChip .sessionAvatar {
+    display: none;
+  }
+
+  .sessionChip {
+    gap: 0.3rem;
+    padding: 0 0.55rem 0 0.45rem;
+  }
+
+  .sessionLabel {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+}
+
 /* ── Product detail ─────────────────────────────────────── */
 
 .pdp {

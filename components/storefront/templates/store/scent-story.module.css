@@ -155,19 +155,22 @@
   gap: 8px;
 }
 
+/* Keep the shopper door visible at every width — it is the only account
+   affordance in this header. */
 .utilLink {
-  display: none;
-  font-size: 11px;
+  display: inline;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--ss-muted);
+  white-space: nowrap;
 }
 
 @media (min-width: 720px) {
   .utilLink {
-    display: inline;
+    font-size: 11px;
   }
 }
 

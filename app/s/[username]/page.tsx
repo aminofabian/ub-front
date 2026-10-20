@@ -34,6 +34,18 @@ function firstQueryValue(value: string | string[] | undefined): string | null {
 }
 
 /**
+ * Tenant branding often carries a full storefront title
+ * ("Palmart | Groceries & Essentials in Mirema"). The passport is a small
+ * supplier page inside that shop, so use the shop name only.
+ */
+function shortShopLabel(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const short = trimmed.split(/\s+[|—]\s+/)[0]?.trim();
+  return short || null;
+}
+
+/**
  * Global passport only on bare platform apex hosts.
  * Shop subdomains / custom domains must never match — even if APP_BASE_URL is odd.
  */
@@ -75,14 +87,37 @@ export async function generateMetadata({
     const slug = await resolveStorefrontSlug();
     const storefront = slug ? await fetchPublicStorefront(slug) : null;
     const shopLabel =
-      tenant.branding?.displayName?.trim() ||
-      storefront?.label?.trim() ||
-      storefront?.businessName ||
-      tenant.tenantName ||
+      shortShopLabel(storefront?.label) ||
+      shortShopLabel(storefront?.businessName) ||
+      shortShopLabel(tenant.branding?.displayName) ||
+      shortShopLabel(tenant.tenantName) ||
       "Shop";
+    const title = `Supplier · ${decoded} · ${shopLabel}`;
+    const description = `Supply history and amount owed at ${shopLabel}.`;
+    const hostname = await getRequestHostname();
+    const localHost =
+      !hostname ||
+      hostname.includes("localhost") ||
+      hostname.startsWith("127.") ||
+      hostname.endsWith(".local");
+    const passportPath = `/s/${encodeURIComponent(decoded)}`;
+    const canonical = hostname
+      ? `${localHost ? "http" : "https"}://${hostname}${passportPath}`
+      : passportPath;
     return {
-      title: `Supplier · ${decoded} · ${shopLabel}`,
-      description: `Supply history and amount owed at ${shopLabel}.`,
+      // Absolute: the tenant layout uses a "%s · <storefront title>" template,
+      // which would otherwise duplicate the shop title here.
+      title: { absolute: title },
+      description,
+      alternates: { canonical },
+      openGraph: {
+        type: "website",
+        title,
+        description,
+        siteName: shopLabel,
+        url: canonical,
+      },
+      twitter: { card: "summary", title, description },
       robots: { index: false, follow: false },
     };
   }
@@ -127,10 +162,10 @@ export default async function PublicSupplierPortalPage({
     const slug = await resolveStorefrontSlug();
     const storefront = slug ? await fetchPublicStorefront(slug) : null;
     const shopName =
-      tenant.branding?.displayName?.trim() ||
-      storefront?.label?.trim() ||
-      storefront?.businessName ||
-      tenant.tenantName ||
+      shortShopLabel(storefront?.label) ||
+      shortShopLabel(storefront?.businessName) ||
+      shortShopLabel(tenant.branding?.displayName) ||
+      shortShopLabel(tenant.tenantName) ||
       "Shop";
 
     return (

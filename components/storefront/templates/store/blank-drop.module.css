@@ -86,6 +86,23 @@
   opacity: 0.55;
 }
 
+/* Account + visible "Sign in" word, so the glyph is not mistaken for a
+   wishlist. Collapses back to the 40px glyph once a shopper has a session. */
+.accountBtn {
+  width: auto;
+  min-width: 40px;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.accountLabel {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .plusIcon {
   font-size: 22px;
   font-weight: 400;

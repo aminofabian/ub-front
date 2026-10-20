@@ -73,7 +73,7 @@ function ClimaxFloorHeaderView({
   className,
 }: ClimaxFloorHeaderProps) {
   const { itemCount, openDrawer } = useShopCart();
-  const { signedIn, href, onActivate } = useStorefrontAccountLink();
+  const { href, label, onActivate } = useStorefrontAccountLink();
   const pathname = usePathname();
   const categoryPathSlug =
     activeStorefrontCategorySlugFromPathname(pathname) || undefined;
@@ -114,7 +114,7 @@ function ClimaxFloorHeaderView({
 
         <div className={styles.tools}>
           <Link href={href} className={styles.login} onClick={onActivate}>
-            {signedIn ? "Account" : "Log in"}
+            {label}
           </Link>
           <button
             type="button"

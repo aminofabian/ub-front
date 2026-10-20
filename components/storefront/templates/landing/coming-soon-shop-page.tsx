@@ -156,7 +156,7 @@ function ShopPage({
           )}
         </a>
         <div className={styles.chromeActions}>
-          <LandingAccountAction className="text-[13px] font-medium text-[var(--shop-muted)] underline-offset-4 hover:underline" />
+          <LandingAccountAction className="inline-flex items-center whitespace-nowrap rounded-full border border-[var(--shop-line)] bg-[var(--shop-card)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--shop-ink)] no-underline hover:bg-[var(--shop-paper)]" />
           <span className={styles.soon}>
             <span className={styles.soonDot} aria-hidden />
             Opening soon

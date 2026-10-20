@@ -236,6 +236,26 @@
   text-align: right;
 }
 
+/* Shopper door belongs in the masthead, not only in the footer. */
+.accountLink {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bp-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountLink:hover {
+    color: var(--bp-brand);
+  }
+}
+
 .badge {
   margin: 0;
   padding: 6px 10px;

@@ -57,7 +57,10 @@ export function MinimartHoursLanding(props: LandingTemplateProps) {
                 <span className={styles.logoFallback}>{copy.storeName}</span>
               )}
             </div>
-            <p className={styles.openSign}>Open</p>
+            <div className={styles.topActions}>
+              <LandingAccountAction className={styles.accountLink} />
+              <p className={styles.openSign}>Open</p>
+            </div>
           </header>
 
           <h1 className={styles.headline}>{copy.headline}</h1>
@@ -89,8 +92,6 @@ export function MinimartHoursLanding(props: LandingTemplateProps) {
           ) : null}
 
           <footer className={styles.footer}>
-            <LandingAccountAction className="text-sm font-medium" />
-            {" · "}
             <Link href={LANDING_STAFF_LOGIN_HREF}>Staff</Link>
           </footer>
         </div>

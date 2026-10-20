@@ -12,6 +12,7 @@ import {
 
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { PublicSupplierComplaintModal } from "@/components/supplier-portal/public-supplier-complaint-modal";
+import { hasAccessSession } from "@/lib/auth";
 import {
   fetchPublicSupplierPortal,
   fetchPublicSupplierProductsSelling,
@@ -27,6 +28,7 @@ import {
   type PageSealStatus,
 } from "@/lib/page-seal";
 import {
+  formatMoney,
   formatMoneyCompact,
   resolveCurrencyCode,
 } from "@/lib/money";
@@ -79,12 +81,25 @@ function fmtMoney(amount: unknown, currency: string): string {
   return formatMoneyCompact(toNum(amount), resolveCurrencyCode(currency));
 }
 
+/** Exact amount for summaries and invoice settlement rows. */
+function fmtMoneyExact(amount: unknown, currency: string): string {
+  return formatMoney(toNum(amount), resolveCurrencyCode(currency));
+}
+
 function fmtDate(iso: string): string {
   try {
+    // Invoice/period dates are business dates (`YYYY-MM-DD`), not instants.
+    // Parse them as local midnight so a supplier abroad does not see the day
+    // before because UTC midnight shifted backwards.
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+    const date = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
     return new Intl.DateTimeFormat("en", {
       day: "numeric",
       month: "short",
-    }).format(new Date(iso));
+    }).format(date);
   } catch {
     return iso;
   }
@@ -135,33 +150,46 @@ function SupplyLinesDetail({
   lines: PublicSupplierSupplyLine[];
   currency: string;
 }) {
-  if (lines.length === 0) {
-    return (
-      <p className={cn("border-t px-3.5 py-3 text-center text-[11px] text-muted-foreground", INK_BORDER_SOFT, PAPER)}>
-        No line items on this supply.
-      </p>
-    );
-  }
+  const balance = toNum(row.balanceOpen);
+  const due = Math.max(0, balance);
+  const overpaid = Math.max(0, -balance);
+  const lineSum = lines.reduce((sum, line) => sum + toNum(line.lineTotal), 0);
+  const billTotal = toNum(row.grandTotal);
+  const hasBillAdjustment =
+    lines.length > 0 && Math.abs(billTotal - lineSum) >= 0.01;
   return (
     <div className={cn("space-y-2 border-t px-3.5 py-3", INK_BORDER_SOFT, PAPER)}>
-      {lines.map((line, i) => (
-        <div
-          key={`${line.description}-${i}`}
-          className="flex items-baseline justify-between gap-3 text-[12px]"
-        >
-          <div className="min-w-0 flex-1">
-            <p className="font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
-              {line.description}
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-              {toNum(line.quantity)} × {toNum(line.unitCost).toFixed(2)}
+      {lines.length === 0 ? (
+        <p className="py-1 text-center text-[11px] text-muted-foreground">
+          No line items on this supply.
+        </p>
+      ) : (
+        lines.map((line, i) => (
+          <div
+            key={`${line.description}-${i}`}
+            className="flex items-baseline justify-between gap-3 text-[12px]"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="font-medium leading-snug text-[var(--pos-ink,#1c1915)]">
+                {line.description}
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                {toNum(line.quantity)} × {toNum(line.unitCost).toFixed(2)}
+              </p>
+            </div>
+            <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums">
+              {fmtMoneyExact(line.lineTotal, currency)}
             </p>
           </div>
-          <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums">
-            {fmtMoney(line.lineTotal, currency)}
-          </p>
-        </div>
-      ))}
+        ))
+      )}
+      {hasBillAdjustment ? (
+        <p className="text-[10px] leading-relaxed text-muted-foreground">
+          Line items {fmtMoneyExact(lineSum, currency)} · bill total{" "}
+          {fmtMoneyExact(billTotal, currency)} before payments (tax and delivery
+          extras included).
+        </p>
+      ) : null}
       <div
         className={cn(
           "flex items-baseline justify-between border-t pt-2 text-[11px]",
@@ -169,11 +197,18 @@ function SupplyLinesDetail({
         )}
       >
         <span className="text-muted-foreground">
-          Paid {fmtMoney(row.amountPaid, currency)}
+          Paid {fmtMoneyExact(row.amountPaid, currency)} of{" "}
+          {fmtMoneyExact(row.grandTotal, currency)}
         </span>
-        <span className="font-mono font-semibold tabular-nums">
-          Due {fmtMoney(row.grandTotal, currency)}
-        </span>
+        {overpaid > 0.009 ? (
+          <span className="font-mono font-semibold tabular-nums">
+            Credit {fmtMoneyExact(overpaid, currency)}
+          </span>
+        ) : (
+          <span className="font-mono font-semibold tabular-nums">
+            Due {fmtMoneyExact(due, currency)}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -183,17 +218,28 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
   const [data, setData] = useState<PublicSupplierPortal | null>(null);
   const [busy, setBusy] = useState(true);
   const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<PortalTab>("supplies");
   const [openSupplyKey, setOpenSupplyKey] = useState<string | null>(null);
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [sealStatus, setSealStatus] = useState<PageSealStatus | null>(null);
   const [sealEpoch, setSealEpoch] = useState(0);
+  const [canManageSeal, setCanManageSeal] = useState(false);
   const [sellingPeriod, setSellingPeriod] =
     useState<PublicSupplierSellingPeriod>("today");
   const [selling, setSelling] = useState<PublicSupplierProductsSelling | null>(
     null,
   );
   const [sellingBusy, setSellingBusy] = useState(false);
+  const [sellingError, setSellingError] = useState<string | null>(null);
+  const [sellingEpoch, setSellingEpoch] = useState(0);
+
+  const changeSellingPeriod = (next: PublicSupplierSellingPeriod) => {
+    if (next === sellingPeriod) return;
+    setSellingPeriod(next);
+    setSelling(null);
+    setSellingError(null);
+  };
 
   const theme = useMemo(
     () =>
@@ -206,21 +252,41 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
   useEffect(() => {
     let cancelled = false;
     setBusy(true);
-    void fetchPublicSupplierPortal(username).then((portal) => {
-      if (cancelled) return;
-      setBusy(false);
-      if (!portal) {
-        setMissing(true);
+    setLoadError(null);
+    void fetchPublicSupplierPortal(username)
+      .then((portal) => {
+        if (cancelled) return;
+        setBusy(false);
+        if (!portal) {
+          setMissing(true);
+          setData(null);
+          return;
+        }
+        setMissing(false);
+        setData(portal);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setBusy(false);
+        setMissing(false);
         setData(null);
-        return;
-      }
-      setMissing(false);
-      setData(portal);
-    });
+        setLoadError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not load this supplier right now.",
+        );
+      });
     return () => {
       cancelled = true;
     };
   }, [username, sealEpoch]);
+
+  useEffect(() => {
+    // Only a signed-in shop user may seal/unseal the public passport. A
+    // supplier opening a shared link should never see a "Protect this page"
+    // control that belongs to the shop.
+    setCanManageSeal(hasAccessSession());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -249,27 +315,54 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
     if (tab !== "selling") return;
     let cancelled = false;
     setSellingBusy(true);
+    setSellingError(null);
     void fetchPublicSupplierProductsSelling(username, sellingPeriod, "units")
       .then((row) => {
         if (cancelled) return;
         setSelling(row);
         setSellingBusy(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         setSelling(null);
         setSellingBusy(false);
+        setSellingError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not load sell-through right now.",
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [tab, username, sellingPeriod, sealEpoch]);
+  }, [tab, username, sellingPeriod, sealEpoch, sellingEpoch]);
 
   if (busy) {
     return (
       <div className="flex min-h-[50dvh] items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" aria-hidden />
         Loading supplier portal…
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center" style={theme}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {branding.shopName}
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--pos-ink,#1c1915)]">
+          Could not load this supplier
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => setSealEpoch((n) => n + 1)}
+          className="mt-4 inline-flex h-9 items-center justify-center bg-[var(--pos-primary)] px-4 text-[12px] font-semibold text-[var(--pos-primary-ink,#fff)]"
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -346,18 +439,20 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
                 <h1 className="truncate text-[13px] font-semibold leading-tight tracking-tight">
                   {data.supplierName}
                 </h1>
-                <span
-                  className={cn(
-                    "shrink-0 px-1 py-px text-[8px] font-bold uppercase tracking-[0.1em]",
-                    hasCredit
-                      ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
-                      : settled
-                        ? "bg-emerald-500/12 text-emerald-800"
-                        : "bg-amber-500/14 text-amber-900",
-                  )}
-                >
-                  {hasCredit ? "Credit" : settled ? "Settled" : "Open"}
-                </span>
+                {sealStatus == null || sealedLocked ? null : (
+                  <span
+                    className={cn(
+                      "shrink-0 px-1 py-px text-[8px] font-bold uppercase tracking-[0.1em]",
+                      !settled
+                        ? "bg-amber-500/14 text-amber-900"
+                        : hasCredit
+                          ? "bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)]"
+                          : "bg-emerald-500/12 text-emerald-800",
+                    )}
+                  >
+                    {!settled ? "Open" : hasCredit ? "Credit" : "Settled"}
+                  </span>
+                )}
               </div>
               <p className="truncate text-[10px] leading-tight text-muted-foreground">
                 {data.shopName}
@@ -371,7 +466,7 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
             scope="shop-supplier"
             subjectKey={username}
             status={sealStatus}
-            canManage
+            canManage={canManageSeal}
             onUnlocked={() => {
               // Optimistic unlock so the pad dismisses even before status refetch.
               setSealStatus((prev) =>
@@ -395,8 +490,8 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
               <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 Amount owed
               </p>
-              <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
-                {fmtMoney(data.openBalance, currency)}
+              <p className="mt-px text-[0.85rem] min-[360px]:text-[0.95rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[1.05rem]">
+                {fmtMoneyExact(data.openBalance, currency)}
               </p>
             </div>
             <div className="px-2 py-1.5">
@@ -412,11 +507,11 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
               </p>
               <p
                 className={cn(
-                  "mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums",
+                  "mt-px text-[0.85rem] min-[360px]:text-[0.95rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[1.05rem]",
                   hasCredit && "text-[var(--pos-primary)]",
                 )}
               >
-                {fmtMoney(advanceCredit, currency)}
+                {fmtMoneyExact(advanceCredit, currency)}
               </p>
               <p className="mt-px text-[9px] leading-tight text-muted-foreground">
                 {hasCredit ? "Prepaid · next supply" : "No wallet deposit yet"}
@@ -424,13 +519,14 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
             </div>
             <div className="px-2 py-1.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                Paid to date
+                Paid on supplies
               </p>
-              <p className="mt-px text-[1.05rem] font-semibold leading-none tracking-tight tabular-nums">
-                {fmtMoney(data.totalPaid, currency)}
+              <p className="mt-px text-[0.85rem] min-[360px]:text-[0.95rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[1.05rem]">
+                {fmtMoneyExact(data.totalPaid, currency)}
               </p>
               <p className="mt-px text-[9px] leading-tight text-muted-foreground">
-                of {fmtMoney(data.totalSpent, currency)} · {data.invoiceCount}{" "}
+                of {fmtMoneyExact(data.totalSpent, currency)} ·{" "}
+                {data.invoiceCount}{" "}
                 {data.invoiceCount === 1 ? "supply" : "supplies"}
               </p>
             </div>
@@ -445,13 +541,20 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
           >
             {(
               [
-                ["supplies", "Supplies", Receipt, data.supplies.length],
-                ["movements", "Items", Package, data.movements.length],
+                ["supplies", "Supplies", Receipt, data.invoiceCount],
+                [
+                  "movements",
+                  "Items",
+                  Package,
+                  data.movements.length >= 50 ? "50+" : data.movements.length,
+                ],
                 [
                   "selling",
                   "Selling",
                   TrendingUp,
-                  selling?.products.length ?? data.linkedProducts.length,
+                  (selling?.products.length ?? data.linkedProducts.length) >= 60
+                    ? "60+"
+                    : (selling?.products.length ?? data.linkedProducts.length),
                 ],
               ] as const
             ).map(([id, label, Icon, count]) => {
@@ -499,7 +602,8 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
             data.supplies.length === 0 ? (
               <EmptyState label="No posted supplies yet." />
             ) : (
-              <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
+              <>
+                <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
                 {data.supplies.map((row) => {
                   const key = `${row.invoiceNumber}-${row.invoiceDate}`;
                   const open = openSupplyKey === key;
@@ -566,12 +670,21 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
                   );
                 })}
               </ul>
+                {data.supplies.length < data.invoiceCount ? (
+                  <p className="px-1 pt-2 text-center text-[10px] text-muted-foreground">
+                    Showing the latest {data.supplies.length} of{" "}
+                    {data.invoiceCount} supplies. Amount owed includes all
+                    invoices.
+                  </p>
+                ) : null}
+              </>
             )
           ) : tab === "movements" ? (
             data.movements.length === 0 ? (
               <EmptyState label="No line movements yet." />
             ) : (
-              <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
+              <>
+                <ul className={cn("overflow-hidden border bg-white/90", INK_BORDER)}>
                 {data.movements.map((m, i) => (
                   <li
                     key={`${m.invoiceNumber}-${m.description}-${i}`}
@@ -601,7 +714,7 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
                         </p>
                       </div>
                       <p className="shrink-0 font-mono text-[14px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)]">
-                        {fmtMoney(m.lineTotal, currency)}
+                        {fmtMoneyExact(m.lineTotal, currency)}
                       </p>
                     </div>
                   </li>
@@ -620,14 +733,22 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
                   </li>
                 ) : null}
               </ul>
+                {data.movements.length >= 50 ? (
+                  <p className="px-1 pt-2 text-center text-[10px] text-muted-foreground">
+                    Showing the latest 50 line items.
+                  </p>
+                ) : null}
+              </>
             )
           ) : (
             <SellingPanel
               busy={sellingBusy}
               selling={selling}
               period={sellingPeriod}
-              onPeriodChange={setSellingPeriod}
+              onPeriodChange={changeSellingPeriod}
               currency={selling?.currency ?? currency}
+              error={sellingError}
+              onRetry={() => setSellingEpoch((n) => n + 1)}
             />
           )}
 
@@ -671,12 +792,16 @@ function SellingPanel({
   period,
   onPeriodChange,
   currency,
+  error,
+  onRetry,
 }: {
   busy: boolean;
   selling: PublicSupplierProductsSelling | null;
   period: PublicSupplierSellingPeriod;
   onPeriodChange: (period: PublicSupplierSellingPeriod) => void;
   currency: string;
+  error?: string | null;
+  onRetry?: () => void;
 }) {
   const products = selling?.products ?? [];
   const soldCount = products.filter((p) => toNum(p.unitsSold) > 0).length;
@@ -714,10 +839,29 @@ function SellingPanel({
         })}
       </div>
 
+      {selling && !busy ? (
+        <p className="px-1 text-[10px] text-muted-foreground">
+          {fmtDate(selling.periodStart)} – {fmtDate(selling.periodEnd)}
+        </p>
+      ) : null}
+
       {busy && !selling ? (
         <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
           Loading sell-through…
+        </div>
+      ) : error ? (
+        <div className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-white/50 px-4 py-8 text-center">
+          <p className="text-[12px] text-muted-foreground">{error}</p>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 text-[11px] font-semibold text-[var(--pos-primary)] underline underline-offset-2"
+            >
+              Try again
+            </button>
+          ) : null}
         </div>
       ) : products.length === 0 ? (
         <EmptyState label="No linked products yet." />
@@ -731,7 +875,8 @@ function SellingPanel({
           >
             <span>
               Fastest first
-              {soldCount > 0 ? ` · ${soldCount} sold` : ""}
+              {soldCount > 0 ? ` · ${soldCount} with sales` : ""}
+              {products.length >= 60 ? " · top 60" : ""}
             </span>
             <span className={busy ? "opacity-60" : undefined}>
               {busy ? "Updating…" : "Sold · on hand"}
@@ -814,7 +959,7 @@ function SellingRow({
         </p>
         {units > 0 ? (
           <p className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
-            {fmtMoney(row.revenue, currency)}
+            {fmtMoneyExact(row.revenue, currency)}
           </p>
         ) : null}
       </div>

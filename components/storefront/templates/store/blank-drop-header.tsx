@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import {
+  StorefrontAccountLink,
+  useStorefrontAccountLink,
+} from "@/components/storefront/storefront-account-link";
 import { filterShopperTypes } from "@/components/storefront/shop-type-filters";
 import styles from "@/components/storefront/templates/store/blank-drop.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -84,6 +87,7 @@ export function BlankDropHeader({
   className?: string;
 }) {
   const { itemCount, openDrawer } = useShopCart();
+  const account = useStorefrontAccountLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [types, setTypes] = useState<PublicCatalogType[]>([]);
@@ -146,7 +150,11 @@ export function BlankDropHeader({
               <path d="M16 16.5 20 20.5" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
-          <StorefrontAccountLink className={styles.iconBtn}>
+          <StorefrontAccountLink
+            className={cn(styles.iconBtn, styles.accountBtn)}
+            showLabel
+            labelClassName={styles.accountLabel}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="1.2" />
               <path
@@ -199,8 +207,14 @@ export function BlankDropHeader({
             </Link>
           </li>
           <li>
-            <Link href={APP_ROUTES.shopAccount} onClick={() => setMenuOpen(false)}>
-              Account
+            <Link
+              href={account.href}
+              onClick={(event) => {
+                setMenuOpen(false);
+                account.onActivate(event);
+              }}
+            >
+              {account.label}
             </Link>
           </li>
           <li>

@@ -8,6 +8,7 @@ import { TenantLogo } from "@/components/brand/tenant-logo";
 import { freshMarketFontVariables } from "@/components/storefront/templates/landing/fresh-market-fonts";
 import styles from "@/components/storefront/templates/landing/fresh-market.module.css";
 import {
+  LandingAccountAction,
   LandingShell,
   resolveLandingCopy,
 } from "@/components/storefront/templates/landing/shared";
@@ -103,7 +104,10 @@ export function FreshMarketLanding(props: LandingTemplateProps) {
                 <span className={styles.logoFallback}>{copy.storeName}</span>
               )}
             </div>
-            <p className={styles.openBadge}>Fresh today</p>
+            <div className={styles.topActions}>
+              <LandingAccountAction className={styles.accountLink} />
+              <p className={styles.openBadge}>Fresh today</p>
+            </div>
           </header>
 
           <main className={styles.main}>

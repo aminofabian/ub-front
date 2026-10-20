@@ -46,7 +46,7 @@ function MizuSpringsHeaderView({
 }: MizuSpringsHeaderProps) {
   const pathname = usePathname();
   const { itemCount, openDrawer } = useShopCart();
-  const { signedIn, label } = useStorefrontAccountLink();
+  const { signedIn } = useStorefrontAccountLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const wa = whatsapp?.replace(/\D/g, "") || "";
   const isHome =
@@ -103,9 +103,15 @@ function MizuSpringsHeaderView({
             <MessageCircle size={16} aria-hidden />
           </a>
           <StorefrontAccountLink
-            className={signedIn ? styles.sessionChip : styles.sessionGhost}
+            className={
+              signedIn
+                ? styles.sessionChip
+                : cn(styles.sessionGhost, styles.sessionGhostWide)
+            }
             signUpClassName={styles.sessionGhost}
             signUpLabel="Join"
+            showLabel
+            labelClassName={styles.sessionLabel}
           >
             {signedIn ? (
               <>
@@ -113,7 +119,6 @@ function MizuSpringsHeaderView({
                   {initial}
                 </span>
                 <span className={styles.sessionDot} aria-hidden />
-                <span className="hidden sm:inline">{label}</span>
               </>
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>

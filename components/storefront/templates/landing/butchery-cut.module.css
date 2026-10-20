@@ -91,6 +91,31 @@
   color: var(--bc-brand);
 }
 
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Shopper door in the masthead, not only in the footer. */
+.accountLink {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bc-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountLink:hover {
+    color: var(--bc-brand);
+  }
+}
+
 .stamp {
   margin: 0;
   padding: 8px 12px;
@@ -102,6 +127,15 @@
   text-transform: uppercase;
   color: var(--bc-brand);
   transform: rotate(-3deg);
+}
+
+@media (max-width: 420px) {
+  .topActions {
+    gap: 10px;
+  }
+  .accountLink {
+    letter-spacing: 0.08em;
+  }
 }
 
 .layout {

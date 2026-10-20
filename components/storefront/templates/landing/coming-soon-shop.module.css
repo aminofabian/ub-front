@@ -107,6 +107,15 @@
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* On the narrowest phones the shopper door outranks the status chip; the
+   "Opening soon" promise is still in the hero and the locked till. */
+@media (max-width: 379px) {
+  .soon {
+    display: none;
+  }
 }
 
 .soonDot {

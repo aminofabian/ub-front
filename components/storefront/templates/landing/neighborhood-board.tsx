@@ -100,7 +100,10 @@ export function NeighborhoodBoardLanding(props: LandingTemplateProps) {
               </div>
               <p className={styles.storeLabel}>{copy.storeName}</p>
             </div>
-            <p className={styles.posted}>Posted · {posted}</p>
+            <div className={styles.topActions}>
+              <LandingAccountAction className={styles.accountLink} />
+              <p className={styles.posted}>Posted · {posted}</p>
+            </div>
           </header>
 
           <div className={styles.grid}>
@@ -182,7 +185,6 @@ export function NeighborhoodBoardLanding(props: LandingTemplateProps) {
 
           <footer className={styles.footer} data-nb-reveal="up">
             <div className={styles.footerLinks}>
-              <LandingAccountAction className="text-sm font-medium" />
               <Link href={LANDING_STAFF_LOGIN_HREF}>Staff</Link>
             </div>
             <p className={styles.tearHint}>Pull a tab · save our number</p>

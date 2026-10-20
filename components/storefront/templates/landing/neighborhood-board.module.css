@@ -144,6 +144,32 @@
   color: var(--nb-muted);
 }
 
+.topActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* Shopper door pinned to the board's masthead. */
+.accountLink {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nb-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountLink:hover {
+    color: var(--nb-brand);
+  }
+}
+
 .posted {
   margin: 0;
   padding: 8px 12px;

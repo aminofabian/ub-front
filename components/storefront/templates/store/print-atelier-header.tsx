@@ -199,7 +199,11 @@ export function PrintAtelierHeader({
               />
             </svg>
           </button>
-          <StorefrontAccountLink className={styles.iconBtn}>
+          <StorefrontAccountLink
+            className={cn(styles.iconBtn, styles.accountBtn)}
+            showLabel
+            labelClassName={styles.accountLabel}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
               <circle cx="12" cy="8" r="3.25" stroke="currentColor" strokeWidth="1.5" />
               <path

@@ -107,6 +107,7 @@ export function BrandPosterLanding(props: LandingTemplateProps) {
                 )}
               </div>
               <div className={styles.meta}>
+                <LandingAccountAction className={styles.accountLink} />
                 <p className={styles.badge}>{copy.badgeLabel}</p>
                 {copy.hours ? (
                   <p className={styles.hours}>{copy.hours}</p>
@@ -189,7 +190,6 @@ export function BrandPosterLanding(props: LandingTemplateProps) {
 
             <footer className={styles.footer} data-bp-reveal="up">
               <div className={styles.footerLinks}>
-                <LandingAccountAction className="text-sm font-medium" />
                 <Link href={LANDING_STAFF_LOGIN_HREF}>Staff</Link>
               </div>
               <p className={styles.footerNote}>{copy.storeName}</p>

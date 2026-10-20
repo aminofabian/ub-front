@@ -102,7 +102,10 @@ export function ButcheryCutLanding(props: LandingTemplateProps) {
               )}
             </div>
           </div>
-          <p className={styles.stamp}>Cut to order</p>
+          <div className={styles.topActions}>
+            <LandingAccountAction className={styles.accountLink} />
+            <p className={styles.stamp}>Cut to order</p>
+          </div>
         </header>
 
         <div className={styles.layout}>
@@ -182,7 +185,6 @@ export function ButcheryCutLanding(props: LandingTemplateProps) {
             </p>
           )}
           <div className={styles.footerLinks}>
-            <LandingAccountAction className="text-sm font-medium" />
             <Link href={LANDING_STAFF_LOGIN_HREF}>Staff</Link>
           </div>
         </footer>

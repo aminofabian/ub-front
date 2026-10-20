@@ -107,6 +107,34 @@
   color: white;
 }
 
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Shopper door on the market stall's top row. */
+.accountLink {
+  padding: 6px 10px;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: white;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountLink:hover {
+    background: rgb(255 255 255 / 0.14);
+    border-color: white;
+  }
+}
+
 .openBadge {
   margin: 0;
   padding: 6px 12px;

@@ -93,22 +93,18 @@ export async function fetchPublicSupplierPortal(
 ): Promise<PublicSupplierPortal | null> {
   const s = slug.trim();
   if (!s) return null;
-  try {
-    const unlock = getPageSealUnlock("shop-supplier", s);
-    const headers = tenantHostHeaders();
-    if (unlock) headers["X-Page-Unlock"] = unlock;
-    const res = await fetch(
-      apiUrl(`/api/v1/public/suppliers/${encodeURIComponent(s)}`),
-      {
-        headers,
-        cache: "no-store",
-      },
-    );
-    if (res.status === 404) return null;
-    return await readJson<PublicSupplierPortal>(res);
-  } catch {
-    return null;
-  }
+  const unlock = getPageSealUnlock("shop-supplier", s);
+  const headers = tenantHostHeaders();
+  if (unlock) headers["X-Page-Unlock"] = unlock;
+  const res = await fetch(
+    apiUrl(`/api/v1/public/suppliers/${encodeURIComponent(s)}`),
+    {
+      headers,
+      cache: "no-store",
+    },
+  );
+  if (res.status === 404) return null;
+  return await readJson<PublicSupplierPortal>(res);
 }
 
 export async function fetchPublicSupplierProductsSelling(
@@ -118,25 +114,21 @@ export async function fetchPublicSupplierProductsSelling(
 ): Promise<PublicSupplierProductsSelling | null> {
   const s = slug.trim();
   if (!s) return null;
-  try {
-    const unlock = getPageSealUnlock("shop-supplier", s);
-    const headers = tenantHostHeaders();
-    if (unlock) headers["X-Page-Unlock"] = unlock;
-    const params = new URLSearchParams({ period, sort });
-    const res = await fetch(
-      apiUrl(
-        `/api/v1/public/suppliers/${encodeURIComponent(s)}/products-selling?${params}`,
-      ),
-      {
-        headers,
-        cache: "no-store",
-      },
-    );
-    if (res.status === 404) return null;
-    return await readJson<PublicSupplierProductsSelling>(res);
-  } catch {
-    return null;
-  }
+  const unlock = getPageSealUnlock("shop-supplier", s);
+  const headers = tenantHostHeaders();
+  if (unlock) headers["X-Page-Unlock"] = unlock;
+  const params = new URLSearchParams({ period, sort });
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/suppliers/${encodeURIComponent(s)}/products-selling?${params}`,
+    ),
+    {
+      headers,
+      cache: "no-store",
+    },
+  );
+  if (res.status === 404) return null;
+  return await readJson<PublicSupplierProductsSelling>(res);
 }
 
 export async function submitPublicSupplierComplaint(
