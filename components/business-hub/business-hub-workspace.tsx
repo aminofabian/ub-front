@@ -1884,7 +1884,7 @@ export function BusinessHubWorkspace() {
               <aside className="flex flex-col gap-3">
                 {/* Desk-only rail content — the phone column already shows its
                     own quick actions and floor tape, so keep these unmounted. */}
-                <ChromeSlot slot={["wide", "desktop"]}>
+                <ChromeSlot slot="desktop">
                   <div className="hidden xl:flex xl:flex-col xl:gap-3">
                     {showTillStage
                       ? tickLanes.map((lane, index) => (

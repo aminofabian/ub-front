@@ -2,11 +2,12 @@
  * Shared placement + suppression for dashboard floating actions
  * (Kiosk Support headset, Ask Guide).
  *
- * Below 2xl the tablet bottom nav owns the thumb zone — launch FABs are
- * hidden and both open from More instead. Positions below apply at 2xl+.
+ * Below xl the tablet bottom nav owns the thumb zone — launch FABs are
+ * hidden and both open from More instead. Positions below apply at xl+
+ * (laptops), where the sidebar replaces the tab bar.
  *
  * Must stay clear of:
- * - desktop icon rail (2xl+, {@link DESKTOP_NAV_RAIL_REM})
+ * - desktop icon rail (xl+, {@link DESKTOP_NAV_RAIL_REM})
  * - FormDrawer footers (Save / Cancel) while a drawer is open
  */
 
@@ -15,11 +16,11 @@ export const DESKTOP_NAV_RAIL_REM = 4.75;
 
 /** Support headset — left side, past the rail on desktop. */
 export const SUPPORT_FAB_POSITION =
-  "bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] left-4 2xl:bottom-6 2xl:left-[calc(var(--kiosk-nav-rail,4.75rem)+1rem)]";
+  "bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] left-4 xl:bottom-6 xl:left-[calc(var(--kiosk-nav-rail,4.75rem)+1rem)]";
 
-/** Ask Guide — right side, above tablet bottom nav until 2xl. */
+/** Ask Guide — right side. Hidden while the iPad/phone tab bar is up; anchored at xl+. */
 export const GUIDE_FAB_POSITION =
-  "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-6 2xl:bottom-6 2xl:right-6";
+  "bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-6 xl:bottom-6 xl:right-6";
 
 export const FORM_DRAWER_OPEN_EVENT = "kiosk:form-drawer-open";
 

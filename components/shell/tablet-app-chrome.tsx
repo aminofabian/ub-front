@@ -315,7 +315,7 @@ export function TabletAppHeader({
               <HeaderPosLinks links={posLinks} pathname={pathname} />
               {headerTools}
               <span className="tablet-header-tool inline-flex items-center justify-center border-l border-[var(--tablet-header-ink)]/12 px-1.5">
-                <ChromeSlot slot={["tablet", "wide"]}>
+                <ChromeSlot slot="tablet">
                   <NotificationBell />
                 </ChromeSlot>
               </span>

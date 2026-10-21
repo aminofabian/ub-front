@@ -4,22 +4,20 @@ import { useEffect, useState } from "react";
 
 /**
  * Which shell layout is on screen, matching the shell's Tailwind breakpoints:
- * phone = below `sm` (640), tablet = `sm`–`xl`, wide = `xl`–`2xl` (1280–1535),
- * desktop = `2xl` (1536) and up.
+ * phone = below `sm` (640), tablet = `sm`–`xl` (640–1279, phones and iPads),
+ * desktop = `xl` (1280) and up (laptops and monitors).
  *
- * `wide` exists because the business hub swaps its layout at `xl` while the
- * app chrome swaps at `2xl`.
+ * Shell chrome and the business hub share this `xl` cutoff — bottom nav on
+ * phones/iPads, sidebar on laptops.
  */
-export type ViewportTier = "phone" | "tablet" | "wide" | "desktop";
+export type ViewportTier = "phone" | "tablet" | "desktop";
 
-const DESKTOP_QUERY = "(min-width: 1536px)";
-const WIDE_QUERY = "(min-width: 1280px)";
+const DESKTOP_QUERY = "(min-width: 1280px)";
 const TABLET_QUERY = "(min-width: 640px)";
 
 function readTier(): ViewportTier {
   if (typeof window === "undefined") return "desktop";
   if (window.matchMedia(DESKTOP_QUERY).matches) return "desktop";
-  if (window.matchMedia(WIDE_QUERY).matches) return "wide";
   if (window.matchMedia(TABLET_QUERY).matches) return "tablet";
   return "phone";
 }
@@ -39,7 +37,6 @@ export function useViewportTier(): ViewportTier | null {
   useEffect(() => {
     const queries = [
       window.matchMedia(DESKTOP_QUERY),
-      window.matchMedia(WIDE_QUERY),
       window.matchMedia(TABLET_QUERY),
     ];
     const update = () => setTier(readTier());

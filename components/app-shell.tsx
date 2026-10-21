@@ -1109,15 +1109,15 @@ export function AppShell({ children }: AppShellProps) {
     me?.role?.key?.trim().toLowerCase() === "butcher_cashier";
   const isGroceryClerk =
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
-  // Tablet / iPad app shell: bottom nav + large-title header for every role
-  // below 2xl (1536px). That keeps all iPad sizes — including 12.9″ landscape
-  // at 1366px — in native-app mode; only wide desktop monitors get the sidebar.
-  const desktopChromeVisible = "hidden 2xl:flex";
-  const tabletChromeVisible = "2xl:hidden";
-  // Phone/tablet: edge-flush canvas + clearance for the fixed tab bar only.
-  // Desktop (2xl): classic inset padding; sidebar replaces the tab bar.
+  // Bottom nav + large-title header for phones and iPads (below xl / 1280px).
+  // Laptops and desktop monitors get the sidebar. 11″ iPad landscape is 1194px,
+  // so it stays on the tab bar; 1280px is where laptop windows begin.
+  const desktopChromeVisible = "hidden xl:flex";
+  const tabletChromeVisible = "xl:hidden";
+  // Phone/iPad: edge-flush canvas + clearance for the fixed tab bar only.
+  // Laptop (xl): classic inset padding; sidebar replaces the tab bar.
   const mainContentPadding =
-    "px-3 pt-2 pb-[var(--shell-bottom-inset)] sm:px-4 sm:pt-3 2xl:p-6 2xl:pb-6";
+    "px-3 pt-2 pb-[var(--shell-bottom-inset)] sm:px-4 sm:pt-3 xl:p-6 xl:pb-6";
   const homeHref = resolvePostAuthDestination(me, null, business);
   const canViewPaymentGateways = hasPermission(
     me?.permissions,
@@ -1849,7 +1849,7 @@ export function AppShell({ children }: AppShellProps) {
       )}
       style={OPERATOR_SURFACE_STYLE}
     >
-      {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
+      {/* ── Desktop sidebar — icon rail + sub-nav (xl+). iPads and phones use bottom nav. ── */}
       <ChromeSlot slot="desktop">
         <div className={cn("shrink-0", desktopChromeVisible)}>
           <DesktopNavRail
@@ -1868,8 +1868,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* ── Right panel — on iPad/tablet this becomes the rounded “app stage”. ── */}
       <div className="tablet-app-stage flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Desktop top header — paired with the desktop sidebar. Appears at
-            xl+ for grocery clerks, md+ for everyone else. */}
+        {/* Desktop top header — paired with the sidebar, from xl (laptops) up. */}
         <ChromeSlot slot="desktop">
           <header
             className={cn(
@@ -2033,7 +2032,7 @@ export function AppShell({ children }: AppShellProps) {
           </header>
         </ChromeSlot>
 
-        <ChromeSlot slot={["phone", "tablet", "wide"]}>
+        <ChromeSlot slot={["phone", "tablet"]}>
           <div className={tabletChromeVisible}>
             <TabletAppHeader
               tenantTitle={tenantTitle}
@@ -2060,7 +2059,7 @@ export function AppShell({ children }: AppShellProps) {
               headerTools={
                 <>
                   {showOwnerKioskPay ? (
-                    <ChromeSlot slot={["tablet", "wide"]}>
+                    <ChromeSlot slot="tablet">
                       <KioskPayHeaderBalance
                         canWithdraw={canWritePaymentGateways}
                         currencyFallback={business?.currency?.trim() || "KES"}
@@ -2068,7 +2067,7 @@ export function AppShell({ children }: AppShellProps) {
                       />
                     </ChromeSlot>
                   ) : null}
-                  <ChromeSlot slot={["tablet", "wide"]}>
+                  <ChromeSlot slot="tablet">
                     <SmsCreditsHeader
                       canBuy={canBuySmsCredits}
                       canViewLedger={canViewSmsCreditLedger}
@@ -2111,7 +2110,7 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
 
-        <ChromeSlot slot={["phone", "tablet", "wide"]}>
+        <ChromeSlot slot={["phone", "tablet"]}>
           <div className={tabletChromeVisible}>
             <TabletBottomNav
               tabs={visibleBottomTabs}

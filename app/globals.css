@@ -88,11 +88,19 @@
     --sidebar-border: rgb(229, 229, 229);
     --sidebar-ring: rgba(40, 167, 69, 0.35);
 
-    /* Dashboard shell chrome. The fixed bottom tab bar renders at every viewport
-       below 2xl (see AppShell `tabletChromeVisible`). Any page-level sticky or
-       fixed bottom element must sit on this inset, or it collides with the bar. */
+    /* Dashboard shell chrome. The fixed bottom tab bar renders below xl
+       (1280px — phones and iPads; see AppShell `tabletChromeVisible`). Any
+       page-level sticky or fixed bottom element must sit on this inset, or it
+       collides with the bar. Laptops zero the inset because the sidebar
+       replaces the tab bar. */
     --shell-tab-bar: 3.85rem;
     --shell-bottom-inset: calc(var(--shell-tab-bar) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1280px) {
+    :root {
+        --shell-bottom-inset: 0px;
+    }
 }
 
 .dark {
@@ -445,7 +453,7 @@
     }
 }
 
-/* ── Tablet / iPad native-app shell (bottom nav below 2xl) ─────────────── */
+/* ── Tablet / iPad native-app shell (bottom nav below xl / 1280px) ────── */
 .tablet-app-root:has(.tablet-bottom-nav) {
     background: rgb(250, 250, 250);
 }
@@ -629,7 +637,7 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     }
 }
 
-@media (max-width: 1535px) {
+@media (max-width: 1279px) {
     .tablet-app-stage {
         margin: 0;
         border-radius: 0;

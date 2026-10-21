@@ -61,7 +61,7 @@ function sanitizeThread(raw: unknown): ThreadItem[] {
   return out.slice(-MAX_STORED_MESSAGES);
 }
 
-/** Floating launch button — lives above the tablet bottom nav until 2xl. */
+/** Floating launch button — hidden under the iPad/phone tab bar; shown from xl (laptops). */
 const FAB_POSITION = GUIDE_FAB_POSITION;
 
 function AssistantAvatar({ className }: { className?: string }) {
@@ -342,7 +342,7 @@ export function SokoMindGuide() {
         <span
           aria-hidden
           className={cn(
-            "fixed z-30 size-12 animate-ping rounded-full bg-primary/35 motion-reduce:hidden max-2xl:hidden",
+            "fixed z-30 size-12 animate-ping rounded-full bg-primary/35 motion-reduce:hidden max-xl:hidden",
             FAB_POSITION,
           )}
           style={{ animationDuration: "2.8s" }}
@@ -356,7 +356,7 @@ export function SokoMindGuide() {
         title="Ask Kiosk Guide (⌘J)"
         onClick={() => setOpen(true)}
         className={cn(
-          "group fixed z-40 flex h-12 items-center gap-2 rounded-[2px] max-2xl:hidden",
+          "group fixed z-40 flex h-12 items-center gap-2 rounded-[2px] max-xl:hidden",
           FAB_POSITION,
           "bg-[var(--op-accent)] pl-3.5 pr-4 text-[var(--op-surface)]",
           "shadow-[0_14px_34px_-12px_rgba(18,26,22,0.45)] ring-1 ring-white/10",
@@ -385,7 +385,7 @@ export function SokoMindGuide() {
           "premium-portal fixed z-50 flex flex-col overflow-hidden rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)]",
           // Phone/tablet: full-bleed sheet above the dock. Desktop: anchor at FAB.
           "inset-x-3 bottom-[calc(4.15rem+env(safe-area-inset-bottom,0px))] top-auto h-[min(72dvh,34rem)] max-h-[calc(100dvh-5.5rem)] rounded-[2px]",
-          "2xl:inset-auto 2xl:bottom-6 2xl:right-6 2xl:top-auto 2xl:max-h-[calc(100dvh-7rem)] 2xl:w-96",
+          "xl:inset-auto xl:bottom-6 xl:right-6 xl:top-auto xl:max-h-[calc(100dvh-7rem)] xl:w-96",
           "shadow-[0_28px_64px_-20px_rgba(0,0,0,0.4)]",
           "transition-all duration-200 ease-out",
           open

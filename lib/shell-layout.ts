@@ -1,8 +1,8 @@
 /**
  * Shared bottom-chrome metrics for the (dashboard) shell.
  *
- * The shell pins a fixed bottom tab bar at every viewport below `2xl`
- * (AppShell: `tabletChromeVisible = "2xl:hidden"`). Content clears it with the
+ * The shell pins a fixed bottom tab bar at every viewport below `xl`
+ * (AppShell: `tabletChromeVisible = "xl:hidden"`). Content clears it with the
  * `--shell-bottom-inset` CSS variable (globals.css). Any page-level sticky or
  * fixed bottom element MUST sit on that inset too, or you get two stacked bars.
  *

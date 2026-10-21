@@ -2247,7 +2247,7 @@ export default function GlobalCatalogPage() {
                 importProgress &&
                 (actionPhase === "importing" || actionPhase === "done")
               ) ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--shell-bottom-inset)+0.75rem)] z-20 flex justify-center px-3 2xl:bottom-3">
+                <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--shell-bottom-inset)+0.75rem)] z-20 flex justify-center px-3 xl:bottom-3">
                   {selected.size > 0 ||
                   actionPhase === "loading" ||
                   actionPhase === "selecting" ||

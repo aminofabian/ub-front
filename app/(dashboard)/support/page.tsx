@@ -51,9 +51,9 @@ export default function SupportPage() {
       className={cn(
         DASHBOARD_MAX,
         // Fill the dashboard main so the thread scrolls inside the chat and
-        // the composer stays on screen. At 2xl, Ask Guide sits on the bottom
+        // the composer stays on screen. From xl, Ask Guide sits on the bottom
         // right — leave room so it does not cover the message box.
-        "h-full min-h-0 overflow-hidden pb-0 2xl:pb-16",
+        "h-full min-h-0 overflow-hidden pb-0 xl:pb-16",
       )}
     >
       <DashboardPageHero
