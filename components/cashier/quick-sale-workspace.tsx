@@ -1745,7 +1745,6 @@ export function QuickSaleWorkspace({
                     groceryBarcode: invoice.barcodeCode,
                     groceryInvoiceGrandTotal:
                       Number(invoice.grandTotal) || 0,
-                    groceryDepartmentLabel: invoiceDepartmentLabel,
                     ...applyInvoiceCustomer(c),
                   }
                 : c,
