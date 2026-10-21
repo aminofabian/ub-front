@@ -147,7 +147,8 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
         continue;
       }
       byLineIndex.set(idx, {
-        description: item.lineLabel?.trim() || "Item",
+        description:
+          item.displayName?.trim() || item.lineLabel?.trim() || "Item",
         quantity: qty > 0 ? qty : 1,
         unitPrice: unit,
         lineTotal: lineTotal > 0 ? lineTotal : roundMoney2((qty > 0 ? qty : 1) * unit),

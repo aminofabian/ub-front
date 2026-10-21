@@ -11307,6 +11307,8 @@ export type SaleItemResponseRecord = {
   batchId?: string | null;
   lineKind?: string | null;
   lineLabel?: string | null;
+  /** Canonical product title frozen on the sale line at checkout. */
+  displayName?: string | null;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;

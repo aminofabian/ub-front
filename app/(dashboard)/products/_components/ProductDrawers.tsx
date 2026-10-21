@@ -230,9 +230,14 @@ export function ProductQuickEditAllDrawer({
     detail.detail?.parentName ||
     ""
   ).trim();
+  const variantLabel = detail.detail?.variantName?.trim() ?? "";
+  // Repeating the family is not a usable option label; fall back to the API title.
+  const labelRepeatsFamily =
+    !!familyForTitle &&
+    variantLabel.toLowerCase() === familyForTitle.toLowerCase();
   const composedVariantName =
-    isVariant && familyForTitle
-      ? joinProductNameParts(familyForTitle, detail.detail?.variantName)
+    isVariant && familyForTitle && variantLabel && !labelRepeatsFamily
+      ? joinProductNameParts(familyForTitle, variantLabel)
       : "";
 
   return (
@@ -299,7 +304,10 @@ export function ProductQuickEditAllDrawer({
               <F label="Display name">
                 <div className="rounded-none border border-border/70 bg-muted/20 px-2.5 py-2">
                   <p className="text-[13px] font-medium leading-snug text-foreground">
-                    {composedVariantName || quick.qeaName || "—"}
+                    {composedVariantName ||
+                      detail.detail?.name?.trim() ||
+                      quick.qeaName ||
+                      "—"}
                   </p>
                   <p className="mt-0.5 text-[11px] leading-snug text-foreground/45">
                     Auto from family + option

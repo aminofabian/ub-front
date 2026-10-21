@@ -2646,8 +2646,13 @@ export function TenantOrderWorkspace({
 
           <div
             className={cn(
-              "min-h-0 flex-1 overscroll-contain px-3 pb-28 pt-3 sm:px-4 sm:pt-4 xl:pb-4 [scrollbar-width:thin]",
-              embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
+              "min-h-0 flex-1 overscroll-contain px-3 pt-3 sm:px-4 sm:pt-4 [scrollbar-width:thin]",
+              orderTemplate === "ledger"
+                ? "flex flex-col overflow-hidden pb-28 xl:pb-4"
+                : cn(
+                    "pb-28 xl:pb-4",
+                    embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
+                  ),
             )}
           >
             {!supplierId ? (

@@ -176,16 +176,16 @@ export function OrderProductLedger({
   }
 
   return (
-    <div className="min-w-0 overflow-x-auto [scrollbar-width:thin]">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-auto [scrollbar-width:thin]">
       <div
         className={cn(
-          "overflow-hidden border bg-[var(--op-bg,#F4F1EA)]",
+          "flex min-h-0 min-w-[36rem] flex-1 flex-col overflow-hidden border bg-[var(--op-bg,#F4F1EA)]",
           RULE,
         )}
       >
         <div
           className={cn(
-            "flex min-w-[36rem] border-b-[3px] border-double bg-[var(--op-panel,#EFEBE2)]",
+            "flex shrink-0 border-b-[3px] border-double bg-[var(--op-panel,#EFEBE2)]",
             "border-[color-mix(in_srgb,var(--order-ink,#121A16)_28%,transparent)]",
           )}
         >
@@ -202,7 +202,7 @@ export function OrderProductLedger({
           />
         </div>
 
-        <div className="max-h-[calc(100vh-18rem)] overflow-y-auto [scrollbar-width:thin]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
           {links.map((link, index) => {
             const qty = cart[link.itemId] ?? 0;
             const stock = toNum(link.currentStock);
@@ -390,7 +390,7 @@ export function OrderProductLedger({
         {links.length > 0 ? (
           <div
             className={cn(
-              "flex min-w-[36rem] items-baseline gap-3 border-t-[3px] border-double bg-[var(--op-panel,#EFEBE2)] px-3 py-2 text-[11px]",
+              "flex shrink-0 items-baseline gap-3 border-t-[3px] border-double bg-[var(--op-panel,#EFEBE2)] px-3 py-2 text-[11px]",
               "border-[color-mix(in_srgb,var(--order-ink,#121A16)_28%,transparent)]",
             )}
           >

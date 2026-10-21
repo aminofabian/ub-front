@@ -139,8 +139,19 @@ export function ProductEditDrawer({
       d?.parentName?.trim() ||
       ""
     : "";
+  const variantLabel = (dr.variantName ?? "").trim();
+  // A label that only repeats the family is treated as missing by the API, which
+  // composes the title from the stored option instead. Mirror that in the preview.
+  const labelRepeatsFamily =
+    !!familyName && variantLabel.toLowerCase() === familyName.toLowerCase();
   const composedDisplayName = isVariant
-    ? joinProductNameParts(familyName, dr.variantName)
+    ? variantLabel
+      ? labelRepeatsFamily
+        ? d?.name?.trim() || familyName
+        : familyName
+          ? joinProductNameParts(familyName, variantLabel)
+          : d?.name?.trim() || variantLabel
+      : ""
     : (dr.name ?? "");
 
   const [stockQty, setStockQty] = useState("");

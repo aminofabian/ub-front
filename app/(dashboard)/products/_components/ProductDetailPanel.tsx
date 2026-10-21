@@ -45,7 +45,6 @@ import {
 } from "@/lib/api";
 import {
   CATALOG_FIX_NAME_LABEL,
-  joinProductNameParts,
   resolveCatalogItemName,
 } from "@/lib/catalog-display";
 import { productDossierPath } from "@/lib/product-dossier-url";
@@ -659,18 +658,10 @@ export function ProductDetailPanel(props: Props) {
   };
 
   const thumbUrl = coverImageUrl(detail);
-  const resolvedName = resolveCatalogItemName(detail);
-  const familyForTitle =
-    (variantParentDisplayName || detail.parentName || "").trim();
-  const composedVariantTitle = isChildVariant
-    ? joinProductNameParts(familyForTitle, detail.variantName)
-    : "";
-  const displayName = {
-    ...resolvedName,
-    label: familyForTitle
-      ? composedVariantTitle || resolvedName.label
-      : resolvedName.label,
-  };
+  // The API's `name` is already the canonical ProductDisplayName (family + option).
+  // Re-joining here used to collapse a variant to its bare family whenever the
+  // variant label was missing, so the panel disagreed with receipts and stock.
+  const displayName = resolveCatalogItemName(detail);
   const titleInitial = (
     displayName.needsNameFix && displayName.label === CATALOG_FIX_NAME_LABEL
       ? "?"
