@@ -937,7 +937,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
   const tabSuspended = Boolean(cart.selectedCustomer?.credit.creditSuspended);
   const captureCustomerSimple =
-    Boolean(cart.captureCustomerForCashAndMpesa) &&
+    (Boolean(cart.captureCustomerForCashAndMpesa) ||
+      Boolean(cart.customerNameOnReceipt)) &&
     Boolean(cart.canLookupCustomers) &&
     !cart.splitPay &&
     (cart.payMethod === "cash" || cart.payMethod === "mpesa_manual");

@@ -135,7 +135,24 @@ const cloudOnlyConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return [overviewRedirect];
+    return [
+      overviewRedirect,
+      {
+        source: "/grocery",
+        destination: "/clerk",
+        permanent: true,
+      },
+      {
+        source: "/grocery/invoices",
+        destination: "/clerk/invoices",
+        permanent: true,
+      },
+      {
+        source: "/grocery/:path*",
+        destination: "/clerk/:path*",
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     // Do NOT rewrite /api/v1/* here — app/api/v1/[[...path]]/route.ts must handle
@@ -183,7 +200,29 @@ const desktopConfig: NextConfig = {
     NEXT_PUBLIC_CLIENT_BUILD_ID: CLIENT_BUILD_ID,
   },
   async redirects() {
-    return [overviewRedirectTrailing];
+    return [
+      overviewRedirectTrailing,
+      {
+        source: "/grocery",
+        destination: "/clerk/",
+        permanent: true,
+      },
+      {
+        source: "/grocery/",
+        destination: "/clerk/",
+        permanent: true,
+      },
+      {
+        source: "/grocery/invoices",
+        destination: "/clerk/invoices/",
+        permanent: true,
+      },
+      {
+        source: "/grocery/invoices/",
+        destination: "/clerk/invoices/",
+        permanent: true,
+      },
+    ];
   },
 };
 

@@ -548,12 +548,12 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.grocery,
-        label: "Grocery counter",
+        label: "Clerk",
         group: "Counters",
       },
       {
         href: APP_ROUTES.groceryInvoices,
-        label: "Grocery invoices",
+        label: "Clerk invoices",
         group: "Counters",
       },
     ],
@@ -1470,7 +1470,7 @@ export function AppShell({ children }: AppShellProps) {
     if (canAccessGrocery && !isButcherPosEnabled(mergedFeatureFlags)) {
       links.push({
         href: APP_ROUTES.grocery,
-        label: "Grocery",
+        label: "Clerk",
         icon: Store,
       });
     }
@@ -1587,16 +1587,16 @@ export function AppShell({ children }: AppShellProps) {
       const groceryClerkTabs: BottomTab[] = [
         {
           id: "pos",
-          label: "POS",
+          label: "Clerk",
           icon: ShoppingBag,
-          href: APP_ROUTES.grocery,
+          href: APP_ROUTES.clerk,
           matchSectionIds: ["sales"],
         },
         {
           id: "invoices",
           label: "Invoices",
           icon: Receipt,
-          href: APP_ROUTES.groceryInvoices,
+          href: APP_ROUTES.clerkInvoices,
           matchSectionIds: ["sales"],
         },
       ];

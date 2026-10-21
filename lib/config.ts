@@ -202,8 +202,13 @@ export const APP_ROUTES = {
   butcherProducts: "/butcher/products",
   butcherAnalytics: "/butcher/analytics",
   butcherSuppliers: "/butcher/suppliers",
-  grocery: "/grocery",
-  groceryInvoices: "/grocery/invoices",
+  /** Department / floor counter (formerly /grocery). */
+  clerk: "/clerk",
+  clerkInvoices: "/clerk/invoices",
+  /** @deprecated Prefer `clerk` — kept as alias for older bookmarks/code. */
+  grocery: "/clerk",
+  /** @deprecated Prefer `clerkInvoices`. */
+  groceryInvoices: "/clerk/invoices",
   shop: "/shop",
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",

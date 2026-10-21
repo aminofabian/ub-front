@@ -66,6 +66,13 @@ function roleUsesDepartmentAssignments(roleKey?: string): boolean {
   return roleKey?.trim().toLowerCase() === "grocery_clerk";
 }
 
+function departmentHeadRoleLabel(roleName?: string, roleKey?: string): string {
+  if (roleKey?.trim().toLowerCase() === "grocery_clerk") {
+    return "Department Head";
+  }
+  return roleName?.trim() || "Role";
+}
+
 function isProtectedFromDelete(roleKey?: string): boolean {
   const key = roleKey?.trim().toLowerCase();
   return key === "owner" || key === "admin";
@@ -333,7 +340,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
               <option value="">All roles</option>
               {roles.map((role) => (
                 <option key={role.id} value={role.id}>
-                  {role.name}
+                  {departmentHeadRoleLabel(role.name, role.key)}
                 </option>
               ))}
             </select>
@@ -447,7 +454,12 @@ export function UsersTheatre(props: UsersTheatreProps) {
                           {user.name}
                         </p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                          {user.role?.name ?? "No role"}
+                          {user.role
+                            ? departmentHeadRoleLabel(
+                                user.role.name,
+                                user.role.key,
+                              )
+                            : "No role"}
                           {branchName ? ` · ${branchName}` : ""}
                         </p>
                       </div>
@@ -822,7 +834,7 @@ function UserFocus({
           </span>
           {user.role?.name ? (
             <span className="inline-flex items-center border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em] text-foreground">
-              {user.role.name}
+              {departmentHeadRoleLabel(user.role.name, user.role.key)}
             </span>
           ) : null}
           {branchName ? (
@@ -1034,7 +1046,7 @@ function UserInspectPanel({
                   >
                     {roles.map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name}
+                        {departmentHeadRoleLabel(role.name, role.key)}
                       </option>
                     ))}
                   </select>

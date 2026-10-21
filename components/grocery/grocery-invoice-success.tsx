@@ -19,6 +19,8 @@ type GroceryInvoiceSuccessProps = {
   onNewInvoice: () => void;
   onClose: () => void;
   currency?: string;
+  /** Thermal print via Till Print Bridge (same as cashier). */
+  onPrintReceipt?: () => Promise<boolean> | boolean;
 };
 
 // ── Simple SVG Code-128–style barcode renderer ────────────────────
@@ -93,11 +95,13 @@ export function GroceryInvoiceSuccess({
   onNewInvoice,
   onClose,
   currency = "KES",
+  onPrintReceipt,
 }: GroceryInvoiceSuccessProps) {
   const barcodeSvg = useMemo(
     () => renderBarcodeSvg(invoice.barcodeCode),
     [invoice.barcodeCode],
   );
+  const [printing, setPrinting] = useState(false);
 
   const realtime = useOptionalRealtime();
   const [lifecycle, setLifecycle] = useState<InvoiceLifecycle>(
@@ -234,11 +238,30 @@ export function GroceryInvoiceSuccess({
           <div className="mt-6 flex w-full gap-3">
             <button
               type="button"
-              onClick={() => window.print()}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 text-[13px] font-semibold text-[var(--order-ink,#15231f)] transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)] active:scale-[0.97] touch-manipulation"
+              disabled={printing}
+              onClick={() => {
+                void (async () => {
+                  if (!onPrintReceipt) {
+                    window.print();
+                    return;
+                  }
+                  setPrinting(true);
+                  try {
+                    const ok = await onPrintReceipt();
+                    if (!ok) window.print();
+                  } finally {
+                    setPrinting(false);
+                  }
+                })();
+              }}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 text-[13px] font-semibold text-[var(--order-ink,#15231f)] transition-colors hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_26%,transparent)] active:scale-[0.97] touch-manipulation disabled:opacity-50"
             >
-              <Printer className="size-4" />
-              Print
+              {printing ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Printer className="size-4" />
+              )}
+              {printing ? "Printing…" : "Print"}
             </button>
             <button
               type="button"

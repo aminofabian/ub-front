@@ -46,6 +46,7 @@ import { JOIN_PAY_MODES } from "@/lib/payroll-utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 import { UsersTheatre } from "./_components/users-theatre";
+import { AssignDepartmentsModal } from "./_components/assign-departments-modal";
 import {
   buildCreateUserPayload,
   DEFAULT_USER_DRAFT,
@@ -53,6 +54,7 @@ import {
   type CredentialMethod,
   type UserDraft,
 } from "./_lib/create-user-draft";
+import { isDepartmentHeadRole } from "@/lib/department-counter";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
@@ -85,6 +87,9 @@ export default function UsersPage() {
   const [savingBranchId, setSavingBranchId] = useState<string | null>(null);
   const [deptChange, setDeptChange] = useState<Record<string, string[]>>({});
   const [savingDeptId, setSavingDeptId] = useState<string | null>(null);
+  const [deptAssignUserId, setDeptAssignUserId] = useState<string | null>(null);
+  const [deptAssignDraft, setDeptAssignDraft] = useState<string[]>([]);
+  const [deptAssignSaving, setDeptAssignSaving] = useState(false);
   const [passwordEditUserId, setPasswordEditUserId] = useState<string | null>(
     null,
   );
@@ -239,6 +244,11 @@ export default function UsersPage() {
     setInviteDrawerOpen(open);
   };
 
+  const openDepartmentAssign = (user: UserRecord) => {
+    setDeptAssignUserId(user.id);
+    setDeptAssignDraft(user.itemTypeIds ?? []);
+  };
+
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const built = buildCreateUserPayload(draft);
@@ -246,16 +256,26 @@ export default function UsersPage() {
       setFeedback({ kind: "error", text: built.error });
       return;
     }
+    const createdEmail = draft.email.trim().toLowerCase();
+    const createdRoleId = draft.roleId;
+    const createdRole = roles.find((r) => r.id === createdRoleId);
     setCreating(true);
     setFeedback(null);
     try {
       await createUser(built.payload);
       setDraft((previous) => ({ ...DEFAULT_USER_DRAFT, roleId: previous.roleId }));
-      await loadData();
+      const nextUsers = await fetchUsers();
+      setUsers(nextUsers);
       await refreshSession();
       skipInviteDrawerResetAfterCreate.current = true;
       setInviteDrawerOpen(false);
       setFeedback({ kind: "success", text: built.success });
+      if (isDepartmentHeadRole(createdRole?.key)) {
+        const created =
+          nextUsers.find((u) => u.email.trim().toLowerCase() === createdEmail) ??
+          null;
+        if (created) openDepartmentAssign(created);
+      }
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -302,6 +322,7 @@ export default function UsersPage() {
       });
       return;
     }
+    const nextRole = roles.find((r) => r.id === selected);
     setSavingRoleId(userId);
     setFeedback(null);
     try {
@@ -314,6 +335,10 @@ export default function UsersPage() {
       await loadData();
       await refreshSession();
       setFeedback({ kind: "success", text: "Role updated." });
+      if (isDepartmentHeadRole(nextRole?.key)) {
+        const updated = (await fetchUsers()).find((u) => u.id === userId);
+        if (updated) openDepartmentAssign(updated);
+      }
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -321,6 +346,34 @@ export default function UsersPage() {
       });
     } finally {
       setSavingRoleId(null);
+    }
+  };
+
+  const onSaveDepartmentAssignModal = async () => {
+    if (!deptAssignUserId) return;
+    setDeptAssignSaving(true);
+    setFeedback(null);
+    try {
+      await setUserItemTypes(deptAssignUserId, deptAssignDraft);
+      setDeptChange((previous) => {
+        const next = { ...previous };
+        delete next[deptAssignUserId];
+        return next;
+      });
+      await loadData();
+      await refreshSession();
+      setDeptAssignUserId(null);
+      setFeedback({ kind: "success", text: "Departments assigned." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to update departments.",
+      });
+    } finally {
+      setDeptAssignSaving(false);
     }
   };
 
@@ -1010,7 +1063,9 @@ export default function UsersPage() {
                   >
                     {roles.map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name}
+                        {isDepartmentHeadRole(role.key)
+                          ? "Department Head"
+                          : role.name}
                       </option>
                     ))}
                   </select>
@@ -1177,6 +1232,25 @@ export default function UsersPage() {
         userId={profileUserId}
         userLabel={profileUserLabel}
         permissions={me?.permissions}
+      />
+
+      <AssignDepartmentsModal
+        open={deptAssignUserId != null}
+        onOpenChange={(open) => {
+          if (!open) setDeptAssignUserId(null);
+        }}
+        userName={
+          users.find((u) => u.id === deptAssignUserId)?.name?.trim() || ""
+        }
+        departments={itemTypes}
+        selectedIds={deptAssignDraft}
+        onToggle={(id) =>
+          setDeptAssignDraft((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+          )
+        }
+        onSave={() => void onSaveDepartmentAssignModal()}
+        saving={deptAssignSaving}
       />
     </>
   );

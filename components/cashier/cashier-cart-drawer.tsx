@@ -183,6 +183,11 @@ export type CashierCartDrawerProps = {
   allowSearchCustomersByName?: boolean;
   /** When true, cash and M-Pesa sales show an optional add/select-customer step (tenant setting, off by default). */
   captureCustomerForCashAndMpesa?: boolean;
+  /**
+   * Branch receipt setting: keep the optional customer-name field visible on
+   * cash / M-Pesa checkout so the name can print on the receipt.
+   */
+  customerNameOnReceipt?: boolean;
   onSearchCustomers: () => void;
   onSendPhoneVerification: () => void;
   onRegisterCustomer: () => void;
@@ -382,6 +387,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     requirePhoneVerificationForNewTabCustomers = true,
     allowSearchCustomersByName = false,
     captureCustomerForCashAndMpesa = false,
+    customerNameOnReceipt = false,
     onSearchCustomers,
     onSendPhoneVerification,
     onRegisterCustomer,
@@ -465,9 +471,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     splitUsesWallet;
   const creditRegisterContext =
     payMethod === "customer_credit" || creditChangeToWallet;
-  /** Optional customer capture on cash / M-Pesa sales (tenant setting, off by default). */
+  /** Optional customer capture on cash / M-Pesa (tenant and/or receipt setting). */
   const captureCustomerSimple =
-    captureCustomerForCashAndMpesa &&
+    (captureCustomerForCashAndMpesa || customerNameOnReceipt) &&
     canLookupCustomers &&
     !splitPay &&
     !creditChangeToWallet &&

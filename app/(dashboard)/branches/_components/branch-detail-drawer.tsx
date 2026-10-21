@@ -216,6 +216,26 @@ export function BranchDetailPanel({
               disabled={readOnly}
             />
           </label>
+          <label className="flex items-start justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-2.5 py-2">
+            <span className="min-w-0 space-y-0.5">
+              <span className="block text-[12px] font-semibold text-foreground">
+                Customer name on receipt
+              </span>
+              <span className={cn(dashboardHintClass(), "block")}>
+                Keep the optional customer-name field visible at checkout so it
+                can print on the receipt.
+              </span>
+            </span>
+            <Switch
+              size="sm"
+              checked={Boolean(row.receipt.customerNameOnReceipt)}
+              onCheckedChange={(checked) =>
+                setReceipt("customerNameOnReceipt", checked)
+              }
+              aria-label={`Customer name on receipt for ${branch.name}`}
+              disabled={readOnly}
+            />
+          </label>
           <p className={dashboardHintClass()}>
             <strong className="font-medium text-foreground">
               Cloud cashier + receipt printer:

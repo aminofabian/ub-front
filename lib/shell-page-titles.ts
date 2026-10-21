@@ -53,8 +53,10 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.butcherProducts]: "Products",
     [APP_ROUTES.butcherAnalytics]: "Analytics",
     [APP_ROUTES.butcherSuppliers]: "Suppliers",
-    [APP_ROUTES.grocery]: "Grocery",
-    [APP_ROUTES.groceryInvoices]: "Invoices",
+    [APP_ROUTES.clerk]: "Clerk",
+    [APP_ROUTES.clerkInvoices]: "Clerk invoices",
+    [APP_ROUTES.grocery]: "Clerk",
+    [APP_ROUTES.groceryInvoices]: "Clerk invoices",
     [APP_ROUTES.analytics]: "Trends",
     [APP_ROUTES.analyticsActivity]: "Who did what",
     [APP_ROUTES.analyticsCustomers]: "Shoppers",
@@ -90,7 +92,9 @@ export function shellPageTitle(pathname: string): string {
     return "Buying";
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
-  if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
+  if (path.startsWith(APP_ROUTES.clerk) || path.startsWith("/grocery")) {
+    return "Clerk";
+  }
   if (path.startsWith(APP_ROUTES.butcher)) return "Butcher";
   if (path === APP_ROUTES.creditsOnTab) return "On tab";
   if (path.startsWith("/credits")) return "Credit";

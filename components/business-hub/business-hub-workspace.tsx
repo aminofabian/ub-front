@@ -208,6 +208,7 @@ export function BusinessHubWorkspace() {
     canManageBusinessSettings,
     canListUsers,
     canQuickSale,
+    canAccessGrocery,
     canViewAnalytics,
     canViewInventoryValuation,
     canViewSupplyBatches,
@@ -1168,6 +1169,15 @@ export function BusinessHubWorkspace() {
         group: "Sell",
       });
     }
+    if (canAccessGrocery) {
+      links.push({
+        href: APP_ROUTES.clerk,
+        label: "Clerk",
+        hint: "Department counter · forward to till",
+        icon: Store,
+        group: "Sell",
+      });
+    }
     if (canManageBusinessSettings) {
       links.push({
         href: `${APP_ROUTES.business}?manageTills=1`,
@@ -1210,6 +1220,7 @@ export function BusinessHubWorkspace() {
     canViewCustomers,
     canViewSalesIntelligence,
     showButcherCounter,
+    canAccessGrocery,
   ]);
 
   const canAddSupplier = canWriteSuppliers(me, business);

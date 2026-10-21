@@ -53,6 +53,11 @@ export type CartSession = {
   /** Grocery invoice barcode when this cart was loaded from a GI-* barcode. */
   groceryBarcode?: string;
   /**
+   * Department label forwarded from the department counter (invoice notes).
+   * Shown on cashier so staff see where the order originated.
+   */
+  groceryDepartmentLabel?: string | null;
+  /**
    * Server invoice grand total at load time. Grocery pay must cover this
    * (plus any walk-up additionalLines) — not the editable cart UI total.
    */

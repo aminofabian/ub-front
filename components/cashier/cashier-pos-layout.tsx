@@ -366,6 +366,7 @@ export type CashierPosLayoutProps = {
     | "requirePhoneVerificationForNewTabCustomers"
     | "allowSearchCustomersByName"
     | "captureCustomerForCashAndMpesa"
+    | "customerNameOnReceipt"
     | "onSearchCustomers"
     | "onSendPhoneVerification"
     | "onRegisterCustomer"

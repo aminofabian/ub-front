@@ -477,7 +477,7 @@ export default function GroceryInvoicesPage() {
                 salesMute,
               )}
             >
-              {branchName || "Grocery"}
+              {branchName || "Department counter"}
             </span>
             <h1
               className={cn(
@@ -536,7 +536,7 @@ export default function GroceryInvoicesPage() {
               <span className="hidden sm:inline">Lock</span>
             </button>
             <Link
-              href="/grocery"
+              href="/clerk"
               className={cn(
                 salesToolBtnClass(true),
                 "bg-[var(--pos-primary,#0f766e)] text-white ring-0 hover:brightness-105",

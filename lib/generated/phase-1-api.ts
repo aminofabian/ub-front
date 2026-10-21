@@ -22292,6 +22292,7 @@ export interface components {
             footerNote?: string;
             printerCupsName?: string;
             whatsappReceiptEnabled?: boolean;
+            customerNameOnReceipt?: boolean;
         };
         CreateBranchRequest: {
             name: string;
@@ -22306,6 +22307,7 @@ export interface components {
             footerNote?: string;
             printerCupsName?: string;
             whatsappReceiptEnabled?: boolean;
+            customerNameOnReceipt?: boolean;
         };
         BranchResponse: {
             id?: string;

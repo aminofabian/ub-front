@@ -47,7 +47,7 @@ export const MOBILE_APP_DESCRIPTIONS: Record<string, string> = {
   cashier: "Sell at the counter — scan, M-Pesa, receipts",
   admin: "Run your business from your pocket",
   stock: "Inventory, stock takes, and receiving",
-  grocery: "Grocery counter mode for fresh produce",
+  grocery: "Clerk counter for floor teams",
 };
 
 export function mobileAppInstallerUrl(app: MobileAppEntry): string {

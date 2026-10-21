@@ -143,6 +143,16 @@ import {
   GroceryForwardedInvoicesPanel,
   type GroceryCartPanelTab,
 } from "./grocery-forwarded-invoices-panel";
+import {
+  buildDepartmentInvoiceNotes,
+  parseDepartmentInvoiceNotes,
+} from "@/lib/department-counter";
+import { TillPrinterStatus } from "@/components/cashier/till-printer-status";
+import {
+  printGroceryInvoiceReceipt,
+  type LocalReceiptPrinterTarget,
+} from "@/lib/desktop-print";
+import { groceryInvoiceReceiptFromResponse } from "@/lib/grocery-invoice-receipt";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -410,13 +420,27 @@ export function GroceryWorkspace() {
   const tenantTitle =
     business?.branding?.displayName?.trim() ||
     business?.name?.trim() ||
-    "Grocery";
+    "Clerk";
   const primaryColor = business?.branding?.primaryColor;
   const roleKey = effectiveMe?.role?.key?.trim().toLowerCase() ?? "";
   const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
   const canEditProductImages =
     isOwnerOrAdmin &&
     hasPermission(effectiveMe?.permissions, Permission.CatalogItemsWrite);
+  const activeBranch = useMemo(
+    () => branches.find((b) => b.id === branchId?.trim()) ?? null,
+    [branches, branchId],
+  );
+  const customerNameOnReceipt = Boolean(
+    activeBranch?.receipt?.customerNameOnReceipt,
+  );
+  const receiptPrinter: LocalReceiptPrinterTarget = useMemo(
+    () => ({
+      cupsName: activeBranch?.receipt?.printerCupsName ?? null,
+      branchId: branchId?.trim() || null,
+    }),
+    [activeBranch?.receipt?.printerCupsName, branchId],
+  );
 
   // Item browser state
   const [search, setSearch] = useState("");
@@ -424,6 +448,8 @@ export function GroceryWorkspace() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<
     string | null
   >(null);
+  const [receiptCustomerName, setReceiptCustomerName] = useState("");
+  const [receiptCustomerPhone, setReceiptCustomerPhone] = useState("");
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [searchBanner, setSearchBanner] = useState<string | null>(null);
   const [departmentCatalog, setDepartmentCatalog] = useState<
@@ -640,13 +666,52 @@ export function GroceryWorkspace() {
     return itemTypes.find((t) => t.id === selectedDepartmentId) ?? null;
   }, [itemTypes, selectedDepartmentId]);
 
-  // Departments (item types) the grocery clerk is allowed to invoice from.
+  // Departments (item types) the department head is allowed to invoice from.
   const activeDepartmentLabel = useMemo(() => {
     if (itemTypes.length === 0) return "";
     if (selectedDepartment) return selectedDepartment.label?.trim() || "";
     if (itemTypes.length === 1) return itemTypes[0].label?.trim() || "";
     return ALL_DEPARTMENTS_LABEL;
   }, [itemTypes, selectedDepartment]);
+
+  /** Specific department for forwarding — omit vague "All departments". */
+  const invoiceDepartmentLabel = useMemo(() => {
+    if (selectedDepartment) return selectedDepartment.label?.trim() || null;
+    if (itemTypes.length === 1) return itemTypes[0].label?.trim() || null;
+    return null;
+  }, [itemTypes, selectedDepartment]);
+
+  const printForwardedInvoice = useCallback(
+    async (
+      invoice: GroceryInvoiceResponse,
+      opts?: { quiet?: boolean; departmentLabel?: string | null },
+    ) => {
+      const parsed = parseDepartmentInvoiceNotes(invoice.notes);
+      const snapshot = groceryInvoiceReceiptFromResponse({
+        businessName: tenantTitle,
+        branchName: activeBranchName,
+        departmentLabel:
+          opts?.departmentLabel ||
+          parsed.departmentLabel ||
+          invoiceDepartmentLabel,
+        createdByName: cashierName || invoice.createdByName,
+        currency,
+        invoice,
+        customerName: parsed.customerName,
+      });
+      return printGroceryInvoiceReceipt(snapshot, 80, receiptPrinter, {
+        quiet: opts?.quiet,
+      });
+    },
+    [
+      tenantTitle,
+      activeBranchName,
+      invoiceDepartmentLabel,
+      cashierName,
+      currency,
+      receiptPrinter,
+    ],
+  );
 
   // Personal top sellers boost items the clerk invoices often to the top of
   // the "All departments" browse list. Department-specific views use plain
@@ -1275,6 +1340,14 @@ export function GroceryWorkspace() {
     setLoading(true);
     setError(null);
 
+    const forwardNotes = buildDepartmentInvoiceNotes({
+      departmentLabel: invoiceDepartmentLabel,
+      customerName: customerNameOnReceipt ? receiptCustomerName : null,
+    });
+    const forwardPhone = customerNameOnReceipt
+      ? receiptCustomerPhone.trim() || undefined
+      : undefined;
+
     try {
       let invoice: GroceryInvoiceResponse;
 
@@ -1291,7 +1364,10 @@ export function GroceryWorkspace() {
         const issueResult = await issueGroceryDraftFromState(
           synced.lines,
           synced.state,
-          { expectedVersion: synced.state.version },
+          {
+            expectedVersion: synced.state.version,
+            notes: forwardNotes,
+          },
         );
         if (!issueResult.ok) {
           throw new Error(issueResult.message);
@@ -1306,6 +1382,8 @@ export function GroceryWorkspace() {
             unitPrice: l.unitPrice,
             unitName: l.unitName || undefined,
           })),
+          notes: forwardNotes,
+          customerPhone: forwardPhone,
         });
       }
 
@@ -1316,6 +1394,8 @@ export function GroceryWorkspace() {
       setLines([]);
       setDraftState(createGroceryDraftState());
       setParkedSell(null);
+      setReceiptCustomerName("");
+      setReceiptCustomerPhone("");
       setForwardedInvoices((prev) => {
         if (prev.some((inv) => inv.id === invoice.id)) return prev;
         return [invoice, ...prev];
@@ -1325,9 +1405,18 @@ export function GroceryWorkspace() {
       // Nudge the server-aggregated top-products to refresh so newly
       // popular items climb the list immediately.
       setTopProductsReloadKey((n) => n + 1);
-      toast.success("Invoice created!", {
-        description: `Barcode: ${invoice.barcodeCode}`,
+      toast.success("Forwarded to cashier", {
+        description: [
+          invoiceDepartmentLabel,
+          invoice.barcodeCode,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         duration: 6_000,
+      });
+      void printForwardedInvoice(invoice, {
+        quiet: true,
+        departmentLabel: invoiceDepartmentLabel,
       });
       setShowCartDrawer(false);
     } catch (e) {
@@ -1341,7 +1430,18 @@ export function GroceryWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, lines, groceryDraftPersistence, draftState, counterMode]);
+  }, [
+    branchId,
+    lines,
+    groceryDraftPersistence,
+    draftState,
+    counterMode,
+    invoiceDepartmentLabel,
+    customerNameOnReceipt,
+    receiptCustomerName,
+    receiptCustomerPhone,
+    printForwardedInvoice,
+  ]);
 
   const onNewInvoice = useCallback(() => {
     beginNewSale();
@@ -1494,6 +1594,12 @@ export function GroceryWorkspace() {
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+            <TillPrinterStatus
+              compact
+              cupsName={receiptPrinter.cupsName}
+              branchId={receiptPrinter.branchId}
+              className="order-3 w-full sm:order-0 sm:w-auto"
+            />
             <GroceryModeSwitcher
               mode={counterMode}
               modes={availableModes}
@@ -1954,6 +2060,14 @@ export function GroceryWorkspace() {
                       : "idle"
                   }
                   mode={counterMode === "spoils" ? "spoils" : "sell"}
+                  departmentLabel={
+                    invoiceDepartmentLabel || activeDepartmentLabel || null
+                  }
+                  customerNameOnReceipt={customerNameOnReceipt}
+                  customerName={receiptCustomerName}
+                  onCustomerNameChange={setReceiptCustomerName}
+                  customerPhone={receiptCustomerPhone}
+                  onCustomerPhoneChange={setReceiptCustomerPhone}
                 />
               )}
             </>
@@ -2187,6 +2301,14 @@ export function GroceryWorkspace() {
                         : "idle"
                     }
                     mode={counterMode === "spoils" ? "spoils" : "sell"}
+                    departmentLabel={
+                      invoiceDepartmentLabel || activeDepartmentLabel || null
+                    }
+                    customerNameOnReceipt={customerNameOnReceipt}
+                    customerName={receiptCustomerName}
+                    onCustomerNameChange={setReceiptCustomerName}
+                    customerPhone={receiptCustomerPhone}
+                    onCustomerPhoneChange={setReceiptCustomerPhone}
                   />
                 )}
               </>
@@ -2213,6 +2335,11 @@ export function GroceryWorkspace() {
           onNewInvoice={onNewInvoice}
           onClose={() => setGeneratedInvoice(null)}
           currency={currency}
+          onPrintReceipt={() =>
+            printForwardedInvoice(generatedInvoice, {
+              departmentLabel: invoiceDepartmentLabel,
+            })
+          }
         />
       )}
 

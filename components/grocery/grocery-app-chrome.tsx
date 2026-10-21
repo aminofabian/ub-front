@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Receipt, ShoppingBasket } from "lucide-react";
 
+import { APP_ROUTES } from "@/lib/config";
+import { DEPARTMENT_COUNTER } from "@/lib/department-counter";
 import { cn } from "@/lib/utils";
 
 /** Bottom inset for content above the grocery tab bar + safe area. */
@@ -18,20 +20,20 @@ export function GroceryAppBottomNav({ activeTab }: GroceryAppBottomNavProps) {
     {
       id: "counter" as const,
       label: "Counter",
-      href: "/grocery",
+      href: APP_ROUTES.clerk,
       icon: ShoppingBasket,
     },
     {
       id: "invoices" as const,
       label: "Invoices",
-      href: "/grocery/invoices",
+      href: APP_ROUTES.clerkInvoices,
       icon: Receipt,
     },
   ];
 
   return (
     <nav
-      aria-label="Grocery navigation"
+      aria-label={DEPARTMENT_COUNTER.navLabel}
       className="grocery-bottom-nav pointer-events-none absolute inset-x-0 bottom-0 z-40 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[env(safe-area-inset-bottom,0px)]"
     >
       <div className="pointer-events-auto flex w-full items-stretch divide-x divide-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">

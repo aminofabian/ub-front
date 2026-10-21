@@ -122,6 +122,7 @@ import {
   GroceryApiError,
   toastCaughtGroceryError,
 } from "@/lib/grocery-api";
+import { parseDepartmentInvoiceNotes } from "@/lib/department-counter";
 import {
   Dialog,
   DialogContent,
@@ -1670,6 +1671,10 @@ export function QuickSaleWorkspace({
           invoiceCustomer?.phones?.[0]?.phone?.trim() ||
           invoice.customerPhone?.trim() ||
           "";
+        const {
+          departmentLabel: invoiceDepartmentLabel,
+          customerName: invoiceCustomerName,
+        } = parseDepartmentInvoiceNotes(invoice.notes);
 
         const invoiceLines = invoice.lines.map((l) => {
           const rawQty = Number(l.quantity);
@@ -1705,14 +1710,23 @@ export function QuickSaleWorkspace({
               customerPhoneQuery: invoicePhone || cart.customerPhoneQuery,
               customerHits: [invoiceCustomer],
               customerNoPhoneMatch: false,
+              groceryDepartmentLabel: invoiceDepartmentLabel,
             };
           }
-          if (invoicePhone && !cart.selectedCustomer) {
+          if (invoicePhone || invoiceCustomerName) {
             return {
-              customerPhoneQuery: invoicePhone,
+              customerPhoneQuery: invoicePhone || cart.customerPhoneQuery,
+              customerRegisterName:
+                invoiceCustomerName || cart.customerRegisterName,
+              customerRegisterPhone:
+                invoicePhone || cart.customerRegisterPhone,
+              customerNoPhoneMatch: !invoiceCustomer && Boolean(invoiceCustomerName),
+              groceryDepartmentLabel: invoiceDepartmentLabel,
             };
           }
-          return {};
+          return {
+            groceryDepartmentLabel: invoiceDepartmentLabel,
+          };
         };
 
         if (effectivePlacement === "merge" && active) {
@@ -1723,12 +1737,15 @@ export function QuickSaleWorkspace({
                     ...c,
                     label: c.lines.length
                       ? c.label
-                      : invoice.barcodeCode,
+                      : invoiceDepartmentLabel
+                        ? `${invoiceDepartmentLabel} · ${invoice.barcodeCode}`
+                        : invoice.barcodeCode,
                     lines: [...c.lines, ...invoiceLines],
                     groceryInvoiceId: invoice.id,
                     groceryBarcode: invoice.barcodeCode,
                     groceryInvoiceGrandTotal:
                       Number(invoice.grandTotal) || 0,
+                    groceryDepartmentLabel: invoiceDepartmentLabel,
                     ...applyInvoiceCustomer(c),
                   }
                 : c,
@@ -1745,15 +1762,20 @@ export function QuickSaleWorkspace({
           }
           const fresh = createEmptyCartSession();
           Object.assign(fresh, {
-            label: invoice.barcodeCode,
+            label: invoiceDepartmentLabel
+              ? `${invoiceDepartmentLabel} · ${invoice.barcodeCode}`
+              : invoice.barcodeCode,
             lines: invoiceLines,
             groceryInvoiceId: invoice.id,
             groceryBarcode: invoice.barcodeCode,
             groceryInvoiceGrandTotal: Number(invoice.grandTotal) || 0,
+            groceryDepartmentLabel: invoiceDepartmentLabel,
             selectedCustomer: invoiceCustomer,
             customerPhoneQuery: invoicePhone,
             customerHits: invoiceCustomer ? [invoiceCustomer] : [],
-            customerNoPhoneMatch: false,
+            customerNoPhoneMatch: !invoiceCustomer && Boolean(invoiceCustomerName),
+            customerRegisterName: invoiceCustomerName || "",
+            customerRegisterPhone: invoicePhone || "",
           });
           setCarts((prev) => [...prev, fresh]);
           setActiveCartId(fresh.id);
@@ -1764,7 +1786,13 @@ export function QuickSaleWorkspace({
         toast.success(
           effectivePlacement === "merge" && activeHasItems
             ? `Added ${invoice.barcodeCode} to this cart · ${invoice.lines.length} items`
-            : `Invoice ${invoice.barcodeCode} loaded · ${invoice.lines.length} items`,
+            : [
+                invoiceDepartmentLabel,
+                `Invoice ${invoice.barcodeCode} loaded`,
+                `${invoice.lines.length} items`,
+              ]
+                .filter(Boolean)
+                .join(" · "),
           { duration: 4000 },
         );
       } catch (e) {
@@ -5381,6 +5409,10 @@ export function QuickSaleWorkspace({
           requirePhoneVerificationForNewTabCustomers: requirePhoneVerification,
           allowSearchCustomersByName: flexibleCustomerFind,
           captureCustomerForCashAndMpesa: captureCustomerAtCheckout,
+          customerNameOnReceipt: Boolean(
+            branches.find((b) => b.id === branchId.trim())?.receipt
+              ?.customerNameOnReceipt,
+          ),
           onSearchCustomers: () => void onSearchCustomers(),
           onSendPhoneVerification: () => void onSendPhoneVerification(),
           onRegisterCustomer: () => void onRegisterCustomer(),

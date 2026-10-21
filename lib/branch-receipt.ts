@@ -11,6 +11,11 @@ export type BranchReceiptSettings = {
    * presentable digital receipt to the customer.
    */
   whatsappReceiptEnabled: boolean;
+  /**
+   * When enabled, cash / M-Pesa checkout keeps the optional customer-name
+   * field visible so the name can print on the receipt.
+   */
+  customerNameOnReceipt: boolean;
 };
 
 export type BranchReceiptDraft = {
@@ -21,6 +26,7 @@ export type BranchReceiptDraft = {
   footerNote: string;
   printerCupsName: string;
   whatsappReceiptEnabled: boolean;
+  customerNameOnReceipt: boolean;
 };
 
 export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
@@ -31,6 +37,7 @@ export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
   footerNote: null,
   printerCupsName: null,
   whatsappReceiptEnabled: false,
+  customerNameOnReceipt: false,
 };
 
 export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
@@ -54,6 +61,10 @@ export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
       o.whatsappReceiptEnabled === true ||
       o.whatsappReceiptEnabled === "true" ||
       o.whatsappReceiptEnabled === 1,
+    customerNameOnReceipt:
+      o.customerNameOnReceipt === true ||
+      o.customerNameOnReceipt === "true" ||
+      o.customerNameOnReceipt === 1,
   };
 }
 
@@ -68,6 +79,7 @@ export function branchReceiptDraft(
     footerNote: settings?.footerNote ?? "",
     printerCupsName: settings?.printerCupsName ?? "",
     whatsappReceiptEnabled: Boolean(settings?.whatsappReceiptEnabled),
+    customerNameOnReceipt: Boolean(settings?.customerNameOnReceipt),
   };
 }
 
@@ -86,6 +98,7 @@ export function branchReceiptPayload(
     footerNote: trim(draft.footerNote),
     printerCupsName: trim(draft.printerCupsName),
     whatsappReceiptEnabled: Boolean(draft.whatsappReceiptEnabled),
+    customerNameOnReceipt: Boolean(draft.customerNameOnReceipt),
   };
 }
 

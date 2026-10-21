@@ -17,6 +17,10 @@ import {
   type SupplyInvoiceReceiptSnapshot,
 } from "@/lib/supply-invoice-receipt";
 import {
+  buildGroceryInvoiceEscPos,
+  type GroceryInvoiceReceiptSnapshot,
+} from "@/lib/grocery-invoice-receipt";
+import {
   buildTillSlipEscPos,
   type TillSlip,
   type TillSlipKind,
@@ -384,6 +388,63 @@ export async function printWebOrderReceipt(
     const msg =
       e instanceof Error ? e.message : "Could not auto-print web order.";
     toast.error(msg, { duration: 10_000 });
+    return false;
+  }
+}
+
+/**
+ * Print a department-counter (GI-*) invoice on the till thermal printer.
+ * Quiet when no printer / bridge — forwarding still succeeds without paper.
+ */
+export async function printGroceryInvoiceReceipt(
+  snapshot: GroceryInvoiceReceiptSnapshot,
+  widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
+  opts?: { quiet?: boolean },
+): Promise<boolean> {
+  const quiet = Boolean(opts?.quiet);
+
+  const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim() || "";
+  const host = resolved?.host?.trim() || "";
+
+  if (!cupsName && !host) {
+    if (!quiet) {
+      toast.message(
+        "No receipt printer configured — use Detect printers on this counter, or set one under Branches → Receipt details.",
+        { duration: 9_000 },
+      );
+    }
+    return false;
+  }
+
+  const bridgeUp = await isTillPrintBridgeUp();
+  if (!bridgeUp) {
+    if (!quiet) {
+      toast.message(
+        `Till Print Bridge is not running — slip not printed. ${TILL_BRIDGE_START_HINT}`,
+        { duration: 12_000 },
+      );
+    }
+    return false;
+  }
+
+  try {
+    const raw = buildGroceryInvoiceEscPos(snapshot, widthMm);
+    const escpos = new Blob([new Uint8Array(raw)], {
+      type: "application/octet-stream",
+    });
+    await printEscPosViaTillBridge(escpos, {
+      name: cupsName || null,
+      host: host || null,
+      port: resolved?.port ?? 9100,
+    });
+    if (!quiet) toast.success("Invoice sent to receipt printer.");
+    return true;
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Could not print department invoice.";
+    if (!quiet) toast.error(msg, { duration: 10_000 });
     return false;
   }
 }

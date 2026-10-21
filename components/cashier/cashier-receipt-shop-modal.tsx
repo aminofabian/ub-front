@@ -111,6 +111,7 @@ export function CashierReceiptShopModal({
     footer: useId(),
     receiptNo: useId(),
     whatsapp: useId(),
+    customerName: useId(),
   };
 
   const [name, setName] = useState(shopName);
@@ -396,6 +397,40 @@ export function CashierReceiptShopModal({
                 }))
               }
               aria-label="Enable WhatsApp receipt"
+            />
+          </div>
+
+          <div
+            className={cn(
+              "flex items-start justify-between gap-3 rounded-none border px-3 py-3",
+              "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+              "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)]",
+            )}
+          >
+            <div className="min-w-0 space-y-1">
+              <label
+                htmlFor={ids.customerName}
+                className="text-[13px] font-medium leading-snug"
+              >
+                Customer name on receipt
+              </label>
+              <p className="text-[12px] leading-snug text-muted-foreground">
+                At checkout, keep the option to add a customer name so it
+                prints on the receipt.
+              </p>
+            </div>
+            <Switch
+              id={ids.customerName}
+              size="sm"
+              checked={receipt.customerNameOnReceipt}
+              disabled={disabled || !branchId}
+              onCheckedChange={(checked) =>
+                setReceipt((prev) => ({
+                  ...prev,
+                  customerNameOnReceipt: checked,
+                }))
+              }
+              aria-label="Enable customer name on receipt"
             />
           </div>
 

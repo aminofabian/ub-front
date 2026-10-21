@@ -70,6 +70,17 @@ type GroceryInvoiceCartProps = {
   onClose?: () => void;
   /** Counter mode — changes title / CTA copy. Default sell. */
   mode?: "sell" | "spoils";
+  /** Active department label (Butchery, Fresh Produce, …). */
+  departmentLabel?: string | null;
+  /**
+   * When true (branch receipt setting), show optional customer name so it
+   * can print on the receipt after the cashier takes payment.
+   */
+  customerNameOnReceipt?: boolean;
+  customerName?: string;
+  onCustomerNameChange?: (value: string) => void;
+  customerPhone?: string;
+  onCustomerPhoneChange?: (value: string) => void;
 };
 
 function round2(n: number): number {
@@ -261,6 +272,12 @@ export function GroceryInvoiceCart({
   compact,
   onClose,
   mode = "sell",
+  departmentLabel,
+  customerNameOnReceipt = false,
+  customerName = "",
+  onCustomerNameChange,
+  customerPhone = "",
+  onCustomerPhoneChange,
 }: GroceryInvoiceCartProps) {
   const isEmpty = lines.length === 0;
   const cartItemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
@@ -272,7 +289,7 @@ export function GroceryInvoiceCart({
     : counterNumber != null && counterNumber > 0
       ? `Counter #${counterNumber}`
       : "Current Sale";
-  const ctaLabel = isSpoils ? "Record spoils" : "Generate Invoice";
+  const ctaLabel = isSpoils ? "Record spoils" : "Forward to cashier";
   const footerHint = isSpoils
     ? "Writes off stock as spoilage"
     : "Pays at cashier";
@@ -308,7 +325,12 @@ export function GroceryInvoiceCart({
           </div>
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
             <p className="min-w-0 truncate text-[10px] leading-none text-muted-foreground">
-              {branchName || "No branch"}
+              {departmentLabel?.trim()
+                ? departmentLabel.trim()
+                : branchName || "No branch"}
+              {departmentLabel?.trim() && branchName
+                ? ` · ${branchName}`
+                : null}
               {cashierName ? ` · ${cashierName}` : null}
             </p>
             <SyncChip online={online} syncStatus={syncStatus} />
@@ -413,6 +435,31 @@ export function GroceryInvoiceCart({
                   `${currency} ${grandTotal.toFixed(2)}`)}
             </span>
           </div>
+
+          {!isSpoils && customerNameOnReceipt ? (
+            <div className="mb-2 space-y-1.5 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Customer on receipt
+              </p>
+              <input
+                className="h-8 w-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
+                placeholder="Customer name (optional)"
+                value={customerName}
+                onChange={(e) => onCustomerNameChange?.(e.target.value)}
+                autoComplete="name"
+                aria-label="Customer name for receipt"
+              />
+              <input
+                className="h-8 w-full border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]/35"
+                placeholder="Phone (optional)"
+                value={customerPhone}
+                onChange={(e) => onCustomerPhoneChange?.(e.target.value)}
+                inputMode="tel"
+                autoComplete="tel"
+                aria-label="Customer phone"
+              />
+            </div>
+          ) : null}
 
           <button
             type="button"

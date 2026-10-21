@@ -1,0 +1,94 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
+import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
+import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
+import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
+import { DashboardProvider } from "@/components/dashboard-provider";
+import { DashboardToaster } from "@/components/dashboard-sonner";
+import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
+import { RealtimeProvider } from "@/components/realtime-provider";
+import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
+import { fetchMe, type MeResponse } from "@/lib/api";
+import { isBuyerAccount } from "@/lib/buyer-role";
+import { resolvePostAuthDestination, roleLandingRedirect } from "@/lib/post-auth-destination";
+import {
+  readSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
+
+type GroceryLayoutProps = {
+  children: React.ReactNode;
+};
+
+function GroceryRoleRedirects() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
+
+  useEffect(() => {
+    if (!ready || !hasSession) {
+      return;
+    }
+
+    const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
+    if (bootMe) {
+      if (isBuyerAccount(bootMe)) {
+        router.replace(resolvePostAuthDestination(bootMe));
+        return;
+      }
+      const landingRedirect = roleLandingRedirect(bootMe, pathname);
+      if (landingRedirect) {
+        router.replace(landingRedirect);
+      }
+      return;
+    }
+
+    void fetchMe()
+      .then((me) => {
+        if (isBuyerAccount(me)) {
+          router.replace(resolvePostAuthDestination(me));
+          return;
+        }
+        const landingRedirect = roleLandingRedirect(me, pathname);
+        if (landingRedirect) {
+          router.replace(landingRedirect);
+        }
+      })
+      .catch(() => {});
+  }, [ready, hasSession, pathname, router]);
+
+  return null;
+}
+
+function GroceryLayoutInner({ children }: GroceryLayoutProps) {
+  return (
+    <>
+      <GroceryRoleRedirects />
+      <DashboardClientGuards />
+      <DashboardProvider>
+        <PosTillLockProvider>
+          <RealtimeProvider>
+            <CashierTillPrintListener />
+            {children}
+            <DashboardToaster />
+          </RealtimeProvider>
+        </PosTillLockProvider>
+      </DashboardProvider>
+    </>
+  );
+}
+
+export default function GroceryLayout({ children }: GroceryLayoutProps) {
+  return (
+    <AuthenticatedShellGate>
+      <PosSoftAuthScope>
+        <GroceryLayoutInner>{children}</GroceryLayoutInner>
+      </PosSoftAuthScope>
+    </AuthenticatedShellGate>
+  );
+}
