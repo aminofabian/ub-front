@@ -8875,6 +8875,40 @@ export async function fetchInventoryValuation(
   );
 }
 
+/** Correcting journals for equity-funded clearances that wrongly hit shrinkage OpEx. */
+export type EquityClearanceCorrectionLine = {
+  originalJournalEntryId: string;
+  correctionJournalEntryId: string | null;
+  branchId: string | null;
+  entryDate: string;
+  supplyBatchId: string;
+  batchNumber: string;
+  batchSourceType: string;
+  amount: number | string;
+};
+
+export type EquityClearanceCorrectionResponse = {
+  dryRun: boolean;
+  candidates: number;
+  corrected: number;
+  skipped: number;
+  totalAmount: number | string;
+  lines: EquityClearanceCorrectionLine[];
+};
+
+export function previewEquityClearanceCorrection(): Promise<EquityClearanceCorrectionResponse> {
+  return request<EquityClearanceCorrectionResponse>(
+    "/api/v1/inventory/repairs/equity-clearance-correction",
+  );
+}
+
+export function applyEquityClearanceCorrection(): Promise<EquityClearanceCorrectionResponse> {
+  return request<EquityClearanceCorrectionResponse>(
+    "/api/v1/inventory/repairs/equity-clearance-correction",
+    { method: "POST" },
+  );
+}
+
 // ── Supply Batches ──────────────────────────────────────────────────────────
 
 export type SupplyBatchSummaryRecord = {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -112,8 +113,11 @@ const STOCK_FLOOR_STEPS: HubStep[] = [
 
 export function ProcurementHubNav({
   className,
+  end,
 }: {
   className?: string;
+  /** Trailing control on the journey row (e.g. receive path fork). */
+  end?: ReactNode;
   /** @deprecated Journey is always driven by role; kept for call-site compatibility. */
   columns?: 2 | 4;
 }) {
@@ -135,11 +139,15 @@ export function ProcurementHubNav({
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--pos-primary,#0f766e)]">
             Buying
           </p>
-          <p className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-            {activeIndex >= 0
-              ? `${steps[activeIndex]?.label} · ${activeIndex + 1}/${steps.length}`
-              : "Order → receive → walk-in"}
-          </p>
+          {end ? (
+            <div className="min-w-0 shrink">{end}</div>
+          ) : (
+            <p className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+              {activeIndex >= 0
+                ? `${steps[activeIndex]?.label} · ${activeIndex + 1}/${steps.length}`
+                : "Order → receive → walk-in"}
+            </p>
+          )}
         </div>
 
         <ol
@@ -224,36 +232,43 @@ export function ProcurementHubNav({
       aria-label="Buying journey"
       style={PROCUREMENT_VARS}
     >
-      <ol className="grid list-none grid-cols-4 gap-1 p-1.5 sm:hidden">
-        {steps.map((step, index) => {
-          const active = index === activeIndex;
-          const Icon = step.icon;
-          return (
-            <li key={step.href} className="min-w-0">
-              <Link
-                href={step.href}
-                title={`${step.label}: ${step.hint}`}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-transform duration-150 active:scale-[0.97]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2",
-                  active
-                    ? "bg-[#0f766e] text-white"
-                    : "text-[#344054] active:bg-[#e9f5f1]",
-                )}
-              >
-                <Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
-                <span className="max-w-full truncate text-[11px] font-semibold tracking-[-0.01em]">
-                  {step.label}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="sm:hidden">
+        <ol className="grid list-none grid-cols-4 gap-1 p-1.5">
+          {steps.map((step, index) => {
+            const active = index === activeIndex;
+            const Icon = step.icon;
+            return (
+              <li key={step.href} className="min-w-0">
+                <Link
+                  href={step.href}
+                  title={`${step.label}: ${step.hint}`}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 transition-transform duration-150 active:scale-[0.97]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2",
+                    active
+                      ? "bg-[#0f766e] text-white"
+                      : "text-[#344054] active:bg-[#e9f5f1]",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+                  <span className="max-w-full truncate text-[11px] font-semibold tracking-[-0.01em]">
+                    {step.label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+        {end ? (
+          <div className="flex justify-center border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 py-1.5">
+            {end}
+          </div>
+        ) : null}
+      </div>
 
-      {/* sm+: one horizontal row of pills. */}
-      <ol className="m-0 hidden list-none flex-wrap items-center gap-1.5 px-4 py-3 sm:flex">
+      {/* sm+: one horizontal row of pills + optional path fork. */}
+      <ol className="m-0 hidden list-none flex-wrap items-center gap-1.5 px-4 py-2.5 sm:flex">
         <li className="hidden sm:block">
           <p className="pr-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
             Buying journey
@@ -302,12 +317,16 @@ export function ProcurementHubNav({
             </li>
           );
         })}
-        <li className="ml-auto hidden self-center sm:block">
-          <p className="text-[12px] font-medium tabular-nums text-[#0f766e]">
-            {activeIndex >= 0
-              ? `Step ${activeIndex + 1} of ${steps.length}`
-              : `${steps.length} stops`}
-          </p>
+        <li className="ml-auto flex min-w-0 shrink-0 items-center self-center">
+          {end ? (
+            end
+          ) : (
+            <p className="text-[12px] font-medium tabular-nums text-[#0f766e]">
+              {activeIndex >= 0
+                ? `Step ${activeIndex + 1} of ${steps.length}`
+                : `${steps.length} stops`}
+            </p>
+          )}
         </li>
       </ol>
     </nav>

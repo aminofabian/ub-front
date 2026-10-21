@@ -2259,6 +2259,35 @@ function triggerCsvDownload(filename: string, content: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Ledger codes that are inventory write-offs, not shop bills. */
+const PNL_INVENTORY_WRITEOFF_CODES = new Set(["5210"]);
+/** Drawer cash over/short, purchase-price variance, loyalty accrual, etc. */
+const PNL_OTHER_ADJUSTMENT_CODES = new Set(["3900", "5220", "5310"]);
+
+function splitExpenseLines(lines: ProfitAndLossResponse["expenseLines"]) {
+  let shop = 0;
+  let writeOffs = 0;
+  let other = 0;
+  const shopLines: typeof lines = [];
+  const writeOffLines: typeof lines = [];
+  const otherLines: typeof lines = [];
+  for (const line of lines) {
+    const amount = moneyNumber(line.amount);
+    const code = line.accountCode?.trim() ?? "";
+    if (PNL_INVENTORY_WRITEOFF_CODES.has(code)) {
+      writeOffs += amount;
+      writeOffLines.push(line);
+    } else if (PNL_OTHER_ADJUSTMENT_CODES.has(code)) {
+      other += amount;
+      otherLines.push(line);
+    } else {
+      shop += amount;
+      shopLines.push(line);
+    }
+  }
+  return { shop, writeOffs, other, shopLines, writeOffLines, otherLines };
+}
+
 function ProfitStatement({
   pl,
   periodLabel,
@@ -2276,18 +2305,36 @@ function ProfitStatement({
   const net = moneyNumber(pl.netOperating);
   const postedList =
     postedListTotal == null ? null : moneyNumber(postedListTotal);
-  const otherLedgerOpex =
-    postedList == null
-      ? null
-      : moneyNumber(pl.operatingExpenses) - postedList;
+  const split = splitExpenseLines(pl.expenseLines);
+  // Prefer ledger line split; fall back to the headline total when lines are empty.
+  const shopExpenses =
+    pl.expenseLines.length > 0
+      ? split.shop
+      : moneyNumber(pl.operatingExpenses);
+  const otherShopLedger =
+    postedList == null ? null : shopExpenses - postedList;
   const hasLines =
     pl.revenueLines.length + pl.cogsLines.length + pl.expenseLines.length > 0;
-  const rows = [
-    { mark: "", label: "Sales", value: pl.revenue, net: false },
-    { mark: "−", label: "Cost of goods", value: pl.cogs, net: false },
-    { mark: "=", label: "Gross profit", value: pl.grossProfit, net: false },
-    { mark: "−", label: "Operating expenses", value: pl.operatingExpenses, net: false },
-  ] as const;
+  const rows: { mark: string; label: string; value: number | string }[] = [
+    { mark: "", label: "Sales", value: pl.revenue },
+    { mark: "−", label: "Cost of goods", value: pl.cogs },
+    { mark: "=", label: "Gross profit", value: pl.grossProfit },
+    { mark: "−", label: "Shop expenses", value: shopExpenses },
+  ];
+  if (Math.abs(split.writeOffs) > 0.009) {
+    rows.push({
+      mark: "−",
+      label: "Inventory write-offs",
+      value: split.writeOffs,
+    });
+  }
+  if (Math.abs(split.other) > 0.009) {
+    rows.push({
+      mark: "−",
+      label: "Other adjustments",
+      value: split.other,
+    });
+  }
 
   return (
     <section className={salesSurface}>
@@ -2335,7 +2382,7 @@ function ProfitStatement({
           );
         })}
 
-        {postedList != null && otherLedgerOpex != null ? (
+        {postedList != null ? (
           <div className={cn("border-t px-3 py-2 sm:px-4", HAIRLINE)}>
             <div className="flex items-baseline justify-between gap-4 pl-5 text-[11px]">
               <dt className={dashboardHintClass()}>Itemised posted bills</dt>
@@ -2343,17 +2390,44 @@ function ProfitStatement({
                 {formatFixedCostMoney(postedList)}
               </dd>
             </div>
-            <div className="mt-1 flex items-baseline justify-between gap-4 pl-5 text-[11px]">
-              <dt className={dashboardHintClass()}>Other ledger OpEx</dt>
-              <dd
-                className={cn(
-                  "font-semibold tabular-nums text-[var(--order-ink,#15231f)]",
-                  otherLedgerOpex < -0.009 && "text-[#9a2e16]",
-                )}
-              >
-                {formatFixedCostMoney(otherLedgerOpex)}
-              </dd>
-            </div>
+            {otherShopLedger != null && Math.abs(otherShopLedger) > 0.009 ? (
+              <div className="mt-1 flex items-baseline justify-between gap-4 pl-5 text-[11px]">
+                <dt className={dashboardHintClass()}>Other shop ledger</dt>
+                <dd
+                  className={cn(
+                    "font-semibold tabular-nums text-[var(--order-ink,#15231f)]",
+                    otherShopLedger < -0.009 && "text-[#9a2e16]",
+                  )}
+                >
+                  {formatFixedCostMoney(otherShopLedger)}
+                </dd>
+              </div>
+            ) : null}
+            {Math.abs(split.writeOffs) > 0.009 ? (
+              <div className="mt-1 flex items-baseline justify-between gap-4 pl-5 text-[11px]">
+                <dt className={dashboardHintClass()}>
+                  Inventory write-offs (wastage / clearance)
+                </dt>
+                <dd className="font-semibold tabular-nums text-[#9a2e16]">
+                  {formatFixedCostMoney(split.writeOffs)}
+                </dd>
+              </div>
+            ) : null}
+            {Math.abs(split.other) > 0.009 ? (
+              <div className="mt-1 flex items-baseline justify-between gap-4 pl-5 text-[11px]">
+                <dt className={dashboardHintClass()}>
+                  Cash over/short &amp; other
+                </dt>
+                <dd
+                  className={cn(
+                    "font-semibold tabular-nums text-[var(--order-ink,#15231f)]",
+                    split.other < -0.009 && "text-[#9a2e16]",
+                  )}
+                >
+                  {formatFixedCostMoney(split.other)}
+                </dd>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -2406,15 +2480,20 @@ function ProfitStatement({
           <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-[var(--order-ink,#15231f)] sm:px-4">
             How these numbers are reached
           </summary>
-          <div className="grid gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 pb-3 pt-3 sm:grid-cols-3 sm:px-4">
+          <div className="grid gap-3 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] px-3 pb-3 pt-3 sm:grid-cols-2 sm:px-4 lg:grid-cols-4">
             <PnlLineGroup title="Revenue accounts" lines={pl.revenueLines} />
             <PnlLineGroup title="Cost of goods" lines={pl.cogsLines} />
-            <PnlLineGroup title="Operating expenses" lines={pl.expenseLines} />
+            <PnlLineGroup title="Shop expenses" lines={split.shopLines} />
+            <PnlLineGroup
+              title="Write-offs &amp; adjustments"
+              lines={[...split.writeOffLines, ...split.otherLines]}
+            />
           </div>
           <p className={cn("px-3 pb-3 text-[10.5px] leading-relaxed sm:px-4", dashboardHintClass())}>
-            Cost of goods is the dedicated COGS account; every other expense
-            account is operating expense. Net = gross profit − operating
-            expenses.
+            Stock purchases sit on inventory until sold (cost of goods) or
+            written off. Clearing a count-gain / opening batch reverses equity
+            — it must not land here as an operating loss. Net = gross − shop
+            expenses − write-offs − other adjustments.
           </p>
         </details>
       ) : null}

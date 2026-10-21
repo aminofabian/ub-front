@@ -56,6 +56,9 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
   );
 
   const isClear = mode === "clear";
+  const equityFunded =
+    data.sourceType === "opening_balance" ||
+    data.sourceType === "stock_count_gain";
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -90,9 +93,13 @@ export function ClearingDrawer({ open, onOpenChange, data, mode, onDone }: Props
       onOpenChange={onOpenChange}
       title={isClear ? "Clear supply batch" : "Record wastage"}
       description={
-        isClear
-          ? "Write off remaining stock and close this batch."
-          : "Record wastage for remaining stock without closing the batch."
+        equityFunded
+          ? isClear
+            ? "This was a count gain / opening lot — clearing reverses equity, not profit."
+            : "This was a count gain / opening lot — write-off reverses equity, not profit."
+          : isClear
+            ? "Write off remaining stock as wastage and close this batch."
+            : "Record wastage for remaining stock without closing the batch."
       }
       contextLabel={"Batch " + data.batchNumber}
       icon={<Warehouse className="h-5 w-5" />}

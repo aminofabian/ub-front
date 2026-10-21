@@ -1457,8 +1457,12 @@ export function OrderReceivePanel({
 
         <div
           className={cn(
-            "min-h-0 flex-1 [scrollbar-width:thin]",
-            embedded ? "overflow-y-auto" : "lg:overflow-y-auto",
+            // Prefer the line list over the action footer: without a floor,
+            // a tall footer collapses this pane to a ~1-row strip on short viewports.
+            "min-h-0 flex-1 basis-0 [scrollbar-width:thin] lg:min-h-[min(52%,20rem)]",
+            embedded
+              ? "min-h-[min(52%,20rem)] overflow-y-auto"
+              : "lg:overflow-y-auto",
           )}
         >
           {detailLoading ? (
@@ -2032,7 +2036,7 @@ export function OrderReceivePanel({
           ) : null}
         </div>
 
-        <div className="relative shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="relative min-h-0 shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:max-h-[min(42%,20rem)] lg:shrink lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <div className="flex flex-col gap-3 p-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
             <div className="order-2 hidden space-y-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:block">
               <div className="flex flex-wrap items-center gap-2">
@@ -2055,7 +2059,7 @@ export function OrderReceivePanel({
                   Clear
                 </button>
               </div>
-              <p className="text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+              <p className="hidden text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] xl:block">
                 {twoStepDelivery ? (
                   <>
                     Two-step is on:{" "}

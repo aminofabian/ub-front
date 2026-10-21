@@ -15,6 +15,7 @@ export function OrderPageLayout({
   description,
   showHeader = false,
   header,
+  hubEnd,
   className,
   mobileScroll = false,
   hideHubOnPhone = false,
@@ -25,6 +26,8 @@ export function OrderPageLayout({
   showHeader?: boolean;
   /** Replaces the default title/description header block. */
   header?: ReactNode;
+  /** Trailing control in the buying-journey hub (e.g. receive path fork). */
+  hubEnd?: ReactNode;
   className?: string;
   /**
    * Phones/tablets: let the page grow and scroll in the shell instead of
@@ -62,7 +65,7 @@ export function OrderPageLayout({
               "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}
         >
-          <ProcurementHubNav />
+          <ProcurementHubNav end={hubEnd} />
         </div>
 
         {header ? (

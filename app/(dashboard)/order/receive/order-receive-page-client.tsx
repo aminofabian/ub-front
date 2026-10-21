@@ -20,16 +20,14 @@ export function OrderReceivePageClient() {
       <OrderPageLayout
         mobileScroll
         className="receive-desk"
+        hubEnd={
+          <ReceivePathSwitcher
+            active={walkInOpen ? "walk-in" : "against-order"}
+            onWalkIn={() => setWalkInOpen(true)}
+          />
+        }
         header={
-          <div
-            data-receive-chrome=""
-            className={isStockFloor ? "space-y-1.5" : "space-y-2"}
-          >
-            <ReceivePathSwitcher
-              active={walkInOpen ? "walk-in" : "against-order"}
-              onWalkIn={() => setWalkInOpen(true)}
-              compact={isStockFloor}
-            />
+          <div data-receive-chrome="">
             <OrderReceiveStatsStrip compact={isStockFloor} />
           </div>
         }
