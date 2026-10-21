@@ -55,8 +55,6 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.butcherSuppliers]: "Suppliers",
     [APP_ROUTES.clerk]: "Clerk",
     [APP_ROUTES.clerkInvoices]: "Clerk invoices",
-    [APP_ROUTES.grocery]: "Clerk",
-    [APP_ROUTES.groceryInvoices]: "Clerk invoices",
     [APP_ROUTES.analytics]: "Trends",
     [APP_ROUTES.analyticsActivity]: "Who did what",
     [APP_ROUTES.analyticsCustomers]: "Shoppers",
