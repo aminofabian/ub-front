@@ -370,11 +370,12 @@ export function ConnectOwnedPanel({
     }
   }, [rows, setupId, onSetupId, onChecked]);
 
-  // While Coolify is issuing the cert (VERIFYING), keep checking every ~20s.
+  // Auto-poll while waiting on DNS or Coolify cert — no babysitting Check connection.
   useEffect(() => {
     if (!setup) return;
     const status = (setup.status || "").toLowerCase();
-    if (status !== "verifying" || setup.active) return;
+    if (setup.active) return;
+    if (status !== "verifying" && status !== "pending") return;
     if (verifyingId === setup.id) return;
     const timer = window.setInterval(() => {
       void onVerify(setup);
