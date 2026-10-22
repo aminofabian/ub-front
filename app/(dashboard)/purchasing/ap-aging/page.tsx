@@ -613,6 +613,10 @@ export default function ApAgingPage() {
       supplierName={selectedGroup.supplierName}
       bills={selectedGroup.bills}
       currency={currency}
+      branchId={branchId}
+      branchName={branchName}
+      businessName={business?.name}
+      placedByName={me?.name}
       onPayAll={() =>
         setPayTarget({ row: selectedGroup.bills[0]!, settleAll: true })
       }

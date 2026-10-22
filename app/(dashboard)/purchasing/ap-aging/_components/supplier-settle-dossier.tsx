@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, CreditCard, Package, Receipt } from "lucide-react";
-
 import {
+  ArrowRight,
+  CreditCard,
+  Loader2,
+  Package,
+  Printer,
+  Receipt,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
+import {
+  dispatchTillPrint,
   fetchPathBSupplyInvoiceDetail,
   type PathBSupplyInvoiceDetailRecord,
   type PathBSupplyListRowRecord,
 } from "@/lib/api";
+import { describeTillSend } from "@/lib/till-remote-print";
 import { cn } from "@/lib/utils";
 
 const OWED = "text-[#d92d20]";
@@ -59,12 +70,20 @@ export function SupplierSettleDossier({
   supplierName,
   bills,
   currency,
+  branchId,
+  branchName,
+  businessName,
+  placedByName,
   onPayBill,
   onPayAll,
 }: {
   supplierName: string;
   bills: PathBSupplyListRowRecord[];
   currency: string;
+  branchId?: string | null;
+  branchName?: string | null;
+  businessName?: string | null;
+  placedByName?: string | null;
   onPayBill: (bill: PathBSupplyListRowRecord) => void;
   onPayAll: () => void;
 }) {
@@ -74,6 +93,8 @@ export function SupplierSettleDossier({
   >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
 
   const billIds = useMemo(
     () => bills.map((b) => b.supplierInvoiceId).join("|"),
@@ -195,6 +216,82 @@ export function SupplierSettleDossier({
       ? null
       : (bills.find((b) => b.supplierInvoiceId === focusId) ?? null);
 
+  const printBranchId =
+    focusBill?.branchId?.trim() ||
+    bills.find((b) => b.branchId?.trim())?.branchId?.trim() ||
+    branchId?.trim() ||
+    "";
+
+  const printReceiptNow = async () => {
+    const targets = printCashierIds.slice(0, 8);
+    if (targets.length === 0) {
+      toast.error("Tick at least one cashier to print to");
+      return;
+    }
+    const slipLines = aggregated
+      .filter((line) => line.qty > 0)
+      .slice(0, 80)
+      .map((line) => {
+        const unitCost =
+          line.qty > 0 ? Number((line.total / line.qty).toFixed(4)) : 0;
+        return {
+          name: line.description || "Item",
+          qty: line.qty,
+          unitCost,
+          lineTotal: Number(line.total.toFixed(2)),
+        };
+      });
+    const openBalance = focusBill ? n(focusBill.balanceOpen) : openTotal;
+    if (slipLines.length === 0) {
+      if (openBalance <= 0.009) {
+        toast.error("Nothing to print on this bill");
+        return;
+      }
+      // Bills with no line detail still print the open balance.
+      slipLines.push({
+        name: focusBill
+          ? `Balance open · ${focusBill.invoiceNumber}`
+          : `Balance open · ${bills.length} bill${bills.length === 1 ? "" : "s"}`,
+        qty: 1,
+        unitCost: openBalance,
+        lineTotal: Number(openBalance.toFixed(2)),
+      });
+    }
+    const owingTag =
+      openBalance > 0.009
+        ? ` · owing ${money(openBalance)}`
+        : "";
+    const reference = focusBill
+      ? `${focusBill.invoiceNumber}-AP${owingTag}`
+      : bills.length === 1
+        ? `${bills[0]!.invoiceNumber}-AP${owingTag}`
+        : `AP-${bills.length}${owingTag}`;
+    setPrintingReceipt(true);
+    try {
+      const sent = await dispatchTillPrint({
+        kind: "receipt",
+        branchId: printBranchId || null,
+        targetUserIds: targets,
+        slip: {
+          reference: reference.slice(0, 80),
+          supplierName: supplierName || "Supplier",
+          businessName: businessName || "",
+          branchName: branchName || "",
+          placedByName: placedByName || "",
+          currency,
+          lines: slipLines,
+        },
+      });
+      toast.success(describeTillSend("receipt", sent.tills ?? []));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not send bill to till",
+      );
+    } finally {
+      setPrintingReceipt(false);
+    }
+  };
+
   return (
     <section className={cn(CARD, "flex min-h-0 flex-col overflow-hidden")}>
       <div className={cn("shrink-0 border-b px-4 py-4 sm:px-5", HAIR)}>
@@ -264,6 +361,38 @@ export function SupplierSettleDossier({
               Pay {focusBill.invoiceNumber} only
             </button>
           ) : null}
+        </div>
+
+        <div className="mt-4 max-w-md">
+          <CashierPrintPicker
+            mode="multiple"
+            branchId={printBranchId}
+            storageKey={`palmart:ap-aging-print-cashiers:${printBranchId || "none"}`}
+            onChange={setPrintCashierIds}
+          />
+          <button
+            type="button"
+            disabled={
+              printingReceipt ||
+              printCashierIds.length === 0 ||
+              (aggregated.length === 0 && openTotal <= 0.009) ||
+              loading
+            }
+            onClick={() => void printReceiptNow()}
+            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+          >
+            {printingReceipt ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Sending to till…
+              </>
+            ) : (
+              <>
+                <Printer className="size-4" aria-hidden />
+                Print receipt now
+              </>
+            )}
+          </button>
         </div>
       </div>
 

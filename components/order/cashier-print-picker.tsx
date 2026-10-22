@@ -29,15 +29,10 @@ export function CashierPrintPicker({
 
   useEffect(() => {
     const bid = branchId.trim();
-    if (!bid) {
-      setCashiers([]);
-      setSelected([]);
-      onChange([]);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
-    fetchTillCashiers(bid)
+    // Empty branch → every till-capable staffer (AP aging / desk without a branch).
+    fetchTillCashiers(bid || null)
       .then((rows) => {
         if (cancelled) return;
         setCashiers(rows);
@@ -103,7 +98,7 @@ export function CashierPrintPicker({
         </p>
       ) : (
         <div
-          className="flex max-h-28 flex-col gap-1 overflow-y-auto"
+          className="flex max-h-52 flex-col gap-1 overflow-y-auto [scrollbar-width:thin]"
           role={mode === "single" ? "radiogroup" : "group"}
           aria-label={mode === "single" ? "Cashier till" : "Cashier tills"}
         >
