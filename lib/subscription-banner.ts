@@ -3,8 +3,26 @@ import { APP_ROUTES } from "@/lib/config";
 import { parseInstant } from "@/lib/subscription-plan-fit";
 
 export const RENEWAL_NOTICE_DAYS = 14;
+/** Free plan shelf size — renewal/grace banners stay hidden at or below this. */
+export const FREE_PLAN_BANNER_ITEM_THRESHOLD = 300;
 const DAY_MS = 86_400_000;
 const RECENT_PAYMENT_FAILURE_MS = 7 * DAY_MS;
+
+function isFreeTier(tier: string | null | undefined): boolean {
+  return tier != null && tier.trim().toLowerCase() === "free";
+}
+
+/**
+ * Free shops only see billing banners once they outgrow the free shelf.
+ * Missing plan-fit counts treat the shop as still under the threshold.
+ */
+function shouldHideBannerOnFreePlan(
+  status: SubscriptionBillingStatusRecord,
+): boolean {
+  if (!isFreeTier(status.tier)) return false;
+  const items = status.planFit?.productCount ?? 0;
+  return items <= FREE_PLAN_BANNER_ITEM_THRESHOLD;
+}
 
 export type SubscriptionBannerTone =
   | "notice"
@@ -65,6 +83,7 @@ export function resolveSubscriptionBanner(
   now = Date.now(),
 ): SubscriptionBannerState | null {
   if (!status?.billingEnabled) return null;
+  if (shouldHideBannerOnFreePlan(status)) return null;
 
   const billingHref = APP_ROUTES.billingRenew;
 

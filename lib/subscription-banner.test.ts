@@ -1,9 +1,36 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SubscriptionBillingStatusRecord } from "./api";
+import type {
+  SubscriptionBillingStatusRecord,
+  SubscriptionPlanFitRecord,
+} from "./api";
 import { resolveSubscriptionBanner } from "./subscription-banner";
 
 const NOW = Date.parse("2026-10-20T12:00:00.000Z");
+
+function planFit(
+  partial: Partial<SubscriptionPlanFitRecord> = {},
+): SubscriptionPlanFitRecord {
+  return {
+    productCount: 0,
+    userCount: 1,
+    productLimit: 300,
+    userLimit: 1,
+    dailyRevenueKes: 0,
+    dailyRevenueLimit: 5000,
+    overProductLimit: false,
+    overUserLimit: false,
+    overDailyRevenueLimit: false,
+    needsUpgrade: false,
+    negotiable: false,
+    talkToUs: false,
+    recommendedTier: null,
+    recommendedDisplayName: null,
+    recommendedPriceKes: null,
+    reasons: [],
+    ...partial,
+  };
+}
 
 function status(
   partial: Partial<SubscriptionBillingStatusRecord> = {},
@@ -28,6 +55,27 @@ function status(
     planFit: null,
     ...partial,
   };
+}
+
+function freeGrace(
+  productCount: number,
+): SubscriptionBillingStatusRecord {
+  return status({
+    tier: "free",
+    tierDisplayName: "Free",
+    amountDueKes: 0,
+    status: "GRACE",
+    currentPeriodEnd: "2026-10-15T12:00:00.000Z",
+    graceStartedAt: "2026-10-15T12:00:00.000Z",
+    graceEndsAt: "2026-11-04T12:00:00.000Z",
+    daysRemainingInGrace: 14,
+    planFit: planFit({
+      productCount,
+      productLimit: 300,
+      overProductLimit: productCount > 300,
+      needsUpgrade: productCount > 300,
+    }),
+  });
 }
 
 describe("subscription banner state", () => {
@@ -134,5 +182,29 @@ describe("subscription banner state", () => {
     expect(
       resolveSubscriptionBanner(status({ billingEnabled: false }), NOW),
     ).toBeNull();
+  });
+
+  it("hides grace on free plans at or under 300 items", () => {
+    expect(resolveSubscriptionBanner(freeGrace(0), NOW)).toBeNull();
+    expect(resolveSubscriptionBanner(freeGrace(300), NOW)).toBeNull();
+    expect(
+      resolveSubscriptionBanner(
+        status({
+          tier: "free",
+          tierDisplayName: "Free",
+          status: "GRACE",
+          graceEndsAt: "2026-11-04T12:00:00.000Z",
+          planFit: null,
+        }),
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("shows grace on free plans once items exceed 300", () => {
+    const banner = resolveSubscriptionBanner(freeGrace(301), NOW);
+    expect(banner?.tone).toBe("warning");
+    expect(banner?.eyebrow.toLowerCase()).toContain("grace");
+    expect(banner?.title).toContain("days");
   });
 });
