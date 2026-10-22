@@ -201,7 +201,41 @@ describe("subscription banner state", () => {
     ).toBeNull();
   });
 
-  it("shows grace on free plans once items exceed 300", () => {
+  it("hides grace on paid tiers that still fit the free shelf", () => {
+    expect(
+      resolveSubscriptionBanner(
+        status({
+          tier: "starter",
+          status: "GRACE",
+          currentPeriodEnd: "2026-10-15T12:00:00.000Z",
+          graceStartedAt: "2026-10-15T12:00:00.000Z",
+          graceEndsAt: "2026-11-04T12:00:00.000Z",
+          daysRemainingInGrace: 14,
+          planFit: planFit({ productCount: 0, productLimit: 1000 }),
+        }),
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it("still shows grace on paid tiers when plan-fit is missing", () => {
+    const banner = resolveSubscriptionBanner(
+      status({
+        tier: "starter",
+        status: "GRACE",
+        currentPeriodEnd: "2026-10-15T12:00:00.000Z",
+        graceStartedAt: "2026-10-15T12:00:00.000Z",
+        graceEndsAt: "2026-11-04T12:00:00.000Z",
+        daysRemainingInGrace: 14,
+        planFit: null,
+      }),
+      NOW,
+    );
+    expect(banner?.tone).toBe("warning");
+    expect(banner?.title).toContain("days");
+  });
+
+  it("shows grace once items exceed 300", () => {
     const banner = resolveSubscriptionBanner(freeGrace(301), NOW);
     expect(banner?.tone).toBe("warning");
     expect(banner?.eyebrow.toLowerCase()).toContain("grace");

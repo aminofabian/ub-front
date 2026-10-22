@@ -13,14 +13,18 @@ function isFreeTier(tier: string | null | undefined): boolean {
 }
 
 /**
- * Free shops only see billing banners once they outgrow the free shelf.
- * Missing plan-fit counts treat the shop as still under the threshold.
+ * Don't nag shops that still fit on Free (≤300 catalog items) — including
+ * starter/trial tenants that landed in grace with an empty or small shelf.
+ * Free tier with an unknown count also stays quiet; other tiers need a known
+ * count so a missing plan-fit payload cannot hide a real paid renewal.
  */
-function shouldHideBannerOnFreePlan(
+function shouldHideBannerUnderFreeShelf(
   status: SubscriptionBillingStatusRecord,
 ): boolean {
-  if (!isFreeTier(status.tier)) return false;
-  const items = status.planFit?.productCount ?? 0;
+  const items = status.planFit?.productCount;
+  if (items == null) {
+    return isFreeTier(status.tier);
+  }
   return items <= FREE_PLAN_BANNER_ITEM_THRESHOLD;
 }
 
@@ -83,7 +87,7 @@ export function resolveSubscriptionBanner(
   now = Date.now(),
 ): SubscriptionBannerState | null {
   if (!status?.billingEnabled) return null;
-  if (shouldHideBannerOnFreePlan(status)) return null;
+  if (shouldHideBannerUnderFreeShelf(status)) return null;
 
   const billingHref = APP_ROUTES.billingRenew;
 
