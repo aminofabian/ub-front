@@ -348,6 +348,8 @@ export const API_ROUTES = {
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",
   superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
+  superAdminPlatformDomainsCoolifyDiagnose:
+    "/api/v1/super-admin/platform/domains/coolify/diagnose",
   superAdminPlatformDomainOrders: "/api/v1/super-admin/platform/domain-orders",
   superAdminPlatformOverview: "/api/v1/super-admin/platform/overview",
   superAdminSmsCreditsSettings: "/api/v1/super-admin/platform/sms-credits/settings",

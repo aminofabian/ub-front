@@ -1828,6 +1828,11 @@ export type PlatformDomainSettingsRecord = {
   domainOrderSyncInitialDelayMs: number;
   envHostafricaConfigured: boolean;
   envVercelConfigured: boolean;
+  envCoolifyConfigured: boolean;
+  coolifyApiUrl: string | null;
+  coolifyAppUuid: string | null;
+  hasCoolifyApiToken: boolean;
+  coolifyTokenFingerprint: string | null;
   secretsReadable: boolean;
   secretsError: string | null;
   encryptionEphemeral: boolean;
@@ -1872,6 +1877,29 @@ export async function updatePlatformDomainSettings(
     method: "PUT",
     body: JSON.stringify(body),
   });
+}
+
+/** Read-only probe of the Coolify host used for merchant custom domains. */
+export type CoolifyDiagnostic = {
+  configured: boolean;
+  apiUrl: string | null;
+  appUuid: string | null;
+  tokenFingerprint: string | null;
+  versionStatus: number | null;
+  versionMessage: string | null;
+  applicationStatus: number | null;
+  applicationMessage: string | null;
+  applicationName: string | null;
+  applicationFqdn: string | null;
+  ok: boolean;
+  hint: string;
+  checks: string[];
+};
+
+export async function fetchCoolifyDiagnostic(): Promise<CoolifyDiagnostic> {
+  return saRequest<CoolifyDiagnostic>(
+    API_ROUTES.superAdminPlatformDomainsCoolifyDiagnose,
+  );
 }
 
 export type SaDomainOrderRecord = {

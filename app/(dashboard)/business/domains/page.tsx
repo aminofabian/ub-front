@@ -62,6 +62,20 @@ function messageFor(error: unknown, fallback: string): string {
     : fallback;
 }
 
+/**
+ * Provider 401/403/5xx are operator problems, not merchant mistakes. Keep the
+ * raw Coolify text in the title for support while showing a calm explanation.
+ */
+function merchantErrorText(raw: string): string {
+  if (/HTTP 401|HTTP 403|Unauthenticated|Invalid token/i.test(raw)) {
+    return "Our domain host rejected the platform connection, so this check could not finish. It retries automatically — you don't need to change anything. If it stays stuck for more than an hour, contact support.";
+  }
+  if (/HTTP 5\d\d|timed out|ECONNREFUSED/i.test(raw)) {
+    return "The domain host is temporarily unavailable. We keep retrying in the background — no action needed from you.";
+  }
+  return raw;
+}
+
 function recommendedRecords(row: DomainRecord): DnsRecord[] {
   const raw = row.dnsInstructions?.recommendedRecords;
   if (!Array.isArray(raw)) return [];
@@ -226,8 +240,11 @@ function DomainDetailDrawer({
           </p>
         ) : null}
         {row.lastError ? (
-          <div className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-sm text-[#9a2e16]">
-            {row.lastError}
+          <div
+            title={row.lastError}
+            className="rounded-none border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2.5 text-sm text-[#9a2e16]"
+          >
+            {merchantErrorText(row.lastError)}
           </div>
         ) : null}
 

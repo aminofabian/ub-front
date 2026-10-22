@@ -21,9 +21,11 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  fetchCoolifyDiagnostic,
   fetchPlatformDomainSettings,
   fetchSaResellerStatus,
   updatePlatformDomainSettings,
+  type CoolifyDiagnostic,
   type PlatformDomainSettingsRecord,
 } from "@/lib/super-admin-api";
 
@@ -214,6 +216,8 @@ export default function SuperAdminPlatformDomainsPage() {
   const [whoisPhone, setWhoisPhone] = useState("");
   const [resellerTest, setResellerTest] = useState<{ ok: boolean; text: string } | null>(null);
   const [resellerTesting, setResellerTesting] = useState(false);
+  const [coolifyTest, setCoolifyTest] = useState<CoolifyDiagnostic | null>(null);
+  const [coolifyTesting, setCoolifyTesting] = useState(false);
 
   const [palmartStkClientId, setPalmartStkClientId] = useState("");
   const [palmartStkClientSecret, setPalmartStkClientSecret] = useState("");
@@ -418,6 +422,19 @@ export default function SuperAdminPlatformDomainsPage() {
     return !!map[k]?.trim();
   });
 
+  const runCoolifyDiagnose = useCallback(async () => {
+    setCoolifyTesting(true);
+    setError("");
+    try {
+      setCoolifyTest(await fetchCoolifyDiagnostic());
+    } catch (e) {
+      setCoolifyTest(null);
+      setError(e instanceof Error ? e.message : "Coolify test failed.");
+    } finally {
+      setCoolifyTesting(false);
+    }
+  }, []);
+
   const sectionSummary = (sectionId: DomainsSectionId): ReactNode => {
     switch (sectionId) {
       case "hostafrica":
@@ -468,6 +485,21 @@ export default function SuperAdminPlatformDomainsPage() {
               {settings?.hasVercelToken ? "stored" : "missing"}
             </span>
             {settings?.envVercelConfigured ? " · env also set" : null}
+          </>
+        );
+      case "coolify":
+        return (
+          <>
+            <span className="font-semibold">
+              {settings?.envCoolifyConfigured ? "Configured" : "Needs env"}
+            </span>
+            {" · "}
+            app{" "}
+            <span className="font-semibold">
+              {settings?.coolifyAppUuid
+                ? settings.coolifyAppUuid.slice(0, 8)
+                : "—"}
+            </span>
           </>
         );
       case "sync":
@@ -866,6 +898,82 @@ export default function SuperAdminPlatformDomainsPage() {
       );
     }
 
+    if (activeSection === "coolify") {
+      return (
+        <div className="space-y-4">
+          <p className={dashboardHintClass()}>
+            Merchant custom domains are attached to the storefront app on the
+            Coolify host. These values come from the Java API environment
+            (<code>COOLIFY_API_URL</code>, <code>COOLIFY_API_TOKEN</code>,{" "}
+            <code>COOLIFY_APP_UUID</code>) — edit the API service env and restart
+            it, then test here.
+          </p>
+          <div className={cn("divide-y border bg-white", HAIRLINE)}>
+            {[
+              {
+                label: "Configured",
+                value: settings?.envCoolifyConfigured ? "yes" : "no",
+              },
+              { label: "API URL", value: settings?.coolifyApiUrl || "—" },
+              { label: "App UUID", value: settings?.coolifyAppUuid || "—" },
+              {
+                label: "Token",
+                value: settings?.coolifyTokenFingerprint || "missing",
+              },
+            ].map((row) => (
+              <div
+                key={row.label}
+                className="flex items-start justify-between gap-4 px-3 py-2"
+              >
+                <span className="text-[12px] text-muted-foreground">
+                  {row.label}
+                </span>
+                <span className="break-all text-right font-mono text-[12px] text-foreground">
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className={PRIMARY_BTN}
+            disabled={coolifyTesting}
+            onClick={() => void runCoolifyDiagnose()}
+          >
+            {coolifyTesting ? "Testing…" : "Test connection"}
+          </Button>
+          {coolifyTest ? (
+            <div
+              className={cn(
+                "space-y-2 border p-3 text-[12px]",
+                HAIRLINE,
+                coolifyTest.ok
+                  ? "bg-[color-mix(in_srgb,#0f766e_5%,white)]"
+                  : "bg-[color-mix(in_srgb,#9a2e16_5%,white)]",
+              )}
+            >
+              <p className="font-semibold">
+                {coolifyTest.ok
+                  ? "Coolify accepted the call"
+                  : "Coolify rejected the call"}
+              </p>
+              <p className={dashboardHintClass()}>{coolifyTest.hint}</p>
+              {coolifyTest.applicationName || coolifyTest.applicationFqdn ? (
+                <p className={dashboardHintClass()}>
+                  App: {coolifyTest.applicationName || "—"} · FQDN:{" "}
+                  {coolifyTest.applicationFqdn || "(none)"}
+                </p>
+              ) : null}
+              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">
+                {coolifyTest.checks.join("\n")}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <p className={dashboardHintClass()}>
@@ -905,7 +1013,7 @@ export default function SuperAdminPlatformDomainsPage() {
         icon={Globe}
         eyebrow="Platform"
         title="Domains"
-        description="HostAfrica (Kenyan TLDs) and Vercel DNS/SSL for merchant custom domains. Secrets are encrypted at rest."
+        description="HostAfrica (Kenyan TLDs), Coolify hosting, and Vercel DNS/SSL for merchant custom domains. Secrets are encrypted at rest."
       >
         <button
           type="button"
@@ -925,7 +1033,7 @@ export default function SuperAdminPlatformDomainsPage() {
             aria-hidden
           />
         </button>
-        {activeSection && activeSection !== "orders" ? (
+        {activeSection && activeSection !== "orders" && activeSection !== "coolify" ? (
           <Button
             type="button"
             size="sm"
@@ -971,7 +1079,9 @@ export default function SuperAdminPlatformDomainsPage() {
         sectionSummary={sectionSummary}
         drawerBody={drawerBody}
         drawerFooter={
-          activeSection && activeSection !== "orders" ? (
+          activeSection &&
+          activeSection !== "orders" &&
+          activeSection !== "coolify" ? (
             <Button
               type="button"
               className={PRIMARY_BTN}

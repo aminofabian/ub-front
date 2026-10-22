@@ -10,6 +10,7 @@ import {
   ListOrdered,
   RefreshCw,
   Search,
+  Server,
 } from "lucide-react";
 
 import {
@@ -25,6 +26,7 @@ export type DomainsSectionId =
   | "reseller"
   | "mpesa"
   | "vercel"
+  | "coolify"
   | "sync"
   | "orders";
 
@@ -59,6 +61,12 @@ export const DOMAINS_NAV: DomainsNavItem[] = [
     label: "Hosting",
     hint: "DNS zone, project domains, and SSL.",
     icon: Cloud,
+  },
+  {
+    id: "coolify",
+    label: "Coolify",
+    hint: "Attach custom domains to the storefront app.",
+    icon: Server,
   },
   {
     id: "sync",
