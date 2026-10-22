@@ -5614,6 +5614,147 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     }
 }
 
+/* Cashier sale-complete — thermal printer feed (delight, rare) */
+@keyframes receipt-printer-feed-stepped {
+    0% {
+        transform: translateY(calc(-100% + 2px));
+        opacity: 1;
+    }
+    7.5%,
+    10.5% {
+        transform: translateY(-91%);
+    }
+    18%,
+    21% {
+        transform: translateY(-81%);
+    }
+    28.5%,
+    31.5% {
+        transform: translateY(-70%);
+    }
+    39%,
+    42% {
+        transform: translateY(-58%);
+    }
+    49.5%,
+    52.5% {
+        transform: translateY(-45%);
+    }
+    60%,
+    63% {
+        transform: translateY(-32%);
+    }
+    70.5%,
+    73.5% {
+        transform: translateY(-20%);
+    }
+    81%,
+    84% {
+        transform: translateY(-10%);
+    }
+    91.5%,
+    94.5% {
+        transform: translateY(-3%);
+    }
+    100% {
+        transform: translateY(0%);
+        opacity: 1;
+    }
+}
+
+@keyframes receipt-printer-feed-smooth {
+    from {
+        transform: translateY(calc(-100% + 2px));
+        opacity: 1;
+    }
+    to {
+        transform: translateY(0%);
+        opacity: 1;
+    }
+}
+
+@keyframes receipt-printer-status-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes receipt-printer-status-label {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.receipt-printer[data-stage="processing"] .receipt-printer-feed {
+    opacity: 0;
+    transform: translateY(calc(-100% + 2px));
+}
+
+.receipt-printer[data-stage="printing"][data-animate="true"][data-feed="stepped"]
+    .receipt-printer-feed {
+    animation: receipt-printer-feed-stepped 1.75s linear both;
+}
+
+.receipt-printer[data-stage="printing"][data-animate="true"][data-feed="smooth"]
+    .receipt-printer-feed {
+    animation: receipt-printer-feed-smooth 1.75s cubic-bezier(0.77, 0, 0.175, 1)
+        both;
+}
+
+.receipt-printer[data-stage="printing"][data-animate="false"] .receipt-printer-feed,
+.receipt-printer[data-stage="complete"] .receipt-printer-feed {
+    opacity: 1;
+    transform: translateY(0%);
+}
+
+.receipt-printer-status-pop {
+    animation: receipt-printer-status-pop 0.16s cubic-bezier(0.23, 1, 0.32, 1)
+        both;
+}
+
+.receipt-printer-status-label {
+    animation: receipt-printer-status-label 0.18s cubic-bezier(0.23, 1, 0.32, 1)
+        both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .receipt-printer .receipt-printer-feed {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .receipt-printer-status-pop,
+    .receipt-printer-status-label {
+        animation: none !important;
+    }
+}
+
+@media print {
+    .receipt-printer-output,
+    .receipt-printer-feed {
+        height: auto !important;
+        overflow: visible !important;
+        transform: none !important;
+        opacity: 1 !important;
+        animation: none !important;
+    }
+
+    #pos-receipt-print {
+        clip-path: none !important;
+    }
+}
+
 /* POS receipt — flex rows for label/value alignment (screen + print) */
 #pos-receipt-print .pos-receipt-sale-id {
     font-size: 11px;
@@ -5807,6 +5948,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
         border-radius: 0 !important;
         box-shadow: none !important;
         background: #fff !important;
+        background-image: none !important;
         color: #000 !important;
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
         font-size: 10pt !important;
@@ -5815,6 +5957,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
         word-wrap: break-word !important;
         overflow-wrap: anywhere !important;
         -webkit-font-smoothing: none !important;
+        clip-path: none !important;
     }
 
     #pos-receipt-print,

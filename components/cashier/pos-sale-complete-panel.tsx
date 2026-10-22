@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,7 +19,17 @@ import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
-import { PosSaleReceipt } from "./pos-sale-receipt";
+import {
+  POS_RECEIPT_PRINT_ROOT_ID,
+  PosSaleReceiptBody,
+} from "./pos-sale-receipt";
+import {
+  ReceiptPrinter,
+  type ReceiptPrinterStage,
+} from "./receipt-printer";
+
+const PRINT_FEED_MS = 1750;
+const PROCESSING_MS = 380;
 
 function shortSaleId(id: string): string {
   const t = id.trim();
@@ -107,6 +117,39 @@ export function PosSaleCompletePanel({
     () => receipt.customerPhone?.trim() || "",
   );
   const [waBusy, setWaBusy] = useState(false);
+  const [printerStage, setPrinterStage] =
+    useState<ReceiptPrinterStage>("processing");
+
+  useEffect(() => {
+    if (voided) {
+      setPrinterStage("complete");
+      return;
+    }
+
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduced) {
+      setPrinterStage("complete");
+      return;
+    }
+
+    setPrinterStage("processing");
+    const toPrint = window.setTimeout(
+      () => setPrinterStage("printing"),
+      PROCESSING_MS,
+    );
+    const toDone = window.setTimeout(
+      () => setPrinterStage("complete"),
+      PROCESSING_MS + PRINT_FEED_MS,
+    );
+
+    return () => {
+      window.clearTimeout(toPrint);
+      window.clearTimeout(toDone);
+    };
+  }, [sale.id, voided]);
 
   const sendWhatsApp = async (phoneRaw: string) => {
     const digits = normalizeWhatsApp(phoneRaw);
@@ -247,13 +290,28 @@ export function PosSaleCompletePanel({
           </ul>
         </section>
 
-        <div className="mt-2.5">
-          <PosSaleReceipt
-            receipt={receipt}
-            saleId={sale.id}
-            receiptPrinter={receiptPrinter}
-            showPrintButton={false}
-          />
+        <div className="mt-3 flex justify-center print:mt-0 print:block">
+          <ReceiptPrinter.Root
+            animate={!voided}
+            className="w-full max-w-[17rem]"
+            feedMotion="stepped"
+            stage={voided ? "complete" : printerStage}
+          >
+            <ReceiptPrinter.Machine className="print:hidden">
+              <ReceiptPrinter.Screen>
+                <ReceiptPrinter.Status />
+              </ReceiptPrinter.Screen>
+            </ReceiptPrinter.Machine>
+            <ReceiptPrinter.Output className="print:mt-0 print:h-auto print:w-full print:overflow-visible print:px-0">
+              <ReceiptPrinter.Paper
+                aria-label="Sale receipt"
+                className="pos-receipt-paper mx-auto w-full max-w-[12.5rem] px-2 pt-3 pb-5 text-[11px] leading-snug print:max-w-none print:[clip-path:none]"
+                id={POS_RECEIPT_PRINT_ROOT_ID}
+              >
+                <PosSaleReceiptBody receipt={receipt} />
+              </ReceiptPrinter.Paper>
+            </ReceiptPrinter.Output>
+          </ReceiptPrinter.Root>
         </div>
 
         {error ? (
