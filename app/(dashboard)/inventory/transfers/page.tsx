@@ -338,6 +338,8 @@ export default function InventoryTransfersPage() {
       });
       setLastTransferId(created.id);
       setMessage(`Draft transfer created (${created.status}).`);
+      setNotes("");
+      setLines([{ itemId: "", qty: "1" }]);
       void loadTransfers();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Transfer failed.");
