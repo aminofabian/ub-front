@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
@@ -9,6 +9,9 @@ import { PLATFORM_DOMAIN } from "@/lib/config";
 import { KIOSK_PLATFORM_CONTACT } from "@/lib/platform-contact";
 
 import { goldCtaClass } from "./landing-styles";
+
+/** boot = SSR / pre-hydrate (fully visible). */
+type ReceiptPrintState = "boot" | "printing" | "done";
 
 const TILL_STRIP = [
   { label: "Barcode scan" },
@@ -80,6 +83,8 @@ type LandingFooterProps = {
 
 export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
   const [talkOpen, setTalkOpen] = useState(false);
+  const [printState, setPrintState] = useState<ReceiptPrintState>("boot");
+  const printerRef = useRef<HTMLDivElement>(null);
   const year = new Date().getFullYear();
   const tillDoubled = [...TILL_STRIP, ...TILL_STRIP];
   const openTalk = () => {
@@ -89,6 +94,27 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
     }
     setTalkOpen(true);
   };
+
+  useEffect(() => {
+    const root = printerRef.current;
+    if (!root) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setPrintState("done");
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setPrintState("printing");
+        io.disconnect();
+      },
+      { threshold: 0.22, rootMargin: "0px 0px -6% 0px" },
+    );
+    io.observe(root);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <>
@@ -120,14 +146,48 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
       </div>
 
       <div className="relative z-10 px-4 pb-10 pt-8 sm:px-10 sm:pb-14 sm:pt-12">
-        <div className="landing-footer-receipt relative mx-auto max-w-[920px] overflow-hidden">
-          {/* Paper grain + soft edges */}
+        <div
+          ref={printerRef}
+          className="landing-footer-printer relative mx-auto max-w-[920px]"
+          data-print={printState}
+        >
+          {/* Metallic thermal face — receipt feeds from the slot */}
           <div
             aria-hidden
-            className="landing-footer-receipt-grain pointer-events-none absolute inset-0"
-          />
+            className="landing-footer-printer-face relative z-20"
+          >
+            <div className="landing-footer-printer-plate">
+              <span className="landing-footer-printer-brand">ESC/POS</span>
+              <span
+                className="landing-footer-printer-led"
+                data-active={printState === "printing" ? "true" : "false"}
+              />
+              <span className="landing-footer-printer-brand landing-footer-printer-brand--right">
+                80mm
+              </span>
+            </div>
+            <div className="landing-footer-printer-slot">
+              <span className="landing-footer-printer-slot-lip" />
+              <span className="landing-footer-printer-slot-void" />
+            </div>
+          </div>
 
-          <div className="relative px-5 py-8 sm:px-12 sm:py-12">
+          <div className="landing-footer-printer-bay relative z-10">
+            <div
+              className="landing-footer-receipt relative overflow-hidden"
+              inert={printState === "printing" ? true : undefined}
+              onAnimationEnd={(e) => {
+                if (e.animationName !== "footer-receipt-print") return;
+                setPrintState("done");
+              }}
+            >
+              {/* Paper grain + soft edges */}
+              <div
+                aria-hidden
+                className="landing-footer-receipt-grain pointer-events-none absolute inset-0"
+              />
+
+              <div className="relative px-5 py-8 sm:px-12 sm:py-12">
             {/* Header — merchant lockup */}
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
               <div>
@@ -306,6 +366,8 @@ export function LandingFooter({ onTalkToUs }: LandingFooterProps) {
                   </span>
                 ))}
               </nav>
+              </div>
+              </div>
             </div>
           </div>
         </div>
