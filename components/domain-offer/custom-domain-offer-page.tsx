@@ -558,7 +558,7 @@ function PayDocket({
             selected={domainMode === "NEEDS_REGISTRATION"}
             onClick={() => setDomainMode("NEEDS_REGISTRATION")}
             title="Register it for me"
-            hint=".ke names only. Registration is separate at KES 2,000/year."
+            hint="Included. We register one .ke name for you."
           />
         </div>
       </fieldset>
@@ -649,8 +649,8 @@ function PayDocket({
         </button>
         <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--kiosk-text-faint)]">
           <Lock className="mt-0.5 size-3 shrink-0" strokeWidth={1.75} aria-hidden />
-          An M-Pesa prompt arrives on your phone. The 24-hour clock starts when it clears. New .co.ke registration,
-          if you need one, is separate at KES 2,000/year.
+          An M-Pesa prompt arrives on your phone. The 24-hour clock starts when it clears. A new .co.ke
+          registration, if you need one, is included.
         </p>
       </div>
       <details className="group border-t border-[var(--kiosk-border-soft)] px-4 py-4 sm:px-5">
@@ -1146,8 +1146,8 @@ function LedgerSection({ price }: { price: string }) {
             Nothing else to buy.
           </p>
           <p className="text-[12px] leading-relaxed text-[var(--kiosk-text-muted)]">
-            <span className="font-semibold text-[var(--kiosk-text)]">Need a new .co.ke?</span> Registration is
-            separate at KES 2,000/year. We confirm the name first.
+            <span className="font-semibold text-[var(--kiosk-text)]">Need a new .co.ke?</span> Included. We
+            register it and confirm the name with you first.
           </p>
           <p className="text-[12px] leading-relaxed text-[var(--kiosk-text-muted)]">
             <span className="font-semibold text-[var(--kiosk-text)]">Not a new shop.</span> Same catalog, stock,
@@ -1259,7 +1259,7 @@ function FaqSection() {
     },
     {
       q: "I do not own one. Can you register it?",
-      a: "Yes, for .ke names. Registration is separate at KES 2,000/year. We confirm the name and availability with you before ordering, and the KES 1,000 still covers the setup and theme.",
+      a: "Yes, for .ke names. One registration is included in the KES 1,000. We confirm the name and availability with you before ordering.",
     },
     {
       q: "Will my old kiosk.ke links break?",

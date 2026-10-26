@@ -1051,7 +1051,7 @@ function OrderDetail({
           title="Job"
           rows={[
             ["Address", order.deliveredDomain || order.requestedDomain || order.suggestedDomain || "—"],
-            ["Domain", order.domainMode === "NEEDS_REGISTRATION" ? "register for merchant" : "merchant owns"],
+            ["Domain", order.domainMode === "NEEDS_REGISTRATION" ? "registration included" : "merchant owns"],
             ["Theme", `${order.themeKey || "mart"} · ${themeLabel}`],
             ["Contact", order.contactName || order.contactEmail || "—"],
             ["Assigned", order.assignedTo || "unassigned"],
@@ -1136,7 +1136,7 @@ function OrderDetail({
               {order.domainMode === "NEEDS_REGISTRATION" && !order.domainOrderId ? (
                 <Button type="button" variant="outline" size="sm" className="h-8 rounded-none" disabled={!!busy} onClick={onRegistration}>
                   {busy === "registration" ? <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden /> : <Store className="mr-1.5 size-3.5" aria-hidden />}
-                  Create KES 2,000 registration
+                  Start included registration
                 </Button>
               ) : null}
               <Button
