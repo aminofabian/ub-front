@@ -213,6 +213,13 @@ export const FILTERS: AudienceFilter[] = [
     hint: "Every shop — opens the till for amount → auto litres/kg",
     segment: "weighted_guide",
   },
+  {
+    id: "no-domain",
+    group: "store",
+    label: "No custom domain",
+    hint: "Live shops still on a kiosk.ke address",
+    segment: "no_custom_domain",
+  },
 ];
 
 /** Default when the composer has no audience chip selected. */

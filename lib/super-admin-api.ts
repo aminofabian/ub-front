@@ -4623,3 +4623,244 @@ export async function updateSaWhatsAppSettings(body: {
     body: JSON.stringify(body),
   });
 }
+
+// ── Domain + theme offer (KES 1,000) ────────────────────────────────────────
+
+export type SaDomainOfferStats = {
+  eligible: number;
+  invited: number;
+  awaitingPayment: number;
+  paid: number;
+  inProgress: number;
+  delivered: number;
+  cancelled: number;
+  expired: number;
+  overdue: number;
+  dueNow: number;
+  revenueCents: number;
+  conversionPct: number;
+};
+
+export type SaDomainOfferTouch = {
+  index: number;
+  dayOffset: number;
+  label: string;
+  subject: string;
+  preview: string;
+  bodyMarkdown: string;
+  cta: string;
+  inAppTitle: string;
+  inAppBody: string;
+};
+
+export type SaDomainOfferCampaign = {
+  id: string | null;
+  name: string;
+  status: "DRAFT" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
+  audienceKey: string;
+  priceCents: number;
+  currency: string;
+  intervalDays: number;
+  maxTouches: number;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+  recipientsTargeted: number;
+  startedAt: string | null;
+  pausedAt: string | null;
+  completedAt: string | null;
+  createdAt: string | null;
+  stats: SaDomainOfferStats;
+  touches: SaDomainOfferTouch[];
+};
+
+export type SaDomainOfferOrder = {
+  id: string;
+  reference: string;
+  businessId: string;
+  businessName: string | null;
+  businessSlug: string | null;
+  status:
+    | "INVITED"
+    | "AWAITING_PAYMENT"
+    | "PAID"
+    | "IN_PROGRESS"
+    | "DELIVERED"
+    | "CANCELLED"
+    | "EXPIRED"
+    | "REFUNDED";
+  domainMode: "OWNED" | "NEEDS_REGISTRATION";
+  requestedDomain: string | null;
+  suggestedDomain: string | null;
+  themeKey: string | null;
+  themeDirection: string | null;
+  themeNotes: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  amountCents: number;
+  currency: string;
+  touchCount: number;
+  lastTouchAt: string | null;
+  nextTouchAt: string | null;
+  emailSentCount: number;
+  inAppSentCount: number;
+  lastEmailError: string | null;
+  lastStkStatus: string | null;
+  mpesaReceipt: string | null;
+  payerPhone: string | null;
+  paymentStartedAt: string | null;
+  paidAt: string | null;
+  slaDueAt: string | null;
+  overdue: boolean;
+  assignedTo: string | null;
+  startedAt: string | null;
+  deliveredAt: string | null;
+  deliveredDomain: string | null;
+  domainMappingId: string | null;
+  domainOrderId: string | null;
+  registrationStatus: string | null;
+  fulfilmentNotes: string | null;
+  lastError: string | null;
+  payLink: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaDomainOfferOrderList = {
+  rows: SaDomainOfferOrder[];
+  total: number;
+  stats: SaDomainOfferStats;
+};
+
+export async function fetchSaDomainOfferCampaign(): Promise<SaDomainOfferCampaign> {
+  return saRequest<SaDomainOfferCampaign>(
+    `${API_ROUTES.superAdminDomainOffer}/campaign`,
+    { method: "GET" },
+  );
+}
+
+export async function startSaDomainOfferCampaign(
+  name?: string,
+): Promise<SaDomainOfferCampaign> {
+  return saRequest<SaDomainOfferCampaign>(
+    `${API_ROUTES.superAdminDomainOffer}/campaign/start`,
+    { method: "POST", body: JSON.stringify({ name: name?.trim() || null }) },
+  );
+}
+
+export async function pauseSaDomainOfferCampaign(): Promise<SaDomainOfferCampaign> {
+  return saRequest<SaDomainOfferCampaign>(
+    `${API_ROUTES.superAdminDomainOffer}/campaign/pause`,
+    { method: "POST" },
+  );
+}
+
+export async function testSaDomainOfferEmail(
+  email: string,
+): Promise<{ emailSent: boolean; inAppSent: boolean; error: string | null }> {
+  return saRequest<{ emailSent: boolean; inAppSent: boolean; error: string | null }>(
+    `${API_ROUTES.superAdminDomainOffer}/campaign/test-email`,
+    { method: "POST", body: JSON.stringify({ email }) },
+  );
+}
+
+export async function fetchSaDomainOfferOrders(query?: {
+  status?: string;
+  q?: string;
+  limit?: number;
+}): Promise<SaDomainOfferOrderList> {
+  const params = new URLSearchParams();
+  if (query?.status) params.set("status", query.status);
+  if (query?.q?.trim()) params.set("q", query.q.trim());
+  if (query?.limit) params.set("limit", String(query.limit));
+  const suffix = params.toString();
+  return saRequest<SaDomainOfferOrderList>(
+    `${API_ROUTES.superAdminDomainOffer}/orders${suffix ? `?${suffix}` : ""}`,
+    { method: "GET" },
+  );
+}
+
+export async function fetchSaDomainOfferOrder(
+  orderId: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}`,
+    { method: "GET" },
+  );
+}
+
+export async function markSaDomainOfferOrderPaid(
+  orderId: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/mark-paid`,
+    { method: "POST" },
+  );
+}
+
+export async function assignSaDomainOfferOrder(
+  orderId: string,
+  assignedTo: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/assign`,
+    { method: "POST", body: JSON.stringify({ assignedTo }) },
+  );
+}
+
+export async function connectSaDomainOfferDomain(
+  orderId: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/connect-domain`,
+    { method: "POST" },
+  );
+}
+
+export async function deliverSaDomainOfferOrder(
+  orderId: string,
+  body: { domain: string; notes?: string; connectDomain?: boolean },
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/deliver`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function cancelSaDomainOfferOrder(
+  orderId: string,
+  reason?: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/cancel`,
+    { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
+  );
+}
+
+export async function refundSaDomainOfferOrder(
+  orderId: string,
+  note?: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/refund`,
+    { method: "POST", body: JSON.stringify({ note: note ?? null }) },
+  );
+}
+
+export async function resendSaDomainOfferLink(
+  orderId: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/resend-link`,
+    { method: "POST" },
+  );
+}
+
+export async function createSaDomainOfferRegistration(
+  orderId: string,
+): Promise<SaDomainOfferOrder> {
+  return saRequest<SaDomainOfferOrder>(
+    `${API_ROUTES.superAdminDomainOffer}/orders/${encodeURIComponent(orderId)}/create-registration`,
+    { method: "POST" },
+  );
+}

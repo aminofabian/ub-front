@@ -48,6 +48,8 @@ export const APP_ROUTES = {
   superAdminPlatformSubscription: "/super-admin/platform/subscription",
   superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/super-admin/platform/domains",
+  superAdminPlatformDomainOffer: "/super-admin/platform/domain-offer",
+  customDomainOffer: "/custom-domain",
   superAdminPlatformSupplierPortal: "/super-admin/platform/supplier-portal",
   superAdminPlatformMarketplaceSuppliers: "/super-admin/platform/marketplace-suppliers",
   superAdminPlatformPayments: "/super-admin/payments/platform",
@@ -351,6 +353,8 @@ export const API_ROUTES = {
   superAdminPlatformDomainsCoolifyDiagnose:
     "/api/v1/super-admin/platform/domains/coolify/diagnose",
   superAdminPlatformDomainOrders: "/api/v1/super-admin/platform/domain-orders",
+  superAdminDomainOffer: "/api/v1/super-admin/platform/domain-offer",
+  publicDomainOffer: "/api/v1/public/domain-offer",
   superAdminPlatformOverview: "/api/v1/super-admin/platform/overview",
   superAdminSmsCreditsSettings: "/api/v1/super-admin/platform/sms-credits/settings",
   superAdminSmsCreditsTiers: "/api/v1/super-admin/platform/sms-credits/tiers",
