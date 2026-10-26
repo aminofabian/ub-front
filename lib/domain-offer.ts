@@ -32,6 +32,7 @@ export type PublicDomainOffer = {
   paidAt: string | null;
   slaDueAt: string | null;
   message: string;
+  preview: boolean;
   canPay: boolean;
   paymentUnavailableReason: string | null;
   themes: { id: string; label: string; hint: string }[];

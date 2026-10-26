@@ -323,7 +323,7 @@ export function CustomDomainOfferPage() {
         <div className="relative mx-auto grid w-full max-w-[1240px] grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:items-start lg:gap-14">
           <div className="min-w-0">
             <p className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--kiosk-text-faint)]">
-              24-hour handover · M-Pesa Express
+              {offer.preview ? "Preview · no payment is taken" : "24-hour handover · M-Pesa Express"}
             </p>
             <h1 className="mt-4 max-w-[13ch] font-heading text-[clamp(2.75rem,7.2vw,5.6rem)] font-normal leading-[0.92] tracking-[-0.03em] text-[var(--kiosk-text)]">
               Your shop, at its <span className="italic">own address</span>.
@@ -399,7 +399,7 @@ export function CustomDomainOfferPage() {
       <FaqSection />
       <CloseSection offer={offer} paidLike={paidLike} />
       <SiteFooter />
-      {stickyCta && offer.status === "INVITED" ? (
+      {stickyCta && offer.status === "INVITED" && !offer.preview ? (
         <div
           className="fixed inset-x-3 z-40 rounded-[2px] border border-[var(--kiosk-border-strong)] bg-[var(--kiosk-elevated)] px-3 py-2.5 shadow-[0_18px_44px_-18px_rgba(18,26,22,0.42)] lg:hidden"
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 78px)" }}
@@ -435,10 +435,16 @@ function SiteHeader({ offer }: { offer: PublicDomainOffer }) {
       <div className="mx-auto flex h-16 w-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-8">
         <KioskLogo href="/" size="sm" wordmark="Kiosk" showDomain tagline={offer.businessName} />
         <div className="flex items-center gap-3 sm:gap-5">
-          <span className="hidden items-center gap-1.5 text-[11px] font-medium text-[var(--kiosk-text-muted)] sm:inline-flex">
-            <Clock3 className="size-3.5" strokeWidth={1.75} aria-hidden />
-            24-hour handover
-          </span>
+          {offer.preview ? (
+            <span className="inline-flex items-center border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--kiosk-gold)]">
+              Preview
+            </span>
+          ) : (
+            <span className="hidden items-center gap-1.5 text-[11px] font-medium text-[var(--kiosk-text-muted)] sm:inline-flex">
+              <Clock3 className="size-3.5" strokeWidth={1.75} aria-hidden />
+              24-hour handover
+            </span>
+          )}
           <a
             href="mailto:support@kiosk.ke?subject=Custom%20domain%20and%20theme"
             className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--kiosk-text)] underline-offset-4 hover:underline"
