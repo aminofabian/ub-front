@@ -1151,12 +1151,401 @@
   padding-block: var(--be-space-3) !important;
 }
 
+/* ---------- product detail ---------- */
+.pdp {
+  background: var(--be-paper);
+  padding-bottom: var(--be-space-6);
+}
+
+.pdpWrap {
+  max-width: var(--be-max);
+  margin: 0 auto;
+  padding: var(--be-space-3) var(--be-gutter) var(--be-space-6);
+}
+
+.pdpBack {
+  display: inline-flex;
+  margin-bottom: var(--be-space-3);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--be-muted);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.pdpBack:hover {
+  color: var(--be-ink);
+}
+
+.pdpGrid {
+  display: grid;
+  gap: var(--be-space-4);
+}
+
+@media (min-width: 900px) {
+  .pdpGrid {
+    grid-template-columns: 1.08fr 0.92fr;
+    gap: var(--be-space-6);
+    align-items: start;
+  }
+}
+
+.pdpGallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--be-space-2);
+}
+
+.pdpHero {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--be-well);
+  text-decoration: none;
+  color: inherit;
+}
+
+.pdpThumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.pdpThumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: var(--be-well);
+}
+
+.pdpThumbActive {
+  border-color: var(--be-ink);
+}
+
+.pdpInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--be-space-3);
+  padding-top: 4px;
+}
+
+.pdpTitle {
+  margin: 0;
+  font-family: var(--font-be-serif), Georgia, serif;
+  font-size: clamp(1.85rem, 3.6vw, 2.75rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--be-ink);
+  text-wrap: balance;
+}
+
+.pdpVariant {
+  margin: 0;
+  color: var(--be-muted);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.pdpPriceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 14px;
+}
+
+.pdpPrice {
+  font-size: 1.15rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+  color: var(--be-ink) !important;
+}
+
+.pdpCompare {
+  color: var(--be-muted);
+  text-decoration: line-through;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdpStock {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--be-muted);
+}
+
+.pdpVariants {
+  margin-top: 2px;
+}
+
+.pdpCart {
+  margin-top: 2px;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.pdpCart :global(button) {
+  border-radius: 0 !important;
+}
+
+.pdpCart :global(button.h-11),
+.pdpCart :global(button[class*="bg-primary"]),
+.pdpCart :global(button[class*="bg-\[var"]) {
+  min-height: 2.85rem !important;
+  border-radius: 0 !important;
+  background: var(--be-ink) !important;
+  color: var(--be-paper) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+}
+
+.pdpCart :global(button.h-11:hover),
+.pdpCart :global(button[class*="bg-primary"]:hover) {
+  background: color-mix(in srgb, var(--be-ink) 88%, var(--be-gold)) !important;
+}
+
+.pdpUnavailable {
+  margin-top: 4px;
+  padding: var(--be-space-3);
+  border: 1px solid var(--be-border);
+  background: var(--be-well);
+  color: var(--be-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pdpDetails {
+  margin-top: var(--be-space-2);
+  padding-top: var(--be-space-3);
+  border-top: 1px solid var(--be-border);
+}
+
+.pdpDetailsTitle {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--be-muted);
+}
+
+.pdpDetailsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdpDetailsList li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--be-ink) 82%, transparent);
+}
+
+.pdpDetailsList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 5px;
+  height: 1px;
+  background: var(--be-gold);
+}
+
+.pdpTrust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: var(--be-space-2);
+  padding-top: var(--be-space-3);
+  border-top: 1px solid var(--be-border);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--be-muted);
+}
+
+/* ---------- bag / checkout drawers ---------- */
+.cartShell,
+.checkoutShell {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--be-paper);
+  color: var(--be-ink);
+  font-family: var(--font-be-sans), system-ui, sans-serif;
+}
+
+.cartFloat {
+  position: absolute;
+  display: flex;
+  max-height: min(68dvh, 28rem);
+  width: min(calc(100vw - 1.5rem), 22rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--be-border);
+  background: var(--be-paper);
+  box-shadow: 0 24px 48px -18px rgb(14 14 14 / 0.28);
+  transform-origin: bottom right;
+  animation: be-float-in 0.28s var(--be-ease);
+  right: 0.75rem;
+  bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .cartFloat {
+    right: 1.5rem;
+    bottom: 1.5rem;
+  }
+}
+
+@keyframes be-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cartHead,
+.checkoutHead {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  background: var(--be-ink);
+  color: var(--be-paper);
+}
+
+.cartHeadCopy,
+.checkoutHeadCopy {
+  min-width: 0;
+  flex: 1;
+}
+
+.cartHeadTitle,
+.checkoutTitle {
+  margin: 0;
+  font-family: var(--font-be-serif), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.cartHeadMeta,
+.checkoutMeta {
+  margin: 0.25rem 0 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--be-paper) 55%, transparent);
+}
+
+.cartCloseBtn,
+.checkoutIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid color-mix(in srgb, var(--be-paper) 22%, transparent);
+  background: transparent;
+  color: var(--be-paper);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.cartCloseBtn:hover,
+.checkoutIconBtn:hover {
+  background: color-mix(in srgb, var(--be-paper) 10%, transparent);
+  border-color: color-mix(in srgb, var(--be-paper) 40%, transparent);
+}
+
+.checkoutBody {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--be-paper);
+}
+
+.checkoutShell :global(button.bg-primary),
+.checkoutShell :global(a.bg-primary),
+.checkoutShell :global(button[type="submit"]),
+.cartShell :global(button.bg-primary),
+.cartShell :global(a.bg-primary) {
+  border-radius: 0 !important;
+  background: var(--be-ink) !important;
+  color: var(--be-paper) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+}
+
+.checkoutShell :global(button.bg-primary:hover),
+.checkoutShell :global(button[type="submit"]:hover),
+.cartShell :global(button.bg-primary:hover) {
+  background: color-mix(in srgb, var(--be-ink) 88%, var(--be-gold)) !important;
+}
+
+.checkoutShell :global(.rounded-xl),
+.checkoutShell :global(.rounded-2xl),
+.checkoutShell :global(.rounded-lg),
+.cartShell :global(.rounded-xl),
+.cartShell :global(.rounded-2xl),
+.cartShell :global(.rounded-lg) {
+  border-radius: 0 !important;
+}
+
+.checkoutShell :global(h3),
+.cartShell :global(h3) {
+  font-family: var(--font-be-serif), Georgia, serif !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .heroPanelCopy,
   .heroImg,
   .cardVisual img,
   .heroCtaRule,
-  .navLink::after {
+  .navLink::after,
+  .cartFloat {
     animation: none !important;
     transition: none !important;
   }

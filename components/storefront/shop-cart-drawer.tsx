@@ -1,5 +1,6 @@
 "use client";
 
+import { BeautyEditCartPanel } from "@/components/storefront/templates/store/beauty-edit-cart-panel";
 import { BlankDropCartPanel } from "@/components/storefront/templates/store/blank-drop-cart";
 import { ButcherBoardCartPanel } from "@/components/storefront/templates/store/butcher-board-cart-panel";
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
@@ -11,6 +12,7 @@ import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import {
+  isBeautyEditStoreTheme,
   isBlankDropStoreTheme,
   isButcherBoardStoreTheme,
   isComilmartStoreTheme,
@@ -27,6 +29,7 @@ export function ShopCartDrawer() {
   const isMd = useMediaMd();
   const { drawerOpen, closeDrawer, cartViewMode } = useShopCart();
   const blankDrop = isBlankDropStoreTheme();
+  const beautyEdit = isBeautyEditStoreTheme();
   const butcher = isButcherBoardStoreTheme();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
@@ -96,6 +99,23 @@ export function ShopCartDrawer() {
         className="ms-slide-over"
       >
         <MizuSpringsCartPanel onClose={closeDrawer} />
+      </ShopSlideOver>
+    );
+  }
+
+  if (beautyEdit) {
+    if (!isMd || cartViewMode === "focus") {
+      return <ShopCartMobileFloat themed="beauty-edit" />;
+    }
+    return (
+      <ShopSlideOver
+        variant="floating"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        ariaLabel="Your bag"
+        className="be-slide-over"
+      >
+        <BeautyEditCartPanel onClose={closeDrawer} />
       </ShopSlideOver>
     );
   }

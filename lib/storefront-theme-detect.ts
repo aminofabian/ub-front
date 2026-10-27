@@ -25,3 +25,7 @@ export function isMizuSpringsStoreTheme(): boolean {
 export function isButcherBoardStoreTheme(): boolean {
   return isActiveStoreTheme("butcher-board");
 }
+
+export function isBeautyEditStoreTheme(): boolean {
+  return isActiveStoreTheme("beauty-edit");
+}

@@ -6,6 +6,7 @@ import { useState } from "react";
 import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
 import { ShopCheckoutDrawerChrome } from "@/components/storefront/shop-checkout-drawer-chrome";
 import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
+import { BeautyEditCheckoutChrome } from "@/components/storefront/templates/store/beauty-edit-checkout-chrome";
 import { BlankDropCheckout } from "@/components/storefront/templates/store/blank-drop-checkout";
 import { ButcherBoardCheckoutChrome } from "@/components/storefront/templates/store/butcher-board-checkout-chrome";
 import { ComilmartCheckoutChrome } from "@/components/storefront/templates/store/comilmart-checkout-chrome";
@@ -15,6 +16,7 @@ import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  isBeautyEditStoreTheme,
   isBlankDropStoreTheme,
   isButcherBoardStoreTheme,
   isComilmartStoreTheme,
@@ -35,6 +37,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [thankYou, setThankYou] = useState(false);
   const blankDrop = isBlankDropStoreTheme();
+  const beautyEdit = isBeautyEditStoreTheme();
   const butcher = isButcherBoardStoreTheme();
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
@@ -104,6 +107,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
         </MizuSpringsCheckoutChrome>
       );
     }
+    if (beautyEdit) {
+      return (
+        <BeautyEditCheckoutChrome
+          onClose={onClose}
+          orderPlaced={orderPlaced}
+          thankYou={thankYou}
+        >
+          {form}
+        </BeautyEditCheckoutChrome>
+      );
+    }
     if (butcher) {
       return (
         <ButcherBoardCheckoutChrome
@@ -130,11 +144,13 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
     ? DailyGazetteCheckoutChrome
     : mizu
       ? MizuSpringsCheckoutChrome
-      : butcher
-        ? ButcherBoardCheckoutChrome
-        : comilmart
-          ? ComilmartCheckoutChrome
-          : ShopCheckoutDrawerChrome;
+      : beautyEdit
+        ? BeautyEditCheckoutChrome
+        : butcher
+          ? ButcherBoardCheckoutChrome
+          : comilmart
+            ? ComilmartCheckoutChrome
+            : ShopCheckoutDrawerChrome;
 
   return (
     <ShopSlideOver
@@ -146,9 +162,11 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
           ? "File this order"
           : mizu
             ? "Complete your order"
-            : butcher
-              ? "Settle the slip"
-              : "Checkout"
+            : beautyEdit
+              ? "Checkout"
+              : butcher
+                ? "Settle the slip"
+                : "Checkout"
       }
       zIndex={74}
       className={
@@ -156,11 +174,13 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
           ? "dg-slide-over"
           : mizu
             ? "ms-slide-over"
-            : butcher
-              ? "bb-slide-over"
-              : comilmart
-                ? "cm-slide-over"
-                : undefined
+            : beautyEdit
+              ? "be-slide-over"
+              : butcher
+                ? "bb-slide-over"
+                : comilmart
+                  ? "cm-slide-over"
+                  : undefined
       }
     >
       <CheckoutChrome

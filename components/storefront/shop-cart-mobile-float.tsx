@@ -1,10 +1,12 @@
 "use client";
 
+import { BeautyEditCartPanel } from "@/components/storefront/templates/store/beauty-edit-cart-panel";
 import { ButcherBoardCartPanel } from "@/components/storefront/templates/store/butcher-board-cart-panel";
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
 import { DailyGazetteCartPanel } from "@/components/storefront/templates/store/daily-gazette-cart-panel";
 import { MizuSpringsCartPanel } from "@/components/storefront/templates/store/mizu-springs-cart-panel";
 import { ShopCartPanelBody } from "@/components/storefront/shop-cart-panel-body";
+import beautyStyles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import butcherStyles from "@/components/storefront/templates/store/butcher-board.module.css";
 import comilmartStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import gazetteStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
@@ -20,7 +22,12 @@ import { cn } from "@/lib/utils";
 export function ShopCartMobileFloat({
   themed,
 }: {
-  themed?: "comilmart" | "daily-gazette" | "mizu-springs" | "butcher-board";
+  themed?:
+    | "comilmart"
+    | "daily-gazette"
+    | "mizu-springs"
+    | "butcher-board"
+    | "beauty-edit";
 } = {}) {
   const isMd = useMediaMd();
   const { drawerOpen, closeDrawer, showAllCartItems } = useShopCart();
@@ -28,6 +35,7 @@ export function ShopCartMobileFloat({
   const gazette = themed === "daily-gazette";
   const mizu = themed === "mizu-springs";
   const butcher = themed === "butcher-board";
+  const beauty = themed === "beauty-edit";
 
   if (!drawerOpen) {
     return null;
@@ -44,21 +52,23 @@ export function ShopCartMobileFloat({
       ? cn(gazetteStyles.cartFloat, isMd && "cursor-pointer")
       : mizu
         ? cn(mizuStyles.cartFloat, isMd && "cursor-pointer")
-        : butcher
-          ? cn(butcherStyles.cartFloat, isMd && "cursor-pointer")
-          : cn(
-              "absolute flex max-h-[min(68dvh,28rem)] w-[min(calc(100vw-1.5rem),21rem)] flex-col overflow-hidden rounded-[6px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_24px_56px_-16px_rgba(20,24,22,0.4)]",
-              "origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-300",
-              isMd
-                ? "bottom-6 right-6 cursor-pointer"
-                : "right-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom))]",
-            );
+        : beauty
+          ? cn(beautyStyles.cartFloat, isMd && "cursor-pointer")
+          : butcher
+            ? cn(butcherStyles.cartFloat, isMd && "cursor-pointer")
+            : cn(
+                "absolute flex max-h-[min(68dvh,28rem)] w-[min(calc(100vw-1.5rem),21rem)] flex-col overflow-hidden rounded-[6px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_24px_56px_-16px_rgba(20,24,22,0.4)]",
+                "origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-300",
+                isMd
+                  ? "bottom-6 right-6 cursor-pointer"
+                  : "right-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom))]",
+              );
 
   const label = gazette
     ? isMd
       ? "Hold slip. Click to open the full slip"
       : "Hold slip"
-    : mizu
+    : mizu || beauty
       ? isMd
         ? "Your bag — click to open full bag"
         : "Your bag"
@@ -78,7 +88,7 @@ export function ShopCartMobileFloat({
         aria-label={
           gazette
             ? "Close hold slip"
-            : mizu
+            : mizu || beauty
               ? "Close bag"
               : butcher
                 ? "Close slip"
@@ -113,6 +123,12 @@ export function ShopCartMobileFloat({
           />
         ) : mizu ? (
           <MizuSpringsCartPanel
+            onClose={closeDrawer}
+            compactHeader
+            onExpand={isMd ? expandToFullDrawer : undefined}
+          />
+        ) : beauty ? (
+          <BeautyEditCartPanel
             onClose={closeDrawer}
             compactHeader
             onExpand={isMd ? expandToFullDrawer : undefined}

@@ -11,6 +11,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { ShopProductShareButton } from "@/components/storefront/shop-product-share-button";
+import { BeautyEditProduct } from "@/components/storefront/templates/store/beauty-edit-product";
 import { ButcherBoardProduct } from "@/components/storefront/templates/store/butcher-board-product";
 import { ClimaxFloorProduct } from "@/components/storefront/templates/store/climax-floor-product";
 import { DailyGazetteProduct } from "@/components/storefront/templates/store/daily-gazette-product";
@@ -107,6 +108,13 @@ export function ShopProductDetailView({
       slug,
       item,
       <ButcherBoardProduct slug={slug} item={item} />,
+    );
+  }
+  if (theme === "beauty-edit") {
+    return withProductShare(
+      slug,
+      item,
+      <BeautyEditProduct slug={slug} item={item} />,
     );
   }
 
