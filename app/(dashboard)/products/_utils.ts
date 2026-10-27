@@ -130,9 +130,64 @@ export function normalizeItemDetail<T extends ItemDetailRecord>(row: T): T {
   };
 }
 
+export type PackStockBlock = { names: string[] };
+
+/**
+ * A pack draws only from the parent's own on-hand pool. When that pool is empty
+ * but a normal option SKU holds the count, the pack would read 0 packs forever —
+ * flag the SKUs the shopkeeper needs to move first.
+ */
+export function packStockBlock(
+  parent:
+    | {
+        baseStockQty?: number | string | null;
+        stockQty?: number | string | null;
+        variants?: Array<{
+          id: string;
+          packageVariant?: boolean;
+          stockQty?: number | string | null;
+          variantName?: string | null;
+          name?: string | null;
+          sku?: string | null;
+        }> | null;
+      }
+    | null
+    | undefined,
+  parentId: string,
+): PackStockBlock | null {
+  if (!parent) return null;
+  const basePool =
+    toNumber(parent.baseStockQty) ?? toNumber(parent.stockQty) ?? 0;
+  if (basePool > 0) return null;
+  const names = (parent.variants ?? [])
+    .filter(
+      (v) =>
+        v.id !== parentId &&
+        !v.packageVariant &&
+        (toNumber(v.stockQty) ?? 0) > 0,
+    )
+    .map(
+      (v) =>
+        v.variantName?.trim() ||
+        v.name?.trim() ||
+        v.sku?.trim() ||
+        "another SKU",
+    );
+  return names.length > 0 ? { names } : null;
+}
+
+/**
+ * True only for a real multi-unit package. One unit per sale is the base unit
+ * itself — a shared selling unit, never a "pack of 1".
+ */
+export function isPackUnits(units: number | null | undefined): boolean {
+  return units != null && Number.isFinite(units) && units > 1;
+}
+
 /** Short catalog chip: "50/pack". */
 export function packChipLabel(units: number | null | undefined): string {
   if (units == null || !(units > 0)) return "Pack";
+  if (!isPackUnits(units)) return "Each";
   const shown = Number.isInteger(units)
     ? String(units)
     : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -148,6 +203,9 @@ export function packEqualsLabel(
   if (units == null || !(units > 0)) {
     return name ? `Pack of ${name}` : "Pack";
   }
+  if (!isPackUnits(units)) {
+    return name ? `1 ${name} at a time` : "One at a time";
+  }
   const shown = Number.isInteger(units)
     ? units.toLocaleString()
     : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -160,7 +218,42 @@ export function packEditHint(unitsRaw: string, source?: string | null): string {
   if (units != null && units > 1) {
     return `${packEqualsLabel(units, name)}. Each sale takes that many off the shelf.`;
   }
+  if (units === 1) {
+    return `Sells one ${name} at a time from the same shelf — not a pack.`;
+  }
   return `Type how many ${name} are in one pack.`;
+}
+
+export type VariantSellShape = {
+  packageVariant: boolean;
+  packagingUnitQty: number;
+  packagingUnitName: string;
+  isStocked: false;
+  isWeighed?: false;
+};
+
+/**
+ * Maps a variant's "how many leave the shelf" value to catalog flags.
+ *
+ * - checked "Sell as a pack", or more than one unit → a package SKU
+ * - exactly one unit, unchecked → a shared selling unit: draws one base unit
+ *   from the product's shelf and is never labelled or counted as a pack
+ */
+export function variantSellShape(opts: {
+  units: number;
+  explicitPack: boolean;
+  variantName: string;
+  packagingUnitName?: string | null;
+}): VariantSellShape {
+  const isPack = opts.explicitPack || opts.units > 1;
+  const shape: VariantSellShape = {
+    packageVariant: isPack,
+    packagingUnitQty: opts.units,
+    packagingUnitName: opts.packagingUnitName?.trim() || opts.variantName,
+    isStocked: false,
+  };
+  if (isPack) shape.isWeighed = false;
+  return shape;
 }
 
 function countLabel(n: number, one: string, many: string): string {
@@ -194,10 +287,15 @@ export function formatStockLabel(
     const base =
       toNumber(row.baseStockQty) ??
       (pkgs != null && units != null ? pkgs * units : null);
+    // A one-unit "package" is a shared selling unit — report base units only.
+    if (!isPackUnits(units)) {
+      const each = base ?? pkgs;
+      return each != null ? each.toLocaleString() : "—";
+    }
     if (pkgs == null && base == null) return "—";
     const pkgPart =
       pkgs != null ? countLabel(pkgs, "pack", "packs") : "—";
-    if (base != null && units != null && units > 0) {
+    if (base != null) {
       return `${pkgPart} · ${countLabel(base, "unit", "units")}`;
     }
     return pkgPart;

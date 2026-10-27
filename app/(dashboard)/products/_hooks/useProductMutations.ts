@@ -52,6 +52,7 @@ import {
   formatMutationError,
   resolveCatalogParentId,
   usesSharedPackageStock,
+  variantSellShape,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -965,10 +966,10 @@ export function useProductMutations(d: Dependencies) {
           return;
         }
         body.variantName = vn;
-        const useSharedStock =
+        const explicitPack =
           patchDraft.packageVariant ?? detail.packageVariant ?? false;
         const unitsRaw = patchDraft.packagingUnitQtyStr.trim();
-        if (useSharedStock || unitsRaw) {
+        if (explicitPack || unitsRaw) {
           if (!unitsRaw) {
             setMessage("Enter base units deducted per sale (e.g. 1 or 30).");
             return;
@@ -982,11 +983,17 @@ export function useProductMutations(d: Dependencies) {
             setMessage("Units per sale must be a positive whole number.");
             return;
           }
-          body.packageVariant = true;
-          body.packagingUnitQty = units;
-          body.packagingUnitName = patchDraft.packagingUnitName.trim() || vn;
-          body.isStocked = false;
-          body.isWeighed = false;
+          // One unit with the pack box unchecked is a shared selling unit, not
+          // a "pack of 1" — see variantSellShape in _utils.
+          Object.assign(
+            body,
+            variantSellShape({
+              units,
+              explicitPack,
+              variantName: vn,
+              packagingUnitName: patchDraft.packagingUnitName,
+            }),
+          );
         }
       }
       const setNum = (

@@ -32,7 +32,9 @@ import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import {
   coverImageUrl,
   formatMutationError,
+  isPackUnits,
   packEditHint,
+  packageUnitsPerSaleFromRow,
   toNumber,
   usesSharedPackageStock,
 } from "../_utils";
@@ -132,6 +134,11 @@ export function ProductEditDrawer({
   const d = detail.detail;
   const dr = detail.patchDraft;
   const sharedStock = d ? usesSharedPackageStock(d) : false;
+  // Shared stock of exactly one unit is a selling unit, not a pack.
+  const draftUnits = toNumber(dr.packagingUnitQtyStr);
+  const packsInBulk =
+    sharedStock &&
+    isPackUnits(draftUnits ?? (d ? packageUnitsPerSaleFromRow(d) : null));
   const isWeighed = d?.isWeighed === true;
   const isVariant = !!d?.variantOfItemId;
   const familyName = isVariant
@@ -365,7 +372,13 @@ export function ProductEditDrawer({
           : undefined
       }
       contextLabel={
-        sharedStock ? "Pack" : isVariant ? "Size / pack" : "Product"
+        packsInBulk
+          ? "Pack"
+          : sharedStock
+            ? "Each"
+            : isVariant
+              ? "Size / pack"
+              : "Product"
       }
       icon={
         sharedStock ? (
@@ -814,7 +827,7 @@ export function ProductEditDrawer({
                   label={
                     isWeighed
                       ? "Selling price / kg"
-                      : sharedStock
+                      : packsInBulk
                         ? "Price of 1 pack"
                         : "Selling price"
                   }
@@ -898,9 +911,11 @@ export function ProductEditDrawer({
             <div className={productFormSectionBodyClass}>
               {sharedStock ? (
                 <p className="rounded-none border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                  {packEditHint(dr.packagingUnitQtyStr, familyName)} You don’t
-                  count this pack on its own — change the quantity on{" "}
-                  {familyName || "the product"}.
+                  {packEditHint(dr.packagingUnitQtyStr, familyName)}{" "}
+                  {packsInBulk
+                    ? "You don’t count this pack on its own"
+                    : "You don’t count it on its own"}{" "}
+                  — change the quantity on {familyName || "the product"}.
                 </p>
               ) : (
                 <>

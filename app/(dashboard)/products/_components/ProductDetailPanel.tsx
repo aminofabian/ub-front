@@ -56,6 +56,7 @@ import {
   formatAmount,
   formatOverallStockLabel,
   formatStockLabel,
+  isPackUnits,
   packEqualsLabel,
   packageUnitsPerSaleFromRow,
   toNumber,
@@ -530,6 +531,8 @@ export function ProductDetailPanel(props: Props) {
   const packageVariants = variantRows.filter((v) => v.packageVariant);
   const optionVariants = variantRows.filter((v) => !v.packageVariant);
   const unitsPerPackage = packageUnitsPerSaleFromRow(detail);
+  // One unit per sale is a shared selling unit, not a pack — keep pack wording off it.
+  const packsInBulk = sharedStock && isPackUnits(unitsPerPackage);
   const siblingWithOwnStock = variantRows.filter(
     (v: ItemSummaryRecord) =>
       v.id !== detail.id &&
@@ -999,7 +1002,7 @@ export function ProductDetailPanel(props: Props) {
         </div>
       ) : null}
 
-      {sharedStock ? (
+      {packsInBulk ? (
         <PackSaleEquation
           unitsPerPackage={unitsPerPackage}
           stockSourceName={variantParentDisplayName}
@@ -1029,7 +1032,7 @@ export function ProductDetailPanel(props: Props) {
         </header>
         <div className={detailMetricGridClass}>
           {renderPricingStatCell(
-            sharedStock ? "Pack price" : "Shelf",
+            packsInBulk ? "Pack price" : "Shelf",
             shelfDisplay.text,
             "bundlePrice",
             saveQuickBundlePrice,
@@ -1054,7 +1057,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            sharedStock ? "Pack cost" : "Cost",
+            packsInBulk ? "Pack cost" : "Cost",
             costDisplay.text,
             "buyingPrice",
             saveQuickBuyingPrice,
@@ -1078,7 +1081,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            sharedStock ? "Pack margin" : "Margin",
+            packsInBulk ? "Pack margin" : "Margin",
             marginDisplay.text,
             "margin",
             saveQuickMargin,
@@ -1093,7 +1096,7 @@ export function ProductDetailPanel(props: Props) {
                 !marginDisplay.empty && marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : undefined,
-              hint: sharedStock ? "Against the pack cost" : undefined,
+              hint: packsInBulk ? "Against the pack cost" : undefined,
               editContent: (
                 <>
                   <input
@@ -1352,11 +1355,14 @@ export function ProductDetailPanel(props: Props) {
           {siblingWithOwnStock
             .map((v: ItemSummaryRecord) => v.variantName?.trim() || v.name)
             .join(", ")}{" "}
-          hold separate stock. Move quantity to{" "}
+          {siblingWithOwnStock.length === 1 ? "holds" : "hold"} the stock.
+          Move that quantity to{" "}
           <span className="font-medium text-foreground">
             {variantParentDisplayName ?? "the parent"}
-          </span>{" "}
-          or convert those SKUs to packages.
+          </span>
+          , then set{" "}
+          {siblingWithOwnStock.length === 1 ? "that SKU" : "those SKUs"} to sell
+          one at a time from the same shelf.
         </div>
       ) : null}
 
@@ -1528,7 +1534,8 @@ export function ProductDetailPanel(props: Props) {
                             <p className="truncate text-xs font-medium text-foreground">
                               {v.variantName?.trim() || v.name}
                             </p>
-                            {v.packageVariant ? (
+                            {v.packageVariant &&
+                            isPackUnits(toNumber(v.packageUnitsPerSale)) ? (
                               <span
                                 className={cn(
                                   detailBadgeClass,
@@ -1542,11 +1549,15 @@ export function ProductDetailPanel(props: Props) {
                           </div>
                           {v.packageVariant ? (
                             <p className="text-[11px] text-muted-foreground">
-                              {packEqualsLabel(
-                                toNumber(v.packageUnitsPerSale),
-                                variantParentDisplayName ?? detail.name,
-                              )}
-                              {" · "}
+                              {isPackUnits(toNumber(v.packageUnitsPerSale)) ? (
+                                <>
+                                  {packEqualsLabel(
+                                    toNumber(v.packageUnitsPerSale),
+                                    variantParentDisplayName ?? detail.name,
+                                  )}
+                                  {" · "}
+                                </>
+                              ) : null}
                               {formatStockLabel(v)}
                             </p>
                           ) : v.variantName &&
@@ -1898,7 +1909,7 @@ export function ProductDetailPanel(props: Props) {
                   }
                   className="text-[11px] font-medium text-primary"
                 >
-                  {sharedStock ? "Full package edit" : "Edit all fields"}
+                  {packsInBulk ? "Full package edit" : "Edit all fields"}
                 </button>
               </div>
             </div>

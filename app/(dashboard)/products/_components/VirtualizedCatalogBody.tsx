@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 import {
   formatStockLabel,
+  isPackUnits,
   packChipLabel,
   packEqualsLabel,
   toNumber,
@@ -694,7 +695,8 @@ export const VirtualizedCatalogBody = forwardRef<
                               ) : null}
                             </span>
                           )}
-                          {row.packageVariant ? (
+                          {row.packageVariant &&
+                          isPackUnits(toNumber(row.packageUnitsPerSale)) ? (
                             <span
                               className="hidden shrink-0 rounded-none border border-border bg-white px-0.5 text-[8px] font-medium tracking-[-0.02em] text-foreground/55 sm:inline-flex"
                               title={packEqualsLabel(

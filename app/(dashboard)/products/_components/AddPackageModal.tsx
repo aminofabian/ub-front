@@ -12,7 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { fetchItemById } from "@/lib/api";
 import { PackageVariantsSection } from "./PackageVariantsSection";
+import { packStockBlock, type PackStockBlock } from "../_utils";
 import { emptyPackageDraft, type PackageDraft } from "../_types";
 
 type Props = {
@@ -22,6 +24,10 @@ type Props = {
   parentId: string | null;
   baseUnitHint?: string;
   currencyCode?: string;
+  /** Branch used to read where the product's stock actually lives. */
+  branchId?: string | null;
+  /** Jump to the base product's stock editor when stock sits on a sibling SKU. */
+  onOpenStock?: () => void;
   busy?: boolean;
   onCreatePackages: (
     parentId: string,
@@ -36,15 +42,45 @@ export function AddPackageModal({
   parentId,
   baseUnitHint = "base unit",
   currencyCode = "",
+  branchId = null,
+  onOpenStock,
   busy = false,
   onCreatePackages,
 }: Props) {
   const [rows, setRows] = useState<PackageDraft[]>([emptyPackageDraft()]);
+  /** Sibling SKUs holding the count while the base pool is empty. */
+  const [stockBlock, setStockBlock] = useState<PackStockBlock | null>(null);
+  const [checkingStock, setCheckingStock] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setRows([emptyPackageDraft()]);
   }, [open, parentId]);
+
+  useEffect(() => {
+    if (!open || !parentId) {
+      setStockBlock(null);
+      setCheckingStock(false);
+      return;
+    }
+    let cancelled = false;
+    setCheckingStock(true);
+    setStockBlock(null);
+    void (async () => {
+      try {
+        const parent = await fetchItemById(parentId, { branchId });
+        if (cancelled) return;
+        setStockBlock(packStockBlock(parent, parentId));
+      } catch {
+        // Never block adding a pack because the lookup failed.
+      } finally {
+        if (!cancelled) setCheckingStock(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, parentId, branchId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +118,37 @@ export function AddPackageModal({
             </DialogDescription>
           </DialogHeader>
 
+          {stockBlock ? (
+            <div
+              role="alert"
+              className="border-b border-amber-500/25 bg-amber-500/[0.07] px-5 py-3 text-xs leading-relaxed text-muted-foreground"
+            >
+              <p>
+                <span className="font-medium text-foreground">
+                  Stock isn’t on {parentName}.
+                </span>{" "}
+                {stockBlock.names.join(", ")}{" "}
+                {stockBlock.names.length === 1 ? "holds" : "hold"} the count,
+                and a pack only draws from {parentName}’s own shelf — it
+                would show{" "}
+                <span className="font-medium text-foreground">0 packs</span>.
+                Move the quantity to {parentName} (and set{" "}
+                {stockBlock.names.join(", ")} to 0) first.
+              </p>
+              {onOpenStock ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-8 gap-1.5 text-xs shadow-none"
+                  onClick={onOpenStock}
+                >
+                  Open {parentName} stock
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <PackageVariantsSection
               showEnableToggle={false}
@@ -105,7 +172,13 @@ export function AddPackageModal({
             </Button>
             <Button
               type="submit"
-              disabled={busy || !parentId || validCount === 0}
+              disabled={
+                busy ||
+                !parentId ||
+                validCount === 0 ||
+                checkingStock ||
+                !!stockBlock
+              }
               className="gap-2"
             >
               {busy ? (

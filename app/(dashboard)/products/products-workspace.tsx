@@ -163,6 +163,21 @@ export function ProductsWorkspace() {
     detail.refreshSelectedDetail,
     quick.openQuickEdit,
   ]);
+  /** Jump straight to one product's on-hand editor (used by the pack guard). */
+  const openStockForProduct = useCallback(
+    async (id: string | null) => {
+      const target = id?.trim();
+      if (!target) return;
+      detail.selectProduct(target);
+      await detail.refreshSelectedDetail(target);
+      quick.openQuickEdit("stock");
+    },
+    [
+      detail.selectProduct,
+      detail.refreshSelectedDetail,
+      quick.openQuickEdit,
+    ],
+  );
   const [isLg, setIsLg] = useState(false);
   const [dockRoot, setDockRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -956,6 +971,13 @@ export function ProductsWorkspace() {
               : D.name?.trim() || "base unit"
           }
           currencyCode={business?.currency?.trim() || ""}
+          branchId={branchId || null}
+          onOpenStock={() => {
+            setPackageModalOpen(false);
+            void openStockForProduct(
+              resolveCatalogParentId(D, detail.selectedId),
+            );
+          }}
           busy={m.packageCreateBusy}
           onCreatePackages={m.onCreatePackages}
         />
