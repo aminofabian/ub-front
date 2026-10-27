@@ -101,7 +101,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
 
   return (
     <div
-      className={cn(styles.root, styles.body, beautyEditFontVariables)}
+      className={cn(styles.root, styles.body, styles.home, beautyEditFontVariables)}
       data-store-theme-id="beauty-edit"
       style={
         {

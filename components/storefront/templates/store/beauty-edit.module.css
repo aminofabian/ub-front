@@ -17,10 +17,9 @@
   --be-space-6: 72px;
   --be-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Keep theme content from collapsing inside the chrome scroll flex column
-     (min-height: 100% would override flex min-content and crush the home). */
-  flex-shrink: 0;
-  width: 100%;
+  /* Tokens / type only — also applied to chrome. Do not set flex-shrink or
+     min-height here; that expands the 100dvh shell past the viewport and
+     kills the inner overflow-y scroll. */
   background: var(--be-paper);
   color: var(--be-ink);
   font-family: var(--font-be-sans), system-ui, sans-serif;
@@ -37,6 +36,13 @@
 }
 
 .body {
+  /* Intentionally empty — kept for chrome class parity with other themes. */
+}
+
+/* Home page only (not chrome): claim full content height inside the scroll pane. */
+.home {
+  flex-shrink: 0;
+  width: 100%;
   min-height: min-content;
 }
 
@@ -144,15 +150,18 @@
   text-decoration: none;
   color: inherit;
   min-width: 0;
+  display: flex;
+  align-items: center;
 }
 
 .logoImg {
   display: block;
   height: auto;
-  max-height: calc(64px * var(--storefront-logo-scale, 1));
+  max-height: calc(72px * var(--storefront-logo-scale, 1));
   width: auto;
-  max-width: calc(min(280px, 58vw) * var(--storefront-logo-scale, 1));
+  max-width: calc(min(220px, 52vw) * var(--storefront-logo-scale, 1));
   object-fit: contain;
+  object-position: left center;
 }
 
 .logoText {
@@ -349,12 +358,12 @@
   .logo {
     grid-column: 1;
     justify-self: start;
-    max-width: min(300px, 40vw);
+    max-width: min(280px, 36vw);
   }
 
   .logoImg {
-    max-height: calc(48px * var(--storefront-logo-scale, 1));
-    max-width: calc(min(240px, 32vw) * var(--storefront-logo-scale, 1));
+    max-height: calc(64px * var(--storefront-logo-scale, 1));
+    max-width: calc(min(200px, 28vw) * var(--storefront-logo-scale, 1));
   }
 
   .logoWord {

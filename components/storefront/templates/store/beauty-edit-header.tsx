@@ -155,8 +155,10 @@ export function BeautyEditHeader({
             <StorefrontEditableLogoMark
               logoUrl={logoUrl}
               alt={storeName}
-              width={320}
-              height={72}
+              // Square intrinsic box so square marks (common for this theme)
+              // aren't letterboxed into a wide 320×72 ratio and look tiny/off.
+              width={160}
+              height={160}
               className={styles.logoImg}
               fallback={
                 <span className={styles.logoText}>
