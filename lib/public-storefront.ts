@@ -236,6 +236,11 @@ export type TenantContext = {
   authConfig: TenantAuthConfig;
   featureFlags: Record<string, boolean>;
   storefrontEnabled: boolean;
+  /**
+   * Public catalog can be read. Absent on older host-resolve payloads, which
+   * still fetch. False skips the catalog calls that would otherwise 404.
+   */
+  publicCatalogReady: boolean;
   storeThemeId: string;
   landingTemplateId: string;
   landingContent: LandingContent | null;
@@ -729,6 +734,9 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     : {};
 
   const storefrontEnabled = o.storefrontEnabled === true;
+  // Missing field means an older API: keep fetching. Explicit false means the
+  // catalog branch is unset, so the public catalog endpoints would 404.
+  const publicCatalogReady = o.publicCatalogReady !== false;
   const storeThemeId = normalizeStoreThemeId(
     typeof o.storeThemeId === "string" ? o.storeThemeId : null,
   );
@@ -770,6 +778,7 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     authConfig,
     featureFlags,
     storefrontEnabled,
+    publicCatalogReady,
     storeThemeId,
     landingTemplateId,
     landingContent,
@@ -877,7 +886,11 @@ export async function fetchTenantContext(
     if (!res.ok) {
       return null;
     }
-    return normalizeTenantContext(await res.json());
+    const body = (await res.json()) as { mapped?: unknown; tenantId?: unknown };
+    if (body?.mapped === false || !String(body?.tenantId ?? "").trim()) {
+      return null;
+    }
+    return normalizeTenantContext(body);
   } catch {
     return null;
   }

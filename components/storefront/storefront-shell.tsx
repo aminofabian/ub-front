@@ -54,9 +54,13 @@ export async function StorefrontShell({
       tenant = byDevHost;
     }
   }
+  // A mapped shop with no catalog branch 404s every public catalog call.
+  // Host resolve already reports that; skip the calls and keep the landing page.
+  const catalogReady = tenant?.publicCatalogReady !== false;
+  const storefrontLive = catalogReady && tenant?.storefrontEnabled !== false;
   const [storefront, categoriesPayload] = await Promise.all([
-    slug ? fetchPublicStorefront(slug) : Promise.resolve(null),
-    slug ? fetchPublicCategories(slug) : Promise.resolve(null),
+    slug && storefrontLive ? fetchPublicStorefront(slug) : Promise.resolve(null),
+    slug && catalogReady ? fetchPublicCategories(slug) : Promise.resolve(null),
   ]);
 
   const title =

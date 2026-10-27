@@ -942,8 +942,8 @@ export default function PaymentGatewaySettingsPage() {
                     manageConfig.id,
                     () => setGatewayStorefront(manageConfig.id, enabled),
                     enabled
-                      ? "Request sent. The till already takes Daraja. The shop stays off until we approve."
-                      : "Removed from the online shop. The till is unchanged.",
+                      ? "Request sent. M-Pesa stays off your shop until Kiosk approves it."
+                      : "M-Pesa removed from your online shop. Your till is unchanged.",
                   )
                 }
               />
@@ -1037,7 +1037,7 @@ export default function PaymentGatewaySettingsPage() {
                         manageConfig.gatewayType,
                         custodyAvailability?.provider,
                       )
-                        ? "On at the till. Cash stays the default. The shop stays off until you request it and we approve."
+                        ? "On at the till. Cash stays the default."
                         : "Gateway activated.",
                     )
                   }

@@ -23,15 +23,17 @@ const LOCALHOST_SUFFIX = ".localhost";
 const IS_DESKTOP_BUILD = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
 
 /**
- * Hosts that are the platform itself (no tenant), from {@code PLATFORM_HOST}
- * (comma-separated; {@code www.} variants are implied). Tenant resolution is
- * skipped for these — the backend would answer 404 anyway, so avoiding the
- * probe removes an expected-miss request on every platform page render.
+ * Hosts that are the platform itself (no tenant). {@code kiosk.ke} is always
+ * included so a production build that never received {@code PLATFORM_HOST}
+ * does not probe the API on every marketing-page render. Extra hosts come
+ * from {@code PLATFORM_HOST} (comma-separated; {@code www.} variants are implied).
  */
+const DEFAULT_PLATFORM_HOSTS = ["kiosk.ke", "www.kiosk.ke"] as const;
+
 const PLATFORM_HOSTS: ReadonlySet<string> = buildPlatformHostSet();
 
 function buildPlatformHostSet(): ReadonlySet<string> {
-  const set = new Set<string>();
+  const set = new Set<string>(DEFAULT_PLATFORM_HOSTS);
   for (const raw of (process.env.PLATFORM_HOST ?? "").split(",")) {
     const host = raw.trim().toLowerCase();
     if (!host) {
@@ -116,6 +118,7 @@ function localTenantFallback(hostname: string): TenantContext | null {
     },
     featureFlags: {},
     storefrontEnabled: true,
+    publicCatalogReady: true,
     storeThemeId: "mart",
     landingTemplateId: "coming-soon-editorial",
     landingContent: null,

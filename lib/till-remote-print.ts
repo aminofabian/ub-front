@@ -2,7 +2,14 @@
 
 import { toast } from "sonner";
 
-import { claimTillPrint, type TillPrintPendingJob, type TillPrintSlipPayload } from "@/lib/api";
+import {
+  ApiRequestError,
+  claimTillPrint,
+  isAuthRecoveryError,
+  type TillPrintPendingJob,
+  type TillPrintSlipPayload,
+} from "@/lib/api";
+import { isStaleClientError } from "@/lib/stale-client";
 import { playCashierChime } from "@/lib/cashier-chime";
 import {
   DESKTOP_THERMAL_WIDTH_MM,
@@ -142,13 +149,40 @@ function rememberSent(id: string): void {
   }
 }
 
+const PENDING_LOAD_TOAST_ID = "till-pending-slip";
+
+/**
+ * Session recovery, a signed-out till, and a stale tab already have their own
+ * screens. They are not a missing order slip.
+ */
+export function isIgnorableTillPrintLoadError(error: unknown): boolean {
+  if (isAuthRecoveryError(error) || isStaleClientError(error)) return true;
+  if (
+    error instanceof ApiRequestError &&
+    (error.status === 401 || error.status === 403)
+  ) {
+    return true;
+  }
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (error instanceof Error && error.name === "AbortError") return true;
+  return false;
+}
+
 /** One toast when the till cannot load its queue. Polling keeps trying. */
 export function notePendingTillPrintError(): void {
   if (pendingErrorTold) return;
   pendingErrorTold = true;
   toast.error("This till could not load the order slip. It will keep trying.", {
+    id: PENDING_LOAD_TOAST_ID,
     duration: 12_000,
   });
+}
+
+/** The queue loaded. Drop the retry warning so a later failure can speak again. */
+export function clearPendingTillPrintError(): void {
+  if (!pendingErrorTold) return;
+  pendingErrorTold = false;
+  toast.dismiss(PENDING_LOAD_TOAST_ID);
 }
 
 /**

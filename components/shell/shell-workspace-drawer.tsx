@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense, useMemo, useState } from "react";
 import {
   ClipboardList,
@@ -12,16 +13,59 @@ import {
 } from "lucide-react";
 
 import { FormDrawer } from "@/components/form-drawer";
-import { BusinessSettingsForm } from "@/components/business/business-settings-form";
-import { BusinessConfigurationForm } from "@/components/business/business-configuration-form";
-import { CreditActivityPage } from "@/components/credits/credit-activity-page";
-import { QuickSaleWorkspace } from "@/components/cashier/quick-sale-workspace";
 import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { useDashboard } from "@/components/dashboard-provider";
-import { TenantOrderWorkspace } from "@/app/(dashboard)/order/_components/tenant-order-workspace";
-import { OrderReceivePageClient } from "@/app/(dashboard)/order/receive/order-receive-page-client";
 import { type ShellWorkspaceId } from "@/lib/shell-workspaces";
 import { cn } from "@/lib/utils";
+
+/**
+ * The drawer is mounted by AppShell on every dashboard page but renders one
+ * workspace at a time, only after the user opens it. These are the heaviest
+ * client graphs in the app (the quick-sale till alone is >1 MB of source), so
+ * each loads on demand instead of riding along in the shell's entry chunk.
+ */
+const BusinessSettingsForm = dynamic(
+  () =>
+    import("@/components/business/business-settings-form").then(
+      (m) => m.BusinessSettingsForm,
+    ),
+  { ssr: false },
+);
+const BusinessConfigurationForm = dynamic(
+  () =>
+    import("@/components/business/business-configuration-form").then(
+      (m) => m.BusinessConfigurationForm,
+    ),
+  { ssr: false },
+);
+const CreditActivityPage = dynamic(
+  () =>
+    import("@/components/credits/credit-activity-page").then(
+      (m) => m.CreditActivityPage,
+    ),
+  { ssr: false },
+);
+const QuickSaleWorkspace = dynamic(
+  () =>
+    import("@/components/cashier/quick-sale-workspace").then(
+      (m) => m.QuickSaleWorkspace,
+    ),
+  { ssr: false },
+);
+const TenantOrderWorkspace = dynamic(
+  () =>
+    import(
+      "@/app/(dashboard)/order/_components/tenant-order-workspace"
+    ).then((m) => m.TenantOrderWorkspace),
+  { ssr: false },
+);
+const OrderReceivePageClient = dynamic(
+  () =>
+    import("@/app/(dashboard)/order/receive/order-receive-page-client").then(
+      (m) => m.OrderReceivePageClient,
+    ),
+  { ssr: false },
+);
 
 export type { ShellWorkspaceId };
 

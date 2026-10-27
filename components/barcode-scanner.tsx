@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import type { BrowserMultiFormatReader } from "@zxing/browser";
 import { Camera, X } from "lucide-react";
 
 type BarcodeScannerProps = {
@@ -20,6 +20,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const startScanner = useCallback(async () => {
     setError(null);
     try {
+      // @zxing/browser is ~1.5 MB of decoder tables. Loading it here keeps it
+      // out of the dashboard shell's entry chunks — it is only needed once the
+      // camera modal actually opens.
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 

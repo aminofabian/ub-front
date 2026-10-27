@@ -32,12 +32,14 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const logo = tenant?.branding?.logoUrl?.trim();
   const ogImageUrl = ogImage || logo || undefined;
 
-  if (!slug) {
+  if (!slug || tenant?.publicCatalogReady === false) {
     return { title: metaTitle ? `${metaTitle} · Shop` : "Shop" };
   }
 
   const [storefront, cats] = await Promise.all([
-    fetchPublicStorefront(slug),
+    tenant?.storefrontEnabled === false
+      ? Promise.resolve(null)
+      : fetchPublicStorefront(slug),
     fetchPublicCategories(slug),
   ]);
   if (!storefront) {
@@ -90,9 +92,15 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
 export default async function ShopCategoryBrowsePage({ params, searchParams }: PageProps) {
   const [{ categorySlug }, sp] = await Promise.all([params, searchParams]);
-  const slug = await resolveStorefrontSlug();
+  const [slug, tenant] = await Promise.all([
+    resolveStorefrontSlug(),
+    resolveTenantContext(),
+  ]);
   if (!slug) {
     notFound();
+  }
+  if (tenant?.publicCatalogReady === false) {
+    redirect(APP_ROUTES.shop);
   }
 
   const cats = await fetchPublicCategories(slug);

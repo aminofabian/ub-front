@@ -12015,7 +12015,14 @@ export async function dispatchTillPrint(body: {
 }
 
 export async function fetchPendingTillPrints(): Promise<TillPrintPendingJob[]> {
-  return request<TillPrintPendingJob[]>(`${TILL_PRINTS}/pending`, { toast: false });
+  // Background poll on every dashboard page that has acted as a till.
+  // A 401 must refresh quietly and must not take down the Business screen —
+  // session recovery belongs to the shell, not this queue.
+  const rows = await request<unknown>(`${TILL_PRINTS}/pending`, {
+    toast: false,
+    softAuth: true,
+  });
+  return Array.isArray(rows) ? (rows as TillPrintPendingJob[]) : [];
 }
 
 export async function claimTillPrint(

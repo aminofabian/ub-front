@@ -10,7 +10,9 @@ import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import { peekTillDeviceId } from "@/lib/till-device";
 import {
   announceTillSlip,
+  clearPendingTillPrintError,
   deliverTillSlip,
+  isIgnorableTillPrintLoadError,
   notePendingTillPrintError,
   slipFromJson,
 } from "@/lib/till-remote-print";
@@ -84,10 +86,12 @@ export function CashierTillPrintListener() {
       try {
         const rows = await fetchPendingTillPrints();
         if (cancelled) return;
+        clearPendingTillPrintError();
         for (const row of rows) {
           void deliverTillSlip(row, printerRef.current);
         }
-      } catch {
+      } catch (error) {
+        if (isIgnorableTillPrintLoadError(error)) return;
         notePendingTillPrintError();
       }
     };
@@ -95,9 +99,9 @@ export function CashierTillPrintListener() {
     const onLive = (frame: RealtimeFrame) => {
       if (frame.delivery === "poll") return;
       const data = frame.data as Record<string, unknown>;
-      if (frame.type === "notification.created" && notificationType(data) !== "till.slip") {
-        return;
-      }
+      const slipNote =
+        frame.type === "notification.created" && notificationType(data) === "till.slip";
+      if (frame.type !== "till.print" && !slipNote) return;
       const jobId = readField(data, "jobId");
       const kind = readField(data, "kind") || "order";
       const reference = readField(data, "reference");

@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 
 import { StorefrontCatalogHome } from "@/components/storefront/storefront-catalog-home";
 import { redirectLegacyShopCategoryQuery } from "@/lib/shop-legacy-category-redirect";
-import { resolveStorefrontSlug } from "@/lib/storefront-slug";
+import {
+  resolveStorefrontSlug,
+  resolveTenantContext,
+} from "@/lib/storefront-slug";
 
 type PageProps = {
   searchParams: Promise<{
@@ -22,8 +25,9 @@ export default async function ShopPage({ searchParams }: PageProps) {
   }
 
   const sp = await searchParams;
+  const tenant = await resolveTenantContext();
   const legacy = sp.categoryId?.trim();
-  if (legacy) {
+  if (legacy && tenant?.publicCatalogReady !== false) {
     await redirectLegacyShopCategoryQuery({
       storefrontSlug: slug,
       categoryId: legacy,
