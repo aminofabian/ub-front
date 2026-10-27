@@ -22,6 +22,7 @@ import {
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
+import { readableInkOn } from "@/lib/color-contrast";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,8 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
+  // Fashion edit wants presence — medium grocery hero reads as a short banner.
+  const heroHeight = heroSettings?.height === "small" ? "medium" : (heroSettings?.height ?? "large");
 
   const seen = new Set<string>();
   const heroItems: typeof catalogItems = [];
@@ -105,34 +108,38 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
           ["--be-gold" as string]: gold,
           ["--be-ink" as string]: "#0e0e0e",
           ["--be-brand" as string]: brand,
+          ["--be-announce-ink" as string]: readableInkOn(brand),
           ...optionVars,
         } as CSSProperties
       }
     >
       {heroOn ? (
-        <StorefrontHeroSection
-          title={heroTitle}
-          tagline={
-            heroSettings?.headline.trim() ? heroSettings.headline : announcement
-          }
-          subheadline={heroSettings?.subheadline ?? null}
-          height={heroSettings?.height ?? "medium"}
-          overlay={heroSettings?.overlay ?? "none"}
-          showCta={heroSettings?.showCta ?? true}
-          showWhatsapp={heroSettings?.showWhatsapp ?? true}
-          buttons={buttons}
-          branchHint={branchHint}
-          areaLabel={areaLabel}
-          primaryHex={primaryHex}
-          accentHex={accentHex}
-          showcaseImage={showcaseImage}
-          logoUrl={logoUrl}
-          logoDarkUrl={logoDarkUrl}
-          heroBannerUrls={heroBannerUrls}
-          design={design}
-          whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}
-          ctaAnchor="#catalog"
-        />
+        <div className={styles.merchantHero}>
+          <StorefrontHeroSection
+            title={heroTitle}
+            tagline={
+              heroSettings?.headline.trim() ? heroSettings.headline : announcement
+            }
+            subheadline={heroSettings?.subheadline ?? null}
+            height={heroHeight}
+            overlay={heroSettings?.overlay ?? "dark"}
+            showCta={heroSettings?.showCta ?? true}
+            showWhatsapp={heroSettings?.showWhatsapp ?? true}
+            buttons={buttons}
+            branchHint={branchHint}
+            areaLabel={areaLabel}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+            showcaseImage={showcaseImage}
+            logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
+            heroBannerUrls={heroBannerUrls}
+            design={design}
+            whatsappNumber={landingContent?.whatsapp ?? landingContent?.phone ?? null}
+            ctaAnchor="#catalog"
+            chrome="editorial"
+          />
+        </div>
       ) : (
         <StorefrontNativeHeroEditFrame>
           <section className={styles.hero} aria-label="Featured collections">
@@ -167,9 +174,6 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
                   <span className={styles.heroPanelFallback} />
                   <span className={styles.heroGrain} aria-hidden />
                   <span className={styles.heroShade} />
-                  <span className={styles.heroIndex} aria-hidden>
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
                   <span className={styles.heroPanelCopy}>
                     {i === 0 ? (
                       <StorefrontNativeHeroHeadline
@@ -213,8 +217,8 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
           <div>
             <div className={styles.footerBrand}>{heroTitle}</div>
             <p className={styles.footerBlurb}>
-              Curated fashion, beauty &amp; accessories. Shop online and pay via
-              M-Pesa — we deliver nationwide.
+              Curated fashion and accessories. Shop online, pay with M-Pesa,
+              deliver nationwide.
             </p>
           </div>
           <div className={styles.footerCol}>

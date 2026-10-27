@@ -160,9 +160,6 @@ export function BeautyEditHeroPanel({
       )}
       <span className={styles.heroGrain} aria-hidden />
       <span className={styles.heroShade} aria-hidden />
-      <span className={styles.heroIndex} aria-hidden>
-        {String(index + 1).padStart(2, "0")}
-      </span>
       <span className={styles.heroPanelCopy}>
         {editableHeadline ? (
           <StorefrontNativeHeroHeadline

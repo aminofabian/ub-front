@@ -20,6 +20,7 @@ import { milkRunFontVariables } from "@/components/storefront/templates/store/mi
 import milkRunStyles from "@/components/storefront/templates/store/milk-run.module.css";
 import { StorefrontBrandMarksProvider } from "@/components/storefront/storefront-brand-marks";
 import { resolveThemedLogoUrl, resolveStorefrontLogoSurface } from "@/lib/branding-themed-logo";
+import { readableInkOn } from "@/lib/color-contrast";
 import { OxideHeader } from "@/components/storefront/templates/store/oxide-header";
 import { oxideFontVariables } from "@/components/storefront/templates/store/oxide-fonts";
 import oxideStyles from "@/components/storefront/templates/store/oxide.module.css";
@@ -327,6 +328,9 @@ export function ShopStorefrontChrome({
                     ["--be-ink" as string]: "#0E0E0E",
                     ["--be-brand" as string]: primaryHex || "#0E0E0E",
                     ["--be-gold" as string]: accentHex || "#B5853A",
+                    ["--be-announce-ink" as string]: readableInkOn(
+                      primaryHex || "#0E0E0E",
+                    ),
                   } as CSSProperties)
               : isScentStory
                 ? ({
@@ -545,6 +549,7 @@ export function ShopStorefrontChrome({
             slug={slug}
             storeName={headerTitle}
             logoUrl={themedLogoUrl}
+            announcement={announcement}
             whatsapp={whatsappNumber}
           />
         </Suspense>

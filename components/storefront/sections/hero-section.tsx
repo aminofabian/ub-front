@@ -21,6 +21,7 @@ import {
   useStorefrontStaffEditOptional,
 } from "@/components/storefront/storefront-staff-edit";
 import { resolveHeroLogo } from "@/lib/branding-themed-logo";
+import { readableInkOn } from "@/lib/color-contrast";
 import type {
   StorefrontDesign,
   StorefrontDesignButtons,
@@ -46,6 +47,16 @@ const HERO_HEIGHT_CLASSES: Record<
   large: "min-h-[168px] md:min-h-[220px] lg:min-h-[252px]",
 };
 
+/** Taller first-viewport presence for fashion / editorial store themes. */
+const EDITORIAL_HERO_HEIGHT_CLASSES: Record<
+  StorefrontHeroSectionHeight,
+  string
+> = {
+  small: "min-h-[200px] md:min-h-[280px] lg:min-h-[320px]",
+  medium: "min-h-[260px] md:min-h-[380px] lg:min-h-[440px]",
+  large: "min-h-[320px] md:min-h-[460px] lg:min-h-[520px]",
+};
+
 const HERO_OVERLAY_CLASSES: Record<StorefrontHeroSectionOverlay, string> = {
   none: "",
   light: "bg-white/15",
@@ -61,12 +72,16 @@ function heroCtaStyle(
     return { backgroundColor: "transparent", color: "#fff" };
   }
   if (accent) {
-    return { backgroundColor: accent, color: "#0f172a" };
+    return {
+      backgroundColor: accent,
+      color: readableInkOn(accent),
+    };
   }
   if (primary) {
+    const fill = `color-mix(in srgb, ${primary} 42%, white)`;
     return {
-      backgroundColor: `color-mix(in srgb, ${primary} 42%, white)`,
-      color: "#fff",
+      backgroundColor: fill,
+      color: readableInkOn(primary),
     };
   }
   return undefined;
@@ -97,6 +112,7 @@ export function StorefrontHeroSection({
   buttons = "solid",
   whatsappNumber,
   ctaAnchor = "#shop-catalog",
+  chrome = "default",
 }: {
   title: string;
   tagline?: string | null;
@@ -122,7 +138,13 @@ export function StorefrontHeroSection({
   whatsappNumber?: string | null;
   /** Anchor the “Shop now” CTA scrolls to (theme catalog section). */
   ctaAnchor?: string;
+  /** `editorial` = full-bleed fashion masthead (no grocery card chrome). */
+  chrome?: "default" | "editorial";
 }) {
+  const editorial = chrome === "editorial";
+  const heightClasses = editorial
+    ? EDITORIAL_HERO_HEIGHT_CLASSES
+    : HERO_HEIGHT_CLASSES;
   const wa =
     whatsappHref(whatsappNumber, "Hi! I'd like to place an order.") ??
     whatsAppOrderHref();
@@ -137,12 +159,21 @@ export function StorefrontHeroSection({
       ? accentHex.trim()
       : null;
 
-  const heroBg = primary
-    ? `color-mix(in srgb, ${primary} 82%, #020617)`
-    : "#0f172a";
-  const fadeEdge = primary
-    ? `color-mix(in srgb, ${primary} 88%, #020617)`
-    : "#0f172a";
+  // Light merchant yellows/creams turn muddy when mixed into the grocery hero
+  // panel — editorial chrome falls back to ink so the photo stays the star.
+  const lightBrand = primary ? readableInkOn(primary) !== "#ffffff" : false;
+  const heroBg =
+    editorial && lightBrand
+      ? "#0e0e0e"
+      : primary
+        ? `color-mix(in srgb, ${primary} 82%, #020617)`
+        : "#0f172a";
+  const fadeEdge =
+    editorial && lightBrand
+      ? "#0e0e0e"
+      : primary
+        ? `color-mix(in srgb, ${primary} 88%, #020617)`
+        : "#0f172a";
 
   const headline = tagline?.trim() || "Quality essentials, delivered.";
   const subhead =
@@ -189,7 +220,12 @@ export function StorefrontHeroSection({
   return (
     <StorefrontQuickEditTarget field="hero" label="hero headline">
     <section
-      className="relative overflow-hidden rounded-[4px] text-white shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
+      className={cn(
+        "relative overflow-hidden text-white",
+        editorial
+          ? "rounded-none shadow-none ring-0"
+          : "rounded-[4px] shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] ring-1 ring-black/10",
+      )}
       style={{ backgroundColor: heroBg }}
     >
       {staff?.editMode ? (
@@ -211,12 +247,26 @@ export function StorefrontHeroSection({
       <div
         className={cn(
           "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.15fr]",
-          HERO_HEIGHT_CLASSES[height],
+          heightClasses[height],
         )}
       >
         {/* Copy */}
-        <div className="relative z-10 flex flex-col justify-center gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5">
-          <h1 className="font-heading text-[1.15rem] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[1.35rem] lg:text-[1.65rem]">
+        <div
+          className={cn(
+            "relative z-10 flex flex-col justify-center",
+            editorial
+              ? "gap-3 px-5 py-8 md:gap-4 md:px-8 md:py-12 lg:px-10 lg:py-14"
+              : "gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5",
+          )}
+        >
+          <h1
+            className={cn(
+              "font-heading leading-[1.12] tracking-[-0.025em]",
+              editorial
+                ? "text-[1.85rem] font-normal italic md:text-[2.45rem] lg:text-[3.1rem]"
+                : "text-[1.15rem] font-semibold md:text-[1.35rem] lg:text-[1.65rem]",
+            )}
+          >
             <StorefrontInlineText
               as="span"
               className="block text-white"
@@ -230,14 +280,26 @@ export function StorefrontHeroSection({
             </StorefrontInlineText>
             <StorefrontInlineText
               as="span"
-              className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]"
+              className={cn(
+                "mt-0.5 block font-heading tracking-[-0.01em] text-white/70",
+                editorial
+                  ? "text-[0.72rem] font-medium not-italic uppercase tracking-[0.14em] md:text-[0.78rem]"
+                  : "text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
+              )}
               value={subhead}
               placeholder="Add a subheadline"
               onCommit={(next) => {
                 void staff?.commitInlineField("hero", { subheadline: next });
               }}
             >
-              <span className="mt-0.5 block font-heading text-[0.95rem] font-medium italic tracking-[-0.01em] text-white/70 md:text-[1.05rem] lg:text-[1.15rem]">
+              <span
+                className={cn(
+                  "mt-0.5 block font-heading tracking-[-0.01em] text-white/70",
+                  editorial
+                    ? "text-[0.72rem] font-medium not-italic uppercase tracking-[0.14em] md:text-[0.78rem]"
+                    : "text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
+                )}
+              >
                 {subhead}
               </span>
             </StorefrontInlineText>
@@ -246,24 +308,44 @@ export function StorefrontHeroSection({
           <StorefrontInlineText
             as="p"
             multiline
-            className="max-w-md text-[11px] leading-snug text-white/55 md:text-[12px]"
+            className={cn(
+              "max-w-md text-white/55",
+              editorial
+                ? "text-[13px] leading-relaxed line-clamp-3 md:text-[14px]"
+                : "text-[11px] leading-snug md:text-[12px]",
+            )}
             value={body}
             placeholder="Add a short intro"
             onCommit={(next) => {
               void staff?.commitInlineField("about", { text: next });
             }}
           >
-            <p className="max-w-md text-[11px] leading-snug text-white/55 line-clamp-2 md:text-[12px]">
+            <p
+              className={cn(
+                "max-w-md text-white/55",
+                editorial
+                  ? "text-[13px] leading-relaxed line-clamp-3 md:text-[14px]"
+                  : "text-[11px] leading-snug line-clamp-2 md:text-[12px]",
+              )}
+            >
               {body}
             </p>
           </StorefrontInlineText>
 
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div
+            className={cn(
+              "flex flex-wrap items-center",
+              editorial ? "gap-3 pt-2" : "gap-2 pt-0.5",
+            )}
+          >
             {showCta ? (
               <Link
                 href={ctaAnchor}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] px-3.5 text-[12px] font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+                  "inline-flex items-center gap-1.5 font-semibold transition-[filter,transform,background-color,border-color] duration-200 active:scale-[0.98]",
+                  editorial
+                    ? "h-11 rounded-none px-5 text-[11px] font-medium uppercase tracking-[0.14em]"
+                    : "h-8 rounded-[length:var(--sf-button-radius,3px)] px-3.5 text-[12px]",
                   buttons === "outline"
                     ? "border-2 border-white/70 bg-transparent text-white hover:bg-white/10"
                     : "shadow-sm hover:brightness-105",
@@ -280,7 +362,12 @@ export function StorefrontHeroSection({
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-8 items-center gap-1.5 rounded-[length:var(--sf-button-radius,3px)] border border-white/22 bg-white/[0.06] px-3 text-[12px] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10"
+                className={cn(
+                  "inline-flex items-center gap-1.5 border border-white/22 bg-white/[0.06] font-semibold text-white transition-colors hover:border-white/35 hover:bg-white/10",
+                  editorial
+                    ? "h-11 rounded-none px-4 text-[11px] font-medium uppercase tracking-[0.14em]"
+                    : "h-8 rounded-[length:var(--sf-button-radius,3px)] px-3 text-[12px]",
+                )}
               >
                 <MessageCircle className="size-3.5" aria-hidden />
                 WhatsApp

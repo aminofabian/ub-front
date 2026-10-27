@@ -17,11 +17,11 @@ export function BeautyEditNewsletter() {
   return (
     <section className={styles.newsletter} aria-labelledby="be-newsletter-title">
       <h2 id="be-newsletter-title" className={styles.newsletterTitle}>
-        Your list, in one place
+        Save your edit
       </h2>
       <p className={styles.newsletterSub}>
-        Create an account to track orders, save your cart, and hear about
-        promotions and launches.
+        Create an account to keep your bag, track orders, and hear when new
+        pieces land.
       </p>
       <Link href={href} onClick={onActivate} className={styles.newsletterCta}>
         {label}

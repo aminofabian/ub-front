@@ -241,8 +241,16 @@ export async function StorefrontCatalogHome({
   const preSections =
     design && tenant?.storefrontEnabled
       ? storefrontSectionsInRegion(design, "pre").filter((s) => {
-          // Print atelier owns announcement + first-viewport hero (3DEA craft bar).
-          if (themeId === "print-atelier" || themeId === "blank-drop" || themeId === "pastry-case" || themeId === "climax-floor" || themeId === "daily-gazette" || themeId === "mizu-springs") {
+          // Themes that own announcement / first-viewport chrome.
+          if (
+            themeId === "print-atelier" ||
+            themeId === "blank-drop" ||
+            themeId === "pastry-case" ||
+            themeId === "climax-floor" ||
+            themeId === "daily-gazette" ||
+            themeId === "mizu-springs" ||
+            themeId === "beauty-edit"
+          ) {
             return s.id !== "announcement" && s.id !== "promo" && s.id !== "hero";
           }
           return true;
@@ -262,54 +270,60 @@ export async function StorefrontCatalogHome({
         storeThemeId={themeId}
         landingTemplateId={landingTemplateId}
       />
-      {showSectionStacks ? (
-        <StorefrontSectionsStack
-          design={design!}
-          sections={preSections}
-          region="pre"
-          storeName={storeName}
-          primaryHex={primary}
-          accentHex={accentHex}
-        />
+      {showSectionStacks && preSections.length > 0 ? (
+        <div className="w-full shrink-0">
+          <StorefrontSectionsStack
+            design={design!}
+            sections={preSections}
+            region="pre"
+            storeName={storeName}
+            primaryHex={primary}
+            accentHex={accentHex}
+          />
+        </div>
       ) : null}
-      <StoreHome
-        themeId={themeId}
-        slug={slug}
-        currency={catalogList.currency}
-        catalogItems={catalogItems}
-        nextCursor={catalogList.nextCursor}
-        totalCount={catalogList.totalCount ?? undefined}
-        q={q}
-        categoryId={categoryId}
-        typeId={resolvedTypeId}
-        categoryHeading={categoryHeading ?? typeHeading}
-        categoryPathSlug={categoryPathSlug}
-        categories={categories}
-        types={types}
-        featured={featured}
-        heroTitle={heroTitle}
-        announcement={announcement}
-        branchHint={branchHint}
-        areaLabel={areaLabel}
-        primaryHex={primary}
-        accentHex={accentHex}
-        logoUrl={logoUrl}
-        logoDarkUrl={logoDarkUrl}
-        heroBannerUrls={heroBannerUrls}
-        showcaseImage={showcaseImage}
-        storefront={storefront}
-        landingContent={tenant?.landingContent ?? null}
-        design={design}
-      />
-      {showSectionStacks ? (
-        <StorefrontSectionsStack
-          design={design!}
-          sections={postSections}
-          region="post"
-          storeName={storeName}
+      <div className="w-full shrink-0">
+        <StoreHome
+          themeId={themeId}
+          slug={slug}
+          currency={catalogList.currency}
+          catalogItems={catalogItems}
+          nextCursor={catalogList.nextCursor}
+          totalCount={catalogList.totalCount ?? undefined}
+          q={q}
+          categoryId={categoryId}
+          typeId={resolvedTypeId}
+          categoryHeading={categoryHeading ?? typeHeading}
+          categoryPathSlug={categoryPathSlug}
+          categories={categories}
+          types={types}
+          featured={featured}
+          heroTitle={heroTitle}
+          announcement={announcement}
+          branchHint={branchHint}
+          areaLabel={areaLabel}
           primaryHex={primary}
           accentHex={accentHex}
+          logoUrl={logoUrl}
+          logoDarkUrl={logoDarkUrl}
+          heroBannerUrls={heroBannerUrls}
+          showcaseImage={showcaseImage}
+          storefront={storefront}
+          landingContent={tenant?.landingContent ?? null}
+          design={design}
         />
+      </div>
+      {showSectionStacks ? (
+        <div className="w-full shrink-0">
+          <StorefrontSectionsStack
+            design={design!}
+            sections={postSections}
+            region="post"
+            storeName={storeName}
+            primaryHex={primary}
+            accentHex={accentHex}
+          />
+        </div>
       ) : null}
     </>
   );

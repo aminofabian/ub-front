@@ -32,7 +32,7 @@ export function BeautyEditCatalog({
   return (
     <section id="catalog" className={styles.catalogSection}>
       <div className={styles.catalogHead}>
-        <h2 className={styles.catalogTitle}>All Products</h2>
+        <h2 className={styles.catalogTitle}>The edit</h2>
         <span className={styles.catalogMeta}>{countLabel}</span>
       </div>
 

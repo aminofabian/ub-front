@@ -33,7 +33,7 @@ export function BeautyEditCarousel({
   return (
     <section className={styles.carouselSection} aria-label="Our bestsellers">
       <div className={styles.sectionIntro}>
-        <h2 className={styles.sectionTitle}>Our Bestsellers</h2>
+        <h2 className={styles.sectionTitle}>Bestsellers</h2>
         <p className={styles.sectionSub}>Pieces customers return for</p>
       </div>
       <div
