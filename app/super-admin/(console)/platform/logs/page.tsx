@@ -1,23 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Activity,
-  Loader2,
-  Pause,
-  Play,
-  RefreshCw,
-} from "lucide-react";
+import { Activity, Loader2, Pause, Play, RefreshCw } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
   DashboardFeedback,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { DesktopInstallLogsPanel } from "@/components/super-admin/desktop-install-logs-panel";
 import { RequestLogDrawerContent } from "@/components/super-admin/platform-logs/request-log-drawer";
 import { Button } from "@/components/ui/button";
-import { OpsClientLogsPanel } from "@/components/ops-client-logs-panel";
 import {
   fetchPlatformRequestLogs,
   fetchPlatformRequestLogSummary,
@@ -80,53 +72,72 @@ export default function SuperAdminPlatformLogsPage() {
     useState<PlatformRequestLogRow | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const busyRef = useRef(false);
+  /** Discards responses that arrive after a newer request (fast filter clicks). */
+  const requestSeqRef = useRef(0);
 
-  const load = useCallback(
-    async (silent: boolean) => {
-      if (busyRef.current) return;
-      busyRef.current = true;
-      if (!silent) setLoading(true);
-      setError("");
-      try {
-        const [logRows, logSummary] = await Promise.all([
-          fetchPlatformRequestLogs({
-            limit: 150,
-            category: category === "all" ? undefined : category,
-            success:
-              outcome === "success"
-                ? true
-                : outcome === "failed"
-                  ? false
-                  : undefined,
-            sinceMinutes: windowMinutes,
-            ip: ip || undefined,
-            loadTestRunId: source === "loadtest" ? "*" : undefined,
-          }),
-          fetchPlatformRequestLogSummary(windowMinutes),
-        ]);
-        setRows(logRows);
-        setSummary(logSummary);
-        setLastUpdated(new Date());
-      } catch (e) {
-        setError(
-          e instanceof Error
-            ? e.message
-            : "Failed to load platform request logs.",
-        );
-      } finally {
-        busyRef.current = false;
-        setLoading(false);
-      }
-    },
-    [category, outcome, source, windowMinutes, ip],
-  );
+  const load = useCallback(async () => {
+    const seq = ++requestSeqRef.current;
+    setLoading(true);
+    setError("");
+    try {
+      const [logRows, logSummary] = await Promise.all([
+        fetchPlatformRequestLogs({
+          limit: 150,
+          category: category === "all" ? undefined : category,
+          success:
+            outcome === "success"
+              ? true
+              : outcome === "failed"
+                ? false
+                : undefined,
+          sinceMinutes: windowMinutes,
+          ip: ip || undefined,
+          loadTestRunId: source === "loadtest" ? "*" : undefined,
+        }),
+        fetchPlatformRequestLogSummary(windowMinutes),
+      ]);
+      if (seq !== requestSeqRef.current) return;
+      setRows(logRows);
+      setSummary(logSummary);
+      setLastUpdated(new Date());
+      // Keep the inspected request fresh across refreshes without letting a
+      // vanished row close the panel under the operator.
+      setSelectedRow((previous) => {
+        if (!previous) return previous;
+        return logRows.find((row) => row.id === previous.id) ?? previous;
+      });
+    } catch (e) {
+      if (seq !== requestSeqRef.current) return;
+      setError(
+        e instanceof Error ? e.message : "Failed to load platform request logs.",
+      );
+    } finally {
+      if (seq === requestSeqRef.current) setLoading(false);
+    }
+  }, [category, outcome, source, windowMinutes, ip]);
 
+  // Load on mount, and whenever a server-side filter changes — including while
+  // paused, so the pause button freezes the feed rather than the controls.
+  useEffect(() => {
+    if (sectionId !== "stream") return;
+    void load();
+  }, [load, sectionId]);
+
+  // Poll only while visible; a backgrounded admin tab has no business spending
+  // requests on a feed nobody is reading.
   useEffect(() => {
     if (sectionId !== "stream" || paused) return;
-    void load(false);
-    const timer = setInterval(() => void load(true), 5_000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 5_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [load, sectionId, paused]);
 
   useEffect(() => {
@@ -146,21 +157,8 @@ export default function SuperAdminPlatformLogsPage() {
   const windowLabel =
     WINDOWS.find((w) => w.minutes === windowMinutes)?.label ?? "";
 
-  const avgLatencyMs = rows.length
-    ? Math.round(
-        rows.reduce((sum, row) => sum + row.durationMs, 0) / rows.length,
-      )
-    : null;
-
   const drawerBody = selectedRow ? (
     <RequestLogDrawerContent row={selectedRow} />
-  ) : sectionId === "installs" ? (
-    <DesktopInstallLogsPanel />
-  ) : sectionId === "browser" ? (
-    <OpsClientLogsPanel
-      emptyDescription="When this console cannot reach the API, the technical detail lands here instead of a toast."
-      storageNote="Stored on this browser only. Shop tills never toast this detail."
-    />
   ) : null;
 
   return (
@@ -174,7 +172,7 @@ export default function SuperAdminPlatformLogsPage() {
         icon={Activity}
         eyebrow="Platform"
         title="Logs"
-        description="API and webhook traffic across all businesses — cashier, M-Pesa, airtime, KPLC — with live success rates."
+        description="Every API and webhook call across tenants — pass rates, slow routes, and full failure capture."
       >
         <div
           className={cn(
@@ -184,7 +182,6 @@ export default function SuperAdminPlatformLogsPage() {
               ? "text-amber-800"
               : "text-[var(--pos-primary,#0f766e)]",
           )}
-          aria-live="polite"
         >
           <span
             className={cn(
@@ -193,9 +190,12 @@ export default function SuperAdminPlatformLogsPage() {
             )}
             aria-hidden
           />
-          {paused ? "Paused" : "Live"}
+          <span role="status">{paused ? "Paused" : "Live"}</span>
           {lastUpdated ? (
-            <span className="font-normal text-muted-foreground">
+            <span
+              aria-hidden
+              className="font-normal tabular-nums text-muted-foreground"
+            >
               · {lastUpdated.toLocaleTimeString()}
             </span>
           ) : null}
@@ -218,7 +218,7 @@ export default function SuperAdminPlatformLogsPage() {
         <button
           type="button"
           disabled={loading}
-          onClick={() => void load(false)}
+          onClick={() => void load()}
           className={cn(
             "inline-flex size-7 items-center justify-center rounded-none border bg-white text-[#666666]",
             HAIRLINE,
@@ -264,7 +264,6 @@ export default function SuperAdminPlatformLogsPage() {
         error={error}
         paused={paused}
         windowLabel={windowLabel}
-        avgLatencyMs={avgLatencyMs}
         category={category}
         onCategoryChange={setCategory}
         outcome={outcome}
@@ -284,6 +283,7 @@ export default function SuperAdminPlatformLogsPage() {
         selectedRow={selectedRow}
         onSelectRow={setSelectedRow}
         drawerBody={drawerBody}
+        onWidenWindow={() => setWindowMinutes(1440)}
       />
     </div>
   );

@@ -90,6 +90,18 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/** Wall-clock stamp for a live feed: 09:42:11 (24-hour, locale-independent). */
+export function formatClock(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "--:--:--";
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
 export function timeAgo(iso: string | null): string {
   if (!iso) return "—";
   const then = new Date(iso).getTime();
@@ -122,10 +134,9 @@ export function statusTone(status: number, success: boolean): string {
 }
 
 /**
- * A 404 on a tenant host lookup is an expected miss, not a failure: the
- * platform's own frontend probes {@code /api/v1/public/host/resolve*} for
- * every host it renders, and hosts without a tenant (e.g. kiosk.ke itself)
- * correctly answer 404.
+ * A 404 on a tenant host lookup is an expected miss, not a failure.
+ * Current misses answer {@code 200 {mapped:false}}; rows logged before that
+ * change are still 404 and stay out of the failure tally.
  */
 export function isExpectedHostLookup(row: {
   path: string;
