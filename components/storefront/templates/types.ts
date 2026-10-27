@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type {
   PublicCatalogItemCard,
   PublicCategory,
@@ -37,6 +39,11 @@ export type StoreHomeTemplateProps = {
   landingContent?: LandingContent | null;
   /** Merchant design overrides (photos, tokens) on top of the theme. */
   design?: StorefrontDesign | null;
+  /**
+   * Merchant “post” sections, for themes that own the page footer: they render
+   * inside the theme, above it, so the footer stays the last thing on the page.
+   */
+  postSections?: ReactNode;
 };
 
 export type LandingTemplateProps = {

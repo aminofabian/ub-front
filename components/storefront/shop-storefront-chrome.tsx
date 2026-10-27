@@ -93,7 +93,10 @@ import type {
 import { fetchPublicCheckoutPaymentOptionsBrowser } from "@/lib/public-storefront-client";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import type { StorefrontDesign } from "@/lib/storefront-design";
-import { resolveStorefrontDesign } from "@/lib/storefront-design";
+import {
+  resolveStorefrontDesign,
+  storefrontSectionConfig,
+} from "@/lib/storefront-design";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
@@ -252,6 +255,16 @@ export function ShopStorefrontChrome({
   const isMizuSprings = chromeVariant === "mizu-springs";
   const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette || isMizuSprings;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
+
+  /**
+   * The Beyond header owns the top bar, so the merchant's `announcement`
+   * section copy belongs there instead of in the pre-section stack.
+   */
+  const announcementSection = storefrontSectionConfig(initialDesign, "announcement");
+  const designAnnouncement = announcementSection?.enabled
+    ? (announcementSection.settings as { text?: string }).text?.trim() || null
+    : null;
+  const chromeAnnouncement = announcement?.trim() || designAnnouncement;
 
   const restoreAttemptedRef = useRef(false);
   useEffect(() => {
@@ -549,7 +562,7 @@ export function ShopStorefrontChrome({
             slug={slug}
             storeName={headerTitle}
             logoUrl={themedLogoUrl}
-            announcement={announcement}
+            announcement={chromeAnnouncement}
             whatsapp={whatsappNumber}
           />
         </Suspense>

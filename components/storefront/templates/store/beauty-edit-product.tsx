@@ -147,7 +147,7 @@ export function BeautyEditProduct({
                   </span>
                 ) : null}
                 {stockLabel ? (
-                  <span className={styles.pdpStock}>{stockLabel} in store</span>
+                  <span className={styles.pdpStock}>{stockLabel}</span>
                 ) : null}
               </div>
             ) : null}
@@ -185,9 +185,9 @@ export function BeautyEditProduct({
             ) : null}
 
             <div className={styles.pdpTrust}>
-              <span>Pay via M-Pesa</span>
-              <span>Delivered nationwide</span>
-              <span>Textile care</span>
+              <span>Pay with M-Pesa</span>
+              <span>Pick up in store</span>
+              <span>Local delivery</span>
             </div>
           </section>
         </div>

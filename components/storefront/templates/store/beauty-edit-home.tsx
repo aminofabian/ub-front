@@ -32,12 +32,16 @@ const HERO_COPY = [
   { headline: "New arrivals", cta: "Explore" },
 ] as const;
 
+/** Two sections need enough pieces to divide without leaving a lonely row. */
+const SHOWCASE_MIN_PIECES = 8;
+const SHOWCASE_PIECES = 4;
+
 /**
  * THESIS: Beyond — a fashion-magazine storefront; black/white/gold editorial, never a blue UI skin.
- * OWN-WORLD: Jost + Cormorant italic; brand stripe only on the announce bar; masthead-scale logo;
- *   asymmetric 2-col hero (feature + stacked pair); hover “Add to bag”.
- * STORY: Announcement → masthead → editorial hero → bestsellers → full grid → list → footer.
- * FIRST VIEWPORT: Brand masthead + feature panel with two stacked companions, zero gutter.
+ * OWN-WORLD: Jost + Cormorant italic; a brand stripe over an ink announce bar; centred
+ *   masthead lockup; one feature hero panel; three-piece editorial grid.
+ * STORY: Announcement → masthead → editorial hero → bestsellers → the edit → account → footer.
+ * FIRST VIEWPORT: brand stripe, masthead, centred rail, full-bleed hero.
  * FORM: Beauty Edit · Editorial magazine · FINISH: surface brief + detector.
  */
 export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
@@ -51,6 +55,10 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     featured,
     heroTitle,
     types,
+    q,
+    categoryId,
+    typeId,
+    categoryHeading,
     announcement,
     areaLabel,
     branchHint,
@@ -62,6 +70,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     primaryHex,
     accentHex,
     design: designProp,
+    postSections,
   } = props;
   const design = useStorefrontLiveDesign(designProp ?? null);
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
@@ -81,8 +90,10 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const buttons = resolveStorefrontDesign(design).buttons;
-  // Fashion edit wants presence — medium grocery hero reads as a short banner.
-  const heroHeight = heroSettings?.height === "small" ? "medium" : (heroSettings?.height ?? "large");
+  // Fashion edit wants presence — a small grocery hero reads as a short banner.
+  const heroHeight =
+    heroSettings?.height === "small" ? "medium" : (heroSettings?.height ?? "large");
+  const description = design?.business?.description?.trim() || null;
 
   const seen = new Set<string>();
   const heroItems: typeof catalogItems = [];
@@ -93,11 +104,24 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
     if (heroItems.length >= 3) break;
   }
 
-  const carouselItems = featured.length > 0 ? featured : catalogItems.slice(0, 8);
-  const catalogRest = heroOn
-    ? catalogItems
-    : catalogItems.filter((item) => !seen.has(item.id));
+  const filtered = Boolean(q || typeId || categoryId);
+  const splitShowcase = !filtered && catalogItems.length >= SHOWCASE_MIN_PIECES;
+  const carouselItems = splitShowcase
+    ? (featured.length > 0 ? featured : catalogItems).slice(0, SHOWCASE_PIECES)
+    : [];
+  const carouselIds = new Set(carouselItems.map((item) => item.id));
+  // The item-panel hero only renders when the merchant's hero is off and the
+  // shopper is not filtering; only then must its three pieces leave the grid.
+  const heroPanelsShown = !heroOn && !filtered;
+  const catalogRest = catalogItems.filter((item) => {
+    if (carouselIds.has(item.id)) return false;
+    if (heroPanelsShown && seen.has(item.id)) return false;
+    return true;
+  });
   const wa = landingContent?.whatsapp?.replace(/\D/g, "") || "";
+  const footerBlurb =
+    description ||
+    "Shop the edit online, pay with M-Pesa, and pick up in store.";
 
   return (
     <div
@@ -113,7 +137,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
         } as CSSProperties
       }
     >
-      {heroOn ? (
+      {heroOn && !filtered ? (
         <div className={styles.merchantHero}>
           <StorefrontHeroSection
             title={heroTitle}
@@ -122,7 +146,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
             }
             subheadline={heroSettings?.subheadline ?? null}
             height={heroHeight}
-            overlay={heroSettings?.overlay ?? "dark"}
+            overlay={heroSettings?.overlay ?? "none"}
             showCta={heroSettings?.showCta ?? true}
             showWhatsapp={heroSettings?.showWhatsapp ?? true}
             buttons={buttons}
@@ -140,7 +164,7 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
             chrome="editorial"
           />
         </div>
-      ) : (
+      ) : !heroOn && !filtered ? (
         <StorefrontNativeHeroEditFrame>
           <section className={styles.hero} aria-label="Featured collections">
             {heroItems.length > 0 ? (
@@ -194,32 +218,53 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
             )}
           </section>
         </StorefrontNativeHeroEditFrame>
-      )}
+      ) : null}
 
       {productsOn ? (
         <>
-          <BeautyEditCarousel items={carouselItems} currency={currency} />
+          {carouselItems.length > 0 ? (
+            <BeautyEditCarousel
+              items={carouselItems}
+              currency={currency}
+              totalCount={totalCount}
+            />
+          ) : null}
 
           <BeautyEditCatalog
             slug={slug}
             currency={currency}
             initialItems={catalogRest.length > 0 ? catalogRest : catalogItems}
             initialNextCursor={nextCursor}
-            totalCount={totalCount}
+            heading={
+              q?.trim() ? `Results for “${q.trim()}”` : categoryHeading
+            }
+            filtered={filtered}
+            query={q}
           />
         </>
       ) : null}
 
-      <BeautyEditNewsletter />
+      {filtered ? null : <BeautyEditNewsletter />}
+
+      {!filtered && postSections ? (
+        <div className={styles.postSections}>{postSections}</div>
+      ) : null}
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div>
+          <div className={styles.footerBrandCol}>
             <div className={styles.footerBrand}>{heroTitle}</div>
-            <p className={styles.footerBlurb}>
-              Curated fashion and accessories. Shop online, pay with M-Pesa,
-              deliver nationwide.
-            </p>
+            <p className={styles.footerBlurb}>{footerBlurb}</p>
+            {wa ? (
+              <a
+                className={styles.footerWa}
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp +{wa}
+              </a>
+            ) : null}
           </div>
           <div className={styles.footerCol}>
             <h3>Shop</h3>
@@ -239,11 +284,6 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
           <div className={styles.footerCol}>
             <h3>Connect</h3>
             <ul className={styles.footerLinks}>
-              {wa ? (
-                <li>
-                  <a href={`https://wa.me/${wa}`}>WhatsApp</a>
-                </li>
-              ) : null}
               {landingContent?.phone ? (
                 <li>
                   <a href={`tel:${landingContent.phone}`}>{landingContent.phone}</a>
@@ -252,12 +292,14 @@ export function BeautyEditStoreHome(props: StoreHomeTemplateProps) {
               {landingContent?.address ? (
                 <li>{landingContent.address}</li>
               ) : null}
+              {areaLabel ? <li>{areaLabel}</li> : null}
             </ul>
           </div>
         </div>
         <p className={styles.footerCopy}>
           © {new Date().getFullYear()} {heroTitle}
-          {landingContent?.address ? ` · ${landingContent.address}` : ""}
+          <span aria-hidden> · </span>
+          Pay with M-Pesa
         </p>
       </footer>
     </div>

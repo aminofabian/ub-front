@@ -52,9 +52,9 @@ const EDITORIAL_HERO_HEIGHT_CLASSES: Record<
   StorefrontHeroSectionHeight,
   string
 > = {
-  small: "min-h-[200px] md:min-h-[280px] lg:min-h-[320px]",
-  medium: "min-h-[260px] md:min-h-[380px] lg:min-h-[440px]",
-  large: "min-h-[320px] md:min-h-[460px] lg:min-h-[520px]",
+  small: "min-h-[260px] md:min-h-[380px] lg:min-h-[440px]",
+  medium: "min-h-[320px] md:min-h-[480px] lg:min-h-[560px]",
+  large: "min-h-[380px] md:min-h-[560px] lg:min-h-[640px]",
 };
 
 const HERO_OVERLAY_CLASSES: Record<StorefrontHeroSectionOverlay, string> = {
@@ -63,19 +63,47 @@ const HERO_OVERLAY_CLASSES: Record<StorefrontHeroSectionOverlay, string> = {
   dark: "bg-black/30",
 };
 
+function hexLuminance(hex: string): number | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const ch = (shift: number) => {
+    const v = ((n >> shift) & 255) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(16) + 0.7152 * ch(8) + 0.0722 * ch(0);
+}
+
+/** WCAG contrast between two solid colours; null when either is unparseable. */
+function contrastRatio(a: string, b: string): number | null {
+  const la = hexLuminance(a);
+  const lb = hexLuminance(b);
+  if (la == null || lb == null) return null;
+  const [hi, lo] = la > lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 function heroCtaStyle(
   primary: string | null,
   accent: string | null,
   outline = false,
+  panelBg?: string,
 ): CSSProperties | undefined {
   if (outline) {
     return { backgroundColor: "transparent", color: "#fff" };
   }
-  if (accent) {
+  // A merchant accent can land within a hair of the panel colour (dark olive on
+  // ink). The fill then stops reading as a button, so fall back to paper.
+  const accentOnPanel =
+    accent && panelBg ? contrastRatio(accent, panelBg) : null;
+  if (accent && (accentOnPanel == null || accentOnPanel >= 2.4)) {
     return {
       backgroundColor: accent,
       color: readableInkOn(accent),
     };
+  }
+  if (accentOnPanel != null) {
+    return { backgroundColor: "#ffffff", color: "#0e0e0e" };
   }
   if (primary) {
     const fill = `color-mix(in srgb, ${primary} 42%, white)`;
@@ -246,7 +274,9 @@ export function StorefrontHeroSection({
       ) : null}
       <div
         className={cn(
-          "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.15fr]",
+          editorial
+            ? "grid grid-cols-1 md:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]"
+            : "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.15fr]",
           heightClasses[height],
         )}
       >
@@ -255,16 +285,16 @@ export function StorefrontHeroSection({
           className={cn(
             "relative z-10 flex flex-col justify-center",
             editorial
-              ? "gap-3 px-5 py-8 md:gap-4 md:px-8 md:py-12 lg:px-10 lg:py-14"
+              ? "gap-3.5 px-6 py-10 md:gap-4 md:px-10 md:py-14 lg:px-[clamp(2.5rem,4.2vw,4.5rem)] lg:py-16"
               : "gap-1.5 px-4 py-3.5 md:gap-2 md:px-5 md:py-4 lg:gap-2.5 lg:px-6 lg:py-5",
           )}
         >
           <h1
             className={cn(
-              "font-heading leading-[1.12] tracking-[-0.025em]",
+              "font-heading",
               editorial
-                ? "text-[1.85rem] font-normal italic md:text-[2.45rem] lg:text-[3.1rem]"
-                : "text-[1.15rem] font-semibold md:text-[1.35rem] lg:text-[1.65rem]",
+                ? "max-w-[24ch] text-[2.1rem] font-normal italic leading-[1.04] tracking-[-0.03em] md:text-[2.8rem] lg:text-[3.25rem]"
+                : "text-[1.15rem] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[1.35rem] lg:text-[1.65rem]",
             )}
           >
             <StorefrontInlineText
@@ -281,10 +311,10 @@ export function StorefrontHeroSection({
             <StorefrontInlineText
               as="span"
               className={cn(
-                "mt-0.5 block font-heading tracking-[-0.01em] text-white/70",
+                "block font-heading tracking-[-0.01em] text-white/70",
                 editorial
-                  ? "text-[0.72rem] font-medium not-italic uppercase tracking-[0.14em] md:text-[0.78rem]"
-                  : "text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
+                  ? "mt-4 max-w-[24rem] border-t border-white/20 pt-3.5 text-[0.7rem] font-medium not-italic uppercase leading-[1.7] tracking-[0.18em] md:mt-5 md:pt-4 md:text-[0.74rem]"
+                  : "mt-0.5 text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
               )}
               value={subhead}
               placeholder="Add a subheadline"
@@ -294,10 +324,10 @@ export function StorefrontHeroSection({
             >
               <span
                 className={cn(
-                  "mt-0.5 block font-heading tracking-[-0.01em] text-white/70",
+                  "block font-heading tracking-[-0.01em] text-white/70",
                   editorial
-                    ? "text-[0.72rem] font-medium not-italic uppercase tracking-[0.14em] md:text-[0.78rem]"
-                    : "text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
+                    ? "mt-4 max-w-[24rem] border-t border-white/20 pt-3.5 text-[0.7rem] font-medium not-italic uppercase leading-[1.7] tracking-[0.18em] md:mt-5 md:pt-4 md:text-[0.74rem]"
+                    : "mt-0.5 text-[0.95rem] font-medium italic md:text-[1.05rem] lg:text-[1.15rem]",
                 )}
               >
                 {subhead}
@@ -309,10 +339,9 @@ export function StorefrontHeroSection({
             as="p"
             multiline
             className={cn(
-              "max-w-md text-white/55",
               editorial
-                ? "text-[13px] leading-relaxed line-clamp-3 md:text-[14px]"
-                : "text-[11px] leading-snug md:text-[12px]",
+                ? "max-w-[40ch] text-[13px] leading-[1.75] text-white/60 line-clamp-3 md:text-[13.5px]"
+                : "max-w-md text-[11px] leading-snug text-white/55 md:text-[12px]",
             )}
             value={body}
             placeholder="Add a short intro"
@@ -322,10 +351,9 @@ export function StorefrontHeroSection({
           >
             <p
               className={cn(
-                "max-w-md text-white/55",
                 editorial
-                  ? "text-[13px] leading-relaxed line-clamp-3 md:text-[14px]"
-                  : "text-[11px] leading-snug line-clamp-2 md:text-[12px]",
+                  ? "max-w-[40ch] text-[13px] leading-[1.75] text-white/60 line-clamp-3 md:text-[13.5px]"
+                  : "max-w-md text-[11px] leading-snug text-white/55 line-clamp-2 md:text-[12px]",
               )}
             >
               {body}
@@ -335,7 +363,7 @@ export function StorefrontHeroSection({
           <div
             className={cn(
               "flex flex-wrap items-center",
-              editorial ? "gap-3 pt-2" : "gap-2 pt-0.5",
+              editorial ? "gap-2.5 pt-3" : "gap-2 pt-0.5",
             )}
           >
             {showCta ? (
@@ -351,7 +379,7 @@ export function StorefrontHeroSection({
                     : "shadow-sm hover:brightness-105",
                   !accent && !primary && !(buttons === "outline") && "bg-sky-500 text-white",
                 )}
-                style={heroCtaStyle(primary, accent, buttons === "outline")}
+                style={heroCtaStyle(primary, accent, buttons === "outline", heroBg)}
               >
                 Shop now
                 <ArrowRight className="size-3.5" aria-hidden />
@@ -376,9 +404,14 @@ export function StorefrontHeroSection({
           </div>
         </div>
 
-        {/* Media — hidden on mobile when there's no banner */}
+        {/* Media — the editorial masthead keeps its photo on phones too */}
         <div
-          className="group relative hidden min-h-0 w-full overflow-hidden md:block"
+          className={cn(
+            "group relative min-h-0 w-full overflow-hidden",
+            editorial
+              ? "block aspect-[4/5] md:aspect-auto md:h-full"
+              : "hidden md:block",
+          )}
           onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchStart === null || !banners) return;
@@ -422,8 +455,11 @@ export function StorefrontHeroSection({
                     alt={`Banner ${i + 1}`}
                     fill
                     priority={i === 0}
-                    sizes="50vw"
-                    className="object-cover scale-[1.02]"
+                    sizes="(min-width: 768px) 55vw, 100vw"
+                    className={cn(
+                      "scale-[1.02] object-cover",
+                      editorial && "object-[50%_32%]",
+                    )}
                     unoptimized
                   />
                 </div>
@@ -472,8 +508,11 @@ export function StorefrontHeroSection({
               alt=""
               fill
               priority
-              sizes="50vw"
-              className="object-cover scale-[1.02]"
+              sizes="(min-width: 768px) 55vw, 100vw"
+              className={cn(
+                "scale-[1.02] object-cover",
+                editorial && "object-[50%_32%]",
+              )}
               unoptimized
             />
           ) : (
@@ -486,16 +525,22 @@ export function StorefrontHeroSection({
             />
           )}
 
-          {/* Soft seam: primary panel bleeds into the photo */}
+          {/* Soft seam: primary panel bleeds into the photo (desktop only) */}
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-[32%]"
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-0 w-[32%]",
+              editorial && "hidden md:block",
+            )}
             style={{
               background: `linear-gradient(90deg, ${fadeEdge} 0%, color-mix(in srgb, ${fadeEdge} 68%, transparent) 48%, transparent 100%)`,
             }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-[12%] bg-gradient-to-r from-black/25 to-transparent"
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-0 w-[12%] bg-gradient-to-r from-black/25 to-transparent",
+              editorial && "hidden md:block",
+            )}
             aria-hidden
           />
           {overlay !== "none" ? (

@@ -104,17 +104,23 @@ export async function StorefrontCatalogHome({
     );
   }
 
+  // A mapped shop with no catalog branch 404s every public catalog call.
+  // Host resolve already reports that; skip the calls and keep the landing page.
+  const catalogReady = tenant?.publicCatalogReady !== false;
+  const storefrontLive = catalogReady && tenant?.storefrontEnabled !== false;
   const [list, categoriesPayload, typesPayload, storefront, fromHeaders] =
     await Promise.all([
-      fetchPublicCatalogItems(slug, {
-        limit: 48,
-        q,
-        categoryId,
-        departmentId: resolvedTypeId,
-      }),
-      fetchPublicCategories(slug),
-      fetchPublicTypes(slug),
-      fetchPublicStorefront(slug),
+      catalogReady
+        ? fetchPublicCatalogItems(slug, {
+            limit: 48,
+            q,
+            categoryId,
+            departmentId: resolvedTypeId,
+          })
+        : Promise.resolve(null),
+      catalogReady ? fetchPublicCategories(slug) : Promise.resolve(null),
+      catalogReady ? fetchPublicTypes(slug) : Promise.resolve(null),
+      storefrontLive ? fetchPublicStorefront(slug) : Promise.resolve(null),
       readStorefrontPreviewFromHeaders(),
     ]);
 
@@ -261,6 +267,22 @@ export async function StorefrontCatalogHome({
       ? storefrontSectionsInRegion(design, "post")
       : [];
   const showSectionStacks = Boolean(design && tenant?.storefrontEnabled);
+  /**
+   * Beyond owns its footer, so its merchant sections render inside the theme,
+   * above that footer — otherwise the page ends with a footer mid-document.
+   */
+  const themeOwnsFooter = themeId === "beauty-edit";
+  const postSectionsNode =
+    showSectionStacks && postSections.length > 0 ? (
+      <StorefrontSectionsStack
+        design={design!}
+        sections={postSections}
+        region="post"
+        storeName={storeName}
+        primaryHex={primary}
+        accentHex={accentHex}
+      />
+    ) : null;
 
   return (
     <>
@@ -311,19 +333,11 @@ export async function StorefrontCatalogHome({
           storefront={storefront}
           landingContent={tenant?.landingContent ?? null}
           design={design}
+          postSections={themeOwnsFooter ? postSectionsNode : undefined}
         />
       </div>
-      {showSectionStacks ? (
-        <div className="w-full shrink-0">
-          <StorefrontSectionsStack
-            design={design!}
-            sections={postSections}
-            region="post"
-            storeName={storeName}
-            primaryHex={primary}
-            accentHex={accentHex}
-          />
-        </div>
+      {postSectionsNode && !themeOwnsFooter ? (
+        <div className="w-full shrink-0">{postSectionsNode}</div>
       ) : null}
     </>
   );

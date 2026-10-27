@@ -17,11 +17,19 @@ import {
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import { cn } from "@/lib/utils";
 
+/** "each" is noise on clothing; real units (kg, pair) still earn their suffix. */
+const SILENT_UNITS = new Set(["each", "unit", "units", "pcs", "piece"]);
+
+function unitSuffix(item: PublicCatalogItemCard): string {
+  const unit = item.unitType?.trim();
+  if (!unit || SILENT_UNITS.has(unit.toLowerCase())) return "";
+  return ` / ${unit}`;
+}
+
 function priceLabel(item: PublicCatalogItemCard, currency: string): string {
   const price =
     item.price != null ? formatDisplayPrice(currency, item.price) : "—";
-  const unit = item.unitType?.trim();
-  return unit ? `${price} / ${unit}` : price;
+  return `${price}${unitSuffix(item)}`;
 }
 
 export function BeautyEditAddButton({
@@ -58,8 +66,12 @@ export function BeautyEditAddButton({
       className={cn(styles.addBtn, className)}
       disabled={busy}
       onClick={() => void onAdd()}
+      aria-label={`Add ${item.name} to bag`}
     >
-      {busy ? "…" : "Add to bag"}
+      <span aria-hidden className={styles.addBtnPlus}>
+        +
+      </span>
+      <span className={styles.addBtnLabel}>{busy ? "Adding…" : "Add to bag"}</span>
     </button>
   );
 }
@@ -75,6 +87,8 @@ export function BeautyEditCard({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  const hasDiscount =
+    item.regularPrice != null && item.price != null && item.regularPrice > item.price;
 
   return (
     <article className={cn(styles.card, compact && styles.cardCompact)}>
@@ -90,22 +104,35 @@ export function BeautyEditCard({
             src={imageUrl}
             alt={item.name}
             fill
-            sizes={compact ? "280px" : "(min-width: 900px) 25vw, 50vw"}
+            sizes={
+              compact
+                ? "(min-width: 960px) 25vw, (min-width: 640px) 34vw, 62vw"
+                : "(min-width: 1100px) 33vw, (min-width: 600px) 50vw, 50vw"
+            }
             unoptimized
             style={{ objectFit: "cover" }}
           />
         ) : (
           <span className={styles.visualPlaceholder} aria-hidden />
         )}
-        <span className={styles.cardHover}>
+        <span className={styles.cardAdd}>
           <BeautyEditAddButton item={item} />
         </span>
+        {hasDiscount ? <span className={styles.cardFlag}>Sale</span> : null}
       </StorefrontProductImageShell>
+
       <div className={styles.cardInfo}>
         <Link href={href} className={styles.cardName}>
           {item.name}
         </Link>
-        <span className={styles.cardPrice}>{priceLabel(item, currency)}</span>
+        <span className={styles.cardPriceRow}>
+          <span className={styles.cardPrice}>{priceLabel(item, currency)}</span>
+          {hasDiscount ? (
+            <span className={styles.cardCompare}>
+              {formatDisplayPrice(currency, item.regularPrice ?? null)}
+            </span>
+          ) : null}
+        </span>
       </div>
     </article>
   );
@@ -159,7 +186,7 @@ export function BeautyEditHeroPanel({
         <span className={styles.heroPanelFallback} aria-hidden />
       )}
       <span className={styles.heroGrain} aria-hidden />
-      <span className={styles.heroShade} aria-hidden />
+      <span className={styles.heroShade} />
       <span className={styles.heroPanelCopy}>
         {editableHeadline ? (
           <StorefrontNativeHeroHeadline
