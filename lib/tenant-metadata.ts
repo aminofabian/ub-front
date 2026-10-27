@@ -181,7 +181,12 @@ export function metadataFromTenantAndHost(
     countryCode: tenant.countryCode,
   };
 
-  const title = resolveStorefrontMetaTitle(displayName, metaTitle, location);
+  const title = resolveStorefrontMetaTitle(
+    displayName,
+    metaTitle,
+    location,
+    metaDescription,
+  );
   const description = resolveStorefrontMetaDescription(
     displayName,
     metaDescription,
@@ -233,7 +238,7 @@ export function metadataFromTenantAndHost(
     ...platform,
     title: {
       default: title,
-      template: `%s · ${title}`,
+      template: `%s · ${displayName}`,
     },
     description,
     applicationName: displayName,

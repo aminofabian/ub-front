@@ -9,19 +9,42 @@ import {
 } from "@/lib/storefront-seo-defaults";
 
 describe("storefront-seo-defaults", () => {
-  it("builds groceries title with primary branch area", () => {
+  it("builds a title from the shop name and primary branch area", () => {
     expect(
       defaultStorefrontMetaTitle("Palmart", {
         areas: ["Westlands", "Kasarani"],
         countryCode: "KE",
       }),
-    ).toBe("Palmart | Groceries & Essentials in Westlands, Kenya");
+    ).toBe("Palmart in Westlands, Kenya");
   });
 
-  it("falls back to country when area is missing", () => {
+  it("falls back to the shop name when area is missing", () => {
     expect(
       defaultStorefrontMetaTitle("Palmart", { areas: [], countryCode: "KE" }),
-    ).toBe("Palmart | Groceries & Essentials in Kenya");
+    ).toBe("Palmart");
+  });
+
+  it("uses the first line of the tenant snippet instead of a grocery title", () => {
+    expect(
+      defaultStorefrontMetaTitle(
+        "Vya. Kale",
+        { areas: ["Langata"], countryCode: "KE" },
+        "Curated fashion, beauty & accessories. Shop online and pay via M-Pesa — we deliver nationwide.",
+      ),
+    ).toBe(
+      "Vya. Kale | Curated fashion, beauty & accessories in Langata, Kenya",
+    );
+  });
+
+  it("prefers a tenant-written title over the snippet", () => {
+    expect(
+      resolveStorefrontMetaTitle(
+        "Vya. Kale",
+        "Vya. Kale | Fashion & Beauty",
+        { areas: ["Langata"], countryCode: "KE" },
+        "Curated fashion, beauty & accessories. Shop online.",
+      ),
+    ).toBe("Vya. Kale | Fashion & Beauty");
   });
 
   it("substitutes [Area] placeholders in custom titles", () => {

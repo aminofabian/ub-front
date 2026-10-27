@@ -422,7 +422,12 @@ function SerpPreview({
 }) {
   const display =
     form.displayName.trim() || business?.name?.trim() || "Your storefront";
-  const title = resolveStorefrontMetaTitle(display, form.metaTitle, location);
+  const title = resolveStorefrontMetaTitle(
+    display,
+    form.metaTitle,
+    location,
+    form.metaDescription,
+  );
   const description = resolveStorefrontMetaDescription(
     display,
     form.metaDescription,
@@ -438,7 +443,7 @@ function SerpPreview({
       <p className={cn(hintClass(), "mt-0.5")}>
         {areaHint
           ? `Uses ${areaHint} from your branches unless you write your own.`
-          : "Empty fields use a grocery default with your branch area."}
+          : "Leave the title blank to use your shop name and the first line of your snippet."}
       </p>
       <div className="mt-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
         <p className="truncate text-[11px] text-[#7A7A7A]">{host}</p>
@@ -1258,7 +1263,11 @@ export function BrandingSearchFields({
           value={form.metaTitle}
           maxLength={255}
           onChange={(e) => onFormChange({ metaTitle: e.target.value })}
-          placeholder={defaultStorefrontMetaTitle(seoDisplayName, seoLocation)}
+          placeholder={defaultStorefrontMetaTitle(
+            seoDisplayName,
+            seoLocation,
+            form.metaDescription,
+          )}
         />
         <p className={hintClass()}>
           Blue link in search results. About 50 to 60 characters.

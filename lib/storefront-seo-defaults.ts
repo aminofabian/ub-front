@@ -2,7 +2,10 @@
  * Fallback storefront SEO when a tenant has not set branding.metaTitle /
  * branding.metaDescription. Area comes from branch localities (onboarding +
  * branch name/address). Admins override under Business → Branding → Search & social
- * and may use [Area] / [Country] placeholders in custom copy.
+ * and may use [Area] / [Country] / [Name] placeholders in custom copy.
+ *
+ * An empty title does not assume a grocery shop. It uses the first line of the
+ * tenant's own snippet when they wrote one, otherwise just the shop name and area.
  */
 
 export type StorefrontSeoLocation = {
@@ -162,15 +165,41 @@ export function applySeoPlaceholders(
   return out.trim().replace(/^[,|]\s*/, "").replace(/\s*[,|]$/, "");
 }
 
+/** First sentence of a tenant-written snippet, short enough to sit in a title. */
+export function offeringFromMetaDescription(
+  metaDescription?: string | null,
+): string | null {
+  const text = metaDescription?.trim();
+  if (!text) {
+    return null;
+  }
+  const sentence = text.split(/[.!?]/, 1)[0]?.trim() ?? "";
+  if (sentence.length < 3) {
+    return null;
+  }
+  if (sentence.length <= 80) {
+    return sentence;
+  }
+  const cut = sentence.slice(0, 80);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 24 ? cut.slice(0, lastSpace) : cut).trim();
+}
+
 export function defaultStorefrontMetaTitle(
   displayName: string,
   location?: StorefrontSeoLocation | null,
+  metaDescription?: string | null,
 ): string {
   const vars = seoVars(displayName, location);
-  if (vars.area) {
-    return `${vars.displayName} | Groceries & Essentials in ${vars.area}, ${vars.country}`;
+  const place = vars.area ? `${vars.area}, ${vars.country}` : vars.country;
+  const offering = offeringFromMetaDescription(metaDescription);
+  if (offering) {
+    return `${vars.displayName} | ${offering} in ${place}`;
   }
-  return `${vars.displayName} | Groceries & Essentials in ${vars.country}`;
+  if (vars.area) {
+    return `${vars.displayName} in ${place}`;
+  }
+  return vars.displayName;
 }
 
 export function defaultStorefrontMetaDescription(
@@ -195,32 +224,31 @@ export function defaultStorefrontMetaKeywords(
     vars.displayName || undefined,
     area || undefined,
     vars.country,
-    "groceries",
-    "essentials",
-    "neighborhood shop",
-    "local store",
     "shop online",
     "pick up in store",
     "delivery",
-    "fair prices",
     "in stock",
   ]
     .filter(Boolean)
     .join(", ");
 }
 
-/** Resolve effective title: custom (with placeholders) or location-aware default. */
+/**
+ * Resolve effective title. A tenant-written title wins. Otherwise use the
+ * same snippet they wrote for the description, then the shop name and area.
+ */
 export function resolveStorefrontMetaTitle(
   displayName: string,
   metaTitle: string | null | undefined,
   location?: StorefrontSeoLocation | null,
+  metaDescription?: string | null,
 ): string {
   const vars = seoVars(displayName, location);
   const custom = metaTitle?.trim();
   if (custom) {
     return applySeoPlaceholders(custom, vars);
   }
-  return defaultStorefrontMetaTitle(displayName, location);
+  return defaultStorefrontMetaTitle(displayName, location, metaDescription);
 }
 
 /** Resolve effective description: custom (with placeholders) or location-aware default. */
