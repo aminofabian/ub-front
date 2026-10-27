@@ -1,6 +1,35 @@
 import type { RecentSaleRow } from "@/lib/api";
 
-export type SaleTransaction = {
+/**
+ * The fields grouping and the till tape actually read from one sale line.
+ *
+ * `RecentSaleRow` (the full board) satisfies this structurally. The hub's tape
+ * projection omits the rest — customer identity, receipt number, SKU/barcode,
+ * unit price, channel, M-Pesa verification — so it can group and paint without
+ * downloading fields it never shows.
+ */
+export type SaleLineLike = {
+  saleId: string;
+  soldAt: string;
+  cashierName: string;
+  paymentMethod: string;
+  status: string;
+  itemName: string;
+  quantity: number | string;
+  lineTotal: number | string;
+  profit: number | string;
+  receiptNo?: number | null;
+  customerName?: string;
+  customerId?: string | null;
+  customerNo?: number | null;
+  customerMaskedHint?: string | null;
+  customerPhoneVerified?: boolean | null;
+  paymentMethods?: string | null;
+  channel?: string | null;
+  mpesaVerified?: boolean | null;
+};
+
+export type SaleTransaction<L extends SaleLineLike = RecentSaleRow> = {
   saleId: string;
   receiptNo: number | null;
   soldAt: string;
@@ -17,7 +46,7 @@ export type SaleTransaction = {
   lineCount: number;
   total: number;
   profit: number;
-  lines: RecentSaleRow[];
+  lines: L[];
   /** True when any line reports gateway-verified M-Pesa. */
   mpesaVerified: boolean;
 };
@@ -42,10 +71,10 @@ export function txDisplayNo(tx: Pick<SaleTransaction, "receiptNo" | "saleId">): 
   return tx.receiptNo != null ? String(tx.receiptNo) : shortSaleId(tx.saleId);
 }
 
-export function groupLinesIntoTransactions(
-  lines: RecentSaleRow[],
-): SaleTransaction[] {
-  const map = new Map<string, SaleTransaction>();
+export function groupLinesIntoTransactions<L extends SaleLineLike>(
+  lines: L[],
+): SaleTransaction<L>[] {
+  const map = new Map<string, SaleTransaction<L>>();
 
   for (const row of lines) {
     let tx = map.get(row.saleId);
@@ -55,7 +84,7 @@ export function groupLinesIntoTransactions(
         receiptNo: row.receiptNo ?? null,
         soldAt: row.soldAt,
         cashierName: row.cashierName,
-        customerName: row.customerName,
+        customerName: row.customerName ?? "",
         customerId: row.customerId ?? null,
         customerNo: row.customerNo ?? null,
         customerMaskedHint: row.customerMaskedHint ?? null,

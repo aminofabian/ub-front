@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   createContext,
   useCallback,
@@ -14,8 +15,27 @@ import {
 import { createPortal } from "react-dom";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import { OnboardingCatalogDrawer } from "@/components/onboarding/onboarding-catalog-drawer";
-import { OnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire";
+
+/**
+ * The questionnaire (2.1k lines) and the catalogue drawer are rendered only
+ * from inside the `active && mounted` portal below — never on first paint. They
+ * are the bulk of the onboarding module graph, so they load when the flow opens
+ * instead of shipping with every dashboard page.
+ */
+const OnboardingQuestionnaire = dynamic(
+  () =>
+    import("@/components/onboarding/onboarding-questionnaire").then(
+      (m) => m.OnboardingQuestionnaire,
+    ),
+  { ssr: false },
+);
+const OnboardingCatalogDrawer = dynamic(
+  () =>
+    import("@/components/onboarding/onboarding-catalog-drawer").then(
+      (m) => m.OnboardingCatalogDrawer,
+    ),
+  { ssr: false },
+);
 import { APP_ROUTES } from "@/lib/config";
 import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import {

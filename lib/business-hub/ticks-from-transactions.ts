@@ -1,4 +1,4 @@
-import type { SaleTransaction } from "@/lib/sale-transactions";
+import type { SaleLineLike, SaleTransaction } from "@/lib/sale-transactions";
 import { formatSalePaymentDisplay } from "@/lib/sale-payment-filter";
 
 export type RecentTickItem = {
@@ -59,7 +59,7 @@ export function cashierNamesMatch(a: string, b: string): boolean {
 }
 
 export function ticksFromTransactions(
-  txs: SaleTransaction[],
+  txs: SaleTransaction<SaleLineLike>[],
   limit = TICK_POOL_LIMIT,
 ): RecentTick[] {
   return txs.slice(0, limit).map((tx) => ({

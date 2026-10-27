@@ -3368,22 +3368,27 @@ export async function markAllShopperNotificationsRead(): Promise<void> {
   });
 }
 
-export type StaffNotificationRow = {
+/** Lean bell row: the copy the list paints, with no payload JSON attached. */
+export type StaffNotificationBellRow = {
   id: string;
   type: string;
-  payloadJson: string;
+  /** LOW | MEDIUM | HIGH — the server's per-type default. */
+  priority?: string | null;
+  title: string;
+  body: string;
+  actionUrl: string;
   readAt?: string | null;
-  createdAt?: string;
+  createdAt?: string | null;
 };
 
-export async function fetchStaffNotifications(
-  limit = 60,
-): Promise<StaffNotificationRow[]> {
-  // The bell/drawer keep the newest 50 rows; asking for more only multiplies
-  // the payloadJson we download on every shell mount.
-  return shareInflight(`notifications:list:${limit}`, () =>
-    request<StaffNotificationRow[]>(
-      `${API_ROUTES.notifications}?limit=${limit}`,
+export async function fetchStaffNotificationBell(
+  limit = 50,
+): Promise<StaffNotificationBellRow[]> {
+  // One small read per shell mount. The full list (with payloads) stays
+  // available at `notifications`; the bell only ever needs copy.
+  return shareInflight(`notifications:bell:${limit}`, () =>
+    request<StaffNotificationBellRow[]>(
+      `${API_ROUTES.notifications}/bell?limit=${limit}`,
       {
         requiresAuth: true,
         toast: false,
@@ -7268,6 +7273,46 @@ export async function fetchRecentSales(
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
+  );
+}
+
+/**
+ * One sale line as the hub's live-activity tape sees it.
+ *
+ * The server projects this from the same query as {@link RecentSaleRow}: the
+ * tape groups lines into sales and paints cashier, tender and total, so
+ * customer identity, receipt number, SKU/barcode, unit price, channel and
+ * M-Pesa verification are not sent.
+ */
+export type RecentSaleTapeRow = {
+  saleId: string;
+  soldAt: string;
+  cashierName: string;
+  paymentMethod: string;
+  paymentMethods?: string | null;
+  itemName: string;
+  quantity: number | string;
+  lineTotal: number | string;
+  profit: number | string;
+  status: string;
+};
+
+export async function fetchRecentSalesTape(
+  from?: string,
+  to?: string,
+  branchId?: string,
+  itemTypeId?: string,
+  limit = 150,
+): Promise<RecentSaleTapeRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  if (limit > 0) params.set("limit", String(Math.floor(limit)));
+  const qs = params.toString();
+  return request<RecentSaleTapeRow[]>(
+    `/api/v1/sales/intelligence/recent-sales/tape${qs ? `?${qs}` : ""}`,
   );
 }
 

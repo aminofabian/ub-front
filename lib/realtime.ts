@@ -1020,7 +1020,10 @@ export class RealtimeClient {
   private async pollNotifications(): Promise<void> {
     if (!this.channels.includes("notifications")) return;
     try {
-      const url = apiUrl("/api/v1/notifications");
+      // Bell projection, newest 20. The fallback only needs the rows that
+      // arrived since the last poll; asking for the full inbox here re-downloaded
+      // years of payload JSON every 30 s on a socket-less tab.
+      const url = apiUrl("/api/v1/notifications/bell?limit=20");
       const response = await fetch(url, {
         credentials: "include",
         headers: buildAuthHeaders(getSessionTokens()?.accessToken),

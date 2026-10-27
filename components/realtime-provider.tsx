@@ -14,14 +14,13 @@ import { usePathname } from "next/navigation";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useClientHasAccessTokens } from "@/hooks/use-client-session";
 import {
-  fetchStaffNotifications,
+  fetchStaffNotificationBell,
   markAllStaffNotificationsRead,
   markStaffNotificationRead,
-  type StaffNotificationRow,
+  type StaffNotificationBellRow,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
-import { getNotificationPresentation } from "@/lib/notification-display";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   getRealtimeClient,
@@ -44,40 +43,34 @@ type RealtimeContextValue = {
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 
-function staffRowToFrame(row: StaffNotificationRow): RealtimeFrame {
-  let parsed: Record<string, unknown> = {};
-  try {
-    parsed = JSON.parse(row.payloadJson || "{}") as Record<string, unknown>;
-  } catch {
-    parsed = {};
-  }
-  const data = getNotificationPresentation({
-    id: row.id,
-    type: row.type,
-    notificationType: row.type,
-    payloadJson: row.payloadJson,
-    payload: parsed,
-    ...parsed,
-    createdAt: row.createdAt,
-    readAt: row.readAt,
-  });
+const BELL_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
+
+/**
+ * Hydrated bell row → frame.
+ *
+ * The server already resolved title, body and destination with the same
+ * resolver the websocket uses, so this must not re-derive them: the row arrives
+ * without `payloadJson`, and parsing an absent payload would only replace good
+ * copy with a generic fallback.
+ */
+function bellRowToFrame(row: StaffNotificationBellRow): RealtimeFrame {
   return {
     v: 1,
     type: "notification.created",
     eventId: row.id,
     at: row.createdAt ?? "",
-    priority: "MEDIUM",
+    priority:
+      row.priority && BELL_PRIORITIES.has(row.priority)
+        ? (row.priority as RealtimeFrame["priority"])
+        : "MEDIUM",
     delivery: "poll",
     data: {
       id: row.id,
       type: row.type,
       notificationType: row.type,
-      payloadJson: row.payloadJson,
-      payload: parsed,
-      ...parsed,
-      title: data.title,
-      body: data.body,
-      actionUrl: data.actionUrl,
+      title: row.title,
+      body: row.body,
+      actionUrl: row.actionUrl,
       createdAt: row.createdAt,
       readAt: row.readAt,
     },
@@ -196,9 +189,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     void (async () => {
       try {
-        const rows = await fetchStaffNotifications();
+        const rows = await fetchStaffNotificationBell(50);
         if (cancelled || !Array.isArray(rows)) return;
-        const hydrated = rows.slice(0, 50).map(staffRowToFrame);
+        const hydrated = rows.map(bellRowToFrame);
         setNotifications((prev) => {
           const byId = new Map<string, RealtimeFrame>();
           for (const frame of hydrated) {

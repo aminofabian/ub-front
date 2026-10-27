@@ -742,6 +742,7 @@ export function SaSupportInbox() {
   // Fast background sync keeps the inbox live even when the socket is down.
   React.useEffect(() => {
     const timer = window.setInterval(() => {
+      if (document.hidden) return;
       void loadList(true);
       if (activeId) {
         fetchSaSupportConversation(activeId)

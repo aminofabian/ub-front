@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
@@ -11,13 +12,42 @@ import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-g
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
-import { NewMerchantGuideDrawer } from "@/components/onboarding/new-merchant-guide-drawer";
 import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { RealtimeProvider } from "@/components/realtime-provider";
-import { NotificationsDrawer } from "@/components/notifications-drawer";
-import { SupportLauncher } from "@/components/support/support-launcher";
 import { SupportUnreadProvider } from "@/components/support/support-unread-provider";
-import { SupportUnreadWatcher } from "@/components/support/support-unread-watcher";
+
+/**
+ * Interaction-only overlays. None of these paint on first load — they mount a
+ * portal, listen for an open event, or show a floating launcher. Keeping them
+ * out of the shell's entry chunk lets the dashboard hydrate without waiting on
+ * their (radix-heavy) module graphs; they arrive in their own chunks right
+ * after hydration.
+ */
+const NotificationsDrawer = dynamic(
+  () =>
+    import("@/components/notifications-drawer").then(
+      (m) => m.NotificationsDrawer,
+    ),
+  { ssr: false },
+);
+const NewMerchantGuideDrawer = dynamic(
+  () =>
+    import("@/components/onboarding/new-merchant-guide-drawer").then(
+      (m) => m.NewMerchantGuideDrawer,
+    ),
+  { ssr: false },
+);
+const SupportLauncher = dynamic(
+  () => import("@/components/support/support-launcher").then((m) => m.SupportLauncher),
+  { ssr: false },
+);
+const SupportUnreadWatcher = dynamic(
+  () =>
+    import("@/components/support/support-unread-watcher").then(
+      (m) => m.SupportUnreadWatcher,
+    ),
+  { ssr: false },
+);
 
 type DashboardLayoutProps = {
   children: React.ReactNode;

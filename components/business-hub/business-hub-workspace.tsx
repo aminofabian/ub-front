@@ -122,7 +122,7 @@ import {
   fetchCreditsActivitySummary,
   fetchOutstandingTabs,
   fetchPaymentsByMethod,
-  fetchRecentSales,
+  fetchRecentSalesTape,
   fetchPathBSupplies,
   fetchSalesRegister,
   fetchShiftDrawouts,
@@ -140,7 +140,7 @@ import {
   type PathBSupplyListRowRecord,
   type PaymentMethodBreakdownRow,
   type ProfitAndLossResponse,
-  type RecentSaleRow,
+  type RecentSaleTapeRow,
   type SalesRegisterResponse,
   type WebOrderSummary,
 } from "@/lib/api";
@@ -448,15 +448,14 @@ export function BusinessHubWorkspace() {
             }).catch(() => null)
           : Promise.resolve(null),
         canViewSalesIntelligence
-          ? fetchRecentSales(
+          ? fetchRecentSalesTape(
               ticksFrom,
               ticksTo,
               branch,
               type,
-              undefined,
               HUB_RECENT_SALE_ROW_LIMIT,
-            ).catch(() => [] as RecentSaleRow[])
-          : Promise.resolve([] as RecentSaleRow[]),
+            ).catch(() => [] as RecentSaleTapeRow[])
+          : Promise.resolve([] as RecentSaleTapeRow[]),
         canViewSupplyBills
           ? fetchPathBSupplies({
               branchId: branch,

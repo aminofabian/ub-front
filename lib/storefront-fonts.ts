@@ -30,6 +30,8 @@ export {
   storefrontFontPairingMeta,
 };
 
+// preload is off: every pairing is constructed here, but a shop only paints one.
+// Leaving the default on put every face in the homepage preload header.
 const anton = localFont({
   src: [
     {
@@ -40,6 +42,7 @@ const anton = localFont({
   ],
   variable: "--sf-font-anton",
   display: "swap",
+  preload: false,
   fallback: ["Arial Black", "Impact", "sans-serif"],
 });
 
@@ -68,6 +71,7 @@ const fraunces = localFont({
   ],
   variable: "--sf-font-fraunces",
   display: "swap",
+  preload: false,
   fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
@@ -91,6 +95,7 @@ const baloo = localFont({
   ],
   variable: "--sf-font-baloo",
   display: "swap",
+  preload: false,
   fallback: ["Verdana", "sans-serif"],
 });
 
@@ -114,6 +119,7 @@ const spaceGrotesk = localFont({
   ],
   variable: "--sf-font-space-grotesk",
   display: "swap",
+  preload: false,
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
@@ -137,6 +143,7 @@ const passionOne = localFont({
   ],
   variable: "--sf-font-passion",
   display: "swap",
+  preload: false,
   fallback: ["Arial Black", "Impact", "sans-serif"],
 });
 
@@ -165,6 +172,7 @@ const jost = localFont({
   ],
   variable: "--sf-font-jost",
   display: "swap",
+  preload: false,
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
@@ -193,6 +201,7 @@ const manrope = localFont({
   ],
   variable: "--sf-font-manrope",
   display: "swap",
+  preload: false,
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
@@ -216,6 +225,7 @@ const archivo = localFont({
   ],
   variable: "--sf-font-archivo",
   display: "swap",
+  preload: false,
   fallback: ["system-ui", "Segoe UI", "sans-serif"],
 });
 
