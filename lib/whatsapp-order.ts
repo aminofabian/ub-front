@@ -1,4 +1,5 @@
 import { joinProductNameParts } from "@/lib/catalog-display";
+import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import type { PublicWebCart } from "@/lib/web-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -24,6 +25,8 @@ export function normalizeWhatsApp(
   phone: string | null | undefined,
 ): string | null {
   if (!phone) return null;
+  const msisdn = toKenyanMsisdn254(phone);
+  if (msisdn) return msisdn;
   let digits = phone.replace(/\D/g, "");
   if (!digits) return null;
   if (digits.startsWith("0") && digits.length >= 9) {

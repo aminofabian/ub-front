@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectKenyanNetwork,
   formatKenyanPhoneDisplay,
+  joinKenyanCheckoutPhone,
   looksLikeKenyanMobilePath,
   toKenyanLocal07,
   toKenyanMsisdn254,
@@ -37,6 +38,9 @@ describe("kenyan-phone", () => {
   it("normalizes to 254 MSISDN", () => {
     expect(toKenyanMsisdn254("0710514157")).toBe("254710514157");
     expect(toKenyanMsisdn254("+254710514157")).toBe("254710514157");
+    expect(toKenyanMsisdn254("+254 0725393621")).toBe("254725393621");
+    expect(toKenyanMsisdn254("2540725393621")).toBe("254725393621");
+    expect(formatKenyanPhoneDisplay("+254 0725393621")).toBe("0725 393 621");
   });
 
   it("extracts a mobile from remittance text", () => {
@@ -64,6 +68,12 @@ describe("kenyan-phone", () => {
     expect(detectKenyanNetwork("0747123456")).toBe("JTL");
     expect(detectKenyanNetwork("0780123456")).toBeNull();
     expect(detectKenyanNetwork("0744123456")).toBeNull();
+  });
+
+  it("joins a dial code without keeping the trunk zero", () => {
+    expect(joinKenyanCheckoutPhone("+254", "0725393621")).toBe("+254 725393621");
+    expect(joinKenyanCheckoutPhone("+254", "725 393 621")).toBe("+254 725393621");
+    expect(joinKenyanCheckoutPhone("+254", "+254 0725393621")).toBe("+254 725393621");
   });
 
   it("accepts 01xx numbers as Kenyan mobiles when the prefix is known", () => {

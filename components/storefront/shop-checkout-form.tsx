@@ -86,6 +86,7 @@ import {
 import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
 import { joinProductNameParts } from "@/lib/catalog-display";
+import { joinKenyanCheckoutPhone } from "@/lib/kenyan-phone";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatDisplayPrice,
@@ -1213,7 +1214,7 @@ export default function ShopCheckoutForm({
     try {
       const result = await submitWebCheckout(s, h.cartId, {
         customerName: `${firstName} ${lastName}`.trim(),
-        customerPhone: `${areaCode} ${customerPhone}`.trim(),
+        customerPhone: joinKenyanCheckoutPhone(areaCode, customerPhone),
         customerEmail: customerEmail.trim() || undefined,
         notes: [
           activePaymentMethod === "pay_on_delivery" ? "Payment: Pay on delivery" : "",
@@ -1240,7 +1241,7 @@ export default function ShopCheckoutForm({
         shipping: {
           customerName: `${firstName} ${lastName}`.trim(),
           customerEmail: customerEmail.trim(),
-          customerPhone: `${areaCode} ${customerPhone}`.trim(),
+          customerPhone: joinKenyanCheckoutPhone(areaCode, customerPhone),
           streetAddress: streetAddress.trim(),
           county: county.trim(),
           subCounty: subCounty.trim(),
@@ -1576,7 +1577,7 @@ export default function ShopCheckoutForm({
   const shippingSummary = {
     customerName: `${firstName} ${lastName}`.trim(),
     customerEmail: customerEmail.trim(),
-    customerPhone: `${areaCode} ${customerPhone}`.trim(),
+    customerPhone: joinKenyanCheckoutPhone(areaCode, customerPhone),
     streetAddress: streetAddress.trim(),
     county: county.trim(),
     subCounty: subCounty.trim(),
@@ -2491,7 +2492,7 @@ export default function ShopCheckoutForm({
       <ShopCheckoutAccountModal
         open={phoneModalOpen}
         onOpenChange={setPhoneModalOpen}
-        initialPhone={`${areaCode} ${customerPhone}`.trim()}
+        initialPhone={joinKenyanCheckoutPhone(areaCode, customerPhone)}
         onSignedIn={() => {
           serverAuthenticatedRef.current = true;
           setServerAuthenticated(true);

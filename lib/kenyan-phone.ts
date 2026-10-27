@@ -7,10 +7,27 @@ export function kenyanMobileDigits(raw: string): string {
 }
 
 function local10FromDigits(digits: string): string | null {
+  // "+254 07xx…" keeps the trunk 0, so the digits are 2540… (13) not 2547… (12).
+  if (/^2540([17]\d{8})$/.test(digits)) return `0${digits.slice(4)}`;
   if (/^254[17]\d{8}$/.test(digits)) return `0${digits.slice(3)}`;
   if (/^0[17]\d{8}$/.test(digits)) return digits;
   if (/^[17]\d{8}$/.test(digits)) return `0${digits}`;
   return null;
+}
+
+/**
+ * Dial code plus the number typed next to it.
+ * A leading 0 on a Kenyan line is dropped so `+254` and `0725…` do not become `2540725…`.
+ */
+export function joinKenyanCheckoutPhone(areaCode: string, national: string): string {
+  const code = (areaCode || "+254").trim() || "+254";
+  const local = national.trim();
+  if (!local) return code;
+  if (code.replace(/\D/g, "") === "254") {
+    const msisdn = toKenyanMsisdn254(local) ?? toKenyanMsisdn254(`${code} ${local}`);
+    if (msisdn) return `+254 ${msisdn.slice(3)}`;
+  }
+  return `${code} ${local}`.replace(/\s+/g, " ").trim();
 }
 
 /**

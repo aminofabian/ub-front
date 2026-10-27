@@ -29,7 +29,14 @@ type Props = {
 };
 
 const CARD =
-  "rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3";
+  "rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-3.5 py-3";
+
+function plainOrderError(message: string): string {
+  if (/phoneNumber must be|2547X{3,}|Safaricom numbers, like 0712/i.test(message)) {
+    return "M-Pesa prompts go to Safaricom numbers, like 0712 345 678.";
+  }
+  return message;
+}
 
 export function WebOrderFulfillmentActions({ order, onUpdated }: Props) {
   const [busy, setBusy] = useState(false);
@@ -131,6 +138,17 @@ export function WebOrderFulfillmentActions({ order, onUpdated }: Props) {
 
   return (
     <div className="space-y-3">
+      {notice ? (
+        <p className="rounded-xl bg-[color-mix(in_srgb,#0f766e_8%,white)] px-3 py-2 text-[13px] leading-snug text-[#0f766e]">
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="rounded-xl bg-[color-mix(in_srgb,#9a2e16_8%,white)] px-3 py-2 text-[13px] leading-snug text-[#9a2e16]">
+          {plainOrderError(error)}
+        </p>
+      ) : null}
+
       {!paid ? (
         <section className={CARD}>
           <p className="text-sm font-medium">{payment.label}</p>
@@ -181,10 +199,6 @@ export function WebOrderFulfillmentActions({ order, onUpdated }: Props) {
         </Button>
       )}
 
-      {notice ? (
-        <p className="text-xs text-emerald-800 dark:text-emerald-300">{notice}</p>
-      ) : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

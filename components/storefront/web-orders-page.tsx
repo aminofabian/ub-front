@@ -51,6 +51,7 @@ import {
   type WebOrderSummary,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { formatKenyanPhoneDisplay } from "@/lib/kenyan-phone";
 import {
   DESKTOP_THERMAL_WIDTH_MM,
   printWebOrderReceipt,
@@ -93,6 +94,18 @@ function fmtMoney(n: number | string, currency: string): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(toNum(n));
+}
+
+function showPhone(raw: string | null | undefined): string {
+  const formatted = formatKenyanPhoneDisplay(raw);
+  return formatted || raw?.trim() || "";
+}
+
+function noteLines(notes: string): string[] {
+  return notes
+    .split(/\s*\|\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function formatWhen(iso: string): string {
@@ -560,8 +573,8 @@ export function WebOrdersPage() {
                       className={cn(
                         "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors sm:px-5",
                         selected
-                          ? "bg-[#0f766e]/8"
-                          : "hover:bg-muted/40",
+                          ? "bg-[color-mix(in_srgb,#0f766e_8%,white)] shadow-[inset_3px_0_0_#0f766e]"
+                          : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]",
                       )}
                     >
                       <div className="min-w-0 flex-1">
@@ -590,8 +603,8 @@ export function WebOrdersPage() {
                             </span>
                           ) : null}
                         </div>
-                        <p className={cn("mt-1 truncate text-xs", salesMute)}>
-                          {order.customerPhone || "—"} ·{" "}
+                        <p className={cn("mt-1 truncate text-xs tabular-nums", salesMute)}>
+                          {showPhone(order.customerPhone) || "No phone"} ·{" "}
                           {order.catalogBranchName || "Branch"} · #
                           {orderCodeOf(order)}
                         </p>
@@ -689,13 +702,15 @@ export function WebOrdersPage() {
           ) : (
             <>
               <div>
-                <p className={cn("text-base font-semibold", salesInk)}>
+                <p className={cn("text-base font-semibold tracking-[-0.02em]", salesInk)}>
                   {detail.customerName?.trim() || "Customer"}
                 </p>
-                <p className={cn("mt-1 text-xs", salesMute)}>
-                  {detail.customerPhone || "—"}
-                  {detail.customerEmail ? ` · ${detail.customerEmail}` : ""}
+                <p className={cn("mt-1 text-sm tabular-nums", salesInk)}>
+                  {showPhone(detail.customerPhone) || "No phone on this order"}
                 </p>
+                {detail.customerEmail ? (
+                  <p className={cn("mt-0.5 text-xs", salesMute)}>{detail.customerEmail}</p>
+                ) : null}
                 <p className={cn("mt-1 text-xs", salesMute)}>
                   {detail.catalogBranchName} · {formatWhen(detail.createdAt)} · #
                   {orderCodeOf(detail)}
@@ -811,13 +826,19 @@ export function WebOrdersPage() {
               {detail.notes?.trim() ? (
                 <div
                   className={cn(
-                    "rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-2 ring-1 ring-black/[0.05]",
+                    "rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-2.5 ring-1 ring-black/[0.05]",
                   )}
                 >
                   <p className={cn("text-[11px] font-semibold tracking-[-0.02em]", salesMute)}>
                     Notes
                   </p>
-                  <p className={cn("mt-1 text-sm", salesInk)}>{detail.notes}</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {noteLines(detail.notes).map((line) => (
+                      <li key={line} className={cn("text-sm leading-snug", salesInk)}>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
             </>
