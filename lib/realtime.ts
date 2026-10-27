@@ -89,6 +89,7 @@ export type RealtimeEventType =
   | "support.conversation"
   | "support.presence"
   | "setup_progress.updated"
+  | "till.print"
   | "crm.message.created"
   | "crm.conversation.updated"
   | "crm.message.status"
