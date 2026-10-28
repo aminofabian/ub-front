@@ -92,11 +92,22 @@ function Face({
   }
   return (
     <div
-      className={className}
+      className={cn("relative overflow-hidden", className)}
       style={{
-        background: `linear-gradient(135deg, color-mix(in srgb, ${skin.accent} ${30 + index * 7}%, ${skin.card}), color-mix(in srgb, ${skin.accent} 55%, ${skin.card}))`,
+        background: `linear-gradient(135deg, ${skin.card}, color-mix(in srgb, ${skin.accent} ${14 + index * 3}%, ${skin.card}))`,
       }}
-    />
+    >
+      <span
+        className="absolute inset-x-[18%] bottom-[16%] h-[0.1em] opacity-40"
+        style={{ backgroundColor: skin.accent }}
+        aria-hidden
+      />
+      <span
+        className="absolute inset-x-[30%] bottom-[26%] h-[0.1em] opacity-25"
+        style={{ backgroundColor: skin.ink }}
+        aria-hidden
+      />
+    </div>
   );
 }
 
@@ -309,10 +320,13 @@ function StoreBody({
         >
           Today next door
         </p>
-        {[p0, p1, p2].map((product, i) => (
+        {[p0, p1, p2, productAt(products, 3)].map((product, i) => (
           <div
             key={i}
-            className={cn("flex items-center gap-[0.55em] border-[0.12em] p-[0.4em]", card)}
+            className={cn(
+              "flex min-h-[2.8em] flex-1 items-center gap-[0.55em] border-[0.12em] p-[0.4em]",
+              card,
+            )}
             style={{ borderColor: skin.ink, backgroundColor: skin.card }}
           >
             <Face
@@ -358,7 +372,7 @@ function StoreBody({
           product={p0}
           skin={skin}
           index={0}
-          className="mt-[0.45em] min-h-[9em] w-full"
+          className="mt-[0.45em] min-h-0 w-full flex-1"
         />
         <p className="mt-[0.5em] truncate text-center text-[0.85em] font-bold leading-tight">
           {p0?.name || storeName}
@@ -389,7 +403,7 @@ function StoreBody({
           product={p0}
           skin={skin}
           index={0}
-          className={cn("mt-[0.55em] h-[8.5em] w-[4.4em]", card)}
+          className={cn("mt-[0.55em] min-h-0 w-[4.4em] flex-1", card)}
         />
         <p className="mt-[0.5em] truncate text-[0.78em] font-bold">
           {p0?.name || "Signature scent"}
@@ -613,7 +627,7 @@ function StoreBody({
           Verified shop · Search
         </div>
         <div
-          className="relative mx-[0.65em] mt-[0.35em] min-h-[5.8em] overflow-hidden"
+          className="relative mx-[0.65em] mt-[0.35em] flex min-h-[5.8em] flex-1 flex-col overflow-hidden"
           style={{ backgroundColor: skin.ink }}
         >
           {heroUrl ? (
@@ -660,7 +674,7 @@ function StoreBody({
             </span>
           </div>
         </div>
-        <div className="mt-[0.45em] flex gap-[0.4em] overflow-hidden px-[0.7em] pb-[0.7em]">
+        <div className="mt-[0.45em] flex shrink-0 gap-[0.4em] overflow-hidden px-[0.7em] pb-[0.7em]">
           {[p0, p1, p2].map((product, i) => (
             <div
               key={i}
@@ -704,20 +718,20 @@ function StoreBody({
               </p>
             ))}
           </div>
-          <div className="grid min-w-0 flex-1 grid-cols-2 content-start gap-[0.35em]">
-            {[p0, p1, p2].map((product, i) => (
+          <div className="grid min-w-0 flex-1 auto-rows-fr grid-cols-2 gap-[0.35em]">
+            {[p0, p1, p2, productAt(products, 3)].map((product, i) => (
               <div
                 key={i}
-                className="overflow-hidden border"
+                className="flex min-h-0 flex-col overflow-hidden border"
                 style={{ borderColor: lineColor(skin), backgroundColor: skin.card }}
               >
                 <Face
                   product={product}
                   skin={skin}
                   index={i}
-                  className="h-[2.6em] w-full"
+                  className="min-h-0 w-full flex-1"
                 />
-                <p className="truncate px-[0.25em] py-[0.22em] text-[0.38em] font-semibold">
+                <p className="shrink-0 truncate px-[0.25em] py-[0.22em] text-[0.38em] font-semibold">
                   {product?.name || "Seat"}
                 </p>
               </div>
@@ -730,29 +744,40 @@ function StoreBody({
 
   if (layout === "shelf-row") {
     return (
-      <div className="flex min-h-0 flex-1 flex-col justify-end gap-[0.5em] px-[0.7em] pb-[0.9em] pt-[0.4em]">
-        <p
-          className="px-[0.3em] text-[0.58em] italic leading-snug"
-          style={{ color: skin.muted }}
-        >
-          Lit boxes, not a crowd.
-        </p>
-        <div className="grid grid-cols-2 gap-[0.45em]">
+      <div className="flex min-h-0 flex-1 flex-col gap-[0.5em] px-[0.7em] pb-[0.9em] pt-[0.4em]">
+        <div className="flex items-baseline justify-between gap-[0.4em]">
+          <p className="min-w-0 truncate text-[0.6em] font-bold">{storeName}</p>
+          <p
+            className="shrink-0 text-[0.42em] italic"
+            style={{ color: skin.muted }}
+          >
+            Lit boxes
+          </p>
+        </div>
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-[0.45em]">
           {[p0, p1].map((product, i) => (
             <div
               key={i}
-              className={cn("overflow-hidden", card)}
+              className={cn("flex min-h-0 flex-col overflow-hidden", card)}
               style={{ backgroundColor: skin.card }}
             >
               <Face
                 product={product}
                 skin={skin}
                 index={i}
-                className="h-[5.2em] w-full"
+                className="min-h-0 w-full flex-1"
               />
-              <p className="truncate px-[0.45em] py-[0.4em] text-[0.55em] font-semibold">
-                {product?.name || "Selected"}
-              </p>
+              <div className="shrink-0 px-[0.45em] pb-[0.4em] pt-[0.35em]">
+                <p className="truncate text-[0.55em] font-semibold">
+                  {product?.name || "Selected"}
+                </p>
+                <p
+                  className="mt-[0.18em] truncate text-[0.46em]"
+                  style={{ color: skin.accent }}
+                >
+                  {product?.price || "In the shelf"}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -762,21 +787,53 @@ function StoreBody({
 
   if (layout === "cellar") {
     return (
-      <div className="flex min-h-0 flex-1 items-end justify-center gap-[0.55em] px-[1em] pb-[1.1em] pt-[0.5em]">
-        {[p0, p1, p2].map((product, i) => (
-          <div key={i} className="flex flex-col items-center gap-[0.3em]">
-            <Face
-              product={product}
-              skin={skin}
-              index={i}
-              className="h-[9.5em] w-[2.5em] rounded-[0.2em_0.2em_0.15em_0.15em]"
-            />
-            <span
-              className="h-[0.12em] w-[2.6em]"
-              style={{ backgroundColor: skin.accent }}
-            />
-          </div>
-        ))}
+      <div className="relative flex min-h-0 flex-1 flex-col px-[1em] pb-[0.9em] pt-[0.4em]">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse 58% 46% at 50% 62%, color-mix(in srgb, ${skin.accent} 22%, transparent), transparent 72%)`,
+          }}
+          aria-hidden
+        />
+        <p
+          className="relative text-[0.42em] font-bold uppercase tracking-[0.24em]"
+          style={{ color: skin.accent }}
+        >
+          Cellar no. 04
+        </p>
+        <p className="relative mt-[0.3em] text-[1.15em] font-bold leading-[0.95]">
+          {storeName}
+        </p>
+        <p className="relative mt-[0.3em] text-[0.48em] leading-snug" style={{ color: skin.muted }}>
+          Kept in the dark, poured by the glass.
+        </p>
+        <div className="relative flex min-h-0 flex-1 items-end justify-center gap-[0.55em] pt-[0.8em]">
+          {[p0, p1, p2].map((product, i) => (
+            <div key={i} className="flex flex-col items-center gap-[0.3em]">
+              <Face
+                product={product}
+                skin={skin}
+                index={i}
+                className="h-[12.5em] w-[3.1em] rounded-[0.2em_0.2em_0.15em_0.15em]"
+              />
+              <span
+                className="h-[0.12em] w-[3.2em]"
+                style={{ backgroundColor: skin.accent }}
+              />
+            </div>
+          ))}
+        </div>
+        <div
+          className="relative mt-[0.55em] flex items-center justify-between border-t-[0.1em] pt-[0.45em]"
+          style={{ borderColor: skin.accent }}
+        >
+          <span className="truncate text-[0.46em]" style={{ color: skin.muted }}>
+            Tonight&apos;s sealed essence
+          </span>
+          <span className="shrink-0 text-[0.48em] font-bold" style={{ color: skin.accent }}>
+            Browse
+          </span>
+        </div>
       </div>
     );
   }
@@ -785,32 +842,55 @@ function StoreBody({
     return (
       <div className="flex min-h-0 flex-1 flex-col px-[0.85em] pb-[0.7em] pt-[0.3em]">
         <div
-          className="mb-[0.4em] flex items-center justify-between border-b-[0.14em] py-[0.35em] text-[0.55em] font-bold uppercase"
+          className="flex items-end justify-between border-b-[0.14em] pb-[0.3em]"
           style={{ borderColor: skin.ink }}
         >
-          <span>Archive</span>
-          <span style={{ color: skin.accent }}>REF</span>
-        </div>
-        {[p0, p1, p2].map((product, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-[0.5em] border-b-[0.08em] py-[0.45em]"
-            style={{ borderColor: lineColor(skin) }}
+          <p className="text-[1.05em] font-bold uppercase leading-none">
+            Archive
+          </p>
+          <span
+            className="text-[0.42em] font-bold uppercase tracking-[0.14em]"
+            style={{ color: skin.accent }}
           >
-            <Face
-              product={product}
-              skin={skin}
-              index={i}
-              className="size-[1.8em] shrink-0"
-            />
-            <span className="min-w-0 flex-1 truncate text-[0.58em] font-semibold">
-              {product?.name || `SKU-00${i + 1}`}
-            </span>
-            <span className="text-[0.52em]" style={{ color: skin.accent }}>
-              ●
-            </span>
-          </div>
-        ))}
+            REF / 04
+          </span>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {[p0, p1, p2, productAt(products, 3), productAt(products, 4)].map(
+            (product, i) => (
+              <div
+                key={i}
+                className="flex min-h-[2.6em] flex-1 items-center gap-[0.5em] border-b-[0.08em]"
+                style={{ borderColor: lineColor(skin) }}
+              >
+                <Face
+                  product={product}
+                  skin={skin}
+                  index={i}
+                  className="size-[1.8em] shrink-0"
+                />
+                <span className="min-w-0 flex-1 truncate text-[0.56em] font-semibold">
+                  {product?.name || `SKU-00${i + 1}`}
+                </span>
+                <span
+                  className="shrink-0 text-[0.44em] font-bold tabular-nums"
+                  style={{ color: skin.accent }}
+                >
+                  {product?.price ? product.price.replace(/[^\d.,]/g, "").slice(0, 6) : "—"}
+                </span>
+              </div>
+            ),
+          )}
+        </div>
+        <div
+          className="mt-[0.45em] flex items-center justify-between px-[0.55em] py-[0.45em]"
+          style={{ backgroundColor: skin.ink, color: skin.surface }}
+        >
+          <span className="text-[0.48em] font-bold uppercase tracking-[0.1em]">
+            Shop the archive
+          </span>
+          <span className="text-[0.48em] font-bold">→</span>
+        </div>
       </div>
     );
   }
@@ -824,22 +904,30 @@ function StoreBody({
         >
           <span className="text-[0.58em] font-bold">Formula of the week</span>
         </div>
-        <div className="grid flex-1 grid-cols-2 gap-[0.5em]">
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-[0.5em]">
           {[p0, p1].map((product, i) => (
             <div
               key={i}
-              className={cn("flex flex-col overflow-hidden", card)}
+              className={cn("flex min-h-0 flex-col overflow-hidden", card)}
               style={{ backgroundColor: skin.card }}
             >
               <Face
                 product={product}
                 skin={skin}
                 index={i}
-                className="h-[5.5em] w-full"
+                className="min-h-0 w-full flex-1"
               />
-              <p className="truncate px-[0.45em] py-[0.4em] text-[0.55em] font-semibold">
-                {product?.name || "Tint"}
-              </p>
+              <div className="shrink-0 px-[0.45em] pb-[0.4em] pt-[0.35em]">
+                <p className="truncate text-[0.55em] font-semibold">
+                  {product?.name || "Tint"}
+                </p>
+                <p
+                  className="mt-[0.18em] truncate text-[0.46em]"
+                  style={{ color: skin.muted }}
+                >
+                  {product?.price || "Try a shade"}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -853,7 +941,7 @@ function StoreBody({
         {[p0, p1, p2].map((product, i) => (
           <div
             key={i}
-            className="relative border-[0.12em] px-[0.7em] py-[0.65em]"
+            className="relative flex min-h-[3.4em] flex-1 flex-col justify-center border-[0.12em] px-[0.7em] py-[0.55em]"
             style={{
               borderColor: skin.ink,
               backgroundColor: i === 0 ? skin.card : `color-mix(in srgb, ${skin.card} 80%, ${skin.surface})`,
@@ -877,27 +965,27 @@ function StoreBody({
     return (
       <div className="flex min-h-0 flex-1 flex-col px-[0.75em] pb-[0.7em] pt-[0.3em]">
         <div
-          className="mb-[0.4em] grid grid-cols-3 gap-[0.3em] border-[0.12em] p-[0.35em] text-center text-[0.48em] font-bold uppercase"
+          className="mb-[0.4em] grid shrink-0 grid-cols-3 gap-[0.3em] border-[0.12em] p-[0.35em] text-center text-[0.48em] font-bold uppercase"
           style={{ borderColor: lineColor(skin) }}
         >
           <span>Rack</span>
           <span style={{ color: skin.accent }}>Live</span>
           <span>Lab</span>
         </div>
-        <div className="grid flex-1 grid-cols-2 gap-[0.4em]">
+        <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-[0.4em]">
           {[p0, p1, p2, p0].slice(0, 4).map((product, i) => (
             <div
               key={i}
-              className="flex flex-col gap-[0.3em] border-[0.1em] p-[0.35em]"
+              className="flex min-h-0 flex-col gap-[0.3em] border-[0.1em] p-[0.35em]"
               style={{ borderColor: lineColor(skin), backgroundColor: skin.card }}
             >
               <Face
                 product={i < 3 ? product : p2}
                 skin={skin}
                 index={i}
-                className="h-[3.2em] w-full"
+                className="min-h-0 w-full flex-1"
               />
-              <span className="truncate text-[0.48em] font-semibold">
+              <span className="shrink-0 truncate text-[0.48em] font-semibold">
                 {(i < 3 ? product?.name : p2?.name) || `VIAL ${i + 1}`}
               </span>
             </div>
@@ -934,16 +1022,43 @@ function StoreBody({
 
   if (layout === "sparse") {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.7em] px-[1.4em] pb-[1.2em]">
-        <Face
-          product={p0}
-          skin={skin}
-          index={0}
-          className="h-[9em] w-[9em]"
-        />
-        <p className="truncate text-[0.62em] font-semibold tracking-tight">
-          {p0?.name || "001"}
-        </p>
+      <div className="flex min-h-0 flex-1 flex-col px-[1.2em] pb-[0.9em] pt-[0.3em]">
+        <div className="flex shrink-0 items-baseline justify-between gap-[0.4em]">
+          <p
+            className="text-[0.42em] font-bold uppercase tracking-[0.24em]"
+            style={{ color: skin.muted }}
+          >
+            Drop 001
+          </p>
+          <p className="text-[0.42em]" style={{ color: skin.muted }}>
+            One piece
+          </p>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.7em]">
+          <Face
+            product={p0}
+            skin={skin}
+            index={0}
+            className="h-[10em] w-[10em]"
+          />
+          <p className="max-w-full truncate text-[0.62em] font-semibold tracking-tight">
+            {p0?.name || "001"}
+          </p>
+          <p className="text-[0.5em]" style={{ color: skin.muted }}>
+            {p0?.price || "Built to disappear."}
+          </p>
+        </div>
+        <div
+          className="flex shrink-0 items-center justify-between border-t-[0.08em] pt-[0.45em]"
+          style={{ borderColor: lineColor(skin) }}
+        >
+          <span className="text-[0.44em]" style={{ color: skin.muted }}>
+            No restock.
+          </span>
+          <span className="text-[0.48em] font-bold" style={{ color: skin.ink }}>
+            Shop the drop →
+          </span>
+        </div>
       </div>
     );
   }
@@ -953,11 +1068,19 @@ function StoreBody({
     <>
       <div
         className={cn(
-          "relative mx-[0.9em] mt-[0.6em] flex min-h-[6.4em] flex-col justify-end overflow-hidden",
+          "relative mx-[0.9em] mt-[0.6em] flex min-h-[6.4em] flex-1 flex-col justify-end overflow-hidden",
           card,
         )}
         style={heroStyle(item, heroUrl)}
       >
+        {!heroUrl && p0 ? (
+          <Face
+            product={p0}
+            skin={skin}
+            index={0}
+            className="absolute inset-0 h-full w-full opacity-90"
+          />
+        ) : null}
         {!heroUrl ? (
           <div
             className="absolute inset-0"
@@ -994,7 +1117,7 @@ function StoreBody({
       >
         <span className="truncate">Order online · Pay by M-Pesa</span>
       </div>
-      <div className="grid flex-1 grid-cols-3 content-start gap-[0.5em] px-[0.9em] pb-[0.7em] pt-[0.55em]">
+      <div className="grid shrink-0 grid-cols-3 content-start gap-[0.5em] px-[0.9em] pb-[0.7em] pt-[0.55em]">
         {[0, 1, 2].map((i) => (
           <AisleTile
             key={i}
@@ -1060,7 +1183,9 @@ function LandingBody({
           <p className="text-[0.58em] font-bold">Find us</p>
           <p className="mt-[0.25em] truncate text-[0.62em]">{addressText}</p>
         </div>
-        <Cta skin={skin}>WhatsApp</Cta>
+        <div className="mt-auto">
+          <Cta skin={skin}>WhatsApp</Cta>
+        </div>
       </div>
     );
   }
@@ -1072,7 +1197,7 @@ function LandingBody({
           product={p0}
           skin={skin}
           index={0}
-          className={cn("h-[7em] w-full", card)}
+          className={cn("min-h-0 w-full flex-1", card)}
         />
         <p className="mt-[0.55em] text-[0.95em] font-bold leading-tight">
           {storeName}
@@ -1080,7 +1205,10 @@ function LandingBody({
         <p className="mt-[0.25em] text-[0.58em]" style={{ color: skin.muted }}>
           This week&apos;s stall
         </p>
-        <p className="mt-[0.55em] text-[0.62em] font-semibold">{hoursText}</p>
+        <div className="mt-[0.5em] flex items-center justify-between gap-[0.4em]">
+          <p className="min-w-0 truncate text-[0.62em] font-semibold">{hoursText}</p>
+          <Cta skin={skin}>Visit</Cta>
+        </div>
       </div>
     );
   }
@@ -2085,7 +2213,8 @@ export function ThemeTryOnPhone({
   } | null;
   products?: readonly ThemeTryOnProduct[];
   heroUrl?: string | null;
-  size?: "md" | "sm" | "tile";
+  /** `lg` is the atelier stage: it scales its type with its own width. */
+  size?: "lg" | "md" | "sm" | "tile" | "thumb";
   /** Phone bezel, or a crop used as gallery-card art. */
   frame?: "phone" | "card";
   /** Home / product / cart — pane only. Gallery cards stay on home. */
@@ -2096,7 +2225,17 @@ export function ThemeTryOnPhone({
   className?: string;
 }) {
   const skin = item.phone;
-  const rootPx = size === "md" ? 9.5 : size === "tile" ? 7.6 : 6.5;
+  const rootPx =
+    size === "lg"
+      ? 12.5
+      : size === "md"
+        ? 9.5
+        : size === "tile"
+          ? 7.6
+          : size === "thumb"
+            ? 7.2
+            : 6.5;
+  const fluid = size === "lg" || size === "thumb";
   const brand = brandPrimary || skin.accent;
   const stock = products ?? [];
   const isCard = frame === "card";
@@ -2113,6 +2252,9 @@ export function ThemeTryOnPhone({
         isCard
           ? "w-full overflow-hidden rounded-[0.45em] border border-black/12"
           : "mx-auto w-full max-w-60 rounded-[2.1em] border border-black/70 bg-[#15161a] p-[0.55em] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)]",
+        size === "lg" && "max-w-none [container-type:inline-size]",
+        size === "thumb" &&
+          "[container-type:inline-size] rounded-[0.5em] p-[0.12em] shadow-none",
         className,
       )}
       aria-hidden
@@ -2120,13 +2262,20 @@ export function ThemeTryOnPhone({
       <div
         className={cn(
           "flex w-full flex-col overflow-hidden",
-          isCard ? "aspect-[4/5] rounded-[0.2em]" : "aspect-[9/19.2] rounded-[1.7em]",
+          isCard
+            ? "aspect-[4/5] rounded-[0.2em]"
+            : "aspect-[9/19.2] rounded-[1.7em]",
+          size === "thumb" && "rounded-[0.45em]",
         )}
         style={{
           backgroundColor: skin.surface,
           color: skin.ink,
           fontFamily: FONT_FAMILIES[skin.font],
-          fontSize: `${rootPx}px`,
+          fontSize: fluid
+            ? size === "thumb"
+              ? "5.4cqw"
+              : "5cqw"
+            : `${rootPx}px`,
         }}
       >
         <StatusBar />

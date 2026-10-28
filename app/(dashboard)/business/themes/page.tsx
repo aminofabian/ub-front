@@ -59,7 +59,7 @@ export default function BusinessThemesPage() {
 
   if (!business && !loadFailed) {
     return (
-      <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+      <div className={cn(DASHBOARD_MAX_WIDE, "lg:h-full lg:min-h-0 gap-1.5")}>
         <ThemesPageHeader />
         <ThemesStudioSkeleton />
       </div>
@@ -79,7 +79,7 @@ export default function BusinessThemesPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "lg:h-full lg:min-h-0 gap-1.5")}>
       <ThemesPageHeader />
       <StorefrontThemesStudio
         business={business}
@@ -137,14 +137,14 @@ function ThemesPageHeader() {
 function ThemesStudioSkeleton() {
   return (
     <div
-      className="flex min-h-0 flex-col gap-1.5"
+      className="flex min-h-0 flex-1 flex-col gap-1.5"
       aria-busy="true"
       aria-label="Loading shop looks"
     >
       <div className="h-9 animate-pulse border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40" />
       <div
         className={cn(
-          "hidden h-[min(80dvh,52rem)] overflow-hidden border lg:grid",
+          "hidden min-h-[26rem] flex-1 overflow-hidden border lg:grid",
           "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
           "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
           "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
@@ -156,8 +156,11 @@ function ThemesStudioSkeleton() {
             <div key={i} className="h-10 animate-pulse bg-muted/50" />
           ))}
         </div>
-        <div className="flex items-center justify-center p-6">
-          <div className="h-72 w-36 animate-pulse rounded-[1.4rem] bg-muted/60" />
+        <div className="flex items-center justify-center bg-[#1a211d] p-6">
+          <div className="w-[min(18rem,70%)] border border-black/15 bg-[#f1ece2] p-3">
+            <div className="h-[24rem] w-full animate-pulse rounded-[1.4rem] bg-[#15161a]" />
+            <div className="mt-3 h-3 w-24 animate-pulse bg-black/10" />
+          </div>
         </div>
         <div className="space-y-3 border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-4">
           <div className="h-5 w-28 animate-pulse bg-muted" />

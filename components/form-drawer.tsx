@@ -325,17 +325,19 @@ export function FormDrawer({
                     ? description
                     : "Form panel. Press Escape to close."}
                 </Dialog.Description>
-                <Dialog.Close asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="absolute right-2 top-2 z-40 size-9 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)] shadow-none hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
-                    aria-label="Close panel"
-                  >
-                    <X className="size-3.5" strokeWidth={2} />
-                  </Button>
-                </Dialog.Close>
+                {inColumn ? null : (
+                  <Dialog.Close asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="absolute right-2 top-2 z-40 size-9 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-[var(--op-muted)] shadow-none hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]"
+                      aria-label="Close panel"
+                    >
+                      <X className="size-3.5" strokeWidth={2} />
+                    </Button>
+                  </Dialog.Close>
+                )}
               </>
             ) : (
             <header

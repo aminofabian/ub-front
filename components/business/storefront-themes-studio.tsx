@@ -30,7 +30,7 @@ import {
   dashboardInputClass,
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
-import { ThemeLiveFrame } from "@/components/business/theme-live-frame";
+import { ThemeTryOnPhone } from "@/components/business/theme-try-on-phone";
 import {
   MilkRunWhatsAppDialog,
   milkRunNeedsWhatsApp,
@@ -110,7 +110,6 @@ export function StorefrontThemesStudio({
   const [error, setError] = useState<string | null>(null);
   const [waPromptOpen, setWaPromptOpen] = useState(false);
   const waPromptedRef = useRef(false);
-  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [activeVibe, setActiveVibe] = useState<string>("All");
   const [seeAllLooks, setSeeAllLooks] = useState(false);
   const [pinnedByMode, setPinnedByMode] = useState<Record<Mode, string[]>>(
@@ -304,7 +303,7 @@ export function StorefrontThemesStudio({
       trackStorefrontEditEvent("themes_try_on", { id, source, mode });
       shortlistCandidateRef.current = source === "shortlist" ? id : null;
     },
-    [landingWhatsapp, mode],
+    [landingWhatsapp, mode, setMobileDetailOpen],
   );
 
   const togglePin = useCallback(
@@ -398,7 +397,12 @@ export function StorefrontThemesStudio({
     event.preventDefault();
     const id = visibleItems[next]!.id;
     pick(id, showShortlist ? "shortlist" : "gallery");
-    cardRefs.current.get(id)?.focus();
+    const list = event.currentTarget;
+    requestAnimationFrame(() => {
+      list
+        .querySelector<HTMLElement>(`[data-look-id="${CSS.escape(id)}"]`)
+        ?.focus();
+    });
   };
 
   const switchLookMode = (next: Mode) => {
@@ -417,16 +421,19 @@ export function StorefrontThemesStudio({
     products: tryOnProducts,
     heroUrl,
     currency: business?.currency ?? "KES",
-    slug: business?.slug ?? null,
-    design,
   };
 
   const showMilkRunWhatsApp =
     mode === "store" && selected.id === "milk-run" && !landingWhatsapp;
 
-  const roster = (opts?: { fill?: boolean; denser?: boolean }) => {
+  const roster = (opts?: {
+    fill?: boolean;
+    denser?: boolean;
+    variant?: "rail" | "mobile";
+  }) => {
     const fill = opts?.fill ?? false;
     const denser = opts?.denser ?? false;
+    const listKey = `${listId}-${opts?.variant ?? "rail"}`;
     return (
       <div
         className={cn(
@@ -440,6 +447,12 @@ export function StorefrontThemesStudio({
             fill ? "bg-transparent" : "sticky top-0 z-[1] bg-white",
           )}
         >
+          <ModeSwitch
+            mode={mode}
+            storefrontOn={storefrontOn}
+            onChange={switchLookMode}
+            compact
+          />
           <label className="relative block min-w-0">
             <Search
               className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
@@ -457,7 +470,7 @@ export function StorefrontThemesStudio({
             />
           </label>
           {vibes.length > 0 && !showShortlist ? (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 pb-0.5 lg:flex-nowrap lg:overflow-x-auto lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
               {["All", ...vibes].map((vibe) => (
                 <button
                   key={vibe}
@@ -465,7 +478,7 @@ export function StorefrontThemesStudio({
                   aria-pressed={activeVibe === vibe}
                   onClick={() => setActiveVibe(vibe)}
                   className={cn(
-                    "inline-flex h-7 items-center rounded-none border px-1.5 text-[10px] font-semibold",
+                    "inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-none border px-1.5 text-[10px] font-semibold",
                     FOCUS,
                     activeVibe === vibe
                       ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
@@ -477,17 +490,37 @@ export function StorefrontThemesStudio({
               ))}
             </div>
           ) : null}
-          <p className={cn(dashboardHintClass(), "tabular-nums")}>
-            {visibleItems.length}{" "}
-            {visibleItems.length === 1 ? "look" : "looks"}
-            {showShortlist ? " · starter shortlist" : ""}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn(dashboardHintClass(), "tabular-nums")}>
+              {visibleItems.length}{" "}
+              {visibleItems.length === 1 ? "look" : "looks"}
+              {showShortlist ? " · starter shortlist" : ""}
+              {activeVibe !== "All" && !showShortlist
+                ? ` in ${activeVibe}`
+                : ""}
+            </p>
+            {showRecommendation ? (
+              <button
+                type="button"
+                onClick={() => pick(recommendedId, "recommend")}
+                className={cn(
+                  "shrink-0 text-[10.5px] font-semibold underline-offset-2 hover:underline",
+                  TEAL,
+                  FOCUS,
+                )}
+              >
+                Try {recommendedMeta.name}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div
           className={cn(
             "min-h-0",
-            fill ? "flex-1 overflow-y-auto overscroll-contain" : null,
+            fill
+              ? "flex-1 overflow-y-auto overscroll-contain pb-[calc(var(--shell-bottom-inset,0px)+0.75rem)]"
+              : null,
           )}
         >
           {visibleItems.length === 0 ? (
@@ -496,7 +529,7 @@ export function StorefrontThemesStudio({
             </p>
           ) : (
             <div
-              id={listId}
+              id={listKey}
               role="listbox"
               aria-label={
                 mode === "store"
@@ -505,7 +538,7 @@ export function StorefrontThemesStudio({
               }
               aria-activedescendant={
                 visibleItems.some((item) => item.id === selectedId)
-                  ? `${listId}-${selectedId}`
+                  ? `${listKey}-${selectedId}`
                   : undefined
               }
               onKeyDown={onGridKeyDown}
@@ -518,11 +551,8 @@ export function StorefrontThemesStudio({
                   return (
                     <li key={item.id}>
                       <div
-                        id={`${listId}-${item.id}`}
-                        ref={(node) => {
-                          if (node) cardRefs.current.set(item.id, node);
-                          else cardRefs.current.delete(item.id);
-                        }}
+                        id={`${listKey}-${item.id}`}
+                        data-look-id={item.id}
                         role="option"
                         aria-selected={isSelected}
                         tabIndex={isSelected ? 0 : -1}
@@ -539,27 +569,35 @@ export function StorefrontThemesStudio({
                           }
                         }}
                         className={cn(
-                          "group relative flex w-full cursor-pointer items-center gap-2.5 text-left transition-colors",
+                          "group relative flex w-full cursor-pointer items-center gap-3 text-left transition-colors",
                           denser
                             ? "px-2.5 py-2 sm:px-3"
-                            : "min-h-[3.25rem] px-3 py-3",
+                            : "px-3 py-2.5",
                           FOCUS,
                           isSelected
                             ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
                             : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                         )}
                       >
-                        <span
+                        <div
                           className={cn(
-                            "grid size-7 shrink-0 place-items-center border text-[10px] font-bold uppercase",
-                            isSelected || isLive
-                              ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
-                              : cn(LINE, MUTED),
+                            "relative h-[3.4rem] w-11 shrink-0 overflow-hidden border bg-[#15161a] transition-colors",
+                            isSelected
+                              ? TEAL_BORDER
+                              : isLive
+                                ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]"
+                                : LINE,
                           )}
                           aria-hidden
                         >
-                          {item.name.slice(0, 1)}
-                        </span>
+                          <ThemeTryOnPhone
+                            item={item}
+                            kind={mode}
+                            {...tryOnShared}
+                            products={[]}
+                            size="thumb"
+                          />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <p
                             className={cn(
@@ -570,19 +608,35 @@ export function StorefrontThemesStudio({
                           >
                             {item.name}
                           </p>
-                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                            {item.vibes[0] ?? item.blurb}
+                          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="truncate">
+                              {item.vibes[0] ?? item.blurb}
+                            </span>
+                            {isLive ? (
+                              <span
+                                className={cn(
+                                  "inline-flex shrink-0 items-center gap-1 font-semibold uppercase tracking-[0.08em]",
+                                  TEAL,
+                                )}
+                              >
+                                <span
+                                  className="inline-block size-1 bg-[var(--pos-primary,#0f766e)]"
+                                  aria-hidden
+                                />
+                                Live
+                              </span>
+                            ) : isSelected ? (
+                              <span className="shrink-0 font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                                Trying
+                              </span>
+                            ) : item.id === recommendedId ? (
+                              <span className="inline-flex shrink-0 items-center gap-0.5 font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+                                <Sparkles className="size-2.5" aria-hidden />
+                                Best
+                              </span>
+                            ) : null}
                           </p>
                         </div>
-                        <LookMark
-                          live={isLive}
-                          selected={isSelected && !isLive}
-                          recommended={
-                            !isLive &&
-                            !isSelected &&
-                            item.id === recommendedId
-                          }
-                        />
                         <button
                           type="button"
                           aria-label={`Compare ${item.name} side by side`}
@@ -630,26 +684,83 @@ export function StorefrontThemesStudio({
     );
   };
 
+  const stageIndex = Math.max(
+    1,
+    visibleItems.findIndex((item) => item.id === selectedId) + 1,
+  );
   const stage = (
-    <div className="relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-4 py-6">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#1a211d]">
       <div
-        key={`${mode}-${selected.id}`}
-        className="w-full max-w-[14rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
-      >
-        <ThemeLiveFrame item={selected} kind={mode} {...tryOnShared} />
-      </div>
-      <div className="mt-4 text-center">
-        <p
-          className="text-[1.15rem] font-semibold tracking-[-0.03em]"
-          style={{ fontFamily: "var(--font-heading)" }}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 46% 52% at 50% 50%, rgba(255,246,228,0.16) 0%, rgba(255,246,228,0.04) 54%, transparent 72%)",
+        }}
+        aria-hidden
+      />
+
+      <div className="relative z-[1] flex shrink-0 items-center justify-between gap-3 px-4 pt-3">
+        <p className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          The look
+          <span className="ml-2 text-white/80">
+            {String(stageIndex).padStart(2, "0")}
+            <span className="text-white/30"> / {visibleItems.length}</span>
+          </span>
+        </p>
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 border px-1.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em]",
+            selected.id === liveId
+              ? "border-[#5eead4]/60 text-[#5eead4]"
+              : "border-white/20 text-white/60",
+          )}
         >
-          {selected.name}
-        </p>
-        <p className={cn(dashboardHintClass(), "mt-1.5 max-w-[16rem]")}>
-          {selected.id === liveId
-            ? "Live for customers"
-            : `${selected.name} is on the stage — save when it feels right.`}
-        </p>
+          <span
+            className={cn(
+              "inline-block size-1",
+              selected.id === liveId ? "bg-[#5eead4]" : "bg-white/40",
+            )}
+            aria-hidden
+          />
+          {selected.id === liveId ? "Live" : "Try-on"}
+        </span>
+      </div>
+
+      <div className="relative z-[1] flex min-h-0 flex-1 items-center justify-center px-4 pb-4 pt-3 [container-type:size]">
+        <div
+          key={`${mode}-${selected.id}`}
+          className="w-[min(21rem,46cqh)] border border-black/15 bg-[#f1ece2] p-3 shadow-[0_36px_80px_-32px_rgba(0,0,0,0.9)] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+        >
+          <div className="relative">
+            <div
+              className="absolute -bottom-3 left-1/2 h-3 w-[76%] -translate-x-1/2 rounded-[50%] bg-black/30 blur-md"
+              aria-hidden
+            />
+            <ThemeTryOnPhone
+              item={selected}
+              kind={mode}
+              {...tryOnShared}
+              size="lg"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <p className="min-w-0 truncate text-[11.5px] font-semibold tracking-[-0.01em] text-[#15231f]">
+              {selected.name}
+            </p>
+            <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-[#15231f]/55">
+              390 × 844
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -705,6 +816,24 @@ export function StorefrontThemesStudio({
           </p>
         ) : null}
         <ColourDots selected={selected} brandPrimary={brandPrimary} />
+        {pinned.length === 0 ? (
+          <div
+            className={cn(
+              "flex items-center gap-3 border border-dashed px-2.5 py-2.5",
+              LINE,
+            )}
+          >
+            <div className="flex shrink-0 gap-1" aria-hidden>
+              <span className={cn("h-12 w-8 border border-dashed bg-white", LINE)} />
+              <span className={cn("h-12 w-8 border border-dashed bg-white", LINE)} />
+            </div>
+            <p className={cn("min-w-0 text-[11px] leading-relaxed", MUTED)}>
+              Use the{" "}
+              <Columns2 className="inline size-3 -translate-y-px" aria-hidden />{" "}
+              pin on any look to compare two side by side.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {pinned.length > 0 ? (
@@ -725,17 +854,19 @@ export function StorefrontThemesStudio({
                   >
                     <div
                       className={cn(
-                        "overflow-hidden border",
+                        "flex justify-center overflow-hidden border bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,white)] px-2 py-2",
                         isThis ? TEAL_BORDER : LINE,
                       )}
                     >
-                      <ThemeLiveFrame
-                        item={meta}
-                        kind={mode}
-                        {...tryOnShared}
-                        size="tile"
-                        lazy
-                      />
+                      <div className="w-[6.5rem]">
+                        <ThemeTryOnPhone
+                          item={meta}
+                          kind={mode}
+                          {...tryOnShared}
+                          products={[]}
+                          size="thumb"
+                        />
+                      </div>
                     </div>
                     <span
                       className={cn(
@@ -831,7 +962,7 @@ export function StorefrontThemesStudio({
 
   return (
     <ShopCartPreviewProvider>
-      <div className="flex min-h-0 flex-col gap-1.5">
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
         <UnsavedChangesGuard active={dirty} />
 
         {!storefrontOn ? (
@@ -863,65 +994,16 @@ export function StorefrontThemesStudio({
 
         <div
           className={cn(
-            "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-            LINE,
-          )}
-        >
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <ModeSwitch
-              mode={mode}
-              storefrontOn={storefrontOn}
-              onChange={switchLookMode}
-            />
-            <p className={cn("text-[12px] tabular-nums", MUTED)}>
-              <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--order-ink,#15231f)]">
-                <span
-                  className="inline-block size-1.5 shrink-0 bg-[var(--pos-primary,#0f766e)]"
-                  aria-hidden
-                />
-                {selected.name}
-              </span>
-              {" · "}
-              {visibleItems.length}{" "}
-              {visibleItems.length === 1 ? "look" : "looks"}
-              {activeVibe !== "All" && !showShortlist
-                ? ` in ${activeVibe}`
-                : null}
-            </p>
-          </div>
-          {showRecommendation ? (
-            <button
-              type="button"
-              onClick={() => pick(recommendedId, "recommend")}
-              className={cn(
-                "h-7 px-1.5 text-[11px] font-semibold underline-offset-2 hover:underline",
-                TEAL,
-                FOCUS,
-              )}
-            >
-              Try {recommendedMeta.name}
-            </button>
-          ) : null}
-        </div>
-
-        <div
-          className={cn(
-            "hidden h-[min(80dvh,52rem)] overflow-hidden border lg:grid",
+            "hidden min-h-[26rem] flex-1 overflow-hidden border lg:grid",
             "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]",
             "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4.5%,#f3eee6)]",
             "lg:grid-cols-[minmax(15.5rem,17.5rem)_minmax(0,1fr)_minmax(20rem,23.5rem)]",
           )}
         >
           <div className="flex h-full min-h-0 flex-col border-r border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#faf8f4)]">
-            {roster({ fill: true, denser: true })}
+            {roster({ fill: true, denser: true, variant: "rail" })}
           </div>
           <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-            <p
-              className="pointer-events-none absolute bottom-3 left-4 z-[1] text-[10px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_38%,transparent)]"
-              aria-hidden
-            >
-              The look
-            </p>
             {stage}
           </div>
           <div
@@ -934,7 +1016,7 @@ export function StorefrontThemesStudio({
 
         <div className="flex min-h-0 flex-col gap-2 lg:hidden">
           <div className={cn("overflow-hidden border bg-white", LINE)}>
-            {roster({ fill: false, denser: false })}
+            {roster({ fill: false, denser: false, variant: "mobile" })}
           </div>
         </div>
 
@@ -951,6 +1033,7 @@ export function StorefrontThemesStudio({
               : "Trying on — not saved yet"
           }
           headerDensity="compact"
+          hideHeader={isLg}
           bodyLayout="fill"
           appearance="sharp"
           docked={isLg}
@@ -965,7 +1048,7 @@ export function StorefrontThemesStudio({
             {isLg ? null : (
               <div className={cn("shrink-0 border-b px-4 py-3", LINE, STAGE)}>
                 <div className="mx-auto w-[7.5rem]">
-                  <ThemeLiveFrame
+                  <ThemeTryOnPhone
                     item={selected}
                     kind={mode}
                     {...tryOnShared}
@@ -1141,12 +1224,15 @@ function ModeSwitch({
   storefrontOn,
   onChange,
   stacked = false,
+  compact = false,
   className,
 }: {
   mode: Mode;
   storefrontOn: boolean;
   onChange: (mode: Mode) => void;
   stacked?: boolean;
+  /** One-line segmented control for the roster header. */
+  compact?: boolean;
   className?: string;
 }) {
   const options: {
@@ -1178,7 +1264,11 @@ function ModeSwitch({
       role="group"
       aria-label="Which page to dress"
       className={cn(
-        stacked ? "flex flex-col gap-1" : "grid grid-cols-2 gap-1.5",
+        compact
+          ? "grid grid-cols-2 gap-1"
+          : stacked
+            ? "flex flex-col gap-1"
+            : "grid grid-cols-2 gap-1.5",
         className,
       )}
     >
@@ -1190,22 +1280,45 @@ function ModeSwitch({
             key={opt.id}
             type="button"
             aria-pressed={active}
+            title={opt.hint}
             onClick={() => onChange(opt.id)}
             className={cn(
-              "rounded-none border bg-white px-2.5 py-2 text-left transition-colors",
+              "rounded-none border bg-white transition-colors",
               FOCUS,
-              active ? cn(TEAL_BORDER, TEAL) : cn(LINE, INK, "hover:border-[var(--pos-primary,#0f766e)]"),
+              compact
+                ? "inline-flex h-8 items-center justify-center gap-1.5 px-2 text-[11px] font-semibold"
+                : "px-2.5 py-2 text-left",
+              active
+                ? cn(
+                    compact
+                      ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)]"
+                      : TEAL_BORDER,
+                    TEAL,
+                  )
+                : cn(LINE, INK, "hover:border-[var(--pos-primary,#0f766e)]"),
             )}
           >
-            <span className="flex items-center gap-2">
+            <span
+              className={cn(
+                "flex items-center",
+                compact ? "gap-1.5" : "gap-2",
+              )}
+            >
               <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
-              <span className="text-[13px] font-semibold leading-none">
+              <span
+                className={cn(
+                  "leading-none",
+                  compact ? "text-[11px]" : "text-[13px] font-semibold",
+                )}
+              >
                 {opt.label}
               </span>
             </span>
-            <span className={cn("mt-1 block text-[11px] leading-snug", MUTED)}>
-              {opt.hint}
-            </span>
+            {compact ? null : (
+              <span className={cn("mt-1 block text-[11px] leading-snug", MUTED)}>
+                {opt.hint}
+              </span>
+            )}
           </button>
         );
       })}
