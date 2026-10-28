@@ -7673,18 +7673,93 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     border-color: color-mix(in srgb, var(--op-accent) 35%, transparent) !important;
 }
 
-/* Branded route loading. */
-@keyframes premium-loading-sweep {
-    0% {
-        transform: translateX(-110%);
+/* Branded route loading.
+   The wordmark settles, the caption follows, then the rule is drawn.
+   The ink then travels the rule at a constant pace. The previous sweep
+   used ease-out and ran well past the track, so the slow part of every
+   loop happened off the right edge and the line looked stalled. */
+@keyframes premium-loading-rise {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.96);
     }
-    100% {
-        transform: translateX(310%);
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
-.premium-loading-line > span {
-    animation: premium-loading-sweep 1.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+@keyframes premium-loading-caption-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes premium-loading-rule {
+    from {
+        clip-path: inset(0 100% 0 0);
+    }
+    to {
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+@keyframes premium-loading-sweep {
+    0% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    14% {
+        opacity: 1;
+    }
+    86% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(200%);
+    }
+}
+
+.premium-loading-mark {
+    animation: premium-loading-rise 280ms var(--ease-out) both;
+}
+
+.premium-loading-caption {
+    animation: premium-loading-caption-in 240ms var(--ease-out) 50ms both;
+}
+
+.premium-loading-line {
+    animation: premium-loading-rule 340ms var(--ease-out) 110ms both;
+}
+
+.premium-loading-ink {
+    display: block;
+    height: 1px;
+    width: 50%;
+    background: #1d4b3b;
+    animation: premium-loading-sweep 1.25s linear 420ms infinite both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .premium-loading-mark,
+    .premium-loading-caption,
+    .premium-loading-line {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+        clip-path: none;
+    }
+
+    .premium-loading-ink {
+        animation: none !important;
+        opacity: 0;
+    }
 }
 
 /* A single forest focus treatment for keyboard users. */
