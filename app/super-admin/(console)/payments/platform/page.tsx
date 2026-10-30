@@ -138,6 +138,10 @@ export default function SuperAdminPlatformPaymentsPage() {
   const [darajaInitiatorName, setDarajaInitiatorName] = useState("");
   const [darajaInitiatorPassword, setDarajaInitiatorPassword] = useState("");
   const [darajaB2bShortcode, setDarajaB2bShortcode] = useState("");
+  const [platformDestinationType, setPlatformDestinationType] = useState("shortcode");
+  const [platformDestinationTill, setPlatformDestinationTill] = useState("");
+  const [platformDestinationPaybill, setPlatformDestinationPaybill] = useState("");
+  const [platformDestinationAccount, setPlatformDestinationAccount] = useState("");
   const [activeSection, setActiveSection] =
     useState<PlatformPaymentsSectionId | null>(null);
   const [booting, setBooting] = useState(true);
@@ -178,6 +182,10 @@ export default function SuperAdminPlatformPaymentsPage() {
       setDarajaShortcode(dj.shortcode ?? "");
       setDarajaInitiatorName(dj.initiatorName ?? "");
       setDarajaB2bShortcode(dj.b2bShortcode ?? "");
+      setPlatformDestinationType(dj.platformDestinationType ?? "shortcode");
+      setPlatformDestinationTill(dj.platformDestinationTill ?? "");
+      setPlatformDestinationPaybill(dj.platformDestinationPaybill ?? "");
+      setPlatformDestinationAccount(dj.platformDestinationAccount ?? "");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load platform payments.");
     } finally {
@@ -383,6 +391,10 @@ export default function SuperAdminPlatformPaymentsPage() {
           ? { initiatorPassword: darajaInitiatorPassword.trim() }
           : {}),
         ...(darajaB2bShortcode.trim() ? { b2bShortcode: darajaB2bShortcode.trim() } : {}),
+        platformDestinationType,
+        platformDestinationTill: platformDestinationTill.trim(),
+        platformDestinationPaybill: platformDestinationPaybill.trim(),
+        platformDestinationAccount: platformDestinationAccount.trim(),
       });
       setDaraja(next);
       setDarajaConsumerKey("");
@@ -696,6 +708,10 @@ export default function SuperAdminPlatformPaymentsPage() {
             darajaInitiatorName={darajaInitiatorName}
             darajaInitiatorPassword={darajaInitiatorPassword}
             darajaB2bShortcode={darajaB2bShortcode}
+            platformDestinationType={platformDestinationType}
+            platformDestinationTill={platformDestinationTill}
+            platformDestinationPaybill={platformDestinationPaybill}
+            platformDestinationAccount={platformDestinationAccount}
             onEnabledChange={(on) => void saveDaraja(on)}
             onDarajaEnv={setDarajaEnv}
             onShortcodeType={setDarajaShortcodeType}
@@ -706,6 +722,10 @@ export default function SuperAdminPlatformPaymentsPage() {
             onInitiatorName={setDarajaInitiatorName}
             onInitiatorPassword={setDarajaInitiatorPassword}
             onB2bShortcode={setDarajaB2bShortcode}
+            onPlatformDestinationType={setPlatformDestinationType}
+            onPlatformDestinationTill={setPlatformDestinationTill}
+            onPlatformDestinationPaybill={setPlatformDestinationPaybill}
+            onPlatformDestinationAccount={setPlatformDestinationAccount}
             onClearCreds={clearDarajaCreds}
             onClearDisburse={clearDarajaDisburseCreds}
           />

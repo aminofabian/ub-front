@@ -478,6 +478,10 @@ export function DarajaPanel({
   darajaInitiatorName,
   darajaInitiatorPassword,
   darajaB2bShortcode,
+  platformDestinationType,
+  platformDestinationTill,
+  platformDestinationPaybill,
+  platformDestinationAccount,
   onEnabledChange,
   onDarajaEnv,
   onShortcodeType,
@@ -488,6 +492,10 @@ export function DarajaPanel({
   onInitiatorName,
   onInitiatorPassword,
   onB2bShortcode,
+  onPlatformDestinationType,
+  onPlatformDestinationTill,
+  onPlatformDestinationPaybill,
+  onPlatformDestinationAccount,
   onClearCreds,
   onClearDisburse,
 }: {
@@ -502,6 +510,10 @@ export function DarajaPanel({
   darajaInitiatorName: string;
   darajaInitiatorPassword: string;
   darajaB2bShortcode: string;
+  platformDestinationType: string;
+  platformDestinationTill: string;
+  platformDestinationPaybill: string;
+  platformDestinationAccount: string;
   onEnabledChange: (on: boolean) => void;
   onDarajaEnv: (v: string) => void;
   onShortcodeType: (v: string) => void;
@@ -537,7 +549,8 @@ export function DarajaPanel({
       </div>
 
       <p className={cn(dashboardHintClass(), "leading-relaxed")}>
-        Lipa Na M-Pesa STK prompts the customer and pays into the shortcode
+        Lipa Na M-Pesa STK prompts the customer. Shops credit their own till.
+        SMS credits and other Kiosk charges credit the platform destination
         below. API keys are encrypted in the database, never set in env. Register
         callback URLs on the Daraja portal:{" "}
         <span className="font-mono text-[10px]">/webhooks/daraja/stk</span>,{" "}
@@ -583,6 +596,61 @@ export function DarajaPanel({
             Wrong credentials on every STK.
           </p>
         </Field>
+        <Field id="sa-platform-dest-type" label="Platform destination" className="sm:col-span-2">
+          <select
+            id="sa-platform-dest-type"
+            className={dashboardSelectClass()}
+            value={platformDestinationType}
+            onChange={(e) => onPlatformDestinationType(e.target.value)}
+          >
+            <option value="shortcode">Go Live shortcode</option>
+            <option value="till">Buy Goods till</option>
+            <option value="paybill">Paybill</option>
+          </select>
+          <p className={cn(dashboardHintClass(), "leading-snug")}>
+            Where Kiosk&apos;s own M-Pesa lands — SMS credits, package renewals, and
+            the same prompt shops use at the till and on the storefront. The till or
+            paybill must sit under this Head Office.
+          </p>
+        </Field>
+        {platformDestinationType === "till" ? (
+          <Field id="sa-platform-dest-till" label="Destination till" className="sm:col-span-2">
+            <Input
+              id="sa-platform-dest-till"
+              className={dashboardInputClass()}
+              inputMode="numeric"
+              value={platformDestinationTill}
+              onChange={(e) => onPlatformDestinationTill(e.target.value.replace(/\D/g, ""))}
+              placeholder="e.g. 3502582"
+              autoComplete="off"
+            />
+          </Field>
+        ) : null}
+        {platformDestinationType === "paybill" ? (
+          <>
+            <Field id="sa-platform-dest-paybill" label="Destination paybill">
+              <Input
+                id="sa-platform-dest-paybill"
+                className={dashboardInputClass()}
+                inputMode="numeric"
+                value={platformDestinationPaybill}
+                onChange={(e) => onPlatformDestinationPaybill(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 880100"
+                autoComplete="off"
+              />
+            </Field>
+            <Field id="sa-platform-dest-account" label="Account number">
+              <Input
+                id="sa-platform-dest-account"
+                className={dashboardInputClass()}
+                value={platformDestinationAccount}
+                onChange={(e) => onPlatformDestinationAccount(e.target.value)}
+                placeholder="Paybill account"
+                autoComplete="off"
+              />
+            </Field>
+          </>
+        ) : null}
       </div>
 
       <div className="flex items-center justify-between gap-2">

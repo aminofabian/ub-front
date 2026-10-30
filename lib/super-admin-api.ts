@@ -623,6 +623,11 @@ export type PlatformDarajaSettingsRecord = {
   disburseConfigured: boolean;
   initiatorName: string | null;
   b2bShortcode: string | null;
+  /** shortcode | till | paybill — where Kiosk's own M-Pesa charges land. */
+  platformDestinationType: string | null;
+  platformDestinationTill: string | null;
+  platformDestinationPaybill: string | null;
+  platformDestinationAccount: string | null;
   updatedAt: string | null;
 };
 
@@ -641,6 +646,10 @@ export type PatchPlatformDarajaSettingsPayload = {
   b2bRequester?: string;
   clearDisburseCredentials?: boolean;
   clearCredentials?: boolean;
+  platformDestinationType?: string;
+  platformDestinationTill?: string;
+  platformDestinationPaybill?: string;
+  platformDestinationAccount?: string;
 };
 
 export async function fetchPlatformDarajaSettings(): Promise<PlatformDarajaSettingsRecord> {
