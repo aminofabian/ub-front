@@ -768,6 +768,15 @@ export async function fetchPlatformStkPushes(opts?: {
   );
 }
 
+/** Paid charges to Kiosk itself: SMS credits, packages, domains, Kiosk Pay top-ups. */
+export async function fetchPlatformPaidCharges(
+  limit = 30,
+): Promise<GatewayStkPushOpsRecord[]> {
+  return saRequest<GatewayStkPushOpsRecord[]>(
+    `${API_ROUTES.superAdminPlatformPaid}?limit=${limit}`,
+  );
+}
+
 // ── Cross-tenant payment method inventory ──────────────────────────
 
 export type TenantPaymentMethodRow = {

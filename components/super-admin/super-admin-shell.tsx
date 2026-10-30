@@ -25,9 +25,11 @@ import { Collapsible } from "radix-ui";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { DashboardToaster } from "@/components/dashboard-sonner";
+import { PlatformPaymentsList } from "@/components/super-admin/platform-payments-list";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
 import { Button } from "@/components/ui/button";
 import { useSaContactUnread } from "@/hooks/use-sa-contact-unread";
+import { useSaPlatformPayments } from "@/hooks/use-sa-platform-payments";
 import { useSaSupportUnread } from "@/hooks/use-sa-support-unread";
 import { APP_ROUTES } from "@/lib/config";
 import { getSuperAdminRealtimeClient } from "@/lib/realtime";
@@ -219,6 +221,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   // realtime socket open so the count updates everywhere, not just on the page.
   const saSupportUnread = useSaSupportUnread();
   const saMessagesUnread = useSaContactUnread();
+  const platformPayments = useSaPlatformPayments({ notify: true });
 
   React.useEffect(() => {
     const client = getSuperAdminRealtimeClient();
@@ -511,11 +514,20 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Notifications"
+              className="relative text-muted-foreground hover:text-foreground"
+              aria-label={
+                platformPayments.unread > 0
+                  ? `Notifications — ${platformPayments.unread} new payment${platformPayments.unread === 1 ? "" : "s"}`
+                  : "Notifications"
+              }
               onClick={() => setNotifOpen(true)}
             >
               <Bell className="size-4" />
+              {platformPayments.unread > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
+                  {platformPayments.unread > 9 ? "9+" : platformPayments.unread}
+                </span>
+              ) : null}
             </Button>
           </header>
 
@@ -553,17 +565,18 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
       <SuperAdminDrawer
         open={notifOpen}
-        onOpenChange={setNotifOpen}
+        onOpenChange={(open) => {
+          setNotifOpen(open);
+          if (!open) platformPayments.markSeen();
+        }}
         title="Notifications"
-        description="Platform alerts will appear here."
+        description="Payments made to Kiosk: SMS credits, packages, domains, and Kiosk Pay top-ups."
       >
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Sparkles className="mb-3 size-7 text-muted-foreground/45" aria-hidden />
-          <p className="text-sm font-medium text-foreground">You&apos;re all caught up</p>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            Webhook failures, billing anomalies, and maintenance windows will show here when they fire.
-          </p>
-        </div>
+        <PlatformPaymentsList
+          payments={platformPayments.payments}
+          seenAt={platformPayments.seenAt}
+          emptyText="No platform payments yet. They show here as soon as M-Pesa confirms them."
+        />
       </SuperAdminDrawer>
 
       <DashboardToaster centered />

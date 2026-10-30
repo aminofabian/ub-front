@@ -343,6 +343,7 @@ export const API_ROUTES = {
   superAdminTenantPaymentMethods:
     "/api/v1/super-admin/payments/tenant-methods",
   superAdminStkPushes: "/api/v1/super-admin/payments/stk-pushes",
+  superAdminPlatformPaid: "/api/v1/super-admin/payments/stk-pushes/platform-paid",
   superAdminAirtime: "/api/v1/super-admin/airtime",
   superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   superAdminPlatformEasyTax: "/api/v1/super-admin/integrations/easytax",
