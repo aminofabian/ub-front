@@ -235,23 +235,38 @@ export function KioskPayPanel({
             <option value="sandbox">Sandbox</option>
             <option value="production">Production</option>
           </select>
-          <Input
-            className={cn(dashboardInputClass(), "font-mono")}
-            name="kiosk-pay-paystack-public-key"
-            autoComplete="off"
-            placeholder="Paystack public key (pk_test_… or pk_live_…)"
-            value={paystackPublic}
-            onChange={(e) => onPaystackPublic(e.target.value)}
-          />
-          <Input
-            className={cn(dashboardInputClass(), "font-mono")}
-            type="password"
-            name="kiosk-pay-paystack-secret-key"
-            autoComplete="new-password"
-            placeholder="Paystack secret key (sk_test_… or sk_live_…)"
-            value={paystackSecret}
-            onChange={(e) => onPaystackSecret(e.target.value)}
-          />
+          <Field id="sa-paystack-public-key" label="Public key">
+            <Input
+              id="sa-paystack-public-key"
+              className={cn(dashboardInputClass(), "font-mono")}
+              type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              placeholder={paystackEnv === "production" ? "pk_live_…" : "pk_test_…"}
+              value={paystackPublic}
+              onChange={(e) => onPaystackPublic(e.target.value)}
+            />
+          </Field>
+          <Field id="sa-paystack-secret-key" label="Secret key">
+            <Input
+              id="sa-paystack-secret-key"
+              className={cn(dashboardInputClass(), "font-mono")}
+              type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              placeholder={paystackEnv === "production" ? "sk_live_…" : "sk_test_…"}
+              value={paystackSecret}
+              onChange={(e) => onPaystackSecret(e.target.value)}
+            />
+          </Field>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -289,26 +304,39 @@ export function KioskPayPanel({
           </p>
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
-            name="kiosk-pay-kopokopo-client-id"
+            type="text"
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore
+            data-lpignore="true"
             placeholder="Client ID"
             value={kkClientId}
             onChange={(e) => onKkClientId(e.target.value)}
           />
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
-            type="password"
-            name="kiosk-pay-kopokopo-client-secret"
-            autoComplete="new-password"
+            type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore
+            data-lpignore="true"
             placeholder="Client secret"
             value={kkClientSecret}
             onChange={(e) => onKkClientSecret(e.target.value)}
           />
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
-            type="password"
-            name="kiosk-pay-kopokopo-api-key"
-            autoComplete="new-password"
+            type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore
+            data-lpignore="true"
             placeholder="API key"
             value={kkApiKey}
             onChange={(e) => onKkApiKey(e.target.value)}
