@@ -45,7 +45,7 @@ export function useSaPlatformPayments({ notify = false }: { notify?: boolean } =
       if (known && notify) {
         for (const p of rows) {
           if (known.has(p.id)) continue;
-          toast.success(`${platformChargeLabel(p.contextType)} paid`, {
+          toast.success(`${platformChargeLabel(p.contextType)} settled`, {
             description: `${p.businessName ?? "A shop"} · KES ${Number(p.amount).toLocaleString("en-KE")}`,
           });
         }

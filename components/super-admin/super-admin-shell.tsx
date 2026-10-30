@@ -25,7 +25,7 @@ import { Collapsible } from "radix-ui";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { DashboardToaster } from "@/components/dashboard-sonner";
-import { PlatformPaymentsList } from "@/components/super-admin/platform-payments-list";
+import { PlatformPaymentsDrawerBody } from "@/components/super-admin/platform-payments-list";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
 import { Button } from "@/components/ui/button";
 import { useSaContactUnread } from "@/hooks/use-sa-contact-unread";
@@ -514,17 +514,26 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="relative text-muted-foreground hover:text-foreground"
+              className={cn(
+                "relative rounded-[2px] text-[var(--op-muted)] hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
+                platformPayments.unread > 0 &&
+                  "border border-[var(--op-rule)] bg-[color-mix(in_srgb,var(--op-accent)_6%,var(--op-surface))] text-[var(--op-accent)]",
+              )}
               aria-label={
                 platformPayments.unread > 0
-                  ? `Notifications — ${platformPayments.unread} new payment${platformPayments.unread === 1 ? "" : "s"}`
-                  : "Notifications"
+                  ? `Till book — ${platformPayments.unread} new payment${platformPayments.unread === 1 ? "" : "s"}`
+                  : "Till book"
+              }
+              title={
+                platformPayments.unread > 0
+                  ? `${platformPayments.unread} new platform payment${platformPayments.unread === 1 ? "" : "s"}`
+                  : "Till book"
               }
               onClick={() => setNotifOpen(true)}
             >
-              <Bell className="size-4" />
+              <Bell className="size-4" strokeWidth={1.75} />
               {platformPayments.unread > 0 ? (
-                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
+                <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] bg-[var(--op-accent)] px-1 text-[10px] font-bold leading-none text-[var(--op-surface)]">
                   {platformPayments.unread > 9 ? "9+" : platformPayments.unread}
                 </span>
               ) : null}
@@ -569,13 +578,12 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           setNotifOpen(open);
           if (!open) platformPayments.markSeen();
         }}
-        title="Notifications"
-        description="Payments made to Kiosk: SMS credits, packages, domains, and Kiosk Pay top-ups."
+        title="Till book"
+        description="Money paid to Kiosk — SMS credits, packages, domains, and float top-ups."
       >
-        <PlatformPaymentsList
+        <PlatformPaymentsDrawerBody
           payments={platformPayments.payments}
           seenAt={platformPayments.seenAt}
-          emptyText="No platform payments yet. They show here as soon as M-Pesa confirms them."
         />
       </SuperAdminDrawer>
 

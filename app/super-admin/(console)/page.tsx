@@ -24,10 +24,7 @@ import {
   DashboardPageHero,
   dashboardHintClass,
 } from "@/components/dashboard-page-ui";
-import {
-  PlatformPaymentsList,
-  formatChargeKes,
-} from "@/components/super-admin/platform-payments-list";
+import { PlatformPaymentsLedger } from "@/components/super-admin/platform-payments-list";
 import { Badge } from "@/components/ui/badge";
 import { useSaPlatformPayments } from "@/hooks/use-sa-platform-payments";
 import { Button } from "@/components/ui/button";
@@ -923,39 +920,13 @@ export default function SuperAdminDashboardPage() {
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <section
-        aria-labelledby="platform-payments-heading"
-        className={cn("border bg-white px-4 py-3", HAIRLINE)}
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <div>
-            <h2
-              id="platform-payments-heading"
-              className="text-[13px] font-semibold tracking-[-0.015em]"
-            >
-              Platform payments
-            </h2>
-            <p className={dashboardHintClass()}>
-              SMS credits, packages, domains, and Kiosk Pay top-ups paid to Kiosk
-            </p>
-          </div>
-          <p className="text-[12px] text-muted-foreground">
-            Today{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {formatChargeKes(paidToday.total)}
-            </span>{" "}
-            · {formatInt(paidToday.count)} paid
-          </p>
-        </div>
-        <div className="mt-2">
-          <PlatformPaymentsList
-            payments={platformPayments.payments}
-            seenAt={platformPayments.seenAt}
-            limit={8}
-            emptyText="No platform payments yet. They show here as soon as M-Pesa confirms them."
-          />
-        </div>
-      </section>
+      <PlatformPaymentsLedger
+        payments={platformPayments.payments}
+        seenAt={platformPayments.seenAt}
+        todayTotal={paidToday.total}
+        todayCount={paidToday.count}
+        limit={8}
+      />
 
       <OverviewTheatre
         activeSectionId={activeSection}
