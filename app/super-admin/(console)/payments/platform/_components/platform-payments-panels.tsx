@@ -237,15 +237,18 @@ export function KioskPayPanel({
           </select>
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
-            placeholder="pk_… public key"
+            name="kiosk-pay-paystack-public-key"
+            autoComplete="off"
+            placeholder="Paystack public key (pk_test_… or pk_live_…)"
             value={paystackPublic}
             onChange={(e) => onPaystackPublic(e.target.value)}
           />
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
             type="password"
-            autoComplete="off"
-            placeholder="sk_… secret key"
+            name="kiosk-pay-paystack-secret-key"
+            autoComplete="new-password"
+            placeholder="Paystack secret key (sk_test_… or sk_live_…)"
             value={paystackSecret}
             onChange={(e) => onPaystackSecret(e.target.value)}
           />
@@ -280,8 +283,14 @@ export function KioskPayPanel({
             <option value="sandbox">Sandbox</option>
             <option value="production">Production</option>
           </select>
+          <p className={dashboardHintClass()}>
+            Client ID, client secret, and API key from the KopoKopo applications page.
+            They do not start with sk_ or pk_.
+          </p>
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
+            name="kiosk-pay-kopokopo-client-id"
+            autoComplete="off"
             placeholder="Client ID"
             value={kkClientId}
             onChange={(e) => onKkClientId(e.target.value)}
@@ -289,16 +298,18 @@ export function KioskPayPanel({
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
             type="password"
-            autoComplete="off"
-            placeholder="Client Secret"
+            name="kiosk-pay-kopokopo-client-secret"
+            autoComplete="new-password"
+            placeholder="Client secret"
             value={kkClientSecret}
             onChange={(e) => onKkClientSecret(e.target.value)}
           />
           <Input
             className={cn(dashboardInputClass(), "font-mono")}
             type="password"
-            autoComplete="off"
-            placeholder="API Key"
+            name="kiosk-pay-kopokopo-api-key"
+            autoComplete="new-password"
+            placeholder="API key"
             value={kkApiKey}
             onChange={(e) => onKkApiKey(e.target.value)}
           />

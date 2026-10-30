@@ -134,7 +134,7 @@ export function GatewayConfigForm({
       if (mustHaveKeys) {
         if (!isEdit || sk !== "") {
           if (!sk.startsWith("sk_test_") && !sk.startsWith("sk_live_")) {
-            return "Secret key must start with sk_test_ or sk_live_.";
+            return "Paystack secret key must start with sk_test_ or sk_live_.";
           }
         }
         if (!isEdit || pk !== "") {
