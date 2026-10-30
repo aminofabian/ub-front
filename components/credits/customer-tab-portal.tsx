@@ -1031,7 +1031,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           return;
         }
         if (st.status === "failed") {
-          setStatusMsg("Payment didn’t go through. Try again.");
+          setStatusMsg(st.message || "Payment didn’t go through. Try again.");
           setPromptSent(false);
           setIntentId(null);
         }
@@ -1071,7 +1071,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           return;
         }
         if (st.status === "failed") {
-          setWalletStatusMsg("Top-up didn’t go through. Try again.");
+          setWalletStatusMsg(st.message || "Top-up didn’t go through. Try again.");
           setWalletPromptSent(false);
           setWalletIntentId(null);
         }

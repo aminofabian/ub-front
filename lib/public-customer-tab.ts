@@ -38,6 +38,7 @@ export type PublicTabStk = {
   amount: number | string;
   balanceOwed: number | string;
   walletBalance?: number | string | null;
+  message?: string | null;
 };
 
 export type PublicTabManualPayment = {
