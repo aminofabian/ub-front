@@ -524,6 +524,10 @@ export function DarajaPanel({
   onInitiatorName: (v: string) => void;
   onInitiatorPassword: (v: string) => void;
   onB2bShortcode: (v: string) => void;
+  onPlatformDestinationType: (v: string) => void;
+  onPlatformDestinationTill: (v: string) => void;
+  onPlatformDestinationPaybill: (v: string) => void;
+  onPlatformDestinationAccount: (v: string) => void;
   onClearCreds: () => void;
   onClearDisburse: () => void;
 }) {
