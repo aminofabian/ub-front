@@ -357,7 +357,7 @@ export function PlatformPaymentsLedger({
               className="mt-0.5 text-[1.85rem] font-normal leading-none tracking-[-0.03em] tabular-nums text-[var(--op-accent)] sm:text-[2.1rem]"
               style={{ fontFamily: DISPLAY }}
             >
-              <span className="mr-1 text-[0.55em] tracking-normal text-[var(--op-muted)]">
+              <span className="mr-1.5 text-[0.55em] tracking-normal text-[var(--op-muted)]">
                 KES
               </span>
               {formatChargeFigure(todayTotal)}
