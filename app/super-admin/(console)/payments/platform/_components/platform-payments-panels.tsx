@@ -689,7 +689,9 @@ export function DarajaPanel({
             value={darajaConsumerKey}
             onChange={(e) => onConsumerKey(e.target.value)}
             placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
-            autoComplete="off"
+            autoComplete="new-password"
+            data-1p-ignore
+            data-lpignore="true"
           />
         </Field>
         <Field id="sa-daraja-secret" label="Consumer secret">
@@ -700,7 +702,9 @@ export function DarajaPanel({
             value={darajaConsumerSecret}
             onChange={(e) => onConsumerSecret(e.target.value)}
             placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
-            autoComplete="off"
+            autoComplete="new-password"
+            data-1p-ignore
+            data-lpignore="true"
           />
         </Field>
         <Field id="sa-daraja-passkey" label="Lipa Na M-Pesa passkey">
@@ -711,7 +715,9 @@ export function DarajaPanel({
             value={darajaPasskey}
             onChange={(e) => onPasskey(e.target.value)}
             placeholder={daraja?.hasCredentials ? "Leave blank to keep" : "Required"}
-            autoComplete="off"
+            autoComplete="new-password"
+            data-1p-ignore
+            data-lpignore="true"
           />
           <p className={cn(dashboardHintClass(), "leading-snug")}>
             From the Go Live email for shortcode above — not the B2C initiator
