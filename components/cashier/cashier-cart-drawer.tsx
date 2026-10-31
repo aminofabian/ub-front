@@ -228,6 +228,11 @@ export type CashierCartDrawerProps = {
   onDownloadReceiptPdf: () => void;
   receiptLoading: boolean;
   onStartNewSale: () => void;
+  /**
+   * After a completed sale: dismiss receipt UI and focus a blank tab without
+   * wiping parked carts. Falls back to onStartNewSale when omitted.
+   */
+  onReadyForNextSale?: () => void;
   /** Abandon the in-progress cart (with confirm). */
   onClearSale?: () => void;
   /** Opens the Open-shift flow when a sale is blocked by a closed till. */
@@ -420,6 +425,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onDownloadReceiptPdf,
     receiptLoading,
     onStartNewSale,
+    onReadyForNextSale,
     onClearSale,
     onOpenShift,
     stockOverrideError,
@@ -697,7 +703,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               voidLoading={voidLoading}
               onDownloadReceiptPdf={onDownloadReceiptPdf}
               receiptLoading={receiptLoading}
-              onStartNewSale={onStartNewSale}
+              onStartNewSale={onReadyForNextSale ?? onStartNewSale}
               receiptPrinter={receiptPrinter}
               whatsappReceiptEnabled={whatsappReceiptEnabled}
             />

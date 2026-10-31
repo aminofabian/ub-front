@@ -16,14 +16,25 @@ export function BatchHistory({ batches, canApprove, onReview }: Props) {
   if (batches.length === 0) return null;
   const newestFirst = [...batches].reverse();
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className={cn("font-heading text-[18px] font-semibold", COUNT_TONE.ink)}>Batches</h3>
+    <section className="flex flex-col gap-1.5">
+      <h3
+        className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.12em]",
+          COUNT_TONE.mute,
+        )}
+      >
+        Batches
+      </h3>
       <ul className={cn("divide-y border-y", COUNT_TONE.divide, COUNT_TONE.hair)}>
         {newestFirst.map((batch) => (
           <li key={batch.sessionId}>
             <BatchHistoryRow
               batch={batch}
-              onReview={canApprove && batch.status === BATCH_SESSION_CLOSED ? onReview : null}
+              onReview={
+                canApprove && batch.status === BATCH_SESSION_CLOSED
+                  ? onReview
+                  : null
+              }
             />
           </li>
         ))}

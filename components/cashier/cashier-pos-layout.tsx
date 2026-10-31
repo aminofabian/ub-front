@@ -400,6 +400,7 @@ export type CashierPosLayoutProps = {
     | "onDownloadReceiptPdf"
     | "receiptLoading"
     | "onStartNewSale"
+    | "onReadyForNextSale"
     | "onClearSale"
     | "onOpenShift"
     | "stockOverrideError"
@@ -3278,7 +3279,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             cart.lastSale != null &&
             cart.lastReceipt != null
           ) {
-            cart.onStartNewSale();
+            // Dismiss receipt only — do not clear/wipe parked till tabs.
+            (cart.onReadyForNextSale ?? cart.onStartNewSale)();
           }
           if (!open) {
             window.requestAnimationFrame(() => focusSearch(true));

@@ -7,12 +7,15 @@ import { cn } from "@/lib/utils";
 
 import { COUNT_TONE } from "./count-tone";
 
-const ROW_LAYOUT = "flex min-h-14 w-full items-center gap-3 py-2.5 text-left";
+const ROW_LAYOUT =
+  "flex min-h-11 w-full items-center gap-2.5 py-2 text-left";
 
 function batchStatus(batch: CountCycleBatchSummary): string {
   if (batch.status !== BATCH_SESSION_CLOSED) return "Open";
-  if (batch.awaitingApplyCount > 0) return `${batch.awaitingApplyCount} counts to post`;
-  return "Posted to stock";
+  if (batch.awaitingApplyCount > 0) {
+    return `${batch.awaitingApplyCount} to post`;
+  }
+  return "Posted";
 }
 
 type Props = {
@@ -26,18 +29,32 @@ export function BatchHistoryRow({ batch, onReview }: Props) {
   const waiting = batch.awaitingApplyCount > 0;
   const body = (
     <>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className={cn("text-[15px] font-medium", COUNT_TONE.ink)}>
-          Batch {batch.batchNumber} · {formatCountDay(batch.sessionDate)}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={cn("text-[13.5px] font-medium leading-none", COUNT_TONE.ink)}>
+          Batch {batch.batchNumber}
+          <span className={cn("font-normal", COUNT_TONE.mute)}>
+            {" "}
+            · {formatCountDay(batch.sessionDate)}
+          </span>
         </span>
-        <span className={cn("text-[13px] tabular-nums", COUNT_TONE.mute)}>
-          {batch.countedCount} of {batch.totalCount} counted
+        <span className={cn("text-[12px] tabular-nums", COUNT_TONE.mute)}>
+          {batch.countedCount}/{batch.totalCount} counted
         </span>
       </span>
-      <span className={cn("shrink-0 text-[13px] font-medium", waiting ? "text-amber-700" : COUNT_TONE.mute)}>
+      <span
+        className={cn(
+          "shrink-0 text-[12px] font-medium",
+          waiting ? "text-amber-800" : COUNT_TONE.mute,
+        )}
+      >
         {batchStatus(batch)}
       </span>
-      {onReview ? <ChevronRight className={cn("size-4 shrink-0", COUNT_TONE.faint)} aria-hidden /> : null}
+      {onReview ? (
+        <ChevronRight
+          className={cn("size-3.5 shrink-0", COUNT_TONE.faint)}
+          aria-hidden
+        />
+      ) : null}
     </>
   );
   if (!onReview) return <div className={ROW_LAYOUT}>{body}</div>;
@@ -45,7 +62,10 @@ export function BatchHistoryRow({ batch, onReview }: Props) {
     <button
       type="button"
       onClick={() => onReview(batch.sessionId)}
-      className={cn(ROW_LAYOUT, "transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]")}
+      className={cn(
+        ROW_LAYOUT,
+        "transition-colors hover:bg-[color-mix(in_srgb,var(--op-ink,#121a16)_3%,transparent)]",
+      )}
     >
       {body}
     </button>

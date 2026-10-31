@@ -149,6 +149,7 @@ import {
   type AirtimeCartPayload,
 } from "@/lib/airtime-cart-line";
 import {
+  cartsAfterCompletedSale,
   createEmptyCartSession,
   pickActiveCartId,
   resetCartSessionKeepingTab,
@@ -1297,9 +1298,14 @@ export function QuickSaleWorkspace({
     [activeCartId, carts, online],
   );
 
-  /** Remove the cart used for a completed sale and focus the next empty tab. */
+  /** Remove the cart used for a completed sale and focus a blank tab. */
   const clearCartAfterSale = useCallback(
     (cartIdToClear: string) => {
+      const pendingSync = posDraftSyncTimers.current[cartIdToClear];
+      if (pendingSync) {
+        clearTimeout(pendingSync);
+        delete posDraftSyncTimers.current[cartIdToClear];
+      }
       const bizId = business?.id?.trim();
       const bid = branchId.trim();
       const uid = me?.id?.trim();
@@ -1307,9 +1313,11 @@ export function QuickSaleWorkspace({
         void removeMirroredCart(bizId, bid, uid, cartIdToClear);
       }
       setCarts((prev) => {
-        const rest = prev.filter((c) => c.id !== cartIdToClear);
-        const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
-        setActiveCartId(next[0].id);
+        const { carts: next, activeCartId: focusId } = cartsAfterCompletedSale(
+          prev,
+          cartIdToClear,
+        );
+        setActiveCartId(focusId);
         return next;
       });
     },
@@ -4582,6 +4590,31 @@ export function QuickSaleWorkspace({
     }
   }, [lastSale, canVoid, voidNotes]);
 
+  /**
+   * Ready for the next customer after a completed sale (receipt "New sale" /
+   * drawer dismiss). Never voids parked tabs — the sold cart was already
+   * removed by clearCartAfterSale.
+   */
+  const onReadyForNextSale = useCallback(() => {
+    dismissCompletedSaleUi();
+    setNotice("");
+    setError("");
+    setCarts((prev) => {
+      const empty = prev.find((c) => c.lines.length === 0);
+      if (empty) {
+        setActiveCartId(empty.id);
+        return prev;
+      }
+      if (prev.length >= MAX_CARTS) {
+        return prev;
+      }
+      const fresh = createEmptyCartSession();
+      setActiveCartId(fresh.id);
+      return [...prev, fresh];
+    });
+  }, [dismissCompletedSaleUi]);
+
+  /** Abandon / clear the active till tab (Clear sale). */
   const onStartNewSale = useCallback(() => {
     const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
     if (!active) return;
@@ -5437,6 +5470,7 @@ export function QuickSaleWorkspace({
             void onDownloadReceiptPdf().catch(() => undefined),
           receiptLoading,
           onStartNewSale,
+          onReadyForNextSale,
           onClearSale,
           onOpenShift: () => onPosShiftShortcut("open-shift"),
           stockOverrideError,

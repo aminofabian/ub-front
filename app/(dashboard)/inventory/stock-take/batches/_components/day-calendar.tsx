@@ -16,17 +16,25 @@ const STATE_LABEL: Record<DayTile["state"], string> = {
 };
 
 /** One square per counting day; today's square fills as the batch is counted. */
-export function DayCalendar({ tiles, caption }: { tiles: DayTile[]; caption: string }) {
+export function DayCalendar({
+  tiles,
+  caption,
+}: {
+  tiles: DayTile[];
+  caption: string;
+}) {
   const visible = tiles.slice(0, MAX_VISIBLE_DAYS);
   const hiddenDays = tiles.length - visible.length;
   return (
     <figure className="m-0">
-      <ol className="grid grid-cols-7 gap-1.5" aria-label={caption}>
+      <ol className="grid grid-cols-7 gap-1" aria-label={caption}>
         {visible.map((tile) => (
           <DaySquare key={tile.key} tile={tile} />
         ))}
       </ol>
-      <figcaption className={cn("mt-2 text-[12.5px] leading-relaxed", COUNT_TONE.mute)}>
+      <figcaption
+        className={cn("mt-1.5 text-[11.5px] leading-snug", COUNT_TONE.mute)}
+      >
         {caption}
         {hiddenDays > 0 ? ` · ${hiddenDays} more days not shown` : ""}
       </figcaption>
@@ -44,8 +52,9 @@ function DaySquare({ tile }: { tile: DayTile }) {
         tile.state === "done" &&
           "border-transparent bg-[var(--op-accent,#1d4b3b)] text-[var(--op-surface,#fcfaf5)]",
         tile.state === "current" &&
-          cn("border-2 border-[var(--op-accent,#1d4b3b)]", COUNT_TONE.surface),
-        tile.state === "upcoming" && cn(COUNT_TONE.surface, COUNT_TONE.hair, COUNT_TONE.faint),
+          cn("border border-[var(--op-accent,#1d4b3b)]", COUNT_TONE.surface),
+        tile.state === "upcoming" &&
+          cn(COUNT_TONE.surface, COUNT_TONE.hair, COUNT_TONE.faint),
       )}
     >
       {tile.state === "current" ? (
@@ -55,19 +64,22 @@ function DaySquare({ tile }: { tile: DayTile }) {
           style={{ height: `${Math.round(tile.fill * 100)}%` }}
         />
       ) : null}
-      <span className="relative text-[9px] font-semibold uppercase leading-none opacity-70">
+      <span className="relative text-[8px] font-semibold uppercase leading-none opacity-70">
         {weekday}
       </span>
       <span
         className={cn(
-          "relative text-[17px] font-semibold leading-tight",
+          "relative text-[14px] font-semibold leading-none",
           tile.state === "current" && COUNT_TONE.ink,
         )}
       >
         {tile.date.getDate()}
       </span>
       {tile.state === "done" ? (
-        <Check className="absolute right-1 top-1 size-2.5 stroke-[3]" aria-hidden />
+        <Check
+          className="absolute right-0.5 top-0.5 size-2 stroke-[3]"
+          aria-hidden
+        />
       ) : null}
     </li>
   );

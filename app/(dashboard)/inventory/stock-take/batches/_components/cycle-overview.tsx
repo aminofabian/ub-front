@@ -26,15 +26,18 @@ type Props = {
 /** A full count in progress (or just finished): where it stands and what's next today. */
 export function CycleOverview(props: Props) {
   const { cycle } = props;
-  const tiles = useMemo(() => buildDayTiles(cycleDayTileInput(cycle, new Date())), [cycle]);
+  const tiles = useMemo(
+    () => buildDayTiles(cycleDayTileInput(cycle, new Date())),
+    [cycle],
+  );
   const completed = cycle.status === "completed";
   const caption = completed
     ? "Each square is a day the shop was counted."
-    : "Each square is one day's batch. Today's square fills as you count.";
+    : "Each square is one day's batch.";
+
   return (
-    <section className="flex flex-col gap-6 px-1 pt-3">
+    <section className="flex flex-col gap-4">
       <CycleHeadline cycle={cycle} />
-      <DayCalendar tiles={tiles} caption={caption} />
       {completed ? null : (
         <TodayBatchPanel
           cycle={cycle}
@@ -43,7 +46,12 @@ export function CycleOverview(props: Props) {
           onOpenBatch={props.onOpenBatch}
         />
       )}
-      <BatchHistory batches={cycle.batches} canApprove={props.canApprove} onReview={props.onReview} />
+      <DayCalendar tiles={tiles} caption={caption} />
+      <BatchHistory
+        batches={cycle.batches}
+        canApprove={props.canApprove}
+        onReview={props.onReview}
+      />
       {props.canApprove ? (
         <CycleFooterActions
           completed={completed}

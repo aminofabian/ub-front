@@ -131,6 +131,26 @@ export function pickActiveCartId(
 }
 
 /**
+ * Drop a completed till tab and land on a blank sale for the next customer.
+ * Always prefers an empty spare over the oldest held cart so drawer-close /
+ * "New sale" cannot wipe parked lines.
+ */
+export function cartsAfterCompletedSale(
+  carts: CartSession[],
+  cartIdToClear: string,
+): { carts: CartSession[]; activeCartId: string } {
+  const rest = carts.filter((c) => c.id !== cartIdToClear);
+  let next = rest.length === 0 ? [createEmptyCartSession()] : [...rest];
+  if (!next.some((c) => c.lines.length === 0) && next.length < MAX_CARTS) {
+    next = [...next, createEmptyCartSession()];
+  }
+  return {
+    carts: next,
+    activeCartId: pickActiveCartId(next, cartIdToClear),
+  };
+}
+
+/**
  * Ensure a cart tab exists for add-to-cart when none is selected (stale id)
  * or when every open tab already has lines.
  */

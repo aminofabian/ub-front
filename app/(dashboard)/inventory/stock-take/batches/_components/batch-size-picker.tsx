@@ -17,11 +17,16 @@ type Props = {
 export function BatchSizePicker({ value, min, max, onChange }: Props) {
   const isPreset = (PRESET_SIZES as readonly number[]).includes(value);
   return (
-    <fieldset className="flex flex-col gap-2.5">
-      <legend className={cn("mb-2.5 text-[14px] font-semibold", COUNT_TONE.ink)}>
+    <fieldset className="flex flex-col gap-2">
+      <legend className={cn("mb-1 text-[12.5px] font-semibold", COUNT_TONE.ink)}>
         Products per day
       </legend>
-      <div className="grid grid-cols-4 gap-1 rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)] p-1">
+      <div
+        className={cn(
+          "grid grid-cols-4 gap-0.5 rounded-[2px] p-0.5",
+          "bg-[color-mix(in_srgb,var(--op-ink,#121a16)_6%,transparent)]",
+        )}
+      >
         {PRESET_SIZES.map((size) => (
           <button
             key={size}
@@ -29,9 +34,9 @@ export function BatchSizePicker({ value, min, max, onChange }: Props) {
             aria-pressed={value === size}
             onClick={() => onChange(size)}
             className={cn(
-              "h-11 rounded-[9px] font-heading text-[19px] font-semibold tabular-nums transition-[background-color,box-shadow,color] duration-200",
+              "h-10 rounded-[2px] text-[16px] font-semibold tabular-nums transition-[background-color,color] duration-150",
               value === size
-                ? cn("bg-white shadow-[0_1px_3px_rgba(21,35,31,0.14)]", COUNT_TONE.teal)
+                ? cn(COUNT_TONE.surface, COUNT_TONE.teal, "shadow-sm")
                 : COUNT_TONE.mute,
             )}
           >
@@ -39,8 +44,8 @@ export function BatchSizePicker({ value, min, max, onChange }: Props) {
           </button>
         ))}
       </div>
-      <label className={cn("flex items-center gap-3 text-[14px]", COUNT_TONE.mute)}>
-        Or type a number
+      <label className={cn("flex items-center gap-2.5 text-[12.5px]", COUNT_TONE.mute)}>
+        Or type
         <input
           key={value}
           type="number"
@@ -52,15 +57,17 @@ export function BatchSizePicker({ value, min, max, onChange }: Props) {
           aria-describedby="batch-size-range"
           onBlur={(e) => commitTyped(e.currentTarget.value, onChange)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") commitTyped(e.currentTarget.value, onChange);
+            if (e.key === "Enter") {
+              commitTyped(e.currentTarget.value, onChange);
+            }
           }}
           className={cn(
-            "h-11 w-24 rounded-xl border bg-white px-3 text-[16px] tabular-nums focus:border-[var(--pos-primary,#0f766e)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
+            "h-9 w-20 rounded-[2px] border bg-[var(--op-surface,#fcfaf5)] px-2.5 text-[14px] tabular-nums focus:border-[var(--op-accent,#1d4b3b)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--op-accent,#1d4b3b)_22%,transparent)]",
             COUNT_TONE.hair,
             COUNT_TONE.ink,
           )}
         />
-        <span id="batch-size-range" className={cn("text-[13px]", COUNT_TONE.faint)}>
+        <span id="batch-size-range" className={cn("text-[12px]", COUNT_TONE.faint)}>
           {min}–{max}
         </span>
       </label>

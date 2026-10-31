@@ -1285,7 +1285,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   voidLoading={cart.voidLoading}
                   onDownloadReceiptPdf={cart.onDownloadReceiptPdf}
                   receiptLoading={cart.receiptLoading}
-                  onStartNewSale={newSale}
+                  onStartNewSale={cart.onReadyForNextSale ?? newSale}
                   receiptPrinter={cart.receiptPrinter}
                   whatsappReceiptEnabled={cart.whatsappReceiptEnabled}
                 />

@@ -24,21 +24,21 @@ export function CycleFooterActions({ completed, busy, onCancel, onStartNew }: Pr
     );
   }
   return (
-    <div className={cn("flex flex-col items-start gap-1 border-t pt-4", COUNT_TONE.hair)}>
+    <div className={cn("flex flex-col items-start gap-0.5 border-t pt-3", COUNT_TONE.hair)}>
       <button
         type="button"
         disabled={busy}
         onClick={() => (confirming ? onCancel() : setConfirming(true))}
         onBlur={() => setConfirming(false)}
         className={cn(
-          "min-h-11 text-[14px] font-medium underline-offset-4 hover:underline disabled:opacity-50",
+          "min-h-9 text-[13px] font-medium underline-offset-4 hover:underline disabled:opacity-50",
           confirming ? "text-red-700" : COUNT_TONE.mute,
         )}
       >
         {confirming ? "Tap again to call off the full count" : "Call off this full count"}
       </button>
-      <p className={cn("text-[13px]", COUNT_TONE.faint)}>
-        Counts already posted to stock stay. Uncounted products are dropped from the plan.
+      <p className={cn("text-[12px] leading-snug", COUNT_TONE.faint)}>
+        Counts already posted stay. Uncounted products drop from the plan.
       </p>
     </div>
   );
