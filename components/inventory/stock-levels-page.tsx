@@ -2426,28 +2426,33 @@ export function StockLevelsPage() {
     return (
       <div className="premium-stock-levels relative min-h-full bg-[var(--op-bg)]">
         <div className={cn(DASHBOARD_MAX, salesPaper)}>
-        <DashboardPageHero
-          icon={Warehouse}
-          title="Stock"
-          description={
-            [activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-            "Choose a branch to see in-store stock"
-          }
-        />
-        <div className={cn(salesSurface, "overflow-hidden")}>
-          {departmentRail}
-          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
-            <StockActionHub
-              actions={hubActions}
-              outCount={loading && rows.length === 0 ? null : stockCounts.out}
-              lowCount={loading && rows.length === 0 ? null : stockCounts.low}
-              countsLoading={loading && rows.length === 0}
-              onOpenLevels={openLevels}
-              fullCountProgress={fullCountProgress}
-              watchlist={lowStockProducts}
-            />
+          <DashboardPageHero
+            icon={Warehouse}
+            title="Stock"
+            description={
+              [activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
+              "Choose a branch to see in-store stock"
+            }
+          />
+          <div
+            className={cn(
+              salesSurface,
+              "overflow-hidden border border-[var(--op-rule)] bg-[var(--op-surface)] shadow-none ring-0",
+            )}
+          >
+            {departmentRail}
+            <div className="px-3.5 pb-1 pt-4 sm:px-5 sm:pt-5">
+              <StockActionHub
+                actions={hubActions}
+                outCount={loading && rows.length === 0 ? null : stockCounts.out}
+                lowCount={loading && rows.length === 0 ? null : stockCounts.low}
+                countsLoading={loading && rows.length === 0}
+                onOpenLevels={openLevels}
+                fullCountProgress={fullCountProgress}
+                watchlist={lowStockProducts}
+              />
+            </div>
           </div>
-        </div>
         </div>
       </div>
     );

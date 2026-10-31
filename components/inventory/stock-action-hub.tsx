@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -19,12 +24,17 @@ import {
 } from "@/components/ui/sheet-drag";
 import { cn } from "@/lib/utils";
 
-const ink = "text-[var(--order-ink,#15231f)]";
-const mute =
-  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]";
-const hair =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
-const teal = "var(--pos-primary,#0f766e)";
+const ink = "text-[var(--op-ink)]";
+const mute = "text-[var(--op-muted)]";
+const hair = "border-[var(--op-rule)]";
+const ease = "duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]";
+/* Explicit radius — .premium-stock-levels remaps rounded-xl/lg to 2px. */
+const surface =
+  "rounded-[12px] border border-[var(--op-rule)] bg-[var(--op-surface)]";
+const sectionLabel =
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--op-muted)]";
+const sectionLink =
+  "text-[12px] font-semibold text-[var(--op-accent)] transition-colors hover:text-[var(--op-accent-deep)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--op-bg)]";
 
 type StockWatchItem = {
   itemId: string;
@@ -51,55 +61,101 @@ function watchQty(n: number | string | null | undefined): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-/**
- * Soft washes for the services tiles, cycled by position so the board reads as
- * one calm family rather than a rainbow. Each tone pairs a fill with its own
- * readable ink for the icon.
- */
+function formatCount(
+  loading: boolean,
+  value: number | null,
+  fallback = 0,
+): string {
+  if (loading && value == null) return "—";
+  return (value ?? fallback).toLocaleString("en-KE");
+}
 
+function padToCols(count: number, cols: number): number {
+  return (cols - (count % cols)) % cols;
+}
 
-/** One services tile: label top-left, icon bottom-right, tinted fill. */
-function ServicesTile({ action }: { action: StockHubAction }) {
+/** One tools tile: icon, title, short hint. */
+function ToolTile({
+  action,
+  accent = false,
+}: {
+  action: StockHubAction;
+  accent?: boolean;
+}) {
   return (
     <Link
       href={action.href}
       className={cn(
-        "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] p-3 transition-colors",
-        "hover:border-[var(--op-accent)]",
-        "active:bg-[color-mix(in_srgb,var(--op-accent)_4%,var(--op-surface))]",
+        "group flex h-full min-h-[6.25rem] flex-col gap-3 bg-[var(--op-surface)] p-3.5 transition-colors",
+        ease,
+        "hover:bg-[color-mix(in_srgb,var(--op-accent)_4%,var(--op-surface))]",
+        "active:bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-accent)]",
       )}
     >
       <span
         className={cn(
-          "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
-          ink,
+          "inline-flex size-8 shrink-0 items-center justify-center rounded-lg",
+          accent
+            ? "bg-[var(--op-accent)] text-[var(--op-surface)]"
+            : "bg-[color-mix(in_srgb,var(--op-ink)_6%,var(--op-surface))] text-[var(--op-muted)]",
         )}
       >
-        {action.label}
+        <action.icon className="size-4" strokeWidth={1.75} aria-hidden />
       </span>
-      <action.icon
-        className="size-7 self-end text-[var(--op-accent)]"
-        strokeWidth={1.5}
-        aria-hidden
-      />
+      <span className="mt-auto min-w-0">
+        <span
+          className={cn(
+            "block text-[13px] font-semibold leading-tight tracking-[-0.01em]",
+            ink,
+          )}
+        >
+          {action.label}
+        </span>
+        {action.hint ? (
+          <span
+            className={cn(
+              "mt-1 block text-[11.5px] leading-snug line-clamp-2",
+              mute,
+            )}
+          >
+            {action.hint}
+          </span>
+        ) : null}
+      </span>
     </Link>
   );
 }
 
-/** The full board — always a closed rectangle, whatever the action count. */
-function ServicesGrid({ actions }: { actions: readonly StockHubAction[] }) {
-  const fill = (3 - (actions.length % 3)) % 3;
+function ToolsGrid({
+  actions,
+  colsClass = "grid-cols-2 sm:grid-cols-3",
+  fillCols = 3,
+}: {
+  actions: readonly StockHubAction[];
+  colsClass?: string;
+  fillCols?: number;
+}) {
+  const fill = padToCols(actions.length, fillCols);
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div
+      className={cn(
+        "grid gap-px overflow-hidden rounded-[12px] border border-[var(--op-rule)] bg-[var(--op-rule)]",
+        colsClass,
+      )}
+    >
       {actions.map((action) => (
-        <ServicesTile key={action.id} action={action} />
+        <ToolTile
+          key={action.id}
+          action={action}
+          accent={action.rank === "pair"}
+        />
       ))}
       {Array.from({ length: fill }).map((_, index) => (
         <span
           key={`fill-${index}`}
           aria-hidden
-          className="min-h-[5.75rem]"
+          className="min-h-[6.25rem] bg-[var(--op-surface)]"
         />
       ))}
     </div>
@@ -158,7 +214,7 @@ function StockToolsSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 sm:hidden"
+      className="fixed inset-0 z-50 lg:hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Inventory tools"
@@ -179,7 +235,7 @@ function StockToolsSheet({
         ref={panelRef}
         className={cn(
           "premium-portal absolute inset-x-0 bottom-0 z-10 flex max-h-[86dvh] flex-col",
-          "rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)] shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.24)]",
+          "rounded-t-2xl border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)] shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.24)]",
           "pb-[env(safe-area-inset-bottom)]",
           leaving
             ? "animate-out fade-out slide-out-to-bottom duration-200 ease-in"
@@ -195,11 +251,7 @@ function StockToolsSheet({
           )}
         >
           <div className="min-w-0 flex-1">
-            <h2
-              className={cn(
-                "text-[1.35rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]",
-              )}
-            >
+            <h2 className="text-[1.35rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]">
               Inventory tools
             </h2>
             <p className={cn("mt-1 text-[11px] leading-none", mute)}>
@@ -210,7 +262,7 @@ function StockToolsSheet({
             type="button"
             onClick={onClose}
             className={cn(
-              "inline-flex size-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] transition-colors",
+              "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-[var(--op-rule)] bg-[var(--op-surface)] transition-colors",
               ink,
               "hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]",
@@ -221,15 +273,123 @@ function StockToolsSheet({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2">
-          <ServicesGrid actions={actions} />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-3">
+          <ToolsGrid actions={actions} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Stock Home — hero banner, attention pair, and the tools behind a sheet. */
+type MetricTone = "alert" | "quiet" | "warn" | "cta";
+
+function MetricCell({
+  label,
+  value,
+  action,
+  tone,
+  onClick,
+  href,
+  children,
+  className,
+}: {
+  label: string;
+  value?: string;
+  action?: string;
+  tone: MetricTone;
+  onClick?: () => void;
+  href?: string;
+  children?: ReactNode;
+  className?: string;
+}) {
+  const shell = cn(
+    "flex h-full min-h-[5.75rem] flex-col justify-between bg-[var(--op-surface)] p-3.5 text-left transition-colors",
+    ease,
+    tone === "alert" &&
+      "bg-[color-mix(in_srgb,var(--op-highlight)_9%,var(--op-surface))]",
+    tone === "warn" &&
+      "bg-[color-mix(in_srgb,var(--op-highlight)_5%,var(--op-surface))]",
+    tone === "cta" && "bg-[var(--op-accent-deep)] text-[var(--op-surface)]",
+    tone === "quiet" &&
+      "hover:bg-[color-mix(in_srgb,var(--op-accent)_3%,var(--op-surface))]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-accent)]",
+    className,
+  );
+
+  const body = children ?? (
+    <>
+      <span
+        className={cn(
+          "text-[12px] font-medium tracking-[-0.01em]",
+          tone === "alert" && "text-[var(--op-highlight)]",
+          tone === "warn" && "text-[color-mix(in_srgb,var(--op-highlight)_82%,var(--op-ink))]",
+          tone === "quiet" && mute,
+          tone === "cta" &&
+            "text-[color-mix(in_srgb,var(--op-surface)_78%,transparent)]",
+        )}
+      >
+        {label}
+      </span>
+      <span className="flex items-end justify-between gap-2">
+        <span
+          className={cn(
+            "font-heading text-[1.85rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
+            tone === "alert" && "text-[var(--op-highlight)]",
+            tone === "warn" && "text-[var(--op-highlight)]",
+            tone === "quiet" && ink,
+            tone === "cta" && "text-[var(--op-surface)]",
+          )}
+        >
+          {value}
+        </span>
+        {action ? (
+          <span
+            className={cn(
+              "mb-0.5 text-[12px] font-semibold",
+              tone === "alert" && "text-[var(--op-highlight)]",
+              tone === "warn" && "text-[var(--op-accent)]",
+              tone === "quiet" && "text-[var(--op-accent)]",
+              tone === "cta" && "text-[var(--op-surface)]",
+            )}
+          >
+            {action}
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={shell}>
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={shell}>
+      {body}
+    </button>
+  );
+}
+
+function SectionHead({
+  title,
+  action,
+}: {
+  title: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex h-7 items-baseline justify-between gap-3 px-0.5">
+      <h2 className={sectionLabel}>{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+/** Stock Home — attention strip, under-reorder desk, and the tools board. */
 export function StockActionHub({
   actions,
   outCount,
@@ -258,29 +418,28 @@ export function StockActionHub({
       : 0;
   const outN = outCount ?? 0;
   const lowN = lowCount ?? 0;
-  const watch = watchlist.slice(0, 5);
-
-  // Phone home keeps a single closed row of teasers; the full board lives in
-  // the sheet. The last cell is the sheet trigger, so one tap reaches anything.
-  const teaser = services.slice(0, 2);
-  const teaserCells = teaser.length + 1;
-  const teaserFill = (3 - (teaserCells % 3)) % 3;
+  const reorderN = watchlist.length > 0 ? watchlist.length : lowN;
+  const watch = watchlist.slice(0, 6);
+  const mobileCells = services.slice(0, 5);
+  const mobileFill = padToCols(mobileCells.length + (services.length > mobileCells.length ? 1 : 0), 2);
 
   return (
-    <div className="flex flex-col gap-3 px-0.5 pb-8 pt-1 sm:gap-5 sm:px-0 sm:pb-6">
+    <div className="flex flex-col gap-6 px-0.5 pb-8 pt-1 sm:gap-7 sm:px-0 sm:pb-6">
       {fullCountProgress && fullCountProgress.remaining > 0 ? (
         <Link
           href={APP_ROUTES.inventoryStockTakeBatches}
           className={cn(
-            "block rounded-2xl bg-white px-4 py-3.5 ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-shadow",
-            "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-            "hover:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            "block px-4 py-3.5 transition-colors",
+            surface,
+            ease,
+            "hover:border-[var(--op-accent)]",
+            "active:bg-[color-mix(in_srgb,var(--op-accent)_4%,var(--op-surface))]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]",
           )}
         >
           <div className="flex items-start gap-3">
             <ClipboardList
-              className="mt-0.5 size-5 shrink-0 text-[var(--pos-primary,#0f766e)]"
+              className="mt-0.5 size-5 shrink-0 text-[var(--op-accent)]"
               strokeWidth={1.75}
               aria-hidden
             />
@@ -296,9 +455,7 @@ export function StockActionHub({
                 {fullCountProgress.detail}
               </p>
               <div
-                className={cn(
-                  "mt-2.5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
-                )}
+                className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--op-ink)_8%,var(--op-surface))]"
                 role="progressbar"
                 aria-valuenow={countPct}
                 aria-valuemin={0}
@@ -306,7 +463,7 @@ export function StockActionHub({
                 aria-label="Full count progress"
               >
                 <div
-                  className="h-full rounded-full bg-[var(--pos-primary,#0f766e)] transition-[width] duration-300"
+                  className={cn("h-full rounded-full bg-[var(--op-accent)] transition-[width]", ease)}
                   style={{ width: `${countPct}%` }}
                 />
               </div>
@@ -316,318 +473,241 @@ export function StockActionHub({
         </Link>
       ) : null}
 
-      {/* Attention strip — the two numbers that can cost money today */}
-      <div className={cn("grid grid-cols-2 gap-2")}>
-        <button
-          type="button"
+      {/* Attention strip — one board, four equal cells */}
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-[var(--op-rule)] bg-[var(--op-rule)]",
+          hero ? "lg:grid-cols-4" : "lg:grid-cols-3",
+        )}
+      >
+        <MetricCell
+          label="Sold out"
+          value={formatCount(countsLoading, outCount)}
+          action={outN > 0 ? "Open" : "Clear"}
+          tone={outN > 0 ? "alert" : "quiet"}
           onClick={() => onOpenLevels("out")}
-          className={cn(
-            "flex min-h-[4.75rem] flex-col justify-between rounded-xl px-3.5 py-3 text-left ring-1 transition-colors",
-            outN > 0
-              ? "bg-[#fdecec] ring-[#f5c2c0]"
-              : cn(
-                  "bg-white ring-black/[0.05]",
-                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                ),
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-          )}
-        >
-          <span
-            className={cn(
-              "text-[11px] font-semibold tracking-[-0.01em]",
-              outN > 0 ? "text-[#b42318]" : mute,
-            )}
-          >
-            Sold out
-          </span>
-          <span className="flex items-end justify-between gap-2">
-            <span
-              className={cn(
-                "font-heading text-[1.6rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                outN > 0 ? "text-[#d92d20]" : ink,
-              )}
-            >
-              {countsLoading && outCount == null
-                ? "—"
-                : outN.toLocaleString("en-KE")}
-            </span>
-            <span
-              className={cn(
-                "mb-0.5 text-[11px] font-semibold",
-                outN > 0 ? "text-[#b42318]" : "text-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              {outN > 0 ? "Open" : "Clear"}
-            </span>
-          </span>
-        </button>
-        <button
-          type="button"
+        />
+        <MetricCell
+          label="Running low"
+          value={formatCount(countsLoading, lowCount)}
+          action={lowN > 0 ? "Open" : "Clear"}
+          tone={lowN > 0 ? "warn" : "quiet"}
           onClick={() => onOpenLevels("low")}
-          className={cn(
-            "flex min-h-[4.75rem] flex-col justify-between rounded-xl px-3.5 py-3 text-left ring-1 transition-colors",
-            lowN > 0
-              ? "bg-[#fdf6ec] ring-[#f0dcb8]"
-              : cn(
-                  "bg-white ring-black/[0.05]",
-                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                ),
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-          )}
-        >
-          <span
-            className={cn(
-              "text-[11px] font-semibold tracking-[-0.01em]",
-              lowN > 0 ? "text-[#b45309]" : mute,
-            )}
+        />
+        <MetricCell
+          label="Under reorder"
+          value={formatCount(countsLoading, reorderN)}
+          action={reorderN > 0 ? "View" : "Clear"}
+          tone="quiet"
+          onClick={() => onOpenLevels("low")}
+          className="col-span-2 sm:col-span-1"
+        />
+        {hero ? (
+          <MetricCell
+            label={hero.label}
+            tone="cta"
+            href={hero.href}
+            className="col-span-2 sm:col-span-1"
           >
-            Running low
-          </span>
-          <span className="flex items-end justify-between gap-2">
-            <span
-              className={cn(
-                "font-heading text-[1.6rem] font-semibold tabular-nums leading-none tracking-[-0.03em]",
-                lowN > 0 ? "text-[#b45309]" : ink,
-              )}
-            >
-              {countsLoading && lowCount == null
-                ? "—"
-                : lowN.toLocaleString("en-KE")}
+            <span className="flex h-full min-h-[4.75rem] flex-col justify-between gap-3">
+              <span className="flex items-start justify-between gap-3">
+                <span className="text-[12px] font-medium tracking-[-0.01em] text-[color-mix(in_srgb,var(--op-surface)_78%,transparent)]">
+                  {hero.label}
+                </span>
+                <hero.icon
+                  className="size-5 shrink-0 text-[color-mix(in_srgb,var(--op-surface)_42%,transparent)]"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              </span>
+              <span className="flex items-end justify-between gap-3">
+                <span className="min-w-0 max-w-[16rem] text-[12.5px] leading-snug text-[color-mix(in_srgb,var(--op-surface)_86%,transparent)]">
+                  {watch.length > 0
+                    ? "Open the shelf and correct the ones that sell."
+                    : hero.hint || "Find a product and set what’s on the shelf."}
+                </span>
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--op-surface)_28%,transparent)] bg-[color-mix(in_srgb,var(--op-surface)_12%,transparent)]">
+                  <ArrowRight className="size-4 text-[var(--op-surface)]" aria-hidden />
+                </span>
+              </span>
             </span>
-            <span
-              className={cn(
-                "mb-0.5 text-[11px] font-semibold",
-                lowN > 0 ? "text-[#b45309]" : "text-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              {lowN > 0 ? "Open" : "Clear"}
-            </span>
-          </span>
-        </button>
+          </MetricCell>
+        ) : null}
       </div>
 
-      {watch.length > 0 ? (
-        <section aria-label="Under reorder">
-          <div className="flex items-baseline justify-between gap-3 px-0.5">
-            <h2 className={cn("text-[13px] font-semibold tracking-[-0.01em]", ink)}>
-              Under reorder
-            </h2>
-            <button
-              type="button"
-              onClick={() => onOpenLevels("low")}
-              className="text-[12px] font-semibold text-[var(--pos-primary,#0f766e)]"
-            >
-              Open the low list
-            </button>
-          </div>
-          <ul className={cn("mt-1.5 divide-y", "divide-black/[0.06]")}>
-            {watch.map((item) => {
-              const onHand = watchQty(item.currentStock);
-              const reorder = watchQty(item.reorderLevel);
-              return (
-                <li key={item.itemId}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenLevels("low")}
-                    className={cn(
-                      "flex w-full items-center gap-3 py-2.5 text-left transition-colors",
-                      "hover:text-[var(--pos-primary,#0f766e)]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
-                    )}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className={cn("block truncate text-[14px] font-medium", ink)}>
-                        {item.itemName}
-                      </span>
-                      <span className={cn("mt-0.5 block text-[12px]", mute)}>
-                        {onHand.toLocaleString("en-KE")} on hand
-                        {reorder > 0
-                          ? ` · reorder at ${reorder.toLocaleString("en-KE")}`
-                          : ""}
-                      </span>
-                    </span>
-                    <ChevronRight className={cn("size-4 shrink-0", mute)} aria-hidden />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
-
-      {hero ? (
-        <Link
-          href={hero.href}
-          className={cn(
-            "group relative flex min-h-[6.5rem] items-end overflow-hidden rounded-2xl px-4 py-4 text-white shadow-[0_10px_28px_-14px_rgba(15,118,110,0.55)] sm:min-h-[6.5rem] sm:px-5 sm:py-5",
-            "transition-transform duration-150 ease-out active:scale-[0.985]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)] focus-visible:ring-offset-2",
-          )}
-          style={{
-            background: `linear-gradient(145deg, ${teal} 0%, color-mix(in srgb, ${teal} 68%, #062e2a) 100%)`,
-          }}
-        >
-          <span
-            className="pointer-events-none absolute -right-4 -top-6 size-32 rotate-12 opacity-[0.14]"
-            aria-hidden
-          >
-            <hero.icon className="size-full" strokeWidth={1.25} />
-          </span>
-          <span className="relative flex w-full items-end justify-between gap-3">
-            <span className="min-w-0">
-              <span className="block text-[1.55rem] font-semibold tracking-[-0.025em] sm:text-[1.55rem]">
-                {hero.label}
-              </span>
-              <span className="mt-1.5 block max-w-[18rem] text-[13px] leading-snug text-white/85">
-                {watch.length > 0
-                  ? `${watchlist.length.toLocaleString("en-KE")} under reorder. Open the shelf and correct the ones that sell.`
-                  : hero.hint || "Find a product and set what’s on the shelf."}
-              </span>
-            </span>
-            <span className="mb-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white/15">
-              <ArrowRight className="size-5" aria-hidden />
-            </span>
-          </span>
-        </Link>
-      ) : null}
-
-      {/* Phone: a teaser row plus the sheet. Tablet up: the ranked desk. */}
-      {services.length > 0 ? (
-        <>
-          <section aria-label="Inventory tools" className="sm:hidden">
-            <p
-              className={cn(
-                "px-0.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em]",
-                mute,
-              )}
-            >
-              Inventory tools
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {teaser.map((action) => (
-                <ServicesTile key={action.id} action={action} />
-              ))}
+      {/* Desk: under reorder + tools — equal columns, matched headers */}
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2 lg:gap-5">
+        <section aria-label="Under reorder" className="flex min-w-0 flex-col">
+          <SectionHead
+            title="Under reorder"
+            action={
               <button
                 type="button"
-                onClick={() => setSheetOpen(true)}
-                aria-haspopup="dialog"
+                onClick={() => onOpenLevels("low")}
+                className={sectionLink}
+              >
+                Open the low list
+              </button>
+            }
+          />
+
+          <div className={cn("mt-2.5 flex min-h-0 flex-1 flex-col overflow-hidden", surface)}>
+            <div
+              className={cn(
+                "grid grid-cols-[minmax(0,1fr)_5.5rem_6.25rem] items-center gap-2 border-b px-3.5 py-2.5",
+                hair,
+              )}
+            >
+              <span className={cn("text-[10px] font-semibold uppercase tracking-[0.1em]", mute)}>
+                Item
+              </span>
+              <span
                 className={cn(
-                  "flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-xl bg-white p-3 text-left ring-1 ring-black/[0.05] transition-colors",
-                  "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
+                  "text-right text-[10px] font-semibold uppercase tracking-[0.1em]",
+                  mute,
                 )}
               >
-                <span
-                  className={cn(
-                    "text-[12.5px] font-semibold leading-[1.2] tracking-[-0.01em]",
-                    ink,
-                  )}
-                >
-                  All tools
-                </span>
-                <span className="inline-flex size-7 items-center justify-center self-end rounded-lg bg-[#e6f4f0]">
-                  <LayoutGrid
-                    className="size-4 text-[var(--pos-primary,#0f766e)]"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                </span>
-              </button>
-              {Array.from({ length: teaserFill }).map((_, index) => (
-                <span
-                  key={`fill-${index}`}
-                  aria-hidden
-                  className="min-h-[5.75rem]"
-                />
-              ))}
+                On hand
+              </span>
+              <span className="sr-only">Action</span>
             </div>
+
+            {watch.length > 0 ? (
+              <ul className="divide-y divide-[var(--op-rule-soft)]">
+                {watch.map((item) => {
+                  const onHand = watchQty(item.currentStock);
+                  return (
+                    <li key={item.itemId}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenLevels("low")}
+                        className={cn(
+                          "grid w-full grid-cols-[minmax(0,1fr)_5.5rem_6.25rem] items-center gap-2 px-3.5 py-3 text-left transition-colors",
+                          ease,
+                          "hover:bg-[color-mix(in_srgb,var(--op-accent)_3%,var(--op-surface))]",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-accent)]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "min-w-0 truncate text-[14px] font-medium",
+                            ink,
+                          )}
+                        >
+                          {item.itemName}
+                        </span>
+                        <span className="text-right font-heading text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--op-highlight)]">
+                          {onHand.toLocaleString("en-KE")}
+                        </span>
+                        <span className="flex items-center justify-end gap-1.5">
+                          <span
+                            className={cn(
+                              "inline-flex h-7 items-center rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                              "bg-[color-mix(in_srgb,var(--op-highlight)_10%,var(--op-surface))] text-[var(--op-highlight)]",
+                            )}
+                          >
+                            Recount
+                          </span>
+                          <ChevronRight
+                            className={cn("size-4 shrink-0", mute)}
+                            aria-hidden
+                          />
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+                <p className={cn("text-[14px] font-medium", ink)}>
+                  Nothing under reorder
+                </p>
+                <p className={cn("mt-1 max-w-[22ch] text-[12.5px] leading-snug", mute)}>
+                  When stock dips below the reorder point, it shows up here.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {services.length > 0 ? (
+          <section
+            aria-label="Orders and stock tools"
+            className="flex min-w-0 flex-col"
+          >
+            <SectionHead
+              title="Orders and stock tools"
+              action={
+                <span className={cn("text-[12px] tabular-nums", mute)}>
+                  {services.length} jobs
+                </span>
+              }
+            />
+
+            {/* Phone: compact board + sheet for the rest */}
+            <div className="mt-2.5 flex-1 lg:hidden">
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-[var(--op-rule)] bg-[var(--op-rule)]">
+                {mobileCells.map((action) => (
+                  <ToolTile
+                    key={action.id}
+                    action={action}
+                    accent={action.rank === "pair"}
+                  />
+                ))}
+                {services.length > mobileCells.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setSheetOpen(true)}
+                    aria-haspopup="dialog"
+                    className={cn(
+                      "flex min-h-[6.25rem] flex-col gap-3 bg-[var(--op-surface)] p-3.5 text-left transition-colors",
+                      ease,
+                      "active:bg-[color-mix(in_srgb,var(--op-accent)_4%,var(--op-surface))]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-accent)]",
+                    )}
+                  >
+                    <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--op-ink)_6%,var(--op-surface))] text-[var(--op-muted)]">
+                      <LayoutGrid className="size-4" strokeWidth={1.75} aria-hidden />
+                    </span>
+                    <span className="mt-auto min-w-0">
+                      <span
+                        className={cn(
+                          "block text-[13px] font-semibold leading-tight tracking-[-0.01em]",
+                          ink,
+                        )}
+                      >
+                        All tools
+                      </span>
+                      <span className={cn("mt-1 block text-[11.5px] leading-snug", mute)}>
+                        {services.length} jobs on the desk
+                      </span>
+                    </span>
+                  </button>
+                ) : null}
+                {Array.from({ length: mobileFill }).map((_, index) => (
+                  <span
+                    key={`mfill-${index}`}
+                    aria-hidden
+                    className="min-h-[6.25rem] bg-[var(--op-surface)]"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop: full descriptive board */}
+            <div className="mt-2.5 hidden flex-1 lg:block">
+              <ToolsGrid actions={services} />
+            </div>
+
+            <StockToolsSheet
+              open={sheetOpen}
+              onClose={closeSheet}
+              actions={services}
+            />
           </section>
-
-          <StockToolsSheet
-            open={sheetOpen}
-            onClose={closeSheet}
-            actions={services}
-          />
-        </>
-      ) : null}
-
-      {/* Tablet and up: ranked desk — pair cards, then the row list. */}
-      {pair.length > 0 ? (
-        <div className="hidden gap-2 sm:grid sm:grid-cols-2">
-          {pair.map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={cn(
-                "group flex min-h-[5.75rem] flex-col justify-between rounded-xl bg-white px-3.5 py-3.5 ring-1 ring-black/[0.05] transition-shadow",
-                "hover:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
-                "active:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              <action.icon
-                className="size-6 text-[var(--pos-primary,#0f766e)]"
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <span className="min-w-0">
-                <span
-                  className={cn(
-                    "block text-[15px] font-semibold tracking-[-0.015em]",
-                    ink,
-                  )}
-                >
-                  {action.label}
-                </span>
-                <span className={cn("mt-0.5 block text-[12px] leading-snug", mute)}>
-                  {action.hint}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-
-      {list.length > 0 ? (
-        <div className="hidden divide-y divide-black/[0.05] overflow-hidden rounded-xl bg-white ring-1 ring-black/[0.05] shadow-[0_1px_2px_rgba(16,24,40,0.05)] sm:block">
-          {list.map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={cn(
-                "flex min-h-14 items-center gap-3 px-3.5 py-3 transition-colors",
-                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
-                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#0f766e)]",
-              )}
-            >
-              <span
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-              >
-                <action.icon
-                  className={cn("size-4", mute)}
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block text-[14px] font-semibold tracking-[-0.01em]",
-                    ink,
-                  )}
-                >
-                  {action.label}
-                </span>
-                <span className={cn("block text-[12px]", mute)}>
-                  {action.hint}
-                </span>
-              </span>
-              <ChevronRight className={cn("size-5 shrink-0", mute)} aria-hidden />
-            </Link>
-          ))}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
