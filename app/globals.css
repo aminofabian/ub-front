@@ -7722,92 +7722,999 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     border-color: color-mix(in srgb, var(--op-accent) 35%, transparent) !important;
 }
 
-/* Branded route loading.
-   The wordmark settles, the caption follows, then the rule is drawn.
-   The ink then travels the rule at a constant pace. The previous sweep
-   used ease-out and ran well past the track, so the slow part of every
-   loop happened off the right edge and the line looked stalled. */
-@keyframes premium-loading-rise {
-    from {
-        opacity: 0;
-        transform: translateY(6px) scale(0.96);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+/* ── Storefront opening loader: one 15s story ────────────────────────────
+   A shopfront on the Kiosk paper wakes from dawn: the signboard lamp stutters
+   on, the awning rolls down, the side windows warm, stock appears on the
+   shelves, a key turns, and the door swings inward while the status line moves
+   from "waking up" to "Karibu". It is a brand moment for a storefront opening,
+   not a spinner, so the whole scene is drawn in CSS and paints before any
+   JavaScript runs. The illustration keeps its pinned palette; page chrome
+   (ground, status ink) uses the Kiosk tokens. Reduced motion holds the finished
+   open shop on a still frame. */
+.kiosk-shop-loader {
+    --ks-bg: #f4f1ea;
+    --ks-ink: #121a16;
+    --ks-muted: #626d66;
+    --ks-line: #d9d3c6;
+    --ks-wall: #e9e2d1;
+    --ks-door: #b5532f;
+    --ks-door-deep: #94421f;
+    --ks-frame: #2b2620;
+    --ks-brass: #c9a24a;
+    --ks-warm: #ffd98a;
+    --ks-cycle: 15s;
+
+    display: grid;
+    min-height: 100dvh;
+    place-items: center;
+    overflow: hidden;
+    padding: 0;
+    background: var(--ks-bg);
+    color: var(--ks-ink);
+    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
 }
 
-@keyframes premium-loading-caption-in {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.kiosk-shop-stage {
+    display: flex;
+    animation: kiosk-shop-stage var(--ks-cycle) infinite;
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
+    padding: 40px 24px;
 }
 
-@keyframes premium-loading-rule {
-    from {
-        clip-path: inset(0 100% 0 0);
-    }
-    to {
-        clip-path: inset(0 0 0 0);
-    }
-}
-
-@keyframes premium-loading-sweep {
+/* Fades out so the loop resets unseen; the first beat fades in quickly so a
+   sub-second load still lands on a drawn shopfront, not blank paper. */
+@keyframes kiosk-shop-stage {
     0% {
         opacity: 0;
-        transform: translateX(-100%);
     }
-    14% {
+    2%,
+    88% {
         opacity: 1;
     }
+    96%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* ── shopfront ─────────────────────────────────────────────────────────── */
+.kiosk-shop {
+    position: relative;
+    width: 260px;
+    height: 250px;
+}
+
+.kiosk-shop-wall {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px 10px 0 0;
+    background:
+        repeating-linear-gradient(180deg, transparent 0 14px, rgba(0, 0, 0, 0.04) 14px 15px),
+        var(--ks-wall);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.kiosk-shop-ground {
+    position: absolute;
+    right: -24px;
+    bottom: -8px;
+    left: -24px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--ks-frame);
+}
+
+/* Dawn lifts off the whole shop as the morning comes in. */
+.kiosk-shop-tint {
+    position: absolute;
+    z-index: 30;
+    inset: 0;
+    border-radius: 10px 10px 0 0;
+    background: rgba(40, 55, 100, 0.26);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    animation: kiosk-shop-tint var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-tint {
+    0%,
+    6% {
+        opacity: 1;
+    }
+    22%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Signboard: the lamp stutters before it holds. */
+.kiosk-shop-signboard {
+    position: absolute;
+    z-index: 7;
+    top: 14px;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 176px;
+    height: 48px;
+    transform: translateX(-50%);
+    padding-bottom: 3px;
+    border: 2px solid #3a332b;
+    border-radius: 6px;
+    background: #26211c;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+    animation: kiosk-shop-lamp var(--ks-cycle) infinite;
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.01em;
+}
+
+@keyframes kiosk-shop-lamp {
+    0%,
+    8% {
+        color: #5d564b;
+        text-shadow: none;
+    }
+    10% {
+        color: #f8deaa;
+        text-shadow: 0 0 14px rgba(255, 205, 120, 0.85);
+    }
+    11.5% {
+        color: #62594d;
+        text-shadow: none;
+    }
+    13% {
+        color: #f8deaa;
+        text-shadow: 0 0 14px rgba(255, 205, 120, 0.85);
+    }
+    14.5% {
+        color: #62594d;
+        text-shadow: none;
+    }
+    16%,
+    100% {
+        color: #f8deaa;
+        text-shadow: 0 0 16px rgba(255, 205, 120, 0.9);
+    }
+}
+
+/* Awning rolls down from the fascia. */
+.kiosk-shop-awning {
+    position: absolute;
+    z-index: 6;
+    top: 64px;
+    left: 10px;
+    width: 240px;
+    height: 34px;
+    transform-origin: top center;
+    animation: kiosk-shop-awning var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-awning {
+    0%,
+    12% {
+        transform: scaleY(0);
+        animation-timing-function: cubic-bezier(0.3, 1.2, 0.5, 1);
+    }
+    24%,
+    100% {
+        transform: scaleY(1);
+    }
+}
+
+.kiosk-shop-awning-shadow {
+    position: absolute;
+    z-index: 5;
+    top: 96px;
+    right: 12px;
+    left: 12px;
+    height: 20px;
+    background: linear-gradient(rgba(0, 0, 0, 0.2), transparent);
+    animation: kiosk-shop-awning-shadow var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-awning-shadow {
+    0%,
+    16% {
+        opacity: 0;
+    }
+    24%,
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Flanking windows warm up later in the story. */
+.kiosk-shop-window {
+    position: absolute;
+    z-index: 2;
+    top: 128px;
+    width: 46px;
+    height: 74px;
+    overflow: hidden;
+    border: 5px solid var(--ks-frame);
+    border-radius: 3px;
+    background: #23252c;
+}
+
+.kiosk-shop-window::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        115deg,
+        rgba(255, 255, 255, 0.22) 0 22%,
+        transparent 22% 34%,
+        rgba(255, 255, 255, 0.12) 34% 40%,
+        transparent 40%
+    );
+}
+
+.kiosk-shop-window--left {
+    left: 14px;
+}
+
+.kiosk-shop-window--right {
+    right: 14px;
+}
+
+.kiosk-shop-window-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 70%, #ffe5a8, #f2b95a 80%);
+    opacity: 0;
+    animation: kiosk-shop-window-glow var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-window-glow {
+    0%,
+    46% {
+        opacity: 0;
+    }
+    64%,
+    100% {
+        opacity: 1;
+    }
+}
+
+/* ── the doorway ───────────────────────────────────────────────────────── */
+.kiosk-shop-doorway {
+    position: absolute;
+    z-index: 4;
+    bottom: 0;
+    left: 84px;
+    width: 92px;
+    height: 132px;
+    perspective: 520px;
+}
+
+.kiosk-shop-interior {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border: 5px solid var(--ks-frame);
+    border-bottom: 0;
+    border-radius: 5px 5px 0 0;
+    background: linear-gradient(180deg, #fdebc6, #f6d99b);
+}
+
+/* The shop starts unlit. */
+.kiosk-shop-dim {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    background: #382d20;
+    animation: kiosk-shop-dim var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-dim {
+    0%,
+    44% {
+        opacity: 1;
+    }
+    62%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.kiosk-shop-shelf {
+    position: absolute;
+    right: 0;
+    left: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 30px;
+    padding: 0 7px;
+    border-bottom: 3px solid #a37a42;
+}
+
+.kiosk-shop-shelf--top {
+    top: 20px;
+}
+
+.kiosk-shop-shelf--middle {
+    top: 56px;
+}
+
+.kiosk-shop-shelf--bottom {
+    top: 92px;
+}
+
+/* Stock is set out item by item. --i staggers each piece. */
+.kiosk-shop-item {
+    opacity: 0;
+    transform-origin: bottom center;
+    animation: kiosk-shop-stock var(--ks-cycle) infinite;
+    animation-delay: calc(var(--ks-cycle) * 0.46 + var(--stock-index, 0) * 0.22s);
+}
+
+@keyframes kiosk-shop-stock {
+    0% {
+        opacity: 0;
+        transform: translateY(-9px) scale(0.6);
+    }
+    3% {
+        opacity: 1;
+        transform: translateY(1px) scale(1.06);
+    }
+    4.5%,
+    40% {
+        opacity: 1;
+        transform: none;
+    }
+    43%,
+    100% {
+        opacity: 0;
+        transform: none;
+    }
+}
+
+.kiosk-shop-jar {
+    width: 11px;
+    height: 15px;
+    border-radius: 3px;
+    background: #e0a93b;
+}
+
+.kiosk-shop-box {
+    width: 15px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--ks-door);
+}
+
+.kiosk-shop-bottle {
+    width: 7px;
+    height: 20px;
+    border-radius: 3px 3px 1px 1px;
+    background: #4f8a63;
+}
+
+.kiosk-shop-can {
+    width: 10px;
+    height: 13px;
+    border-radius: 2px;
+    background: #7d8aa0;
+}
+
+.kiosk-shop-tall {
+    width: 12px;
+    height: 17px;
+    border-radius: 2px;
+    background: #d9c9a4;
+}
+
+/* Shop bell, and the ding it makes when the door starts to move. */
+.kiosk-shop-bell {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 50%;
+    width: 12px;
+    height: 17px;
+    margin-left: -6px;
+    transform-origin: 50% 0;
+    animation: kiosk-shop-bell var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-bell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 5px;
+    width: 2px;
+    height: 6px;
+    background: #6b5320;
+}
+
+.kiosk-shop-bell::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 0;
+    width: 12px;
+    height: 11px;
+    border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(90deg, #e6c673, var(--ks-brass) 55%, #9c7a2c);
+}
+
+@keyframes kiosk-shop-bell {
+    0%,
+    43% {
+        transform: rotate(0);
+    }
+    45% {
+        transform: rotate(26deg);
+    }
+    48% {
+        transform: rotate(-22deg);
+    }
+    51% {
+        transform: rotate(16deg);
+    }
+    54% {
+        transform: rotate(-10deg);
+    }
+    57% {
+        transform: rotate(6deg);
+    }
+    60% {
+        transform: rotate(-2deg);
+    }
+    63%,
+    100% {
+        transform: rotate(0);
+    }
+}
+
+.kiosk-shop-ding {
+    position: absolute;
+    z-index: 2;
+    top: 6px;
+    left: calc(50% + 9px);
+    width: 5px;
+    height: 10px;
+    border-right: 2px solid rgba(110, 80, 20, 0.65);
+    border-radius: 50%;
+    opacity: 0;
+    animation: kiosk-shop-ding var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-ding--b {
+    top: 3px;
+    left: calc(50% + 14px);
+    width: 8px;
+    height: 16px;
+    animation-delay: 0.14s;
+}
+
+@keyframes kiosk-shop-ding {
+    0%,
+    44% {
+        opacity: 0;
+        transform: translateX(-3px);
+    }
+    47% {
+        opacity: 0.95;
+    }
+    53%,
+    100% {
+        opacity: 0;
+        transform: translateX(3px);
+    }
+}
+
+/* The leaf swings slowly inward. */
+.kiosk-shop-door {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    transform-origin: left center;
+    border: 5px solid var(--ks-frame);
+    border-bottom: 0;
+    border-radius: 5px 5px 0 0;
+    background: var(--ks-door);
+    animation: kiosk-shop-swing var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-swing {
+    0%,
+    41% {
+        transform: rotateY(0deg);
+        animation-timing-function: cubic-bezier(0.5, 0, 0.25, 1);
+    }
+    68%,
+    100% {
+        transform: rotateY(78deg);
+    }
+}
+
+.kiosk-shop-door::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.05));
+    opacity: 0;
+    animation: kiosk-shop-shade var(--ks-cycle) infinite;
+    pointer-events: none;
+}
+
+@keyframes kiosk-shop-shade {
+    0%,
+    41% {
+        opacity: 0;
+    }
+    68%,
+    100% {
+        opacity: 1;
+    }
+}
+
+.kiosk-shop-glass {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    height: 44px;
+    border: 3px solid var(--ks-door-deep);
+    border-radius: 3px;
+    background:
+        linear-gradient(
+            115deg,
+            rgba(255, 255, 255, 0.55) 0 18%,
+            transparent 18% 30%,
+            rgba(255, 255, 255, 0.3) 30% 36%,
+            transparent 36%
+        ),
+        linear-gradient(180deg, #e9dcc0, #d3c19c);
+}
+
+.kiosk-shop-panel {
+    position: absolute;
+    right: 24px;
+    left: 10px;
+    border: 3px solid var(--ks-door-deep);
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+.kiosk-shop-panel--upper {
+    top: 64px;
+    height: 26px;
+}
+
+.kiosk-shop-panel--lower {
+    top: 96px;
+    height: 26px;
+}
+
+.kiosk-shop-plate {
+    position: absolute;
+    top: 62px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f1d98f, var(--ks-brass) 55%, #8d6c22);
+    animation: kiosk-shop-plate var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-plate::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 5.5px;
+    width: 3px;
+    height: 7px;
+    border-radius: 2px;
+    background: #2b2013;
+}
+
+@keyframes kiosk-shop-plate {
+    0%,
+    29% {
+        filter: none;
+    }
+    31% {
+        filter: brightness(1.5) drop-shadow(0 0 6px var(--ks-warm));
+    }
+    36%,
+    100% {
+        filter: none;
+    }
+}
+
+.kiosk-shop-handle {
+    position: absolute;
+    top: 82px;
+    right: 10px;
+    width: 7px;
+    height: 24px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #e6c673, var(--ks-brass) 55%, #9c7a2c);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Hanging sign flips from CLOSED to OPEN. */
+.kiosk-shop-sign {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 50px;
+    height: 17px;
+    margin-left: -25px;
+    border: 1.5px solid var(--ks-frame);
+    border-radius: 3px;
+    background: #fbf6e9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    font-size: 7px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+    text-transform: uppercase;
+    animation: kiosk-shop-flip var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-sign span {
+    position: absolute;
+}
+
+.kiosk-shop-sign-closed {
+    color: var(--ks-door-deep);
+    animation: kiosk-shop-closed var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-sign-open {
+    color: #2f7a4b;
+    opacity: 0;
+    animation: kiosk-shop-open var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-flip {
+    0%,
+    37% {
+        transform: scaleY(1);
+    }
+    39% {
+        transform: scaleY(0.05);
+    }
+    41%,
+    100% {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes kiosk-shop-closed {
+    0%,
+    38.5% {
+        opacity: 1;
+    }
+    39%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes kiosk-shop-open {
+    0%,
+    38.5% {
+        opacity: 0;
+    }
+    39%,
+    100% {
+        opacity: 1;
+    }
+}
+
+/* The key: slides in, turns, clicks. */
+.kiosk-shop-key {
+    position: absolute;
+    z-index: 8;
+    top: 67px;
+    left: 72px;
+    width: 54px;
+    height: 14px;
+    transform-origin: 0 50%;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+    opacity: 0;
+    animation: kiosk-shop-key var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-key {
+    0%,
+    22% {
+        opacity: 0;
+        transform: translateX(26px) rotate(0);
+    }
+    25%,
+    28% {
+        opacity: 1;
+        transform: translateX(0) rotate(0);
+    }
+    31%,
+    34% {
+        opacity: 1;
+        transform: translateX(0) rotate(55deg);
+    }
+    37%,
+    100% {
+        opacity: 0;
+        transform: translateX(8px) rotate(55deg);
+    }
+}
+
+.kiosk-shop-click {
+    position: absolute;
+    z-index: 7;
+    top: 59px;
+    left: 57px;
+    width: 30px;
+    height: 30px;
+    border: 2px solid var(--ks-warm);
+    border-radius: 50%;
+    opacity: 0;
+    animation: kiosk-shop-click var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-click {
+    0%,
+    30.5% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    31.5% {
+        opacity: 0.9;
+    }
+    35%,
+    100% {
+        opacity: 0;
+        transform: scale(1.7);
+    }
+}
+
+/* Warm light spills onto the pavement. */
+.kiosk-shop-glow {
+    position: absolute;
+    z-index: 1;
+    bottom: -8px;
+    left: 50%;
+    width: 340px;
+    height: 130px;
+    transform: translateX(-50%);
+    background: radial-gradient(
+        ellipse at 50% 0%,
+        rgba(255, 214, 140, 0.7),
+        rgba(255, 214, 140, 0) 70%
+    );
+    opacity: 0;
+    pointer-events: none;
+    animation: kiosk-shop-spill var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-spill {
+    0%,
+    44% {
+        opacity: 0;
+    }
+    68%,
+    100% {
+        opacity: 1;
+    }
+}
+
+.kiosk-shop-mat {
+    position: absolute;
+    z-index: 3;
+    bottom: -20px;
+    left: 100px;
+    width: 60px;
+    height: 9px;
+    border-radius: 2px;
+    background: repeating-linear-gradient(90deg, #8b7a5e 0 4px, #756549 4px 8px);
+    opacity: 0.85;
+}
+
+/* ── status + progress ─────────────────────────────────────────────────── */
+.kiosk-shop-status {
+    position: relative;
+    width: 280px;
+    height: 16px;
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.26em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--ks-muted);
+}
+
+.kiosk-shop-status span {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+}
+
+.kiosk-shop-status--1 {
+    animation: kiosk-shop-m1 var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-status--2 {
+    animation: kiosk-shop-m2 var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-status--3 {
+    animation: kiosk-shop-m3 var(--ks-cycle) infinite;
+}
+
+.kiosk-shop-status--4 {
+    color: var(--ks-door);
+    animation: kiosk-shop-m4 var(--ks-cycle) infinite;
+}
+
+@keyframes kiosk-shop-m1 {
+    0%,
+    5% {
+        opacity: 0;
+    }
+    8%,
+    18% {
+        opacity: 1;
+    }
+    21%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes kiosk-shop-m2 {
+    0%,
+    20% {
+        opacity: 0;
+    }
+    23%,
+    34% {
+        opacity: 1;
+    }
+    37%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes kiosk-shop-m3 {
+    0%,
+    38% {
+        opacity: 0;
+    }
+    42%,
+    60% {
+        opacity: 1;
+    }
+    64%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes kiosk-shop-m4 {
+    0%,
+    64% {
+        opacity: 0;
+    }
+    68%,
     86% {
         opacity: 1;
     }
+    90%,
     100% {
         opacity: 0;
-        transform: translateX(200%);
     }
 }
 
-.premium-loading-mark {
-    animation: premium-loading-rise 280ms var(--ease-out) both;
+/* The line fills in step with the story. */
+.kiosk-shop-bar {
+    position: relative;
+    width: 148px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--ks-line);
 }
 
-.premium-loading-caption {
-    animation: premium-loading-caption-in 240ms var(--ease-out) 50ms both;
+.kiosk-shop-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform-origin: left;
+    background: var(--ks-door);
+    animation: kiosk-shop-fill var(--ks-cycle) infinite;
 }
 
-.premium-loading-line {
-    animation: premium-loading-rule 340ms var(--ease-out) 110ms both;
+@keyframes kiosk-shop-fill {
+    0%,
+    8% {
+        transform: scaleX(0);
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    80%,
+    100% {
+        transform: scaleX(1);
+    }
 }
 
-.premium-loading-ink {
-    display: block;
-    height: 1px;
-    width: 50%;
-    background: #1d4b3b;
-    animation: premium-loading-sweep 1.25s linear 420ms infinite both;
-}
-
+/* ── reduced motion: the finished, open shop ───────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-    .premium-loading-mark,
-    .premium-loading-caption,
-    .premium-loading-line {
+    .kiosk-shop-stage,
+    .kiosk-shop-tint,
+    .kiosk-shop-signboard,
+    .kiosk-shop-awning,
+    .kiosk-shop-awning-shadow,
+    .kiosk-shop-window-glow,
+    .kiosk-shop-dim,
+    .kiosk-shop-item,
+    .kiosk-shop-bell,
+    .kiosk-shop-ding,
+    .kiosk-shop-door,
+    .kiosk-shop-door::after,
+    .kiosk-shop-plate,
+    .kiosk-shop-sign,
+    .kiosk-shop-sign span,
+    .kiosk-shop-key,
+    .kiosk-shop-click,
+    .kiosk-shop-glow,
+    .kiosk-shop-status span,
+    .kiosk-shop-bar::after {
         animation: none !important;
-        opacity: 1;
-        transform: none;
-        clip-path: none;
     }
 
-    .premium-loading-ink {
-        animation: none !important;
+    .kiosk-shop-stage,
+    .kiosk-shop-awning,
+    .kiosk-shop-awning-shadow,
+    .kiosk-shop-window-glow,
+    .kiosk-shop-item,
+    .kiosk-shop-glow,
+    .kiosk-shop-sign-open,
+    .kiosk-shop-door::after {
+        opacity: 1;
+    }
+
+    /* The status spans inherit opacity from `.kiosk-shop-status span`, so the
+       winner has to carry the element selector too. */
+    .kiosk-shop-status span.kiosk-shop-status--4 {
+        opacity: 1;
+    }
+
+    .kiosk-shop-tint,
+    .kiosk-shop-dim,
+    .kiosk-shop-key,
+    .kiosk-shop-click,
+    .kiosk-shop-ding,
+    .kiosk-shop-sign-closed,
+    .kiosk-shop-status span.kiosk-shop-status--1,
+    .kiosk-shop-status span.kiosk-shop-status--2,
+    .kiosk-shop-status span.kiosk-shop-status--3 {
         opacity: 0;
+    }
+
+    .kiosk-shop-door {
+        transform: rotateY(78deg);
+    }
+
+    .kiosk-shop-signboard {
+        color: #f8deaa;
+        text-shadow: 0 0 16px rgba(255, 205, 120, 0.9);
+    }
+
+    .kiosk-shop-bar::after {
+        transform: scaleX(1);
     }
 }
 
