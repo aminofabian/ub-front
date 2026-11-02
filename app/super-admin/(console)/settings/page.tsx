@@ -19,6 +19,7 @@ import {
 const PROVIDER_LABELS: Record<string, string> = {
   sozuri: "Sozuri",
   textsms: "TextSMS",
+  ping_africa: "Ping Africa",
   africas_talking: "Africa's Talking",
 };
 
@@ -61,6 +62,10 @@ export default function SuperAdminSettingsPage() {
         setSmsConfigured(integrations.hasSozuriApiKey || integrations.envSozuriConfigured);
       } else if (provider === "textsms") {
         setSmsConfigured(integrations.hasTextsmsApiKey || integrations.envTextsmsConfigured);
+      } else if (provider === "ping_africa") {
+        setSmsConfigured(
+          integrations.hasPingAfricaApiKey || integrations.envPingAfricaConfigured,
+        );
       } else if (provider === "africas_talking") {
         setSmsConfigured(true); // credentials come from server env
       } else {

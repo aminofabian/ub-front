@@ -70,8 +70,8 @@ export function SmsTestPanel({ canSend }: Props) {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold tracking-tight">Test SMS</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send a one-off SMS via Sozuri or Africa&apos;s Talking only. Does
-            not call RapidAPI or Meta WhatsApp.
+            Send a one-off SMS via TextSMS, Sozuri, Ping Africa, or Africa&apos;s
+            Talking only. Does not call RapidAPI or Meta WhatsApp.
           </p>
         </div>
       </div>

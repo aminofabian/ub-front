@@ -195,6 +195,11 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [textsmsApiUrl, setTextsmsApiUrl] = useState(
     "https://sms.textsms.co.ke/api/services/sendsms/",
   );
+  const [pingAfricaApiKey, setPingAfricaApiKey] = useState("");
+  const [pingAfricaBaseUrl, setPingAfricaBaseUrl] = useState(
+    "https://bulk.ping.africa/api",
+  );
+  const [pingAfricaSenderId, setPingAfricaSenderId] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
@@ -238,6 +243,8 @@ export default function SuperAdminPlatformIntegrationsPage() {
     setTextsmsApiUrl(
       row.textsmsApiUrl || "https://sms.textsms.co.ke/api/services/sendsms/",
     );
+    setPingAfricaBaseUrl(row.pingAfricaBaseUrl || "https://bulk.ping.africa/api");
+    setPingAfricaSenderId(row.pingAfricaSenderId ?? "");
     setDeepseekApiKey("");
     setRapidApiWhatsappKey("");
     setWhatsappMetaAccessToken("");
@@ -246,6 +253,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
     setGoogleOauthClientSecret("");
     setSozuriApiKey("");
     setTextsmsApiKey("");
+    setPingAfricaApiKey("");
   }, []);
 
   const load = useCallback(async () => {
@@ -298,6 +306,16 @@ export default function SuperAdminPlatformIntegrationsPage() {
         return;
       }
     }
+    if (smsProvider === "ping_africa") {
+      const hasStoredKey = Boolean(settings?.hasPingAfricaApiKey);
+      if (!pingAfricaApiKey.trim() && !hasStoredKey) {
+        setError(
+          "Ping Africa needs an API token before you can save. Generate one in the " +
+            "Ping Africa dashboard (Account Settings → API Tokens).",
+        );
+        return;
+      }
+    }
     setBusy(true);
     try {
       const body: Parameters<typeof updatePlatformIntegrations>[0] = {
@@ -324,6 +342,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
         textsmsApiUrl:
           textsmsApiUrl.trim() ||
           "https://sms.textsms.co.ke/api/services/sendsms/",
+        pingAfricaBaseUrl:
+          pingAfricaBaseUrl.trim() || "https://bulk.ping.africa/api",
+        pingAfricaSenderId: pingAfricaSenderId.trim(),
       };
       if (deepseekApiKey.trim()) body.deepseekApiKey = deepseekApiKey.trim();
       if (rapidApiWhatsappKey.trim()) {
@@ -344,6 +365,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
       }
       if (sozuriApiKey.trim()) body.sozuriApiKey = sozuriApiKey.trim();
       if (textsmsApiKey.trim()) body.textsmsApiKey = textsmsApiKey.trim();
+      if (pingAfricaApiKey.trim()) {
+        body.pingAfricaApiKey = pingAfricaApiKey.trim();
+      }
 
       const updated = await updatePlatformIntegrations(body);
       applySettings(updated);
@@ -571,9 +595,11 @@ export default function SuperAdminPlatformIntegrationsPage() {
             <span className="font-semibold capitalize">
               {smsProvider === "africas_talking"
                 ? "Africa's Talking"
-                : smsProvider === "none"
-                  ? "none"
-                  : smsProvider}
+                : smsProvider === "ping_africa"
+                  ? "Ping Africa"
+                  : smsProvider === "none"
+                    ? "none"
+                    : smsProvider}
             </span>
           </>
         );
@@ -1135,6 +1161,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
             <option value="none">None</option>
             <option value="textsms">TextSMS (textsms.co.ke)</option>
             <option value="sozuri">Sozuri</option>
+            <option value="ping_africa">Ping Africa (bulk.ping.africa)</option>
             <option value="africas_talking">
               Africa&apos;s Talking (tenant creds)
             </option>
@@ -1295,6 +1322,72 @@ export default function SuperAdminPlatformIntegrationsPage() {
               Sends to{" "}
               <code className="font-mono text-[10px]">sms.textsms.co.ke</code>{" "}
               with partner ID, API key, mobile, message, and shortcode.
+            </p>
+          </>
+        ) : null}
+
+        {smsProvider === "ping_africa" ? (
+          <>
+            <div className="flex items-center gap-2">
+              <KeyStatus ready={Boolean(settings?.hasPingAfricaApiKey)} />
+            </div>
+            <Field id="sa-pingafrica-token" label="Ping Africa API token">
+              <Input
+                id="sa-pingafrica-token"
+                type="password"
+                autoComplete="off"
+                className={dashboardInputClass()}
+                placeholder={
+                  settings?.hasPingAfricaApiKey
+                    ? "••••••••  (leave blank to keep)"
+                    : "Paste the token from Ping Africa → API Tokens"
+                }
+                value={pingAfricaApiKey}
+                onChange={(ev) => setPingAfricaApiKey(ev.target.value)}
+              />
+              {settings?.hasPingAfricaApiKey ? (
+                <ClearKeyButton
+                  disabled={busy}
+                  onClick={() =>
+                    clearSecret(
+                      "clear-pingafrica-key",
+                      "Remove Ping Africa API token?",
+                      "Tenant overrides still apply.",
+                      { pingAfricaApiKey: "" },
+                      "Ping Africa API token cleared.",
+                    )
+                  }
+                />
+              ) : null}
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field id="sa-pingafrica-sender" label="Sender ID (optional)">
+                <Input
+                  id="sa-pingafrica-sender"
+                  className={dashboardInputClass()}
+                  value={pingAfricaSenderId}
+                  onChange={(ev) => setPingAfricaSenderId(ev.target.value)}
+                  placeholder="PING-AFRICA"
+                />
+              </Field>
+              <Field id="sa-pingafrica-url" label="API base URL">
+                <Input
+                  id="sa-pingafrica-url"
+                  className={dashboardInputClass()}
+                  value={pingAfricaBaseUrl}
+                  onChange={(ev) => setPingAfricaBaseUrl(ev.target.value)}
+                  placeholder="https://bulk.ping.africa/api"
+                />
+              </Field>
+            </div>
+            <p className={dashboardHintClass()}>
+              Sends to{" "}
+              <code className="font-mono text-[10px]">
+                {pingAfricaBaseUrl.trim() || "https://bulk.ping.africa/api"}
+                /sms/send
+              </code>{" "}
+              with a Bearer token, the recipient in E.164, and your sender ID.
+              Leave the sender ID blank to use the account default.
             </p>
           </>
         ) : null}

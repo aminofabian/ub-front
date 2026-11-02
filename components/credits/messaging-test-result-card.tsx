@@ -100,7 +100,7 @@ function explainMetaDetail(detail: string): string | null {
 function explainSmsDetail(detail: string, channel: string): string | null {
   const d = detail.toLowerCase();
   if (/not configured/i.test(detail)) {
-    return "Set TextSMS, Sozuri, or Africa's Talking in Super Admin → Platform integrations or Credit tab reminders.";
+    return "Set TextSMS, Sozuri, Ping Africa, or Africa's Talking in Super Admin → Platform integrations or Credit tab reminders.";
   }
   if (d.startsWith("http_") || d.startsWith("code_")) {
     if (channel === "sozuri") {
@@ -108,6 +108,18 @@ function explainSmsDetail(detail: string, channel: string): string | null {
     }
     if (channel === "textsms") {
       return "TextSMS rejected the request. Check partner ID, API key, and shortcode / sender ID.";
+    }
+    if (channel === "ping_africa") {
+      if (d.includes("http_402")) {
+        return "Ping Africa says the account is out of credits. Top up in the Ping Africa dashboard, then retry.";
+      }
+      if (d.includes("http_401") || d.includes("http_403")) {
+        return "Ping Africa rejected the API token. Generate a fresh token under Account Settings → API Tokens and paste it in Super Admin → Platform integrations.";
+      }
+      if (d.includes("sender id")) {
+        return "Ping Africa has no sender ID available for this account. Apply for one in the dashboard (Shortcodes → Apply for Sender ID) or leave the sender ID blank to use the account default.";
+      }
+      return "Ping Africa rejected the request. Check the API token, base URL, and sender ID.";
     }
     return "SMS provider rejected the request. Check credentials.";
   }
@@ -149,6 +161,7 @@ export function MessagingTestResultCard({
     r.channel === "sms" ||
     r.channel === "sozuri" ||
     r.channel === "textsms" ||
+    r.channel === "ping_africa" ||
     r.channel === "africas_talking" ||
     r.channel === "sms_stub" ||
     r.outcome === "stub" ||
@@ -321,8 +334,8 @@ export function MessagingTestResultCard({
               </p>
             ) : variant === "full" && !r.smsConfigured ? (
               <p className="text-muted-foreground">
-                Not configured — enable TextSMS, Sozuri, or Africa&apos;s
-                Talking to fall back when WhatsApp fails.
+                Not configured — enable TextSMS, Sozuri, Ping Africa, or
+                Africa&apos;s Talking to fall back when WhatsApp fails.
               </p>
             ) : (
               <p className="text-muted-foreground">Not used.</p>
@@ -348,6 +361,7 @@ export function messagingTestHeadline(
     if (
       (r.channel === "sozuri" ||
         r.channel === "textsms" ||
+        r.channel === "ping_africa" ||
         r.channel === "africas_talking" ||
         r.channel === "sms") &&
       /whatsapp_failed/i.test(r.detail)

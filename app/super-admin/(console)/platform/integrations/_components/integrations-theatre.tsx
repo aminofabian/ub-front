@@ -61,7 +61,7 @@ export const INTEGRATIONS_NAV: IntegrationsNavItem[] = [
   {
     id: "sms",
     label: "SMS fallback",
-    hint: "Platform default SMS provider — TextSMS, Sozuri, or AT.",
+    hint: "Platform default SMS provider — TextSMS, Sozuri, Ping Africa, or AT.",
     icon: Plug,
   },
 ];
@@ -92,6 +92,8 @@ function smsProviderLabel(provider: string) {
       return "TextSMS";
     case "sozuri":
       return "Sozuri";
+    case "ping_africa":
+      return "Ping Africa";
     case "africas_talking":
       return "Africa's Talking";
     default:

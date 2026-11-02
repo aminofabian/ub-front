@@ -398,6 +398,8 @@ function friendlyOtpDeliveryMessage(text: string): string | null {
   if (
     normalized.includes("sozuri") ||
     normalized.includes("textsms") ||
+    normalized.includes("ping africa") ||
+    normalized.includes("pingafrica") ||
     normalized.includes("super admin") ||
     normalized.includes("platform integrations") ||
     normalized.includes("sms is required") ||

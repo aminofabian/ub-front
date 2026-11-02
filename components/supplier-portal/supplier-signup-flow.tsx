@@ -768,6 +768,7 @@ function signupError(err: unknown, fallback: string): string {
     !raw ||
     lower.includes("sozuri") ||
     lower.includes("textsms") ||
+    lower.includes("ping africa") ||
     lower.includes("super admin") ||
     lower.includes("platform") ||
     lower.includes("sms") ||

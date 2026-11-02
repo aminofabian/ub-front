@@ -14357,6 +14357,8 @@ export type CreditSaleReminderSettingsRecord = {
   smsTextsmsPartnerId: string | null;
   smsTextsmsShortcode: string | null;
   smsTextsmsApiUrl: string | null;
+  smsPingAfricaBaseUrl: string | null;
+  smsPingAfricaSenderId: string | null;
   hasRapidApiKey: boolean;
   rapidApiHost: string;
   rapidApiLookupUrl: string;
@@ -14368,6 +14370,7 @@ export type CreditSaleReminderSettingsRecord = {
   hasSmsAfricasTalkingApiKey: boolean;
   hasSmsSozuriApiKey: boolean;
   hasSmsTextsmsApiKey: boolean;
+  hasSmsPingAfricaApiKey: boolean;
   secretsReadable: boolean;
   secretsReadError: string | null;
   /** Default true: remote invoice STK success auto-pays. */
@@ -14400,6 +14403,9 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   smsTextsmsApiKey?: string | null;
   smsTextsmsShortcode?: string | null;
   smsTextsmsApiUrl?: string | null;
+  smsPingAfricaApiKey?: string | null;
+  smsPingAfricaBaseUrl?: string | null;
+  smsPingAfricaSenderId?: string | null;
   remoteInvoiceStkAutoSettle?: boolean | null;
 };
 

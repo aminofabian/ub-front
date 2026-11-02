@@ -68,6 +68,11 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [smsTextsmsApiUrl, setSmsTextsmsApiUrl] = useState(
     "https://sms.textsms.co.ke/api/services/sendsms/",
   );
+  const [smsPingAfricaApiKey, setSmsPingAfricaApiKey] = useState("");
+  const [smsPingAfricaBaseUrl, setSmsPingAfricaBaseUrl] = useState(
+    "https://bulk.ping.africa/api",
+  );
+  const [smsPingAfricaSenderId, setSmsPingAfricaSenderId] = useState("");
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] =
@@ -102,11 +107,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         data.smsTextsmsApiUrl ||
           "https://sms.textsms.co.ke/api/services/sendsms/",
       );
+      setSmsPingAfricaBaseUrl(
+        data.smsPingAfricaBaseUrl || "https://bulk.ping.africa/api",
+      );
+      setSmsPingAfricaSenderId(data.smsPingAfricaSenderId ?? "");
       setRapidApiKey("");
       setWhatsappToken("");
       setSmsApiKey("");
       setSmsSozuriApiKey("");
       setSmsTextsmsApiKey("");
+      setSmsPingAfricaApiKey("");
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : "Could not load reminder settings.";
@@ -189,6 +199,14 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             ? smsTextsmsApiUrl.trim() ||
               "https://sms.textsms.co.ke/api/services/sendsms/"
             : null,
+        smsPingAfricaBaseUrl:
+          smsProvider === "ping_africa"
+            ? smsPingAfricaBaseUrl.trim() || "https://bulk.ping.africa/api"
+            : null,
+        smsPingAfricaSenderId:
+          smsProvider === "ping_africa"
+            ? smsPingAfricaSenderId.trim() || null
+            : null,
       };
       if (rapidApiKey.trim()) {
         body.rapidApiKey = rapidApiKey.trim();
@@ -211,6 +229,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       if (smsTextsmsApiKey.trim()) {
         body.smsTextsmsApiKey = smsTextsmsApiKey.trim();
       }
+      if (smsPingAfricaApiKey.trim()) {
+        body.smsPingAfricaApiKey = smsPingAfricaApiKey.trim();
+      }
       const updated = await updateCreditSaleReminderSettings(body);
       setSettings(updated);
       setRapidApiKey("");
@@ -218,6 +239,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setSmsApiKey("");
       setSmsSozuriApiKey("");
       setSmsTextsmsApiKey("");
+      setSmsPingAfricaApiKey("");
       setMessage({ text: "Reminder settings saved.", kind: "success" });
     } catch (err) {
       setMessage({
@@ -533,9 +555,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         <div className="rounded-none border border-border/60 bg-muted/20 p-4 space-y-3">
           <p className="text-sm font-medium">SMS fallback</p>
           <p className="text-xs text-muted-foreground">
-            Leave TextSMS / Sozuri fields blank to use Super Admin → Platform
-            integrations defaults. Provider &quot;None&quot; still inherits the
-            platform default provider when set.
+            Leave TextSMS / Sozuri / Ping Africa fields blank to use Super Admin
+            → Platform integrations defaults. Provider &quot;None&quot; still
+            inherits the platform default provider when set.
           </p>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Provider</span>
@@ -548,6 +570,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               <option value="none">None (log only in dev)</option>
               <option value="textsms">TextSMS (textsms.co.ke)</option>
               <option value="sozuri">Sozuri</option>
+              <option value="ping_africa">Ping Africa (bulk.ping.africa)</option>
               <option value="africas_talking">Africa&apos;s Talking</option>
             </select>
           </label>
@@ -707,6 +730,55 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               <p className="text-xs text-muted-foreground">
                 Blank fields inherit Super Admin → Platform integrations TextSMS
                 defaults.
+              </p>
+            </>
+          ) : null}
+          {smsProvider === "ping_africa" ? (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API token</span>
+                <input
+                  type="password"
+                  className={dashboardInputClass()}
+                  value={smsPingAfricaApiKey}
+                  onChange={(e) => setSmsPingAfricaApiKey(e.target.value)}
+                  placeholder={
+                    settings?.hasSmsPingAfricaApiKey
+                      ? "•••••••• (leave blank to keep)"
+                      : "Paste the token from Ping Africa → API Tokens"
+                  }
+                  disabled={!canEdit}
+                  autoComplete="off"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>
+                    Sender ID (optional)
+                  </span>
+                  <input
+                    className={dashboardInputClass()}
+                    value={smsPingAfricaSenderId}
+                    onChange={(e) => setSmsPingAfricaSenderId(e.target.value)}
+                    placeholder="PING-AFRICA"
+                    disabled={!canEdit}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>API base URL</span>
+                  <input
+                    className={dashboardInputClass()}
+                    value={smsPingAfricaBaseUrl}
+                    onChange={(e) => setSmsPingAfricaBaseUrl(e.target.value)}
+                    placeholder="https://bulk.ping.africa/api"
+                    disabled={!canEdit}
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Blank fields inherit Super Admin → Platform integrations Ping
+                Africa defaults. Leave the sender ID empty to use the account
+                default.
               </p>
             </>
           ) : null}

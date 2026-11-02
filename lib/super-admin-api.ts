@@ -1499,6 +1499,9 @@ export type PlatformIntegrationsRecord = {
   textsmsShortcode: string;
   textsmsApiUrl: string;
   hasTextsmsApiKey: boolean;
+  pingAfricaBaseUrl: string;
+  pingAfricaSenderId: string;
+  hasPingAfricaApiKey: boolean;
   hasWhatsappMetaAccessToken: boolean;
   whatsappMetaPhoneNumberId: string;
   whatsappMetaGraphVersion: string;
@@ -1512,6 +1515,7 @@ export type PlatformIntegrationsRecord = {
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
   envTextsmsConfigured: boolean;
+  envPingAfricaConfigured: boolean;
   envWhatsappMetaConfigured: boolean;
   secretsReadable: boolean;
   secretsError: string | null;
@@ -1538,6 +1542,9 @@ export type UpdatePlatformIntegrationsPayload = {
   textsmsApiKey?: string | null;
   textsmsShortcode?: string | null;
   textsmsApiUrl?: string | null;
+  pingAfricaApiKey?: string | null;
+  pingAfricaBaseUrl?: string | null;
+  pingAfricaSenderId?: string | null;
   whatsappMetaAccessToken?: string | null;
   whatsappMetaPhoneNumberId?: string | null;
   whatsappMetaGraphVersion?: string | null;
