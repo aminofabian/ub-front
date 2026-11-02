@@ -24,7 +24,9 @@ export type StoreThemeId =
   | "comilmart"
   | "climax-floor"
   | "daily-gazette"
-  | "mizu-springs";
+  | "mizu-springs"
+  | "soft-vitrine"
+  | "zetu";
 
 export type LandingTemplateId =
   | "coming-soon-editorial"
@@ -73,7 +75,9 @@ export type ThemePhoneLayout =
   | "marketplace"
   | "showroom"
   | "gazette"
-  | "spring-well";
+  | "spring-well"
+  | "fashion-wall"
+  | "vitrine";
 
 /**
  * Per-theme "try it on" skin: what a miniature of the theme looks like when
@@ -190,6 +194,8 @@ export const STORE_THEME_IDS: readonly StoreThemeId[] = [
   "climax-floor",
   "daily-gazette",
   "mizu-springs",
+  "soft-vitrine",
+  "zetu",
 ] as const;
 
 export const LANDING_TEMPLATE_IDS: readonly LandingTemplateId[] = [
@@ -209,6 +215,7 @@ export const STORE_THEME_VIBES = [
   "Butcher",
   "Beauty",
   "Boutique & gifts",
+  "Fashion",
   "Spirits",
   "Pharmacy",
   "Industrial & office",
@@ -418,6 +425,94 @@ export const STORE_THEME_META: readonly StorefrontTemplateMeta[] = [
       onAccent: "#111111",
       radius: "sharp",
       font: "serif",
+    },
+  },
+  {
+    id: "soft-vitrine",
+    kind: "store",
+    name: "Soft vitrine",
+    blurb:
+      "A quiet beauty DTC — taupe announce bar, butter-yellow CTA, centred logo, full-bleed lifestyle hero.",
+    previewFrom: "#FFFFFF",
+    previewTo: "#F0E27A",
+    accent: "#7B5E4F",
+    vibes: ["Beauty", "Minimal"],
+    matches: [
+      "beauty",
+      "cosmetic",
+      "makeup",
+      "salon",
+      "spa",
+      "skin",
+      "nails",
+      "concealer",
+      "glow",
+      "skincare",
+      "boutique beauty",
+    ],
+    points: [
+      "A taupe announce bar and a centred logo — quiet luxury.",
+      "One full-bleed lifestyle hero, butter-yellow buttons.",
+      "Soft, sparse product grid that lets the shade speak.",
+    ],
+    phone: {
+      layout: "vitrine",
+      surface: "#FFFFFF",
+      ink: "#1A1714",
+      muted: "#6E675F",
+      card: "#F7F4F0",
+      accent: "#F0E27A",
+      onAccent: "#1A1714",
+      radius: "sharp",
+      font: "serif",
+    },
+  },
+  {
+    id: "zetu",
+    kind: "store",
+    name: "Zetu",
+    blurb:
+      "A Kenyan fashion marketplace — black and acid-lime, giant sale type, editorial product walls.",
+    previewFrom: "#F7F5F2",
+    previewTo: "#D4EF1C",
+    accent: "#D4EF1C",
+    vibes: ["Fashion", "Boutique & gifts"],
+    matches: [
+      "fashion",
+      "clothing",
+      "clothes",
+      "apparel",
+      "wear",
+      "dress",
+      "dresses",
+      "outfit",
+      "streetwear",
+      "sneaker",
+      "sneakers",
+      "shoes",
+      "footwear",
+      "style",
+      "wardrobe",
+      "thrift",
+      "kitenge",
+      "ankara",
+    ],
+    points: [
+      "Black and acid-lime — big sale numbers, uppercase nav, editorial photography.",
+      "Hero deal wall, horizontal product rails, and a dark just-landed panel.",
+      "Built for fashion, footwear, beauty and multi-brand boutiques.",
+    ],
+    phone: {
+      layout: "fashion-wall",
+      surface: "#F7F5F2",
+      ink: "#0E0B0C",
+      muted: "#6B625C",
+      card: "#FFFFFF",
+      accent: "#D4EF1C",
+      onAccent: "#0E0B0C",
+      radius: "soft",
+      font: "display",
+      border: true,
     },
   },
   {

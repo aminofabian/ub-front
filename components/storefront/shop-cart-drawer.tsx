@@ -6,6 +6,8 @@ import { ButcherBoardCartPanel } from "@/components/storefront/templates/store/b
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
 import { DailyGazetteCartPanel } from "@/components/storefront/templates/store/daily-gazette-cart-panel";
 import { MizuSpringsCartPanel } from "@/components/storefront/templates/store/mizu-springs-cart-panel";
+import { SoftVitrineCartPanel } from "@/components/storefront/templates/store/soft-vitrine-cart-panel";
+import { ZetuCartPanel } from "@/components/storefront/templates/store/zetu-cart-panel";
 import { ShopCartMobileFloat } from "@/components/storefront/shop-cart-mobile-float";
 import { ShopCartPanelBody } from "@/components/storefront/shop-cart-panel-body";
 import { ShopSlideOver } from "@/components/storefront/shop-slide-over";
@@ -18,12 +20,15 @@ import {
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
   isMizuSpringsStoreTheme,
+  isSoftVitrineStoreTheme,
+  isZetuStoreTheme,
 } from "@/lib/storefront-theme-detect";
 
 /**
  * After add-to-cart on desktop: compact floating card, then full drawer.
  * Mobile web skips the overlay and uses the cart dock instead.
- * Blank-drop, Butcher board, Comilmart, Daily gazette, and Mizu Springs use theme-specific bag panels.
+ * Blank-drop, Butcher board, Comilmart, Daily gazette, Mizu Springs, Soft
+ * vitrine and Zetu use theme-specific bag panels.
  */
 export function ShopCartDrawer() {
   const isMd = useMediaMd();
@@ -34,6 +39,8 @@ export function ShopCartDrawer() {
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
   const mizu = isMizuSpringsStoreTheme();
+  const softVitrine = isSoftVitrineStoreTheme();
+  const zetu = isZetuStoreTheme();
 
   if (!drawerOpen) {
     return null;
@@ -99,6 +106,40 @@ export function ShopCartDrawer() {
         className="ms-slide-over"
       >
         <MizuSpringsCartPanel onClose={closeDrawer} />
+      </ShopSlideOver>
+    );
+  }
+
+  if (softVitrine) {
+    if (!isMd || cartViewMode === "focus") {
+      return <ShopCartMobileFloat themed="soft-vitrine" />;
+    }
+    return (
+      <ShopSlideOver
+        variant="floating"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        ariaLabel="Your bag"
+        className="sv-slide-over"
+      >
+        <SoftVitrineCartPanel onClose={closeDrawer} />
+      </ShopSlideOver>
+    );
+  }
+
+  if (zetu) {
+    if (!isMd || cartViewMode === "focus") {
+      return <ShopCartMobileFloat themed="zetu" />;
+    }
+    return (
+      <ShopSlideOver
+        variant="floating"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        ariaLabel="Your bag"
+        className="zt-slide-over"
+      >
+        <ZetuCartPanel onClose={closeDrawer} />
       </ShopSlideOver>
     );
   }

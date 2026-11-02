@@ -12,6 +12,8 @@ import { ButcherBoardCheckoutChrome } from "@/components/storefront/templates/st
 import { ComilmartCheckoutChrome } from "@/components/storefront/templates/store/comilmart-checkout-chrome";
 import { DailyGazetteCheckoutChrome } from "@/components/storefront/templates/store/daily-gazette-checkout-chrome";
 import { MizuSpringsCheckoutChrome } from "@/components/storefront/templates/store/mizu-springs-checkout-chrome";
+import { SoftVitrineCheckoutChrome } from "@/components/storefront/templates/store/soft-vitrine-checkout-chrome";
+import { ZetuCheckoutChrome } from "@/components/storefront/templates/store/zetu-checkout-chrome";
 import { useShopCartOptional } from "@/hooks/use-shop-cart";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { APP_ROUTES } from "@/lib/config";
@@ -22,6 +24,8 @@ import {
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
   isMizuSpringsStoreTheme,
+  isSoftVitrineStoreTheme,
+  isZetuStoreTheme,
 } from "@/lib/storefront-theme-detect";
 
 type Props = {
@@ -42,6 +46,8 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
   const mizu = isMizuSpringsStoreTheme();
+  const softVitrine = isSoftVitrineStoreTheme();
+  const zetu = isZetuStoreTheme();
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -107,6 +113,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
         </MizuSpringsCheckoutChrome>
       );
     }
+    if (softVitrine) {
+      return (
+        <SoftVitrineCheckoutChrome
+          onClose={onClose}
+          orderPlaced={orderPlaced}
+          thankYou={thankYou}
+        >
+          {form}
+        </SoftVitrineCheckoutChrome>
+      );
+    }
     if (beautyEdit) {
       return (
         <BeautyEditCheckoutChrome
@@ -116,6 +133,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
         >
           {form}
         </BeautyEditCheckoutChrome>
+      );
+    }
+    if (zetu) {
+      return (
+        <ZetuCheckoutChrome
+          onClose={onClose}
+          orderPlaced={orderPlaced}
+          thankYou={thankYou}
+        >
+          {form}
+        </ZetuCheckoutChrome>
       );
     }
     if (butcher) {
@@ -144,13 +172,17 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
     ? DailyGazetteCheckoutChrome
     : mizu
       ? MizuSpringsCheckoutChrome
-      : beautyEdit
-        ? BeautyEditCheckoutChrome
-        : butcher
-          ? ButcherBoardCheckoutChrome
-          : comilmart
-            ? ComilmartCheckoutChrome
-            : ShopCheckoutDrawerChrome;
+      : softVitrine
+        ? SoftVitrineCheckoutChrome
+        : zetu
+          ? ZetuCheckoutChrome
+          : beautyEdit
+            ? BeautyEditCheckoutChrome
+            : butcher
+              ? ButcherBoardCheckoutChrome
+              : comilmart
+                ? ComilmartCheckoutChrome
+                : ShopCheckoutDrawerChrome;
 
   return (
     <ShopSlideOver
@@ -162,7 +194,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
           ? "File this order"
           : mizu
             ? "Complete your order"
-            : beautyEdit
+            : softVitrine || beautyEdit || zetu
               ? "Checkout"
               : butcher
                 ? "Settle the slip"
@@ -174,7 +206,11 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
           ? "dg-slide-over"
           : mizu
             ? "ms-slide-over"
-            : beautyEdit
+            : softVitrine
+              ? "sv-slide-over"
+              : zetu
+                ? "zt-slide-over"
+                : beautyEdit
               ? "be-slide-over"
               : butcher
                 ? "bb-slide-over"

@@ -22,6 +22,8 @@ import { dailyGazetteFontVariables } from "@/components/storefront/templates/sto
 import dgStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
 import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
+import { zetuFontVariables } from "@/app/fonts/zetu";
+import ztStyles from "@/components/storefront/templates/store/zetu.module.css";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,7 @@ import {
   isComilmartStoreTheme,
   isDailyGazetteStoreTheme,
   isMizuSpringsStoreTheme,
+  isZetuStoreTheme,
 } from "@/lib/storefront-theme-detect";
 import {
   completeShopperPhoneSession,
@@ -286,6 +289,7 @@ function StorefrontSignInSheet({
   const comilmart = isComilmartStoreTheme();
   const gazette = isDailyGazetteStoreTheme();
   const mizu = isMizuSpringsStoreTheme();
+  const zetu = isZetuStoreTheme();
 
   const displayName =
     storeName?.trim() ||
@@ -405,7 +409,7 @@ function StorefrontSignInSheet({
   ]);
 
   const shopLabel = displayName.split("|")[0]?.trim() || displayName;
-  const themed = comilmart || gazette || mizu;
+  const themed = comilmart || gazette || mizu || zetu;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -430,6 +434,12 @@ function StorefrontSignInSheet({
                     comilmartFontVariables,
                     "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
                   )
+                : zetu
+                  ? cn(
+                      ztStyles.signInSheet,
+                      zetuFontVariables,
+                      "z-[90] max-h-[min(88dvh,36rem)] gap-0 overflow-hidden p-0 sm:max-w-[400px]",
+                    )
                 : cn(
                     "z-[90] gap-0 overflow-hidden !rounded-none p-0",
                     "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-none",
@@ -448,7 +458,9 @@ function StorefrontSignInSheet({
                 ? msStyles.signInHead
                 : comilmart
                   ? cmStyles.signInHead
-                  : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
+                  : zetu
+                    ? ztStyles.signInHead
+                    : "border-b border-border/60 px-5 pb-4 pt-5 sm:px-6"
           }
         >
           <DialogHeader className="space-y-1.5 text-left">
@@ -457,6 +469,9 @@ function StorefrontSignInSheet({
                 <span className={msStyles.signInKickerDot} aria-hidden />
                 Spring pass
               </p>
+            ) : null}
+            {zetu ? (
+              <p className={ztStyles.signInKicker}>Your account</p>
             ) : null}
             {displayName && !themed ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -471,7 +486,9 @@ function StorefrontSignInSheet({
                     ? msStyles.signInTitle
                     : comilmart
                       ? cmStyles.signInTitle
-                      : "font-heading text-xl tracking-tight"
+                      : zetu
+                        ? ztStyles.signInTitle
+                        : "font-heading text-xl tracking-tight"
               }
             >
               {gazette
@@ -480,7 +497,9 @@ function StorefrontSignInSheet({
                   ? "Sip in"
                   : comilmart
                     ? "Welcome back"
-                    : "Sign in"}
+                    : zetu
+                      ? "Welcome back"
+                      : "Sign in"}
             </DialogTitle>
             <DialogDescription
               className={
@@ -490,7 +509,9 @@ function StorefrontSignInSheet({
                     ? msStyles.signInLead
                     : comilmart
                       ? cmStyles.signInLead
-                      : "text-[14px] leading-relaxed"
+                      : zetu
+                        ? ztStyles.signInLead
+                        : "text-[14px] leading-relaxed"
               }
             >
               {gazette
@@ -505,7 +526,11 @@ function StorefrontSignInSheet({
                     ? shopLabel
                       ? `Log in to your ${shopLabel} account.`
                       : "Log in to your account."
-                    : "Email or phone, then your PIN or password. That's it."}
+                    : zetu
+                      ? shopLabel
+                        ? `Save your bag, follow orders and shop ${shopLabel} faster.`
+                        : "Save your bag, follow orders and shop faster."
+                      : "Email or phone, then your PIN or password. That's it."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -518,7 +543,9 @@ function StorefrontSignInSheet({
                 ? msStyles.signInBody
                 : comilmart
                   ? cmStyles.signInBody
-                  : "overflow-y-auto px-5 py-5 sm:px-6"
+                  : zetu
+                    ? ztStyles.signInBody
+                    : "overflow-y-auto px-5 py-5 sm:px-6"
           }
         >
           {open ? (

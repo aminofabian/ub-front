@@ -24,8 +24,10 @@ import { OxideStoreHome } from "@/components/storefront/templates/store/oxide-ho
 import { PrintAtelierStoreHome } from "@/components/storefront/templates/store/print-atelier-home";
 import { PastryCaseStoreHome } from "@/components/storefront/templates/store/pastry-case-home";
 import { ScentStoryStoreHome } from "@/components/storefront/templates/store/scent-story-home";
+import { SoftVitrineStoreHome } from "@/components/storefront/templates/store/soft-vitrine-home";
 import { SpiritsCellarStoreHome } from "@/components/storefront/templates/store/spirits-cellar-home";
 import { TintLabStoreHome } from "@/components/storefront/templates/store/tint-lab-home";
+import { ZetuStoreHome } from "@/components/storefront/templates/store/zetu-home";
 import type {
   LandingTemplateProps,
   StoreHomeTemplateProps,
@@ -59,6 +61,8 @@ const STORE_HOMES: Record<
   "climax-floor": ClimaxFloorStoreHome,
   "daily-gazette": DailyGazetteStoreHome,
   "mizu-springs": MizuSpringsStoreHome,
+  "soft-vitrine": SoftVitrineStoreHome,
+  zetu: ZetuStoreHome,
 };
 
 const LANDING_PAGES: Record<
@@ -95,7 +99,9 @@ export type StoreChromeVariant =
   | "comilmart"
   | "climax-floor"
   | "daily-gazette"
-  | "mizu-springs";
+  | "mizu-springs"
+  | "soft-vitrine"
+  | "zetu";
 
 export function resolveStoreHome(
   themeId: string | null | undefined,
@@ -147,6 +153,10 @@ export function resolveStoreChromeVariant(
       return "daily-gazette";
     case "mizu-springs":
       return "mizu-springs";
+    case "soft-vitrine":
+      return "soft-vitrine";
+    case "zetu":
+      return "zetu";
     default:
       return "default";
   }

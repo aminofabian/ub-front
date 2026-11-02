@@ -255,7 +255,9 @@ export async function StorefrontCatalogHome({
             themeId === "climax-floor" ||
             themeId === "daily-gazette" ||
             themeId === "mizu-springs" ||
-            themeId === "beauty-edit"
+            themeId === "beauty-edit" ||
+            themeId === "soft-vitrine" ||
+            themeId === "zetu"
           ) {
             return s.id !== "announcement" && s.id !== "promo" && s.id !== "hero";
           }
@@ -271,7 +273,10 @@ export async function StorefrontCatalogHome({
    * Beyond owns its footer, so its merchant sections render inside the theme,
    * above that footer — otherwise the page ends with a footer mid-document.
    */
-  const themeOwnsFooter = themeId === "beauty-edit";
+  const themeOwnsFooter =
+    themeId === "beauty-edit" ||
+    themeId === "soft-vitrine" ||
+    themeId === "zetu";
   const postSectionsNode =
     showSectionStacks && postSections.length > 0 ? (
       <StorefrontSectionsStack

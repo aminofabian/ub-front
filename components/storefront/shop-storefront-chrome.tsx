@@ -73,6 +73,12 @@ import dailyGazetteStyles from "@/components/storefront/templates/store/daily-ga
 import { MizuSpringsHeader } from "@/components/storefront/templates/store/mizu-springs-header";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
 import mizuSpringsStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
+import { SoftVitrineHeader } from "@/components/storefront/templates/store/soft-vitrine-header";
+import { softVitrineFontVariables } from "@/components/storefront/templates/store/soft-vitrine-fonts";
+import softVitrineStyles from "@/components/storefront/templates/store/soft-vitrine.module.css";
+import { ZetuHeader } from "@/components/storefront/templates/store/zetu-header";
+import { zetuFontVariables } from "@/app/fonts/zetu";
+import zetuStyles from "@/components/storefront/templates/store/zetu.module.css";
 import { SpiritsCellarHeader } from "@/components/storefront/templates/store/spirits-cellar-header";
 import { spiritsCellarFontVariables } from "@/components/storefront/templates/store/spirits-cellar-fonts";
 import spiritsCellarStyles from "@/components/storefront/templates/store/spirits-cellar.module.css";
@@ -206,7 +212,7 @@ export function ShopStorefrontChrome({
   locationHint?: string | null;
   categories: PublicCategory[];
   deliveryAreas?: PublicDeliveryArea[];
-  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor" | "daily-gazette" | "mizu-springs";
+  chromeVariant?: "default" | "dark" | "soft" | "oxide" | "tint-lab" | "milk-run" | "butcher-board" | "carbon-desk" | "boutique-shelf" | "beauty-edit" | "scent-story" | "chem-lab" | "spirits-cellar" | "print-atelier" | "blank-drop" | "pastry-case" | "comilmart" | "climax-floor" | "daily-gazette" | "mizu-springs" | "soft-vitrine" | "zetu";
   storeThemeId?: string | null;
   /** D8: `ub.session` presence hint from `StorefrontShell` (label-only). */
   hasPresence: boolean;
@@ -253,7 +259,9 @@ export function ShopStorefrontChrome({
   const isClimaxFloor = chromeVariant === "climax-floor";
   const isDailyGazette = chromeVariant === "daily-gazette";
   const isMizuSprings = chromeVariant === "mizu-springs";
-  const isCustomChrome = isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette || isMizuSprings;
+  const isSoftVitrine = chromeVariant === "soft-vitrine";
+  const isZetu = chromeVariant === "zetu";
+  const isCustomChrome = isZetu || isSoftVitrine || isOxide || isTintLab || isMilkRun || isButcherBoard || isCarbonDesk || isBoutiqueShelf || isBeautyEdit || isScentStory || isChemLab || isSpiritsCellar || isPrintAtelier || isBlankDrop || isPastryCase || isComilmart || isClimaxFloor || isDailyGazette || isMizuSprings;
   const showDefaultChrome = !compactChrome && !isCustomChrome;
 
   /**
@@ -390,6 +398,30 @@ export function ShopStorefrontChrome({
                               ? ({
                                   ["--ms-navy" as string]: primaryHex || "#172554",
                                 } as CSSProperties)
+                              : isSoftVitrine
+                                ? ({
+                                    ["--sv-ink" as string]: "#1A1714",
+                                    ["--sv-brand" as string]: primaryHex || "#7B5E4F",
+                                    ["--sv-gold" as string]: accentHex || "#7B5E4F",
+                                    ["--sv-announce-bg" as string]:
+                                      primaryHex || "#7B5E4F",
+                                    ["--sv-announce-ink" as string]: readableInkOn(
+                                      primaryHex || "#7B5E4F",
+                                    ),
+                                  } as CSSProperties)
+                                : isZetu
+                                  ? ({
+                                      // Zetu keeps its acid-lime identity; the
+                                      // design studio can still recolour it.
+                                      ["--zt-accent" as string]: "#d4ef1c",
+                                      ["--primary" as string]: "#0e0b0c",
+                                      ["--primary-foreground" as string]: "#ffffff",
+                                      ["--primary-hover" as string]: "#2a2422",
+                                      ["--ring" as string]: "#d4ef1c",
+                                      ["--storefront-brand" as string]: "#0e0b0c",
+                                      ["--storefront-accent" as string]: "#d4ef1c",
+                                      ["--storefront-paper" as string]: "#f7f5f2",
+                                    } as CSSProperties)
         : undefined;
 
   const shell = (
@@ -511,6 +543,20 @@ export function ShopStorefrontChrome({
               mizuSpringsFontVariables,
               "[--storefront-paper:#F4F9FF]",
             ),
+          isSoftVitrine &&
+            cn(
+              softVitrineStyles.root,
+              softVitrineStyles.body,
+              softVitrineFontVariables,
+              "[--storefront-paper:#FFFFFF]",
+            ),
+          isZetu &&
+            cn(
+              zetuStyles.root,
+              zetuStyles.body,
+              zetuFontVariables,
+              "[--storefront-paper:#F7F5F2]",
+            ),
           isChemLab &&
             cn(
               chemLabStyles.root,
@@ -564,6 +610,29 @@ export function ShopStorefrontChrome({
             logoUrl={themedLogoUrl}
             announcement={chromeAnnouncement}
             whatsapp={whatsappNumber}
+          />
+        </Suspense>
+      ) : null}
+      {isSoftVitrine && !compactChrome ? (
+        <Suspense fallback={null}>
+          <SoftVitrineHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={themedLogoUrl}
+            announcement={chromeAnnouncement}
+            whatsapp={whatsappNumber}
+          />
+        </Suspense>
+      ) : null}
+      {isZetu && !compactChrome ? (
+        <Suspense fallback={null}>
+          <ZetuHeader
+            slug={slug}
+            storeName={headerTitle}
+            logoUrl={themedLogoUrl}
+            announcement={chromeAnnouncement}
+            whatsapp={whatsappNumber}
+            categories={categories}
           />
         </Suspense>
       ) : null}

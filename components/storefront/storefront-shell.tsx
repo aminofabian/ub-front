@@ -166,6 +166,8 @@ export async function StorefrontShell({
         chromeVariant === "carbon-desk" && "bg-[#C9B896] dark:bg-[#C9B896]",
         chromeVariant === "boutique-shelf" && "bg-[#1F1020] dark:bg-[#1F1020]",
         chromeVariant === "beauty-edit" && "bg-white dark:bg-white",
+        chromeVariant === "soft-vitrine" && "bg-white dark:bg-white",
+        chromeVariant === "zetu" && "bg-[#F7F5F2] dark:bg-[#F7F5F2]",
         chromeVariant === "scent-story" && "bg-[#FCF8F0] dark:bg-[#FCF8F0]",
         chromeVariant === "print-atelier" && "bg-white dark:bg-white",
         chromeVariant === "blank-drop" && "bg-white dark:bg-white",

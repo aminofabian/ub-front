@@ -336,3 +336,35 @@ with the “Preview my shop” draft URL.
   dashboard hero was replaced with the Cormorant page header.
 - Full-count banner now uses 2px edges, paper and forest instead of rounded
   pills.
+
+## Zetu storefront theme (fashion marketplace)
+
+`themeId: zetu` — a new opt-in storefront personality modelled on
+shopzetu.com. It is a tenant theme, not platform chrome; the merchant's name,
+logo, catalogue and copy still drive the page.
+
+- **Palette:** ink `#0E0B0C`, acid lime `#D4EF1C` (deep `#B6D613`, pale tint
+  `#F7FAD6`), warm paper `#F7F5F2`, product well `#EFEEEA`, hairline
+  `#E7E2DC`, signal red `#C20000` for genuine markdowns only.
+- **Type:** self-hosted Archivo (variable, 100–900) for display, Plus Jakarta
+  Sans for body, Playfair Display italic for the one editorial aside. Files
+  live in `app/fonts/zetu/`, loaded by `app/fonts/zetu.ts`.
+- **Surfaces:** announcement bar (black), white masthead with pill search,
+  uppercase category nav with a lime pill, dark hero with a lime offer line,
+  four deal tiles, lime-tinted product rail, serif promise band, dark
+  editorial band, black "Just landed" panel, numbered trending wall, category
+  wall, lime sign-up band, black footer.
+- **PDP:** breadcrumb, vertical thumbs + grey hero canvas, discount chip,
+  price/compare/save, option pills, qty + lime Add to cart + black Buy it now,
+  three trust tiles, native `<details>` accordion, and a "more from the shop"
+  wall fetched server-side for this theme only.
+- **Collection:** sticky filter rail (search, categories, sort, sale-only,
+  price bands) and a 2/3/4-column card grid; mobile gets category chips.
+- **Portals:** cart, checkout, sign-in and WhatsApp sheets carry a copy of the
+  palette so they still paint correctly when rendered outside the theme root.
+- **Options:** acid accent colour, paper tone, sale-badge colour; defaults are
+  no-ops so the theme's own palette wins.
+- **Verification:** `next dev` themes gallery at
+  `/dev/themes-gallery?theme=zetu&desktop=1` and `?theme=zetu`, plus dedicated
+  PDP/collection harnesses during development. `tsc --noEmit` exits 0; the
+  storefront theme tests (including the unique try-on layout invariant) pass.

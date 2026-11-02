@@ -29,3 +29,11 @@ export function isButcherBoardStoreTheme(): boolean {
 export function isBeautyEditStoreTheme(): boolean {
   return isActiveStoreTheme("beauty-edit");
 }
+
+export function isSoftVitrineStoreTheme(): boolean {
+  return isActiveStoreTheme("soft-vitrine");
+}
+
+export function isZetuStoreTheme(): boolean {
+  return isActiveStoreTheme("zetu");
+}

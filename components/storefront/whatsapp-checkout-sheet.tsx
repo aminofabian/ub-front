@@ -13,9 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
-import { isMizuSpringsStoreTheme } from "@/lib/storefront-theme-detect";
+import { isMizuSpringsStoreTheme, isZetuStoreTheme } from "@/lib/storefront-theme-detect";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
 import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
+import { zetuFontVariables } from "@/app/fonts/zetu";
+import ztStyles from "@/components/storefront/templates/store/zetu.module.css";
 import {
   buildCartWhatsAppText,
   buildCartWhatsAppUrl,
@@ -249,6 +251,12 @@ export function WhatsAppCheckoutSheet() {
   }
 
   const mizu = isMizuSpringsStoreTheme();
+  const zetu = isZetuStoreTheme();
+  const waBodyClass = mizu
+    ? msStyles.waBody
+    : zetu
+      ? ztStyles.waBody
+      : undefined;
 
   return (
     <div
@@ -262,6 +270,7 @@ export function WhatsAppCheckoutSheet() {
         className={cn(
           "flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-background shadow-2xl ring-1 ring-black/10 sm:rounded-2xl",
           mizu && cn(msStyles.waSheet, mizuSpringsFontVariables),
+          zetu && cn(ztStyles.waSheet, zetuFontVariables),
         )}
         role="dialog"
         aria-modal="true"
@@ -271,7 +280,9 @@ export function WhatsAppCheckoutSheet() {
           className={
             mizu
               ? msStyles.waHead
-              : "flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-5 py-4"
+              : zetu
+                ? ztStyles.waHead
+                : "flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-5 py-4"
           }
         >
           <div className="flex items-center gap-2.5">
@@ -279,7 +290,9 @@ export function WhatsAppCheckoutSheet() {
               className={
                 mizu
                   ? msStyles.waHeadIcon
-                  : "flex size-9 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C4A]"
+                  : zetu
+                    ? ztStyles.waHeadIcon
+                    : "flex size-9 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C4A]"
               }
             >
               <MessageCircle className="size-5" aria-hidden />
@@ -290,14 +303,24 @@ export function WhatsAppCheckoutSheet() {
                 className={
                   mizu
                     ? msStyles.waTitle
-                    : "text-base font-semibold tracking-tight"
+                    : zetu
+                      ? ztStyles.waTitle
+                      : "text-base font-semibold tracking-tight"
                 }
               >
-                {mizu
+                {mizu || zetu
                   ? `WhatsApp ${whatsappCheckout.storeName}`
                   : `Send your order to ${whatsappCheckout.storeName}`}
               </h2>
-              <p className={mizu ? msStyles.waMeta : "text-xs text-muted-foreground"}>
+              <p
+                className={
+                  mizu
+                    ? msStyles.waMeta
+                    : zetu
+                      ? ztStyles.waMeta
+                      : "text-xs text-muted-foreground"
+                }
+              >
                 {itemLabel}
                 {subtotal ? ` · ${subtotal}` : ""}
               </p>
@@ -311,7 +334,9 @@ export function WhatsAppCheckoutSheet() {
             className={
               mizu
                 ? msStyles.waClose
-                : "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                : zetu
+                  ? ztStyles.waClose
+                  : "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             }
             aria-label="Close"
           >
@@ -323,7 +348,7 @@ export function WhatsAppCheckoutSheet() {
           <div
             className={cn(
               "flex flex-col gap-4 overflow-y-auto px-5 py-6",
-              mizu && msStyles.waBody,
+              waBodyClass,
             )}
           >
             <div className="flex flex-col items-center text-center">
@@ -382,7 +407,7 @@ export function WhatsAppCheckoutSheet() {
             onSubmit={handleSubmit}
             className={cn(
               "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5",
-              mizu && msStyles.waBody,
+              waBodyClass,
             )}
           >
             {!cart || cart.lines.length === 0 ? (

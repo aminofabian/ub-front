@@ -5,12 +5,16 @@ import { ButcherBoardCartPanel } from "@/components/storefront/templates/store/b
 import { ComilmartCartPanel } from "@/components/storefront/templates/store/comilmart-cart-panel";
 import { DailyGazetteCartPanel } from "@/components/storefront/templates/store/daily-gazette-cart-panel";
 import { MizuSpringsCartPanel } from "@/components/storefront/templates/store/mizu-springs-cart-panel";
+import { SoftVitrineCartPanel } from "@/components/storefront/templates/store/soft-vitrine-cart-panel";
+import { ZetuCartPanel } from "@/components/storefront/templates/store/zetu-cart-panel";
 import { ShopCartPanelBody } from "@/components/storefront/shop-cart-panel-body";
 import beautyStyles from "@/components/storefront/templates/store/beauty-edit.module.css";
 import butcherStyles from "@/components/storefront/templates/store/butcher-board.module.css";
 import comilmartStyles from "@/components/storefront/templates/store/comilmart.module.css";
 import gazetteStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import mizuStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
+import softVitrineStyles from "@/components/storefront/templates/store/soft-vitrine.module.css";
+import zetuStyles from "@/components/storefront/templates/store/zetu.module.css";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { cn } from "@/lib/utils";
@@ -27,7 +31,9 @@ export function ShopCartMobileFloat({
     | "daily-gazette"
     | "mizu-springs"
     | "butcher-board"
-    | "beauty-edit";
+    | "beauty-edit"
+    | "soft-vitrine"
+    | "zetu";
 } = {}) {
   const isMd = useMediaMd();
   const { drawerOpen, closeDrawer, showAllCartItems } = useShopCart();
@@ -36,6 +42,8 @@ export function ShopCartMobileFloat({
   const mizu = themed === "mizu-springs";
   const butcher = themed === "butcher-board";
   const beauty = themed === "beauty-edit";
+  const softVitrine = themed === "soft-vitrine";
+  const zetu = themed === "zetu";
 
   if (!drawerOpen) {
     return null;
@@ -52,11 +60,15 @@ export function ShopCartMobileFloat({
       ? cn(gazetteStyles.cartFloat, isMd && "cursor-pointer")
       : mizu
         ? cn(mizuStyles.cartFloat, isMd && "cursor-pointer")
-        : beauty
-          ? cn(beautyStyles.cartFloat, isMd && "cursor-pointer")
-          : butcher
-            ? cn(butcherStyles.cartFloat, isMd && "cursor-pointer")
-            : cn(
+        : softVitrine
+          ? cn(softVitrineStyles.cartFloat, isMd && "cursor-pointer")
+          : zetu
+            ? cn(zetuStyles.cartFloat, isMd && "cursor-pointer")
+            : beauty
+            ? cn(beautyStyles.cartFloat, isMd && "cursor-pointer")
+            : butcher
+              ? cn(butcherStyles.cartFloat, isMd && "cursor-pointer")
+              : cn(
                 "absolute flex max-h-[min(68dvh,28rem)] w-[min(calc(100vw-1.5rem),21rem)] flex-col overflow-hidden rounded-[6px] border border-[var(--storefront-card-border,#e2e5e2)] bg-[var(--storefront-paper-elevated,#fff)] shadow-[0_24px_56px_-16px_rgba(20,24,22,0.4)]",
                 "origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-3 duration-300",
                 isMd
@@ -68,7 +80,7 @@ export function ShopCartMobileFloat({
     ? isMd
       ? "Hold slip. Click to open the full slip"
       : "Hold slip"
-    : mizu || beauty
+    : mizu || beauty || softVitrine || zetu
       ? isMd
         ? "Your bag — click to open full bag"
         : "Your bag"
@@ -88,7 +100,7 @@ export function ShopCartMobileFloat({
         aria-label={
           gazette
             ? "Close hold slip"
-            : mizu || beauty
+            : mizu || beauty || softVitrine || zetu
               ? "Close bag"
               : butcher
                 ? "Close slip"
@@ -123,6 +135,18 @@ export function ShopCartMobileFloat({
           />
         ) : mizu ? (
           <MizuSpringsCartPanel
+            onClose={closeDrawer}
+            compactHeader
+            onExpand={isMd ? expandToFullDrawer : undefined}
+          />
+        ) : softVitrine ? (
+          <SoftVitrineCartPanel
+            onClose={closeDrawer}
+            compactHeader
+            onExpand={isMd ? expandToFullDrawer : undefined}
+          />
+        ) : zetu ? (
+          <ZetuCartPanel
             onClose={closeDrawer}
             compactHeader
             onExpand={isMd ? expandToFullDrawer : undefined}

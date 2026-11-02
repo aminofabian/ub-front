@@ -7,6 +7,7 @@ import {
   buildProductShareMetadata,
 } from "@/lib/product-share-seo";
 import {
+  fetchPublicCatalogItems,
   fetchPublicItemDetail,
   fetchPublicStorefront,
 } from "@/lib/public-storefront";
@@ -102,11 +103,19 @@ export default async function StorefrontProductPage({
     preview.themeId ?? tenant?.storeThemeId,
   );
 
+  // Zetu shows a "more from the shop" wall under the PDP, like the
+  // marketplace it is modelled on. Other themes keep their own endings.
+  const relatedItems =
+    storeThemeId === "zetu"
+      ? ((await fetchPublicCatalogItems(slug, { limit: 10 }))?.items ?? [])
+      : undefined;
+
   return (
     <ShopProductDetailView
       slug={slug}
       item={item}
       storeThemeId={storeThemeId}
+      relatedItems={relatedItems}
     />
   );
 }

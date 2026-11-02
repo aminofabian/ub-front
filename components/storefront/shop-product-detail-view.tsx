@@ -19,11 +19,14 @@ import { PrintAtelierProduct } from "@/components/storefront/templates/store/pri
 import { BlankDropProduct } from "@/components/storefront/templates/store/blank-drop-product";
 import { PastryCaseProduct } from "@/components/storefront/templates/store/pastry-case-product";
 import { MizuSpringsProduct } from "@/components/storefront/templates/store/mizu-springs-product";
+import { SoftVitrineProduct } from "@/components/storefront/templates/store/soft-vitrine-product";
+import { ZetuProduct } from "@/components/storefront/templates/store/zetu-product";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatStoreQty,
   hasCatalogPrice,
   isStorefrontWeighedItem,
+  type PublicCatalogItemCard,
   type PublicCatalogItemDetail,
 } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
@@ -55,10 +58,13 @@ export function ShopProductDetailView({
   slug,
   item,
   storeThemeId,
+  relatedItems,
 }: {
   slug: string;
   item: PublicCatalogItemDetail;
   storeThemeId?: string | null;
+  /** Optional "more from the shop" rail (Zetu fetches these server-side). */
+  relatedItems?: PublicCatalogItemCard[];
 }) {
   const theme = normalizeStoreThemeId(storeThemeId);
   if (theme === "print-atelier") {
@@ -115,6 +121,20 @@ export function ShopProductDetailView({
       slug,
       item,
       <BeautyEditProduct slug={slug} item={item} />,
+    );
+  }
+  if (theme === "soft-vitrine") {
+    return withProductShare(
+      slug,
+      item,
+      <SoftVitrineProduct slug={slug} item={item} />,
+    );
+  }
+  if (theme === "zetu") {
+    return withProductShare(
+      slug,
+      item,
+      <ZetuProduct slug={slug} item={item} relatedItems={relatedItems} />,
     );
   }
 
