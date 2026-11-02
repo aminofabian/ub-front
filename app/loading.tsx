@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { PLATFORM_APP_ICON_SRC } from "@/lib/platform-brand-assets";
+
 /**
  * Storefront opening screen — one 15s story.
  *
@@ -47,7 +49,11 @@ function Awning() {
             x={index * (AWNING_WIDTH / AWNING_STRIPES)}
             width={AWNING_WIDTH / AWNING_STRIPES}
             height={34}
-            fill={index % 2 === 0 ? "#b5532f" : "#f4f1ea"}
+            className={
+              index % 2 === 0
+                ? "kiosk-shop-awning-stripe"
+                : "kiosk-shop-awning-stripe kiosk-shop-awning-stripe--alt"
+            }
           />
         ))}
         <rect width={AWNING_WIDTH} height={5} fill="#000" opacity={0.1} />
@@ -73,7 +79,18 @@ export default function Loading() {
             <div className="kiosk-shop-window-glow" />
           </div>
 
-          <div className="kiosk-shop-signboard">Kiosk</div>
+          <div className="kiosk-shop-signboard">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="kiosk-shop-signmark"
+              src={PLATFORM_APP_ICON_SRC}
+              alt=""
+              width={28}
+              height={28}
+              draggable={false}
+            />
+            <span className="kiosk-shop-signname">Kiosk</span>
+          </div>
 
           <Awning />
           <div className="kiosk-shop-awning-shadow" />
