@@ -602,7 +602,7 @@ function WelcomeCardBubble({
   return (
     <div
       className={cn(
-        "relative rounded-[0.9rem] border support-rule support-panel px-4 py-3 text-[13px] leading-[1.55] support-ink",
+        "relative rounded-2xl border support-rule support-panel px-4 py-3 text-[13px] leading-[1.55] support-ink",
         pending && "opacity-70",
       )}
     >
@@ -727,7 +727,7 @@ function OrderCardBubble({
               {card.orderCode}
             </p>
             {status ? (
-              <span className="rounded-full border support-rule px-2 py-0.5 text-[9.5px] font-medium capitalize support-muted">
+              <span className="rounded-full border support-rule px-2 py-0.5 text-[10px] font-medium capitalize support-muted">
                 {status}
               </span>
             ) : null}
@@ -990,7 +990,7 @@ export function Composer({
   return (
     <div className="mx-auto w-full min-w-0 max-w-[40rem] shrink-0 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 sm:px-4">
       {replyTo ? (
-        <div className="mb-2 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-[2px] border support-rule support-panel px-2.5 py-2">
+        <div className="mb-2 flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-xl border support-rule support-panel px-2.5 py-2">
           <span className="w-px shrink-0 self-stretch support-accent-bg" aria-hidden />
           <div className="min-w-0 flex-1 overflow-hidden">
             <p className="truncate text-[11px] font-semibold text-primary">
@@ -1195,7 +1195,7 @@ export function ResolvedBanner({
           type="button"
           disabled={busy}
           onClick={onReopen}
-          className="inline-flex h-7 items-center rounded-full border support-rule bg-background px-3 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          className="inline-flex h-7 items-center rounded-full border support-rule support-panel px-3 text-[11px] font-medium support-ink transition-colors hover:bg-[var(--conversation-paper)] disabled:opacity-50"
         >
           Reopen
         </button>

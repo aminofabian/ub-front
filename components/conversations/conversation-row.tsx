@@ -50,10 +50,10 @@ export function ConversationRow({
         unread > 0 && !active && "bg-primary/[0.035]",
       )}
     >
-      <div className="relative shrink-0">
+      <div className={cn("relative shrink-0", resolved && "opacity-70")}>
         <Avatar name={name} seed={seed} className="size-11" />
         {online && !resolved ? (
-          <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
+          <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)] bg-[var(--conversation-online)]" />
         ) : null}
       </div>
 
@@ -83,18 +83,18 @@ export function ConversationRow({
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <span
           className={cn(
-            "text-[10.5px] tabular-nums",
-            unread > 0 ? "font-semibold text-primary" : "text-muted-foreground/80",
+            "support-time text-[10.5px]",
+            unread > 0 ? "font-semibold text-[var(--conversation-accent)]" : "support-muted",
           )}
         >
           {time}
         </span>
         {unread > 0 ? (
-          <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--conversation-accent)] px-1.5 text-[10px] font-semibold leading-none text-[var(--conversation-accent-ink)]">
             {unreadLabel}
           </span>
         ) : resolved ? (
-          <CheckCircle2 className="size-3.5 text-emerald-500" aria-label="Resolved" />
+          <CheckCircle2 className="size-3.5 text-[var(--conversation-online)]" aria-label="Resolved" />
         ) : null}
         {unread > 0 ? <span className="sr-only">{unreadLabel} unread</span> : null}
       </div>

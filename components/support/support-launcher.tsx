@@ -107,14 +107,14 @@ export function SupportLauncher() {
         aria-label={open ? "Close support chat" : "Open support chat"}
         title={open ? "Close support" : "Chat with Kiosk Support"}
         className={cn(
-          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color,opacity] duration-200 max-xl:hidden",
+          "support-chat-theme group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full text-primary-foreground outline-none transition-[transform,box-shadow,background-color,opacity] duration-200 max-xl:hidden",
           SUPPORT_FAB_POSITION,
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           fabSuppressed && !open
             ? "pointer-events-none scale-90 opacity-0"
             : open
-              ? "bg-foreground shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
-              : "bg-primary shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
+              ? "bg-foreground shadow-[var(--conversation-shadow-lift)] hover:scale-[1.03]"
+              : "bg-primary shadow-[var(--conversation-shadow-lift)] hover:scale-[1.06] hover:shadow-[var(--conversation-shadow)]",
         )}
       >
         <Headset
@@ -125,14 +125,14 @@ export function SupportLauncher() {
         <span
           className={cn(
             "absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-background",
-            live ? "bg-emerald-400" : busy ? "bg-amber-400" : "bg-muted-foreground",
+            live ? "bg-[var(--conversation-online)]" : busy ? "bg-[var(--conversation-away)]" : "bg-muted-foreground",
           )}
           title={live ? "Connected" : busy ? "Connecting…" : "Offline — updates automatically"}
           aria-hidden
         />
 
         {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-foreground px-1 text-[10px] font-bold leading-none text-background">
+          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-[var(--conversation-accent-ink)] px-1 text-[10px] font-bold leading-none text-[var(--conversation-accent)]">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}

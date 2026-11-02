@@ -40,12 +40,15 @@ import {
   getGuestPhone,
   guestRealtimeChannel,
   markGuestThreadRead,
+  recoverGuestThread,
   resumeGuestThread,
   sendGuestMessage,
+  sendGuestRecoveryCode,
   setGuestName,
   setGuestPhone,
   startGuestThread,
   subscribeGuestIdentityChange,
+  verifyGuestRecoveryCode,
 } from "@/lib/public-support-api";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
@@ -211,12 +214,12 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
         aria-label={open ? "Close chat" : `Chat with ${context.teamName}`}
         title={open ? "Close chat" : `Chat with ${context.teamName}`}
         className={cn(
-          "group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full outline-none transition-[transform,box-shadow,background-color] duration-200",
+          "support-chat-theme group fixed z-40 flex size-[3.6rem] items-center justify-center rounded-full outline-none transition-[transform,box-shadow,background-color] duration-200",
           "bottom-[calc(env(safe-area-inset-bottom,0px)+1.15rem)] right-4",
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           open
-            ? "bg-foreground text-background shadow-[0_10px_28px_-12px_rgba(15,23,42,0.55)] hover:scale-[1.03]"
-            : "text-primary-foreground shadow-[0_14px_36px_-12px_rgba(40,167,69,0.65)] hover:scale-[1.06] hover:shadow-[0_18px_40px_-12px_rgba(40,167,69,0.7)]",
+            ? "bg-foreground text-background shadow-[var(--conversation-shadow-lift)] hover:scale-[1.03]"
+            : "text-primary-foreground shadow-[var(--conversation-shadow-lift)] hover:scale-[1.06] hover:shadow-[var(--conversation-shadow)]",
         )}
         style={{
           backgroundColor: !open
@@ -236,13 +239,13 @@ export function GuestSupportLauncher({ context }: { context: GuestSupportContext
         <span
           className={cn(
             "absolute bottom-0.5 right-0.5 size-3 rounded-full border-2 border-background",
-            live ? "bg-emerald-400" : busy ? "bg-amber-400" : "bg-white/55",
+            live ? "bg-[var(--conversation-online)]" : busy ? "bg-[var(--conversation-away)]" : "bg-white/55",
           )}
           title={live ? "Connected" : busy ? "Connecting…" : "Offline"}
           aria-hidden
         />
         {unread > 0 && !open ? (
-          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-foreground px-1 text-[10px] font-bold leading-none text-background shadow-sm">
+          <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-[var(--conversation-accent-ink)] px-1 text-[10px] font-bold leading-none text-[var(--conversation-accent)] shadow-sm">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -373,6 +376,16 @@ function GuestSupportPanel({
   const [introPhone, setIntroPhone] = React.useState(() => getGuestPhone() ?? "");
   const [introError, setIntroError] = React.useState("");
   const [showIntro, setShowIntro] = React.useState(false);
+  // OTP recovery — the only way back into a transcript whose token this browser
+  // no longer holds (cleared storage, new device, or a checkout's order-card
+  // thread that was keyed to the phone instead of the browser).
+  const [recoverOpen, setRecoverOpen] = React.useState(false);
+  const [recoverStep, setRecoverStep] = React.useState<"phone" | "code">("phone");
+  const [recoverPhone, setRecoverPhone] = React.useState(() => getGuestPhone() ?? "");
+  const [recoverCode, setRecoverCode] = React.useState("");
+  const [recoverHint, setRecoverHint] = React.useState("");
+  const [recoverBusy, setRecoverBusy] = React.useState(false);
+  const [recoverError, setRecoverError] = React.useState("");
   const [connectionState, setConnectionState] =
     React.useState<RealtimeConnectionState>("disconnected");
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
@@ -383,6 +396,12 @@ function GuestSupportPanel({
   const stickToBottomRef = React.useRef(true);
   const seenIdsRef = React.useRef<Set<string>>(new Set());
   const typingStopRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The intro doubles as the recovery sheet; a background sync must not close it
+  // under the visitor's fingers while they type a code.
+  const recoverOpenRef = React.useRef(false);
+  React.useEffect(() => {
+    recoverOpenRef.current = recoverOpen;
+  }, [recoverOpen]);
 
   const conversationId = conversation?.id ?? null;
   const hasThread = Boolean(conversationId);
@@ -429,7 +448,8 @@ function GuestSupportPanel({
         }
         applyPayload(payload, silent);
         setSyncError("");
-        setShowIntro(false);
+        // Keep the recovery sheet open if the visitor is mid-recovery.
+        if (!recoverOpenRef.current) setShowIntro(false);
         if (open) {
           const hasUnread = (payload.messages ?? []).some(
             (m) => m.senderType !== "GUEST" && !m.readAt,
@@ -785,9 +805,71 @@ function GuestSupportPanel({
     setShowIntro(false);
   };
 
+  const requestRecoveryCode = async () => {
+    const digits = recoverPhone.replace(/[^0-9+]/g, "");
+    if (digits.length < 9 || digits.length > 16) {
+      setRecoverError("Enter the phone number you used on the chat.");
+      return;
+    }
+    setRecoverBusy(true);
+    setRecoverError("");
+    try {
+      const sent = await sendGuestRecoveryCode(digits);
+      setRecoverPhone(digits);
+      setRecoverHint(sent?.maskedHint ?? "");
+      setRecoverCode("");
+      setRecoverStep("code");
+    } catch (e) {
+      setRecoverError(
+        e instanceof Error ? e.message : "Could not send the code. Try again.",
+      );
+    } finally {
+      setRecoverBusy(false);
+    }
+  };
+
+  const confirmRecoveryCode = async () => {
+    if (recoverCode.replace(/\D/g, "").length < 4) {
+      setRecoverError("Enter the 4-digit code we sent you.");
+      return;
+    }
+    setRecoverBusy(true);
+    setRecoverError("");
+    try {
+      const phoneVerificationToken = await verifyGuestRecoveryCode(
+        recoverPhone,
+        recoverCode,
+      );
+      const payload = await recoverGuestThread(context.ns, {
+        type: context.type,
+        businessSlug: context.businessSlug,
+        phone: recoverPhone,
+        phoneVerificationToken,
+      });
+      applyPayload(payload, false);
+      setShowIntro(false);
+      setRecoverOpen(false);
+      setRecoverStep("phone");
+      setRecoverCode("");
+      setRecoverHint("");
+      if (payload.conversation?.id) {
+        void markGuestThreadRead(context.ns, payload.conversation.id).catch(() => {});
+      }
+      onUnreadChange(0);
+    } catch (e) {
+      setRecoverError(
+        e instanceof Error ? e.message : "Could not recover the chat. Try again.",
+      );
+    } finally {
+      setRecoverBusy(false);
+    }
+  };
+
   const resolved = conversation?.status === "RESOLVED";
   const accent = context.accentHex || undefined;
 
+  // The shop's brand drives the thread, not just the CTA: bubbles, send button,
+  // and focus ring share one accent inside a themed storefront.
   return (
     <section
       className={cn(
@@ -797,8 +879,16 @@ function GuestSupportPanel({
           : "support-chat-theme--shop",
       )}
       aria-label={`Chat with ${context.teamName}`}
+      style={
+        accent
+          ? ({
+              "--conversation-accent": accent,
+              "--conversation-accent-ink": readableInkOn(accent),
+            } as React.CSSProperties)
+          : undefined
+      }
     >
-      <header className="support-chat-header flex items-center gap-2.5 border-b border-border/50 px-4 py-2.5">
+      <header className="support-chat-header flex items-center gap-2.5 border-b support-rule px-4 py-2.5">
         <div className="relative shrink-0">
           {context.type === "VISITOR" ? (
             <PlatformAvatar className="size-10" />
@@ -809,10 +899,10 @@ function GuestSupportPanel({
             className={cn(
               "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
               connectionState === "connected"
-                ? "bg-emerald-500"
+                ? "bg-[var(--conversation-online)]"
                 : connectionState === "connecting" ||
                     connectionState === "reconnecting"
-                  ? "bg-amber-500"
+                  ? "bg-[var(--conversation-away)]"
                   : "bg-muted-foreground/40",
             )}
             aria-hidden
@@ -854,7 +944,7 @@ function GuestSupportPanel({
       {syncError && !loading && !loadError && !showIntro ? (
         <div
           role="status"
-          className="flex shrink-0 items-center justify-center gap-2 border-b border-border/50 bg-amber-500/[0.06] px-3 py-1.5 text-[11px] text-muted-foreground"
+          className="flex shrink-0 items-center justify-center gap-2 border-b support-rule bg-[var(--conversation-warn-wash)] px-3 py-1.5 text-[11px] support-muted"
         >
           <RotateCw className="size-3" aria-hidden />
           <span>Showing the last synced messages — reconnecting…</span>
@@ -882,59 +972,173 @@ function GuestSupportPanel({
             </span>
             <div className="max-w-[17.5rem]">
               <p className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">
-                We&apos;re here to help
+                {recoverOpen ? "Recover your chat" : "We're here to help"}
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                {context.blurb}
+                {recoverOpen
+                  ? "Confirm the phone number you used and we'll bring the whole thread back — order cards included."
+                  : context.blurb}
               </p>
             </div>
-            <div className="flex w-full max-w-[17.5rem] flex-col gap-2 text-left">
-              <label className="space-y-1">
-                <span className="px-0.5 text-xs font-medium text-muted-foreground">Your name</span>
-                <input
-                  value={introName}
-                  onChange={(e) => setIntroName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") beginIntro();
+            {recoverOpen ? (
+              <div className="flex w-full max-w-[17.5rem] flex-col gap-2 text-left">
+                {recoverStep === "phone" ? (
+                  <>
+                    <label className="space-y-1">
+                      <span className="px-0.5 text-xs font-medium text-muted-foreground">
+                        Phone number on the chat
+                      </span>
+                      <input
+                        value={recoverPhone}
+                        onChange={(e) => setRecoverPhone(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void requestRecoveryCode();
+                        }}
+                        inputMode="tel"
+                        autoComplete="tel"
+                        placeholder="0712 345 678"
+                        aria-label="Phone number on the chat"
+                        className="h-11 w-full rounded-xl border support-rule support-panel px-3.5 text-[14px] support-ink placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void requestRecoveryCode()}
+                      disabled={recoverBusy}
+                      className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-[opacity,transform] hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                      style={{
+                        backgroundColor: accent || "var(--conversation-accent)",
+                        color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
+                      }}
+                    >
+                      {recoverBusy ? "Sending…" : "Send code"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label className="space-y-1">
+                      <span className="px-0.5 text-xs font-medium text-muted-foreground">
+                        {recoverHint
+                          ? `4-digit code sent to ${recoverHint}`
+                          : "4-digit code"}
+                      </span>
+                      <input
+                        value={recoverCode}
+                        onChange={(e) => setRecoverCode(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void confirmRecoveryCode();
+                        }}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="1234"
+                        aria-label="Verification code"
+                        className="h-11 w-full rounded-xl border support-rule support-panel px-3.5 text-center text-[17px] font-semibold tracking-[0.35em] support-ink placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void confirmRecoveryCode()}
+                      disabled={recoverBusy}
+                      className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-[opacity,transform] hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                      style={{
+                        backgroundColor: accent || "var(--conversation-accent)",
+                        color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
+                      }}
+                    >
+                      {recoverBusy ? "Checking…" : "Recover chat"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecoverStep("phone");
+                        setRecoverCode("");
+                        setRecoverHint("");
+                        setRecoverError("");
+                      }}
+                      className="text-[11.5px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    >
+                      Use a different number
+                    </button>
+                  </>
+                )}
+                {recoverError ? (
+                  <p className="px-0.5 text-[11px] text-destructive">{recoverError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoverOpen(false);
+                    setRecoverStep("phone");
+                    setRecoverCode("");
+                    setRecoverHint("");
+                    setRecoverError("");
                   }}
-                  placeholder="e.g. Wanjiru"
-                  aria-label="Your name"
-                  className="h-11 w-full rounded-xl border border-border/60 bg-background px-3.5 text-[14px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="px-0.5 text-xs font-medium text-muted-foreground">Phone number</span>
-                <input
-                  value={introPhone}
-                  onChange={(e) => setIntroPhone(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") beginIntro();
+                  className="text-[11.5px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Start a new chat instead
+                </button>
+              </div>
+            ) : (
+              <div className="flex w-full max-w-[17.5rem] flex-col gap-2 text-left">
+                <label className="space-y-1">
+                  <span className="px-0.5 text-xs font-medium text-muted-foreground">Your name</span>
+                  <input
+                    value={introName}
+                    onChange={(e) => setIntroName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") beginIntro();
+                    }}
+                    placeholder="e.g. Wanjiru"
+                    aria-label="Your name"
+                    className="h-11 w-full rounded-xl border support-rule support-panel px-3.5 text-[14px] support-ink placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="px-0.5 text-xs font-medium text-muted-foreground">Phone number</span>
+                  <input
+                    value={introPhone}
+                    onChange={(e) => setIntroPhone(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") beginIntro();
+                    }}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="0712 345 678"
+                    aria-label="Phone number"
+                    className="h-11 w-full rounded-xl border support-rule support-panel px-3.5 text-[14px] support-ink placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  />
+                </label>
+                {introError ? (
+                  <p className="px-0.5 text-[11px] text-destructive">{introError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={beginIntro}
+                  className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-[opacity,transform] hover:opacity-95 active:scale-[0.99]"
+                  style={{
+                    backgroundColor: accent || "var(--conversation-accent)",
+                    color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
                   }}
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="0712 345 678"
-                  aria-label="Phone number"
-                  className="h-11 w-full rounded-xl border border-border/60 bg-background px-3.5 text-[14px] text-foreground placeholder:text-muted-foreground/70 focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
-                />
-              </label>
-              {introError ? (
-                <p className="px-0.5 text-[11px] text-destructive">{introError}</p>
-              ) : null}
+                >
+                  Start chatting
+                </button>
+              </div>
+            )}
+            <p className="max-w-[16rem] text-[11px] leading-relaxed text-muted-foreground">
+              {recoverOpen
+                ? "A one-time code confirms it's you before we open the thread on this device."
+                : "No account needed. We keep this chat on this device so you can pick it up where you left off."}
+            </p>
+            {!recoverOpen ? (
               <button
                 type="button"
-                onClick={beginIntro}
-                className="mt-1 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-[opacity,transform] hover:opacity-95 active:scale-[0.99]"
-                style={{
-                  backgroundColor: accent || "var(--conversation-accent)",
-                  color: accent ? readableInkOn(accent) : "var(--conversation-accent-ink)",
-                }}
+                onClick={() => setRecoverOpen(true)}
+                className="text-[11.5px] font-medium text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
               >
-                Start chatting
+                Changed device or cleared your browser? Recover your chat
               </button>
-            </div>
-            <p className="max-w-[16rem] text-[11px] leading-relaxed text-muted-foreground">
-              No account needed. We keep this chat on this device so you can pick it up where you left off.
-            </p>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -947,7 +1151,7 @@ function GuestSupportPanel({
               aria-live="polite"
               aria-relevant="additions"
               aria-label="Conversation messages"
-              className="support-chat-scroll h-full space-y-2.5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4"
+              className="support-chat-scroll h-full overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4"
             >
               {loading ? (
                 <ChatThreadSkeleton />
@@ -978,12 +1182,22 @@ function GuestSupportPanel({
                         key={prompt}
                         type="button"
                         onClick={() => void send(prompt)}
-                        className="rounded-full border border-border/70 bg-card/90 px-3.5 py-2 text-left text-xs leading-snug text-foreground/80 shadow-sm transition-[border-color,background-color,transform] hover:border-primary/35 hover:bg-primary/[0.04] hover:text-foreground active:scale-[0.98]"
+                        className="rounded-full border support-rule support-panel px-3.5 py-2 text-left text-xs leading-snug support-ink shadow-[var(--conversation-shadow)] transition-[border-color,background-color,transform] hover:border-primary/35 hover:bg-[var(--conversation-note-wash)] active:scale-[0.98]"
                       >
                         {prompt}
                       </button>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowIntro(true);
+                      setRecoverOpen(true);
+                    }}
+                    className="text-[11.5px] font-medium text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Ordered before? Recover your earlier chat
+                  </button>
                 </div>
               ) : (
                 <>
@@ -1027,14 +1241,14 @@ function GuestSupportPanel({
                   setShowJump(false);
                 }}
                 aria-label="Jump to latest messages"
-                className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-card/95 px-3 py-1.5 text-[11px] font-medium text-foreground shadow-[0_8px_24px_-12px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-colors hover:bg-card"
+                className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border support-rule support-panel px-3 py-1.5 text-[11px] font-medium support-ink shadow-[var(--conversation-shadow)] backdrop-blur-sm transition-colors hover:bg-[var(--conversation-paper)]"
               >
                 <ArrowDown className="size-3.5" aria-hidden />
                 Latest
               </button>
             ) : null}
           </ChatThreadSurface>
-          <div className="min-w-0 shrink-0 overflow-hidden border-t border-border/50 bg-background">
+          <div className="min-w-0 shrink-0 overflow-hidden border-t support-rule support-panel">
             <Composer
               value={draft}
               onChange={setDraft}

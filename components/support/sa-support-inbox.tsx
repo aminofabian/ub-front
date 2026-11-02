@@ -245,8 +245,8 @@ function UnreadCycleRail({
 }) {
   if (items.length === 0) {
     return (
-      <div className="mx-1 mb-2 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2">
-        <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+      <div className="mx-1 mb-2 flex items-center gap-2 rounded-xl border support-rule bg-[var(--conversation-note-wash)] px-3 py-2">
+        <span className="size-1.5 rounded-full bg-[var(--conversation-online)]" aria-hidden />
         <p className="text-[11px] font-medium text-muted-foreground">
           Inbox clear — nothing waiting
         </p>
@@ -262,17 +262,17 @@ function UnreadCycleRail({
     .reduce((s, i) => s + i.unread, 0);
 
   return (
-    <div className="mx-1 mb-2 rounded-xl border border-border/60 bg-card/80">
+    <div className="mx-1 mb-2 rounded-xl border support-rule support-panel">
       <div className="flex items-center justify-between gap-2 px-3 py-1.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Waiting replies
         </p>
         <div className="flex items-center gap-1.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-          <span className={cn(tenantUnread > 0 ? "text-emerald-700 dark:text-emerald-400" : "")}>
+          <span className={cn(tenantUnread > 0 ? "text-[var(--conversation-accent)]" : "")}>
             {tenantUnread} tenant{tenantUnread === 1 ? "" : "s"}
           </span>
           <span className="text-border">·</span>
-          <span className={cn(visitorUnread > 0 ? "text-sky-700 dark:text-sky-400" : "")}>
+          <span className={cn(visitorUnread > 0 ? "text-[var(--conversation-away)]" : "")}>
             {visitorUnread} visitor{visitorUnread === 1 ? "" : "s"}
           </span>
         </div>
@@ -1074,10 +1074,8 @@ export function SaSupportInbox() {
                     className={cn(
                       "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums transition-transform duration-200",
                       selected
-                        ? "bg-primary text-primary-foreground"
-                        : key === "VISITOR"
-                          ? "bg-sky-500 text-white"
-                          : "bg-emerald-600 text-white",
+                        ? "bg-[var(--conversation-accent)] text-[var(--conversation-accent-ink)]"
+                        : "bg-[var(--conversation-note-wash)] text-[var(--conversation-accent)]",
                     )}
                   >
                     {stats.unread > 99 ? "99+" : stats.unread}
@@ -1135,16 +1133,16 @@ export function SaSupportInbox() {
             className={cn(
               "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full text-xs font-medium transition-colors",
               onlineOnly
-                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                ? "bg-[var(--conversation-note-wash)] text-[var(--conversation-online)]"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <span className={cn("size-1.5 rounded-full", onlineOnly ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+            <span className={cn("size-1.5 rounded-full", onlineOnly ? "bg-[var(--conversation-online)]" : "bg-muted-foreground/40")} />
             Online
             <span
               className={cn(
                 "text-[10px] tabular-nums",
-                onlineOnly ? "text-emerald-600/80 dark:text-emerald-400/80" : "text-muted-foreground/60",
+                onlineOnly ? "text-[var(--conversation-online)]" : "text-muted-foreground/60",
               )}
             >
               {tab === "VISITOR" ? liveCounts.visitorsOnline : liveTenantsLoggedIn}
@@ -1247,9 +1245,9 @@ export function SaSupportInbox() {
             className={cn(
               "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
               tenantPresence?.online
-                ? "bg-emerald-500"
+                ? "bg-[var(--conversation-online)]"
                 : tenantPresence
-                  ? "bg-amber-500"
+                  ? "bg-[var(--conversation-away)]"
                   : "bg-muted-foreground/30",
             )}
             aria-hidden
@@ -1289,7 +1287,7 @@ export function SaSupportInbox() {
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    tenantPresence?.online ? "bg-emerald-500" : "bg-muted-foreground/40",
+                    tenantPresence?.online ? "bg-[var(--conversation-online)]" : "bg-muted-foreground/40",
                   )}
                   aria-hidden
                 />
@@ -1494,7 +1492,7 @@ export function SaSupportInbox() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-10.5rem)] min-h-[540px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
+    <div className="support-chat-theme support-chat-theme--platform flex h-[calc(100dvh-10.5rem)] min-h-[540px] flex-col overflow-hidden rounded-2xl border support-rule support-panel shadow-[var(--conversation-shadow)] md:flex-row">
       <div className={cn("min-h-0 flex-1 md:flex", mobileView === "chat" && "hidden")}>{listPane}</div>
       <div className={cn("min-h-0 flex-1", mobileView === "list" && "hidden md:block")}>{chatPane}</div>
     </div>

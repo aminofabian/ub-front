@@ -454,12 +454,12 @@ export function InboxWorkspace() {
       {/* List */}
       <aside
         className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card",
+          "support-chat-theme support-chat-theme--platform flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border support-rule support-panel",
           mobileView === "detail" && "hidden lg:flex",
         )}
       >
-        <div className="border-b border-border/60 p-2.5">
-          <div className="flex items-center gap-1 rounded-full bg-muted/50 p-1">
+        <div className="border-b support-rule p-2.5">
+          <div className="flex items-center gap-1 rounded-full bg-[var(--conversation-note-wash)] p-1">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -468,7 +468,7 @@ export function InboxWorkspace() {
                 className={cn(
                   "h-7 flex-1 rounded-full text-[11.5px] font-medium transition-all",
                   filter === f.key
-                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                    ? "support-panel support-ink shadow-[var(--conversation-shadow)] ring-1 ring-[var(--conversation-rule)]"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -481,7 +481,7 @@ export function InboxWorkspace() {
           {listLoading ? (
             <ConversationListSkeleton />
           ) : listError ? (
-            <p className="p-3 text-[13px] text-red-600">{listError}</p>
+            <p className="p-3 text-[13px] text-[var(--conversation-danger)]">{listError}</p>
           ) : rows.length === 0 ? (
             <p className="p-3 text-[13px] text-muted-foreground">
               {status && !status.hasActiveNumber
@@ -507,7 +507,7 @@ export function InboxWorkspace() {
                   <span className="truncate text-[14px] font-medium">
                     {row.contactName || row.contactPhone || "Unknown"}
                   </span>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                  <span className="support-time shrink-0 text-[10.5px] support-muted">
                     {formatWhen(row.lastMessageAt)}
                   </span>
                 </span>
@@ -517,7 +517,7 @@ export function InboxWorkspace() {
                     {row.lastMessagePreview || row.contactPhone || "No messages yet"}
                   </span>
                   {row.unreadCount > 0 ? (
-                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--conversation-accent)] px-1.5 text-[10px] font-semibold leading-none text-[var(--conversation-accent-ink)]">
                       {row.unreadCount > 9 ? "9+" : row.unreadCount}
                     </span>
                   ) : null}
@@ -526,7 +526,7 @@ export function InboxWorkspace() {
             ))
           )}
           {!listLoading && !listError && rows.length < total ? (
-            <div className="border-t p-2">
+            <div className="border-t support-rule p-2">
               <button
                 type="button"
                 disabled={loadingMore}
@@ -543,7 +543,7 @@ export function InboxWorkspace() {
       {/* Thread */}
       <section
         className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card",
+          "support-chat-theme support-chat-theme--platform flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border support-rule support-surface",
           mobileView === "list" && "hidden lg:flex",
         )}
       >

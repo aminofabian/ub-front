@@ -340,6 +340,126 @@ export async function resumeGuestThread(
   return payload;
 }
 
+/**
+ * OTP recovery — the phone is the identity anchor, but only once the visitor
+ * has proved they hold it. Flow: `sendGuestRecoveryCode` → `verifyGuestRecoveryCode`
+ * → `recoverGuestThread`. Nothing here accepts a typed number as a credential.
+ */
+
+export type GuestRecoverySendResult = {
+  phone: string;
+  expiresAt?: string;
+  channel?: string;
+  maskedHint?: string;
+};
+
+/** Sends a one-time code to the phone that owns the transcript being recovered. */
+export async function sendGuestRecoveryCode(
+  phone: string,
+): Promise<GuestRecoverySendResult> {
+  const response = await fetch(
+    apiUrl("/api/v1/public/shopper/auth/identify/send-code"),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phone.trim() }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await problemDetail(response, "Could not send the code"));
+  }
+  return (await response.json()) as GuestRecoverySendResult;
+}
+
+/** Exchanges the code for the single-use token that opens the recovery merge. */
+export async function verifyGuestRecoveryCode(
+  phone: string,
+  code: string,
+): Promise<string> {
+  const response = await fetch(
+    apiUrl("/api/v1/public/shopper/auth/identify/verify-code"),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phone.trim(), code: code.trim() }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await problemDetail(response, "That code did not match"));
+  }
+  const payload = (await response.json()) as { phoneVerificationToken?: string };
+  if (!payload?.phoneVerificationToken) {
+    throw new Error("That code did not match");
+  }
+  return payload.phoneVerificationToken;
+}
+
+/**
+ * Reclaims every thread this phone owns in the shop — including a checkout's
+ * order-card thread the browser never opened — and merges them into one,
+ * returning a freshly minted thread secret for this browser.
+ */
+export async function recoverGuestThread(
+  ns: string,
+  opts: {
+    type: GuestChatType;
+    businessSlug?: string;
+    phone: string;
+    phoneVerificationToken: string;
+  },
+): Promise<GuestThreadPayload> {
+  const guestId = ensureGuestId();
+  const response = await fetch(apiUrl("/api/v1/public/support/threads/recover"), {
+    method: "POST",
+    credentials: "include",
+    headers: guestHeaders(guestId, null),
+    body: JSON.stringify({
+      type: opts.type,
+      businessSlug: opts.businessSlug,
+      guestId,
+      phone: opts.phone,
+      phoneVerificationToken: opts.phoneVerificationToken,
+    }),
+  });
+  if (response.status === 404) {
+    throw new Error("We couldn't find a chat for that number here yet.");
+  }
+  if (!response.ok) {
+    throw new Error(
+      await problemDetail(response, `Could not recover the chat (${response.status})`),
+    );
+  }
+  const payload = (await response.json()) as GuestThreadPayload;
+  if (payload.token && payload.conversation) {
+    setGuestPhone(opts.phone);
+    saveGuestSession(ns, {
+      guestId,
+      token: payload.token,
+      conversationId: payload.conversation.id,
+      name: getGuestName(),
+      phone: opts.phone,
+    });
+  }
+  return payload;
+}
+
+/** Reads the ProblemDetail body the API returns for 4xx responses. */
+async function problemDetail(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await response.json()) as {
+      detail?: string;
+      message?: string;
+      title?: string;
+    };
+    const text = (body?.detail || body?.message || body?.title || "").trim();
+    return text || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function sendGuestMessage(
   ns: string,
   conversationId: string,

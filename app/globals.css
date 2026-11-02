@@ -251,7 +251,7 @@
         background-color: transparent;
     }
     35% {
-        background-color: rgba(40, 167, 69, 0.14);
+        background-color: rgba(29, 75, 59, 0.14);
     }
 }
 
@@ -269,11 +269,34 @@
     --conversation-ink: #121a16;
     --conversation-muted: #556159;
     --conversation-rule: rgba(18, 26, 22, 0.1);
+    /* Status + wash tokens. Conversation surfaces read these instead of the
+       emerald / sky / amber utilities, so light and dark stay one system. */
+    --conversation-online: #2f7d5b;
+    --conversation-away: #a55237;
+    --conversation-danger: #9a2e16;
+    --conversation-warn-wash: rgba(165, 82, 55, 0.1);
+    --conversation-note-wash: rgba(29, 75, 59, 0.06);
+    /* Forest-tinted depth: wide, soft, one direction. Never a hard offset. */
+    --conversation-shadow: 0 14px 34px -20px rgba(18, 26, 22, 0.42);
+    --conversation-shadow-lift: 0 20px 44px -24px rgba(18, 26, 22, 0.5);
 }
 
 .support-chat-theme--platform {
     --conversation-accent: #1d4b3b;
     --conversation-accent-ink: #f2ede1;
+}
+
+/* Tenant chat: the shop's accent arrives inline (accentHex) or via --primary.
+   Kept explicit so the scope is a defined hook, not a class with no CSS. */
+.support-chat-theme--shop {
+    --conversation-accent: var(--primary);
+    --conversation-accent-ink: var(--primary-foreground);
+}
+
+.dark .support-chat-theme--platform {
+    /* Pale sage on near-black, per DESIGN.md. */
+    --conversation-accent: #b9d0c0;
+    --conversation-accent-ink: #0d1713;
 }
 
 .support-surface {
@@ -314,6 +337,32 @@
     --conversation-ink: #f2ede1;
     --conversation-muted: #b9c9bf;
     --conversation-rule: rgba(242, 237, 225, 0.12);
+    --conversation-online: #86c7a2;
+    --conversation-away: #e0a084;
+    --conversation-danger: #f0a08a;
+    --conversation-warn-wash: rgba(224, 160, 132, 0.14);
+    --conversation-note-wash: rgba(242, 237, 225, 0.06);
+    --conversation-shadow: 0 14px 34px -20px rgba(0, 0, 0, 0.6);
+    --conversation-shadow-lift: 0 20px 44px -24px rgba(0, 0, 0, 0.7);
+}
+
+/* Meta/browser-surface helper for rows, times, and receipts inside chat. */
+.support-time {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+}
+
+/* Coarse pointers zoom the page when a focused field is under 16px
+   (iOS Safari). Conversation inputs opt out of the zoom jump. */
+@media (max-width: 639px) {
+    .support-chat-theme :where(
+        input:not([type="checkbox"]):not([type="radio"]),
+        textarea,
+        select
+    ) {
+        font-size: 16px;
+    }
 }
 
 .support-chat-theme {
@@ -8177,4 +8226,26 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 .premium-audit select,
 .premium-audit button {
     border-radius: 2px;
+}
+
+/* ── Conversation radius exception ──────────────────────────────────────
+   Chat is a scoped exception to the 2px operator rule (docs/qa/
+   CHAT_DESIGN_PASS_2026-10-20.md): panels keep 16px, rows and chips 12px.
+   These rules sit after every operator scope above, so a tie on specificity
+   resolves to the conversation radius instead of flattening the panel that
+   sits next to 16px bubbles and a 1.35rem composer capsule. Do not copy the
+   exception onto tables, inventory, or settings. */
+.support-chat-theme.rounded-2xl,
+.support-chat-theme .rounded-2xl {
+    border-radius: 1rem;
+}
+
+.support-chat-theme.rounded-xl,
+.support-chat-theme .rounded-xl {
+    border-radius: 0.75rem;
+}
+
+.support-chat-theme.rounded-lg,
+.support-chat-theme .rounded-lg {
+    border-radius: 0.5rem;
 }

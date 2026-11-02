@@ -585,10 +585,10 @@ export function SupportChat({
             className={cn(
               "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
               connectionState === "connected"
-                ? "bg-emerald-500"
+                ? "bg-[var(--conversation-online)]"
                 : connectionState === "connecting" ||
                     connectionState === "reconnecting"
-                  ? "bg-amber-500"
+                  ? "bg-[var(--conversation-away)]"
                   : "bg-muted-foreground/40",
             )}
             aria-hidden
@@ -658,7 +658,7 @@ export function SupportChat({
       {syncError && !loading && !loadError ? (
         <div
           role="status"
-          className="flex shrink-0 items-center justify-center gap-2 border-b border-border/50 bg-amber-500/[0.06] px-3 py-1.5 text-[11px] text-muted-foreground"
+          className="flex shrink-0 items-center justify-center gap-2 border-b support-rule bg-[var(--conversation-warn-wash)] px-3 py-1.5 text-[11px] support-muted"
         >
           <RotateCw className="size-3" aria-hidden />
           <span>Showing the last synced messages — reconnecting…</span>
@@ -763,7 +763,7 @@ export function SupportChat({
           <button
             type="button"
             onClick={jumpToBottom}
-            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-[2px] border support-rule support-panel px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_12px_28px_-18px_rgba(18,26,22,0.45)] transition-colors hover:bg-[var(--conversation-paper,#f4f1ea)]"
+            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border support-rule support-panel px-3.5 py-1.5 text-xs font-medium support-ink shadow-[var(--conversation-shadow)] transition-colors hover:bg-[var(--conversation-paper)]"
           >
             <ArrowDown className="size-3.5" />
             {jumpCount > 1

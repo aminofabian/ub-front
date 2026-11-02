@@ -539,18 +539,18 @@ export function StorefrontBuyerInbox({
   });
 
   const listPane = (
-    <div className="flex min-h-0 w-full flex-col md:w-[20rem] md:shrink-0 md:border-r md:border-border/60">
-      <div className="border-b border-border/60 bg-card/50 p-2.5">
+    <div className="flex min-h-0 w-full flex-col support-rule md:w-[20rem] md:shrink-0 md:border-r">
+      <div className="border-b support-rule p-2.5">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search buyers…"
-            className="h-9 w-full rounded-full border border-border/60 bg-background pl-8 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
+            className="h-9 w-full rounded-full border support-rule support-panel pl-8 pr-3 text-[13px] support-ink placeholder:text-muted-foreground focus:border-primary/35 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
         </div>
-        <div className="mt-2 flex items-center gap-1 rounded-full bg-muted/50 p-1">
+        <div className="mt-2 flex items-center gap-1 rounded-full bg-[var(--conversation-note-wash)] p-1">
           {(
             [
               { key: "OPEN", label: "Open" },
@@ -566,7 +566,7 @@ export function StorefrontBuyerInbox({
                 className={cn(
                   "inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-full text-xs font-medium transition-all",
                   filter === f.key
-                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                    ? "support-panel support-ink shadow-[var(--conversation-shadow)] ring-1 ring-[var(--conversation-rule)]"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -628,10 +628,10 @@ export function StorefrontBuyerInbox({
 
   const chatPane = activeConversation ? (
     <section
-      className="support-chat-theme support-chat-theme--shop relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 support-surface shadow-sm md:rounded-l-none"
+      className="support-chat-theme support-chat-theme--shop relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border support-rule support-surface md:rounded-l-none md:border-l-0"
       aria-label={`Chat with ${activeConversation.guestName ?? "buyer"}`}
     >
-      <header className="flex items-center gap-2.5 border-b border-border/60 bg-background/70 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-4">
+      <header className="support-chat-header flex items-center gap-2.5 border-b support-rule px-3 py-2.5 sm:gap-3 sm:px-4">
         <Button
           type="button"
           variant="ghost"
@@ -655,10 +655,10 @@ export function StorefrontBuyerInbox({
             className={cn(
               "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--conversation-panel,#fcfaf5)]",
               connectionState === "connected"
-                ? "bg-emerald-500"
+                ? "bg-[var(--conversation-online)]"
                 : connectionState === "connecting" ||
                     connectionState === "reconnecting"
-                  ? "bg-amber-500"
+                  ? "bg-[var(--conversation-away)]"
                   : "bg-muted-foreground/40",
             )}
             aria-hidden
@@ -797,7 +797,7 @@ export function StorefrontBuyerInbox({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm md:flex-row">
+    <div className="support-chat-theme support-chat-theme--shop flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border support-rule support-panel shadow-[var(--conversation-shadow)] md:flex-row">
       <div className={cn("min-h-0 flex-1 md:flex", mobileView === "chat" && "hidden")}>{listPane}</div>
       <div className={cn("min-h-0 flex-1", mobileView === "list" && "hidden md:block")}>{chatPane}</div>
     </div>
