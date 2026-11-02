@@ -1568,6 +1568,42 @@ export async function updatePlatformIntegrations(
   });
 }
 
+/** Live Ping Africa org credit balance (`GET /credits/balance` via platform token). */
+export type PingAfricaCreditsResult = {
+  ok: boolean;
+  balance: number | null;
+  detail: string | null;
+  httpStatus: number;
+  configured: boolean;
+};
+
+export async function fetchPingAfricaCredits(): Promise<PingAfricaCreditsResult> {
+  return saRequest<PingAfricaCreditsResult>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/ping-africa/credits`,
+  );
+}
+
+export type PingAfricaTestSmsResult = {
+  channel: string;
+  outcome: string;
+  detail: string;
+  phoneMasked: string;
+  balanceAfter: number | null;
+};
+
+/** One-off Ping Africa SMS using saved platform credentials. */
+export async function sendPingAfricaTestSms(
+  phone: string,
+): Promise<PingAfricaTestSmsResult> {
+  return saRequest<PingAfricaTestSmsResult>(
+    `${API_ROUTES.superAdminPlatformIntegrations}/ping-africa/test-sms`,
+    {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    },
+  );
+}
+
 export type PlatformEasyTaxSettingsRecord = {
   enabled: boolean;
   sandboxBaseUrl: string | null;

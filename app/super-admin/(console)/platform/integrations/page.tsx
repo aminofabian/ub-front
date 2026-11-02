@@ -21,9 +21,11 @@ import { Switch } from "@/components/ui/switch";
 import {
   addPlatformWhatsAppAppSecret,
   deletePlatformWhatsAppAppSecret,
+  fetchPingAfricaCredits,
   fetchPlatformIntegrations,
   fetchPlatformWhatsAppAppSecrets,
   provisionMetaWhatsApp,
+  sendPingAfricaTestSms,
   updatePlatformIntegrations,
   verifyMetaWhatsAppAppSecret,
   type PlatformIntegrationsRecord,
@@ -217,6 +219,18 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [appSecretBusy, setAppSecretBusy] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionSteps, setProvisionSteps] = useState<string[] | null>(null);
+  const [pingAfricaBalance, setPingAfricaBalance] = useState<number | null>(
+    null,
+  );
+  const [pingAfricaBalanceDetail, setPingAfricaBalanceDetail] = useState("");
+  const [pingAfricaBalanceLoading, setPingAfricaBalanceLoading] =
+    useState(false);
+  const [pingAfricaTestPhone, setPingAfricaTestPhone] = useState("");
+  const [pingAfricaTesting, setPingAfricaTesting] = useState(false);
+  const [pingAfricaTestMessage, setPingAfricaTestMessage] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const applySettings = useCallback((row: PlatformIntegrationsRecord) => {
     setSettings(row);
@@ -501,6 +515,88 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setError(err instanceof Error ? err.message : "Provisioning failed.");
     } finally {
       setProvisioning(false);
+    }
+  };
+
+  const refreshPingAfricaBalance = useCallback(async () => {
+    if (!settings?.hasPingAfricaApiKey && !settings?.envPingAfricaConfigured) {
+      setPingAfricaBalance(null);
+      setPingAfricaBalanceDetail("Save a Ping Africa API token first.");
+      return;
+    }
+    setPingAfricaBalanceLoading(true);
+    setPingAfricaBalanceDetail("");
+    try {
+      const result = await fetchPingAfricaCredits();
+      if (result.ok && typeof result.balance === "number") {
+        setPingAfricaBalance(result.balance);
+        setPingAfricaBalanceDetail("");
+      } else {
+        setPingAfricaBalance(null);
+        setPingAfricaBalanceDetail(
+          result.detail || "Could not load Ping Africa balance.",
+        );
+      }
+    } catch (err) {
+      setPingAfricaBalance(null);
+      setPingAfricaBalanceDetail(
+        err instanceof Error ? err.message : "Could not load Ping Africa balance.",
+      );
+    } finally {
+      setPingAfricaBalanceLoading(false);
+    }
+  }, [settings?.hasPingAfricaApiKey, settings?.envPingAfricaConfigured]);
+
+  useEffect(() => {
+    if (activeSection !== "sms" || smsProvider !== "ping_africa") {
+      return;
+    }
+    if (settings?.hasPingAfricaApiKey || settings?.envPingAfricaConfigured) {
+      void refreshPingAfricaBalance();
+      return;
+    }
+    setPingAfricaBalance(null);
+    setPingAfricaBalanceDetail("");
+  }, [
+    activeSection,
+    smsProvider,
+    settings?.hasPingAfricaApiKey,
+    settings?.envPingAfricaConfigured,
+    refreshPingAfricaBalance,
+  ]);
+
+  const onPingAfricaTestSms = async () => {
+    const phone = pingAfricaTestPhone.trim();
+    if (!phone || pingAfricaTesting) return;
+    setPingAfricaTesting(true);
+    setPingAfricaTestMessage(null);
+    try {
+      const result = await sendPingAfricaTestSms(phone);
+      if (typeof result.balanceAfter === "number") {
+        setPingAfricaBalance(result.balanceAfter);
+        setPingAfricaBalanceDetail("");
+      }
+      setPingAfricaTestMessage({
+        kind: result.outcome === "sent" || result.outcome === "stub" ? "success" : "error",
+        text:
+          result.outcome === "sent"
+            ? `Sent via ${result.channel} to ${result.phoneMasked}${
+                typeof result.balanceAfter === "number"
+                  ? ` · balance ${result.balanceAfter}`
+                  : ""
+              }.`
+            : `Test ${result.outcome} via ${result.channel}${
+                result.detail ? `: ${result.detail}` : ""
+              }.`,
+      });
+    } catch (err) {
+      setPingAfricaTestMessage({
+        kind: "error",
+        text: err instanceof Error ? err.message : "Test SMS failed.",
+      });
+      void refreshPingAfricaBalance();
+    } finally {
+      setPingAfricaTesting(false);
     }
   };
 
@@ -1328,9 +1424,56 @@ export default function SuperAdminPlatformIntegrationsPage() {
 
         {smsProvider === "ping_africa" ? (
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <KeyStatus ready={Boolean(settings?.hasPingAfricaApiKey)} />
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px] font-semibold tracking-[-0.02em]",
+                  HAIRLINE,
+                  typeof pingAfricaBalance === "number"
+                    ? "text-[var(--pos-primary,#0f766e)]"
+                    : "text-muted-foreground",
+                )}
+              >
+                Remaining credit
+                <span className="font-mono tabular-nums">
+                  {pingAfricaBalanceLoading
+                    ? "…"
+                    : typeof pingAfricaBalance === "number"
+                      ? pingAfricaBalance.toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })
+                      : "—"}
+                </span>
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-none px-2 text-[11px]"
+                disabled={
+                  busy ||
+                  pingAfricaBalanceLoading ||
+                  (!settings?.hasPingAfricaApiKey &&
+                    !settings?.envPingAfricaConfigured)
+                }
+                onClick={() => void refreshPingAfricaBalance()}
+              >
+                <RefreshCw
+                  className={cn(
+                    "mr-1 size-3",
+                    pingAfricaBalanceLoading && "animate-spin",
+                  )}
+                  aria-hidden
+                />
+                Refresh balance
+              </Button>
             </div>
+            {pingAfricaBalanceDetail ? (
+              <p className="text-[12px] text-destructive">
+                {pingAfricaBalanceDetail}
+              </p>
+            ) : null}
             <Field id="sa-pingafrica-token" label="Ping Africa API token">
               <Input
                 id="sa-pingafrica-token"
@@ -1387,8 +1530,62 @@ export default function SuperAdminPlatformIntegrationsPage() {
                 /sms/send
               </code>{" "}
               with a Bearer token, the recipient in E.164, and your sender ID.
-              Leave the sender ID blank to use the account default.
+              Leave the sender ID blank to use the account default. Balance uses{" "}
+              <code className="font-mono text-[10px]">/credits/balance</code>.
             </p>
+            <div
+              className={cn(
+                "space-y-3 border bg-white px-3 py-3",
+                HAIRLINE,
+              )}
+            >
+              <p className="text-[13px] font-semibold tracking-[-0.015em]">
+                Test Ping Africa SMS
+              </p>
+              <p className={dashboardHintClass()}>
+                Uses the saved token (save first if you just pasted a new one).
+                Shows the live provider error when send fails.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <Field
+                  id="sa-pingafrica-test-phone"
+                  label="Recipient phone"
+                  className="min-w-0 flex-1"
+                >
+                  <Input
+                    id="sa-pingafrica-test-phone"
+                    type="tel"
+                    className={dashboardInputClass()}
+                    value={pingAfricaTestPhone}
+                    onChange={(ev) => {
+                      setPingAfricaTestPhone(ev.target.value);
+                      setPingAfricaTestMessage(null);
+                    }}
+                    placeholder="0712 345 678"
+                    disabled={pingAfricaTesting}
+                  />
+                </Field>
+                <Button
+                  type="button"
+                  className={cn(PRIMARY_BTN, "sm:mb-0.5")}
+                  disabled={
+                    pingAfricaTesting ||
+                    !pingAfricaTestPhone.trim() ||
+                    (!settings?.hasPingAfricaApiKey &&
+                      !settings?.envPingAfricaConfigured)
+                  }
+                  onClick={() => void onPingAfricaTestSms()}
+                >
+                  {pingAfricaTesting ? "Sending…" : "Send test SMS"}
+                </Button>
+              </div>
+              {pingAfricaTestMessage ? (
+                <DashboardFeedback
+                  kind={pingAfricaTestMessage.kind}
+                  text={pingAfricaTestMessage.text}
+                />
+              ) : null}
+            </div>
           </>
         ) : null}
 
