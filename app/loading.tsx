@@ -1,40 +1,33 @@
-import type { CSSProperties } from "react";
-
 import { PLATFORM_APP_ICON_SRC } from "@/lib/platform-brand-assets";
 
 /**
- * Storefront opening screen — one 15s story.
+ * Route + storefront opening screen.
  *
- * A shopfront on the Kiosk paper wakes from dawn: the signboard lamp stutters
- * on, the awning rolls down, the side windows warm, stock is set out on the
- * shelves, a key turns in the lock, and the door swings inward to "Karibu".
- * The same screen greets a shopper opening a storefront and staff opening the
- * console, so it is a brand moment rather than a spinner.
+ * One gesture: the shop door eases open and the light comes out. Nothing else
+ * moves — a loading screen is on screen for a second, so it gets a single
+ * composed frame rather than a story. The hairline under the label is the only
+ * continuous motion, and it stays indeterminate on purpose.
  *
- * All choreography lives in `globals.css` (`.kiosk-shop-*`) so the scene paints
- * before any JavaScript runs, and reduced motion holds the finished open shop
- * on a still frame.
+ * All of it is CSS in `globals.css` (`.kiosk-shop-*`), so the scene paints
+ * before any JavaScript runs; reduced motion holds the open door still.
  */
 
 const AWNING_STRIPES = 12;
 const AWNING_WIDTH = 240;
+const AWNING_DROP = AWNING_WIDTH / AWNING_STRIPES;
 
-/** Scalloped edge: a straight fascia and 24 half-round drops. */
-const AWNING_PATH = `M0 0H${AWNING_WIDTH}V22${"q-5 12 -10 0".repeat(24)}Z`;
-
-const SHELVES: { className: string; stock: string[] }[] = [
-  { className: "kiosk-shop-shelf--top", stock: ["jar", "bottle", "box", "can"] },
-  { className: "kiosk-shop-shelf--middle", stock: ["box", "tall", "jar", "bottle"] },
-  { className: "kiosk-shop-shelf--bottom", stock: ["can", "jar", "tall", "box"] },
-];
+/** Scalloped edge: a straight fascia and one shallow drop per stripe. */
+const AWNING_PATH = `M0 0H${AWNING_WIDTH}V17${`q-${AWNING_DROP / 2} 6 -${AWNING_DROP} 0`.repeat(
+  AWNING_STRIPES,
+)}Z`;
 
 function Awning() {
   return (
     <svg
       className="kiosk-shop-awning"
-      viewBox={`0 0 ${AWNING_WIDTH} 34`}
+      viewBox={`0 0 ${AWNING_WIDTH} 26`}
       width={AWNING_WIDTH}
-      height={34}
+      height={26}
       aria-hidden
     >
       <defs>
@@ -46,9 +39,9 @@ function Awning() {
         {Array.from({ length: AWNING_STRIPES }, (_, index) => (
           <rect
             key={index}
-            x={index * (AWNING_WIDTH / AWNING_STRIPES)}
-            width={AWNING_WIDTH / AWNING_STRIPES}
-            height={34}
+            x={index * AWNING_DROP}
+            width={AWNING_DROP}
+            height={26}
             className={
               index % 2 === 0
                 ? "kiosk-shop-awning-stripe"
@@ -56,7 +49,8 @@ function Awning() {
             }
           />
         ))}
-        <rect width={AWNING_WIDTH} height={5} fill="#000" opacity={0.1} />
+        {/* The rail the cloth hangs from — it turns twelve stripes into one awning. */}
+        <rect className="kiosk-shop-awning-rail" width={AWNING_WIDTH} height={4} />
       </g>
     </svg>
   );
@@ -70,90 +64,55 @@ export default function Loading() {
       <div className="kiosk-shop-stage">
         <div className="kiosk-shop" aria-hidden="true">
           <div className="kiosk-shop-wall" />
-          <div className="kiosk-shop-tint" />
 
-          <div className="kiosk-shop-window kiosk-shop-window--left">
-            <div className="kiosk-shop-window-glow" />
-          </div>
-          <div className="kiosk-shop-window kiosk-shop-window--right">
-            <div className="kiosk-shop-window-glow" />
-          </div>
-
-          <div className="kiosk-shop-signboard">
+          <div className="kiosk-shop-fascia">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              className="kiosk-shop-signmark"
+              className="kiosk-shop-mark"
               src={PLATFORM_APP_ICON_SRC}
               alt=""
-              width={28}
-              height={28}
+              width={24}
+              height={24}
               draggable={false}
             />
-            <span className="kiosk-shop-signname">Kiosk</span>
+            <span className="kiosk-shop-name">Kiosk</span>
           </div>
 
           <Awning />
-          <div className="kiosk-shop-awning-shadow" />
+
+          <div className="kiosk-shop-window kiosk-shop-window--left" />
+          <div className="kiosk-shop-window kiosk-shop-window--right" />
 
           <div className="kiosk-shop-doorway">
             <div className="kiosk-shop-interior">
-              {SHELVES.map((shelf, shelfIndex) => (
-                <div key={shelf.className} className={`kiosk-shop-shelf ${shelf.className}`}>
-                  {shelf.stock.map((kind, itemIndex) => (
-                    <span
-                      key={`${kind}-${itemIndex}`}
-                      className={`kiosk-shop-item kiosk-shop-${kind}`}
-                      style={{ "--stock-index": shelfIndex * 4 + itemIndex } as CSSProperties}
-                    />
-                  ))}
-                </div>
-              ))}
-
-              <div className="kiosk-shop-bell" />
-              <span className="kiosk-shop-ding" />
-              <span className="kiosk-shop-ding kiosk-shop-ding--b" />
-              <div className="kiosk-shop-dim" />
+              <div className="kiosk-shop-shelf kiosk-shop-shelf--upper">
+                <span className="kiosk-shop-jar" />
+                <span className="kiosk-shop-box" />
+                <span className="kiosk-shop-bottle" />
+              </div>
+              <div className="kiosk-shop-shelf kiosk-shop-shelf--lower">
+                <span className="kiosk-shop-can" />
+                <span className="kiosk-shop-tall" />
+                <span className="kiosk-shop-jar" />
+              </div>
             </div>
 
             <div className="kiosk-shop-door">
-              <div className="kiosk-shop-glass" />
-              <div className="kiosk-shop-sign">
-                <span className="kiosk-shop-sign-closed">Closed</span>
-                <span className="kiosk-shop-sign-open">Open</span>
-              </div>
-              <div className="kiosk-shop-panel kiosk-shop-panel--upper" />
-              <div className="kiosk-shop-panel kiosk-shop-panel--lower" />
-              <div className="kiosk-shop-plate" />
-              <div className="kiosk-shop-handle" />
+              <span className="kiosk-shop-glass" />
+              <span className="kiosk-shop-panel kiosk-shop-panel--upper" />
+              <span className="kiosk-shop-panel kiosk-shop-panel--lower" />
+              <span className="kiosk-shop-handle" />
             </div>
-
-            <svg
-              className="kiosk-shop-key"
-              viewBox="0 0 54 14"
-              fill="none"
-              stroke="#c9a24a"
-              strokeWidth={2.6}
-              strokeLinecap="round"
-              aria-hidden
-            >
-              <path d="M1 7H38M7 7v4.5M13 7v3.5M19 7v5" />
-              <circle cx="45" cy="7" r="5.2" />
-            </svg>
-            <div className="kiosk-shop-click" />
           </div>
 
           <div className="kiosk-shop-glow" />
-          <div className="kiosk-shop-mat" />
-          <div className="kiosk-shop-ground" />
+          <div className="kiosk-shop-step" />
         </div>
 
-        <div className="kiosk-shop-status" aria-hidden="true">
-          <span className="kiosk-shop-status--1">Waking up the shop</span>
-          <span className="kiosk-shop-status--2">Turning the key</span>
-          <span className="kiosk-shop-status--3">Setting out the stock</span>
-          <span className="kiosk-shop-status--4">Karibu</span>
+        <div className="kiosk-shop-foot">
+          <p className="kiosk-shop-status">Opening the shop</p>
+          <span className="kiosk-shop-bar" aria-hidden="true" />
         </div>
-        <div className="kiosk-shop-bar" aria-hidden="true" />
       </div>
     </div>
   );

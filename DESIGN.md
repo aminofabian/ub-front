@@ -176,14 +176,13 @@ marketplace is the premium public storefront surface.
 - **404** (`app/not-found.tsx`): “This shelf is empty.” on the landing paper,
   with Back to the shop, Browse the marketplace, and Get help. The footer
   clears the mobile support launcher.
-- **Loading** (`app/loading.tsx`): the shopfront story, painted in Kiosk forest
-  on paper. A dawn tint lifts off the wall, the fascia lights up around the Kiosk
-  mark, the awning rolls down, the side windows warm, stock is set out shelf by
-  shelf, a key turns in the lock, and the door swings inward to “Karibu”. One
-  15s cycle; the status line moves with the beats and the bar fills with the
-  story. Choreography lives in `.kiosk-shop-*` in `globals.css` so the scene
-  paints before JavaScript; the shop colour is one variable (`--ks-brand`), and
-  reduced motion holds the finished, open shop on a still frame.
+- **Loading** (`app/loading.tsx`): the shop opening, drawn in Kiosk forest on
+  paper. A lit fascia carries the Kiosk mark above a striped awning; the door
+  eases open, the interior warms, and light pools at the threshold — then the
+  frame holds still. One gesture, one label, one hairline: the line under
+  “Opening the shop” is the only continuous motion and stays indeterminate
+  because a loader cannot know the distance left. All of it is CSS in
+  `.kiosk-shop-*`; reduced motion holds the open door on a still frame.
 - **Forbidden** (`app/forbidden.tsx`): “This door is locked.” in the same
   editorial frame, with a sign-in action and a way back to the shop.
 - **Global error** (`app/global-error.tsx`): self-contained ivory/forest serif
