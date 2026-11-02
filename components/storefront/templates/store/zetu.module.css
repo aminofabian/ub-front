@@ -158,8 +158,7 @@
 }
 
 .announceCta {
-  display: none;
-  margin-left: auto;
+  display: inline-block;
   flex-shrink: 0;
   color: #fff;
   font-size: 11px;
@@ -173,6 +172,95 @@
 .announceCta:hover {
   color: var(--zt-accent);
   border-color: var(--zt-accent);
+}
+
+.announceTrail {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.countdownLead {
+  margin-right: 0.15rem;
+  color: rgb(255 255 255 / 0.62);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.countdownUnit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05rem;
+  min-width: 1.7em;
+  padding: 0.18rem 0.28rem;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.1);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdownValue {
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.countdownLabel {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.countdownDark {
+  color: var(--zt-ink);
+}
+
+.countdownDark .countdownLead {
+  color: rgb(14 11 12 / 0.55);
+}
+
+.countdownDark .countdownUnit {
+  background: var(--zt-ink);
+  color: #fff;
+}
+
+.countdownDark .countdownLabel {
+  color: var(--zt-accent);
+}
+
+.flashHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.flashPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--zt-pill);
+  background: var(--zt-ink);
+  color: #fff;
+  font-family: var(--zt-display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .masthead {
@@ -3173,8 +3261,8 @@
     display: block;
   }
 
-  .announceCta {
-    display: inline-block;
+  .announceTrail {
+    display: inline-flex;
   }
 
   .grid,

@@ -10,7 +10,10 @@ import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 
 import { ShopAirtimeLauncher } from "@/components/storefront/shop-airtime-launcher";
 import { storefrontFontPairing } from "@/lib/storefront-fonts";
-import { themeOptionVars } from "@/lib/storefront-theme-options";
+import {
+  themeOptionString,
+  themeOptionVars,
+} from "@/lib/storefront-theme-options";
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
@@ -632,6 +635,16 @@ export function ShopStorefrontChrome({
             logoUrl={themedLogoUrl}
             announcement={chromeAnnouncement}
             whatsapp={whatsappNumber}
+            saleLabel={themeOptionString(
+              "zetu",
+              initialDesign?.theme ?? null,
+              "saleLabel",
+            )}
+            saleEnds={themeOptionString(
+              "zetu",
+              initialDesign?.theme ?? null,
+              "saleEnds",
+            )}
             categories={categories}
           />
         </Suspense>

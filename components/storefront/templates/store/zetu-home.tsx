@@ -22,6 +22,7 @@ import { useStorefrontSignUpDoor } from "@/components/storefront/storefront-acco
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { ZetuCard } from "@/components/storefront/templates/store/zetu-card";
 import { ZetuCatalog } from "@/components/storefront/templates/store/zetu-catalog";
+import { ZetuCountdown } from "@/components/storefront/templates/store/zetu-countdown";
 import { ZetuFooter } from "@/components/storefront/templates/store/zetu-footer";
 import {
   zetuBudgetCeiling,
@@ -37,7 +38,10 @@ import {
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
-import { themeOptionVars } from "@/lib/storefront-theme-options";
+import {
+  themeOptionString,
+  themeOptionVars,
+} from "@/lib/storefront-theme-options";
 import { cn } from "@/lib/utils";
 
 function dedupe(items: readonly PublicCatalogItemCard[]): PublicCatalogItemCard[] {
@@ -130,6 +134,9 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
 
   const design = useStorefrontLiveDesign(designProp ?? null);
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
+  const saleEnds = themeOptionString(themeId, design?.theme ?? null, "saleEnds");
+  const saleLabel =
+    themeOptionString(themeId, design?.theme ?? null, "saleLabel") || "Flash sale";
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const heroSection = storefrontSectionConfig(design, "hero");
@@ -425,9 +432,19 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
         {productsOn ? (
           <section className={styles.bandLime}>
             <div className={cn(styles.shell, styles.section)}>
+              <div className={styles.flashHead}>
+                <span className={styles.flashPill}>
+                  {saleItems.length > 0 ? saleLabel : "New in"}
+                </span>
+                {saleItems.length > 0 ? (
+                  <ZetuCountdown endsAt={saleEnds} lead="Ends in" dark />
+                ) : null}
+              </div>
               <SectionHead
                 kicker={saleItems.length > 0 ? "On sale now" : "New arrivals"}
-                title={saleItems.length > 0 ? "Today's top deals" : "New this week"}
+                title={
+                  saleItems.length > 0 ? "Today's top deals" : "New this week"
+                }
                 lead={
                   saleItems.length > 0
                     ? "Biggest markdowns first. Prices move when stock does."

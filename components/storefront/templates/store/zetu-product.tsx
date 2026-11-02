@@ -220,7 +220,9 @@ export function ZetuProduct({
           </section>
 
           <section className={styles.pdpInfo}>
-            <span className={styles.pdpBrand}>The edit</span>
+            <span className={styles.pdpBrand}>
+              {item.discountName?.trim() || "Featured"}
+            </span>
             <h1 className={styles.pdpTitle}>{item.name}</h1>
             <div className={styles.pdpMeta}>
               {item.sku ? <span>SKU {item.sku}</span> : null}

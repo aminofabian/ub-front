@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   Menu,
+  MessageCircle,
   Search,
   ShoppingBag,
   SlidersHorizontal,
@@ -15,6 +16,7 @@ import { Suspense, useMemo, useState } from "react";
 import { zetuFontVariables } from "@/app/fonts/zetu";
 import { StorefrontAccountLink } from "@/components/storefront/storefront-account-link";
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
+import { ZetuCountdown } from "@/components/storefront/templates/store/zetu-countdown";
 import styles from "@/components/storefront/templates/store/zetu.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
@@ -92,6 +94,10 @@ type ZetuHeaderProps = {
   logoUrl?: string | null;
   announcement?: string | null;
   whatsapp?: string | null;
+  /** Lime announce flag — SALE / BLACK NOVEMBER. */
+  saleLabel?: string | null;
+  /** ISO date for the announce countdown; empty = end of month. */
+  saleEnds?: string | null;
   categories: PublicCategory[];
   className?: string;
 };
@@ -108,6 +114,9 @@ function ZetuHeaderView({
   storeName,
   logoUrl,
   announcement,
+  whatsapp,
+  saleLabel,
+  saleEnds,
   categories,
   className,
 }: ZetuHeaderProps) {
@@ -116,6 +125,7 @@ function ZetuHeaderView({
   const [menuOpen, setMenuOpen] = useState(false);
   const categoryPathSlug =
     activeStorefrontCategorySlugFromPathname(pathname) || undefined;
+  const wa = whatsapp?.replace(/\D/g, "") || "";
 
   const navCategories = useMemo(
     () => topLevelCategories(categories),
@@ -123,12 +133,16 @@ function ZetuHeaderView({
   );
   const sale = saleCategory(categories);
   const note =
-    announcement?.trim() || "New season, new obsessions — fresh drops weekly.";
-  const isSaleCopy = /\b(sale|deal|off)\b/i.test(note);
-  const flag = isSaleCopy ? "SALE" : "NEW IN";
+    announcement?.trim() || "Flash deals — shop the markdowns while they last.";
+  const isSaleCopy = /\b(sale|deal|off|november|flash)\b/i.test(note);
+  const flag =
+    saleLabel?.trim() ||
+    (isSaleCopy ? "SALE" : "NEW IN");
   const pill = sale
     ? { href: shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(sale) }), label: "Sale" }
     : { href: APP_ROUTES.shop, label: "Shop all" };
+  const saleHref = sale ? pill.href : APP_ROUTES.shop;
+  const filtersHref = `${APP_ROUTES.shop}#zt-filters`;
 
   return (
     <header
@@ -140,13 +154,18 @@ function ZetuHeaderView({
           <span className={styles.announceTag}>{flag}</span>
           <span className={styles.announceRule} aria-hidden />
           <p className={styles.announceNote}>{note}</p>
-          <Link
-            href={sale ? pill.href : APP_ROUTES.shop}
-            className={styles.announceCta}
-            onClick={() => setMenuOpen(false)}
-          >
-            {sale ? "Shop the sale" : "Shop the edit"}
-          </Link>
+          <div className={styles.announceTrail}>
+            {isSaleCopy || Boolean(saleLabel?.trim()) ? (
+              <ZetuCountdown endsAt={saleEnds} lead="Ends in" />
+            ) : null}
+            <Link
+              href={saleHref}
+              className={styles.announceCta}
+              onClick={() => setMenuOpen(false)}
+            >
+              {sale || isSaleCopy ? "Shop the sale" : "Shop the edit"}
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -195,15 +214,27 @@ function ZetuHeaderView({
           </div>
 
           <Link
-            href={APP_ROUTES.shop}
+            href={filtersHref}
             className={styles.filterPill}
-            aria-label="Browse all products"
+            aria-label="Open product filters"
+            onClick={() => setMenuOpen(false)}
           >
             <SlidersHorizontal size={16} strokeWidth={2} aria-hidden />
             <span>Filters</span>
           </Link>
 
           <div className={styles.tools}>
+            {wa ? (
+              <a
+                href={`https://wa.me/${wa}`}
+                className={styles.accountBtn}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Chat on WhatsApp"
+              >
+                <MessageCircle size={19} strokeWidth={1.9} aria-hidden />
+              </a>
+            ) : null}
             <StorefrontAccountLink
               className={styles.accountBtn}
               labelClassName={styles.accountLabel}

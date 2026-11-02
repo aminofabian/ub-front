@@ -127,9 +127,13 @@ export function ZetuCatalog({
       : "Build a wardrobe that moves from Saturday night out to everyday essentials. New drops land every week.");
 
   return (
-    <div className={styles.catalog}>
+    <div id="catalog" className={styles.catalog}>
       <div className={styles.catalogShell}>
-        <aside className={styles.catalogSide} aria-label="Filters">
+        <aside
+          id="zt-filters"
+          className={styles.catalogSide}
+          aria-label="Filters"
+        >
           <div className={styles.sideBlock}>
             <div className={styles.sideSearch}>
               <Search size={14} strokeWidth={2} aria-hidden />

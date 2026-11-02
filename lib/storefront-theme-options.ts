@@ -533,6 +533,24 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
         { value: "ink", label: "Ink", swatch: "#0e0b0c" },
       ],
     },
+    {
+      key: "saleLabel",
+      label: "Sale flag",
+      hint: "The lime word on the announce bar — e.g. SALE or BLACK NOVEMBER",
+      type: "text",
+      default: "SALE",
+      max: 24,
+      placeholder: "SALE",
+    },
+    {
+      key: "saleEnds",
+      label: "Sale ends",
+      hint: "ISO date for the countdown (empty = end of this month)",
+      type: "text",
+      default: "",
+      max: 32,
+      placeholder: "2026-11-30T23:59:59",
+    },
   ],
 };
 
