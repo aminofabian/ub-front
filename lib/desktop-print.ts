@@ -151,9 +151,13 @@ async function prepareThermalEscPos(
   );
   let raw = withoutTrailingDrawerKick(new Uint8Array(await escpos.arrayBuffer()));
   if (cashTender && cashTender.received > 0) {
-    raw = new Uint8Array(appendCashTenderEscPos(raw, cashTender, widthMm));
+    raw = appendCashTenderEscPos(raw, cashTender, widthMm);
   }
-  return new Blob([raw], { type: "application/octet-stream" });
+  // Copy into a fresh ArrayBuffer. A subarray view is not a BlobPart under
+  // the TypeScript lib this production build type-checks with.
+  const copy = new ArrayBuffer(raw.byteLength);
+  new Uint8Array(copy).set(raw);
+  return new Blob([copy], { type: "application/octet-stream" });
 }
 
 /**
