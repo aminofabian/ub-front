@@ -48,6 +48,21 @@ export function escPosHasDrawerKick(bytes: Uint8Array): boolean {
   return false;
 }
 
+/**
+ * Drop a trailing drawer pulse. Cash receipts used to append ESC p after the
+ * cut; some tills stall on that and never release the slip. The kick is sent
+ * as its own job once the receipt is already spooled.
+ */
+export function withoutTrailingDrawerKick(bytes: Uint8Array): Uint8Array {
+  const kick = DRAWER_KICK_ESCPOS;
+  if (bytes.length < kick.length) return bytes;
+  const start = bytes.length - kick.length;
+  for (let i = 0; i < kick.length; i++) {
+    if (bytes[start + i] !== kick[i]) return bytes;
+  }
+  return bytes.subarray(0, start);
+}
+
 /** Append cash-drawer kick after the receipt (idempotent). */
 export function appendDrawerKickEscPos(bytes: Uint8Array): Uint8Array {
   if (escPosHasDrawerKick(bytes)) {
@@ -68,13 +83,14 @@ export function appendCashTenderEscPos(
   tender: CashTenderEscPos,
   widthMm: number,
 ): Uint8Array {
-  if (escPosHasCashTender(bytes)) {
-    return bytes;
+  const stripped = withoutTrailingDrawerKick(bytes);
+  if (escPosHasCashTender(stripped)) {
+    return stripped;
   }
   const received = Number(tender.received);
   const change = Number(tender.change);
   if (!Number.isFinite(received) || received <= 0) {
-    return bytes;
+    return stripped;
   }
 
   const w = escPosCharWidth(widthMm);
@@ -83,9 +99,9 @@ export function appendCashTenderEscPos(
     `${padLeft(`Change ${change.toFixed(2)}`, w)}\n`;
   const extra = new TextEncoder().encode(lines);
 
-  let body = bytes;
-  if (bytes.length >= CUT_TAIL.length) {
-    const tail = bytes.subarray(bytes.length - CUT_TAIL.length);
+  let body = stripped;
+  if (stripped.length >= CUT_TAIL.length) {
+    const tail = stripped.subarray(stripped.length - CUT_TAIL.length);
     let match = true;
     for (let i = 0; i < CUT_TAIL.length; i++) {
       if (tail[i] !== CUT_TAIL[i]) {
@@ -94,7 +110,7 @@ export function appendCashTenderEscPos(
       }
     }
     if (match) {
-      body = bytes.subarray(0, bytes.length - CUT_TAIL.length);
+      body = stripped.subarray(0, stripped.length - CUT_TAIL.length);
     }
   }
 

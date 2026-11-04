@@ -306,7 +306,14 @@ export function PosSaleReceipt({
                         change: receipt.changeGiven ?? 0,
                       }
                     : null;
-                void printPosReceipt(saleId, undefined, receiptPrinter, tender);
+                const paidCash = receipt.payments.some(
+                  (p) =>
+                    p.method.trim().toLowerCase() === "cash" &&
+                    Number(p.amount) > 0,
+                );
+                void printPosReceipt(saleId, undefined, receiptPrinter, tender, {
+                  openDrawer: paidCash,
+                });
               } else {
                 window.print();
               }

@@ -8,7 +8,7 @@ import {
 } from "@/lib/api";
 import {
   appendCashTenderEscPos,
-  appendDrawerKickEscPos,
+  withoutTrailingDrawerKick,
   type CashTenderEscPos,
 } from "@/lib/escpos-cash-tender";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -52,13 +52,24 @@ export type LocalReceiptPrinterTarget = {
 
 export type PrintPosReceiptOptions = {
   /**
-   * Append ESC/POS cash-drawer kick to the print job (and also try a
-   * separate /drawer/kick). Use for cash / cash-split tenders.
+   * Open the cash drawer after the receipt is spooled. A separate job —
+   * the pulse must not ride inside the receipt bytes.
    */
   openDrawer?: boolean;
   /** Skip toasts — used for automatic post-sale print so cashiers can sell without a printer. */
   quiet?: boolean;
 };
+
+/** Let the receipt leave the print head before the drawer pulse hits the same port. */
+const DRAWER_AFTER_RECEIPT_MS = 700;
+
+function openDrawerAfterReceipt(
+  printer?: LocalReceiptPrinterTarget | null,
+): void {
+  window.setTimeout(() => {
+    void kickCashDrawer(printer);
+  }, DRAWER_AFTER_RECEIPT_MS);
+}
 
 function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
   return Boolean(target?.cupsName?.trim());
@@ -132,19 +143,15 @@ async function prepareThermalEscPos(
   saleId: string,
   widthMm: number,
   cashTender?: CashTenderEscPos | null,
-  openDrawer?: boolean,
 ): Promise<Blob> {
   const escpos = await fetchSaleReceiptThermal(
     saleId,
     widthMm,
     cashTender?.received ?? null,
   );
-  let raw = new Uint8Array(await escpos.arrayBuffer());
+  let raw = withoutTrailingDrawerKick(new Uint8Array(await escpos.arrayBuffer()));
   if (cashTender && cashTender.received > 0) {
     raw = new Uint8Array(appendCashTenderEscPos(raw, cashTender, widthMm));
-  }
-  if (openDrawer) {
-    raw = new Uint8Array(appendDrawerKickEscPos(raw));
   }
   return new Blob([raw], { type: "application/octet-stream" });
 }
@@ -161,8 +168,8 @@ async function prepareThermalEscPos(
  *
  * Pass `cashTender` when the on-screen receipt shows Received / Change so
  * thermal print matches even before the API has persisted cash_received.
- * Pass `opts.openDrawer` for cash tenders so the drawer opens with the receipt
- * (works even on older till bridges that lack POST /drawer/kick).
+ * Pass `opts.openDrawer` for cash tenders. The drawer opens in a later job
+ * so the kick cannot stall the receipt on the way out.
  */
 export async function printPosReceipt(
   saleId: string,
@@ -190,7 +197,7 @@ export async function printPosReceipt(
         { method: "POST", toast: false },
       );
       if (openDrawer) {
-        void kickCashDrawer(printer);
+        openDrawerAfterReceipt(printer);
       }
       if (!quiet) toast.success("Sent to receipt printer.");
       return true;
@@ -238,22 +245,15 @@ export async function printPosReceipt(
     // Retried once: building the ESC/POS needs an API round-trip, so a single slow
     // response or bridge hiccup should not cost the cashier the automatic receipt.
     await withOneRetry(async () => {
-      const escpos = await prepareThermalEscPos(
-        id,
-        widthMm,
-        cashTender,
-        openDrawer,
-      );
+      const escpos = await prepareThermalEscPos(id, widthMm, cashTender);
       await printEscPosViaTillBridge(escpos, {
         name: cupsName || null,
         host: host || null,
         port: resolved?.port ?? 9100,
       });
     });
-    // Separate kick is best-effort (older bridges return 404 — kick is already
-    // in the print job above).
     if (openDrawer) {
-      void kickCashDrawer({
+      openDrawerAfterReceipt({
         cupsName: cupsName || null,
         host: host || null,
         port: resolved?.port ?? 9100,

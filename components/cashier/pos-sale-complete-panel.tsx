@@ -429,11 +429,17 @@ export function PosSaleCompletePanel({
             size="sm"
             className="h-9 min-w-0 flex-1 gap-1.5 rounded-none border-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
             onClick={() => {
+              const paidCash = receipt.payments.some(
+                (p) =>
+                  p.method.trim().toLowerCase() === "cash" &&
+                  Number(p.amount) > 0,
+              );
               void printPosReceipt(
                 sale.id,
                 undefined,
                 receiptPrinter,
                 cashTenderFromReceipt(receipt),
+                { openDrawer: paidCash },
               );
             }}
           >
