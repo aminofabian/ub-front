@@ -7,14 +7,19 @@ import type {
 
 import {
   DEFAULT_FILTERS,
+  EMPTY_PRESENCE,
+  OFFLINE,
   buildPresenceIndex,
   filterTenants,
   filtersAreDefault,
   filtersFromSearch,
   filtersToSearch,
   formatAgo,
+  initialsOf,
   isNewTenant,
+  liveModeOf,
   matchesQuery,
+  presenceOf,
   segmentCounts,
   sortTenants,
   whatsappHref,
@@ -104,8 +109,44 @@ describe("buildPresenceIndex", () => {
     expect(old.byId.get("a")?.online).toBe(true);
   });
 
-  it("treats no payload as nobody online", () => {
-    expect(buildPresenceIndex(null).byId.size).toBe(0);
+  it("treats no payload as nobody known, not as nobody online", () => {
+    const none = buildPresenceIndex(null);
+    expect(none.byId.size).toBe(0);
+    expect(none.totalOnline).toBeNull();
+  });
+
+  it("reads a tenant the API never mentioned as offline", () => {
+    expect(presenceOf(live, "d")).toBe(OFFLINE);
+    expect(presenceOf(live, "a").online).toBe(true);
+  });
+});
+
+describe("liveModeOf", () => {
+  it("trusts the feed when it names every online tenant", () => {
+    expect(liveModeOf(live)).toBe("full");
+  });
+
+  it("still trusts a current API that reports a quiet moment", () => {
+    const quiet = buildPresenceIndex(
+      payload({ tenantSessions: {}, tenantLastSeen: {} }),
+    );
+    expect(quiet.byId.size).toBe(0);
+    expect(liveModeOf(quiet)).toBe("full");
+  });
+
+  it("flags an older API that only names the support channel", () => {
+    const old = buildPresenceIndex(
+      payload({
+        tenantsOnline: 3,
+        presence: { a: { online: true, lastSeenAt: "" } },
+      }),
+    );
+    expect(liveModeOf(old)).toBe("support");
+  });
+
+  it("stays unknown until the first answer, and when the feed is down", () => {
+    expect(liveModeOf(EMPTY_PRESENCE)).toBe("unknown");
+    expect(liveModeOf(buildPresenceIndex(null))).toBe("unknown");
   });
 });
 
@@ -258,6 +299,22 @@ describe("display helpers", () => {
     expect(formatAgo(NOW - 3 * 60 * MIN, NOW)).toBe("3h ago");
     expect(formatAgo(NOW - 5 * DAY, NOW)).toBe("5d ago");
     expect(formatAgo(null, NOW)).toBe("—");
+  });
+
+  it("keeps older dates short enough for a narrow column", () => {
+    expect(formatAgo(Date.parse("2026-10-16T12:00:00Z"), NOW)).toBe("16 Oct");
+    expect(formatAgo(Date.parse("2026-01-02T12:00:00Z"), NOW)).toBe("2 Jan");
+    expect(formatAgo(Date.parse("2025-03-02T12:00:00Z"), NOW)).toBe("Mar 2025");
+  });
+
+  it("makes two-letter marks from business names", () => {
+    expect(initialsOf("Mama Njeri Mini-Mart")).toBe("MN");
+    expect(initialsOf("Kamau & Sons Hardware")).toBe("KS");
+    expect(initialsOf("7 Eleven")).toBe("7E");
+    expect(initialsOf("Nairobi")).toBe("NA");
+    expect(initialsOf("M-Pesa")).toBe("MP");
+    expect(initialsOf("  ")).toBe("?");
+    expect(initialsOf("& -")).toBe("?");
   });
 
   it("builds WhatsApp links for Kenyan and international numbers", () => {

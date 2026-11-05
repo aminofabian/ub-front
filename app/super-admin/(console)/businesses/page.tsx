@@ -84,7 +84,7 @@ function slugifyName(name: string) {
 function formatTenantDateTime(iso: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString();
+  return date.toLocaleString("en-KE");
 }
 
 function tenantManageHref(b: SaBusinessRow) {
@@ -843,7 +843,11 @@ export default function SuperAdminBusinessesPage() {
       <DashboardPageHero
         icon={Building2}
         title="Tenants"
-        description="Who is online, who is stuck, who just joined."
+        description={
+          <span className="hidden sm:inline">
+            Who is online, who is stuck, who just joined.
+          </span>
+        }
       >
         <button
           type="button"
@@ -872,9 +876,10 @@ export default function SuperAdminBusinessesPage() {
           >
             <Link
               href={`${APP_ROUTES.superAdminCampaignNew}?segment=stuck_signup`}
+              aria-label={`Email ${stuckIds.size} stuck ${stuckIds.size === 1 ? "tenant" : "tenants"}`}
             >
-              <Mail className="size-3.5" />
-              Email stuck
+              <Mail className="size-3.5" aria-hidden />
+              <span className="hidden sm:inline">Email stuck</span>
               <span className="tabular-nums">({stuckIds.size})</span>
             </Link>
           </Button>

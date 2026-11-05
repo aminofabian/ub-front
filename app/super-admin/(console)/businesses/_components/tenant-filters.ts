@@ -119,6 +119,20 @@ export function presenceOf(index: PresenceIndex, id: string): TenantPresence {
   return index.byId.get(id) ?? OFFLINE;
 }
 
+/**
+ * How much the live feed can be trusted:
+ * - "full": every online tenant is listed.
+ * - "support": an older API that only names tenants on the support channel,
+ *   so a tenant that looks offline may simply not be on support.
+ * - "unknown": no answer yet, or the feed is down. Nobody should read as offline.
+ */
+export type LiveMode = "full" | "support" | "unknown";
+
+export function liveModeOf(index: PresenceIndex): LiveMode {
+  if (index.totalOnline === null) return "unknown";
+  return index.perTenant ? "full" : "support";
+}
+
 /* ------------------------------------------------------------------ */
 /* Filtering, sorting, counting                                        */
 /* ------------------------------------------------------------------ */
@@ -331,7 +345,25 @@ export function filtersToSearch(filters: TenantFilters): string {
 /* Display helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-/** "just now", "12m ago", "3h ago", "5d ago", then a short date. */
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * "just now", "12m ago", "3h ago", "5d ago", then a short date that fits a
+ * narrow column: "11 Sep" this year, "Sep 2025" before that.
+ */
 export function formatAgo(
   ms: number | null | undefined,
   now: number,
@@ -344,19 +376,27 @@ export function formatAgo(
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 14) return `${days}d ago`;
-  return new Date(ms).toLocaleDateString("en-KE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const then = new Date(ms);
+  return then.getFullYear() === new Date(now).getFullYear()
+    ? `${then.getDate()} ${MONTHS[then.getMonth()]}`
+    : `${MONTHS[then.getMonth()]} ${then.getFullYear()}`;
 }
 
+/**
+ * Two letters for the tenant mark: the first letter of the first two words
+ * ("Mama Njeri Mini-Mart" is MN), skipping bare symbols ("Kamau & Sons" is KS),
+ * or the first two letters of a single word ("Nairobi" is NA).
+ */
 export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const first = parts[0].charAt(0);
-  const second = parts.length > 1 ? parts[1].charAt(0) : "";
-  return (first + second).toUpperCase();
+  const mark = /[\p{L}\p{N}]/gu;
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.match(mark)?.[0])
+    .filter((letter): letter is string => Boolean(letter));
+  if (initials.length >= 2) return (initials[0] + initials[1]).toUpperCase();
+  const letters = name.match(mark) ?? [];
+  return letters.length > 0 ? letters.slice(0, 2).join("").toUpperCase() : "?";
 }
 
 /**

@@ -42,8 +42,10 @@ import {
   formatAgo,
   initialsOf,
   isNewTenant,
+  liveModeOf,
   presenceOf,
   whatsappHref,
+  type LiveMode,
 } from "./tenant-filters";
 
 export type BusinessesPanel =
@@ -59,9 +61,15 @@ const ATTENTION = "text-[#A55237]";
 const ICON_BUTTON =
   "inline-flex size-9 shrink-0 items-center justify-center rounded-[2px] text-muted-foreground transition-colors duration-200 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 @4xl:size-7";
 
-/** Checkbox | tenant | owner | plan | live | joined | actions */
+/**
+ * Keeps the optional row icons (WhatsApp, shop, bell) in the same column on
+ * every wide row, so a missing one leaves a gap instead of shifting the rest.
+ */
+const ICON_SLOT = "hidden size-7 shrink-0 @4xl:block";
+
+/** Checkbox | tenant | owner | plan | live | joined | actions (4 icons) */
 const WIDE_COLUMNS =
-  "@4xl:grid-cols-[1.5rem_minmax(0,1.7fr)_minmax(0,1.35fr)_4.5rem_minmax(0,1.3fr)_4.5rem_6.25rem]";
+  "@4xl:grid-cols-[1.5rem_minmax(0,1.7fr)_minmax(0,1.35fr)_4.5rem_minmax(0,1.3fr)_4.5rem_7.5rem]";
 
 function panelEquals(a: BusinessesPanel | null, b: BusinessesPanel) {
   if (!a) return false;
@@ -104,10 +112,11 @@ function FilterChip({
   );
 }
 
-function ChipCount({ value }: { value: number }) {
+/** A count, or a dash while it is not known yet. */
+function ChipCount({ value }: { value: number | null }) {
   return (
     <span className="font-mono text-[10.5px] font-medium tabular-nums opacity-70">
-      {value}
+      {value ?? "–"}
     </span>
   );
 }
@@ -122,7 +131,7 @@ function StateTag({
   return (
     <span
       className={cn(
-        "rounded-[2px] border px-1 py-px text-[10px] font-semibold leading-none",
+        "shrink-0 whitespace-nowrap rounded-[2px] border px-1 py-px text-[10px] font-semibold leading-none",
         attention
           ? "border-[rgba(165,82,55,0.4)] text-[#A55237]"
           : "border-border text-muted-foreground",
@@ -135,7 +144,8 @@ function StateTag({
 
 /** Online-count trend since the page was opened. */
 function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return null;
+  // A couple of samples is not a trend; wait until there is something to draw.
+  if (values.length < 4) return null;
   const width = 72;
   const height = 24;
   const pad = 3;
@@ -275,16 +285,26 @@ function LivePulse({
   now: number;
   onOpenTenant: (id: string) => void;
 }) {
-  const online = presence.perTenant
-    ? counts.online
-    : (presence.totalOnline ?? counts.online);
+  const mode = liveModeOf(presence);
+  const online =
+    mode === "support"
+      ? (presence.totalOnline ?? counts.online)
+      : counts.online;
   const show = (value: number) => (loading ? "—" : String(value));
+  // Never print a zero we do not know: no answer yet is not "nobody online".
+  const showLive = (value: number) =>
+    loading || mode === "unknown" ? "—" : String(value);
 
-  const onlineSub = !presence.perTenant
-    ? "from the live total"
-    : counts.sessions > 0
-      ? `${counts.sessions} live ${counts.sessions === 1 ? "connection" : "connections"}`
-      : "nobody on the app";
+  // While the list loads there are no rows to count, so say nothing about it.
+  const onlineSub = loading
+    ? "checking…"
+    : mode === "unknown"
+      ? "status unavailable"
+      : mode === "support"
+        ? "from the live total"
+        : counts.sessions > 0
+          ? `${counts.sessions} live ${counts.sessions === 1 ? "connection" : "connections"}`
+          : "nobody on the app";
 
   const togglePresence = (value: PresenceFilter) =>
     onFiltersChange({ presence: filters.presence === value ? "all" : value });
@@ -300,9 +320,9 @@ function LivePulse({
         <PulseTile
           position={0}
           label="Online now"
-          value={show(online)}
+          value={showLive(online)}
           sub={onlineSub}
-          dot={online > 0}
+          dot={mode !== "unknown" && online > 0}
           active={filters.presence === "online"}
           title="Tenants with the app, till or dashboard open right now"
           onClick={() => togglePresence("online")}
@@ -312,7 +332,7 @@ function LivePulse({
         <PulseTile
           position={1}
           label="On support"
-          value={show(counts.support)}
+          value={showLive(counts.support)}
           sub="in the support chat"
           active={filters.presence === "support"}
           title="Online tenants who have the support chat open"
@@ -339,7 +359,7 @@ function LivePulse({
         />
       </div>
 
-      {!presence.perTenant && !loading ? (
+      {mode === "support" && !loading ? (
         <p
           role="note"
           className="flex items-start gap-1.5 border-t border-border px-3.5 py-2 text-[11.5px] leading-snug text-muted-foreground"
@@ -409,9 +429,11 @@ function LiveClock({ at, failed }: { at: number | null; failed: boolean }) {
 function LiveStatus({
   live,
   now,
+  mode,
 }: {
   live: TenantPresence;
   now: number;
+  mode: LiveMode;
 }) {
   if (live.online) {
     return (
@@ -433,6 +455,16 @@ function LiveStatus({
       </span>
     );
   }
+  if (mode === "unknown") {
+    return (
+      <span
+        className="text-[12px] text-muted-foreground"
+        title="Live status is unavailable right now"
+      >
+        —
+      </span>
+    );
+  }
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"
@@ -446,7 +478,11 @@ function LiveStatus({
         aria-hidden
         className="size-2 shrink-0 rounded-full border border-foreground/30"
       />
-      {live.lastSeenAt ? `Seen ${formatAgo(live.lastSeenAt, now)}` : "Offline"}
+      {live.lastSeenAt
+        ? `Seen ${formatAgo(live.lastSeenAt, now)}`
+        : mode === "support"
+          ? "Not on support"
+          : "Offline"}
     </span>
   );
 }
@@ -483,30 +519,42 @@ function SkeletonRows() {
 
 function EmptyState({
   filters,
-  perTenant,
+  mode,
+  totalCount,
   onReset,
 }: {
   filters: TenantFilters;
-  perTenant: boolean;
+  mode: LiveMode;
+  totalCount: number;
   onReset: () => void;
 }) {
   const query = filters.query.trim();
-  const livePick =
-    filters.presence === "online" || filters.presence === "support";
+  // A search that finds nothing is about the search, whatever else is on.
+  const liveOnly =
+    !query && (filters.presence === "online" || filters.presence === "support");
 
-  const title = query
-    ? `No tenants match “${query}”.`
-    : livePick
-      ? filters.presence === "support"
-        ? "Nobody is on support right now."
-        : "Nobody is online right now."
-      : "No tenants in this view.";
+  const title =
+    totalCount === 0
+      ? "No tenants yet."
+      : query
+        ? `No tenants match “${query}”.`
+        : liveOnly && mode === "unknown"
+          ? "Live status is unavailable."
+          : liveOnly
+            ? filters.presence === "support"
+              ? "Nobody is on support right now."
+              : "Nobody is online right now."
+            : "No tenants in this view.";
   const hint =
-    livePick && !perTenant
-      ? "This API only reports tenants on the support channel. Deploy the updated backend to see everyone who is online."
-      : livePick
-        ? "This list refreshes every 10 seconds. Turn on the bell next to a tenant to hear when they arrive."
-        : "Try another search, or clear the filters.";
+    totalCount === 0
+      ? "Create the first one with New tenant."
+      : liveOnly && mode === "unknown"
+        ? "The live feed could not be reached. This page tries again every 10 seconds."
+        : liveOnly && mode === "support"
+          ? "This API only reports tenants on the support channel. Deploy the updated backend to see everyone who is online."
+          : liveOnly
+            ? "Refreshes every 10 seconds. Clear the filter, then use the bell on a tenant to hear when they arrive."
+            : "Try another search, or clear the filters.";
 
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
@@ -516,7 +564,7 @@ function EmptyState({
       <p className="max-w-[46ch] text-[12px] leading-relaxed text-muted-foreground">
         {hint}
       </p>
-      {!filtersAreDefault(filters) ? (
+      {totalCount > 0 && !filtersAreDefault(filters) ? (
         <Button
           type="button"
           variant="outline"
@@ -537,6 +585,7 @@ function EmptyState({
 function TenantRow({
   row,
   live,
+  mode,
   stuck,
   now,
   active,
@@ -549,6 +598,7 @@ function TenantRow({
 }: {
   row: SaBusinessRow;
   live: TenantPresence;
+  mode: LiveMode;
   stuck: boolean;
   now: number;
   active: boolean;
@@ -565,9 +615,8 @@ function TenantRow({
   const ownerEmail = row.ownerEmail?.trim() ?? "";
   const ownerPhone = row.ownerPhone?.trim() ?? "";
   const ownerPrimary = ownerName || ownerEmail;
-  const ownerSecondary = [ownerName ? ownerEmail : "", ownerPhone]
-    .filter(Boolean)
-    .join(" · ");
+  // The email is the first line when there is no name, so it is not repeated.
+  const ownerSubEmail = ownerName ? ownerEmail : "";
   const created = Date.parse(row.createdAt);
   const fresh = isNewTenant(row, now);
 
@@ -575,9 +624,12 @@ function TenantRow({
     <li>
       <div
         className={cn(
+          // Phone: one column. Tablet: tenant and owner on the left, live and
+          // actions on the right. Desktop: a seven-column table row.
           "group relative grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1.5 px-3 py-3 transition-colors duration-200",
+          "@2xl:grid-cols-[1.5rem_minmax(0,1.25fr)_minmax(0,1fr)] @2xl:gap-x-3 @2xl:gap-y-1 @2xl:py-2.5",
           WIDE_COLUMNS,
-          "@4xl:items-center @4xl:gap-x-3 @4xl:gap-y-0 @4xl:py-2.5",
+          "@4xl:items-center @4xl:gap-y-0",
           active
             ? "bg-[rgba(29,75,59,0.075)]"
             : arrived
@@ -601,7 +653,7 @@ function TenantRow({
           />
         ) : null}
 
-        <label className="flex h-8 items-center justify-center">
+        <label className="flex h-8 items-center justify-center @2xl:col-start-1 @2xl:row-span-2 @2xl:row-start-1 @4xl:col-auto @4xl:row-auto @4xl:row-span-1">
           <input
             type="checkbox"
             className="size-3.5 accent-primary"
@@ -611,36 +663,56 @@ function TenantRow({
           />
         </label>
 
-        <div className="col-start-2 flex min-w-0 items-center gap-2.5 @4xl:col-auto">
+        <div className="col-start-2 flex min-w-0 items-center gap-2.5 @2xl:row-start-1 @4xl:col-auto @4xl:row-auto">
           <TenantMark name={row.name} online={live.online} />
           <div className="min-w-0">
             <button
               type="button"
               onClick={onOpen}
+              title={row.name}
               className="block max-w-full truncate rounded-[2px] text-left text-[13.5px] font-semibold tracking-[-0.015em] text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {row.name}
             </button>
-            <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <span className="truncate font-mono text-[10.5px] text-muted-foreground">
+            <p className="mt-0.5 flex min-w-0 flex-nowrap items-center gap-x-1.5">
+              <span
+                className="min-w-0 truncate font-mono text-[10.5px] text-muted-foreground"
+                title={row.slug}
+              >
                 {row.slug}
               </span>
-              {!row.active ? <StateTag>Off</StateTag> : null}
+              {!row.active ? <StateTag>Inactive</StateTag> : null}
               {stuck ? <StateTag attention>Stuck</StateTag> : null}
               {fresh ? <StateTag>New</StateTag> : null}
             </p>
           </div>
         </div>
 
-        <div className="col-start-2 min-w-0 @4xl:col-auto">
+        <div className="col-start-2 min-w-0 @2xl:row-start-2 @4xl:col-auto @4xl:row-auto">
           {ownerPrimary ? (
             <>
-              <p className="truncate text-[12.5px] text-foreground">
+              <p
+                className="truncate text-[12.5px] text-foreground"
+                title={ownerPrimary}
+              >
                 {ownerPrimary}
               </p>
-              {ownerSecondary ? (
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {ownerSecondary}
+              {ownerSubEmail || ownerPhone ? (
+                // The email gives way first; a phone number is never cut short.
+                <p className="flex min-w-0 items-baseline gap-1.5 text-[11px] text-muted-foreground">
+                  {ownerSubEmail ? (
+                    <span className="min-w-0 truncate" title={ownerSubEmail}>
+                      {ownerSubEmail}
+                    </span>
+                  ) : null}
+                  {ownerSubEmail && ownerPhone ? (
+                    <span aria-hidden className="shrink-0">
+                      ·
+                    </span>
+                  ) : null}
+                  {ownerPhone ? (
+                    <span className="shrink-0 tabular-nums">{ownerPhone}</span>
+                  ) : null}
                 </p>
               ) : null}
             </>
@@ -655,11 +727,14 @@ function TenantRow({
           )}
         </div>
 
-        <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 @4xl:contents">
+        <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 @2xl:col-start-3 @2xl:row-start-1 @2xl:self-center @4xl:contents">
           <span className="text-[12px] capitalize text-foreground/80">
             {row.subscriptionTier}
           </span>
-          <LiveStatus live={live} now={now} />
+          {/* Live leads on narrow rows; on the table it sits after the plan. */}
+          <span className="order-first min-w-0 @4xl:order-none">
+            <LiveStatus live={live} now={now} mode={mode} />
+          </span>
           <span
             className="font-mono text-[11px] tabular-nums text-muted-foreground"
             title={
@@ -673,7 +748,7 @@ function TenantRow({
           </span>
         </div>
 
-        <div className="col-start-2 flex items-center gap-0.5 @4xl:col-auto @4xl:justify-end">
+        <div className="col-start-2 flex items-center gap-0.5 @2xl:col-start-3 @2xl:row-start-2 @2xl:justify-end @2xl:self-center @4xl:col-auto @4xl:row-auto">
           {whatsapp ? (
             <a
               href={whatsapp}
@@ -685,7 +760,9 @@ function TenantRow({
             >
               <MessageCircle className="size-3.5" aria-hidden />
             </a>
-          ) : null}
+          ) : (
+            <span aria-hidden className={ICON_SLOT} />
+          )}
           {shopUrl ? (
             <a
               href={shopUrl}
@@ -697,7 +774,9 @@ function TenantRow({
             >
               <ExternalLink className="size-3.5" aria-hidden />
             </a>
-          ) : null}
+          ) : (
+            <span aria-hidden className={ICON_SLOT} />
+          )}
           {!live.online ? (
             <button
               type="button"
@@ -721,7 +800,9 @@ function TenantRow({
                 <Bell className="size-3.5" aria-hidden />
               )}
             </button>
-          ) : null}
+          ) : (
+            <span aria-hidden className={ICON_SLOT} />
+          )}
           <button
             type="button"
             onClick={onOpen}
@@ -814,6 +895,11 @@ export function BusinessesTheatre({
   selectionBar,
 }: BusinessesTheatreProps) {
   const filtersActive = !filtersAreDefault(filters);
+  const mode = liveModeOf(presence);
+  // A count is only printed when it is known; otherwise a dash.
+  const count = (value: number) => (loading ? null : value);
+  const liveCount = (value: number) =>
+    loading || mode === "unknown" ? null : value;
   const allVisibleSelected =
     rows.length > 0 && rows.every((row) => selectedIds.includes(row.id));
   const someVisibleSelected = rows.some((row) => selectedIds.includes(row.id));
@@ -862,7 +948,7 @@ export function BusinessesTheatre({
     selected?.kind === "create"
       ? "Name and slug are required. Defaults use Nairobi / KES."
       : selectedBusiness
-        ? `${selectedBusiness.slug} · ${selectedBusiness.active ? "active" : "off"}`
+        ? `${selectedBusiness.slug} · ${selectedBusiness.active ? "active" : "inactive"}`
         : "Tenant details";
 
   return (
@@ -922,7 +1008,7 @@ export function BusinessesTheatre({
               <select
                 className={cn(
                   dashboardSelectClass(),
-                  "h-10 w-auto min-w-[8.5rem] text-[12.5px] sm:h-9",
+                  "h-10 w-auto min-w-[8.5rem] flex-1 text-[12.5px] sm:h-9 sm:flex-none",
                 )}
                 value={filters.tier}
                 onChange={(event) =>
@@ -942,7 +1028,7 @@ export function BusinessesTheatre({
             <select
               className={cn(
                 dashboardSelectClass(),
-                "h-10 w-auto min-w-[8.5rem] text-[12.5px] sm:h-9",
+                "h-10 w-auto min-w-[8.5rem] flex-1 text-[12.5px] sm:h-9 sm:flex-none",
               )}
               value={filters.sort}
               onChange={(event) =>
@@ -969,7 +1055,7 @@ export function BusinessesTheatre({
                 className="size-1.5 rounded-full bg-primary"
               />
               Online
-              <ChipCount value={counts.online} />
+              <ChipCount value={liveCount(counts.online)} />
             </FilterChip>
             <FilterChip
               active={filters.presence === "support"}
@@ -977,16 +1063,19 @@ export function BusinessesTheatre({
               title="Online tenants who have the support chat open"
             >
               On support
-              <ChipCount value={counts.support} />
+              <ChipCount value={liveCount(counts.support)} />
             </FilterChip>
-            <FilterChip
-              active={filters.presence === "offline"}
-              onClick={() => togglePresence("offline")}
-              title="Tenants with nothing open right now"
-            >
-              Offline
-              <ChipCount value={counts.offline} />
-            </FilterChip>
+            {/* An API that only names support tenants cannot tell who is offline. */}
+            {mode !== "support" || filters.presence === "offline" ? (
+              <FilterChip
+                active={filters.presence === "offline"}
+                onClick={() => togglePresence("offline")}
+                title="Tenants with nothing open right now"
+              >
+                Offline
+                <ChipCount value={liveCount(counts.offline)} />
+              </FilterChip>
+            ) : null}
 
             <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border" />
 
@@ -995,15 +1084,15 @@ export function BusinessesTheatre({
               onClick={() => toggleStatus("active")}
             >
               Active
-              <ChipCount value={counts.active} />
+              <ChipCount value={count(counts.active)} />
             </FilterChip>
             <FilterChip
               active={filters.status === "inactive"}
               onClick={() => toggleStatus("inactive")}
-              title="Tenants switched off"
+              title="Tenants that are switched off"
             >
-              Off
-              <ChipCount value={counts.inactive} />
+              Inactive
+              <ChipCount value={count(counts.inactive)} />
             </FilterChip>
             <FilterChip
               active={filters.status === "stuck"}
@@ -1011,7 +1100,7 @@ export function BusinessesTheatre({
               title="Signed up but not set up yet"
             >
               Stuck
-              <ChipCount value={counts.stuck} />
+              <ChipCount value={count(counts.stuck)} />
             </FilterChip>
             <FilterChip
               active={filters.status === "new"}
@@ -1019,7 +1108,7 @@ export function BusinessesTheatre({
               title={`Created in the last ${NEW_TENANT_DAYS} days`}
             >
               New
-              <ChipCount value={counts.fresh} />
+              <ChipCount value={count(counts.fresh)} />
             </FilterChip>
 
             {filtersActive ? (
@@ -1053,7 +1142,8 @@ export function BusinessesTheatre({
         {/* Column headings, wide containers only */}
         <div
           className={cn(
-            "hidden items-center gap-x-3 border-b border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground @4xl:grid",
+            "hidden items-center gap-x-3 border-b border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground",
+            rows.length > 0 && "@4xl:grid",
             WIDE_COLUMNS,
           )}
         >
@@ -1073,7 +1163,8 @@ export function BusinessesTheatre({
         ) : rows.length === 0 ? (
           <EmptyState
             filters={filters}
-            perTenant={presence.perTenant}
+            mode={mode}
+            totalCount={totalCount}
             onReset={onResetFilters}
           />
         ) : (
@@ -1083,6 +1174,7 @@ export function BusinessesTheatre({
                 key={row.id}
                 row={row}
                 live={presenceOf(presence, row.id)}
+                mode={mode}
                 stuck={stuckIds.has(row.id)}
                 now={now}
                 active={panelEquals(selected, { kind: "business", id: row.id })}
@@ -1111,7 +1203,7 @@ export function BusinessesTheatre({
           showCloseButton
         >
           <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12">
-            <DialogTitle className="text-[15px] font-semibold tracking-tight">
+            <DialogTitle className="font-serif text-[21px] font-normal leading-tight tracking-[-0.015em]">
               {modalTitle}
             </DialogTitle>
             <DialogDescription className="text-[12px]">
