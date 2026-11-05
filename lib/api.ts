@@ -6127,6 +6127,12 @@ export async function createItemVariant(
 export type AttachVariantLinePayload = {
   itemId: string;
   variantName: string;
+  /** This row sells as a pack of the base product (shared stock pool). */
+  sellsAsPack?: boolean;
+  /** Base units per sale of this row (24 for a crate). */
+  unitsPerPack?: number | string;
+  /** Unit label ("Crate"); server defaults to the variant name. */
+  packUnitName?: string;
 };
 
 export type AttachVariantsPayload = {
@@ -6272,6 +6278,12 @@ export type GlobalCatalogAdoptLine = {
   onSkuConflict?: "skip" | "merge" | "rename" | null;
   /** When false, created items stay off the online storefront. Default true. */
   webPublished?: boolean | null;
+  /**
+   * Explicit opt-in to adopt a variant flat when its parent is unavailable. Without it the
+   * server refuses such lines with status {@code error_parent_unavailable} instead of
+   * silently flattening them.
+   */
+  adoptAsStandalone?: boolean | null;
 };
 
 export type GlobalCatalogAdoptResultLine = {
@@ -6387,6 +6399,22 @@ export async function lookupGlobalCatalogProducts(params: {
   );
 }
 
+export type GlobalProductFamilyRecord = {
+  /** The base product — the product itself, or its parent when it is a pack size. */
+  root: GlobalProductRecord | null;
+  /** Published variants (tray, crate, sizes) of the root. */
+  variants: GlobalProductRecord[];
+};
+
+/** Root + published variants around one global product ("also add its pack sizes"). */
+export async function fetchGlobalCatalogProductFamily(
+  globalProductId: string,
+): Promise<GlobalProductFamilyRecord> {
+  return request<GlobalProductFamilyRecord>(
+    `${API_ROUTES.globalCatalog}/products/${encodeURIComponent(globalProductId)}/family`,
+  );
+}
+
 export async function fetchGlobalCatalogPack(
   id: string,
   opts?: { onlyNotImported?: boolean },
@@ -6409,9 +6437,10 @@ const ADOPT_JOB_STALL_TIMEOUT_MS = 5 * 60 * 1000;
 
 export async function previewGlobalCatalogAdopt(
   lines: GlobalCatalogAdoptLine[],
-  opts?: { createMissingCategories?: boolean },
+  opts?: { createMissingCategories?: boolean; includeVariants?: boolean },
 ): Promise<GlobalCatalogAdoptResult> {
   const createMissingCategories = opts?.createMissingCategories === true;
+  const includeVariants = opts?.includeVariants === true;
   // Keep preview payloads within the same size we use for adopt jobs.
   if (lines.length <= JOB_ADOPT_MAX_LINES) {
     return request<GlobalCatalogAdoptResult>(
@@ -6421,6 +6450,7 @@ export async function previewGlobalCatalogAdopt(
         body: {
           lines,
           createMissingCategories,
+          includeVariants,
         },
       },
     );
@@ -6436,6 +6466,7 @@ export async function previewGlobalCatalogAdopt(
           body: {
             lines: chunk,
             createMissingCategories,
+            includeVariants,
           },
         },
       ),
@@ -6463,6 +6494,7 @@ async function enqueueGlobalCatalogAdoptJob(
   lines: GlobalCatalogAdoptLine[],
   createMissingCategories?: boolean,
   packId?: string,
+  includeVariants?: boolean,
 ): Promise<string> {
   const created = await request<{ jobId: string }>(
     `${API_ROUTES.globalCatalog}/adopt/jobs`,
@@ -6472,6 +6504,7 @@ async function enqueueGlobalCatalogAdoptJob(
         openingBranchId,
         lines,
         createMissingCategories: createMissingCategories === true,
+        includeVariants: includeVariants === true,
         ...(packId ? { packId } : {}),
       },
     },
@@ -6732,10 +6765,12 @@ export async function globalCatalogAdopt(
   opts?: {
     createMissingCategories?: boolean;
     packId?: string | null;
+    includeVariants?: boolean;
     onProgress?: (progress: GlobalCatalogAdoptProgress) => void;
   },
 ): Promise<GlobalCatalogAdoptResult> {
   const createMissingCategories = opts?.createMissingCategories === true;
+  const includeVariants = opts?.includeVariants === true;
   const packId = opts?.packId?.trim() || undefined;
   const onProgress = opts?.onProgress;
   const total = lines.length;
@@ -6746,6 +6781,7 @@ export async function globalCatalogAdopt(
       openingBranchId,
       lines,
       createMissingCategories,
+      includeVariants,
       ...(packId ? { packId } : {}),
     };
     result = await adoptWithSimulatedProgress(total, onProgress, () =>
@@ -6771,6 +6807,7 @@ export async function globalCatalogAdopt(
           createMissingCategories,
           // Pack telemetry only on the first chunk to avoid double-counting.
           chunkIndex === 0 ? packId : undefined,
+          includeVariants,
         ),
         {
           fallbackTotal: chunk.length,
@@ -6964,6 +7001,36 @@ export async function postStockIncrease(body: {
   }
   return request<InventoryMutationResponseRecord>(
     "/api/v1/inventory/stock-increase",
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export type VariantStockFoldResponseRecord = {
+  parentItemId: string;
+  parentItemName: string | null;
+  movedRowUnits: number;
+  movedBaseUnits: number;
+  batchesMoved: number;
+};
+
+/**
+ * Fold a family option's own on-hand stock into its base product's shared
+ * pool (pack rows convert by their units-per-pack). Used by the regroup
+ * flow and the "option row still holds stock" repair action.
+ */
+export async function foldVariantStockIntoBase(body: {
+  itemId: string;
+  notes?: string | null;
+}): Promise<VariantStockFoldResponseRecord> {
+  const payload: Record<string, unknown> = { itemId: body.itemId.trim() };
+  if (body.notes?.trim()) {
+    payload.notes = body.notes.trim();
+  }
+  return request<VariantStockFoldResponseRecord>(
+    "/api/v1/inventory/variant-stock-fold",
     {
       method: "POST",
       body: payload,

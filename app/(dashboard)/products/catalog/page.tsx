@@ -128,7 +128,9 @@ export default function GlobalCatalogPage() {
   const [products, setProducts] = useState<GlobalProductRecord[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
+  // Arrives pre-filled when the products page hands over a search that found
+  // nothing on the shelf ("Find X in the shared catalog").
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("q") ?? "");
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
@@ -167,6 +169,8 @@ export default function GlobalCatalogPage() {
   const [createMissingCategories, setCreateMissingCategories] = useState(
     () => searchParams.get("from") === "onboarding",
   );
+  /** Selected parents also bring their published variants (one linked family). */
+  const [includeVariants, setIncludeVariants] = useState(true);
   const [replacing, setReplacing] = useState(false);
   const [actionPhase, setActionPhase] = useState<CatalogActionPhase>("ready");
 
@@ -764,6 +768,7 @@ export default function GlobalCatalogPage() {
           minStockLevel:
             override?.minStockLevel ?? p.defaultMinStockLevel ?? undefined,
           onSkuConflict: override?.onSkuConflict ?? undefined,
+          adoptAsStandalone: override?.adoptAsStandalone ?? undefined,
         };
       });
   }, [
@@ -783,6 +788,7 @@ export default function GlobalCatalogPage() {
     try {
       const result = await previewGlobalCatalogAdopt(buildLines(), {
         createMissingCategories,
+        includeVariants,
       });
       setPreviewResult(result);
     } catch {
@@ -791,7 +797,7 @@ export default function GlobalCatalogPage() {
     } finally {
       setPreviewLoading(false);
     }
-  }, [buildLines, selectedImportable.length, createMissingCategories]);
+  }, [buildLines, selectedImportable.length, createMissingCategories, includeVariants]);
 
   useEffect(() => {
     if (!reviewOpen) {
@@ -1328,7 +1334,7 @@ export default function GlobalCatalogPage() {
       const lines = buildLines();
       const preview =
         previewResult ??
-        (await previewGlobalCatalogAdopt(lines, { createMissingCategories }));
+        (await previewGlobalCatalogAdopt(lines, { createMissingCategories, includeVariants }));
       const hasErrors = preview.lines.some((l) => l.status.startsWith("error"));
       const readyCount = preview.lines.filter((l) =>
         isImportableAdoptStatus(l.status),
@@ -1376,6 +1382,7 @@ export default function GlobalCatalogPage() {
 
       const result = await globalCatalogAdopt(defaultBranchId, lines, {
         createMissingCategories,
+        includeVariants,
         packId: selectedPackId,
         onProgress: setImportProgress,
       });
@@ -2410,6 +2417,8 @@ export default function GlobalCatalogPage() {
         readyImportCount={readyImportCount}
         createMissingCategories={createMissingCategories}
         onCreateMissingCategoriesChange={setCreateMissingCategories}
+        includeVariants={includeVariants}
+        onIncludeVariantsChange={setIncludeVariants}
         adopting={adopting}
         importProgress={importProgress}
         canAdopt={canAdopt}

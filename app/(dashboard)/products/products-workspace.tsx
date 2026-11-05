@@ -386,6 +386,8 @@ export function ProductsWorkspace() {
         stockQty: toNumber(v.stockQty),
         barcode: v.barcode?.trim() || null,
         isPackage: !!v.packageVariant,
+        unitsPerSale: toNumber(v.packageUnitsPerSale),
+        baseStockQty: toNumber(v.baseStockQty),
       };
     });
   }, [detail.variantRows, variantDrawerParentName]);
@@ -553,6 +555,10 @@ export function ProductsWorkspace() {
       void detail.refreshSelectedDetail();
       if (D) catalog.syncListRowFromDetail(D);
     },
+    onStockFolded: () => {
+      void detail.refreshSelectedDetail();
+      void catalog.refreshFullCatalog();
+    },
   };
 
   const attentionStats = [
@@ -671,6 +677,11 @@ export function ProductsWorkspace() {
               <ProductHeaderActions
                 canCreate={catalog.itemTypes.length > 0}
                 onCreateNew={() => setActiveDrawer("create-parent")}
+                onBrowseCatalog={
+                  canGlobalCatalog
+                    ? () => router.push(APP_ROUTES.productsCatalog)
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -808,6 +819,14 @@ export function ProductsWorkspace() {
                         : undefined
                     }
                     canAddFromCatalog={canGlobalCatalog}
+                    onSearchCatalog={
+                      canGlobalCatalog
+                        ? (q: string) =>
+                            router.push(
+                              `${APP_ROUTES.productsCatalog}?q=${encodeURIComponent(q)}`,
+                            )
+                        : undefined
+                    }
                     onCreateNew={
                       canCatalogWrite
                         ? () => setActiveDrawer("create-parent")

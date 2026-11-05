@@ -134,6 +134,12 @@ type ItemMeta = {
   thumbnailUrl: string | null;
   sku?: string | null;
   barcode?: string | null;
+  /** Catalog pack row (Tray ×30): received qty converts to base units. */
+  packageVariant?: boolean;
+  /** Base units per pack when known (from item detail). */
+  unitsPerSale?: number | null;
+  /** Pack label ("Tray") when known. */
+  packUnitName?: string | null;
 };
 
 function slugForFilename(value: string): string {
@@ -345,11 +351,16 @@ export function OrderReceivePanel({
               thumbnailUrl: link.thumbnailUrl?.trim() || null,
               sku: link.sku,
               barcode: link.barcode,
+              packageVariant: link.packageVariant === true,
             };
           }
+          // Fetch full detail for lines we know nothing about, and for pack
+          // rows so the receive panel can show the ×N base-unit conversion.
           const missing = po.lines
             .map((line) => line.itemId)
-            .filter((id) => !map[id]);
+            .filter(
+              (id) => !map[id] || map[id].packageVariant === true,
+            );
           if (missing.length > 0) {
             const extras = await Promise.all(
               missing.map((id) =>
@@ -361,11 +372,19 @@ export function OrderReceivePanel({
             if (cancelled) return;
             for (const item of extras) {
               if (!item) continue;
+              const qty = Number(item.packagingUnitQty);
               map[item.id] = {
-                name: item.name,
-                thumbnailUrl: item.thumbnailUrl?.trim() || null,
-                sku: item.sku,
-                barcode: item.barcode ?? null,
+                name: map[item.id]?.name || item.name,
+                thumbnailUrl:
+                  map[item.id]?.thumbnailUrl ??
+                  (item.thumbnailUrl?.trim() || null),
+                sku: map[item.id]?.sku ?? item.sku,
+                barcode: map[item.id]?.barcode ?? item.barcode ?? null,
+                packageVariant:
+                  item.packageVariant === true ||
+                  map[item.id]?.packageVariant === true,
+                unitsPerSale: Number.isFinite(qty) && qty > 0 ? qty : null,
+                packUnitName: item.packagingUnitName?.trim() || null,
               };
             }
           }
@@ -1610,6 +1629,17 @@ export function OrderReceivePanel({
                                 ? " · saved"
                                 : ""}
                           </p>
+                          {meta?.packageVariant ? (
+                            <p className="mt-0.5 text-[11px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)] lg:text-[10px]">
+                              {meta.unitsPerSale && meta.unitsPerSale > 0
+                                ? `${meta.packUnitName || "Pack"} ×${meta.unitsPerSale} — ${amountQty || 0} = ${Math.round(((amountQty || 0) * meta.unitsPerSale + Number.EPSILON) * 100) / 100} base units${
+                                    unit > 0
+                                      ? ` @ ${formatMoney(unit / meta.unitsPerSale, ORDER_CURRENCY)} each`
+                                      : ""
+                                  }`
+                                : "Sells as a pack — received quantity lands on the base product's shelf in base units"}
+                            </p>
+                          ) : null}
                           {!showLinePrices ? (
                             <p className="mt-1 font-heading text-[18px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-[var(--order-ink,#15231f)] lg:hidden">
                               {formatMoney(amount, ORDER_CURRENCY)}

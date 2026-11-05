@@ -6,6 +6,7 @@ import {
   addItemSupplierLink,
   attachItemVariants,
   createGroupFromItems,
+  foldVariantStockIntoBase,
   createItem,
   createItemVariant,
   deleteItem,
@@ -521,6 +522,7 @@ export function useProductMutations(d: Dependencies) {
         let created: { id: string };
         let adoptedFromSharedCatalog = false;
         let openingStockHandledByAdopt = false;
+        let extraPackSizesAdded = 0;
 
         if (linkedGlobalId) {
           if (!canGlobalAdopt) {
@@ -595,7 +597,30 @@ export function useProductMutations(d: Dependencies) {
                 : {}),
               onSkuConflict: "rename",
             },
-          ]);
+            // Pack sizes the shopkeeper ticked in the "also comes in" card: adopted
+            // in the same call, so they arrive linked to this product with catalog
+            // prices and shared stock.
+            ...(parentDraft.globalExtraVariantIds ?? [])
+              .filter((id) => id && id !== linkedGlobalId)
+              .map((globalProductId) => ({
+                globalProductId,
+                onSkuConflict: "rename" as const,
+              })),
+          ], {
+            // If the shopkeeper left the category empty, create it from the
+            // catalog's hint instead of landing the product uncategorised.
+            createMissingCategories: true,
+          });
+
+          const okLineStatuses = new Set(["imported", "merged"]);
+          extraPackSizesAdded = adoptResult.lines.filter(
+            (l) =>
+              l.globalProductId !== linkedGlobalId &&
+              (parentDraft.globalExtraVariantIds ?? []).includes(
+                l.globalProductId,
+              ) &&
+              okLineStatuses.has(l.status),
+          ).length;
 
           const line =
             adoptResult.lines.find(
@@ -900,9 +925,15 @@ export function useProductMutations(d: Dependencies) {
         const linkedSupplier = canLinkSupplier && Boolean(sup);
         setMessage(
           adoptedFromSharedCatalog
-            ? linkedSupplier
-              ? "Product created, linked to shared catalog, and supplier linked."
-              : "Product created and linked to shared catalog."
+            ? `${
+                linkedSupplier
+                  ? "Product created, linked to shared catalog, and supplier linked."
+                  : "Product created and linked to shared catalog."
+              }${
+                extraPackSizesAdded > 0
+                  ? ` ${extraPackSizesAdded} pack size${extraPackSizesAdded === 1 ? "" : "s"} added with it.`
+                  : ""
+              }`
             : linkedSupplier
               ? "Product created and linked."
               : "Product created.",
@@ -2016,6 +2047,10 @@ export function useProductMutations(d: Dependencies) {
       setRegroupBusy(true);
       setMessage("");
       try {
+        // Strip the caller-side foldStock flag before hitting the API.
+        const apiItems = params.items.map(
+          ({ foldStock: _fold, ...line }) => line,
+        );
         const result =
           params.mode === "create"
             ? await createGroupFromItems({
@@ -2023,21 +2058,49 @@ export function useProductMutations(d: Dependencies) {
                 itemTypeId: params.itemTypeId,
                 categoryId: params.categoryId,
                 aisleId: params.aisleId,
-                items: params.items,
+                items: apiItems,
               })
             : await attachItemVariants(params.parentId, {
-                items: params.items,
+                items: apiItems,
                 makeParentNonSellable: true,
               });
+        // G1: a row converted to a pack no longer sells from its own stock —
+        // fold any stranded on-hand into the family's base pool.
+        const foldLines = params.items.filter(
+          (l) => l.foldStock && (l.sellsAsPack || l.unitsPerPack),
+        );
+        let foldedBaseUnits = 0;
+        const foldFailures: string[] = [];
+        for (const line of foldLines) {
+          try {
+            const fold = await foldVariantStockIntoBase({
+              itemId: line.itemId,
+              notes: "Regroup: moved option stock into the base pool",
+            });
+            foldedBaseUnits += Number(fold.movedBaseUnits) || 0;
+          } catch (err) {
+            // "Holds no stock to move" just means there was nothing to fold.
+            const msg = err instanceof Error ? err.message : "";
+            if (!/no stock/i.test(msg)) {
+              foldFailures.push(line.variantName || line.itemId);
+            }
+          }
+        }
         await refreshFullCatalog();
         setRowSelection(new Set());
         selectProduct(result.id);
         const n = params.items.length;
-        setMessage(
+        let msg =
           params.mode === "create"
             ? `Created family “${result.name}” with ${n} option${n === 1 ? "" : "s"}. SKUs and stock were kept.`
-            : `Moved ${n} option${n === 1 ? "" : "s"} under “${result.name}”. SKUs and stock were kept.`,
-        );
+            : `Moved ${n} option${n === 1 ? "" : "s"} under “${result.name}”. SKUs and stock were kept.`;
+        if (foldedBaseUnits > 0) {
+          msg += ` Moved ${foldedBaseUnits} base unit${foldedBaseUnits === 1 ? "" : "s"} into the shared pool.`;
+        }
+        if (foldFailures.length > 0) {
+          msg += ` Could not move stock for ${foldFailures.join(", ")} — use “Move into base pool” on the product.`;
+        }
+        setMessage(msg);
         return true;
       } catch (err) {
         setMessage(formatMutationError(err, "Could not group products."));

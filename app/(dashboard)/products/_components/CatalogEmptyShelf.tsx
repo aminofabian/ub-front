@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ImagePlus, Plus } from "lucide-react";
+import { Globe2, ImagePlus, Plus } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -31,8 +31,44 @@ export function CatalogEmptyShelf({
         Then you can sell it.
       </p>
 
+      {canAddFromCatalog && onAddFromCatalog ? (
+        <div className="mt-6 w-full">
+          <button
+            type="button"
+            onClick={onAddFromCatalog}
+            className={cn(
+              "group flex w-full items-center gap-3 overflow-hidden text-left",
+              "rounded-2xl border border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_30%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_7%,white)] px-4 py-3.5 sm:rounded-none",
+              "transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+              "hover:-translate-y-px hover:shadow-[0_14px_32px_-20px_color-mix(in_srgb,var(--catalog-primary,#0f766e)_55%,transparent)]",
+              "active:translate-y-0 active:scale-[0.992]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_40%,transparent)]",
+            )}
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--catalog-primary,#0f766e)] text-white sm:rounded-none">
+              <Globe2 className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-semibold tracking-[-0.01em] text-[var(--catalog-ink,#15231f)]">
+                Stock your shop from the shared catalog
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
+                Ready-made products with photos, barcodes and prices — tick the
+                ones you sell and they land on your shelf in minutes.
+              </span>
+            </span>
+            <span className="shrink-0 text-[12px] font-semibold text-[var(--catalog-primary,#0f766e)]">
+              Browse →
+            </span>
+          </button>
+          <p className="mt-3 text-center text-[11px] font-medium uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_38%,transparent)]">
+            or add your own
+          </p>
+        </div>
+      ) : null}
+
       {canCreateNew && onCreateNew ? (
-        <div className="mt-7 w-full">
+        <div className={cn("w-full", canAddFromCatalog && onAddFromCatalog ? "mt-3" : "mt-7")}>
           <button
             type="button"
             onClick={onCreateNew}
@@ -125,18 +161,6 @@ export function CatalogEmptyShelf({
         >
           Import a spreadsheet
         </Link>
-        {canAddFromCatalog && onAddFromCatalog ? (
-          <>
-            {" or "}
-            <button
-              type="button"
-              onClick={onAddFromCatalog}
-              className="font-medium text-[var(--catalog-ink,#15231f)] underline-offset-2 hover:underline"
-            >
-              pick from the shared catalog
-            </button>
-          </>
-        ) : null}
         .
       </p>
       <div className="mt-1.5 text-center text-[12px]">

@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Download, ImageOff, PackageSearch, RefreshCw, Trash2, Upload } from "lucide-react";
+import {
+  CornerDownRight,
+  Download,
+  ImageOff,
+  Link2,
+  PackageSearch,
+  RefreshCw,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
@@ -15,6 +25,7 @@ import {
 } from "@/components/super-admin/sa-section";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { GlobalCatalogCategoriesPanel } from "@/components/super-admin/global-catalog-categories-panel";
+import { GlobalCatalogImportDialog } from "@/components/super-admin/global-catalog-import-dialog";
 import { GlobalCatalogPacksPanel } from "@/components/super-admin/global-catalog-packs-panel";
 import { GlobalCatalogSuppliersPanel } from "@/components/super-admin/global-catalog-suppliers-panel";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +43,11 @@ import {
   fetchSaCatalogs,
   fetchSaGlobalCatalogMeta,
   fetchSaGlobalProduct,
+  fetchSaGlobalProductChildren,
   fetchSaGlobalProducts,
+  fetchSaGlobalProductTree,
   fetchSaSourceBusinesses,
   fetchSaSourceItems,
-  importSaGlobalProductsCsv,
   patchSaGlobalProduct,
   previewSaPromote,
   saPublishAllDrafts,
@@ -47,6 +59,7 @@ import {
   type SaCatalogSummary,
   type SaGlobalCatalogMeta,
   type SaGlobalProduct,
+  type SaGlobalProductTreeRow,
   type SaPromoteProgress,
   type SaPromoteResult,
   type SaSourceBusiness,
@@ -60,6 +73,23 @@ const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
   { value: "archived", label: "Archived" },
 ] as const;
+
+type StructureFilter = "all" | "parents" | "variants" | "orphans";
+
+const STRUCTURE_OPTIONS: { value: StructureFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "parents", label: "Tree" },
+  { value: "variants", label: "Variants" },
+  { value: "orphans", label: "Orphans" },
+];
+
+const STORE_KIT_OPTIONS = [
+  { value: "", label: "Unrestricted (every shop type)" },
+  { value: "grocery", label: "Grocery" },
+  { value: "pharmacy", label: "Pharmacy" },
+  { value: "cosmetics", label: "Cosmetics" },
+  { value: "wines-spirits", label: "Wines & spirits" },
+];
 
 const SOURCE_PAGE_SIZE = 40;
 const PROMOTE_PREVIEW_MAX_ITEMS = 100;
@@ -133,6 +163,8 @@ export default function SuperAdminGlobalCatalogPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [missingImage, setMissingImage] = useState(false);
+  const [structure, setStructure] = useState<StructureFilter>("all");
+  const [treeRows, setTreeRows] = useState<SaGlobalProductTreeRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<SaGlobalProduct | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -142,6 +174,16 @@ export default function SuperAdminGlobalCatalogPage() {
   const [buyDraft, setBuyDraft] = useState("");
   const [sellDraft, setSellDraft] = useState("");
   const [marginDraft, setMarginDraft] = useState("");
+  const [variantNameDraft, setVariantNameDraft] = useState("");
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const [storeKitDraft, setStoreKitDraft] = useState("");
+  const [packageVariantDraft, setPackageVariantDraft] = useState(false);
+  const [packUnitNameDraft, setPackUnitNameDraft] = useState("");
+  const [packUnitQtyDraft, setPackUnitQtyDraft] = useState("");
+  const [parentDraft, setParentDraft] = useState<{ id: string; name: string } | null>(null);
+  const [parentPickerQ, setParentPickerQ] = useState("");
+  const [parentPickerResults, setParentPickerResults] = useState<SaGlobalProduct[]>([]);
+  const [childrenOfSelected, setChildrenOfSelected] = useState<SaGlobalProduct[]>([]);
   const [bulkMarginPct, setBulkMarginPct] = useState("25");
   const [bulkMarginMode, setBulkMarginMode] = useState<"fromBuying" | "fromSelling">(
     "fromBuying",
@@ -168,7 +210,7 @@ export default function SuperAdminGlobalCatalogPage() {
   const [onlyWithImages, setOnlyWithImages] = useState(false);
   /** Promote only source items that have a barcode. */
   const [onlyWithBarcode, setOnlyWithBarcode] = useState(false);
-  const csvImportRef = useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const sourceFetchGen = useRef(0);
 
   const categoryNameById = useMemo(() => {
@@ -187,20 +229,39 @@ export default function SuperAdminGlobalCatalogPage() {
   const reloadProducts = useCallback(async () => {
     if (!catalogId) {
       setProducts([]);
+      setTreeRows([]);
       setTotal(0);
       return;
     }
+    if (structure === "parents") {
+      // Tree view: parents paginated, children nested — a family never splits pages.
+      const result = await fetchSaGlobalProductTree({
+        catalogId,
+        q,
+        status: status || undefined,
+        missingImage,
+        page,
+        size: 40,
+      });
+      const rows = result.content ?? [];
+      setTreeRows(rows);
+      setProducts(rows.flatMap((row) => [row.parent, ...row.children]));
+      setTotal(result.totalElements ?? 0);
+      return;
+    }
+    setTreeRows([]);
     const result = await fetchSaGlobalProducts({
       catalogId,
       q,
       status: status || undefined,
       missingImage,
+      structure,
       page,
       size: 40,
     });
     setProducts(result.content ?? []);
     setTotal(result.totalElements ?? 0);
-  }, [catalogId, q, status, missingImage, page]);
+  }, [catalogId, q, status, missingImage, structure, page]);
 
   const reload = useCallback(async () => {
     setLoadError("");
@@ -397,6 +458,36 @@ export default function SuperAdminGlobalCatalogPage() {
         setBuyDraft(moneyDraft(row.recommendedBuyingPrice));
         setSellDraft(moneyDraft(row.recommendedSellingPrice));
         setMarginDraft(moneyDraft(row.suggestedMarginPct));
+        setVariantNameDraft(row.variantName ?? "");
+        setCategoryDraft(row.globalCategoryId ?? "");
+        setStoreKitDraft(row.storeKitId ?? "");
+        setPackageVariantDraft(Boolean(row.packageVariant));
+        setPackUnitNameDraft(row.packagingUnitName ?? "");
+        setPackUnitQtyDraft(row.packagingUnitQty != null ? String(row.packagingUnitQty) : "");
+        setParentPickerQ("");
+        setParentPickerResults([]);
+        const parentId = row.variantOfGlobalProductId ?? null;
+        if (parentId) {
+          const cached = products.find((p) => p.id === parentId);
+          if (cached) {
+            setParentDraft({ id: parentId, name: cached.name });
+          } else {
+            try {
+              const parent = await fetchSaGlobalProduct(parentId, catalogId);
+              if (!cancelled) setParentDraft({ id: parentId, name: parent.name });
+            } catch {
+              if (!cancelled) setParentDraft({ id: parentId, name: parentId });
+            }
+          }
+        } else {
+          setParentDraft(null);
+        }
+        try {
+          const children = await fetchSaGlobalProductChildren(row.id, catalogId);
+          if (!cancelled) setChildrenOfSelected(children);
+        } catch {
+          if (!cancelled) setChildrenOfSelected([]);
+        }
       } catch (e) {
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Could not load product.");
@@ -406,7 +497,41 @@ export default function SuperAdminGlobalCatalogPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, catalogId]);
+
+  // Parent picker: search catalog roots by name/barcode while typing.
+  useEffect(() => {
+    const query = parentPickerQ.trim();
+    if (!catalogId || query.length < 2) {
+      setParentPickerResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await fetchSaGlobalProducts({
+            catalogId,
+            q: query,
+            structure: "parents",
+            size: 8,
+          });
+          if (!cancelled) {
+            setParentPickerResults(
+              (result.content ?? []).filter((p) => p.id !== selectedId),
+            );
+          }
+        } catch {
+          if (!cancelled) setParentPickerResults([]);
+        }
+      })();
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [parentPickerQ, catalogId, selectedId]);
 
   const onSaveSelected = async () => {
     if (!selected) return;
@@ -426,6 +551,13 @@ export default function SuperAdminGlobalCatalogPage() {
     }
     setBusy(true);
     try {
+      const packagingQty =
+        packUnitQtyDraft.trim() === "" ? null : Number(packUnitQtyDraft.trim());
+      if (packagingQty != null && (!Number.isFinite(packagingQty) || packagingQty <= 0)) {
+        toast.error("Packaging quantity must be a positive number.");
+        setBusy(false);
+        return;
+      }
       const updated = await patchSaGlobalProduct(
         selected.id,
         {
@@ -435,7 +567,15 @@ export default function SuperAdminGlobalCatalogPage() {
           ...(buy != null ? { recommendedBuyingPrice: buy } : {}),
           ...(sell != null ? { recommendedSellingPrice: sell } : {}),
           ...(margin != null ? { suggestedMarginPct: margin } : {}),
-        },
+          // Structure fields ("" clears on the server):
+          variantName: variantNameDraft,
+          globalCategoryId: categoryDraft,
+          storeKitId: storeKitDraft,
+          packageVariant: packageVariantDraft,
+          packagingUnitName: packUnitNameDraft,
+          ...(packagingQty != null ? { packagingUnitQty: packagingQty } : {}),
+          variantOfGlobalProductId: parentDraft?.id ?? "",
+        } as Parameters<typeof patchSaGlobalProduct>[1],
         catalogId,
       );
       setSelected(updated);
@@ -562,7 +702,10 @@ export default function SuperAdminGlobalCatalogPage() {
             `Backfill: ${result.itemsUpdated} updated, ${result.itemsSkipped} skipped, ${result.itemsFailed} failed`,
           );
           if (result.warnings?.length) {
-            console.info("Backfill warnings", result.warnings.slice(0, 20));
+            toast.warning(
+              `${result.warnings.length} backfill warning${result.warnings.length === 1 ? "" : "s"}`,
+              { description: result.warnings.slice(0, 3).join(" · ") },
+            );
           }
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Backfill failed.");
@@ -573,41 +716,25 @@ export default function SuperAdminGlobalCatalogPage() {
     });
   };
 
-  const onExportCsv = async () => {
+  /** Whole catalog by default — an export is a backup, not a view (import scope §5.8). */
+  const onExportCsv = async (applyFilters: boolean) => {
     setBusy(true);
     try {
-      const blob = await exportSaGlobalProductsCsv({
+      const exported = await exportSaGlobalProductsCsv({
         catalogId,
         status: status || undefined,
         missingImage,
+        applyFilters,
       });
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(exported.blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "global-catalog-products.csv";
+      anchor.download = exported.fileName;
       anchor.click();
       URL.revokeObjectURL(url);
-      toast.success("CSV exported.");
+      toast.success(applyFilters ? "Filtered view exported." : "Whole catalog exported.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Export failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onImportCsv = async (file: File) => {
-    setBusy(true);
-    try {
-      const result = await importSaGlobalProductsCsv(file, catalogId);
-      toast.success(
-        `Import: ${result.createdCount} created, ${result.updatedCount} updated, ${result.skippedCount} skipped`,
-      );
-      if (result.warnings?.length) {
-        console.info("CSV import warnings", result.warnings.slice(0, 30));
-      }
-      await reload();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Import failed.");
     } finally {
       setBusy(false);
     }
@@ -985,6 +1112,76 @@ export default function SuperAdminGlobalCatalogPage() {
     });
   };
 
+  const renderCurateRow = (
+    p: SaGlobalProduct,
+    opts?: { indent?: boolean; childCount?: number },
+  ) => (
+    <button
+      key={p.id}
+      type="button"
+      onClick={() => setSelectedId(p.id)}
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
+        selectedId === p.id && "bg-primary/8",
+        opts?.indent && "border-l-2 border-border/60 pl-8",
+      )}
+    >
+      {opts?.indent ? (
+        <CornerDownRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      ) : null}
+      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/60">
+        {p.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.imageUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <ImageOff className="size-4 text-muted-foreground" aria-hidden />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-foreground">{p.name}</span>
+          {(opts?.childCount ?? 0) > 0 ? (
+            <Badge variant="outline" className="shrink-0 text-[10px] tabular-nums">
+              {opts?.childCount} variant{opts?.childCount === 1 ? "" : "s"}
+            </Badge>
+          ) : null}
+          {p.packageVariant ? (
+            <Badge variant="outline" className="shrink-0 text-[10px]">
+              {p.packagingUnitName ?? "pack"}
+              {p.packagingUnitQty ? ` ×${p.packagingUnitQty}` : ""}
+            </Badge>
+          ) : null}
+          {!opts?.indent && p.variantOfGlobalProductId ? (
+            <Badge
+              variant="outline"
+              className={cn(
+                "shrink-0 text-[10px]",
+                structure === "orphans" && "border-amber-500/50 text-amber-700 dark:text-amber-300",
+              )}
+            >
+              {structure === "orphans" ? "orphan" : "variant"}
+            </Badge>
+          ) : null}
+        </div>
+        <div className="truncate text-xs text-muted-foreground">
+          {[p.brand, p.size, p.barcode].filter(Boolean).join(" · ") || "No identity fields"}
+          {p.globalCategoryId
+            ? ` · ${categoryNameById.get(p.globalCategoryId) ?? "Category"}`
+            : ""}
+          {p.recommendedSellingPrice != null ? ` · sell ${p.recommendedSellingPrice}` : ""}
+        </div>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <Badge className={cn("border-0 font-normal", statusBadgeClass(p.status))}>
+          {p.status}
+        </Badge>
+        {p.barcodeDuplicateWarning ? (
+          <span className="text-[10px] text-amber-700 dark:text-amber-300">Dup barcode</span>
+        ) : null}
+      </div>
+    </button>
+  );
+
   return (
     <div className="space-y-6">
       <SuperAdminPageHeader
@@ -1255,31 +1452,39 @@ export default function SuperAdminGlobalCatalogPage() {
                   variant="outline"
                   size="sm"
                   disabled={busy}
-                  onClick={() => void onExportCsv()}
+                  onClick={() => void onExportCsv(false)}
+                  title="Exports every product in the catalog, regardless of the filters below"
                 >
                   <Download className="size-4" aria-hidden />
                   Export CSV
                 </Button>
+                {(status || missingImage) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void onExportCsv(true)}
+                    title="Exports only what the current filters show"
+                  >
+                    Export filtered
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   disabled={busy}
-                  onClick={() => csvImportRef.current?.click()}
+                  onClick={() => setImportOpen(true)}
                 >
                   <Upload className="size-4" aria-hidden />
                   Import CSV
                 </Button>
-                <input
-                  ref={csvImportRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (file) void onImportCsv(file);
-                  }}
+                <GlobalCatalogImportDialog
+                  open={importOpen}
+                  onOpenChange={setImportOpen}
+                  catalogId={catalogId}
+                  onCompleted={() => void reload()}
                 />
               </div>
             }
@@ -1328,6 +1533,29 @@ export default function SuperAdminGlobalCatalogPage() {
                   />
                   <Label htmlFor="gc-missing-image">Missing image</Label>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Structure</span>
+                <div className={saSegmentWrapClass}>
+                  {STRUCTURE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={saSegmentButtonClass(structure === opt.value)}
+                      onClick={() => {
+                        setPage(0);
+                        setStructure(opt.value);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {structure === "orphans" ? (
+                  <span className="text-[11px] text-amber-700 dark:text-amber-300">
+                    Variants whose parent is missing or archived
+                  </span>
+                ) : null}
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="w-full space-y-1.5 sm:w-28">
@@ -1382,47 +1610,16 @@ export default function SuperAdminGlobalCatalogPage() {
                     No products match these filters.
                   </li>
                 ) : (
-                  products.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(p.id)}
-                        className={cn(
-                          "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
-                          selectedId === p.id && "bg-primary/8",
-                        )}
-                      >
-                        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/60">
-                          {p.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.imageUrl} alt="" className="size-full object-cover" />
-                          ) : (
-                            <ImageOff className="size-4 text-muted-foreground" aria-hidden />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            {[p.brand, p.size, p.barcode].filter(Boolean).join(" · ") || "No identity fields"}
-                            {p.globalCategoryId
-                              ? ` · ${categoryNameById.get(p.globalCategoryId) ?? "Category"}`
-                              : ""}
-                            {p.recommendedSellingPrice != null
-                              ? ` · sell ${p.recommendedSellingPrice}`
-                              : ""}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <Badge className={cn("border-0 font-normal", statusBadgeClass(p.status))}>
-                            {p.status}
-                          </Badge>
-                          {p.barcodeDuplicateWarning ? (
-                            <span className="text-[10px] text-amber-700 dark:text-amber-300">Dup barcode</span>
-                          ) : null}
-                        </div>
-                      </button>
-                    </li>
-                  ))
+                  structure === "parents" ? (
+                    treeRows.map((row) => (
+                      <li key={row.parent.id}>
+                        {renderCurateRow(row.parent, { childCount: row.children.length })}
+                        {row.children.map((child) => renderCurateRow(child, { indent: true }))}
+                      </li>
+                    ))
+                  ) : (
+                    products.map((p) => <li key={p.id}>{renderCurateRow(p)}</li>)
+                  )
                 )}
               </ul>
               <div className="flex items-center justify-between border-t border-border/60 px-4 py-2">
@@ -1521,6 +1718,180 @@ export default function SuperAdminGlobalCatalogPage() {
                     <option value="published">published</option>
                     <option value="archived">archived</option>
                   </select>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-category">Category</Label>
+                    <select
+                      id="gc-category"
+                      className={saSelectClass}
+                      value={categoryDraft}
+                      disabled={busy}
+                      onChange={(e) => setCategoryDraft(e.target.value)}
+                    >
+                      <option value="">No category</option>
+                      {(meta?.categories ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-storekit">Store kit (vertical)</Label>
+                    <select
+                      id="gc-storekit"
+                      className={saSelectClass}
+                      value={storeKitDraft}
+                      disabled={busy}
+                      onChange={(e) => setStoreKitDraft(e.target.value)}
+                    >
+                      {STORE_KIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Structure: parent link + packaging (scope §7.2) */}
+                <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Link2 className="size-3.5" aria-hidden />
+                    Structure
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Parent product</Label>
+                    {parentDraft ? (
+                      <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
+                        <button
+                          type="button"
+                          className="truncate text-left underline-offset-2 hover:underline"
+                          onClick={() => setSelectedId(parentDraft.id)}
+                          title="Open parent"
+                        >
+                          {parentDraft.name}
+                        </button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          disabled={busy}
+                          onClick={() => setParentDraft(null)}
+                          title="Remove parent (saved on Save)"
+                        >
+                          <X className="size-3.5" aria-hidden />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          placeholder="Search a parent by name or barcode…"
+                          value={parentPickerQ}
+                          disabled={busy}
+                          onChange={(e) => setParentPickerQ(e.target.value)}
+                        />
+                        {parentPickerResults.length > 0 ? (
+                          <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-border bg-background shadow-md">
+                            {parentPickerResults.map((candidate) => (
+                              <button
+                                key={candidate.id}
+                                type="button"
+                                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50"
+                                onClick={() => {
+                                  setParentDraft({ id: candidate.id, name: candidate.name });
+                                  setParentPickerQ("");
+                                  setParentPickerResults([]);
+                                }}
+                              >
+                                <span className="truncate">{candidate.name}</span>
+                                <span className="shrink-0 text-xs text-muted-foreground">
+                                  {candidate.barcode ?? candidate.skuTemplate ?? ""}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                    {selected.variantOfGlobalProductId && !parentDraft ? (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                        Parent will be removed when you save.
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-variant-name">Variant label</Label>
+                    <Input
+                      id="gc-variant-name"
+                      placeholder="e.g. Tray, Crate of 12"
+                      value={variantNameDraft}
+                      disabled={busy}
+                      onChange={(e) => setVariantNameDraft(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="gc-package-variant"
+                      checked={packageVariantDraft}
+                      disabled={busy}
+                      onCheckedChange={setPackageVariantDraft}
+                    />
+                    <Label htmlFor="gc-package-variant">
+                      Package / selling unit (shares the parent&apos;s stock)
+                    </Label>
+                  </div>
+                  {packageVariantDraft ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="gc-pack-unit">Unit name</Label>
+                        <Input
+                          id="gc-pack-unit"
+                          placeholder="Tray"
+                          value={packUnitNameDraft}
+                          disabled={busy}
+                          onChange={(e) => setPackUnitNameDraft(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="gc-pack-qty">Units per pack</Label>
+                        <Input
+                          id="gc-pack-qty"
+                          inputMode="decimal"
+                          placeholder="12"
+                          value={packUnitQtyDraft}
+                          disabled={busy}
+                          onChange={(e) => setPackUnitQtyDraft(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                  {childrenOfSelected.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <Label>Variants of this product ({childrenOfSelected.length})</Label>
+                      <ul className="divide-y divide-border/40 overflow-hidden rounded-md border border-border/60">
+                        {childrenOfSelected.map((child) => (
+                          <li key={child.id}>
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted/40"
+                              onClick={() => setSelectedId(child.id)}
+                            >
+                              <span className="truncate">{child.name}</span>
+                              <span className="shrink-0 text-muted-foreground">
+                                {child.packageVariant
+                                  ? `${child.packagingUnitName ?? "pack"}${child.packagingUnitQty ? ` ×${child.packagingUnitQty}` : ""}`
+                                  : child.status}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">

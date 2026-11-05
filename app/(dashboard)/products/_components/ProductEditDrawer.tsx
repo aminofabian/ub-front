@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import {
+  foldVariantStockIntoBase,
   postStockIncrease,
   patchItem,
   type AisleRecord,
@@ -166,6 +167,17 @@ export function ProductEditDrawer({
   const [stockUnitCost, setStockUnitCost] = useState("");
   const [stockSaving, setStockSaving] = useState(false);
   const [enablingStock, setEnablingStock] = useState(false);
+  // G7: flipping an option that holds its own stock into a pack would strand
+  // that stock — offer to fold it into the base pool at the moment of saving.
+  const flippingToPack =
+    !!d &&
+    d.packageVariant !== true &&
+    (dr.packageVariant ?? d.packageVariant) === true;
+  const ownStockOnFlip = flippingToPack ? (toNumber(d?.currentStock) ?? 0) : 0;
+  const [foldOnFlip, setFoldOnFlip] = useState(true);
+  useEffect(() => {
+    if (open) setFoldOnFlip(true);
+  }, [open, d?.id]);
 
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(
     {
@@ -348,7 +360,39 @@ export function ProductEditDrawer({
       const ok = await handleStockIncrease();
       if (!ok) return;
     }
+    const wantFold = flippingToPack && foldOnFlip && ownStockOnFlip > 0;
     await m.onPatchItem(e);
+    if (!wantFold) return;
+    // Only fold if the patch actually went through (the row is a pack now).
+    const updated = await refreshSelectedDetail();
+    if (!updated || updated.packageVariant !== true) return;
+    try {
+      const res = await foldVariantStockIntoBase({
+        itemId: updated.id,
+        notes: "Edit: converted to a pack — moved own stock into the base pool",
+      });
+      const moved = Number(res.movedBaseUnits) || 0;
+      if (moved > 0) {
+        setMessage(
+          `Saved. Moved ${moved} unit${moved === 1 ? "" : "s"} into ${
+            familyName || "the base product"
+          }'s pool so packs can sell right away.`,
+        );
+      }
+      const after = await refreshSelectedDetail();
+      if (after) syncListRowFromDetail(after);
+    } catch (err) {
+      // Nothing on the row is a clean no-op, not a failure.
+      const msg = err instanceof Error ? err.message : "";
+      if (!/no stock/i.test(msg)) {
+        setMessage(
+          formatMutationError(
+            err,
+            "Saved as a pack, but its old stock could not be moved — use “Move into the base pool” on the product.",
+          ),
+        );
+      }
+    }
   };
 
   const thumb = d ? coverImageUrl(d) : null;
@@ -808,6 +852,26 @@ export function ProductEditDrawer({
                       takes the number above off that shelf.
                     </span>
                   </label>
+                  {flippingToPack && ownStockOnFlip > 0 ? (
+                    <label className="flex cursor-pointer items-start gap-2 rounded-none border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2.5">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-4 shrink-0 rounded-none border-input accent-primary"
+                        checked={foldOnFlip}
+                        onChange={(e) => setFoldOnFlip(e.target.checked)}
+                      />
+                      <span className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+                        <span className="font-semibold text-foreground">
+                          Move its {ownStockOnFlip} unit
+                          {ownStockOnFlip === 1 ? "" : "s"} into{" "}
+                          {familyName || "the base product"}&apos;s pool
+                        </span>{" "}
+                        when saving. A pack row doesn&apos;t keep stock of its
+                        own — without this, those units are stranded and packs
+                        show out of stock.
+                      </span>
+                    </label>
+                  ) : null}
                 </div>
               ) : null}
             </>

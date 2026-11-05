@@ -93,6 +93,8 @@ export type ParentDraft = {
   packageRows: PackageDraft[];
   /** When set, create adopts this shared catalog product (sets global_product_source_id). */
   globalProductSourceId: string | null;
+  /** Extra shared-catalog variant ids (pack sizes) to adopt alongside the main product. */
+  globalExtraVariantIds: string[];
 };
 
 // ─── package / bundle sell variants ───────────────────────────────────────────
@@ -142,6 +144,7 @@ export const EMPTY_PARENT: ParentDraft = {
   sellAsPackages: false,
   packageRows: [emptyPackageDraft()],
   globalProductSourceId: null,
+  globalExtraVariantIds: [],
 };
 
 // ─── add-variant draft ────────────────────────────────────────────────────────

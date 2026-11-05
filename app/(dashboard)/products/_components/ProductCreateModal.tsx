@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import {
   ChevronDown,
+  Globe2,
   ImagePlus,
   Layers,
   Minus,
@@ -38,10 +39,12 @@ import {
 } from "@/lib/butcher-product-templates";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
-import type {
-  BranchRecord,
-  GlobalProductRecord,
-  ItemTypeRecord,
+import {
+  fetchGlobalCatalogProductFamily,
+  type BranchRecord,
+  type GlobalProductFamilyRecord,
+  type GlobalProductRecord,
+  type ItemTypeRecord,
 } from "@/lib/api";
 import type { GenerateProductDescriptionResponse } from "@/lib/catalog-description-api";
 import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
@@ -144,6 +147,14 @@ const fieldClass = cn(
 
 const labelClass =
   "text-[12px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)]";
+
+function formatFamilyPrice(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 function FieldLabel({
   htmlFor,
@@ -257,6 +268,10 @@ export function ProductCreateModal({
   const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(
     null,
   );
+  /** Shared-catalog photo shown in the form the moment a match is applied. */
+  const [globalPhotoUrl, setGlobalPhotoUrl] = useState<string | null>(null);
+  /** Root + pack sizes around the linked product ("also add its pack sizes"). */
+  const [globalFamily, setGlobalFamily] = useState<GlobalProductFamilyRecord | null>(null);
   const [groupOptions, setGroupOptions] = useState<GroupOptionRow[]>(() => [
     newGroupOptionRow(),
     newGroupOptionRow(),
@@ -283,6 +298,7 @@ export function ProductCreateModal({
     prevArmed.current = false;
     setDescGenError("");
     setLinkedGlobalLabel(null);
+    setGlobalPhotoUrl(null);
     setGroupOptions((prev) => {
       for (const row of prev) {
         if (row.imagePreview) URL.revokeObjectURL(row.imagePreview);
@@ -307,8 +323,11 @@ export function ProductCreateModal({
           productStructure: "group",
           isSellable: false,
           globalProductSourceId: null,
+          globalExtraVariantIds: [],
         }));
         setLinkedGlobalLabel(null);
+        setGlobalPhotoUrl(null);
+        setGlobalFamily(null);
         return;
       }
       m.setParentDraft((p) => ({
@@ -387,9 +406,53 @@ export function ProductCreateModal({
         return syncCostsFromBuyingPrice(next.buyingPrice, next);
       });
       setLinkedGlobalLabel(match.name);
+      setGlobalPhotoUrl(match.imageUrl?.trim() || null);
+      // Everything is filled — put the cursor on the one thing the shopkeeper
+      // actually decides: the selling price.
+      requestAnimationFrame(() => {
+        const sellInput = document.getElementById(
+          "create-selling-price",
+        ) as HTMLInputElement | null;
+        sellInput?.focus();
+        sellInput?.select();
+      });
     },
     [catalog.itemTypes, catalog.sortedCategories, m, syncCostsFromBuyingPrice],
   );
+
+  // The moment a product is linked, learn its family: a base product offers its pack
+  // sizes (pre-ticked), a pack size explains that its base comes along automatically.
+  useEffect(() => {
+    const gid = m.parentDraft.globalProductSourceId;
+    if (!gid || !canGlobalCatalog) {
+      setGlobalFamily(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchGlobalCatalogProductFamily(gid)
+      .then((family) => {
+        if (cancelled) return;
+        setGlobalFamily(family);
+        const isVariantMatch = family.root != null && family.root.id !== gid;
+        const defaults = isVariantMatch
+          ? []
+          : family.variants
+              .filter((v) => v.id !== gid && !v.alreadyImported)
+              .map((v) => v.id);
+        m.setParentDraft((p) =>
+          p.globalProductSourceId === gid
+            ? { ...p, globalExtraVariantIds: defaults }
+            : p,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setGlobalFamily(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m.parentDraft.globalProductSourceId, canGlobalCatalog]);
 
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
@@ -690,26 +753,146 @@ export function ProductCreateModal({
             ) : null}
 
             {m.parentDraft.globalProductSourceId ? (
-              <div className="flex items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--catalog-shelf,#ffffff)_65%,white)] px-3 py-2 text-[12px] text-[var(--catalog-ink,#15231f)]">
+              <div className="flex items-center gap-2.5 rounded-none border border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_7%,white)] px-3 py-2.5">
+                <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white">
+                  {globalPhotoUrl ? (
+                    <Image
+                      src={globalPhotoUrl}
+                      alt=""
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Globe2
+                      className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]"
+                      aria-hidden
+                    />
+                  )}
+                </span>
                 <span className="min-w-0 flex-1">
-                  Filled from shared catalog
-                  {linkedGlobalLabel ? ` (${linkedGlobalLabel})` : ""}
+                  <span className="block truncate text-[12.5px] font-semibold text-[var(--catalog-ink,#15231f)]">
+                    {linkedGlobalLabel ?? "Filled from the shared catalog"}
+                  </span>
+                  <span className="block text-[11px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_60%,transparent)]">
+                    Photo, barcode &amp; details come with it — just confirm the
+                    prices and how many you have.
+                  </span>
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 font-medium underline-offset-2 hover:underline"
+                  className="shrink-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] underline-offset-2 hover:text-[var(--catalog-ink,#15231f)] hover:underline"
                   onClick={() => {
                     m.setParentDraft((p) => ({
                       ...p,
                       globalProductSourceId: null,
+                      globalExtraVariantIds: [],
                     }));
                     setLinkedGlobalLabel(null);
+                    setGlobalPhotoUrl(null);
+                    setGlobalFamily(null);
                   }}
                 >
                   Unlink
                 </button>
               </div>
             ) : null}
+
+            {m.parentDraft.globalProductSourceId && globalFamily
+              ? (() => {
+                  const gid = m.parentDraft.globalProductSourceId;
+                  const isVariantMatch =
+                    globalFamily.root != null && globalFamily.root.id !== gid;
+                  const offerable = globalFamily.variants.filter(
+                    (v) => v.id !== gid,
+                  );
+                  if (!isVariantMatch && offerable.length === 0) return null;
+                  const selected = new Set(m.parentDraft.globalExtraVariantIds);
+                  const selectable = offerable.filter((v) => !v.alreadyImported);
+                  const toggle = (id: string) =>
+                    m.setParentDraft((p) => ({
+                      ...p,
+                      globalExtraVariantIds: p.globalExtraVariantIds.includes(id)
+                        ? p.globalExtraVariantIds.filter((x) => x !== id)
+                        : [...p.globalExtraVariantIds, id],
+                    }));
+                  const packLabel = (v: GlobalProductRecord) => {
+                    const unit = v.packagingUnitName ?? v.variantName;
+                    if (unit) {
+                      return `${unit}${v.packagingUnitQty ? ` ×${v.packagingUnitQty}` : ""}`;
+                    }
+                    return v.name;
+                  };
+                  return (
+                    <div className="space-y-1.5 rounded-none border border-border bg-muted/15 p-2">
+                      {isVariantMatch && globalFamily.root ? (
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          This is a pack size of{" "}
+                          <span className="font-medium text-foreground">
+                            {globalFamily.root.name}
+                          </span>
+                          {globalFamily.root.alreadyImported
+                            ? " — already on your shelf; they will be linked."
+                            : " — the base product is added and linked automatically."}
+                        </p>
+                      ) : null}
+                      {offerable.length > 0 ? (
+                        <>
+                          <p className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                            {isVariantMatch
+                              ? "Other pack sizes of the same product"
+                              : `Also comes in ${offerable.length} pack size${offerable.length === 1 ? "" : "s"} — added together`}
+                          </p>
+                          <ul className="divide-y divide-border overflow-hidden rounded-none border border-border bg-background">
+                            {offerable.map((v) => {
+                              const onShelf = v.alreadyImported;
+                              const sell = formatFamilyPrice(
+                                v.recommendedSellingPrice,
+                              );
+                              return (
+                                <li key={v.id}>
+                                  <label
+                                    className={cn(
+                                      "flex w-full cursor-pointer items-center gap-2 px-2 py-1.5",
+                                      onShelf && "cursor-default opacity-60",
+                                    )}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="size-4 shrink-0 rounded-none border"
+                                      checked={onShelf || selected.has(v.id)}
+                                      disabled={onShelf}
+                                      onChange={() => toggle(v.id)}
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-xs font-medium text-foreground">
+                                        {packLabel(v)}
+                                      </span>
+                                      <span className="block truncate text-[10px] text-muted-foreground">
+                                        {v.name}
+                                        {sell ? ` · sell ${sell}` : ""}
+                                        {onShelf ? " · already on your shelf" : ""}
+                                      </span>
+                                    </span>
+                                  </label>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          {selectable.length > 0 ? (
+                            <p className="text-[10px] text-muted-foreground">
+                              Ticked sizes are created with catalog prices, linked
+                              to this product, and share its stock — adjust them
+                              any time from the product page.
+                            </p>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  );
+                })()
+              : null}
 
             <div className={cn("space-y-4", justAdded && styles.fresh)}>
               <div className={styles.identity}>
@@ -743,12 +926,28 @@ export function ProductCreateModal({
                     }}
                     onDragLeave={() => setPhotoOver(false)}
                     className={styles.photo}
-                    data-filled={previewUrl ? "" : undefined}
+                    data-filled={
+                      previewUrl ||
+                      (globalPhotoUrl && m.parentDraft.globalProductSourceId)
+                        ? ""
+                        : undefined
+                    }
                     data-over={photoOver ? "" : undefined}
                   >
                     {previewUrl ? (
                       <Image
                         src={previewUrl}
+                        alt=""
+                        width={76}
+                        height={76}
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
+                    ) : globalPhotoUrl && m.parentDraft.globalProductSourceId ? (
+                      // The catalog photo arrives with the link on save; show it now
+                      // so the form looks as finished as it actually is.
+                      <Image
+                        src={globalPhotoUrl}
                         alt=""
                         width={76}
                         height={76}
@@ -781,6 +980,15 @@ export function ProductCreateModal({
                           Remove
                         </button>
                       </div>
+                    ) : globalPhotoUrl && m.parentDraft.globalProductSourceId ? (
+                      <div className={styles.photoBar}>
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                        >
+                          Use my own
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -797,6 +1005,23 @@ export function ProductCreateModal({
                   if (file) m.setPendingCreateImage(file);
                 }}
               />
+
+              {/* Matches surface the moment the name (or a scanned barcode) is typed:
+                  one tap fills the whole form from the shared catalog, or opens the
+                  product if it is already on the shelf. */}
+              {!isGroup && !m.parentDraft.globalProductSourceId ? (
+                <ProductNameSuggestions
+                  name={m.parentDraft.name}
+                  barcode={m.parentDraft.barcode}
+                  canGlobalCatalog={canGlobalCatalog}
+                  onOpenExisting={(itemId) => {
+                    onOpenExistingProduct?.(itemId);
+                    onClose();
+                  }}
+                  onUseGlobal={applyGlobalMatch}
+                  onAutoGlobal={applyGlobalMatch}
+                />
+              ) : null}
 
               <div className="space-y-1.5">
                 <div className="flex items-baseline justify-between gap-2">
@@ -891,19 +1116,6 @@ export function ProductCreateModal({
                     createError={categoryCreate.error}
                   />
                 </div>
-              ) : null}
-
-              {!isGroup && !m.parentDraft.globalProductSourceId ? (
-                <ProductNameSuggestions
-                  name={m.parentDraft.name}
-                  barcode={m.parentDraft.barcode}
-                  canGlobalCatalog={canGlobalCatalog}
-                  onOpenExisting={(itemId) => {
-                    onOpenExistingProduct?.(itemId);
-                    onClose();
-                  }}
-                  onUseGlobal={applyGlobalMatch}
-                />
               ) : null}
 
               {!isGroup ? (

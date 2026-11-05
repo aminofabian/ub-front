@@ -35,6 +35,7 @@ import { isRealSupplierLink } from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
+  foldVariantStockIntoBase,
   itemListThumbnailUrl,
   recordItemScan,
   type CategoryRecord,
@@ -206,6 +207,8 @@ type Props = {
   polishItemTypes?: ItemTypeRecord[];
   polishCurrencyCode?: string;
   onProductPolished?: () => void;
+  /** Refresh after option stock was folded into the family's base pool. */
+  onStockFolded?: () => void;
 };
 
 function PackSaleEquation({
@@ -403,9 +406,12 @@ export function ProductDetailPanel(props: Props) {
     polishItemTypes,
     polishCurrencyCode,
     onProductPolished,
+    onStockFolded,
   } = props;
 
   const [activating, setActivating] = useState(false);
+  const [foldBusyId, setFoldBusyId] = useState<string | null>(null);
+  const [foldNote, setFoldNote] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [polishOpen, setPolishOpen] = useState(false);
@@ -543,6 +549,36 @@ export function ProductDetailPanel(props: Props) {
     sharedStock &&
     (toNumber(detail.baseStockQty) ?? stockLevel ?? 0) <= 0 &&
     siblingWithOwnStock.length > 0;
+
+  // G4 repair: fold a sibling option's own stock into the family's base pool
+  // in one tap (paired ledger adjustment, atomic server-side).
+  const foldSiblingStock = async (v: ItemSummaryRecord) => {
+    if (foldBusyId) return;
+    const label = v.variantName?.trim() || v.name;
+    setFoldBusyId(v.id);
+    setFoldNote(null);
+    try {
+      const res = await foldVariantStockIntoBase({
+        itemId: v.id,
+        notes: "Repair: moved option stock into the base pool",
+      });
+      const moved = Number(res.movedBaseUnits) || 0;
+      setFoldNote(
+        moved > 0
+          ? `Moved ${moved} unit${moved === 1 ? "" : "s"} from “${label}” into the base pool. Packs can sell again.`
+          : `“${label}” had no stock left to move.`,
+      );
+      onStockFolded?.();
+    } catch (err) {
+      setFoldNote(
+        err instanceof Error
+          ? err.message
+          : `Could not move stock from “${label}”.`,
+      );
+    } finally {
+      setFoldBusyId(null);
+    }
+  };
 
   const statInputClass = cn(
     productFormInputClass,
@@ -1355,14 +1391,48 @@ export function ProductDetailPanel(props: Props) {
           {siblingWithOwnStock
             .map((v: ItemSummaryRecord) => v.variantName?.trim() || v.name)
             .join(", ")}{" "}
-          {siblingWithOwnStock.length === 1 ? "holds" : "hold"} the stock.
-          Move that quantity to{" "}
-          <span className="font-medium text-foreground">
-            {variantParentDisplayName ?? "the parent"}
-          </span>
-          , then set{" "}
-          {siblingWithOwnStock.length === 1 ? "that SKU" : "those SKUs"} to sell
-          one at a time from the same shelf.
+          {siblingWithOwnStock.length === 1 ? "holds" : "hold"} the stock, so
+          pack sizes can&apos;t sell from the shared shelf.
+          {canInventoryWrite ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {siblingWithOwnStock.map((v: ItemSummaryRecord) => {
+                const label = v.variantName?.trim() || v.name;
+                const qty = toNumber(v.stockQty) ?? 0;
+                const busyFold = foldBusyId === v.id;
+                return (
+                  <Button
+                    key={v.id}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1.5 border-amber-500/40 bg-background px-2.5 text-[11px] font-semibold"
+                    disabled={foldBusyId !== null}
+                    onClick={() => void foldSiblingStock(v)}
+                  >
+                    {busyFold ? (
+                      <Loader2 className="size-3 animate-spin" aria-hidden />
+                    ) : null}
+                    Move {qty > 0 ? `${qty} ` : ""}from “{label}” into the base
+                    pool
+                  </Button>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              {" "}
+              Ask someone with inventory access to move that quantity to{" "}
+              <span className="font-medium text-foreground">
+                {variantParentDisplayName ?? "the parent"}
+              </span>
+              .
+            </>
+          )}
+          {foldNote ? (
+            <p className="mt-1.5 font-medium text-foreground" role="status">
+              {foldNote}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

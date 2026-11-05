@@ -78,6 +78,8 @@ type GlobalCatalogReviewImportDialogProps = {
   readyImportCount: number;
   createMissingCategories: boolean;
   onCreateMissingCategoriesChange: (value: boolean) => void;
+  includeVariants: boolean;
+  onIncludeVariantsChange: (value: boolean) => void;
   adopting: boolean;
   importProgress: GlobalCatalogAdoptProgress | null;
   canAdopt: boolean;
@@ -159,6 +161,8 @@ export function GlobalCatalogReviewImportDialog({
   previewLoading,
   readyImportCount,
   createMissingCategories,
+  includeVariants,
+  onIncludeVariantsChange,
   onCreateMissingCategoriesChange,
   adopting,
   importProgress,
@@ -535,6 +539,18 @@ export function GlobalCatalogReviewImportDialog({
               <span>
                 Create missing categories from catalog hints when your shop has no
                 matching category
+              </span>
+            </label>
+            <label className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border"
+                checked={includeVariants}
+                onChange={(e) => onIncludeVariantsChange(e.target.checked)}
+              />
+              <span>
+                Also bring the variants of selected products (trays, crates, sizes) so
+                they arrive as one linked family
               </span>
             </label>
           </section>
@@ -984,6 +1000,35 @@ function ProductReviewRow({
                     View existing
                   </Button>
                 ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {previewLine?.status === "error_parent_unavailable" && !isSkipped ? (
+            <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
+              <p className="text-[11px] font-medium">
+                {previewLine.message ??
+                  "This variant's parent product is unavailable, so it cannot be imported as part of its family."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => onUpdateOverride(product.id, { adoptAsStandalone: true })}
+                >
+                  Import as standalone anyway
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-xs"
+                  onClick={() => onSkipProduct(product.id)}
+                >
+                  Skip it
+                </Button>
               </div>
             </div>
           ) : null}

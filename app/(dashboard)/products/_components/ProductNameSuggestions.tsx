@@ -25,6 +25,12 @@ type Props = {
   canGlobalCatalog: boolean;
   onOpenExisting: (itemId: string) => void;
   onUseGlobal: (product: GlobalProductRecord) => void;
+  /**
+   * Fired at most once per barcode when an exact barcode lookup returns exactly one
+   * shared-catalog product and nothing from the shop — scan a barcode and the form
+   * fills itself, no tap needed.
+   */
+  onAutoGlobal?: (product: GlobalProductRecord) => void;
 };
 
 function queryLooksLikeBarcode(q: string): boolean {
@@ -50,12 +56,14 @@ export function ProductNameSuggestions({
   canGlobalCatalog,
   onOpenExisting,
   onUseGlobal,
+  onAutoGlobal,
 }: Props) {
   const [tenantHits, setTenantHits] = useState<ItemSummaryRecord[]>([]);
   const [globalHits, setGlobalHits] = useState<GlobalProductRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const autoAppliedBarcodeRef = useRef<string | null>(null);
   const activeKey = suggestionQueryKey(name, barcode);
   const dismissed = dismissedKey === activeKey;
 
@@ -132,6 +140,19 @@ export function ProductNameSuggestions({
           if (requestId !== requestIdRef.current) return;
           setTenantHits(tenantPage.content);
           setGlobalHits(globalRows.slice(0, RESULT_LIMIT));
+          // Scan-to-fill: an exact, unambiguous barcode hit applies itself.
+          if (
+            onAutoGlobal &&
+            lookupBarcode &&
+            tenantPage.content.length === 0 &&
+            globalRows.length === 1 &&
+            (globalRows[0].barcode ?? "").trim() === lookupBarcode &&
+            !globalRows[0].alreadyImported &&
+            autoAppliedBarcodeRef.current !== lookupBarcode
+          ) {
+            autoAppliedBarcodeRef.current = lookupBarcode;
+            onAutoGlobal(globalRows[0]);
+          }
         })
         .catch(() => {
           if (requestId !== requestIdRef.current) return;
@@ -144,7 +165,7 @@ export function ProductNameSuggestions({
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [name, barcode, canGlobalCatalog, enabled]);
+  }, [name, barcode, canGlobalCatalog, enabled, onAutoGlobal]);
 
   if (!enabled) return null;
 

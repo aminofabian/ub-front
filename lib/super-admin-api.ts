@@ -2802,6 +2802,8 @@ export type SaGlobalProduct = {
   variantOfGlobalProductId?: string | null;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | null;
+  /** Vertical (store kit id); null = unrestricted, visible to every shop type. */
+  storeKitId?: string | null;
   recommendedBuyingPrice: number | null;
   recommendedSellingPrice: number | null;
   suggestedMarginPct: number | null;
@@ -2842,6 +2844,8 @@ export async function fetchSaGlobalProducts(params: {
   status?: string;
   categoryId?: string;
   missingImage?: boolean;
+  /** all | parents | variants | orphans */
+  structure?: string;
   page?: number;
   size?: number;
 }): Promise<SaPage<SaGlobalProduct>> {
@@ -2851,10 +2855,50 @@ export async function fetchSaGlobalProducts(params: {
   if (params.status?.trim()) query.set("status", params.status.trim());
   if (params.categoryId?.trim()) query.set("categoryId", params.categoryId.trim());
   if (params.missingImage) query.set("missingImage", "true");
+  if (params.structure?.trim() && params.structure !== "all") {
+    query.set("structure", params.structure.trim());
+  }
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 50));
   return saRequest<SaPage<SaGlobalProduct>>(
     `${API_ROUTES.superAdminGlobalCatalog}/products?${query.toString()}`,
+  );
+}
+
+export type SaGlobalProductTreeRow = {
+  parent: SaGlobalProduct;
+  children: SaGlobalProduct[];
+};
+
+/** Curate tree: parents paginated, children nested — a family never splits across pages. */
+export async function fetchSaGlobalProductTree(params: {
+  catalogId?: string | null;
+  q?: string;
+  status?: string;
+  categoryId?: string;
+  missingImage?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<SaPage<SaGlobalProductTreeRow>> {
+  const query = new URLSearchParams();
+  withCatalogId(query, params.catalogId);
+  if (params.q?.trim()) query.set("q", params.q.trim());
+  if (params.status?.trim()) query.set("status", params.status.trim());
+  if (params.categoryId?.trim()) query.set("categoryId", params.categoryId.trim());
+  if (params.missingImage) query.set("missingImage", "true");
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 50));
+  return saRequest<SaPage<SaGlobalProductTreeRow>>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/tree?${query.toString()}`,
+  );
+}
+
+export async function fetchSaGlobalProductChildren(
+  id: string,
+  catalogId?: string | null,
+): Promise<SaGlobalProduct[]> {
+  return saRequest<SaGlobalProduct[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${id}/children${catalogQuerySuffix(catalogId)}`,
   );
 }
 
@@ -3060,7 +3104,10 @@ export async function patchSaGlobalPack(
     storeKitId?: string | null;
     status?: string;
     sortOrder?: number;
+    /** Full replacement (legacy). Prefer addProductIds/removeProductIds — a diff save. */
     productIds?: string[];
+    addProductIds?: string[];
+    removeProductIds?: string[];
   },
   catalogId?: string | null,
 ): Promise<SaGlobalPackDetail> {
@@ -3073,23 +3120,262 @@ export async function patchSaGlobalPack(
   );
 }
 
-export type SaCsvImportResult = {
-  createdCount: number;
-  updatedCount: number;
-  skippedCount: number;
-  warnings: string[];
+export async function createSaGlobalPack(
+  body: {
+    code: string;
+    name: string;
+    description?: string | null;
+    storeKitId?: string | null;
+    status?: string;
+    sortOrder?: number;
+  },
+  catalogId?: string | null,
+): Promise<SaGlobalPackDetail> {
+  return saRequest<SaGlobalPackDetail>(
+    `${API_ROUTES.superAdminGlobalCatalog}/packs${catalogQuerySuffix(catalogId)}`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function deleteSaGlobalPack(
+  id: string,
+  catalogId?: string | null,
+): Promise<void> {
+  await saRequest<void>(
+    `${API_ROUTES.superAdminGlobalCatalog}/packs/${id}${catalogQuerySuffix(catalogId)}`,
+    { method: "DELETE" },
+  );
+}
+
+/** Pack members with full product detail in one call (replaces the old N+1 fetch). */
+export async function fetchSaGlobalPackProducts(
+  id: string,
+  catalogId?: string | null,
+): Promise<SaGlobalProduct[]> {
+  return saRequest<SaGlobalProduct[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/packs/${id}/products${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+// ---- Global catalog CSV import v2 (preview → commit) ----
+
+export type SaImportIssue = {
+  code: string;
+  severity: "error" | "warning" | "info";
+  message: string;
+  field: string | null;
 };
 
+export type SaImportColumns = {
+  mapped: string[];
+  aliased: string[];
+  ignored: string[];
+  unknown: string[];
+};
+
+export type SaImportSummary = {
+  create: number;
+  update: number;
+  unchanged: number;
+  skipped: number;
+  errors: number;
+  warnings: number;
+  willPublish: number;
+  willStayDraft: number;
+  blocked: number;
+  parentLinks: number;
+  packMemberships: number;
+  syntheticParents: number;
+  packCreate: number;
+  packUpdate: number;
+};
+
+export type SaImportParentPlan = {
+  key: string | null;
+  resolution: "in_file" | "existing" | "synthetic";
+  plannedId: string | null;
+  state: string | null;
+};
+
+export type SaImportRowPlan = {
+  line: number;
+  rowType: string;
+  ref: string | null;
+  action: "create" | "update" | "unchanged" | "skip" | "blocked" | "error";
+  name: string | null;
+  barcode: string | null;
+  matchedProductId: string | null;
+  revived: boolean;
+  parent: SaImportParentPlan | null;
+  diff: Record<string, string[]>;
+  issues: SaImportIssue[];
+};
+
+export type SaImportPackPlan = {
+  line: number;
+  ref: string | null;
+  code: string | null;
+  name: string | null;
+  action: "create" | "update" | "error";
+  replace: boolean;
+  memberCount: number;
+  issues: SaImportIssue[];
+};
+
+export type SaImportPreview = {
+  fileName: string;
+  mode: string;
+  rowTypeCounts: Record<string, number>;
+  columns: SaImportColumns;
+  summary: SaImportSummary;
+  rows: SaImportRowPlan[];
+  packs: SaImportPackPlan[];
+  fileIssues: SaImportIssue[];
+};
+
+export type SaImportRowResult = {
+  line: number;
+  rowType: string;
+  action: "created" | "updated" | "unchanged" | "skipped" | "blocked" | "error";
+  productId: string | null;
+  name: string | null;
+  issues: SaImportIssue[];
+};
+
+export type SaImportPackResult = {
+  line: number;
+  code: string | null;
+  packId: string | null;
+  action: "created" | "updated" | "error";
+  membersAdded: number;
+  membersRemoved: number;
+  issues: SaImportIssue[];
+};
+
+export type SaImportCommitResult = {
+  fileName: string;
+  summary: SaImportSummary;
+  rows: SaImportRowResult[];
+  packs: SaImportPackResult[];
+  fileIssues: SaImportIssue[];
+};
+
+export type SaImportOptions = {
+  defaultStatus?: string;
+  createCategories?: boolean;
+  reviveArchived?: boolean;
+  force?: boolean;
+  allowDraftParent?: boolean;
+  defaultStoreKitId?: string;
+};
+
+function importQuery(catalogId?: string | null, options?: SaImportOptions): string {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  if (options?.defaultStatus) query.set("defaultStatus", options.defaultStatus);
+  if (options?.createCategories) query.set("createCategories", "true");
+  if (options?.reviveArchived === false) query.set("reviveArchived", "false");
+  if (options?.force) query.set("force", "true");
+  if (options?.allowDraftParent) query.set("allowDraftParent", "true");
+  if (options?.defaultStoreKitId) query.set("defaultStoreKitId", options.defaultStoreKitId);
+  const suffix = query.toString();
+  return suffix ? `?${suffix}` : "";
+}
+
+async function importRequest<T>(
+  path: string,
+  file: File,
+  catalogId?: string | null,
+  options?: SaImportOptions,
+): Promise<T> {
+  const token = await saAuthToken();
+  const form = new FormData();
+  form.append("file", file);
+  let response: Response;
+  try {
+    response = await fetch(
+      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}${path}${importQuery(catalogId, options)}`),
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      },
+    );
+  } catch {
+    throwNetworkError();
+  }
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  return (await response.json()) as T;
+}
+
+/** Parse + validate + plan on the server. Makes no writes. */
+export async function previewSaGlobalCatalogImport(
+  file: File,
+  catalogId?: string | null,
+  options?: SaImportOptions,
+): Promise<SaImportPreview> {
+  return importRequest<SaImportPreview>("/products/import/preview", file, catalogId, options);
+}
+
+/** Commit the import (per-row transactions server-side; a bad row never aborts the file). */
+export async function commitSaGlobalCatalogImport(
+  file: File,
+  catalogId?: string | null,
+  options?: SaImportOptions,
+): Promise<SaImportCommitResult> {
+  return importRequest<SaImportCommitResult>("/products/import", file, catalogId, options);
+}
+
+export async function fetchSaGlobalCatalogImportTemplate(
+  mode: "products" | "manifest" = "products",
+): Promise<Blob> {
+  const token = await saAuthToken();
+  let response: Response;
+  try {
+    response = await fetch(
+      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}/products/import/template.csv?mode=${mode}`),
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  } catch {
+    throwNetworkError();
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  return response.blob();
+}
+
+export type SaCsvExport = { blob: Blob; fileName: string };
+
+/**
+ * Whole-catalog export by default (a backup, not a view). Pass {@code applyFilters}
+ * to export only what the current Curate filters show.
+ */
 export async function exportSaGlobalProductsCsv(params?: {
   catalogId?: string | null;
   status?: string;
   missingImage?: boolean;
-}): Promise<Blob> {
+  applyFilters?: boolean;
+}): Promise<SaCsvExport> {
   const token = await saAuthToken();
   const query = new URLSearchParams();
   withCatalogId(query, params?.catalogId);
-  if (params?.status) query.set("status", params.status);
-  if (params?.missingImage) query.set("missingImage", "true");
+  if (params?.applyFilters) {
+    query.set("applyFilters", "true");
+    if (params?.status) query.set("status", params.status);
+    if (params?.missingImage) query.set("missingImage", "true");
+  }
   const suffix = query.toString() ? `?${query.toString()}` : "";
   let response: Response;
   try {
@@ -3111,41 +3397,12 @@ export async function exportSaGlobalProductsCsv(params?: {
     const payload = await response.json().catch(() => ({}));
     throw new Error(getProblemTitle(payload));
   }
-  return response.blob();
-}
-
-export async function importSaGlobalProductsCsv(
-  file: File,
-  catalogId?: string | null,
-): Promise<SaCsvImportResult> {
-  const token = await saAuthToken();
-  const form = new FormData();
-  form.append("file", file);
-  let response: Response;
-  try {
-    response = await fetch(
-      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}/products/import${catalogQuerySuffix(catalogId)}`),
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      },
-    );
-  } catch {
-    throwNetworkError();
-  }
-  if (response.status === 401) {
-    clearSuperAdminSession();
-    if (typeof window !== "undefined") {
-      window.location.assign(APP_ROUTES.superAdminLogin);
-    }
-    throw new Error("Session expired. Sign in again.");
-  }
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(getProblemTitle(payload));
-  }
-  return (await response.json()) as SaCsvImportResult;
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return {
+    blob: await response.blob(),
+    fileName: match?.[1] ?? "global-catalog-export.csv",
+  };
 }
 
 export type SaSourceBusiness = {

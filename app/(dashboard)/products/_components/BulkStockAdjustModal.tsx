@@ -151,10 +151,19 @@ export function BulkStockAdjustModal({
           <DialogDescription>
             {totalSelected} item(s) selected · {total} will be adjusted
             {totalSelected > total
-              ? ` · ${totalSelected - total} skipped (packaged)`
+              ? ` · ${totalSelected - total} pack row${totalSelected - total === 1 ? "" : "s"} skipped`
               : ""}
           </DialogDescription>
         </DialogHeader>
+
+        {totalSelected > total && !summary ? (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-foreground/90">
+            Pack rows (Tray ×30, Crate ×24…) count from their base
+            product&apos;s shared pool, so adjusting them here would multiply
+            by the pack size. Adjust the <strong>base product</strong> instead
+            — its units cover every pack size automatically.
+          </p>
+        ) : null}
 
         {summary ? (
           <div

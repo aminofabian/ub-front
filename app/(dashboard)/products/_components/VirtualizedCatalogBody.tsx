@@ -92,6 +92,9 @@ export type VirtualizedCatalogBodyProps = {
   catalogEmpty?: boolean;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
+  /** Current search text, so the no-match state can hand it to the shared catalog. */
+  noMatchSearchTerm?: string;
+  onSearchCatalog?: (q: string) => void;
   onCreateNew?: () => void;
   canCreateNew?: boolean;
   /** Inline Buy / Sell / Margin edits on sellable rows. */
@@ -163,6 +166,8 @@ export const VirtualizedCatalogBody = forwardRef<
     catalogEmpty = false,
     onAddFromCatalog,
     canAddFromCatalog = false,
+    noMatchSearchTerm = "",
+    onSearchCatalog,
     onCreateNew,
     canCreateNew = false,
     canEditBuyingPrice = false,
@@ -419,13 +424,24 @@ export const VirtualizedCatalogBody = forwardRef<
                 canAddFromCatalog={canAddFromCatalog}
               />
             ) : (
-              <div className="mx-auto flex max-w-[18rem] flex-col items-center gap-2 py-10 text-center">
+              <div className="mx-auto flex max-w-[20rem] flex-col items-center gap-2 py-10 text-center">
                 <p className="text-sm font-semibold tracking-tight text-foreground">
-                  No products match
+                  {noMatchSearchTerm.trim()
+                    ? `Nothing in your shop matches “${noMatchSearchTerm.trim()}”`
+                    : "No products match"}
                 </p>
                 <p className="text-xs leading-relaxed text-foreground/50">
                   Broaden search or reset filters in the sidebar.
                 </p>
+                {onSearchCatalog && noMatchSearchTerm.trim() ? (
+                  <button
+                    type="button"
+                    onClick={() => onSearchCatalog(noMatchSearchTerm.trim())}
+                    className="mt-2 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-none border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted/50"
+                  >
+                    Find “{noMatchSearchTerm.trim()}” in the shared catalog
+                  </button>
+                ) : null}
               </div>
             )}
           </div>

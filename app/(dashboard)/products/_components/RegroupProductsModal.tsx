@@ -5,6 +5,7 @@ import {
   Check,
   GitBranchPlus,
   Loader2,
+  Package,
   Search,
   ShieldCheck,
 } from "lucide-react";
@@ -37,6 +38,30 @@ export type RegroupLineDraft = {
   sku: string;
   thumbnailUrl: string | null;
   variantName: string;
+  /**
+   * How this row sells once grouped (PACKAGE_FLOW_GAPS G1):
+   * "option" — flavor/size with its own stock (default);
+   * "pack"   — a pack of the base product, counted from the family's base pool.
+   */
+  sellShape: "option" | "pack";
+  /** Base units per sale when {@link sellShape} is "pack" ("24" for a crate). */
+  unitsPerPack: string;
+  /** Was already a pack/shared-unit variant before this regroup. */
+  wasPack: boolean;
+  /** Move the row's own on-hand into the base pool after grouping. */
+  foldStock: boolean;
+  /** Known on-hand (branch) qty, or null when the list didn't include stock. */
+  stockQty: number | null;
+};
+
+export type RegroupItemLine = {
+  itemId: string;
+  variantName: string;
+  sellsAsPack?: boolean;
+  unitsPerPack?: number;
+  packUnitName?: string;
+  /** Caller-side flag: fold the row's own stock into the base pool after grouping. */
+  foldStock?: boolean;
 };
 
 export type RegroupCreateParams = {
@@ -45,13 +70,13 @@ export type RegroupCreateParams = {
   itemTypeId: string;
   categoryId?: string;
   aisleId?: string;
-  items: { itemId: string; variantName: string }[];
+  items: RegroupItemLine[];
 };
 
 export type RegroupAttachParams = {
   mode: "attach";
   parentId: string;
-  items: { itemId: string; variantName: string }[];
+  items: RegroupItemLine[];
 };
 
 export type RegroupParams = RegroupCreateParams | RegroupAttachParams;
@@ -123,12 +148,22 @@ export function suggestVariantLabel(row: ItemSummaryRecord): string {
 }
 
 function toDraft(row: ItemSummaryRecord): RegroupLineDraft {
+  const wasPack = row.packageVariant === true;
+  const units = Number(row.packageUnitsPerSale ?? 0);
+  const stockRaw = row.stockQty;
+  const stockQty =
+    stockRaw === null || stockRaw === undefined ? null : Number(stockRaw);
   return {
     itemId: row.id,
     name: itemCatalogDisplayTitle(row) || row.name || row.sku,
     sku: row.sku,
     thumbnailUrl: itemListThumbnailUrl(row),
     variantName: suggestVariantLabel(row),
+    sellShape: wasPack ? "pack" : "option",
+    unitsPerPack: wasPack && units > 0 ? String(units) : "",
+    wasPack,
+    foldStock: false,
+    stockQty: Number.isFinite(stockQty as number) ? stockQty : null,
   };
 }
 
@@ -284,6 +319,38 @@ export function RegroupProductsModal({
     );
   };
 
+  const toggleShape = (itemId: string) => {
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.itemId !== itemId) return l;
+        if (l.sellShape === "pack") {
+          // Flipping back off only matters for rows that weren't packs yet;
+          // already-pack rows keep their shape (un-packing lives in Edit).
+          return l.wasPack ? l : { ...l, sellShape: "option", foldStock: false };
+        }
+        return {
+          ...l,
+          sellShape: "pack",
+          // A freshly converted pack row would strand its own stock, so
+          // default to folding it into the base pool.
+          foldStock: !l.wasPack && (l.stockQty === null || l.stockQty > 0),
+        };
+      }),
+    );
+  };
+
+  const updateUnits = (itemId: string, unitsPerPack: string) => {
+    setLines((prev) =>
+      prev.map((l) => (l.itemId === itemId ? { ...l, unitsPerPack } : l)),
+    );
+  };
+
+  const updateFold = (itemId: string, foldStock: boolean) => {
+    setLines((prev) =>
+      prev.map((l) => (l.itemId === itemId ? { ...l, foldStock } : l)),
+    );
+  };
+
   const removeLine = (itemId: string) => {
     setLines((prev) => prev.filter((l) => l.itemId !== itemId));
   };
@@ -303,10 +370,16 @@ export function RegroupProductsModal({
   );
 
   const labelsOk = lines.every((l) => l.variantName.trim().length > 0);
+  const packsOk = lines.every((l) => {
+    if (l.sellShape !== "pack") return true;
+    const n = Number(l.unitsPerPack);
+    return Number.isFinite(n) && n > 0;
+  });
   const canSubmit =
     !busy &&
     lines.length >= 1 &&
     labelsOk &&
+    packsOk &&
     (mode === "create"
       ? familyName.trim().length > 0 && itemTypeId.trim().length > 0
       : Boolean(selectedParent?.id));
@@ -314,10 +387,21 @@ export function RegroupProductsModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const items = lines.map((l) => ({
-      itemId: l.itemId,
-      variantName: l.variantName.trim(),
-    }));
+    const items = lines.map((l): RegroupItemLine => {
+      const base: RegroupItemLine = {
+        itemId: l.itemId,
+        variantName: l.variantName.trim(),
+      };
+      if (l.sellShape !== "pack") return base;
+      const units = Number(l.unitsPerPack);
+      return {
+        ...base,
+        sellsAsPack: true,
+        unitsPerPack: units,
+        packUnitName: l.variantName.trim(),
+        foldStock: l.foldStock && !l.wasPack,
+      };
+    });
     const ok =
       mode === "create"
         ? await apply({
@@ -585,7 +669,12 @@ export function RegroupProductsModal({
                   Options ({lines.length})
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Edit labels like #12 or 500ml
+                  Labels like #12 · tap{" "}
+                  <Package
+                    className="inline size-3 align-[-1px]"
+                    aria-hidden
+                  />{" "}
+                  for packs (Tray ×30)
                 </p>
               </div>
               {lines.length === 0 ? (
@@ -599,51 +688,124 @@ export function RegroupProductsModal({
                   {lines.map((line) => (
                     <li
                       key={line.itemId}
-                      className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-2.5 py-2"
+                      className="space-y-2 rounded-md border border-border/60 bg-background px-2.5 py-2"
                     >
-                      <div className="relative size-8 shrink-0 overflow-hidden rounded-sm border border-border bg-muted">
-                        {line.thumbnailUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={line.thumbnailUrl}
-                            alt=""
-                            className="size-full object-cover"
-                          />
+                      <div className="flex items-center gap-2">
+                        <div className="relative size-8 shrink-0 overflow-hidden rounded-sm border border-border bg-muted">
+                          {line.thumbnailUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={line.thumbnailUrl}
+                              alt=""
+                              className="size-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-foreground">
+                            {line.name}
+                          </p>
+                          <p className="truncate font-mono text-[10px] text-muted-foreground">
+                            {line.sku}
+                          </p>
+                        </div>
+                        <input
+                          type="text"
+                          disabled={busy}
+                          value={line.variantName}
+                          onChange={(e) =>
+                            updateLabel(line.itemId, e.target.value)
+                          }
+                          aria-label={`Option label for ${line.name}`}
+                          className={cn(
+                            dashboardInputClass(busy),
+                            "h-8 w-[5.5rem] shrink-0 px-2 text-center text-xs font-semibold shadow-none",
+                          )}
+                        />
+                        <button
+                          type="button"
+                          disabled={busy || (line.wasPack && line.sellShape === "pack")}
+                          onClick={() => toggleShape(line.itemId)}
+                          title={
+                            line.sellShape === "pack"
+                              ? line.wasPack
+                                ? "Already sells as a pack of the base product"
+                                : "Sells as a pack of the base product — click to make it a flavor/size with its own stock"
+                              : "Mark as a pack of the base product (e.g. crate ×24)"
+                          }
+                          aria-label={`Toggle pack shape for ${line.name}`}
+                          aria-pressed={line.sellShape === "pack"}
+                          className={cn(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+                            line.sellShape === "pack"
+                              ? "border-primary/50 bg-primary/10 text-primary"
+                              : "border-border/60 text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <Package className="size-4" aria-hidden />
+                        </button>
+                        {lines.length > 1 || lockedParent ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0 px-0 text-muted-foreground"
+                            disabled={busy}
+                            onClick={() => removeLine(line.itemId)}
+                            aria-label={`Remove ${line.name}`}
+                          >
+                            ×
+                          </Button>
                         ) : null}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-foreground">
-                          {line.name}
-                        </p>
-                        <p className="truncate font-mono text-[10px] text-muted-foreground">
-                          {line.sku}
-                        </p>
-                      </div>
-                      <input
-                        type="text"
-                        disabled={busy}
-                        value={line.variantName}
-                        onChange={(e) =>
-                          updateLabel(line.itemId, e.target.value)
-                        }
-                        aria-label={`Option label for ${line.name}`}
-                        className={cn(
-                          dashboardInputClass(busy),
-                          "h-8 w-[5.5rem] shrink-0 px-2 text-center text-xs font-semibold shadow-none",
-                        )}
-                      />
-                      {lines.length > 1 || lockedParent ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 shrink-0 px-0 text-muted-foreground"
-                          disabled={busy}
-                          onClick={() => removeLine(line.itemId)}
-                          aria-label={`Remove ${line.name}`}
-                        >
-                          ×
-                        </Button>
+                      {line.sellShape === "pack" ? (
+                        <div className="space-y-1.5 rounded-sm bg-muted/30 px-2 py-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-foreground/90">
+                            <span className="font-medium">Pack of</span>
+                            <input
+                              type="number"
+                              min={1}
+                              step="any"
+                              inputMode="decimal"
+                              disabled={busy}
+                              value={line.unitsPerPack}
+                              onChange={(e) =>
+                                updateUnits(line.itemId, e.target.value)
+                              }
+                              placeholder="24"
+                              aria-label={`Units per pack for ${line.name}`}
+                              className={cn(
+                                dashboardInputClass(busy),
+                                "h-7 w-16 px-2 text-center text-xs font-semibold shadow-none",
+                              )}
+                            />
+                            <span className="text-muted-foreground">
+                              base units — stock counts from the family&apos;s
+                              shared pool.
+                            </span>
+                          </div>
+                          {!line.wasPack &&
+                          (line.stockQty === null || line.stockQty > 0) ? (
+                            <label className="flex cursor-pointer items-start gap-1.5 text-[11px] text-foreground/90">
+                              <input
+                                type="checkbox"
+                                disabled={busy}
+                                checked={line.foldStock}
+                                onChange={(e) =>
+                                  updateFold(line.itemId, e.target.checked)
+                                }
+                                className="mt-0.5 size-3.5 accent-primary"
+                              />
+                              <span>
+                                Move its own on-hand
+                                {line.stockQty !== null
+                                  ? ` (${line.stockQty})`
+                                  : ""}{" "}
+                                into the base pool so nothing is stranded
+                              </span>
+                            </label>
+                          ) : null}
+                        </div>
                       ) : null}
                     </li>
                   ))}

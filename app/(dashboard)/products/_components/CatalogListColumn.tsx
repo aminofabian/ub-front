@@ -55,6 +55,8 @@ type Props = {
   bulkRegroupLabel?: string;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
+  /** Jump to the shared catalog pre-filtered to the current search. */
+  onSearchCatalog?: (q: string) => void;
   onCreateNew?: () => void;
   canCreateNew?: boolean;
   canEditBuyingPrice?: boolean;
@@ -93,6 +95,7 @@ export function CatalogListColumn({
   bulkRegroupLabel = "Group as family",
   onAddFromCatalog,
   canAddFromCatalog = false,
+  onSearchCatalog,
   onCreateNew,
   canCreateNew = false,
   canEditBuyingPrice = false,
@@ -465,6 +468,8 @@ export function CatalogListColumn({
           catalogEmpty={catalogEmpty}
           onAddFromCatalog={onAddFromCatalog}
           canAddFromCatalog={canAddFromCatalog}
+          onSearchCatalog={onSearchCatalog}
+          noMatchSearchTerm={catalog.debouncedSearch}
           onCreateNew={onCreateNew}
           canCreateNew={canCreateNew}
           canEditBuyingPrice={canEditBuyingPrice}

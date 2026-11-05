@@ -6,7 +6,10 @@ import type { ItemSummaryRecord } from "@/lib/api";
 import {
   cashierItemPrimaryLabel,
   cashierItemTitleParts,
+  isPosPackageSellRow,
   isPosSellableSku,
+  posAvailablePackages,
+  posPackageUnitsPerSale,
 } from "@/lib/cashier-item-display";
 import {
   formatPosStockQty,
@@ -15,6 +18,15 @@ import {
 import { cn } from "@/lib/utils";
 
 export function stockTone(item: ItemSummaryRecord): "out" | "low" | null {
+  // Pack rows (Tray ×30) sell whole packs from the family's base pool —
+  // tone by packs available, not the row's own (usually zero) stock.
+  if (isPosPackageSellRow(item)) {
+    const packs = posAvailablePackages(item);
+    if (packs == null) return null;
+    if (packs <= 0) return "out";
+    if (packs <= 3) return "low";
+    return null;
+  }
   const raw = item.stockQty;
   if (raw == null || raw === "") return null;
   const n = typeof raw === "number" ? raw : Number(raw);
@@ -22,6 +34,28 @@ export function stockTone(item: ItemSummaryRecord): "out" | "low" | null {
   if (n <= 0) return "out";
   if (n < 10) return "low";
   return null;
+}
+
+/**
+ * Stock line for one picker/search row (G6): a pack row reads
+ * "×30 per sale · 4 packs left" so the cashier can tell "Tray ×30 — 4 left"
+ * from "Single — 120 left" at the point of choice.
+ */
+function stockLineFor(item: ItemSummaryRecord): string | null {
+  if (isPosPackageSellRow(item)) {
+    const units = posPackageUnitsPerSale(item);
+    const packs = posAvailablePackages(item);
+    const parts: string[] = [];
+    if (units != null && units > 1) parts.push(`×${units} per sale`);
+    if (packs != null) {
+      parts.push(
+        packs <= 0 ? "none left" : `${packs} pack${packs === 1 ? "" : "s"} left`,
+      );
+    }
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }
+  const stock = formatPosStockQty(item.stockQty);
+  return stock != null ? `Stock ${stock}` : null;
 }
 
 /**
@@ -49,7 +83,7 @@ export function PosVariantRow({
   const { primary, option } = cashierItemTitleParts(item);
   const name = optionLabel ?? (option ? `${primary}` : primary);
   const optionShown = optionLabel ?? option;
-  const stock = formatPosStockQty(item.stockQty);
+  const stock = stockLineFor(item);
   const tone = stockTone(item);
 
   return (
@@ -94,7 +128,7 @@ export function PosVariantRow({
                   : "text-muted-foreground",
             )}
           >
-            Stock {stock}
+            {stock}
           </span>
         ) : null}
       </span>

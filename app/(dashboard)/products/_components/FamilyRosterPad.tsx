@@ -22,6 +22,10 @@ export type ExistingFamilyOption = {
   stockQty?: number | null;
   barcode?: string | null;
   isPackage?: boolean;
+  /** Base units per sale for pack rows (24 for a crate). */
+  unitsPerSale?: number | null;
+  /** Family base pool on-hand in base units (branch), when known. */
+  baseStockQty?: number | null;
 };
 
 type DraftRow = {
@@ -33,6 +37,8 @@ type DraftRow = {
   barcode: string;
   thumbnailUrl: string | null;
   isPackage: boolean;
+  unitsPerSale: number | null;
+  baseStockQty: number | null;
   baselineStock: number;
 };
 
@@ -71,8 +77,28 @@ function toDraft(opt: ExistingFamilyOption): DraftRow {
     barcode: opt.barcode?.trim() || "",
     thumbnailUrl: opt.thumbnailUrl?.trim() || null,
     isPackage: !!opt.isPackage,
+    unitsPerSale:
+      opt.unitsPerSale != null && Number.isFinite(opt.unitsPerSale)
+        ? opt.unitsPerSale
+        : null,
+    baseStockQty:
+      opt.baseStockQty != null && Number.isFinite(opt.baseStockQty)
+        ? opt.baseStockQty
+        : null,
     baselineStock: stock != null && Number.isFinite(stock) ? stock : 0,
   };
+}
+
+/** Whole packs available from the family's base pool ("3 left" for a tray row). */
+function packsAvailable(row: DraftRow): number | null {
+  if (!row.isPackage) return null;
+  const units = row.unitsPerSale;
+  if (row.baseStockQty != null && units != null && units > 0) {
+    return Math.floor(row.baseStockQty / units);
+  }
+  // List endpoints already report pack-row stockQty as available whole packs.
+  const own = toNumber(row.stock);
+  return own != null && own >= 0 ? Math.floor(own) : null;
 }
 
 function marginFor(sellRaw: string, costRaw: string) {
@@ -407,6 +433,17 @@ export function FamilyRosterPad({
                       aria-label={`Option ${index + 1} name`}
                     />
                   )}
+                  {row.isPackage ? (
+                    <span
+                      className="mt-1 inline-flex items-center gap-1 rounded-sm bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_12%,white)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--catalog-primary,#0f766e)]"
+                      title="Sells as a pack of the base product — stock counts from the family's shared pool"
+                    >
+                      Pack
+                      {row.unitsPerSale != null && row.unitsPerSale > 0
+                        ? ` ×${row.unitsPerSale}`
+                        : ""}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="px-1">
@@ -461,28 +498,40 @@ export function FamilyRosterPad({
                 </div>
 
                 <div className="px-1">
-                  <input
-                    className={cn(
-                      cellClass,
-                      "text-right font-semibold tabular-nums",
-                    )}
-                    inputMode="decimal"
-                    value={row.stock}
-                    disabled={
-                      !canInventoryWrite || busy || row.isPackage || !branchId
-                    }
-                    onChange={(e) =>
-                      patchLocal(row.id, { stock: e.target.value })
-                    }
-                    onBlur={() => void saveStock(row.id)}
-                    placeholder="0"
-                    aria-label={`Option ${index + 1} stock`}
-                    title={
-                      row.isPackage
-                        ? "Package stock lives on the base product"
-                        : undefined
-                    }
-                  />
+                  {row.isPackage ? (
+                    <div
+                      className="flex h-9 flex-col items-end justify-center px-2 text-right tabular-nums"
+                      title={
+                        row.baseStockQty != null
+                          ? `From the base pool: ${row.baseStockQty} base unit${row.baseStockQty === 1 ? "" : "s"}`
+                          : "Counted from the family's base pool"
+                      }
+                      aria-label={`Option ${index + 1} packs available`}
+                    >
+                      <span className="text-[13px] font-semibold leading-none text-[var(--catalog-ink,#15231f)]">
+                        {packsAvailable(row) ?? "—"}
+                      </span>
+                      <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]">
+                        packs
+                      </span>
+                    </div>
+                  ) : (
+                    <input
+                      className={cn(
+                        cellClass,
+                        "text-right font-semibold tabular-nums",
+                      )}
+                      inputMode="decimal"
+                      value={row.stock}
+                      disabled={!canInventoryWrite || busy || !branchId}
+                      onChange={(e) =>
+                        patchLocal(row.id, { stock: e.target.value })
+                      }
+                      onBlur={() => void saveStock(row.id)}
+                      placeholder="0"
+                      aria-label={`Option ${index + 1} stock`}
+                    />
+                  )}
                 </div>
 
                 <div className="px-1">
