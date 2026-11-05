@@ -13,20 +13,6 @@ export type ZetuCountdownParts = {
   done: boolean;
 };
 
-/** End of the current local calendar month — Black-November-style default. */
-export function zetuDefaultSaleEnd(now = new Date()): Date {
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
-export function parseZetuSaleEnd(raw?: string | null): Date {
-  const trimmed = raw?.trim() ?? "";
-  if (trimmed) {
-    const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return zetuDefaultSaleEnd();
-}
-
 export function zetuCountdownParts(
   endsAt: Date,
   now = new Date(),
@@ -64,20 +50,24 @@ export function ZetuCountdown({
   dark = false,
   className,
 }: Props) {
-  const target = useMemo(
-    () =>
-      endsAt instanceof Date
-        ? endsAt
-        : parseZetuSaleEnd(typeof endsAt === "string" ? endsAt : null),
-    [endsAt],
-  );
+  const target = useMemo(() => {
+    if (endsAt instanceof Date) {
+      return Number.isNaN(endsAt.getTime()) ? null : endsAt;
+    }
+    const raw = typeof endsAt === "string" ? endsAt.trim() : "";
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }, [endsAt]);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
+    if (!target) return;
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [target]);
 
+  if (!target) return null;
   const parts = zetuCountdownParts(target, now);
   if (parts.done) return null;
 
@@ -91,13 +81,14 @@ export function ZetuCountdown({
   return (
     <span
       className={cn(styles.countdown, dark && styles.countdownDark, className)}
-      aria-live="polite"
+      suppressHydrationWarning
+      aria-live="off"
       aria-label={`${lead} ${parts.days} days ${parts.hours} hours ${parts.minutes} minutes ${parts.seconds} seconds`}
     >
       <span className={styles.countdownLead}>{lead}</span>
       {units.map((unit) => (
         <span key={unit.label} className={styles.countdownUnit}>
-          <span className={styles.countdownValue}>
+          <span className={styles.countdownValue} suppressHydrationWarning>
             {unit.label === "D" ? unit.value : pad(unit.value)}
           </span>
           <span className={styles.countdownLabel}>{unit.label}</span>

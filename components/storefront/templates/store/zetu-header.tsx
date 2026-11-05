@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  ChevronRight,
   Menu,
   MessageCircle,
   Search,
@@ -132,12 +133,13 @@ function ZetuHeaderView({
     [categories],
   );
   const sale = saleCategory(categories);
+  const merchantCopy = announcement?.trim() || "";
   const note =
-    announcement?.trim() || "Flash deals — shop the markdowns while they last.";
-  const isSaleCopy = /\b(sale|deal|off|november|flash)\b/i.test(note);
-  const flag =
-    saleLabel?.trim() ||
-    (isSaleCopy ? "SALE" : "NEW IN");
+    merchantCopy || "New season, new obsessions — fresh pieces in store.";
+  // Sale language must come from the merchant, never from the theme default.
+  const isSaleCopy = /\b(sale|deal|off|november|flash)\b/i.test(merchantCopy);
+  const flag = saleLabel?.trim() || (isSaleCopy ? "SALE" : "NEW IN");
+  const showCountdown = Boolean(saleEnds?.trim());
   const pill = sale
     ? { href: shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(sale) }), label: "Sale" }
     : { href: APP_ROUTES.shop, label: "Shop all" };
@@ -155,7 +157,7 @@ function ZetuHeaderView({
           <span className={styles.announceRule} aria-hidden />
           <p className={styles.announceNote}>{note}</p>
           <div className={styles.announceTrail}>
-            {isSaleCopy || Boolean(saleLabel?.trim()) ? (
+            {showCountdown ? (
               <ZetuCountdown endsAt={saleEnds} lead="Ends in" />
             ) : null}
             <Link
@@ -227,7 +229,7 @@ function ZetuHeaderView({
             {wa ? (
               <a
                 href={`https://wa.me/${wa}`}
-                className={styles.accountBtn}
+                className={cn(styles.accountBtn, styles.waBtn)}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Chat on WhatsApp"
@@ -265,6 +267,11 @@ function ZetuHeaderView({
                 !categoryPathSlug &&
                 styles.navLinkActive,
             )}
+            aria-current={
+              pathname === APP_ROUTES.shop && !categoryPathSlug
+                ? "page"
+                : undefined
+            }
             onClick={() => setMenuOpen(false)}
           >
             New In
@@ -277,6 +284,7 @@ function ZetuHeaderView({
                 key={cat.id}
                 href={shopListPath({ categoryPathSlug: slugSeg })}
                 className={cn(styles.navLink, active && styles.navLinkActive)}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setMenuOpen(false)}
               >
                 {cat.name}
@@ -318,34 +326,46 @@ function ZetuHeaderView({
             onClick={() => setMenuOpen(false)}
           >
             New In
-            <span className={styles.drawerArrow} aria-hidden>
-              →
-            </span>
+            <ChevronRight
+              className={styles.drawerArrow}
+              size={15}
+              strokeWidth={2}
+              aria-hidden
+            />
           </Link>
-          {navCategories.map((cat) => (
-            <Link
-              key={cat.id}
-              href={shopListPath({
-                categoryPathSlug: storefrontCategoryPathSlug(cat),
-              })}
-              className={styles.drawerLink}
-              onClick={() => setMenuOpen(false)}
-            >
-              {cat.name}
-              <span className={styles.drawerArrow} aria-hidden>
-                →
-              </span>
-            </Link>
-          ))}
+          {navCategories.map((cat) => {
+            const slugSeg = storefrontCategoryPathSlug(cat);
+            const active = categoryPathSlug === slugSeg;
+            return (
+              <Link
+                key={cat.id}
+                href={shopListPath({ categoryPathSlug: slugSeg })}
+                className={styles.drawerLink}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setMenuOpen(false)}
+              >
+                {cat.name}
+                <ChevronRight
+                  className={styles.drawerArrow}
+                  size={15}
+                  strokeWidth={2}
+                  aria-hidden
+                />
+              </Link>
+            );
+          })}
           <Link
             href={pill.href}
             className={cn(styles.drawerLink, styles.drawerLinkAccent)}
             onClick={() => setMenuOpen(false)}
           >
             {pill.label}
-            <span className={styles.drawerArrow} aria-hidden>
-              →
-            </span>
+            <ChevronRight
+              className={styles.drawerArrow}
+              size={15}
+              strokeWidth={2}
+              aria-hidden
+            />
           </Link>
         </nav>
       </div>

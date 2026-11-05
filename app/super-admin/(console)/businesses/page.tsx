@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Check,
   Copy,
+  ExternalLink,
   Mail,
+  MessageCircle,
+  MessagesSquare,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -31,8 +35,10 @@ import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import {
   type CreateSaBusinessPayload,
   type SaBusinessRow,
+  type SaSupportPresencePayload,
   createSaBusiness,
   deleteSaBusiness,
+  ensureSaTenantSupportThread,
   fetchAllSaBusinesses,
   fetchSaEmailRecipients,
   fetchSaSupportPresence,
@@ -42,13 +48,29 @@ import { cn } from "@/lib/utils";
 import {
   BusinessesTheatre,
   type BusinessesPanel,
-  type StatusFilter,
+  type TenantArrival,
 } from "./_components/businesses-theatre";
+import {
+  DEFAULT_FILTERS,
+  EMPTY_PRESENCE,
+  type TenantFilters,
+  buildPresenceIndex,
+  filterTenants,
+  filtersFromSearch,
+  filtersToSearch,
+  formatAgo,
+  presenceOf,
+  segmentCounts,
+  sortTenants,
+  whatsappHref,
+} from "./_components/tenant-filters";
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+/** How long a tenant is flagged "just came online" after it arrives. */
+const ARRIVAL_HIGHLIGHT_MS = 45_000;
+const ARRIVAL_LISTED_MS = 120_000;
+
 const PRIMARY_BTN =
-  "h-8 rounded-none bg-[var(--pos-primary,#0f766e)] px-3.5 text-white shadow-none hover:bg-[#0d6b63]";
+  "h-8 rounded-[2px] bg-primary px-3.5 text-primary-foreground shadow-none hover:bg-[#163B2E]";
 
 function slugifyName(name: string) {
   return name
@@ -104,26 +126,80 @@ export default function SuperAdminBusinessesPage() {
   const [deleteError, setDeleteError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [filterActive, setFilterActive] = useState<StatusFilter>("all");
-  const [filterTier, setFilterTier] = useState("");
+  // Filters live in the address bar (?live=online&state=stuck…) so a view can
+  // be bookmarked or sent to a teammate. This page only renders client-side
+  // after the session check, so reading `window` here is safe.
+  const [filters, setFilters] = useState<TenantFilters>(() =>
+    typeof window === "undefined"
+      ? DEFAULT_FILTERS
+      : filtersFromSearch(window.location.search),
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [stuckIds, setStuckIds] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<BusinessesPanel | null>(null);
-  const [tenantsOnline, setTenantsOnline] = useState<number | null>(null);
-  const [tenantsOnSupport, setTenantsOnSupport] = useState(0);
+  const [presencePayload, setPresencePayload] =
+    useState<SaSupportPresencePayload | null>(null);
+  const [presenceAt, setPresenceAt] = useState<number | null>(null);
+  const [presenceFailed, setPresenceFailed] = useState(false);
+  const [onlineSeries, setOnlineSeries] = useState<number[]>([]);
+  const [arrivals, setArrivals] = useState<{ id: string; at: number }[]>([]);
+  const [watchedIds, setWatchedIds] = useState<Set<string>>(() => new Set());
+  const [chatBusyId, setChatBusyId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
+  const router = useRouter();
   const slugTouched = useRef(false);
   const copyTimer = useRef<number | null>(null);
   const loadedOnce = useRef(false);
+  const rowsRef = useRef<SaBusinessRow[]>([]);
+  const watchedRef = useRef<Set<string>>(new Set());
+  const prevOnlineRef = useRef<Set<string> | null>(null);
 
   const reloadPresence = useCallback(async () => {
     try {
-      const presence = await fetchSaSupportPresence();
-      setTenantsOnline(presence.tenantsOnline);
-      setTenantsOnSupport(presence.tenantsOnSupport);
+      const payload = await fetchSaSupportPresence();
+      const at = Date.now();
+
+      // Who came online since the last answer. The first answer is only the
+      // baseline, so opening the page never announces everyone already on.
+      const online = new Set<string>();
+      buildPresenceIndex(payload).byId.forEach((live, id) => {
+        if (live.online) online.add(id);
+      });
+      const before = prevOnlineRef.current;
+      prevOnlineRef.current = online;
+      if (before) {
+        const joined = [...online].filter((id) => !before.has(id));
+        if (joined.length > 0) {
+          setArrivals((list) => [
+            ...list.filter((item) => !joined.includes(item.id)),
+            ...joined.map((id) => ({ id, at })),
+          ]);
+          const heard = joined.filter((id) => watchedRef.current.has(id));
+          if (heard.length > 0) {
+            for (const id of heard) {
+              const name =
+                rowsRef.current.find((row) => row.id === id)?.name ??
+                "A tenant";
+              showThemedSuccessToast(`${name} is online.`);
+            }
+            setWatchedIds((current) => {
+              const next = new Set(current);
+              heard.forEach((id) => next.delete(id));
+              return next;
+            });
+          }
+        }
+      }
+
+      setPresencePayload(payload);
+      setPresenceAt(at);
+      setPresenceFailed(false);
+      setNow(at);
+      setOnlineSeries((series) => [...series, payload.tenantsOnline].slice(-90));
     } catch {
-      /* keep last good count */
+      /* keep the last good snapshot; the live clock shows it going stale */
+      setPresenceFailed(true);
     }
   }, []);
 
@@ -143,6 +219,7 @@ export default function SuperAdminBusinessesPage() {
       ]);
       setRows(tenants);
       setStuckIds(new Set(stuck.rows.map((row) => row.businessId)));
+      setNow(Date.now());
       void reloadPresence();
     } catch (e) {
       setLoadError(
@@ -159,11 +236,12 @@ export default function SuperAdminBusinessesPage() {
     void reload();
   }, [reload]);
 
-  // Live “logged in” count from open realtime sockets (same source as Support).
+  // Who is on the app: open realtime sockets, same source as Support. Polls
+  // while the tab is visible and catches up the moment it is shown again.
   useEffect(() => {
     void reloadPresence();
     const timer = window.setInterval(() => {
-      void reloadPresence();
+      if (document.visibilityState === "visible") void reloadPresence();
     }, 10_000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void reloadPresence();
@@ -209,15 +287,81 @@ export default function SuperAdminBusinessesPage() {
     return () => window.removeEventListener("hashchange", apply);
   }, []);
 
-  const counts = useMemo(() => {
-    let active = 0;
-    let inactive = 0;
-    for (const row of rows) {
-      if (row.active) active += 1;
-      else inactive += 1;
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
+
+  useEffect(() => {
+    watchedRef.current = watchedIds;
+  }, [watchedIds]);
+
+  // Mirror the filters into the address bar without adding history entries.
+  useEffect(() => {
+    const query = filtersToSearch(filters);
+    const { pathname, search, hash } = window.location;
+    const next = `${pathname}${query ? `?${query}` : ""}${hash}`;
+    if (next !== `${pathname}${search}${hash}`) {
+      window.history.replaceState(null, "", next);
     }
-    return { all: rows.length, active, inactive, stuck: stuckIds.size };
-  }, [rows, stuckIds]);
+  }, [filters]);
+
+  const presenceIndex = useMemo(
+    () =>
+      presencePayload ? buildPresenceIndex(presencePayload) : EMPTY_PRESENCE,
+    [presencePayload],
+  );
+  const filterContext = useMemo(
+    () => ({ stuckIds, presence: presenceIndex, now }),
+    [stuckIds, presenceIndex, now],
+  );
+  const counts = useMemo(
+    () => segmentCounts(rows, filterContext),
+    [rows, filterContext],
+  );
+  const visibleRows = useMemo(
+    () =>
+      sortTenants(
+        filterTenants(rows, filters, filterContext),
+        filters.sort,
+        filterContext,
+      ),
+    [rows, filters, filterContext],
+  );
+  const onlineIds = useMemo(
+    () =>
+      rows
+        .filter((row) => presenceOf(presenceIndex, row.id).online)
+        .map((row) => row.id),
+    [rows, presenceIndex],
+  );
+  const recentArrivals = useMemo<TenantArrival[]>(() => {
+    const byId = new Map(rows.map((row) => [row.id, row] as const));
+    return arrivals
+      .flatMap((item) => {
+        const row = byId.get(item.id);
+        return row && now - item.at < ARRIVAL_LISTED_MS
+          ? [{ id: item.id, name: row.name, at: item.at }]
+          : [];
+      })
+      .sort((a, b) => b.at - a.at);
+  }, [arrivals, rows, now]);
+  const arrivedIds = useMemo(
+    () =>
+      new Set(
+        recentArrivals
+          .filter((item) => now - item.at < ARRIVAL_HIGHLIGHT_MS)
+          .map((item) => item.id),
+      ),
+    [recentArrivals, now],
+  );
+
+  const updateFilters = useCallback((patch: Partial<TenantFilters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+  }, []);
+  // Clearing filters leaves the chosen sort order alone.
+  const resetFilters = useCallback(() => {
+    setFilters((current) => ({ ...DEFAULT_FILTERS, sort: current.sort }));
+  }, []);
 
   const tiers = useMemo(() => {
     const set = new Set<string>();
@@ -312,6 +456,62 @@ export default function SuperAdminBusinessesPage() {
         : prev.filter((item) => item !== id),
     );
   };
+
+  const selectVisible = (checked: boolean) => {
+    setSelectedIds(checked ? visibleRows.map((row) => row.id) : []);
+  };
+
+  // "Tell me when they come online": a notice fires once, on their next arrival.
+  const toggleWatch = (row: SaBusinessRow) => {
+    const watching = watchedIds.has(row.id);
+    setWatchedIds((current) => {
+      const next = new Set(current);
+      if (watching) next.delete(row.id);
+      else next.add(row.id);
+      return next;
+    });
+    if (!watching) {
+      showThemedSuccessToast(
+        `Watching ${row.name}. You will get a notice when they come online.`,
+      );
+    }
+  };
+
+  const onMessageTenant = async (b: SaBusinessRow) => {
+    if (chatBusyId) return;
+    setChatBusyId(b.id);
+    try {
+      const detail = await ensureSaTenantSupportThread(b.id);
+      const conversationId = detail.conversation?.id?.trim();
+      if (!conversationId) {
+        throw new Error("Could not open the support thread.");
+      }
+      router.push(
+        `${APP_ROUTES.superAdminSupport}?c=${encodeURIComponent(conversationId)}`,
+      );
+    } catch (err) {
+      showThemedErrorToast(
+        err instanceof Error
+          ? err.message
+          : "Could not start a chat with this tenant.",
+      );
+      setChatBusyId(null);
+    }
+  };
+
+  const selectedLive = selectedBusiness
+    ? presenceOf(presenceIndex, selectedBusiness.id)
+    : null;
+  const selectedLiveText = selectedLive
+    ? selectedLive.online
+      ? `Online${selectedLive.sessions > 0 ? ` · ${selectedLive.sessions} live` : ""}${selectedLive.onSupport ? " · on support" : ""}`
+      : selectedLive.lastSeenAt
+        ? `Seen ${formatAgo(selectedLive.lastSeenAt, now)}`
+        : "Offline"
+    : "—";
+  const selectedWhatsapp = selectedBusiness
+    ? whatsappHref(selectedBusiness.ownerPhone)
+    : null;
 
   const modalBody =
     selected?.kind === "create" ? (
@@ -434,6 +634,7 @@ export default function SuperAdminBusinessesPage() {
                 "Status",
                 `${selectedBusiness.active ? "Active" : "Inactive"}${stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}`,
               ],
+              ["Live", selectedLiveText],
               ["Tier", selectedBusiness.subscriptionTier],
               [
                 "Owner",
@@ -473,7 +674,7 @@ export default function SuperAdminBusinessesPage() {
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-7 shrink-0 rounded-none px-1.5"
+                className="h-7 shrink-0 rounded-[2px] px-1.5"
                 onClick={() => void copyId(selectedBusiness.id)}
                 aria-label="Copy tenant ID"
               >
@@ -491,7 +692,49 @@ export default function SuperAdminBusinessesPage() {
           <Button
             type="button"
             variant="outline"
-            className="h-8 rounded-none"
+            className="h-8 gap-1.5 rounded-[2px]"
+            disabled={chatBusyId !== null}
+            onClick={() => void onMessageTenant(selectedBusiness)}
+          >
+            {chatBusyId === selectedBusiness.id ? (
+              <RefreshCw className="size-3.5 animate-spin" />
+            ) : (
+              <MessagesSquare className="size-3.5" />
+            )}
+            Message
+          </Button>
+          {selectedWhatsapp ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 gap-1.5 rounded-[2px]"
+              asChild
+            >
+              <a href={selectedWhatsapp} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="size-3.5" />
+                WhatsApp
+              </a>
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 gap-1.5 rounded-[2px]"
+            asChild
+          >
+            <a
+              href={slugDerivedShopUrl(selectedBusiness.slug)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="size-3.5" />
+              Open shop
+            </a>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-[2px]"
             asChild
           >
             <Link href={`${tenantManageHref(selectedBusiness)}#sa-subscription`}>
@@ -501,7 +744,7 @@ export default function SuperAdminBusinessesPage() {
           <Button
             type="button"
             variant="ghost"
-            className="h-8 rounded-none text-[#9a2e16] hover:text-[#9a2e16]"
+            className="h-8 rounded-[2px] text-[#9a2e16] hover:text-[#9a2e16]"
             disabled={deletingId !== null}
             onClick={() => onDeleteTenant(selectedBusiness)}
           >
@@ -538,12 +781,7 @@ export default function SuperAdminBusinessesPage() {
 
   const selectionBar =
     selectedIds.length > 0 ? (
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-2 border bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)] px-2.5 py-2 sm:px-3",
-          HAIRLINE,
-        )}
-      >
+      <div className="flex flex-wrap items-center gap-2 rounded-[2px] border border-border bg-[rgba(29,75,59,0.06)] px-2.5 py-2 sm:px-3">
         <p className="mr-auto text-[12px] font-semibold tabular-nums">
           {selectedIds.length} selected
         </p>
@@ -551,7 +789,7 @@ export default function SuperAdminBusinessesPage() {
           type="button"
           size="sm"
           variant="outline"
-          className="h-7 gap-1.5 rounded-none"
+          className="h-7 gap-1.5 rounded-[2px]"
           asChild
         >
           <Link
@@ -561,12 +799,23 @@ export default function SuperAdminBusinessesPage() {
             Email selected
           </Link>
         </Button>
+        {onlineIds.length > 0 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 rounded-[2px]"
+            onClick={() => setSelectedIds(onlineIds)}
+          >
+            Select online
+          </Button>
+        ) : null}
         {stuckIds.size > 0 ? (
           <Button
             type="button"
             size="sm"
             variant="ghost"
-            className="h-7 rounded-none"
+            className="h-7 rounded-[2px]"
             onClick={() => setSelectedIds([...stuckIds])}
           >
             Select stuck
@@ -576,7 +825,7 @@ export default function SuperAdminBusinessesPage() {
           type="button"
           size="sm"
           variant="ghost"
-          className="h-7 rounded-none"
+          className="h-7 rounded-[2px]"
           onClick={() => setSelectedIds([])}
         >
           Clear
@@ -593,19 +842,17 @@ export default function SuperAdminBusinessesPage() {
     >
       <DashboardPageHero
         icon={Building2}
-        eyebrow="Platform"
         title="Tenants"
-        description="Search tenants, open one to manage, or create a new business."
+        description="Who is online, who is stuck, who just joined."
       >
         <button
           type="button"
           disabled={refreshing || loading}
           onClick={() => void reload()}
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-none border bg-white text-[#666666]",
-            HAIRLINE,
-            "transition-colors hover:border-[#0f766e] hover:text-[#0f766e]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+            "inline-flex size-8 items-center justify-center rounded-[2px] border border-border bg-card text-muted-foreground",
+            "transition-colors hover:border-primary hover:text-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
             "disabled:cursor-not-allowed disabled:opacity-60",
           )}
           aria-label="Refresh tenants"
@@ -620,7 +867,7 @@ export default function SuperAdminBusinessesPage() {
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 gap-1.5 rounded-none"
+            className="h-8 gap-1.5 rounded-[2px]"
             asChild
           >
             <Link
@@ -654,53 +901,29 @@ export default function SuperAdminBusinessesPage() {
       </p>
 
       <BusinessesTheatre
-        rows={rows}
-        stuckIds={stuckIds}
+        rows={visibleRows}
+        totalCount={rows.length}
         counts={counts}
-        tenantsOnline={tenantsOnline}
-        tenantsOnSupport={tenantsOnSupport}
+        stuckIds={stuckIds}
+        presence={presenceIndex}
+        presenceAt={presenceAt}
+        presenceFailed={presenceFailed}
+        onlineSeries={onlineSeries}
+        arrivals={recentArrivals}
+        arrivedIds={arrivedIds}
+        watchedIds={watchedIds}
+        onToggleWatch={toggleWatch}
+        now={now}
+        filters={filters}
+        onFiltersChange={updateFilters}
+        onResetFilters={resetFilters}
         tiers={tiers}
         loading={loading}
-        statusFilter={filterActive}
-        onStatusFilterChange={setFilterActive}
-        tierFilter={filterTier}
-        onTierFilterChange={setFilterTier}
-        searchInput={search}
-        onSearchInputChange={setSearch}
         selectedIds={selectedIds}
         onToggleSelected={toggleSelected}
-        onSelectAllVisible={(checked) => {
-          const q = search.trim().toLowerCase();
-          const visible = rows.filter((b) => {
-            const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
-            const ownerName = b.ownerName?.trim().toLowerCase() ?? "";
-            const ownerEmail = b.ownerEmail?.trim().toLowerCase() ?? "";
-            if (
-              q &&
-              !b.name.toLowerCase().includes(q) &&
-              !b.slug.toLowerCase().includes(q) &&
-              !b.id.toLowerCase().includes(q) &&
-              !phone.includes(q) &&
-              !ownerName.includes(q) &&
-              !ownerEmail.includes(q)
-            ) {
-              return false;
-            }
-            if (filterActive === "active" && !b.active) return false;
-            if (filterActive === "inactive" && b.active) return false;
-            if (filterActive === "stuck" && !stuckIds.has(b.id)) return false;
-            if (
-              filterTier.trim() &&
-              b.subscriptionTier.toLowerCase() !==
-                filterTier.trim().toLowerCase()
-            ) {
-              return false;
-            }
-            return true;
-          });
-          setSelectedIds(checked ? visible.map((b) => b.id) : []);
-        }}
+        onSelectVisible={selectVisible}
         selected={selected}
+        selectedBusiness={selectedBusiness}
         onSelect={setSelected}
         onClearSelection={() => {
           setSelected(null);

@@ -1,11 +1,20 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
-import { Building2, ChevronRight, Plus, Search } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Bell,
+  BellRing,
+  ChevronRight,
+  ExternalLink,
+  Info,
+  MessageCircle,
+  Search,
+  X,
+} from "lucide-react";
 
 import {
-  dashboardHintClass,
   dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,50 +25,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { slugDerivedShopUrl } from "@/lib/config";
 import type { SaBusinessRow } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
-export type StatusFilter = "all" | "active" | "inactive" | "stuck";
+import {
+  NEW_TENANT_DAYS,
+  type PresenceFilter,
+  type PresenceIndex,
+  type SegmentCounts,
+  type SortKey,
+  type StatusFilter,
+  type TenantFilters,
+  type TenantPresence,
+  filtersAreDefault,
+  formatAgo,
+  initialsOf,
+  isNewTenant,
+  presenceOf,
+  whatsappHref,
+} from "./tenant-filters";
 
 export type BusinessesPanel =
   | { kind: "create" }
   | { kind: "business"; id: string };
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+/** A tenant that came online while this page was open. */
+export type TenantArrival = { id: string; name: string; at: number };
 
-function LiveDot({ live = false }: { live?: boolean }) {
-  return (
-    <span
-      className={cn(
-        "inline-block size-1.5 shrink-0",
-        live
-          ? "bg-emerald-500 shadow-[0_0_0_2px_color-mix(in_srgb,rgb(16,185,129)_25%,transparent)]"
-          : "bg-[var(--pos-primary,#0f766e)]",
-      )}
-      aria-hidden
-    />
-  );
-}
+/** Terracotta is the one attention colour: stuck signups and a stale feed. */
+const ATTENTION = "text-[#A55237]";
 
-function formatWhen(value?: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  const diffMs = Date.now() - date.getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 14) return `${days}d ago`;
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+const ICON_BUTTON =
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-[2px] text-muted-foreground transition-colors duration-200 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 @4xl:size-7";
+
+/** Checkbox | tenant | owner | plan | live | joined | actions */
+const WIDE_COLUMNS =
+  "@4xl:grid-cols-[1.5rem_minmax(0,1.7fr)_minmax(0,1.35fr)_4.5rem_minmax(0,1.3fr)_4.5rem_6.25rem]";
 
 function panelEquals(a: BusinessesPanel | null, b: BusinessesPanel) {
   if (!a) return false;
@@ -68,25 +70,33 @@ function panelEquals(a: BusinessesPanel | null, b: BusinessesPanel) {
   return true;
 }
 
-function Chip({
+/* ------------------------------------------------------------------ */
+/* Small pieces                                                        */
+/* ------------------------------------------------------------------ */
+
+function FilterChip({
   active,
   onClick,
+  title,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  title?: string;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
+      title={title}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 items-center gap-1 rounded-none border px-2 text-[11px] font-semibold tracking-[-0.02em] transition-colors",
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[2px] border px-2 text-[11.5px] font-semibold tracking-[-0.01em] transition-colors duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
-          : cn(HAIRLINE, "bg-white text-muted-foreground hover:text-foreground"),
+          ? "border-primary bg-[rgba(29,75,59,0.09)] text-primary"
+          : "border-border bg-card text-muted-foreground hover:border-foreground/25 hover:text-foreground",
       )}
     >
       {children}
@@ -94,76 +104,671 @@ function Chip({
   );
 }
 
-function ContextBanner({
-  counts,
-  tenantsOnline,
-  tenantsOnSupport,
-  visibleCount,
-  selectedCount,
-  loading,
-}: {
-  counts: { all: number; active: number; inactive: number; stuck: number };
-  tenantsOnline: number | null;
-  tenantsOnSupport: number;
-  visibleCount: number;
-  selectedCount: number;
-  loading: boolean;
-}) {
-  const onlineLabel = tenantsOnline === null ? "—" : String(tenantsOnline);
-
+function ChipCount({ value }: { value: number }) {
   return (
-    <div
+    <span className="font-mono text-[10.5px] font-medium tabular-nums opacity-70">
+      {value}
+    </span>
+  );
+}
+
+function StateTag({
+  children,
+  attention = false,
+}: {
+  children: ReactNode;
+  attention?: boolean;
+}) {
+  return (
+    <span
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5 border bg-white px-2.5 py-1.5 sm:px-3",
-        HAIRLINE,
+        "rounded-[2px] border px-1 py-px text-[10px] font-semibold leading-none",
+        attention
+          ? "border-[rgba(165,82,55,0.4)] text-[#A55237]"
+          : "border-border text-muted-foreground",
       )}
     >
-      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-foreground">
+      {children}
+    </span>
+  );
+}
+
+/** Online-count trend since the page was opened. */
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const width = 72;
+  const height = 24;
+  const pad = 3;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const flat = max === min;
+  const points = values.map((value, index) => {
+    const x = pad + (index / (values.length - 1)) * (width - pad * 2);
+    const y = flat
+      ? height / 2
+      : height - pad - ((value - min) / (max - min)) * (height - pad * 2);
+    return [x, y] as const;
+  });
+  const last = points[points.length - 1];
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="shrink-0 text-primary"
+      role="img"
+      aria-label={`Online tenants since you opened this page: ${values[0]} to ${values[values.length - 1]}`}
+    >
+      <polyline
+        points={points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.7"
+      />
+      <circle cx={last[0]} cy={last[1]} r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PulseTile({
+  position,
+  label,
+  value,
+  sub,
+  active,
+  attention = false,
+  dot = false,
+  title,
+  onClick,
+  children,
+}: {
+  position: 0 | 1 | 2 | 3;
+  label: string;
+  value: string;
+  sub: string;
+  active: boolean;
+  attention?: boolean;
+  dot?: boolean;
+  title: string;
+  onClick: () => void;
+  children?: ReactNode;
+}) {
+  // Two columns on narrow containers, four once the strip has room.
+  const borders = [
+    "border-r border-b @2xl:border-b-0",
+    "border-b @2xl:border-r @2xl:border-b-0",
+    "border-r",
+    "",
+  ][position];
+
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      title={title}
+      onClick={onClick}
+      className={cn(
+        "relative flex min-w-0 flex-col items-start px-3.5 py-3 text-left transition-colors duration-200 @2xl:px-4",
+        "border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
+        borders,
+        active ? "bg-[rgba(29,75,59,0.07)]" : "hover:bg-foreground/[0.025]",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 top-0 h-0.5 bg-primary transition-opacity duration-200",
+          active ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <span className="flex w-full items-end justify-between gap-2">
         <span
-          className="inline-flex items-center gap-1.5 font-semibold text-emerald-700"
-          title="Distinct tenants with an open app / till / dashboard socket"
+          className={cn(
+            "font-mono text-[26px] font-medium leading-none tracking-[-0.04em] tabular-nums",
+            attention && value !== "0" && value !== "—"
+              ? ATTENTION
+              : "text-foreground",
+          )}
         >
-          <LiveDot live />
-          {onlineLabel} online
+          {value}
         </span>
-        <span className={dashboardHintClass()}>
-          {tenantsOnline === null
-            ? "checking…"
-            : `${tenantsOnSupport} on support`}
-          {" · "}
-          {loading ? "—" : counts.all} tenants
-          {" · "}
-          {loading ? "—" : counts.active} active
-          {" · "}
-          {loading ? "—" : counts.stuck} stuck
-          {" · "}
-          {visibleCount} shown
-          {selectedCount > 0 ? ` · ${selectedCount} selected` : ""}
-        </span>
+        {children}
+      </span>
+      <span className="mt-2 flex items-center gap-1.5 text-[12.5px] font-semibold tracking-[-0.01em] text-foreground">
+        {dot ? (
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full bg-primary"
+          />
+        ) : null}
+        {label}
+      </span>
+      <span className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+        {sub}
+      </span>
+    </button>
+  );
+}
+
+function LivePulse({
+  counts,
+  presence,
+  series,
+  loading,
+  filters,
+  onFiltersChange,
+  arrivals,
+  now,
+  onOpenTenant,
+}: {
+  counts: SegmentCounts;
+  presence: PresenceIndex;
+  series: number[];
+  loading: boolean;
+  filters: TenantFilters;
+  onFiltersChange: (patch: Partial<TenantFilters>) => void;
+  arrivals: TenantArrival[];
+  now: number;
+  onOpenTenant: (id: string) => void;
+}) {
+  const online = presence.perTenant
+    ? counts.online
+    : (presence.totalOnline ?? counts.online);
+  const show = (value: number) => (loading ? "—" : String(value));
+
+  const onlineSub = !presence.perTenant
+    ? "from the live total"
+    : counts.sessions > 0
+      ? `${counts.sessions} live ${counts.sessions === 1 ? "connection" : "connections"}`
+      : "nobody on the app";
+
+  const togglePresence = (value: PresenceFilter) =>
+    onFiltersChange({ presence: filters.presence === value ? "all" : value });
+  const toggleStatus = (value: StatusFilter) =>
+    onFiltersChange({ status: filters.status === value ? "all" : value });
+
+  return (
+    <section
+      aria-label="Live tenants"
+      className="overflow-hidden rounded-[2px] border border-border bg-card"
+    >
+      <div className="grid grid-cols-2 @2xl:grid-cols-4">
+        <PulseTile
+          position={0}
+          label="Online now"
+          value={show(online)}
+          sub={onlineSub}
+          dot={online > 0}
+          active={filters.presence === "online"}
+          title="Tenants with the app, till or dashboard open right now"
+          onClick={() => togglePresence("online")}
+        >
+          <Sparkline values={series} />
+        </PulseTile>
+        <PulseTile
+          position={1}
+          label="On support"
+          value={show(counts.support)}
+          sub="in the support chat"
+          active={filters.presence === "support"}
+          title="Online tenants who have the support chat open"
+          onClick={() => togglePresence("support")}
+        />
+        <PulseTile
+          position={2}
+          label="Stuck signups"
+          value={show(counts.stuck)}
+          sub="not set up yet"
+          attention
+          active={filters.status === "stuck"}
+          title="Tenants who signed up but have not finished setting up"
+          onClick={() => toggleStatus("stuck")}
+        />
+        <PulseTile
+          position={3}
+          label="New this week"
+          value={show(counts.fresh)}
+          sub={`joined in ${NEW_TENANT_DAYS} days`}
+          active={filters.status === "new"}
+          title={`Tenants created in the last ${NEW_TENANT_DAYS} days`}
+          onClick={() => toggleStatus("new")}
+        />
+      </div>
+
+      {!presence.perTenant && !loading ? (
+        <p
+          role="note"
+          className="flex items-start gap-1.5 border-t border-border px-3.5 py-2 text-[11.5px] leading-snug text-muted-foreground"
+        >
+          <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+          <span>
+            The API only returns an online total, so just tenants on the support
+            channel can be marked online. Deploy the updated backend to see
+            every tenant who is online.
+          </span>
+        </p>
+      ) : null}
+
+      {arrivals.length > 0 ? (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border px-3.5 py-2 text-[11.5px]">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+            <span
+              aria-hidden
+              className="size-1.5 rounded-full bg-primary"
+            />
+            Just in
+          </span>
+          {arrivals.slice(0, 4).map((arrival) => (
+            <button
+              key={arrival.id}
+              type="button"
+              onClick={() => onOpenTenant(arrival.id)}
+              className="inline-flex items-baseline gap-1.5 rounded-[2px] text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              {arrival.name}
+              <span className="text-[10.5px] text-muted-foreground">
+                {formatAgo(arrival.at, now)}
+              </span>
+            </button>
+          ))}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+/** "Live · updated 4s ago", ticking on its own so the table does not re-render. */
+function LiveClock({ at, failed }: { at: number | null; failed: boolean }) {
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  if (at === null) {
+    return (
+      <span className={failed ? ATTENTION : undefined}>
+        {failed ? "Live status unavailable" : "Checking live status…"}
+      </span>
+    );
+  }
+  const seconds = Math.max(0, Math.round((tick - at) / 1000));
+  const stale = failed || seconds > 35;
+  return (
+    <span className={stale ? ATTENTION : undefined}>
+      {stale ? "Live feed paused" : "Live"} · updated{" "}
+      {seconds < 5 ? "just now" : `${seconds}s ago`}
+    </span>
+  );
+}
+
+function LiveStatus({
+  live,
+  now,
+}: {
+  live: TenantPresence;
+  now: number;
+}) {
+  if (live.online) {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px]">
+        <span
+          aria-hidden
+          className="size-2 shrink-0 rounded-full bg-primary shadow-[0_0_0_3px_rgba(29,75,59,0.16)]"
+        />
+        <span className="font-semibold text-primary">Online</span>
+        {live.sessions > 0 ? (
+          <span
+            className="font-mono text-[10.5px] tabular-nums text-muted-foreground"
+            title={`${live.sessions} open ${live.sessions === 1 ? "connection" : "connections"} (tabs, tills, apps)`}
+          >
+            {live.sessions} live
+          </span>
+        ) : null}
+        {live.onSupport ? <StateTag>support</StateTag> : null}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground"
+      title={
+        live.lastSeenAt
+          ? new Date(live.lastSeenAt).toLocaleString("en-KE")
+          : "No activity since the API last restarted"
+      }
+    >
+      <span
+        aria-hidden
+        className="size-2 shrink-0 rounded-full border border-foreground/30"
+      />
+      {live.lastSeenAt ? `Seen ${formatAgo(live.lastSeenAt, now)}` : "Offline"}
+    </span>
+  );
+}
+
+function TenantMark({ name, online }: { name: string; online: boolean }) {
+  return (
+    <span className="relative inline-grid size-8 shrink-0 place-items-center rounded-[2px] border border-border bg-muted text-[11px] font-semibold tracking-[-0.02em] text-foreground/70">
+      {initialsOf(name)}
+      {online ? (
+        <span
+          aria-hidden
+          className="absolute -bottom-[3px] -right-[3px] size-[9px] rounded-full border-2 border-card bg-primary"
+        />
+      ) : null}
+    </span>
+  );
+}
+
+function SkeletonRows() {
+  return (
+    <ul aria-hidden className="divide-y divide-border">
+      {Array.from({ length: 6 }, (_, index) => (
+        <li key={index} className="flex items-center gap-3 px-3 py-3">
+          <span className="size-8 shrink-0 rounded-[2px] bg-foreground/[0.06] motion-safe:animate-pulse" />
+          <span className="flex-1 space-y-1.5">
+            <span className="block h-3 w-1/3 rounded-[2px] bg-foreground/[0.06] motion-safe:animate-pulse" />
+            <span className="block h-2.5 w-1/2 rounded-[2px] bg-foreground/[0.04] motion-safe:animate-pulse" />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function EmptyState({
+  filters,
+  perTenant,
+  onReset,
+}: {
+  filters: TenantFilters;
+  perTenant: boolean;
+  onReset: () => void;
+}) {
+  const query = filters.query.trim();
+  const livePick =
+    filters.presence === "online" || filters.presence === "support";
+
+  const title = query
+    ? `No tenants match “${query}”.`
+    : livePick
+      ? filters.presence === "support"
+        ? "Nobody is on support right now."
+        : "Nobody is online right now."
+      : "No tenants in this view.";
+  const hint =
+    livePick && !perTenant
+      ? "This API only reports tenants on the support channel. Deploy the updated backend to see everyone who is online."
+      : livePick
+        ? "This list refreshes every 10 seconds. Turn on the bell next to a tenant to hear when they arrive."
+        : "Try another search, or clear the filters.";
+
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
+      <p className="font-serif text-[24px] font-normal leading-tight tracking-[-0.01em] text-foreground">
+        {title}
       </p>
+      <p className="max-w-[46ch] text-[12px] leading-relaxed text-muted-foreground">
+        {hint}
+      </p>
+      {!filtersAreDefault(filters) ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-1 h-8 rounded-[2px]"
+          onClick={onReset}
+        >
+          Clear filters
+        </Button>
+      ) : null}
     </div>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Row                                                                 */
+/* ------------------------------------------------------------------ */
+
+function TenantRow({
+  row,
+  live,
+  stuck,
+  now,
+  active,
+  checked,
+  arrived,
+  watched,
+  onOpen,
+  onToggleChecked,
+  onToggleWatch,
+}: {
+  row: SaBusinessRow;
+  live: TenantPresence;
+  stuck: boolean;
+  now: number;
+  active: boolean;
+  checked: boolean;
+  arrived: boolean;
+  watched: boolean;
+  onOpen: () => void;
+  onToggleChecked: (checked: boolean) => void;
+  onToggleWatch: () => void;
+}) {
+  const whatsapp = whatsappHref(row.ownerPhone);
+  const shopUrl = slugDerivedShopUrl(row.slug);
+  const ownerName = row.ownerName?.trim() ?? "";
+  const ownerEmail = row.ownerEmail?.trim() ?? "";
+  const ownerPhone = row.ownerPhone?.trim() ?? "";
+  const ownerPrimary = ownerName || ownerEmail;
+  const ownerSecondary = [ownerName ? ownerEmail : "", ownerPhone]
+    .filter(Boolean)
+    .join(" · ");
+  const created = Date.parse(row.createdAt);
+  const fresh = isNewTenant(row, now);
+
+  return (
+    <li>
+      <div
+        className={cn(
+          "group relative grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-2.5 gap-y-1.5 px-3 py-3 transition-colors duration-200",
+          WIDE_COLUMNS,
+          "@4xl:items-center @4xl:gap-x-3 @4xl:gap-y-0 @4xl:py-2.5",
+          active
+            ? "bg-[rgba(29,75,59,0.075)]"
+            : arrived
+              ? "bg-[rgba(29,75,59,0.055)]"
+              : checked
+                ? "bg-[rgba(29,75,59,0.035)]"
+                : "hover:bg-foreground/[0.02]",
+        )}
+        onClick={(event) => {
+          // Anywhere on the row opens the tenant, except its own controls.
+          if ((event.target as HTMLElement).closest("a,button,input,label")) {
+            return;
+          }
+          onOpen();
+        }}
+      >
+        {arrived ? (
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-0.5 bg-primary"
+          />
+        ) : null}
+
+        <label className="flex h-8 items-center justify-center">
+          <input
+            type="checkbox"
+            className="size-3.5 accent-primary"
+            checked={checked}
+            onChange={(event) => onToggleChecked(event.target.checked)}
+            aria-label={`Select ${row.name}`}
+          />
+        </label>
+
+        <div className="col-start-2 flex min-w-0 items-center gap-2.5 @4xl:col-auto">
+          <TenantMark name={row.name} online={live.online} />
+          <div className="min-w-0">
+            <button
+              type="button"
+              onClick={onOpen}
+              className="block max-w-full truncate rounded-[2px] text-left text-[13.5px] font-semibold tracking-[-0.015em] text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              {row.name}
+            </button>
+            <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span className="truncate font-mono text-[10.5px] text-muted-foreground">
+                {row.slug}
+              </span>
+              {!row.active ? <StateTag>Off</StateTag> : null}
+              {stuck ? <StateTag attention>Stuck</StateTag> : null}
+              {fresh ? <StateTag>New</StateTag> : null}
+            </p>
+          </div>
+        </div>
+
+        <div className="col-start-2 min-w-0 @4xl:col-auto">
+          {ownerPrimary ? (
+            <>
+              <p className="truncate text-[12.5px] text-foreground">
+                {ownerPrimary}
+              </p>
+              {ownerSecondary ? (
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {ownerSecondary}
+                </p>
+              ) : null}
+            </>
+          ) : ownerPhone ? (
+            <p className="truncate text-[12.5px] text-foreground">
+              {ownerPhone}
+            </p>
+          ) : (
+            <p className="text-[12px] text-muted-foreground">
+              No owner linked
+            </p>
+          )}
+        </div>
+
+        <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 @4xl:contents">
+          <span className="text-[12px] capitalize text-foreground/80">
+            {row.subscriptionTier}
+          </span>
+          <LiveStatus live={live} now={now} />
+          <span
+            className="font-mono text-[11px] tabular-nums text-muted-foreground"
+            title={
+              Number.isNaN(created)
+                ? undefined
+                : new Date(created).toLocaleString("en-KE")
+            }
+          >
+            <span className="@4xl:hidden">Joined </span>
+            {formatAgo(created, now)}
+          </span>
+        </div>
+
+        <div className="col-start-2 flex items-center gap-0.5 @4xl:col-auto @4xl:justify-end">
+          {whatsapp ? (
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={ICON_BUTTON}
+              aria-label={`WhatsApp the owner of ${row.name}`}
+              title="WhatsApp the owner"
+            >
+              <MessageCircle className="size-3.5" aria-hidden />
+            </a>
+          ) : null}
+          {shopUrl ? (
+            <a
+              href={shopUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={ICON_BUTTON}
+              aria-label={`Open the ${row.name} shop in a new tab`}
+              title="Open the shop"
+            >
+              <ExternalLink className="size-3.5" aria-hidden />
+            </a>
+          ) : null}
+          {!live.online ? (
+            <button
+              type="button"
+              aria-pressed={watched}
+              aria-label={
+                watched
+                  ? `Stop watching ${row.name}`
+                  : `Tell me when ${row.name} comes online`
+              }
+              title={
+                watched
+                  ? "Watching: you will get a notice when they come online"
+                  : "Tell me when they come online"
+              }
+              onClick={onToggleWatch}
+              className={cn(ICON_BUTTON, watched && "text-primary")}
+            >
+              {watched ? (
+                <BellRing className="size-3.5" aria-hidden />
+              ) : (
+                <Bell className="size-3.5" aria-hidden />
+              )}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onOpen}
+            className={ICON_BUTTON}
+            aria-label={`Open ${row.name}`}
+          >
+            <ChevronRight className="size-4" aria-hidden />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Theatre                                                             */
+/* ------------------------------------------------------------------ */
+
 export type BusinessesTheatreProps = {
+  /** Rows after search, filters and sorting. */
   rows: SaBusinessRow[];
-  stuckIds: Set<string>;
-  counts: { all: number; active: number; inactive: number; stuck: number };
-  /** Distinct tenants with an open realtime socket; null while first fetch runs. */
-  tenantsOnline: number | null;
-  tenantsOnSupport: number;
+  totalCount: number;
+  counts: SegmentCounts;
+  stuckIds: ReadonlySet<string>;
+  presence: PresenceIndex;
+  /** When the live status was last refreshed (ms epoch), null before the first answer. */
+  presenceAt: number | null;
+  presenceFailed: boolean;
+  /** Online-tenant totals since the page opened, oldest first. */
+  onlineSeries: number[];
+  arrivals: TenantArrival[];
+  /** Tenants to highlight as "just came online". */
+  arrivedIds: ReadonlySet<string>;
+  watchedIds: ReadonlySet<string>;
+  onToggleWatch: (row: SaBusinessRow) => void;
+  /** ms epoch used for every "ago" label so the table stays consistent. */
+  now: number;
+  filters: TenantFilters;
+  onFiltersChange: (patch: Partial<TenantFilters>) => void;
+  onResetFilters: () => void;
   tiers: string[];
   loading: boolean;
-  statusFilter: StatusFilter;
-  onStatusFilterChange: (value: StatusFilter) => void;
-  tierFilter: string;
-  onTierFilterChange: (value: string) => void;
-  searchInput: string;
-  onSearchInputChange: (value: string) => void;
   selectedIds: string[];
   onToggleSelected: (id: string, checked: boolean) => void;
-  onSelectAllVisible: (checked: boolean) => void;
+  onSelectVisible: (checked: boolean) => void;
   selected: BusinessesPanel | null;
+  selectedBusiness: SaBusinessRow | null;
   onSelect: (panel: BusinessesPanel) => void;
   onClearSelection: () => void;
   modalBody: ReactNode;
@@ -171,79 +776,60 @@ export type BusinessesTheatreProps = {
   selectionBar?: ReactNode;
 };
 
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "online", label: "Online first" },
+  { value: "seen", label: "Recently seen" },
+  { value: "name", label: "Name A–Z" },
+];
+
 export function BusinessesTheatre({
   rows,
-  stuckIds,
+  totalCount,
   counts,
-  tenantsOnline,
-  tenantsOnSupport,
+  stuckIds,
+  presence,
+  presenceAt,
+  presenceFailed,
+  onlineSeries,
+  arrivals,
+  arrivedIds,
+  watchedIds,
+  onToggleWatch,
+  now,
+  filters,
+  onFiltersChange,
+  onResetFilters,
   tiers,
   loading,
-  statusFilter,
-  onStatusFilterChange,
-  tierFilter,
-  onTierFilterChange,
-  searchInput,
-  onSearchInputChange,
   selectedIds,
   onToggleSelected,
-  onSelectAllVisible,
+  onSelectVisible,
   selected,
+  selectedBusiness,
   onSelect,
   onClearSelection,
   modalBody,
   modalFooter,
   selectionBar,
 }: BusinessesTheatreProps) {
-  const filteredRows = useMemo(() => {
-    const q = searchInput.trim().toLowerCase();
-    return rows.filter((b) => {
-      const phone = b.ownerPhone?.trim().toLowerCase() ?? "";
-      const ownerName = b.ownerName?.trim().toLowerCase() ?? "";
-      const ownerEmail = b.ownerEmail?.trim().toLowerCase() ?? "";
-      if (
-        q &&
-        !b.name.toLowerCase().includes(q) &&
-        !b.slug.toLowerCase().includes(q) &&
-        !b.id.toLowerCase().includes(q) &&
-        !phone.includes(q) &&
-        !ownerName.includes(q) &&
-        !ownerEmail.includes(q)
-      ) {
-        return false;
-      }
-      if (statusFilter === "active" && !b.active) return false;
-      if (statusFilter === "inactive" && b.active) return false;
-      if (statusFilter === "stuck" && !stuckIds.has(b.id)) return false;
-      if (
-        tierFilter.trim() &&
-        b.subscriptionTier.toLowerCase() !== tierFilter.trim().toLowerCase()
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [rows, searchInput, statusFilter, tierFilter, stuckIds]);
-
-  const selectedBusiness =
-    selected?.kind === "business"
-      ? (rows.find((r) => r.id === selected.id) ?? null)
-      : null;
-
+  const filtersActive = !filtersAreDefault(filters);
   const allVisibleSelected =
-    filteredRows.length > 0 &&
-    filteredRows.every((b) => selectedIds.includes(b.id));
-  const someVisibleSelected = filteredRows.some((b) =>
-    selectedIds.includes(b.id),
-  );
+    rows.length > 0 && rows.every((row) => selectedIds.includes(row.id));
+  const someVisibleSelected = rows.some((row) => selectedIds.includes(row.id));
+
+  const togglePresence = (value: PresenceFilter) =>
+    onFiltersChange({ presence: filters.presence === value ? "all" : value });
+  const toggleStatus = (value: StatusFilter) =>
+    onFiltersChange({ status: filters.status === value ? "all" : value });
 
   const selectPanel = (panel: BusinessesPanel) => {
     onSelect(panel);
-    if (panel.kind === "business") {
-      history.replaceState(null, "", `#business-${panel.id}`);
-    } else {
-      history.replaceState(null, "", `#create`);
-    }
+    history.replaceState(
+      null,
+      "",
+      panel.kind === "business" ? `#business-${panel.id}` : "#create",
+    );
   };
 
   const clearSelection = () => {
@@ -255,246 +841,264 @@ export function BusinessesTheatre({
     );
   };
 
+  const selectAllControl = (
+    <input
+      type="checkbox"
+      className="size-3.5 accent-primary"
+      checked={allVisibleSelected}
+      ref={(el) => {
+        if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+      }}
+      onChange={(event) => onSelectVisible(event.target.checked)}
+      aria-label="Select all visible tenants"
+    />
+  );
+
   const modalTitle =
     selected?.kind === "create"
       ? "New tenant"
       : (selectedBusiness?.name ?? "Tenant");
-
   const modalDescription =
     selected?.kind === "create"
       ? "Name and slug are required. Defaults use Nairobi / KES."
       : selectedBusiness
-        ? `${selectedBusiness.slug} · ${selectedBusiness.active ? "active" : "inactive"}`
+        ? `${selectedBusiness.slug} · ${selectedBusiness.active ? "active" : "off"}`
         : "Tenant details";
 
   return (
-    <div className="flex min-h-0 flex-col gap-1.5">
-      <ContextBanner
+    <div className="@container flex min-h-0 flex-col gap-1.5">
+      <LivePulse
         counts={counts}
-        tenantsOnline={tenantsOnline}
-        tenantsOnSupport={tenantsOnSupport}
-        visibleCount={filteredRows.length}
-        selectedCount={selectedIds.length}
+        presence={presence}
+        series={onlineSeries}
         loading={loading}
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        arrivals={arrivals}
+        now={now}
+        onOpenTenant={(id) => selectPanel({ kind: "business", id })}
       />
+
       {selectionBar}
 
-      <div className={cn("overflow-hidden border bg-white", HAIRLINE)}>
-        <div className="space-y-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] px-2.5 py-2 sm:px-3">
-          <label className="relative block min-w-0">
-            <Search
-              className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <input
-              className={cn(dashboardInputClass(), "h-9 pl-7 text-[13px]")}
-              value={searchInput}
-              onChange={(e) => onSearchInputChange(e.target.value)}
-              placeholder="Search name, owner, slug, phone, ID…"
-              aria-label="Search tenants"
-            />
-          </label>
-          <div className="flex flex-wrap gap-1">
-            {(
-              [
-                ["all", "All", counts.all],
-                ["active", "Active", counts.active],
-                ["inactive", "Off", counts.inactive],
-                ["stuck", "Stuck", counts.stuck],
-              ] as const
-            ).map(([value, label, count]) => (
-              <Chip
-                key={value}
-                active={statusFilter === value}
-                onClick={() => onStatusFilterChange(value)}
+      <section
+        aria-label="Tenants"
+        className="overflow-hidden rounded-[2px] border border-border bg-card"
+      >
+        {/* Search, plan, sort and the filter chips */}
+        <div className="space-y-2 border-b border-border px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="relative block min-w-[13rem] flex-1">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                type="search"
+                className={cn(
+                  dashboardInputClass(),
+                  "h-10 pl-8 pr-8 text-[13px] sm:h-9 [&::-webkit-search-cancel-button]:hidden",
+                )}
+                value={filters.query}
+                onChange={(event) =>
+                  onFiltersChange({ query: event.target.value })
+                }
+                placeholder="Search name, owner, slug, phone, ID…"
+                aria-label="Search tenants"
+              />
+              {filters.query ? (
+                <button
+                  type="button"
+                  onClick={() => onFiltersChange({ query: "" })}
+                  className="absolute right-1 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-[2px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  aria-label="Clear search"
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              ) : null}
+            </label>
+
+            {tiers.length > 0 ? (
+              <select
+                className={cn(
+                  dashboardSelectClass(),
+                  "h-10 w-auto min-w-[8.5rem] text-[12.5px] sm:h-9",
+                )}
+                value={filters.tier}
+                onChange={(event) =>
+                  onFiltersChange({ tier: event.target.value })
+                }
+                aria-label="Filter by plan"
               >
-                {label}
-                <span className="tabular-nums opacity-70">{count}</span>
-              </Chip>
-            ))}
-          </div>
-          {tiers.length > 0 ? (
+                <option value="">All plans</option>
+                {tiers.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+
             <select
               className={cn(
-                dashboardInputClass(),
-                "h-8 cursor-pointer text-[12px]",
+                dashboardSelectClass(),
+                "h-10 w-auto min-w-[8.5rem] text-[12.5px] sm:h-9",
               )}
-              value={tierFilter}
-              onChange={(e) => onTierFilterChange(e.target.value)}
-              aria-label="Filter by subscription tier"
+              value={filters.sort}
+              onChange={(event) =>
+                onFiltersChange({ sort: event.target.value as SortKey })
+              }
+              aria-label="Sort tenants"
             >
-              <option value="">All tiers</option>
-              {tiers.map((value) => (
-                <option key={value} value={value}>
-                  {value}
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
-          ) : null}
-          <div className="flex items-center justify-between gap-2">
-            <label className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <input
-                type="checkbox"
-                className="size-3.5 accent-[var(--pos-primary,#0f766e)]"
-                checked={allVisibleSelected}
-                ref={(el) => {
-                  if (el)
-                    el.indeterminate =
-                      someVisibleSelected && !allVisibleSelected;
-                }}
-                onChange={(e) => onSelectAllVisible(e.target.checked)}
-                aria-label="Select all visible tenants"
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+            <FilterChip
+              active={filters.presence === "online"}
+              onClick={() => togglePresence("online")}
+              title="Tenants with the app, till or dashboard open right now"
+            >
+              <span
+                aria-hidden
+                className="size-1.5 rounded-full bg-primary"
               />
-              Select visible
-            </label>
-            <p className={cn(dashboardHintClass(), "tabular-nums")}>
-              {filteredRows.length} shown
-              {loading ? " · loading…" : ""}
-            </p>
+              Online
+              <ChipCount value={counts.online} />
+            </FilterChip>
+            <FilterChip
+              active={filters.presence === "support"}
+              onClick={() => togglePresence("support")}
+              title="Online tenants who have the support chat open"
+            >
+              On support
+              <ChipCount value={counts.support} />
+            </FilterChip>
+            <FilterChip
+              active={filters.presence === "offline"}
+              onClick={() => togglePresence("offline")}
+              title="Tenants with nothing open right now"
+            >
+              Offline
+              <ChipCount value={counts.offline} />
+            </FilterChip>
+
+            <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border" />
+
+            <FilterChip
+              active={filters.status === "active"}
+              onClick={() => toggleStatus("active")}
+            >
+              Active
+              <ChipCount value={counts.active} />
+            </FilterChip>
+            <FilterChip
+              active={filters.status === "inactive"}
+              onClick={() => toggleStatus("inactive")}
+              title="Tenants switched off"
+            >
+              Off
+              <ChipCount value={counts.inactive} />
+            </FilterChip>
+            <FilterChip
+              active={filters.status === "stuck"}
+              onClick={() => toggleStatus("stuck")}
+              title="Signed up but not set up yet"
+            >
+              Stuck
+              <ChipCount value={counts.stuck} />
+            </FilterChip>
+            <FilterChip
+              active={filters.status === "new"}
+              onClick={() => toggleStatus("new")}
+              title={`Created in the last ${NEW_TENANT_DAYS} days`}
+            >
+              New
+              <ChipCount value={counts.fresh} />
+            </FilterChip>
+
+            {filtersActive ? (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="ml-auto shrink-0 rounded-[2px] px-1.5 text-[11.5px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
         </div>
 
-        <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
-          <li>
-            <button
-              type="button"
-              onClick={() => selectPanel({ kind: "create" })}
-              className={cn(
-                "relative flex w-full items-start gap-2.5 px-3 py-3 text-left transition-colors",
-                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
-                "active:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
-              )}
-            >
-              <span className="mt-0.5 grid size-7 shrink-0 place-items-center border border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]">
-                <Plus className="size-3.5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
-                  New tenant
-                </p>
-                <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
-                  Create a business
-                </p>
-              </div>
-              <ChevronRight
-                className="mt-1 size-4 shrink-0 text-muted-foreground/70"
-                aria-hidden
-              />
-            </button>
-          </li>
+        {/* Result count, select-all (narrow) and the live clock */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground">
+          <label className="inline-flex items-center gap-1.5 @4xl:hidden">
+            {selectAllControl}
+            Select visible
+          </label>
+          <p className="tabular-nums">
+            {loading && totalCount === 0
+              ? "Loading tenants…"
+              : `${rows.length} of ${totalCount} ${totalCount === 1 ? "tenant" : "tenants"}`}
+          </p>
+          <p className="tabular-nums">
+            <LiveClock at={presenceAt} failed={presenceFailed} />
+          </p>
+        </div>
 
-          {filteredRows.length === 0 ? (
-            <li>
-              <p className={cn(dashboardHintClass(), "px-3 py-8 text-center")}>
-                {loading
-                  ? "Loading tenants…"
-                  : searchInput.trim()
-                    ? `No tenants match “${searchInput.trim()}”.`
-                    : "No tenants in this view."}
-              </p>
-            </li>
-          ) : (
-            filteredRows.map((row) => {
-              const active = panelEquals(selected, {
-                kind: "business",
-                id: row.id,
-              });
-              const checked = selectedIds.includes(row.id);
-              const stuck = stuckIds.has(row.id);
-              return (
-                <li key={row.id}>
-                  <div
-                    className={cn(
-                      "relative flex w-full items-start gap-2 px-3 py-3 text-left",
-                      active
-                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
-                        : checked
-                          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_4%,white)]"
-                          : null,
-                    )}
-                  >
-                    <label className="mt-1.5 flex size-5 shrink-0 items-center justify-center">
-                      <input
-                        type="checkbox"
-                        className="size-3.5 accent-[var(--pos-primary,#0f766e)]"
-                        checked={checked}
-                        onChange={(e) =>
-                          onToggleSelected(row.id, e.target.checked)
-                        }
-                        aria-label={`Select ${row.name}`}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        selectPanel({ kind: "business", id: row.id })
-                      }
-                      className="flex min-w-0 flex-1 items-start gap-2.5 text-left transition-colors"
-                    >
-                      <span
-                        className={cn(
-                          "mt-0.5 grid size-7 shrink-0 place-items-center border",
-                          active
-                            ? "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,white)] text-[var(--pos-primary,#0f766e)]"
-                            : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] text-muted-foreground",
-                        )}
-                        aria-hidden
-                      >
-                        <Building2 className="size-3.5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold tracking-[-0.015em] text-foreground">
-                          {row.name}
-                        </p>
-                        <p className="mt-0.5 font-mono text-[10px] leading-snug text-muted-foreground">
-                          {row.slug}
-                          {" · "}
-                          <span
-                            className={
-                              row.active
-                                ? "text-[var(--pos-primary,#0f766e)]"
-                                : undefined
-                            }
-                          >
-                            {row.active ? "active" : "inactive"}
-                          </span>
-                          {stuck ? (
-                            <span className="text-amber-800"> · stuck</span>
-                          ) : null}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] leading-snug text-muted-foreground">
-                          {row.ownerName?.trim() || row.ownerEmail?.trim()
-                            ? [
-                                row.ownerName?.trim() || null,
-                                row.ownerEmail?.trim() || null,
-                                row.ownerPhone?.trim() || null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")
-                            : row.ownerPhone?.trim()
-                              ? row.ownerPhone.trim()
-                              : "No owner linked"}
-                        </p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
-                          <span className="capitalize">
-                            {row.subscriptionTier}
-                          </span>
-                          <span>{formatWhen(row.createdAt)}</span>
-                        </p>
-                      </div>
-                      <ChevronRight
-                        className="mt-1 size-4 shrink-0 text-muted-foreground/70"
-                        aria-hidden
-                      />
-                    </button>
-                  </div>
-                </li>
-              );
-            })
+        {/* Column headings, wide containers only */}
+        <div
+          className={cn(
+            "hidden items-center gap-x-3 border-b border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground @4xl:grid",
+            WIDE_COLUMNS,
           )}
-        </ul>
-      </div>
+        >
+          <span className="flex items-center justify-center">
+            {selectAllControl}
+          </span>
+          <span>Tenant</span>
+          <span>Owner</span>
+          <span>Plan</span>
+          <span>Live</span>
+          <span>Joined</span>
+          <span className="sr-only">Actions</span>
+        </div>
+
+        {loading && rows.length === 0 && totalCount === 0 ? (
+          <SkeletonRows />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            filters={filters}
+            perTenant={presence.perTenant}
+            onReset={onResetFilters}
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {rows.map((row) => (
+              <TenantRow
+                key={row.id}
+                row={row}
+                live={presenceOf(presence, row.id)}
+                stuck={stuckIds.has(row.id)}
+                now={now}
+                active={panelEquals(selected, { kind: "business", id: row.id })}
+                checked={selectedIds.includes(row.id)}
+                arrived={arrivedIds.has(row.id)}
+                watched={watchedIds.has(row.id)}
+                onOpen={() => selectPanel({ kind: "business", id: row.id })}
+                onToggleChecked={(checked) =>
+                  onToggleSelected(row.id, checked)
+                }
+                onToggleWatch={() => onToggleWatch(row)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Dialog
         open={!!selected}
@@ -503,7 +1107,7 @@ export function BusinessesTheatre({
         }}
       >
         <DialogContent
-          className="max-h-[min(90dvh,40rem)] gap-0 overflow-hidden rounded-none border p-0 sm:max-w-lg"
+          className="max-h-[min(90dvh,40rem)] gap-0 overflow-hidden rounded-[2px] border p-0 sm:max-w-lg"
           showCloseButton
         >
           <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12">
@@ -524,12 +1128,14 @@ export function BusinessesTheatre({
               <Button
                 type="button"
                 variant="ghost"
-                className="h-8 rounded-none"
+                className="h-8 rounded-[2px]"
                 onClick={clearSelection}
               >
                 Close
               </Button>
-              <div className="flex flex-wrap justify-end gap-2">{modalFooter}</div>
+              <div className="flex flex-wrap justify-end gap-2">
+                {modalFooter}
+              </div>
             </DialogFooter>
           ) : null}
         </DialogContent>

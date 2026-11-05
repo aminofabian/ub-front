@@ -3,8 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Minus,
+  Plus,
   RefreshCcw,
   ShieldCheck,
   Truck,
@@ -22,8 +25,8 @@ import styles from "@/components/storefront/templates/store/zetu.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  formatCartQty,
   formatDisplayPrice,
-  formatStoreQty,
   hasCatalogPrice,
   isStorefrontWeighedItem,
   type PublicCatalogItemCard,
@@ -68,7 +71,13 @@ export function ZetuProduct({
     item.qtyOnHand != null && Number.isFinite(item.qtyOnHand) && item.qtyOnHand > 0
       ? item.qtyOnHand
       : null;
-  const stockLabel = formatStoreQty(item.qtyOnHand);
+  const stockLabel = soldOut
+    ? "Sold out"
+    : item.qtyOnHand != null && Number.isFinite(item.qtyOnHand)
+      ? item.qtyOnHand <= 3
+        ? `Only ${formatCartQty(item.qtyOnHand)} left`
+        : `${formatCartQty(item.qtyOnHand)} available`
+      : null;
   const featureLines = useMemo(
     () =>
       item.description
@@ -110,15 +119,17 @@ export function ZetuProduct({
 
   return (
     <div
-      className={cn(styles.root, styles.body, zetuFontVariables, styles.pdp)}
+      className={cn(
+        styles.root,
+        styles.body,
+        zetuFontVariables,
+        styles.pdp,
+        showPrice && styles.pdpBuyable,
+      )}
       data-store-theme-id="zetu"
     >
       <div className={styles.pdpWrap}>
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-          <Link href={APP_ROUTES.shop}>Home</Link>
-          <span className={styles.breadcrumbSep} aria-hidden>
-            /
-          </span>
           <Link href={APP_ROUTES.shop}>Shop</Link>
           <span className={styles.breadcrumbSep} aria-hidden>
             /
@@ -217,19 +228,35 @@ export function ZetuProduct({
                 </>
               ) : null}
             </StorefrontProductImageShell>
+
+            {images.length > 1 ? (
+              <div className={styles.pdpDots} aria-label="Choose image">
+                {images.slice(0, 8).map((img, idx) => (
+                  <button
+                    key={`${img.url}-dot-${idx}`}
+                    type="button"
+                    className={cn(
+                      styles.pdpDot,
+                      idx === activeIdx && styles.pdpDotActive,
+                    )}
+                    onClick={() => setActiveIdx(idx)}
+                    aria-label={`View image ${idx + 1} of ${images.length}`}
+                    aria-current={idx === activeIdx ? "true" : undefined}
+                  />
+                ))}
+              </div>
+            ) : null}
           </section>
 
           <section className={styles.pdpInfo}>
-            <span className={styles.pdpBrand}>
-              {item.discountName?.trim() || "Featured"}
-            </span>
+            <span className={styles.pdpBrand}>The edit</span>
             <h1 className={styles.pdpTitle}>{item.name}</h1>
             <div className={styles.pdpMeta}>
               {item.sku ? <span>SKU {item.sku}</span> : null}
               {stockLabel ? (
                 <>
                   <span className={styles.pdpMetaDot} aria-hidden />
-                  <span>{soldOut ? "Sold out" : stockLabel}</span>
+                  <span>{stockLabel}</span>
                 </>
               ) : null}
               {weighed && item.unitType ? (
@@ -317,7 +344,7 @@ export function ZetuProduct({
                       disabled={busy || qty <= 1}
                       aria-label="Decrease quantity"
                     >
-                      −
+                      <Minus size={15} strokeWidth={2.2} aria-hidden />
                     </button>
                     <span className={styles.pdpQtyValue} aria-live="polite">
                       {qty}
@@ -329,7 +356,7 @@ export function ZetuProduct({
                       disabled={busy || (maxQty != null && qty >= maxQty)}
                       aria-label="Increase quantity"
                     >
-                      +
+                      <Plus size={15} strokeWidth={2.2} aria-hidden />
                     </button>
                   </div>
                   <button
@@ -337,6 +364,7 @@ export function ZetuProduct({
                     className={styles.pdpAdd}
                     onClick={() => void add(false)}
                     disabled={busy || soldOut}
+                    aria-busy={busy}
                   >
                     {soldOut ? "Sold out" : busy ? "Adding…" : "Add to cart"}
                   </button>
@@ -349,7 +377,11 @@ export function ZetuProduct({
                 >
                   Buy it now
                 </button>
-                {error ? <p className={styles.pdpError}>{error}</p> : null}
+                {error ? (
+                  <p className={styles.pdpError} role="alert">
+                    {error}
+                  </p>
+                ) : null}
               </>
             ) : (
               <div className={styles.pdpUnavailable}>
@@ -377,7 +409,13 @@ export function ZetuProduct({
             <div className={styles.pdpAccordion}>
               <details className={styles.pdpAccordionItem} open>
                 <summary className={styles.pdpAccordionSummary}>
-                  Description
+                  <span>Description</span>
+                  <ChevronDown
+                    className={styles.pdpChevron}
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
                 </summary>
                 <div className={styles.pdpAccordionBody}>
                   {featureLines.length > 0 ? (
@@ -392,7 +430,13 @@ export function ZetuProduct({
 
               <details className={styles.pdpAccordionItem}>
                 <summary className={styles.pdpAccordionSummary}>
-                  Delivery &amp; returns
+                  <span>Delivery &amp; returns</span>
+                  <ChevronDown
+                    className={styles.pdpChevron}
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
                 </summary>
                 <div className={styles.pdpAccordionBody}>
                   <p>
@@ -407,7 +451,15 @@ export function ZetuProduct({
               </details>
 
               <details className={styles.pdpAccordionItem}>
-                <summary className={styles.pdpAccordionSummary}>Care</summary>
+                <summary className={styles.pdpAccordionSummary}>
+                  <span>Care</span>
+                  <ChevronDown
+                    className={styles.pdpChevron}
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </summary>
                 <div className={styles.pdpAccordionBody}>
                   <p>
                     Follow the care label on the piece. Wash cold, dry in the
@@ -420,11 +472,34 @@ export function ZetuProduct({
         </div>
       </div>
 
+      {showPrice ? (
+        <div className={styles.pdpSticky} data-zetu-sticky>
+          <div className={styles.pdpStickyPrice}>
+            <span className={styles.pdpStickyAmount}>
+              {formatDisplayPrice(item.currency, item.price)}
+            </span>
+            {discount ? (
+              <span className={styles.pdpStickyCompare}>
+                {formatDisplayPrice(item.currency, item.regularPrice ?? null)}
+              </span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className={styles.pdpStickyBtn}
+            onClick={() => void add(false)}
+            disabled={busy || soldOut}
+            aria-busy={busy}
+          >
+            {soldOut ? "Sold out" : busy ? "Adding…" : "Add to bag"}
+          </button>
+        </div>
+      ) : null}
+
       {relatedItems.filter((entry) => entry.id !== item.id).length > 0 ? (
         <section className={styles.pdpMore} aria-label="More from the shop">
           <div className={styles.pdpMoreHead}>
             <div>
-              <span className={styles.kicker}>Keep looking</span>
               <h2 className={styles.pdpMoreTitle}>More from the shop</h2>
             </div>
             <Link href={APP_ROUTES.shop} className={styles.viewAll}>

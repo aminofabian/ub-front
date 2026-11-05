@@ -48,7 +48,6 @@ export function ZetuCheckoutChrome({
           <ArrowLeft className="size-4" aria-hidden />
         </button>
         <div className={styles.checkoutHeadCopy}>
-          <p className={styles.checkoutEyebrow}>Secure checkout</p>
           <h2 className={styles.checkoutTitle}>{title}</h2>
         </div>
         <button

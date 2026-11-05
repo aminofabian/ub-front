@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   MessageCircle,
   ShieldCheck,
-  Sparkles,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -22,7 +21,6 @@ import { useStorefrontSignUpDoor } from "@/components/storefront/storefront-acco
 import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
 import { ZetuCard } from "@/components/storefront/templates/store/zetu-card";
 import { ZetuCatalog } from "@/components/storefront/templates/store/zetu-catalog";
-import { ZetuCountdown } from "@/components/storefront/templates/store/zetu-countdown";
 import { ZetuFooter } from "@/components/storefront/templates/store/zetu-footer";
 import {
   zetuBudgetCeiling,
@@ -38,10 +36,7 @@ import {
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
-import {
-  themeOptionString,
-  themeOptionVars,
-} from "@/lib/storefront-theme-options";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { cn } from "@/lib/utils";
 
 function dedupe(items: readonly PublicCatalogItemCard[]): PublicCatalogItemCard[] {
@@ -63,34 +58,31 @@ function percentLine(items: PublicCatalogItemCard[]): PublicCatalogItemCard[] {
   });
 }
 
+/** Fill a rail evenly when a shop has fewer than five pieces. */
+function railStyle(count: number): CSSProperties {
+  return {
+    ["--zt-rail-count" as string]: Math.max(2, Math.min(count, 5)),
+  } as CSSProperties;
+}
+
 function SectionHead({
-  kicker,
   title,
   lead,
   href,
   cta,
-  dark = false,
 }: {
-  kicker: string;
   title: string;
   lead?: string | null;
   href: string;
   cta: string;
-  dark?: boolean;
 }) {
   return (
     <div className={styles.bandHead}>
       <div className={styles.bandHeadCopy}>
-        <span className={cn(styles.kicker, dark && styles.kickerDark)}>
-          {kicker}
-        </span>
-        <h2 className={cn(styles.h2, dark && styles.h2OnDark)}>{title}</h2>
+        <h2 className={styles.h2}>{title}</h2>
         {lead ? <p className={styles.sectionLead}>{lead}</p> : null}
       </div>
-      <Link
-        href={href}
-        className={cn(styles.viewAll, dark && styles.viewAllDark)}
-      >
+      <Link href={href} className={styles.viewAll}>
         {cta}
         <ArrowRight size={13} strokeWidth={2.4} aria-hidden />
       </Link>
@@ -134,9 +126,6 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
 
   const design = useStorefrontLiveDesign(designProp ?? null);
   const optionVars = themeOptionVars(themeId, design?.theme ?? null);
-  const saleEnds = themeOptionString(themeId, design?.theme ?? null, "saleEnds");
-  const saleLabel =
-    themeOptionString(themeId, design?.theme ?? null, "saleLabel") || "Flash sale";
   const productsConfig = storefrontSectionConfig(design, "products");
   const productsOn = productsConfig ? productsConfig.enabled : true;
   const heroSection = storefrontSectionConfig(design, "hero");
@@ -209,7 +198,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
     [areaLabel?.trim(), branchHint?.trim()].filter(Boolean).join(" · ") || null;
   const promiseCopy =
     landingContent?.storyBody?.trim() ||
-    `Every ${heroTitle} order is packed by hand. Pay with M-Pesa, card or cash on delivery, and track the order from your account.`;
+    `Every ${heroTitle} order is prepared by the shop. Pay with M-Pesa, card or cash on delivery, and track the order from your account.`;
   // The announcement bar owns urgency copy; the hero uses the merchant's
   // explicit hero section headline or a seasonal line — never the top banner
   // and never the coming-soon landing headline.
@@ -217,7 +206,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
     heroSettings?.headline?.trim() || "New season.\nNew obsessions.";
   const subcopy =
     heroSettings?.subheadline?.trim() ||
-    "Fresh fashion, beauty and accessories — styled for the week you actually have. New pieces land every week.";
+    "Fresh fashion, beauty and accessories — styled for the week you actually have. New pieces land regularly.";
   const listing = Boolean(
     q?.trim() || categoryId?.trim() || typeId?.trim() || categoryHeading?.trim(),
   );
@@ -269,13 +258,6 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
           {heroOn ? (
           <section className={styles.hero}>
             <div className={styles.heroCopy}>
-              <span className={styles.heroNote}>
-                New season edit {stats.maxDiscount > 0 ? <b>up to {stats.maxDiscount}% off</b> : <b>just in</b>}
-              </span>
-              <span className={styles.heroEyebrow}>
-                <Sparkles size={11} strokeWidth={2.4} aria-hidden />
-                New season
-              </span>
               <StorefrontNativeHeroEditFrame>
                 <StorefrontNativeHeroHeadline
                   value={headline}
@@ -285,11 +267,12 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <p className={styles.heroOffer}>
                 {stats.maxDiscount > 0 ? (
                   <>
-                    <span>Up to</span> {stats.maxDiscount}% off <span>the wall</span>
+                    <span>Up to</span> {stats.maxDiscount}% off{" "}
+                    <span>selected pieces</span>
                   </>
                 ) : (
                   <>
-                    <span>Fresh drops</span> every week
+                    <span>Fresh drops</span> just landed
                   </>
                 )}
               </p>
@@ -300,7 +283,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
                   <ArrowRight size={14} strokeWidth={2.5} aria-hidden />
                 </Link>
                 <a href="#just-landed" className={styles.heroGhost}>
-                  Just landed
+                  New in
                 </a>
               </div>
               <div className={styles.heroTrust}>
@@ -373,7 +356,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <span className={styles.dealCta}>
                 {stats.maxDiscount > 0 ? "Shop the sale" : "Shop new in"}
                 <span className={styles.dealArrow} aria-hidden>
-                  →
+                  <ArrowUpRight size={11} strokeWidth={2.4} />
                 </span>
               </span>
             </Link>
@@ -392,13 +375,13 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <span className={styles.dealCta}>
                 Shop the edit
                 <span className={styles.dealArrow} aria-hidden>
-                  →
+                  <ArrowUpRight size={11} strokeWidth={2.4} />
                 </span>
               </span>
             </Link>
 
             <Link href={APP_ROUTES.shop} className={cn(styles.dealCard, styles.dealDark)}>
-              <span className={styles.dealKicker}>New this week</span>
+              <span className={styles.dealKicker}>The count</span>
               <span className={styles.dealTitle}>
                 {count}
                 <small>pieces</small>
@@ -406,7 +389,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <span className={styles.dealCta}>
                 See what&apos;s new
                 <span className={styles.dealArrow} aria-hidden>
-                  →
+                  <ArrowUpRight size={11} strokeWidth={2.4} />
                 </span>
               </span>
             </Link>
@@ -422,7 +405,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <span className={styles.dealCta}>
                 Browse all
                 <span className={styles.dealArrow} aria-hidden>
-                  →
+                  <ArrowUpRight size={11} strokeWidth={2.4} />
                 </span>
               </span>
             </Link>
@@ -432,40 +415,35 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
         {productsOn ? (
           <section className={styles.bandLime}>
             <div className={cn(styles.shell, styles.section)}>
-              <div className={styles.flashHead}>
-                <span className={styles.flashPill}>
-                  {saleItems.length > 0 ? saleLabel : "New in"}
-                </span>
-                {saleItems.length > 0 ? (
-                  <ZetuCountdown endsAt={saleEnds} lead="Ends in" dark />
-                ) : null}
-              </div>
               <SectionHead
-                kicker={saleItems.length > 0 ? "On sale now" : "New arrivals"}
                 title={
                   saleItems.length > 0 ? "Today's top deals" : "New this week"
                 }
                 lead={
                   saleItems.length > 0
-                    ? "Biggest markdowns first. Prices move when stock does."
+                    ? "Biggest markdowns first, while stock lasts."
                     : "The latest pieces to land, ready to wear now."
                 }
                 href={APP_ROUTES.shop}
                 cta={saleItems.length > 0 ? "View all deals" : "Shop all"}
               />
               <div className={styles.metaChips}>
-                <span className={styles.metaChip}>
-                  <b>{saleItems.length}</b> on sale
-                </span>
+                {saleItems.length > 0 ? (
+                  <span className={styles.metaChip}>
+                    <b>{saleItems.length}</b> on sale
+                  </span>
+                ) : null}
                 <span className={styles.metaChip}>
                   <b>{count}</b> pieces
                 </span>
-                <span className={styles.metaChip}>
-                  <b>{collections.length}</b> collections
-                </span>
+                {collections.length > 0 ? (
+                  <span className={styles.metaChip}>
+                    <b>{collections.length}</b> collections
+                  </span>
+                ) : null}
               </div>
               {dealRail.length > 0 ? (
-                <div className={styles.rail}>
+                <div className={styles.rail} style={railStyle(dealRail.length)}>
                   {dealRail.map((item) => (
                     <ZetuCard
                       key={item.id}
@@ -490,10 +468,7 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               <span className={styles.promiseSquare} aria-hidden>
                 {heroTitle.trim().charAt(0).toUpperCase() || "Z"}
               </span>
-              <div>
-                <p className={styles.kicker}>Packed by hand</p>
-                <p className={styles.promiseSerif}>Pay your way.</p>
-              </div>
+              <p className={styles.promiseSerif}>Pay your way.</p>
             </div>
             <p className={styles.promiseCopy}>{promiseCopy}</p>
             {wa ? (
@@ -517,21 +492,18 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
         <div className={cn(styles.shell, styles.sectionTight)}>
           <section className={styles.editorial}>
             <div className={styles.editorialCopy}>
-              <span className={styles.editorialBadge}>The edit</span>
               <h2 className={styles.editorialTitle}>
+                The{" "}
                 {editorialCategory ? (
-                  <>
-                    <em>{editorialCategory.name}</em> just landed.
-                  </>
+                  <em>{editorialCategory.name}</em>
                 ) : (
-                  <>
-                    <em>New season</em> just landed.
-                  </>
-                )}
+                  <em>season</em>
+                )}{" "}
+                edit.
               </h2>
               <p className={styles.editorialSub}>
                 {landingContent?.storyBody?.trim() ||
-                  "Our stylists pulled the pieces worth wearing now — and the price tags worth showing off."}
+                  "The pieces worth wearing now — and the price tags worth showing off."}
               </p>
               <div className={styles.editorialChips}>
                 {collections.slice(0, 3).map((collection) => (
@@ -583,41 +555,42 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
           </section>
         </div>
 
-        <div className={cn(styles.shell, styles.sectionTight)}>
-          <SectionHead
-            kicker="The looks you keep coming back to"
-            title="Best sellers"
-            lead={null}
-            href={APP_ROUTES.shop}
-            cta="See what's hot"
-          />
-          {bestSellers.length > 0 ? (
-            <div className={styles.rail}>
-              {bestSellers.map((item) => (
-                <ZetuCard
-                  key={item.id}
-                  item={item}
-                  currency={currency}
-                  brandFallback={heroTitle}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className={styles.empty}>No best sellers yet — the first drop is loading.</p>
-          )}
-        </div>
+        {productsOn ? (
+          <div className={cn(styles.shell, styles.sectionTight)}>
+            <SectionHead
+              title="Best sellers"
+              lead={null}
+              href={APP_ROUTES.shop}
+              cta="See what's hot"
+            />
+            {bestSellers.length > 0 ? (
+              <div className={styles.rail} style={railStyle(bestSellers.length)}>
+                {bestSellers.map((item) => (
+                  <ZetuCard
+                    key={item.id}
+                    item={item}
+                    currency={currency}
+                    brandFallback={heroTitle}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.empty}>
+                No best sellers yet — the first drop is loading.
+              </p>
+            )}
+          </div>
+        ) : null}
 
+        {productsOn ? (
         <div className={styles.shell}>
           <section id="just-landed" className={styles.justLanded}>
             <div className={styles.justHead}>
-              <span className={cn(styles.kicker, styles.kickerDark)}>
-                New season. New obsessions.
-              </span>
               <h2 className={styles.justTitle}>
-                Just <em>landed!</em>
+                Just <em>landed.</em>
               </h2>
               <p className={styles.justSub}>
-                The latest pieces have entered the chat. Be first through the door.
+                The latest pieces are in. Be first through the door.
               </p>
               <Link href={APP_ROUTES.shop} className={styles.justCta}>
                 See what&apos;s new
@@ -625,7 +598,10 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
               </Link>
             </div>
             {justLanded.length > 0 ? (
-              <div className={cn(styles.rail, styles.railDark)}>
+              <div
+                className={cn(styles.rail, styles.railDark)}
+                style={railStyle(justLanded.length)}
+              >
                 {justLanded.map((item) => (
                   <ZetuCard
                     key={item.id}
@@ -638,37 +614,38 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
             ) : null}
           </section>
         </div>
+        ) : null}
 
-        <div className={cn(styles.shell, styles.section)}>
-          <SectionHead
-            kicker="What everyone's buying right now"
-            title="Trending"
-            lead="Ranked by demand across the shop this week."
-            href={APP_ROUTES.shop}
-            cta="Shop trending"
-          />
-          {trending.length > 0 ? (
-            <div className={styles.trending}>
-              {trending.map((item, index) => (
-                <div key={item.id} className={styles.numberWrap}>
-                  <span className={styles.numberTag}>
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <ZetuCard
-                    item={item}
-                    currency={currency}
-                    brandFallback={heroTitle}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {productsOn ? (
+          <div className={cn(styles.shell, styles.section)}>
+            <SectionHead
+              title="Trending"
+              lead="The pieces worth a second look this week."
+              href={APP_ROUTES.shop}
+              cta="Shop trending"
+            />
+            {trending.length > 0 ? (
+              <div className={styles.trending}>
+                {trending.map((item, index) => (
+                  <div key={item.id} className={styles.numberWrap}>
+                    <span className={styles.numberTag}>
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <ZetuCard
+                      item={item}
+                      currency={currency}
+                      brandFallback={heroTitle}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {collections.length > 0 ? (
           <div className={cn(styles.shell, styles.sectionTight)}>
             <SectionHead
-              kicker="Find your next favourite"
               title="Shop by category"
               lead={null}
               href={APP_ROUTES.shop}
@@ -684,16 +661,13 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
                     index === 0 && styles.categoryCardAlt,
                   )}
                 >
-                  <span className={styles.categoryKicker}>
+                  <span className={styles.categoryName}>{collection.name}</span>
+                  <span className={styles.categoryFoot}>
                     {collection.count != null
                       ? `${collection.count} pieces`
                       : "Collection"}
-                  </span>
-                  <span className={styles.categoryName}>{collection.name}</span>
-                  <span className={styles.categoryFoot}>
-                    Shop now
                     <span className={styles.categoryArrow} aria-hidden>
-                      →
+                      <ArrowUpRight size={11} strokeWidth={2.4} />
                     </span>
                   </span>
                 </Link>
@@ -705,10 +679,10 @@ export function ZetuStoreHome(props: StoreHomeTemplateProps) {
         <div className={cn(styles.shell, styles.sectionTight)}>
           <section className={styles.newsletter}>
             <div>
-              <h2 className={styles.newsletterTitle}>First look, every drop.</h2>
+              <h2 className={styles.newsletterTitle}>Your bag, saved.</h2>
               <p className={styles.newsletterCopy}>
-                Create an account to save your bag, follow orders and get the
-                next collection before it hits the rail.
+                Create an account to keep your bag, follow orders and get first
+                look at each drop.
               </p>
             </div>
             <div className={styles.newsletterForm}>

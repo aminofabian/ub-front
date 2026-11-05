@@ -60,7 +60,7 @@ export function ZetuFooter({
           </div>
 
           <div className={styles.footerCol}>
-            <p className={styles.footerHead}>Shop</p>
+            <h3 className={styles.footerHead}>Shop</h3>
             {topCategories.length > 0 ? (
               topCategories.map((cat) => (
                 <Link
@@ -91,7 +91,7 @@ export function ZetuFooter({
           </div>
 
           <div className={styles.footerCol}>
-            <p className={styles.footerHead}>Help</p>
+            <h3 className={styles.footerHead}>Help</h3>
             {wa ? (
               <a
                 href={`https://wa.me/${wa}`}
@@ -112,7 +112,7 @@ export function ZetuFooter({
           </div>
 
           <div className={styles.footerCol}>
-            <p className={styles.footerHead}>Your account</p>
+            <h3 className={styles.footerHead}>Your account</h3>
             <Link href={APP_ROUTES.shopAccount} className={styles.footerLink}>
               Orders & profile
             </Link>

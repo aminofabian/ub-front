@@ -353,18 +353,29 @@ logo, catalogue and copy still drive the page.
   uppercase category nav with a lime pill, dark hero with a lime offer line,
   four deal tiles, lime-tinted product rail, serif promise band, dark
   editorial band, black "Just landed" panel, numbered trending wall, category
-  wall, lime sign-up band, black footer.
-- **PDP:** breadcrumb, vertical thumbs + grey hero canvas, discount chip,
-  price/compare/save, option pills, qty + lime Add to cart + black Buy it now,
-  three trust tiles, native `<details>` accordion, and a "more from the shop"
-  wall fetched server-side for this theme only.
-- **Collection:** sticky filter rail (search, categories, sort, sale-only,
-  price bands) and a 2/3/4-column card grid; mobile gets category chips.
+  wall, pale-lime sign-up band, black footer. Section headings carry their own
+  weight — no decorative kicker or eyebrow above them.
+- **Type scale:** display `clamp(2.5rem, 9.4cqi, 5.6rem)` in the hero, tracking
+  never below `-0.04em`; body copy 12–15px; prices 14.5px; secondary ink
+  `#776E67` for AA contrast on paper.
+- **PDP:** breadcrumb, vertical thumbs + grey hero canvas on desktop, a
+  full-width swipe/dot gallery on phones, discount chip, price/compare/save,
+  option pills, qty + lime Add to cart + black Buy it now, three trust tiles,
+  native `<details>` accordion, a server-fetched "more from the shop" wall,
+  and a fixed mobile Add to bag bar (the shop chat lifts above it).
+- **Collection:** sticky desktop filter rail (search, categories, sort,
+  sale-only, price bands) and a 2/3/4-column card grid; mobile gets the same
+  search and filter state as wrapping chips.
 - **Portals:** cart, checkout, sign-in and WhatsApp sheets carry a copy of the
   palette so they still paint correctly when rendered outside the theme root.
-- **Options:** acid accent colour, paper tone, sale-badge colour; defaults are
-  no-ops so the theme's own palette wins.
+  The empty bag has its own Zetu state rather than the generic cart copy.
+- **Truthful urgency:** sale flags, sale language, and the countdown only
+  appear when the merchant sets them (`saleLabel`, `saleEnds`); the theme never
+  invents a deadline or a sale.
+- **Options:** acid accent colour, paper tone, sale-badge colour, optional
+  sale flag and end date; defaults are no-ops so the theme's own palette wins.
 - **Verification:** `next dev` themes gallery at
-  `/dev/themes-gallery?theme=zetu&desktop=1` and `?theme=zetu`, plus dedicated
-  PDP/collection harnesses during development. `tsc --noEmit` exits 0; the
-  storefront theme tests (including the unique try-on layout invariant) pass.
+  `/dev/themes-gallery?theme=zetu&desktop=1` and `?theme=zetu`; PDP, collection,
+  empty-cart and checkout chrome were checked at desktop and phone widths.
+  `tsc --noEmit` exits 0, `next build --webpack` exits 0, and the storefront
+  theme tests (including the unique try-on layout invariant) pass.

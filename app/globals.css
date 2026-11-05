@@ -8611,3 +8611,12 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 .support-chat-theme .rounded-lg {
     border-radius: 0.5rem;
 }
+
+/* ── Zetu mobile buy bar ────────────────────────────────────────────────
+   The Zetu PDP pins an Add to bag bar to the bottom on phones. Lift the
+   floating shop chat above it so neither control sits under the other. */
+@media (max-width: 899px) {
+    body:has([data-zetu-sticky]) .support-chat-theme {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 5.4rem) !important;
+    }
+}

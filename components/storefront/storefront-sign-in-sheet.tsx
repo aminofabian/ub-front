@@ -470,9 +470,6 @@ function StorefrontSignInSheet({
                 Spring pass
               </p>
             ) : null}
-            {zetu ? (
-              <p className={ztStyles.signInKicker}>Your account</p>
-            ) : null}
             {displayName && !themed ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                 {shopLabel}

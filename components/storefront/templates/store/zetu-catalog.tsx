@@ -124,16 +124,12 @@ export function ZetuCatalog({
     intro?.trim() ||
     (q?.trim()
       ? `Results for “${q.trim()}”.`
-      : "Build a wardrobe that moves from Saturday night out to everyday essentials. New drops land every week.");
+      : "Build a wardrobe that moves from Saturday night out to everyday essentials. New drops land regularly.");
 
   return (
     <div id="catalog" className={styles.catalog}>
-      <div className={styles.catalogShell}>
-        <aside
-          id="zt-filters"
-          className={styles.catalogSide}
-          aria-label="Filters"
-        >
+      <div id="zt-filters" className={styles.catalogShell}>
+        <aside className={styles.catalogSide} aria-label="Filters">
           <div className={styles.sideBlock}>
             <div className={styles.sideSearch}>
               <Search size={14} strokeWidth={2} aria-hidden />
@@ -156,6 +152,9 @@ export function ZetuCatalog({
                   styles.sideLink,
                   !categoryId && !categoryPathSlug && styles.sideLinkActive,
                 )}
+                aria-current={
+                  !categoryId && !categoryPathSlug ? "page" : undefined
+                }
               >
                 All products
                 {totalCount != null ? (
@@ -177,6 +176,7 @@ export function ZetuCatalog({
                       styles.sideLink,
                       active && styles.sideLinkActive,
                     )}
+                    aria-current={active ? "page" : undefined}
                   >
                     {cat.name}
                     {cat.itemCount != null ? (
@@ -235,6 +235,7 @@ export function ZetuCatalog({
                     styles.sideChip,
                     maxPrice == null && styles.sideChipActive,
                   )}
+                  aria-pressed={maxPrice == null}
                   onClick={() => setMaxPrice(null)}
                 >
                   All
@@ -247,6 +248,7 @@ export function ZetuCatalog({
                       styles.sideChip,
                       maxPrice === band && styles.sideChipActive,
                     )}
+                    aria-pressed={maxPrice === band}
                     onClick={() => setMaxPrice(band)}
                   >
                     Under {band.toLocaleString("en-KE")}
@@ -258,37 +260,6 @@ export function ZetuCatalog({
         </aside>
 
         <section className={styles.catalogMain}>
-          <p className={styles.catalogIntro}>{introCopy}</p>
-
-          <div className={styles.mobileChips} aria-label="Categories">
-            <Link
-              href={APP_ROUTES.shop}
-              className={cn(
-                styles.chip,
-                !categoryId && !categoryPathSlug && styles.chipActive,
-              )}
-            >
-              All
-            </Link>
-            {topCategories.map((cat) => {
-              const slugSeg = storefrontCategoryPathSlug(cat);
-              const active =
-                categoryId === cat.id || categoryPathSlug === slugSeg;
-              return (
-                <Link
-                  key={cat.id}
-                  href={shopListPath({
-                    categoryPathSlug: slugSeg,
-                    q: q || undefined,
-                  })}
-                  className={cn(styles.chip, active && styles.chipActive)}
-                >
-                  {cat.name}
-                </Link>
-              );
-            })}
-          </div>
-
           <div className={styles.catalogHead}>
             <div>
               <h1 className={styles.catalogTitle}>{heading}</h1>
@@ -306,9 +277,80 @@ export function ZetuCatalog({
                 onChange={(e) => setSort(e.target.value as SortKey)}
               >
                 <option value="latest">Newest</option>
-                <option value="price-asc">Price ↑</option>
-                <option value="price-desc">Price ↓</option>
+                <option value="price-asc">Price: low to high</option>
+                <option value="price-desc">Price: high to low</option>
               </select>
+            </div>
+          </div>
+
+          <p className={styles.catalogIntro}>{introCopy}</p>
+
+          <div className={styles.mobileFilters}>
+            <div className={styles.sideSearch}>
+              <Search size={14} strokeWidth={2} aria-hidden />
+              <input
+                type="search"
+                value={sideQuery}
+                onChange={(e) => setSideQuery(e.target.value)}
+                placeholder="Search this collection…"
+                aria-label="Search this collection"
+              />
+            </div>
+            <div className={styles.mobileChips} aria-label="Categories and filters">
+              <Link
+                href={APP_ROUTES.shop}
+                className={cn(
+                  styles.chip,
+                  !categoryId && !categoryPathSlug && styles.chipActive,
+                )}
+                aria-current={
+                  !categoryId && !categoryPathSlug ? "page" : undefined
+                }
+              >
+                All
+              </Link>
+              {topCategories.map((cat) => {
+                const slugSeg = storefrontCategoryPathSlug(cat);
+                const active =
+                  categoryId === cat.id || categoryPathSlug === slugSeg;
+                return (
+                  <Link
+                    key={cat.id}
+                    href={shopListPath({
+                      categoryPathSlug: slugSeg,
+                      q: q || undefined,
+                    })}
+                    className={cn(styles.chip, active && styles.chipActive)}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {cat.name}
+                  </Link>
+                );
+              })}
+              <button
+                type="button"
+                className={cn(styles.chip, onSale && styles.chipActive)}
+                aria-pressed={onSale}
+                onClick={() => setOnSale((value) => !value)}
+              >
+                On sale
+              </button>
+              {bands.map((band) => (
+                <button
+                  key={`mobile-${band}`}
+                  type="button"
+                  className={cn(
+                    styles.chip,
+                    maxPrice === band && styles.chipActive,
+                  )}
+                  aria-pressed={maxPrice === band}
+                  onClick={() =>
+                    setMaxPrice((current) => (current === band ? null : band))
+                  }
+                >
+                  Under {band.toLocaleString("en-KE")}
+                </button>
+              ))}
             </div>
           </div>
 

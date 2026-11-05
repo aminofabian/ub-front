@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ArrowUpRight, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
@@ -54,11 +54,11 @@ export function ZetuAddButton({
   if (soldOut) {
     return (
       <span
-        className={cn(styles.cardAdd, className)}
-        aria-label={`${item.name} is sold out`}
+        className={cn(styles.cardAdd, styles.cardAddMuted, className)}
+        aria-hidden
         title="Sold out"
       >
-        ×
+        <X size={15} strokeWidth={2.2} />
       </span>
     );
   }
@@ -68,10 +68,15 @@ export function ZetuAddButton({
       type="button"
       className={cn(styles.cardAdd, className)}
       disabled={busy}
+      aria-busy={busy}
       onClick={() => void onAdd()}
       aria-label={`Add ${item.name} to bag`}
     >
-      {busy ? <span aria-hidden>…</span> : <Plus size={16} strokeWidth={2.6} aria-hidden />}
+      {busy ? (
+        <span className={styles.cardSpin} aria-hidden />
+      ) : (
+        <Plus size={16} strokeWidth={2.6} aria-hidden />
+      )}
     </button>
   );
 }

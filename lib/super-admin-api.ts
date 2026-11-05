@@ -3800,6 +3800,14 @@ export type SaSupportPresencePayload = {
   tenantsOnSupport: number;
   /** Visitors currently on their guest support channel. */
   visitorsOnSupport: number;
+  /**
+   * Open realtime connections per tenant that is online right now (any channel:
+   * till, dashboard, support), keyed by businessId. Undefined when the API
+   * predates per-tenant presence, in which case only `tenantsOnline` is known.
+   */
+  tenantSessions?: Record<string, number>;
+  /** Last activity per tenant (ISO), since the API instance started. */
+  tenantLastSeen?: Record<string, string>;
 };
 
 export async function fetchSaSupportPresence(): Promise<SaSupportPresencePayload> {
@@ -3813,6 +3821,15 @@ export async function fetchSaSupportPresence(): Promise<SaSupportPresencePayload
     visitorsOnline: Number(payload.visitorsOnline ?? 0),
     tenantsOnSupport: Number(payload.tenantsOnSupport ?? 0),
     visitorsOnSupport: Number(payload.visitorsOnSupport ?? 0),
+    tenantSessions: payload.tenantSessions
+      ? Object.fromEntries(
+          Object.entries(payload.tenantSessions).map(([id, n]) => [
+            id,
+            Number(n) || 0,
+          ]),
+        )
+      : undefined,
+    tenantLastSeen: payload.tenantLastSeen ?? {},
   };
 }
 
