@@ -39,6 +39,7 @@ import {
   toastCaughtGroceryError,
   type GroceryInvoiceSummaryResponse,
 } from "@/lib/grocery-api";
+import { kickCashDrawer } from "@/lib/desktop-print";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 
 type PendingInvoicesPanelProps = {
@@ -394,6 +395,9 @@ export function PendingInvoicesPanel({
       setMarkPaidId(null);
       setMpesaRef("");
       onInvoiceVoided?.(inv.id);
+      if (method === "cash") {
+        void kickCashDrawer({ branchId: branchId?.trim() || null });
+      }
       toast.success(`Invoice ${inv.barcodeCode} marked paid`);
     } catch (e) {
       toastCaughtGroceryError(e, "Could not mark invoice paid");

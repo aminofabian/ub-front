@@ -37,7 +37,7 @@ export type DrawerKickIo = {
   kickViaBridge: (printer: DrawerKickPrinter) => Promise<void>;
 };
 
-export function drawerErrorMessage(error: unknown): string {
+function drawerErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.name === "AbortError" || error.name === "ClientTimeoutError") {
       return "The printer did not answer in time.";
@@ -48,40 +48,39 @@ export function drawerErrorMessage(error: unknown): string {
   return "The printer refused the drawer pulse.";
 }
 
-/** Try one pulse and say exactly why it did not go, if it did not. */
+/**
+ * Try one pulse and say exactly why it did not go, if it did not. Never
+ * rejects: every failure, including one from a lookup step, comes back as a
+ * result the caller can report.
+ */
 export async function attemptDrawerKick(
   io: DrawerKickIo,
 ): Promise<DrawerKickResult> {
-  if (io.isDesktop) {
-    try {
+  // Which half of the job was running when something threw.
+  let sending = false;
+  try {
+    if (io.isDesktop) {
+      sending = true;
       await io.kickDesktop();
       return { ok: true };
-    } catch (cause) {
+    }
+
+    const printer = await io.findPrinter();
+    if (!printer) {
       return {
         ok: false,
-        reason: "error",
-        message: drawerErrorMessage(cause),
-        cause,
+        reason: "no-printer",
+        message: "No receipt printer is set up on this till.",
       };
     }
-  }
-
-  const printer = await io.findPrinter();
-  if (!printer) {
-    return {
-      ok: false,
-      reason: "no-printer",
-      message: "No receipt printer is set up on this till.",
-    };
-  }
-  if (!(await io.isBridgeUp())) {
-    return {
-      ok: false,
-      reason: "bridge-down",
-      message: "The Till Print Bridge is not running on this computer.",
-    };
-  }
-  try {
+    if (!(await io.isBridgeUp())) {
+      return {
+        ok: false,
+        reason: "bridge-down",
+        message: "The Till Print Bridge is not running on this computer.",
+      };
+    }
+    sending = true;
     await io.kickViaBridge(printer);
     return { ok: true };
   } catch (cause) {
@@ -91,7 +90,7 @@ export async function attemptDrawerKick(
       // fetch() rejects with a TypeError when the request never completes: the
       // bridge dropped it, or the browser blocked it (CORS / local network).
       message:
-        cause instanceof TypeError
+        sending && !io.isDesktop && cause instanceof TypeError
           ? "The browser could not reach the Till Print Bridge."
           : drawerErrorMessage(cause),
       cause,

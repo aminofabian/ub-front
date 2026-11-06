@@ -7,6 +7,7 @@
  * Supports macOS/Linux (CUPS), Windows (PowerShell till bridge), and network ESC/POS (TCP 9100).
  */
 
+import { drawerKickJobBytes } from "@/lib/escpos-cash-tender";
 import { shareInflight } from "@/lib/share-inflight";
 
 export const TILL_PRINT_BRIDGE_URL =
@@ -270,8 +271,9 @@ export async function printEscPosViaTillBridge(
 }
 
 /**
- * Pulse the cash drawer via the receipt printer RJ12 port (ESC/POS kick).
- * Uses the same printer target headers as {@link printEscPosViaTillBridge}.
+ * Pulse the cash drawer via the receipt printer RJ12 port.
+ * Posted to `/print` with the kick bytes in the body, so a till bridge that
+ * can print a receipt can open the drawer even when it has no `/drawer/kick`.
  */
 export async function kickCashDrawerViaTillBridge(
   target: string | TillBridgePrintTarget,
@@ -289,7 +291,9 @@ export async function kickCashDrawerViaTillBridge(
     throw new Error("No receipt printer configured for this branch.");
   }
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "Content-Type": "application/octet-stream",
+  };
   if (host) {
     headers["X-Printer-Host"] = host;
     headers["X-Printer-Port"] = String(port > 0 ? port : 9100);
@@ -298,15 +302,25 @@ export async function kickCashDrawerViaTillBridge(
     headers["X-Printer-Cups-Name"] = name;
   }
 
+  const raw = drawerKickJobBytes();
+  const copy = new ArrayBuffer(raw.byteLength);
+  new Uint8Array(copy).set(raw);
+
   const { signal, done } = bridgeTimeoutSignal(BRIDGE_DRAWER_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(`${TILL_PRINT_BRIDGE_URL}/drawer/kick`, {
+    res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
       method: "POST",
       mode: "cors",
       headers,
+      body: new Blob([copy], { type: "application/octet-stream" }),
       signal,
     });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("The printer did not answer in time.");
+    }
+    throw e;
   } finally {
     done();
   }

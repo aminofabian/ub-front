@@ -130,6 +130,7 @@ function Send-NetworkRaw([string]$HostName, [int]$PortNumber, [byte[]]$Bytes) {
     $stream = $client.GetStream()
     $stream.Write($Bytes, 0, $Bytes.Length)
     $stream.Flush()
+    if ($Bytes.Length -lt 128) { Start-Sleep -Milliseconds 200 }
   } finally {
     try { $client.Close() } catch { }
   }
@@ -278,9 +279,14 @@ function Handle-Request($Req, $Stream) {
     return
   }
 
-  if ($method -eq "POST" -and $path -eq "/print") {
+  if ($method -eq "POST" -and ($path -eq "/print" -or $path -eq "/drawer/kick")) {
+    $isDrawer = ($path -eq "/drawer/kick")
     $bytes = $Req.Body
-    if ($null -eq $bytes -or $bytes.Length -eq 0) {
+    if ($isDrawer) {
+      $pulse = [byte[]](0x1b, 0x40, 0x1b, 0x70, 0x00, 0x19, 0xfa, 0x1b, 0x70, 0x01, 0x19, 0xfa, 0x0a, 0x0a)
+      $bytes = New-Object byte[] 64
+      [System.Buffer]::BlockCopy($pulse, 0, $bytes, 0, $pulse.Length)
+    } elseif ($null -eq $bytes -or $bytes.Length -eq 0) {
       Write-HttpResponse $Stream 400 "empty body" "text/plain"
       return
     }

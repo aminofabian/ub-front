@@ -4224,9 +4224,6 @@ export function QuickSaleWorkspace({
               : null,
             { openDrawer: shouldKickDrawer, quiet: true },
           ).catch(() => false);
-          if (!printed && shouldKickDrawer) {
-            void kickCashDrawer(printerTarget);
-          }
           if (printed) {
             if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
               setLastSale(sale);
@@ -4389,9 +4386,6 @@ export function QuickSaleWorkspace({
             : null,
           { openDrawer: shouldKickDrawer, quiet: true },
         ).catch(() => false);
-        if (!printed && shouldKickDrawer) {
-          void kickCashDrawer(printerTarget);
-        }
         if (printed) {
           if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
             setLastSale(sale);

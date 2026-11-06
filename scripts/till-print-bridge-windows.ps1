@@ -381,6 +381,7 @@ function Send-NetworkRaw([string]$HostName, [int]$PortNumber, [byte[]]$Bytes) {
     $stream = $client.GetStream()
     $stream.Write($Bytes, 0, $Bytes.Length)
     $stream.Flush()
+    if ($Bytes.Length -lt 128) { Start-Sleep -Milliseconds 200 }
   } finally {
     try { $client.Close() } catch { }
   }
@@ -504,7 +505,10 @@ function Write-HttpResponse($Stream, [int]$StatusCode, [string]$Body, [string]$C
 }
 
 function Get-DrawerKickBytes {
-  return [byte[]](0x1b, 0x70, 0x00, 0x19, 0xfa, 0x1b, 0x70, 0x01, 0x19, 0xfa)
+  $pulse = [byte[]](0x1b, 0x40, 0x1b, 0x70, 0x00, 0x19, 0xfa, 0x1b, 0x70, 0x01, 0x19, 0xfa, 0x0a, 0x0a)
+  $bytes = New-Object byte[] 64
+  [System.Buffer]::BlockCopy($pulse, 0, $bytes, 0, $pulse.Length)
+  return $bytes
 }
 
 function Handle-Request($Req, $Stream) {

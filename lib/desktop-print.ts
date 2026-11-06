@@ -10,12 +10,11 @@ import {
 import {
   attemptDrawerKick,
   createDrawerKickReporter,
-  drawerErrorMessage,
-  type DrawerKickResult,
 } from "@/lib/cash-drawer-kick";
 import { kickDesktopCashDrawer } from "@/lib/desktop-api";
 import {
   appendCashTenderEscPos,
+  drawerKickJobBytes,
   withoutTrailingDrawerKick,
   type CashTenderEscPos,
 } from "@/lib/escpos-cash-tender";
@@ -41,6 +40,7 @@ import {
   kickCashDrawerViaTillBridge,
   printEscPosViaTillBridge,
   TILL_BRIDGE_START_HINT,
+  TILL_PRINT_BRIDGE_URL,
   TILL_PRINT_TIMEOUT_ERROR,
 } from "@/lib/till-print-bridge";
 import { toast } from "sonner";
@@ -60,7 +60,7 @@ export type LocalReceiptPrinterTarget = {
 
 export type PrintPosReceiptOptions = {
   /**
-   * Open the cash drawer after the receipt is spooled. A separate job —
+   * Open the cash drawer before the receipt is spooled. A separate job —
    * the pulse must not ride inside the receipt bytes.
    */
   openDrawer?: boolean;
@@ -68,15 +68,26 @@ export type PrintPosReceiptOptions = {
   quiet?: boolean;
 };
 
-/** Let the receipt leave the print head before the drawer pulse hits the same port. */
-const DRAWER_AFTER_RECEIPT_MS = 700;
+/**
+ * Let the kick leave the printer buffer before the receipt job starts.
+ * The pulse goes first: a kick glued on after the cut stalls these tills,
+ * and a kick sent after a successful print is the one that never arrives.
+ */
+const DRAWER_BEFORE_RECEIPT_MS = 300;
 
-function openDrawerAfterReceipt(
+async function openDrawerBeforeReceipt(
   printer?: LocalReceiptPrinterTarget | null,
-): void {
-  window.setTimeout(() => {
-    void kickCashDrawer(printer);
-  }, DRAWER_AFTER_RECEIPT_MS);
+): Promise<void> {
+  let opened = false;
+  try {
+    opened = await kickCashDrawer(printer);
+  } catch {
+    return;
+  }
+  if (!opened) return;
+  await new Promise((resolve) =>
+    window.setTimeout(resolve, DRAWER_BEFORE_RECEIPT_MS),
+  );
 }
 
 function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
@@ -180,8 +191,9 @@ async function prepareThermalEscPos(
  *
  * Pass `cashTender` when the on-screen receipt shows Received / Change so
  * thermal print matches even before the API has persisted cash_received.
- * Pass `opts.openDrawer` for cash tenders. The drawer opens in a later job
- * so the kick cannot stall the receipt on the way out.
+ * Pass `opts.openDrawer` for cash tenders. The drawer pulse is its own job,
+ * sent before the receipt, so the slip is not stalled and the kick is not
+ * dropped on the way out.
  */
 export async function printPosReceipt(
   saleId: string,
@@ -200,6 +212,9 @@ export async function printPosReceipt(
 
   if (IS_DESKTOP) {
     try {
+      if (openDrawer) {
+        await openDrawerBeforeReceipt(printer);
+      }
       const params = new URLSearchParams({ widthMm: String(widthMm) });
       if (cashTender?.received != null && cashTender.received > 0) {
         params.set("cashReceived", String(cashTender.received));
@@ -208,9 +223,6 @@ export async function printPosReceipt(
         `/api/v1/desktop/devices/print/sale/${encodeURIComponent(id)}?${params}`,
         { method: "POST", toast: false },
       );
-      if (openDrawer) {
-        openDrawerAfterReceipt(printer);
-      }
       if (!quiet) toast.success("Sent to receipt printer.");
       return true;
     } catch (e) {
@@ -229,16 +241,21 @@ export async function printPosReceipt(
   const cupsName = resolved?.cupsName?.trim() || "";
   const host = resolved?.host?.trim() || "";
 
+  const kickTarget: LocalReceiptPrinterTarget = {
+    cupsName: cupsName || null,
+    host: host || null,
+    port: resolved?.port ?? 9100,
+    branchId: resolved?.branchId ?? printer?.branchId ?? null,
+  };
+  if (openDrawer) {
+    await openDrawerBeforeReceipt(kickTarget);
+  }
+
   if (!cupsName && !host) {
-    if (!quiet) {
+    if (!quiet && !openDrawer) {
       toast.message("No printer on this till. The receipt is on screen.", {
         duration: 6_000,
       });
-    }
-    if (openDrawer) {
-      // Nothing to print to. The kick re-checks the target and, finding none,
-      // says so (once per page load).
-      void kickCashDrawer(printer);
     }
     return false;
   }
@@ -265,14 +282,6 @@ export async function printPosReceipt(
         port: resolved?.port ?? 9100,
       });
     });
-    if (openDrawer) {
-      openDrawerAfterReceipt({
-        cupsName: cupsName || null,
-        host: host || null,
-        port: resolved?.port ?? 9100,
-        branchId: resolved?.branchId ?? printer?.branchId ?? null,
-      });
-    }
     if (!quiet) toast.success("Sent to receipt printer.");
     return true;
   } catch (e) {
@@ -298,8 +307,31 @@ const reportDrawerKickFailure = createDrawerKickReporter({
 });
 
 /**
+ * Desktop till: hand the padded pulse to the local device bridge as a normal
+ * print job. The bridge forwards whatever body it receives, so this opens the
+ * drawer on a shell that still substitutes a 10-byte pulse for `/drawer/kick`.
+ */
+async function kickDesktopDrawer(): Promise<void> {
+  const raw = drawerKickJobBytes();
+  const copy = new ArrayBuffer(raw.byteLength);
+  new Uint8Array(copy).set(raw);
+  try {
+    const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: new Blob([copy], { type: "application/octet-stream" }),
+    });
+    if (res.ok) return;
+  } catch {
+    // The shell's print port did not answer; try the Java kick below.
+  }
+  await kickDesktopCashDrawer();
+}
+
+/**
  * Open the cash drawer via the receipt printer (ESC/POS kick on RJ12).
- * Call after a cash (or cash-split) tender — independent of receipt print.
+ * Call for a cash (or cash-split) tender — independent of receipt print.
  *
  * Never rejects. A failure is logged to the console and shown as a toast (one
  * shared id, so repeated failures replace each other instead of stacking) so
@@ -310,29 +342,19 @@ export async function kickCashDrawer(
   printer?: LocalReceiptPrinterTarget | null,
   opts?: { quiet?: boolean },
 ): Promise<boolean> {
-  let result: DrawerKickResult;
-  try {
-    result = await attemptDrawerKick({
-      isDesktop: IS_DESKTOP,
-      kickDesktop: kickDesktopCashDrawer,
-      findPrinter: async () => {
-        const resolved = await resolvePrinterTarget(printer);
-        const name = resolved?.cupsName?.trim() || null;
-        const host = resolved?.host?.trim() || null;
-        if (!name && !host) return null;
-        return { name, host, port: resolved?.port ?? 9100 };
-      },
-      isBridgeUp: isTillPrintBridgeUp,
-      kickViaBridge: kickCashDrawerViaTillBridge,
-    });
-  } catch (cause) {
-    result = {
-      ok: false,
-      reason: "error",
-      message: drawerErrorMessage(cause),
-      cause,
-    };
-  }
+  const result = await attemptDrawerKick({
+    isDesktop: IS_DESKTOP,
+    kickDesktop: kickDesktopDrawer,
+    findPrinter: async () => {
+      const resolved = await resolvePrinterTarget(printer);
+      const name = resolved?.cupsName?.trim() || null;
+      const host = resolved?.host?.trim() || null;
+      if (!name && !host) return null;
+      return { name, host, port: resolved?.port ?? 9100 };
+    },
+    isBridgeUp: isTillPrintBridgeUp,
+    kickViaBridge: kickCashDrawerViaTillBridge,
+  });
   if (result.ok) return true;
   reportDrawerKickFailure(result, opts?.quiet);
   return false;

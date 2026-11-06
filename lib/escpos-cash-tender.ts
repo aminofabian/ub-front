@@ -3,12 +3,29 @@ const CUT_TAIL = new Uint8Array([0x1b, 0x64, 0x08, 0x1d, 0x56, 0x01]);
 
 /**
  * ESC/POS drawer pulse — pin 2 then pin 5 (covers both RJ12 wirings).
- * Matches desktop `devices.rs` DRAWER_KICK for pin 2.
+ * This exact tail is what older cash receipts appended after the cut.
  */
 export const DRAWER_KICK_ESCPOS = new Uint8Array([
   0x1b, 0x70, 0x00, 0x19, 0xfa, // pin 2
   0x1b, 0x70, 0x01, 0x19, 0xfa, // pin 5
 ]);
+
+/**
+ * A kick the printer will actually run. Init, both pins, two line feeds, then
+ * NUL padding out to a USB packet. A 10-byte pulse on its own is what these
+ * tills drop, and a pulse glued on after the cut is what stalls the slip.
+ */
+export function drawerKickJobBytes(): Uint8Array {
+  const pulse = new Uint8Array([
+    0x1b, 0x40, // ESC @
+    0x1b, 0x70, 0x00, 0x19, 0xfa,
+    0x1b, 0x70, 0x01, 0x19, 0xfa,
+    0x0a, 0x0a,
+  ]);
+  const job = new Uint8Array(64);
+  job.set(pulse);
+  return job;
+}
 
 function escPosCharWidth(widthMm: number): number {
   if (widthMm <= 50) return 28;
