@@ -7,6 +7,12 @@ import {
   fetchWebOrderReceiptThermal,
   isAuthRecoveryError,
 } from "@/lib/api";
+import {
+  attemptDrawerKick,
+  createDrawerKickReporter,
+  drawerErrorMessage,
+  type DrawerKickResult,
+} from "@/lib/cash-drawer-kick";
 import { kickDesktopCashDrawer } from "@/lib/desktop-api";
 import {
   appendCashTenderEscPos,
@@ -279,125 +285,17 @@ export async function printPosReceipt(
   }
 }
 
-/** Why a drawer pulse was not sent. */
-type DrawerKickResult =
-  | { ok: true }
-  | {
-      ok: false;
-      /**
-       * `no-printer` and `bridge-down` are setup problems; `error` means a pulse
-       * was attempted and something refused or dropped it.
-       */
-      reason: "no-printer" | "bridge-down" | "error";
-      /** Plain-language cause, safe to show a cashier. */
-      message: string;
-      cause?: unknown;
-    };
-
-const DRAWER_TOAST_ID = "cash-drawer-kick";
-
-/**
- * Plenty of tills run without a printer, so "no printer" is announced once per
- * page load instead of on every cash sale.
- */
-let noPrinterNoticeShown = false;
-
-function drawerErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    if (error.name === "AbortError" || error.name === "ClientTimeoutError") {
-      return "The printer did not answer in time.";
-    }
-    const text = error.message.trim();
-    if (text) return text;
-  }
-  return "The printer refused the drawer pulse.";
-}
-
-async function attemptDrawerKick(
-  printer?: LocalReceiptPrinterTarget | null,
-): Promise<DrawerKickResult> {
-  if (IS_DESKTOP) {
-    try {
-      await kickDesktopCashDrawer();
-      return { ok: true };
-    } catch (cause) {
-      return {
-        ok: false,
-        reason: "error",
-        message: drawerErrorMessage(cause),
-        cause,
-      };
-    }
-  }
-
-  const resolved = await resolvePrinterTarget(printer);
-  const cupsName = resolved?.cupsName?.trim() || "";
-  const host = resolved?.host?.trim() || "";
-  if (!cupsName && !host) {
-    return {
-      ok: false,
-      reason: "no-printer",
-      message: "No receipt printer is set up on this till.",
-    };
-  }
-
-  if (!(await isTillPrintBridgeUp())) {
-    return {
-      ok: false,
-      reason: "bridge-down",
-      message: "The Till Print Bridge is not running on this computer.",
-    };
-  }
-
-  try {
-    await kickCashDrawerViaTillBridge({
-      name: cupsName || null,
-      host: host || null,
-      port: resolved?.port ?? 9100,
-    });
-    return { ok: true };
-  } catch (cause) {
-    return {
-      ok: false,
-      reason: "error",
-      // fetch() rejects with a TypeError when the request never completes: the
-      // bridge dropped it, or the browser blocked it (CORS / local network).
-      message:
-        cause instanceof TypeError
-          ? "The browser could not reach the Till Print Bridge."
-          : drawerErrorMessage(cause),
-      cause,
-    };
-  }
-}
-
-function reportDrawerKickFailure(
-  failure: Extract<DrawerKickResult, { ok: false }>,
-  quiet: boolean,
-): void {
-  const line = `[cash-drawer] pulse not sent (${failure.reason}): ${failure.message}`;
-  if (failure.reason === "error") {
-    console.error(line, failure.cause);
-  } else {
-    console.warn(line);
-  }
-  // A signed-out session has its own recovery UI; a toast on top only confuses.
-  if (quiet || isAuthRecoveryError(failure.cause)) return;
-
-  if (failure.reason === "no-printer") {
-    if (noPrinterNoticeShown) return;
-    noPrinterNoticeShown = true;
-    toast.message(
-      `${failure.message} The cash drawer will not open on its own.`,
-      { id: DRAWER_TOAST_ID, duration: 8_000 },
-    );
-    return;
-  }
-  toast.error(`Cash drawer did not open. ${failure.message}`, {
-    id: DRAWER_TOAST_ID,
-    duration: 10_000,
-  });
-}
+const reportDrawerKickFailure = createDrawerKickReporter({
+  log: (level, line, cause) => {
+    if (level === "error") console.error(line, cause);
+    else console.warn(line);
+  },
+  toast: (kind, text, options) => {
+    if (kind === "error") toast.error(text, options);
+    else toast.message(text, options);
+  },
+  isAuthRecovery: isAuthRecoveryError,
+});
 
 /**
  * Open the cash drawer via the receipt printer (ESC/POS kick on RJ12).
@@ -414,7 +312,19 @@ export async function kickCashDrawer(
 ): Promise<boolean> {
   let result: DrawerKickResult;
   try {
-    result = await attemptDrawerKick(printer);
+    result = await attemptDrawerKick({
+      isDesktop: IS_DESKTOP,
+      kickDesktop: kickDesktopCashDrawer,
+      findPrinter: async () => {
+        const resolved = await resolvePrinterTarget(printer);
+        const name = resolved?.cupsName?.trim() || null;
+        const host = resolved?.host?.trim() || null;
+        if (!name && !host) return null;
+        return { name, host, port: resolved?.port ?? 9100 };
+      },
+      isBridgeUp: isTillPrintBridgeUp,
+      kickViaBridge: kickCashDrawerViaTillBridge,
+    });
   } catch (cause) {
     result = {
       ok: false,
@@ -424,7 +334,7 @@ export async function kickCashDrawer(
     };
   }
   if (result.ok) return true;
-  reportDrawerKickFailure(result, Boolean(opts?.quiet));
+  reportDrawerKickFailure(result, opts?.quiet);
   return false;
 }
 
