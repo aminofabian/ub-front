@@ -507,6 +507,15 @@ export function useBusinessSettingsEditor() {
           };
         }
 
+        // Profile & billing owns the opening-screen switch. Merged after the
+        // operations block, which assigns `body.featureFlags` wholesale.
+        if (canManageBusinessSettings && includeProfile) {
+          body.featureFlags = {
+            ...body.featureFlags,
+            uiOpeningLoader: editable.openingLoader,
+          };
+        }
+
         await updateBusiness(body);
         await refreshSession();
         router.refresh();

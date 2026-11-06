@@ -1,6 +1,7 @@
 import type { BusinessRecord } from "@/lib/api";
 import { POS_DRAFT_FLAGS } from "@/lib/pos-draft-api";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { isOpeningLoaderEnabled } from "@/lib/opening-loader-settings";
 import { SHIFT_SETTINGS_FLAGS } from "@/lib/shift-settings";
 import {
   DEFAULT_TILL_LISTEN,
@@ -32,6 +33,8 @@ export type EditableBusiness = {
   name: string;
   subscriptionTier: string;
   active: boolean;
+  /** Show the Kiosk opening screen while pages load. Default on. */
+  openingLoader: boolean;
 };
 
 export type StorefrontForm = {
@@ -185,6 +188,7 @@ export const DEFAULT_EDITABLE: EditableBusiness = {
   name: "",
   subscriptionTier: "starter",
   active: true,
+  openingLoader: true,
 };
 
 export const DEFAULT_STOREFRONT: StorefrontForm = {
@@ -533,6 +537,7 @@ export function applyBusinessSnapshot(
       name: String(payload.name ?? ""),
       subscriptionTier: String(payload.subscriptionTier ?? "starter"),
       active: Boolean(payload.active ?? true),
+      openingLoader: isOpeningLoaderEnabled(payload.featureFlags),
     },
     storefront: storefrontFromRecord(payload, branchList),
     inventory: inventoryFromRecord(payload),

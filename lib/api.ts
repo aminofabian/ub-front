@@ -1673,6 +1673,8 @@ export type FeatureFlagsPatchPayload = {
     beepOnSale?: boolean;
     beepOnSupply?: boolean;
   };
+  /** Show the Kiosk opening screen while pages load (default on when absent). */
+  uiOpeningLoader?: boolean;
 };
 
 export type PatchBusinessPayload = {

@@ -167,6 +167,62 @@ function ToggleRow({
   );
 }
 
+/** Title and hint on the left, an On/Off switch on the right — the Business status look. */
+function SwitchRow({
+  checked,
+  onChange,
+  title,
+  description,
+  onLabel = "On",
+  offLabel = "Off",
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  description: string;
+  onLabel?: string;
+  offLabel?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/55 bg-muted/20 px-3 py-2">
+      <div className="min-w-0">
+        <p className={labelClass()}>{title}</p>
+        <p className={cn(hintClass(), "mt-1")}>{description}</p>
+      </div>
+      <label className="relative inline-flex shrink-0 cursor-pointer items-center gap-2.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          {checked ? onLabel : offLabel}
+        </span>
+        <span className="relative inline-flex h-7 w-12 items-center">
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label={title}
+            className="peer sr-only"
+            checked={checked}
+            onChange={(event) => onChange(event.target.checked)}
+          />
+          <span
+            className={cn(
+              "absolute inset-0 rounded-full bg-muted-foreground/25 transition-colors",
+              "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+              "peer-checked:bg-primary",
+            )}
+            aria-hidden
+          />
+          <span
+            className={cn(
+              "absolute left-0.5 top-0.5 z-10 size-6 rounded-full bg-background shadow-sm transition-transform",
+              "peer-checked:translate-x-5",
+            )}
+            aria-hidden
+          />
+        </span>
+      </label>
+    </div>
+  );
+}
+
 export function BusinessSettingsForm({
   editable,
   setEditable,
@@ -446,6 +502,21 @@ export function BusinessSettingsForm({
                 </span>
               </label>
             </div>
+            {canManageBusinessSettings ? (
+              <div className="sm:col-span-2">
+                <SwitchRow
+                  title="Opening screen"
+                  description="Shows the Kiosk opening animation while your shop and dashboard pages load. Turn off to skip it. Can take up to a minute to apply."
+                  checked={editable.openingLoader}
+                  onChange={(checked) =>
+                    setEditable((previous) => ({
+                      ...previous,
+                      openingLoader: checked,
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </div>
     </ProfilePanel>
   ) : null;

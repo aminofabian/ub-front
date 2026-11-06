@@ -7723,14 +7723,19 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 }
 
 /* ── Storefront opening loader ───────────────────────────────────────────
-   One gesture: the door eases open and the shop's light comes out. The
-   fountain of props the scene used to carry (awning roll, lamp stutter, key,
-   bell, stock popping in, four rotating status lines) is gone — a loading
-   screen is seen for a second, so it earns one moment and then holds still.
+   One gesture: the door swings open and the shop's light spills onto the
+   pavement. Everything else holds still — a loading screen is seen for a
+   second, so it earns one moment and then rests. The only continuous motion
+   is the hairline under the label, which says "working" without pretending to
+   know how far along the page is.
 
-   Everything paints from CSS, no JavaScript runs, and the only continuous
-   motion is the hairline under the label, which says "working" without
-   pretending to know how far along it is. */
+   Timeline, from first paint:
+     0–120ms     plain ground, so a route that resolves fast never flashes the scene
+     120–440ms   the shop settles in
+     360–960ms   the door swings open
+     520–1160ms  the light reaches the pavement
+   All of it is transform and opacity on CSS animations: it stays smooth while
+   the page is busy, and nothing here needs JavaScript. */
 .kiosk-shop-loader {
     --ks-bg: #f4f1ea;
     --ks-ink: #121a16;
@@ -7740,8 +7745,10 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     --ks-brand: #1d4b3b;
     --ks-brand-deep: #10291f;
     --ks-brass: #c9a24a;
-    --ks-warm: #ffd98a;
     --ks-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --ks-ease-sweep: cubic-bezier(0.37, 0, 0.63, 1);
+    --ks-door-open: -58deg;
+    --ks-door-depth: 920px;
 
     display: grid;
     min-height: 100dvh;
@@ -7757,15 +7764,15 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 34px;
     padding: 40px 24px;
-    animation: kiosk-shop-settle 420ms var(--ks-ease) both;
+    animation: kiosk-shop-settle 320ms var(--ks-ease) 120ms both;
 }
 
 @keyframes kiosk-shop-settle {
     from {
         opacity: 0;
-        transform: translateY(5px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
@@ -7899,15 +7906,20 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 }
 
 /* ── doorway ───────────────────────────────────────────────────────────── */
+/* Sits on the sill (`.kiosk-shop-ground::after`). The door swings toward you,
+   so its free edge is nearer and reads taller than the frame. The depth below
+   is chosen so that overshoot is about 6px a side: the bottom corner lands on
+   the ground line instead of cutting through it. Shorten the depth or open
+   the door wider and the corners will poke through the frame again. */
 .kiosk-shop-doorway {
     position: absolute;
     z-index: 2;
-    bottom: 6px;
+    bottom: 5px;
     left: 50%;
     width: 92px;
     height: 124px;
     transform: translateX(-50%);
-    perspective: 620px;
+    perspective: var(--ks-door-depth);
 }
 
 .kiosk-shop-interior {
@@ -7920,6 +7932,9 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     background: linear-gradient(180deg, #fdf1d8 0%, #f7ddb1 100%);
 }
 
+/* Stock is right-aligned and spaced so that, with the door open, the third
+   item sits wholly behind the leaf and the other two stand clear of its edge.
+   No item is left as a sliver at the door's edge. */
 .kiosk-shop-shelf {
     position: absolute;
     right: 0;
@@ -7927,7 +7942,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 7px;
     height: 26px;
     padding: 0 7px;
 }
@@ -7985,7 +8000,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     background: #d8c8a6;
 }
 
-/* The door: one slow swing, then it holds. */
+/* The door: one swing, then it holds. */
 .kiosk-shop-door {
     position: absolute;
     inset: 0;
@@ -7994,12 +8009,12 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     border-bottom: 0;
     border-radius: 2px 2px 0 0;
     background: var(--ks-brand);
-    animation: kiosk-shop-door 1250ms var(--ks-ease) 200ms forwards;
+    animation: kiosk-shop-door 600ms var(--ks-ease) 360ms forwards;
 }
 
 @keyframes kiosk-shop-door {
     to {
-        transform: rotateY(-62deg);
+        transform: rotateY(var(--ks-door-open));
     }
 }
 
@@ -8010,7 +8025,7 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     pointer-events: none;
     background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0));
     opacity: 0;
-    animation: kiosk-shop-door-shade 1250ms var(--ks-ease) 200ms forwards;
+    animation: kiosk-shop-door-shade 600ms var(--ks-ease) 360ms forwards;
 }
 
 @keyframes kiosk-shop-door-shade {
@@ -8065,40 +8080,62 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     background: linear-gradient(90deg, #e6c673, var(--ks-brass) 55%, #9c7a2c);
 }
 
-/* The light that comes out of the shop. */
-.kiosk-shop-glow {
+/* ── light + ground ────────────────────────────────────────────────────── */
+/* The light that comes out of the shop, pooled on the pavement. It grows out
+   of the threshold (origin at the top) rather than fading in place. */
+.kiosk-shop-spill {
     position: absolute;
     z-index: 0;
-    bottom: -26px;
+    top: 100%;
     left: 50%;
-    width: 280px;
-    height: 96px;
-    transform: translateX(-50%);
-    background: radial-gradient(
-        ellipse 50% 50% at 50% 40%,
-        rgba(255, 205, 120, 0.55),
-        rgba(255, 205, 120, 0) 72%
-    );
+    width: 236px;
+    height: 38px;
+    margin-left: -118px;
+    transform: scaleY(0.5);
+    transform-origin: 50% 0;
+    background:
+        radial-gradient(ellipse 22% 62% at 50% 0, rgba(255, 226, 168, 0.7), rgba(255, 226, 168, 0)),
+        radial-gradient(ellipse 50% 100% at 50% 0, rgba(255, 205, 120, 0.5), rgba(255, 205, 120, 0));
     opacity: 0;
     pointer-events: none;
-    animation: kiosk-shop-glow 800ms ease-out 520ms forwards;
+    animation: kiosk-shop-spill 640ms var(--ks-ease) 520ms forwards;
 }
 
-@keyframes kiosk-shop-glow {
+@keyframes kiosk-shop-spill {
     to {
         opacity: 1;
+        transform: none;
     }
 }
 
-/* Step. */
-.kiosk-shop-step {
+/* The ground: a hairline that fades out at both ends, and the sill the door
+   stands on. Drawn after the doorway's footprint, never over the door. */
+.kiosk-shop-ground {
     position: absolute;
-    z-index: 3;
-    right: -16px;
+    z-index: 1;
+    right: -48px;
+    bottom: -1px;
+    left: -48px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(18, 26, 22, 0.3) 18%,
+        rgba(18, 26, 22, 0.3) 82%,
+        transparent
+    );
+}
+
+.kiosk-shop-ground::after {
+    content: "";
+    position: absolute;
     bottom: 0;
-    left: -16px;
-    height: 5px;
-    background: var(--ks-ink);
+    left: 50%;
+    width: 108px;
+    height: 6px;
+    margin-left: -54px;
+    border-radius: 1px 1px 0 0;
+    background: var(--ks-brand-deep);
 }
 
 /* ── label + hairline ──────────────────────────────────────────────────── */
@@ -8121,9 +8158,10 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
 .kiosk-shop-bar {
     position: relative;
     display: block;
-    width: 132px;
-    height: 1px;
+    width: 140px;
+    height: 2px;
     overflow: hidden;
+    border-radius: 1px;
     background: var(--ks-line);
 }
 
@@ -8131,45 +8169,80 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     content: "";
     position: absolute;
     inset: 0 auto 0 0;
-    width: 34%;
-    background: linear-gradient(90deg, transparent, var(--ks-brand), transparent);
-    animation: kiosk-shop-sweep 1900ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    width: 40%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--ks-brand) 30%,
+        var(--ks-brand) 70%,
+        transparent
+    );
+    animation: kiosk-shop-sweep 1500ms var(--ks-ease-sweep) infinite;
 }
 
+/* 250% of a 40% segment is exactly one track length, so the segment leaves
+   the track completely before the next pass begins. */
 @keyframes kiosk-shop-sweep {
     from {
-        transform: translateX(-110%);
+        transform: translateX(-100%);
     }
     to {
-        transform: translateX(320%);
+        transform: translateX(250%);
     }
 }
 
+/* Reduced motion keeps the frames that explain state and drops the movement:
+   the shop fades in, the door is already open and the light is on, and the
+   hairline breathes in place instead of sweeping. */
 @media (prefers-reduced-motion: reduce) {
-    .kiosk-shop-stage,
+    .kiosk-shop-stage {
+        animation: kiosk-shop-fade 240ms ease-out 120ms both;
+    }
+
     .kiosk-shop-door,
     .kiosk-shop-door::after,
-    .kiosk-shop-glow,
-    .kiosk-shop-bar::after {
-        animation: none !important;
+    .kiosk-shop-spill {
+        animation: none;
     }
 
-    /* The finished frame: door open, light on, no movement. */
     .kiosk-shop-door {
-        transform: rotateY(-62deg);
+        transform: rotateY(var(--ks-door-open));
     }
 
     .kiosk-shop-door::after,
-    .kiosk-shop-glow {
+    .kiosk-shop-spill {
         opacity: 1;
     }
 
-    .kiosk-shop-bar::after {
-        left: 0;
-        width: 34%;
-        background: var(--ks-brand);
-        opacity: 0.55;
+    .kiosk-shop-spill {
         transform: none;
+    }
+
+    .kiosk-shop-bar::after {
+        left: 30%;
+        width: 40%;
+        background: var(--ks-brand);
+        transform: none;
+        animation: kiosk-shop-breathe 1800ms ease-in-out infinite;
+    }
+}
+
+@keyframes kiosk-shop-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes kiosk-shop-breathe {
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.85;
     }
 }
 
