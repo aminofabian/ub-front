@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
+  Banknote,
   CheckCircle2,
   ChevronDown,
   Copy,
@@ -44,6 +45,7 @@ import {
   fetchDesktopStorageStatus,
   fetchDesktopSyncPlan,
   fetchDesktopSyncStatus,
+  kickDesktopCashDrawer,
   openDesktopDataFolder,
   printDesktopTestSlip,
   reconnectDesktop,
@@ -161,6 +163,7 @@ export default function DesktopSettingsPage() {
     null,
   );
   const [printerTesting, setPrinterTesting] = useState(false);
+  const [drawerTesting, setDrawerTesting] = useState(false);
   const [sendingLogs, setSendingLogs] = useState(false);
 
   const pollMediaStatus = useCallback(async () => {
@@ -360,6 +363,39 @@ export default function DesktopSettingsPage() {
       );
     } finally {
       setPrinterTesting(false);
+    }
+  }
+
+  async function onTestDrawer() {
+    setDrawerTesting(true);
+    try {
+      // Same as the receipt test: the sidecar reads printer.json when the pulse
+      // fires, not the form on screen, so save what is shown first.
+      let mode = printer?.mode;
+      if (printer) {
+        const saved = await saveDesktopPrinterConfig(printer);
+        setPrinter(saved);
+        mode = saved.mode;
+      }
+      await kickDesktopCashDrawer();
+      if (mode === "file") {
+        // In file mode the bridge answers 200 but only appends the pulse to a
+        // log file; no printer, and so no drawer, ever sees it.
+        toast.warning(
+          "Pulse written to the output file only. Set Mode to USB / system printer or Network to open a real drawer.",
+        );
+      } else {
+        toast.success(
+          "Drawer pulse sent. If nothing opened, check the drawer's key lock and that its cable is in the printer's drawer port.",
+        );
+      }
+    } catch (e) {
+      console.error("[cash-drawer] test pulse failed", e);
+      toast.error(
+        e instanceof Error ? e.message : "Could not send the drawer pulse.",
+      );
+    } finally {
+      setDrawerTesting(false);
     }
   }
 
@@ -1353,6 +1389,19 @@ export default function DesktopSettingsPage() {
                       <Printer className="size-4" />
                     )}
                     Print test receipt
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={drawerTesting || printer.mode === "none"}
+                    onClick={() => void onTestDrawer()}
+                  >
+                    {drawerTesting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Banknote className="size-4" />
+                    )}
+                    Test cash drawer
                   </Button>
                 </div>
                 <p className="flex items-center gap-2 text-xs">

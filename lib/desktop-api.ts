@@ -293,6 +293,18 @@ export function printDesktopTestSlip(widthMm = 58): Promise<void> {
   );
 }
 
+/**
+ * {@code POST /api/v1/desktop/devices/drawer/kick} — pulse the cash drawer once
+ * through the receipt printer. Rejects with the bridge's own error text, so the
+ * caller decides whether a failure is shown (Settings test) or only logged.
+ */
+export function kickDesktopCashDrawer(): Promise<void> {
+  return apiRequest<void>("/api/v1/desktop/devices/drawer/kick", {
+    method: "POST",
+    toast: false,
+  });
+}
+
 /** {@code GET /api/v1/desktop/diagnostics/storage} — where the till's data lives. */
 export type DesktopStorageStatus = {
   appDataPath: string;
