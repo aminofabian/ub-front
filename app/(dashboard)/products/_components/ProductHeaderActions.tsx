@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, FileUp, Globe2, PackagePlus } from "lucide-react";
+import {
+  BookOpen,
+  FileUp,
+  Globe2,
+  PackagePlus,
+  ScanBarcode,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -16,11 +22,14 @@ export function ProductHeaderActions({
   canCreate,
   onCreateNew,
   onBrowseCatalog,
+  onScanToAdd,
 }: {
   canCreate: boolean;
   onCreateNew: () => void;
   /** Opens the shared (global) catalog browser; omitted when the user lacks the permission. */
   onBrowseCatalog?: () => void;
+  /** Opens the shared catalog with the camera on; omitted without the import permission. */
+  onScanToAdd?: () => void;
 }) {
   return (
     <>
@@ -64,6 +73,19 @@ export function ProductHeaderActions({
           <Globe2 className="size-3.5" aria-hidden />
           <span className="hidden sm:inline">Shared catalog</span>
           <span className="sm:hidden">Catalog</span>
+        </Button>
+      ) : null}
+      {onScanToAdd ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={CATALOG_BTN_OUTLINE}
+          onClick={onScanToAdd}
+          title="Scan barcodes with the camera to add ready-made products from the shared catalog"
+        >
+          <ScanBarcode className="size-3.5" aria-hidden />
+          Scan to add
         </Button>
       ) : null}
       <Button

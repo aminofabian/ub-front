@@ -9,6 +9,7 @@ import {
   Package,
   PackagePlus,
   PenLine,
+  ScanBarcode,
   Search,
   ShoppingCart,
   Store,
@@ -23,6 +24,7 @@ import { GlobalCatalogLoadMoreSkeleton } from "@/components/products/global-cata
 import { CatalogImportCeremony } from "@/components/products/catalog-import-ceremony";
 import { CatalogImportSheet } from "./catalog-import-sheet";
 import { CatalogMobileCards } from "./catalog-mobile-cards";
+import { useCatalogScan } from "./use-catalog-scan";
 import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
 import {
   GlobalCatalogActionProgressBar,
@@ -1554,6 +1556,59 @@ export default function GlobalCatalogPage() {
     window.requestAnimationFrame(() => searchInputRef.current?.focus());
   }, []);
 
+  // Scan to add: the camera stays open and every barcode that matches one catalogue
+  // product goes into the import; "Review & import" works as it always does.
+  const selectedRef = useRef(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  const { scanner: catalogScanner, openScanner: openCatalogScanner } =
+    useCatalogScan({
+      isSelected: (productId) => selectedRef.current.has(productId),
+      onSelect: (product) =>
+        setSelected((prev) => {
+          if (prev.has(product.id)) return prev;
+          const next = new Map(prev);
+          next.set(product.id, product);
+          return next;
+        }),
+      onShowMatches: (code) => {
+        setSelectedPackId(null);
+        setSelectedCategoryId(null);
+        setSearchInput(code);
+      },
+      onOpenShopItem: (itemId) =>
+        router.push(
+          `${APP_ROUTES.products}?product=${encodeURIComponent(itemId)}`,
+        ),
+      onCreateNew: (code) =>
+        router.push(
+          `${APP_ROUTES.products}?onboarding=create-product&barcode=${encodeURIComponent(code)}`,
+        ),
+    });
+
+  // "Scan to add" on the Products page lands here with the camera already on.
+  const scanOnOpen = searchParams.get("scan") === "1";
+  const scanOpenedFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (!scanOnOpen || !canAdopt) return;
+    const timer = window.setTimeout(() => {
+      if (scanOpenedFromUrlRef.current) return;
+      scanOpenedFromUrlRef.current = true;
+      openCatalogScanner();
+      const rest = new URLSearchParams(searchParams.toString());
+      rest.delete("scan");
+      const query = rest.toString();
+      router.replace(
+        query
+          ? `${APP_ROUTES.productsCatalog}?${query}`
+          : APP_ROUTES.productsCatalog,
+      );
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [scanOnOpen, canAdopt, openCatalogScanner, router, searchParams]);
+
   const onboardingToastRef = useRef(false);
   useEffect(() => {
     if (!fromOnboarding) return;
@@ -1972,12 +2027,28 @@ export default function GlobalCatalogPage() {
                 <Input
                   ref={searchInputRef}
                   placeholder="Search by name, SKU, brand, or barcode..."
-                  className="pl-9"
+                  className={cn("pl-9", canAdopt && "pr-10")}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                 />
                 {isSearching ? (
-                  <Loader2 className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  <Loader2
+                    className={cn(
+                      "absolute top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground",
+                      canAdopt ? "right-10" : "right-2.5",
+                    )}
+                  />
+                ) : null}
+                {canAdopt ? (
+                  <button
+                    type="button"
+                    onClick={openCatalogScanner}
+                    aria-label="Scan barcodes to add products"
+                    title="Scan barcodes to add products"
+                    className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 max-sm:size-8"
+                  >
+                    <ScanBarcode className="size-4" aria-hidden />
+                  </button>
                 ) : null}
               </div>
               <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
@@ -2398,6 +2469,8 @@ export default function GlobalCatalogPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {catalogScanner}
 
       <GlobalCatalogReviewImportDialog
         open={reviewOpen}

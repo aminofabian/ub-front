@@ -7,6 +7,7 @@ import {
   Library,
   ListFilter,
   PackagePlus,
+  ScanBarcode,
   Search,
   X,
 } from "lucide-react";
@@ -55,6 +56,8 @@ type Props = {
   onCreateNew: () => void;
   onAddFromCatalog?: () => void;
   canAddFromCatalog?: boolean;
+  /** Opens the shared catalog with the camera on; omitted without the import permission. */
+  onScanToAdd?: () => void;
 };
 
 const SCOPE = [
@@ -96,6 +99,7 @@ export function ProductMobileChrome({
   onCreateNew,
   onAddFromCatalog,
   canAddFromCatalog = false,
+  onScanToAdd,
 }: Props) {
   const [panelOpen, setPanelOpen] = useState(false);
   const categoryOptions = useMemo(
@@ -204,6 +208,18 @@ export function ProductMobileChrome({
               </span>
             ) : null}
           </button>
+
+          {onScanToAdd ? (
+            <button
+              type="button"
+              onClick={onScanToAdd}
+              aria-label="Scan barcodes to add from the shared catalog"
+              title="Scan barcodes to add from the shared catalog"
+              className={cn(toolBtn, "size-11")}
+            >
+              <ScanBarcode className="size-4" aria-hidden />
+            </button>
+          ) : null}
 
           <button
             type="button"

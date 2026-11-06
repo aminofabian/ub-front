@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ImagePlus, Plus, Trash2 } from "lucide-react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import { Check, ImagePlus, Plus, ScanBarcode, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import styles from "./product-create-modal.module.css";
+
+/** Most options one family can be created with. */
+export const MAX_GROUP_OPTIONS = 24;
 
 export type GroupOptionRow = {
   key: string;
@@ -16,6 +26,8 @@ export type GroupOptionRow = {
   stock: string;
   imageFile: File | null;
   imagePreview: string | null;
+  /** Shared-catalog product this row was filled from (informational; saved as a normal option). */
+  sharedProductId?: string | null;
 };
 
 export function newGroupOptionRow(
@@ -138,6 +150,8 @@ export function CreateGroupOptionsPad({
   currency,
   familyName = "",
   disabled,
+  onScanBarcode,
+  renderRowHint,
 }: {
   rows: GroupOptionRow[];
   onChange: (next: GroupOptionRow[]) => void;
@@ -145,6 +159,19 @@ export function CreateGroupOptionsPad({
   /** Live family / parent name shown as a non-editable prefix in each option field. */
   familyName?: string;
   disabled?: boolean;
+  /** Opens the camera for one option's barcode. The parent owns the scanner overlay. */
+  onScanBarcode?: (rowKey: string) => void;
+  /** Optional line rendered under a row (barcode lookups, duplicate warnings). */
+  renderRowHint?: (
+    row: GroupOptionRow,
+    ctx: {
+      index: number;
+      /** The clerk has typed a name or a sell price on this row. */
+      touched: boolean;
+      /** 1-based number of another option with the same barcode, if any. */
+      sameBarcodeAs: number | null;
+    },
+  ) => ReactNode;
 }) {
   const modeId = useId();
   const optionFileRef = useRef<HTMLInputElement>(null);
@@ -188,7 +215,7 @@ export function CreateGroupOptionsPad({
   };
 
   const addRow = () => {
-    if (disabled || rows.length >= 24) return;
+    if (disabled || rows.length >= MAX_GROUP_OPTIONS) return;
     const row = newGroupOptionRow();
     pendingFocus.current = row.key;
     skipEnter.current.add(row.key);
@@ -274,6 +301,12 @@ export function CreateGroupOptionsPad({
             composeOptionLabel(familyPrefix, row.label).length > 0;
           const started = labelOk || row.unitPrice.trim().length > 0;
           const rowReady = sellOk && labelOk;
+          const rowCode = row.barcode.trim();
+          const dupIndex = rowCode
+            ? rows.findIndex(
+                (other, i) => i !== index && other.barcode.trim() === rowCode,
+              )
+            : -1;
           const handleEnter = (e: KeyboardEvent<HTMLInputElement>) => {
             if (e.key !== "Enter") return;
             e.preventDefault();
@@ -427,15 +460,33 @@ export function CreateGroupOptionsPad({
                 className={cn(styles.cell, styles.cellCode)}
                 data-label="Barcode"
               >
-                <input
-                  className={cellClass}
-                  value={row.barcode}
-                  disabled={disabled}
-                  onChange={(e) => patch(row.key, { barcode: e.target.value })}
-                  onKeyDown={handleEnter}
-                  placeholder="Scan or type"
-                  aria-label={`Option ${index + 1} barcode`}
-                />
+                <div className={optionShellClass}>
+                  <input
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-2.5 text-base text-[var(--catalog-ink,#15231f)] shadow-none outline-none focus-visible:ring-0 sm:px-2 sm:text-[13px]"
+                    value={row.barcode}
+                    disabled={disabled}
+                    onChange={(e) =>
+                      patch(row.key, { barcode: e.target.value })
+                    }
+                    onKeyDown={handleEnter}
+                    placeholder="Scan or type"
+                    aria-label={`Option ${index + 1} barcode`}
+                  />
+                  {onScanBarcode ? (
+                    <button
+                      type="button"
+                      className={styles.scanBtn}
+                      disabled={disabled}
+                      aria-label={`Scan option ${index + 1} barcode with camera`}
+                      onClick={() => onScanBarcode(row.key)}
+                    >
+                      <ScanBarcode
+                        className="size-4 sm:size-3.5"
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <div className={cn(styles.cell, styles.cellRemove)}>
                 {rows.length > 1 ? (
@@ -450,10 +501,15 @@ export function CreateGroupOptionsPad({
                   </button>
                 ) : null}
               </div>
+              {renderRowHint?.(row, {
+                index,
+                touched: started,
+                sameBarcodeAs: dupIndex >= 0 ? dupIndex + 1 : null,
+              })}
             </div>
           );
         })}
-        {rows.length < 24 ? (
+        {rows.length < MAX_GROUP_OPTIONS ? (
           <button
             type="button"
             className={cn(styles.ghost, inviteOn && styles.ghostInvite)}

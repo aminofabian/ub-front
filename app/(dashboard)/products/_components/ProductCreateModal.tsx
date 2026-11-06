@@ -14,6 +14,7 @@ import {
   Globe2,
   ImagePlus,
   Layers,
+  Loader2,
   Minus,
   PackagePlus,
   Plus,
@@ -56,10 +57,12 @@ import { formatAmount, toNumber } from "../_utils";
 import { categorySelectOptions } from "./category-select-options";
 import {
   CreateGroupOptionsPad,
+  MAX_GROUP_OPTIONS,
   newGroupOptionRow,
   readyGroupOptions,
   type GroupOptionRow,
 } from "./CreateGroupOptionsPad";
+import { OptionBarcodeLookup } from "./OptionBarcodeLookup";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductNameSuggestions } from "./ProductNameSuggestions";
@@ -68,6 +71,12 @@ import {
   SearchableSelect,
   type SearchableSelectHandle,
 } from "./SearchableSelect";
+import {
+  fetchImageAsFile,
+  fillEmptyOptionFields,
+  planFamilyFill,
+  sharedProductToOptionSeed,
+} from "./shared-option-fill";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
 import { useInlineItemTypeCreate } from "../_hooks/useInlineItemTypeCreate";
 import { useInlineAisleCreate } from "../_hooks/useInlineAisleCreate";
@@ -112,6 +121,37 @@ type Props = {
   canGlobalCatalog?: boolean;
   onOpenExistingProduct?: (itemId: string) => void;
 };
+
+/** What a shared-catalog family put into the Family + options form. */
+type FamilyFill = {
+  name: string;
+  photoUrl: string | null;
+  /** The option rows this fill added, with the barcode each was filled with. */
+  rows: Array<{ key: string; barcode: string }>;
+  count: number;
+  /** Family members already on the shelf, left out. */
+  onShelf: number;
+  /** Members that did not fit under the option limit. */
+  trimmed: number;
+};
+
+function describeFamilyFill(fill: FamilyFill): string {
+  if (fill.count === 0) {
+    return fill.onShelf > 0
+      ? "Everything in this family is already on your shelf."
+      : "Nothing from the shared catalog could be added.";
+  }
+  const parts = [
+    `${fill.count} option${fill.count === 1 ? "" : "s"} filled from the shared catalog — confirm the prices and how many you have.`,
+  ];
+  if (fill.onShelf > 0) {
+    parts.push(`${fill.onShelf} already on your shelf, left out.`);
+  }
+  if (fill.trimmed > 0) {
+    parts.push(`Only ${MAX_GROUP_OPTIONS} fit in one family.`);
+  }
+  return parts.join(" ");
+}
 
 function matchItemTypeFromHint(
   itemTypes: ItemTypeRecord[],
@@ -276,6 +316,15 @@ export function ProductCreateModal({
     newGroupOptionRow(),
     newGroupOptionRow(),
   ]);
+  /** Option row whose barcode the camera is reading right now. */
+  const [optionScanKey, setOptionScanKey] = useState<string | null>(null);
+  /** Set once a shared-catalog family has filled the options; "Clear" undoes it. */
+  const [familyShared, setFamilyShared] = useState<FamilyFill | null>(null);
+  const [familyFillBusy, setFamilyFillBusy] = useState(false);
+  const groupOptionsRef = useRef(groupOptions);
+  useEffect(() => {
+    groupOptionsRef.current = groupOptions;
+  }, [groupOptions]);
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
   const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
   const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
@@ -299,6 +348,9 @@ export function ProductCreateModal({
     setDescGenError("");
     setLinkedGlobalLabel(null);
     setGlobalPhotoUrl(null);
+    setOptionScanKey(null);
+    setFamilyShared(null);
+    setFamilyFillBusy(false);
     setGroupOptions((prev) => {
       for (const row of prev) {
         if (row.imagePreview) URL.revokeObjectURL(row.imagePreview);
@@ -453,6 +505,177 @@ export function ProductCreateModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m.parentDraft.globalProductSourceId, canGlobalCatalog]);
+
+  /** Saves a downloaded catalog photo on an option, only while that row still exists and has no photo. */
+  const attachOptionPhoto = useCallback((rowKey: string, file: File) => {
+    const target = groupOptionsRef.current.find((r) => r.key === rowKey);
+    if (!target || target.imageFile) return;
+    const preview = URL.createObjectURL(file);
+    setGroupOptions((prev) =>
+      prev.map((r) =>
+        r.key === rowKey && !r.imageFile
+          ? { ...r, imageFile: file, imagePreview: preview }
+          : r,
+      ),
+    );
+  }, []);
+
+  /** One option row filled from a shared-catalog product (scanned or typed barcode). */
+  const applySharedToOption = useCallback(
+    (rowKey: string, product: GlobalProductRecord) => {
+      const seed = sharedProductToOptionSeed(product, m.parentDraft.name);
+      setGroupOptions((prev) =>
+        prev.map((r) =>
+          r.key === rowKey ? fillEmptyOptionFields(r, seed) : r,
+        ),
+      );
+      const photo = product.imageUrl?.trim();
+      if (photo) {
+        void fetchImageAsFile(photo, product.name).then((file) => {
+          if (file) attachOptionPhoto(rowKey, file);
+        });
+      }
+    },
+    [attachOptionPhoto, m.parentDraft.name],
+  );
+
+  /**
+   * Fills Family + options from a shared-catalog match: the family name, the
+   * department / category hints, its photo and one option per pack size or member.
+   * The options are saved as ordinary options — nothing is linked to the catalog.
+   */
+  const applyGlobalFamily = useCallback(
+    async (match: GlobalProductRecord) => {
+      setFamilyFillBusy(true);
+      try {
+        let family: GlobalProductFamilyRecord | null = null;
+        try {
+          family = await fetchGlobalCatalogProductFamily(match.id);
+        } catch {
+          family = null;
+        }
+        const isStarted = (r: GroupOptionRow) =>
+          Boolean(r.label.trim() || r.unitPrice.trim() || r.imageFile);
+        const startedRows = groupOptionsRef.current.filter(isStarted);
+        const plan = planFamilyFill({
+          match,
+          family,
+          typedName: m.parentDraft.name,
+          room: MAX_GROUP_OPTIONS - startedRows.length,
+        });
+        const { root, isFamily, familyTitle } = plan;
+        const added = plan.picks.map(({ g, seed }) => ({
+          g,
+          row: newGroupOptionRow(seed),
+        }));
+
+        if (added.length > 0) {
+          setGroupOptions((prev) => {
+            const keep = prev.filter(isStarted);
+            for (const r of prev) {
+              if (!keep.includes(r) && r.imagePreview) {
+                URL.revokeObjectURL(r.imagePreview);
+              }
+            }
+            return [...keep, ...added.map((a) => a.row)].slice(
+              0,
+              MAX_GROUP_OPTIONS,
+            );
+          });
+
+          const matchedTypeId = matchItemTypeFromHint(
+            catalog.itemTypes,
+            root.itemTypeKeyHint,
+          );
+          const matchedCategoryId = matchCategoryIdByName(
+            catalog.sortedCategories,
+            root.categoryName,
+          );
+          const brand = isFamily ? root.brand?.trim() : "";
+          const description = isFamily ? root.description?.trim() : "";
+          m.setParentDraft((prev) =>
+            prev.productStructure !== "group"
+              ? prev
+              : {
+                  ...prev,
+                  name: familyTitle,
+                  ...(brand ? { brand } : {}),
+                  ...(description ? { description } : {}),
+                  itemTypeId: matchedTypeId || prev.itemTypeId,
+                  categoryId: matchedCategoryId || prev.categoryId,
+                },
+          );
+
+          const familyPhoto = isFamily ? root.imageUrl?.trim() : "";
+          if (familyPhoto && !m.pendingCreateImage) {
+            void fetchImageAsFile(familyPhoto, familyTitle).then((file) => {
+              if (file) m.setPendingCreateImage((cur) => cur ?? file);
+            });
+          }
+          // One at a time: a family can bring a couple of dozen photos.
+          void (async () => {
+            for (const { g, row } of added) {
+              const url = g.imageUrl?.trim();
+              if (!url) continue;
+              const file = await fetchImageAsFile(url, g.name);
+              if (file) attachOptionPhoto(row.key, file);
+            }
+          })();
+
+          const firstNumber = startedRows.length + 1;
+          requestAnimationFrame(() => {
+            const sell = document.querySelector<HTMLInputElement>(
+              `input[aria-label="Option ${firstNumber} sell price"]`,
+            );
+            sell?.focus();
+            sell?.select();
+          });
+        }
+
+        setFamilyShared({
+          name: familyTitle,
+          photoUrl:
+            root.imageUrl?.trim() || added[0]?.g.imageUrl?.trim() || null,
+          rows: added.map((a) => ({ key: a.row.key, barcode: a.row.barcode })),
+          count: added.length,
+          onShelf: plan.onShelf,
+          trimmed: plan.trimmed,
+        });
+      } finally {
+        setFamilyFillBusy(false);
+      }
+    },
+    [
+      attachOptionPhoto,
+      catalog.itemTypes,
+      catalog.sortedCategories,
+      m,
+    ],
+  );
+
+  const clearFamilyShared = useCallback(() => {
+    const keys = new Set((familyShared?.rows ?? []).map((r) => r.key));
+    if (keys.size > 0) {
+      setGroupOptions((prev) => {
+        for (const r of prev) {
+          if (keys.has(r.key) && r.imagePreview) {
+            URL.revokeObjectURL(r.imagePreview);
+          }
+        }
+        const next = prev.filter((r) => !keys.has(r.key));
+        return next.length > 0
+          ? next
+          : [newGroupOptionRow(), newGroupOptionRow()];
+      });
+    }
+    setFamilyShared(null);
+  }, [familyShared]);
+
+  /** Rows filled in bulk whose barcode is still the catalog's own. */
+  const bulkFilledBarcodes = useMemo(
+    () => new Map((familyShared?.rows ?? []).map((r) => [r.key, r.barcode])),
+    [familyShared],
+  );
 
   const marginInfo = useMemo(() => {
     const buy = Number(m.parentDraft.buyingPrice);
@@ -1023,6 +1246,69 @@ export function ProductCreateModal({
                 />
               ) : null}
 
+              {/* Family + options gets the same help: naming the family surfaces what
+                  is already on the shelf and what the shared catalog has, and one tap
+                  fills the options from its pack sizes. */}
+              {isGroup && !familyShared ? (
+                familyFillBusy ? (
+                  <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" aria-hidden />
+                    Filling options from the shared catalog…
+                  </p>
+                ) : (
+                  <ProductNameSuggestions
+                    name={m.parentDraft.name}
+                    canGlobalCatalog={canGlobalCatalog}
+                    onOpenExisting={(itemId) => {
+                      onOpenExistingProduct?.(itemId);
+                      onClose();
+                    }}
+                    onUseGlobal={(product) => {
+                      void applyGlobalFamily(product);
+                    }}
+                    useLabel="Fill options"
+                    dismissedLabel="Creating a new family"
+                  />
+                )
+              ) : null}
+
+              {isGroup && familyShared ? (
+                <div className="flex items-center gap-2.5 rounded-none border border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_7%,white)] px-3 py-2.5">
+                  <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white">
+                    {familyShared.photoUrl ? (
+                      <Image
+                        src={familyShared.photoUrl}
+                        alt=""
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <Globe2
+                        className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]"
+                        aria-hidden
+                      />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12.5px] font-semibold text-[var(--catalog-ink,#15231f)]">
+                      {familyShared.name}
+                    </span>
+                    <span className="block text-[11px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_60%,transparent)]">
+                      {describeFamilyFill(familyShared)}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] underline-offset-2 hover:text-[var(--catalog-ink,#15231f)] hover:underline"
+                    onClick={clearFamilyShared}
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : null}
+
               <div className="space-y-1.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className={labelClass}>Department</span>
@@ -1245,6 +1531,25 @@ export function ProductCreateModal({
                   currency={currency}
                   familyName={familyName}
                   disabled={m.parentCreateBusy}
+                  onScanBarcode={setOptionScanKey}
+                  renderRowHint={(row, ctx) => (
+                    <OptionBarcodeLookup
+                      barcode={row.barcode}
+                      canGlobalCatalog={canGlobalCatalog}
+                      appliedSharedId={row.sharedProductId ?? null}
+                      rowTouched={ctx.touched}
+                      sameBarcodeAs={ctx.sameBarcodeAs}
+                      disabled={m.parentCreateBusy}
+                      quiet={bulkFilledBarcodes.get(row.key) === row.barcode.trim()}
+                      onUseShared={(product) =>
+                        applySharedToOption(row.key, product)
+                      }
+                      onOpenExisting={(itemId) => {
+                        onOpenExistingProduct?.(itemId);
+                        onClose();
+                      }}
+                    />
+                  )}
                 />
               )}
 
@@ -1661,6 +1966,21 @@ export function ProductCreateModal({
               setScannerOpen(false);
             }}
             onClose={() => setScannerOpen(false)}
+          />
+        ) : null}
+
+        {optionScanKey ? (
+          <BarcodeScanner
+            onScan={(barcode) => {
+              const key = optionScanKey;
+              setGroupOptions((prev) =>
+                prev.map((r) =>
+                  r.key === key ? { ...r, barcode: barcode.trim() } : r,
+                ),
+              );
+              setOptionScanKey(null);
+            }}
+            onClose={() => setOptionScanKey(null)}
           />
         ) : null}
       </DialogContent>

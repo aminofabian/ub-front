@@ -258,6 +258,25 @@ export function ProductsWorkspace() {
     headerBranchId: branchId,
   });
 
+  // "Scan to add": the shared catalogue opens with the camera already on.
+  const scanToAdd =
+    canGlobalCatalog && canGlobalAdopt
+      ? () => router.push(`${APP_ROUTES.productsCatalog}?scan=1`)
+      : undefined;
+
+  // "Add as new" in that scanner lands here with the scanned barcode: open Add
+  // product with it already in place.
+  const wantsNewProduct = searchParams.get("onboarding") === "create-product";
+  const barcodeFromUrl = searchParams.get("barcode")?.trim() ?? "";
+  const prefilledBarcodeRef = useRef("");
+  const { setParentDraft } = m;
+  useEffect(() => {
+    if (!wantsNewProduct || !barcodeFromUrl) return;
+    if (prefilledBarcodeRef.current === barcodeFromUrl) return;
+    prefilledBarcodeRef.current = barcodeFromUrl;
+    setParentDraft((prev) => ({ ...prev, barcode: barcodeFromUrl }));
+  }, [wantsNewProduct, barcodeFromUrl, setParentDraft]);
+
   /** Rows the bulk stock adjuster can touch: non-package items in the current selection. */
   const bulkStockRows = useMemo(
     () =>
@@ -682,6 +701,7 @@ export function ProductsWorkspace() {
                     ? () => router.push(APP_ROUTES.productsCatalog)
                     : undefined
                 }
+                onScanToAdd={scanToAdd}
               />
             </div>
           </div>
@@ -710,6 +730,7 @@ export function ProductsWorkspace() {
                     : undefined
                 }
                 canAddFromCatalog={canGlobalCatalog}
+                onScanToAdd={scanToAdd}
               />
             )}
             <section

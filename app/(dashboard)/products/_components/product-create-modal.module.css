@@ -463,8 +463,8 @@
 }
 
 .headCode {
-  flex: 1 1 6.5rem;
-  min-width: 5.5rem;
+  flex: 1 1 7.5rem;
+  min-width: 6.75rem;
 }
 
 .headRemove {
@@ -474,6 +474,7 @@
 
 .row {
   position: relative;
+  flex-wrap: wrap;
   border-bottom: 1px solid
     color-mix(in srgb, var(--catalog-shelf, #ffffff) 92%, transparent);
   background: #fff;
@@ -613,8 +614,95 @@
 }
 
 .cellCode {
-  flex: 1 1 6.5rem;
-  min-width: 5.5rem;
+  flex: 1 1 7.5rem;
+  min-width: 6.75rem;
+}
+
+.scanBtn {
+  display: flex;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-left: 1px solid
+    color-mix(in srgb, var(--catalog-ink, #15231f) 10%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 50%, transparent);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.scanBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.scanBtn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--catalog-primary, #0f766e) 10%, white);
+  color: var(--catalog-primary, #0f766e);
+}
+
+/* One line under an option: shop duplicate, shared-catalog match, repeated barcode. */
+.hint {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.9rem;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--catalog-ink, #15231f) 12%, transparent);
+  background: color-mix(in srgb, var(--catalog-shelf, #ffffff) 70%, white);
+  padding: 0.3rem 0.5rem 0.35rem 4.35rem;
+  font-size: 11px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 62%, transparent);
+}
+
+.hintInfo,
+.hintOk,
+.hintWarn {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hintInfo {
+  color: color-mix(in srgb, var(--catalog-ink, #15231f) 68%, transparent);
+}
+
+.hintOk {
+  color: color-mix(in srgb, var(--catalog-primary, #0f766e) 78%, #052e2b);
+}
+
+.hintWarn {
+  color: #92400e;
+}
+
+.hintText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hintAction {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--catalog-primary, #0f766e);
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 .cellRemove {
@@ -772,6 +860,11 @@
     background: color-mix(in srgb, var(--catalog-shelf, #ffffff) 70%, white);
     color: var(--catalog-ink, #15231f);
   }
+
+  .scanBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--catalog-shelf, #ffffff) 70%, white);
+    color: var(--catalog-ink, #15231f);
+  }
 }
 
 @media (max-width: 639px) {
@@ -841,12 +934,12 @@
 
   .row {
     display: grid;
-    grid-template-columns: 3.25rem minmax(0, 1fr) minmax(0, 1fr) 2.75rem;
+    grid-template-columns: 3.25rem repeat(4, minmax(0, 1fr)) 2.75rem;
     grid-template-areas:
-      "num num num remove"
-      "photo opt opt opt"
-      "sell sell stock stock"
-      "cost cost code code";
+      "num num num num num remove"
+      "photo opt opt opt opt opt"
+      "sell sell stock stock cost cost"
+      "code code code code code code";
     gap: 0.55rem 0.5rem;
     align-items: start;
     margin-bottom: 0.65rem;
@@ -965,6 +1058,18 @@
     height: 2.75rem;
     border-radius: 0.75rem;
     background: color-mix(in srgb, var(--catalog-shelf, #ffffff) 70%, white);
+  }
+
+  .scanBtn {
+    width: 2.75rem;
+  }
+
+  .hint {
+    grid-column: 1 / -1;
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 12px;
   }
 
   .ghost {

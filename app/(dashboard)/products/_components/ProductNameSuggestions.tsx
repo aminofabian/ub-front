@@ -31,6 +31,10 @@ type Props = {
    * fills itself, no tap needed.
    */
   onAutoGlobal?: (product: GlobalProductRecord) => void;
+  /** Label on the shared-catalog action. Defaults to "Use". */
+  useLabel?: string;
+  /** Shown after the clerk dismisses the matches. */
+  dismissedLabel?: string;
 };
 
 function queryLooksLikeBarcode(q: string): boolean {
@@ -57,6 +61,8 @@ export function ProductNameSuggestions({
   onOpenExisting,
   onUseGlobal,
   onAutoGlobal,
+  useLabel = "Use",
+  dismissedLabel = "Creating as a new product",
 }: Props) {
   const [tenantHits, setTenantHits] = useState<ItemSummaryRecord[]>([]);
   const [globalHits, setGlobalHits] = useState<GlobalProductRecord[]>([]);
@@ -176,7 +182,7 @@ export function ProductNameSuggestions({
     return (
       <div className="flex items-center justify-between gap-2 border border-border bg-muted/15 px-2 py-1.5">
         <p className="text-[11px] text-muted-foreground">
-          Creating as a new product
+          {dismissedLabel}
         </p>
         <button
           type="button"
@@ -292,7 +298,7 @@ export function ProductNameSuggestions({
                       </span>
                     </span>
                     <span className="shrink-0 text-[10px] font-medium text-primary">
-                      {already ? "Open" : "Use"}
+                      {already ? "Open" : useLabel}
                     </span>
                   </button>
                 </li>
