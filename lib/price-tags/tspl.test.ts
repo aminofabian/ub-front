@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkTsplRows, tsplHeader, tsplRow } from "@/lib/price-tags/tspl";
+import { chunkTsplRows, tsplGapDetect, tsplHeader, tsplRow } from "@/lib/price-tags/tspl";
 
 const text = (bytes: Uint8Array) => new TextDecoder("latin1").decode(bytes);
 
@@ -29,5 +29,14 @@ describe("TSPL for label printers", () => {
       expect(text(chunk.bytes.slice(0, header.length))).toBe(text(header));
     }
     expect(chunkTsplRows(header, [])).toEqual([]);
+  });
+});
+
+describe("teaching the printer a roll", () => {
+  it("sends the expected size and gap, then GAPDETECT", () => {
+    const bytes = new TextDecoder("latin1").decode(
+      tsplGapDetect({ widthMm: 70, heightMm: 32, rowGapMm: 2, flip: false }),
+    );
+    expect(bytes).toBe("SIZE 70 mm,32 mm\r\nGAP 2 mm,0 mm\r\nGAPDETECT\r\n");
   });
 });

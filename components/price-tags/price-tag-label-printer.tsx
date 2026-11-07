@@ -20,10 +20,14 @@ type Detection =
 export function PriceTagLabelPrinter({
   settings,
   onChange,
+  onCalibrate,
 }: {
   settings: LabelPrinterSettings;
   onChange: (next: LabelPrinterSettings) => void;
+  /** Sends GAPDETECT so the printer learns this roll's labels and gaps. */
+  onCalibrate: () => Promise<void>;
 }) {
+  const [calibrating, setCalibrating] = useState(false);
   const [detection, setDetection] = useState<Detection>({ state: "idle" });
 
   const detect = useCallback(async () => {
@@ -69,6 +73,18 @@ export function PriceTagLabelPrinter({
       >
         Detect printers
       </button>
+      <button
+        type="button"
+        className={CATALOG_BTN_GHOST}
+        disabled={!settings.queueName || calibrating}
+        title="The printer feeds a few labels while it measures them. Do this whenever you load a new kind of roll."
+        onClick={() => {
+          setCalibrating(true);
+          void onCalibrate().finally(() => setCalibrating(false));
+        }}
+      >
+        {calibrating ? "Sending…" : "Teach printer this roll"}
+      </button>
       <label className="flex h-8 items-center gap-1.5 text-[12.5px]">
         <input
           type="checkbox"
@@ -80,7 +96,7 @@ export function PriceTagLabelPrinter({
       <p className={cn("basis-full text-[12px] leading-relaxed text-[#556159]")}>
         {detection.state === "no-bridge"
           ? "The Palmart print bridge is not running on this computer, so labels cannot go straight to the printer. Start it (the same helper the till uses for receipts), then Detect printers."
-          : "Labels go straight to the printer as TSPL, the language most 4-inch label printers speak, so no printer driver or paper size is needed. Prices are checked first."}
+          : "Labels go straight to the printer as TSPL, the language most 4-inch label printers speak, so no printer driver or paper size is needed. Prices are checked first. If tags land off-centre or blank labels feed out, press “Teach printer this roll” once, then print the alignment test."}
       </p>
     </div>
   );

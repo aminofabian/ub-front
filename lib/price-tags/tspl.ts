@@ -94,3 +94,19 @@ export function chunkTsplRows(
   flush();
   return chunks;
 }
+
+/**
+ * Teach the printer this roll: it feeds a few labels while its sensor
+ * measures label and gap length, then stops each print on a gap. Without it
+ * the printer counts millimetres, and a small mismatch adds up row by row.
+ */
+export function tsplGapDetect(media: TsplMedia): Uint8Array {
+  return encoder.encode(
+    [
+      `SIZE ${mm(media.widthMm)} mm,${mm(media.heightMm)} mm`,
+      `GAP ${mm(media.rowGapMm)} mm,0 mm`,
+      "GAPDETECT",
+      "",
+    ].join("\r\n"),
+  );
+}

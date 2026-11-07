@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DraftNumberInput, rangeParser } from "@/components/price-tags/price-tag-inputs";
+import { PriceTagCatalogRun } from "@/components/price-tags/price-tag-catalog-run";
 import { PriceTagLabelPrinter } from "@/components/price-tags/price-tag-label-printer";
+import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import { PriceTagMediaBar } from "@/components/price-tags/price-tag-media-bar";
 import { sendToLabelPrinter } from "@/components/price-tags/send-to-label-printer";
 import { PriceTagPreview } from "@/components/price-tags/price-tag-preview";
@@ -26,7 +28,10 @@ import type { TagRenderContext } from "@/lib/price-tags/markup";
 import { downloadPriceTagsPdf } from "@/lib/price-tags/pdf";
 import { printPriceTagPages } from "@/lib/price-tags/print";
 import {
+  calibrateLabelPrinter,
   printAlignmentToLabelPrinter,
+  rollMismatchWarning,
+  taughtRollOf,
   readLabelPrinter,
   writeLabelPrinter,
   type LabelPrinterSettings,
@@ -65,7 +70,9 @@ export function PriceTagsWorkspace() {
   const [startAt, setStartAt] = useState(1);
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<"print" | "pdf" | "label" | null>(null);
-  const [labelPrinter, setLabelPrinterState] = useState<LabelPrinterSettings>({ queueName: "", flip: false });
+  const [catalogScope, setCatalogScope] = useState<CatalogScope | null>(null);
+  const [catalogRunActive, setCatalogRunActive] = useState(false);
+  const [labelPrinter, setLabelPrinterState] = useState<LabelPrinterSettings>({ queueName: "", flip: false, taughtRoll: null });
 
   useEffect(() => {
     setLabelPrinterState(readLabelPrinter());
@@ -153,6 +160,7 @@ export function PriceTagsWorkspace() {
       toast.error("Choose the label printer first, under the roll settings.");
       return;
     }
+    if (kind === "label" && !confirmLabelRoll()) return;
     if (job.instances.length === 0 || busy) return;
     setBusy(kind);
     try {
@@ -232,6 +240,12 @@ export function PriceTagsWorkspace() {
     }
   }
 
+  /** Ask before printing a roll size the printer was not taught. */
+  function confirmLabelRoll(): boolean {
+    const warning = rollMismatchWarning(labelPrinter, geometry);
+    return warning == null || window.confirm(warning);
+  }
+
   const pageInput = "h-8 w-12 text-center";
 
   return (
@@ -276,6 +290,13 @@ export function PriceTagsWorkspace() {
               branchId={branchId}
               currency={currency}
               showWasInput={layout.fields.includes("previousPrice")}
+            onPrintAll={(scope) => {
+              if (catalogRunActive) {
+                toast.message("A print run is still going. Stop it before starting another.");
+                return;
+              }
+              setCatalogScope(scope);
+            }}
             />
           </fieldset>
         </section>
@@ -283,7 +304,24 @@ export function PriceTagsWorkspace() {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <PriceTagMediaBar layout={layout} geometry={geometry} onLayout={setLayout} />
           {layout.media === "label-roll" ? (
-            <PriceTagLabelPrinter settings={labelPrinter} onChange={setLabelPrinter} />
+            <PriceTagLabelPrinter
+              settings={labelPrinter}
+              onChange={setLabelPrinter}
+              onCalibrate={() =>
+                calibrateLabelPrinter(labelPrinter, {
+                  widthMm: geometry.pageWidthMm,
+                  heightMm: geometry.pageHeightMm,
+                  rowGapMm: layout.rollRowGapMm,
+                })
+                  .then(() => {
+                    setLabelPrinter({ ...labelPrinter, taughtRoll: taughtRollOf(geometry) });
+                    toast.success("Sent. The printer feeds a few labels while it measures; then print the alignment test.");
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(error instanceof Error ? error.message : "Could not reach the label printer.");
+                  })
+              }
+            />
           ) : null}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap gap-1">
@@ -407,6 +445,20 @@ export function PriceTagsWorkspace() {
                 Remove them
               </button>
             </div>
+          ) : null}
+
+          {catalogScope ? (
+            <PriceTagCatalogRun
+              key={`${catalogScope.summary}|${catalogScope.search}`}
+              scope={catalogScope}
+              job={{ layout, geometry, businessName, currency, calibration }}
+              rowGapMm={layout.rollRowGapMm}
+              printer={labelPrinter}
+              labelPrinterReady={layout.media === "label-roll" && labelPrinter.queueName.trim() !== ""}
+              onClose={() => setCatalogScope(null)}
+              onRunningChange={setCatalogRunActive}
+              confirmLabelRoll={confirmLabelRoll}
+            />
           ) : null}
 
           <PriceTagPreview

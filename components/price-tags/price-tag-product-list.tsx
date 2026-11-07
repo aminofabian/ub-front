@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CopiesInput, DraftNumberInput, FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
+import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import type { PriceTagJob } from "@/components/price-tags/use-price-tag-job";
 import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import {
@@ -37,11 +38,14 @@ export function PriceTagProductList({
   branchId,
   currency,
   showWasInput,
+  onPrintAll,
 }: {
   job: PriceTagJob;
   branchId: string | null | undefined;
   currency: string | null | undefined;
   showWasInput: boolean;
+  /** Opens the non-stop run for everything the current search and filters match. */
+  onPrintAll?: (scope: CatalogScope) => void;
 }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -114,6 +118,20 @@ export function PriceTagProductList({
 
   const hasQuery = debouncedSearch.length > 0 || Boolean(categoryId || itemTypeId || aisle);
 
+  /** The current filters in plain words, e.g. "Dairy · Milk · search “fresh”". */
+  function scopeSummary(): string {
+    const parts: string[] = [];
+    const department = itemTypes.find((row) => row.id === itemTypeId)?.label;
+    const category = categories.find((row) => row.id === categoryId)?.name;
+    const zone =
+      aisle === NO_AISLE ? "No shelf zone" : aisles.find((row) => row.id === aisle)?.name;
+    if (department) parts.push(department);
+    if (category) parts.push(category);
+    if (zone) parts.push(`Shelf zone: ${zone}`);
+    if (debouncedSearch) parts.push(`search “${debouncedSearch}”`);
+    return parts.length > 0 ? parts.join(" · ") : "The whole catalogue";
+  }
+
   const loadPage = useCallback(
     async (nextPage: number, replace: boolean) => {
       listRequest.current += 1;
@@ -143,17 +161,11 @@ export function PriceTagProductList({
     [debouncedSearch, filters],
   );
 
+  // With no filter the list browses the whole catalogue, a page at a time
+  // ("Load more"). Adding all of it to one sheet stays behind a filter.
   useEffect(() => {
-    if (!hasQuery) {
-      listRequest.current += 1;
-      setRows([]);
-      setHasMore(false);
-      setPage(0);
-      setListLoading(false);
-      return;
-    }
     void loadPage(0, true);
-  }, [hasQuery, loadPage]);
+  }, [loadPage]);
 
   function reportAdded(added: number, offered: number) {
     if (added === 0 && offered > 0) {
@@ -329,10 +341,21 @@ export function PriceTagProductList({
             type="button"
             className={CATALOG_BTN_GHOST}
             disabled={bulkBusy || !hasQuery}
+            title={hasQuery ? undefined : "Pick a department, category, or shelf zone first. To print the whole catalogue, use Print all matches."}
             onClick={() => void addEveryMatch()}
           >
             {bulkBusy ? "Adding…" : "Add every match"}
           </button>
+          {onPrintAll ? (
+            <button
+              type="button"
+              className={cn(CATALOG_BTN_GHOST, "text-[#1D4B3B]")}
+              title="Print every matching product in batches, without adding them to the sheet."
+              onClick={() => onPrintAll({ search: debouncedSearch, filters: filters(), summary: scopeSummary() })}
+            >
+              Print all matches…
+            </button>
+          ) : null}
           <button
             type="button"
             className={cn(CATALOG_BTN_GHOST, showSelected && "text-[#1D4B3B]")}
@@ -355,7 +378,7 @@ export function PriceTagProductList({
                 ? "Searching the catalog…"
                 : hasQuery
                   ? "No products match."
-                  : "Search the catalog. Nothing is listed until you do."}
+                  : "The catalogue has no products yet."}
           </li>
         ) : null}
         {visibleRows.map((product) => {

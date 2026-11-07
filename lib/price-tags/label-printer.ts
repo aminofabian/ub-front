@@ -5,6 +5,7 @@ import { barcodeImage, drawPageCells, type TagDrawJob } from "@/lib/price-tags/p
 import {
   LABEL_DOTS_PER_MM,
   chunkTsplRows,
+  tsplGapDetect,
   tsplHeader,
   tsplRow,
   type TsplMedia,
@@ -17,24 +18,66 @@ export type LabelPrinterSettings = {
   /** CUPS / Windows queue name the print bridge sends raw bytes to. */
   queueName: string;
   flip: boolean;
+  /** The roll last taught with GAPDETECT; printing another size makes the printer lose the gaps. */
+  taughtRoll: TaughtRoll | null;
 };
+
+export type TaughtRoll = { labelWidthMm: number; labelHeightMm: number; across: number };
+
+export function taughtRollOf(geometry: TagDrawJob["geometry"]): TaughtRoll {
+  return { labelWidthMm: geometry.tagWidthMm, labelHeightMm: geometry.tagHeightMm, across: geometry.perPage };
+}
+
+function rollName(roll: TaughtRoll): string {
+  const across = roll.across > 1 ? `, ${roll.across} across` : "";
+  return `${roll.labelWidthMm} × ${roll.labelHeightMm} mm${across}`;
+}
+
+/**
+ * A warning when this job's labels differ from the roll the printer was
+ * taught: it then expects gaps in the wrong places, prints across them and
+ * usually stops after a few labels. Null when they match or nothing was taught.
+ */
+export function rollMismatchWarning(
+  settings: LabelPrinterSettings,
+  geometry: TagDrawJob["geometry"],
+): string | null {
+  const taught = settings.taughtRoll;
+  if (!taught) return null;
+  const now = taughtRollOf(geometry);
+  const same =
+    Math.abs(taught.labelWidthMm - now.labelWidthMm) < 0.3 &&
+    Math.abs(taught.labelHeightMm - now.labelHeightMm) < 0.3 &&
+    taught.across === now.across;
+  if (same) return null;
+  return `The printer was taught ${rollName(taught)} labels, but these tags are set up for ${rollName(now)}. They will land across the stickers and the printer may stop. Print anyway?`;
+}
 
 const SETTINGS_KEY = "kiosk.label-printer.v1";
 
 export function readLabelPrinter(): LabelPrinterSettings {
-  const fallback: LabelPrinterSettings = { queueName: "", flip: false };
+  const fallback: LabelPrinterSettings = { queueName: "", flip: false, taughtRoll: null };
   if (typeof window === "undefined") return fallback;
   try {
     const raw = JSON.parse(window.localStorage.getItem(SETTINGS_KEY) ?? "null") as unknown;
     if (!raw || typeof raw !== "object") return fallback;
-    const row = raw as { queueName?: unknown; flip?: unknown };
+    const row = raw as { queueName?: unknown; flip?: unknown; taughtRoll?: unknown };
     return {
       queueName: typeof row.queueName === "string" ? row.queueName.slice(0, 200) : "",
       flip: row.flip === true,
+      taughtRoll: sanitizeTaughtRoll(row.taughtRoll),
     };
   } catch {
     return fallback;
   }
+}
+
+function sanitizeTaughtRoll(raw: unknown): TaughtRoll | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : NaN);
+  const roll = { labelWidthMm: num(row.labelWidthMm), labelHeightMm: num(row.labelHeightMm), across: num(row.across) };
+  return Object.values(roll).every((value) => value > 0) ? roll : null;
 }
 
 export function writeLabelPrinter(settings: LabelPrinterSettings): void {
@@ -175,6 +218,24 @@ export async function printAlignmentToLabelPrinter(
   const [chunk] = chunkTsplRows(tsplHeader(media), [tsplRow({ bytesPerRow, heightDots: doc.heightDots, black })]);
   try {
     await printEscPosViaTillBridge(new Blob([chunk.bytes], { type: "application/octet-stream" }), { name: queueName });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === TILL_PRINT_TIMEOUT_ERROR;
+    throw new LabelPrintError(error instanceof Error ? error.message : "The print bridge did not answer.", 0, timedOut);
+  }
+}
+
+/** Send the gap calibration (see tsplGapDetect) to this computer's label printer. */
+export async function calibrateLabelPrinter(
+  printer: LabelPrinterSettings,
+  media: Omit<TsplMedia, "flip">,
+): Promise<void> {
+  const queueName = printer.queueName.trim();
+  if (!queueName) throw new LabelPrintError("Choose the label printer first.", 0, false);
+  const bytes = tsplGapDetect({ ...media, rowGapMm: clamp(media.rowGapMm, 0, 10), flip: printer.flip });
+  try {
+    await printEscPosViaTillBridge(new Blob([new Uint8Array(bytes)], { type: "application/octet-stream" }), {
+      name: queueName,
+    });
   } catch (error) {
     const timedOut = error instanceof Error && error.name === TILL_PRINT_TIMEOUT_ERROR;
     throw new LabelPrintError(error instanceof Error ? error.message : "The print bridge did not answer.", 0, timedOut);

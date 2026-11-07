@@ -46,6 +46,7 @@ export const ROLL_PRESETS: readonly RollPreset[] = [
   { label: "50 × 30", widthMm: 50, heightMm: 30, across: 1, gapMm: 0, edgeMm: 0 },
   { label: "58 × 40", widthMm: 58, heightMm: 40, across: 1, gapMm: 0, edgeMm: 0 },
   { label: "100 × 50", widthMm: 100, heightMm: 50, across: 1, gapMm: 0, edgeMm: 0 },
+  { label: "1″ × 1″ · 2 across", widthMm: 25.4, heightMm: 25.4, across: 2, gapMm: 2.5, edgeMm: 2.5, suggestSticker: true },
   { label: "32 × 32 · 2 across", widthMm: 32, heightMm: 32, across: 2, gapMm: 2, edgeMm: 2, suggestSticker: true },
   { label: "25 × 25 · 3 across", widthMm: 25, heightMm: 25, across: 3, gapMm: 2, edgeMm: 2, suggestSticker: true },
 ];
