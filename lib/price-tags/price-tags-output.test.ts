@@ -124,6 +124,25 @@ describe("tag face content", () => {
     expect(blocks.find((block) => block.kind === "price")).toMatchObject({ missing: true, per: "", mark: "" });
   });
 
+  it("prints a product barcode and leaves the tag blank of one when there is none", () => {
+    const layout = {
+      ...DEFAULT_LAYOUT,
+      fields: [...DEFAULT_LAYOUT.fields, "barcode" as const],
+      generateBarcodeFromSku: true,
+    };
+    const input = {
+      layout,
+      businessName: "",
+      currency: "KES",
+      wasOverrides: {},
+    };
+    const withCode = buildFaceBlocks(product({ barcode: "6164000726187", sku: "PM-0001" }), input);
+    expect(withCode.find((block) => block.kind === "barcode")).toMatchObject({ code: "6164000726187" });
+    expect(withCode.some((block) => block.kind === "sku")).toBe(false);
+    const without = buildFaceBlocks(product({ barcode: "", sku: "PM-0001" }), input);
+    expect(without.some((block) => block.kind === "barcode" || block.kind === "sku")).toBe(false);
+  });
+
   it("leads with the selling price and leaves the shop name and barcode off", () => {
     const blocks = buildFaceBlocks(product(), {
       layout: DEFAULT_LAYOUT,

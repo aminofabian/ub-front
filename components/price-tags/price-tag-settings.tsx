@@ -249,15 +249,6 @@ export function PriceTagSettings({
               onChange={(event) => patch({ promoMessage: event.target.value })}
             />
           </label>
-          <label className="flex min-h-7 items-center gap-2 text-[12.5px] pointer-coarse:min-h-9">
-            <input
-              type="checkbox"
-              className="size-4 accent-[#1D4B3B]"
-              checked={layout.generateBarcodeFromSku}
-              onChange={(event) => patch({ generateBarcodeFromSku: event.target.checked })}
-            />
-            Barcode from SKU when the product has none
-          </label>
           <p className={cn(TAG_NOTE, "max-w-prose")}>
             Selling prices are read again from this branch when you print or download. Saved layouts keep the
             sheet, not the prices. Weighed products show their price per unit. A previous price appears when

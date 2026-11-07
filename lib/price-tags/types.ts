@@ -74,7 +74,10 @@ export type TagLayout = {
   fields: TagField[];
   /** Shared line such as "Fresh deal". Not a price. */
   promoMessage: string;
-  /** Draw a Code 128 from the SKU when the product has no barcode. */
+  /**
+   * Older layouts could draw a code from the SKU. Printed tags use the product
+   * barcode only; the flag is kept so those layouts still load.
+   */
   generateBarcodeFromSku: boolean;
 };
 

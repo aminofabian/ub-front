@@ -3,7 +3,7 @@ import type { LabelPresetId, TagField, TagLayout, TagTemplateId } from "@/lib/pr
 export const TEMPLATE_FIELDS: Record<TagTemplateId, TagField[]> = {
   classic: ["productName", "sellingPrice"],
   promo: ["promoMessage", "productName", "sellingPrice", "previousPrice", "discountPercent"],
-  barcode: ["productName", "sellingPrice", "sku"],
+  barcode: ["productName", "sellingPrice", "barcode"],
   premium: ["productName", "sellingPrice", "unit", "category"],
   sticker: ["productName", "sellingPrice"],
 };
@@ -22,7 +22,7 @@ export const TEMPLATE_COPY: Record<
   },
   barcode: {
     label: "Barcode",
-    detail: "Price, name, and the SKU. Add a barcode from the sheet settings.",
+    detail: "Price, name, and the barcode when the product has one.",
   },
   premium: {
     label: "Premium",
@@ -122,7 +122,7 @@ export const DEFAULT_LAYOUT: TagLayout = {
   align: "left",
   fields: TEMPLATE_FIELDS.classic.slice(),
   promoMessage: "",
-  generateBarcodeFromSku: true,
+  generateBarcodeFromSku: false,
 };
 
 export function applyTemplate(layout: TagLayout, templateId: TagTemplateId): TagLayout {
@@ -160,7 +160,7 @@ const FIELD_LABELS: Record<TagField, string> = {
   previousPrice: "Previous price",
   discountPercent: "Discount",
   sku: "SKU",
-  barcode: "Barcode",
+  barcode: "Barcode, when the product has one",
   unit: "Unit",
   promoMessage: "Promotional line",
   category: "Category",

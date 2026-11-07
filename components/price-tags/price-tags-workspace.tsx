@@ -289,6 +289,18 @@ export function PriceTagsWorkspace() {
               branchId={branchId}
               currency={currency}
               showWasInput={layout.fields.includes("previousPrice")}
+              showBarcode={layout.fields.includes("barcode")}
+              onShowBarcode={(on) =>
+                setLayout((current) => ({
+                  ...current,
+                  generateBarcodeFromSku: false,
+                  fields: on
+                    ? current.fields.includes("barcode")
+                      ? current.fields
+                      : current.fields.concat("barcode")
+                    : current.fields.filter((field) => field !== "barcode"),
+                }))
+              }
             onPrintAll={(scope) => {
               if (catalogRunActive) {
                 toast.message("A print run is still going. Stop it before starting another.");

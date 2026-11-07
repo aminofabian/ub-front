@@ -22,6 +22,7 @@ const PREVIOUS_DEFAULT_FIELDS: Record<string, readonly TagField[]> = {
   "barcode,businessName,productName,sellingPrice": TEMPLATE_FIELDS.classic,
   "businessName,discountPercent,previousPrice,productName,promoMessage,sellingPrice,sku": TEMPLATE_FIELDS.promo,
   "barcode,productName,sellingPrice,sku": TEMPLATE_FIELDS.barcode,
+  "productName,sellingPrice,sku": TEMPLATE_FIELDS.barcode,
   "businessName,category,productName,sellingPrice,sku,unit": TEMPLATE_FIELDS.premium,
 };
 

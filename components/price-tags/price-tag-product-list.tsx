@@ -8,15 +8,15 @@ import { CopiesInput, DraftNumberInput, FIELD_CLASS } from "@/components/price-t
 import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import type { PriceTagJob } from "@/components/price-tags/use-price-tag-job";
 import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
+import { useDashboard } from "@/components/dashboard-provider";
+import { UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import {
   fetchAisles,
   fetchCategories,
   fetchItemsPage,
-  fetchItemTypes,
   type AisleRecord,
   type CategoryRecord,
   type FetchItemsOpts,
-  type ItemTypeRecord,
 } from "@/lib/api";
 import { resolvedWasPrice } from "@/lib/price-tags/face";
 import { tagPriceLabel, toAmount } from "@/lib/price-tags/money";
@@ -26,7 +26,6 @@ import { MAX_QUEUED_TAGS } from "@/lib/price-tags/storage";
 import type { TagProduct } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
-const NO_AISLE = "__none";
 const LIST_PAGE_SIZE = 40;
 
 /** The column the price-tag list actually scrolls in (the picker panel). */
@@ -50,22 +49,32 @@ export function PriceTagProductList({
   branchId,
   currency,
   showWasInput,
+  showBarcode,
+  onShowBarcode,
   onPrintAll,
 }: {
   job: PriceTagJob;
   branchId: string | null | undefined;
   currency: string | null | undefined;
   showWasInput: boolean;
+  /** Print the product barcode on each tag, and only when the product has one. */
+  showBarcode: boolean;
+  onShowBarcode: (on: boolean) => void;
   /** Opens the non-stop run for everything the current search and filters match. */
   onPrintAll?: (scope: CatalogScope) => void;
 }) {
+  const {
+    itemTypeId,
+    setItemTypeId,
+    aisleId,
+    setAisleId,
+    itemTypes,
+    headerScopeReady,
+  } = useDashboard();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [itemTypeId, setItemTypeId] = useState("");
-  const [aisle, setAisle] = useState("");
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
-  const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
   const [rows, setRows] = useState<TagProduct[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -89,14 +98,12 @@ export function PriceTagProductList({
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([fetchCategories(), fetchItemTypes()])
-      .then(([categoryRows, typeRows]) => {
-        if (cancelled) return;
-        setCategories(categoryRows.filter((row) => row.active));
-        setItemTypes(typeRows.filter((row) => row.active));
+    void fetchCategories()
+      .then((categoryRows) => {
+        if (!cancelled) setCategories(categoryRows.filter((row) => row.active));
       })
       .catch(() => {
-        if (!cancelled) toast.error("Could not load departments");
+        if (!cancelled) toast.error("Could not load categories");
       });
     return () => {
       cancelled = true;
@@ -124,15 +131,15 @@ export function PriceTagProductList({
       categoryId: categoryId || undefined,
       includeCategoryDescendants: true,
       itemTypeId: itemTypeId || undefined,
-      aisleUnset: aisle === NO_AISLE || undefined,
-      aisleId: aisle && aisle !== NO_AISLE ? aisle : undefined,
+      aisleUnset: aisleId === UNASSIGNED_SHELF_ZONE_VALUE || undefined,
+      aisleId: aisleId && aisleId !== UNASSIGNED_SHELF_ZONE_VALUE ? aisleId : undefined,
       branchId: branchId || undefined,
       sort: [{ property: "name", direction: "asc" }],
     }),
-    [categoryId, itemTypeId, aisle, branchId],
+    [categoryId, itemTypeId, aisleId, branchId],
   );
 
-  const hasQuery = debouncedSearch.length > 0 || Boolean(categoryId || itemTypeId || aisle);
+  const hasQuery = debouncedSearch.length > 0 || Boolean(categoryId || itemTypeId || aisleId);
 
   /** The current filters in plain words, e.g. "Dairy · Milk · search “fresh”". */
   function scopeSummary(): string {
@@ -140,12 +147,27 @@ export function PriceTagProductList({
     const department = itemTypes.find((row) => row.id === itemTypeId)?.label;
     const category = categories.find((row) => row.id === categoryId)?.name;
     const zone =
-      aisle === NO_AISLE ? "No shelf zone" : aisles.find((row) => row.id === aisle)?.name;
+      aisleId === UNASSIGNED_SHELF_ZONE_VALUE
+        ? "No shelf zone"
+        : aisles.find((row) => row.id === aisleId)?.name;
     if (department) parts.push(department);
     if (category) parts.push(category);
     if (zone) parts.push(`Shelf zone: ${zone}`);
     if (debouncedSearch) parts.push(`search “${debouncedSearch}”`);
     return parts.length > 0 ? parts.join(" · ") : "The whole catalogue";
+  }
+
+  function wholeCatalogueScope(): CatalogScope {
+    return {
+      search: "",
+      filters: {
+        catalogScope: "SKUS_ONLY",
+        includeCategoryDescendants: true,
+        branchId: branchId || undefined,
+        sort: [{ property: "name", direction: "asc" }],
+      },
+      summary: "The whole catalogue",
+    };
   }
 
   const loadPage = useCallback(
@@ -185,8 +207,11 @@ export function PriceTagProductList({
   // when the end of the list scrolls into view. Adding all of it to one sheet
   // stays behind a filter.
   useEffect(() => {
+    // Wait until the header department and shelf zone have been restored, or the
+    // first page is the whole catalogue and the header looks ignored.
+    if (!headerScopeReady) return;
     void loadPage(0, true);
-  }, [loadPage]);
+  }, [headerScopeReady, loadPage]);
 
   loadMoreRef.current = () => {
     if (paging.current || !hasMore || showSelected) return;
@@ -227,7 +252,7 @@ export function PriceTagProductList({
       let complete = false;
       const maxPages = Math.ceil(MAX_QUEUED_TAGS / BULK_PAGE_SIZE);
       for (let index = 0; index < maxPages; index += 1) {
-        const result = await fetchItemsPage(debouncedSearch, {
+        const result = await fetchItemsPage(debouncedSearch || undefined, {
           ...filters(),
           page: index,
           size: BULK_PAGE_SIZE,
@@ -241,7 +266,9 @@ export function PriceTagProductList({
       const added = job.addProducts(gathered);
       reportAdded(added, gathered.length);
       if (!complete || added < gathered.filter((row) => copiesOf(job.instances, row.id) === 0).length) {
-        toast.warning("Not every match fit on this sheet. Narrow the filter and add the rest after printing.");
+        toast.warning(
+          `The sheet holds ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print these, then add the rest — or use Print whole catalogue.`,
+        );
       }
     } catch {
       toast.error("Could not add the matching products");
@@ -332,12 +359,12 @@ export function PriceTagProductList({
             value={itemTypeId}
             onChange={(event) => {
               setItemTypeId(event.target.value);
-              setAisle("");
+              setAisleId("");
             }}
             className={FIELD_CLASS}
           >
             <option value="">All departments</option>
-            {itemTypes.map((type) => (
+            {itemTypes.filter((type) => type.active).map((type) => (
               <option key={type.id} value={type.id}>
                 {type.label}
               </option>
@@ -358,12 +385,12 @@ export function PriceTagProductList({
           </select>
           <select
             aria-label="Shelf zone"
-            value={aisle}
-            onChange={(event) => setAisle(event.target.value)}
+            value={aisleId}
+            onChange={(event) => setAisleId(event.target.value)}
             className={FIELD_CLASS}
           >
             <option value="">All shelf zones</option>
-            <option value={NO_AISLE}>No shelf zone</option>
+            <option value={UNASSIGNED_SHELF_ZONE_VALUE}>No shelf zone</option>
             {aisles.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.code ? `${row.code} · ${row.name}` : row.name}
@@ -383,13 +410,27 @@ export function PriceTagProductList({
           <button
             type="button"
             className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10")}
-            disabled={bulkBusy || !hasQuery}
-            title={hasQuery ? undefined : "Pick a department, category, or shelf zone first. To print the whole catalogue, use Print all matches."}
-            onClick={() => void addEveryMatch()}
+            disabled={bulkBusy}
+            title={
+              hasQuery
+                ? undefined
+                : `Adds every product, up to ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print whole catalogue sends them all.`
+            }
+            onClick={() => {
+              if (
+                !hasQuery &&
+                !window.confirm(
+                  `Add the whole catalogue to the sheet? It holds ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print whole catalogue sends every product.`,
+                )
+              ) {
+                return;
+              }
+              void addEveryMatch();
+            }}
           >
-            {bulkBusy ? "Adding…" : "Add every match"}
+            {bulkBusy ? "Adding…" : hasQuery ? "Add every match" : "Add whole catalogue"}
           </button>
-          {onPrintAll ? (
+          {onPrintAll && hasQuery ? (
             <button
               type="button"
               className={cn(CATALOG_BTN_GHOST, "shrink-0 text-[#1D4B3B] pointer-coarse:h-10")}
@@ -399,6 +440,25 @@ export function PriceTagProductList({
               Print all matches…
             </button>
           ) : null}
+          {onPrintAll ? (
+            <button
+              type="button"
+              className={cn(CATALOG_BTN_GHOST, "shrink-0 text-[#1D4B3B] pointer-coarse:h-10")}
+              title="Print every product in the catalogue, in batches, without adding them to the sheet."
+              onClick={() => onPrintAll(wholeCatalogueScope())}
+            >
+              Print whole catalogue…
+            </button>
+          ) : null}
+          <label className="flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] pointer-coarse:h-10">
+            <input
+              type="checkbox"
+              className="size-4 accent-[#1D4B3B]"
+              checked={showBarcode}
+              onChange={(event) => onShowBarcode(event.target.checked)}
+            />
+            Show barcode
+          </label>
           <button
             type="button"
             className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10", showSelected && "text-[#1D4B3B]")}
@@ -450,9 +510,7 @@ export function PriceTagProductList({
                   {product.name}
                 </p>
                 <p className="truncate font-[family-name:var(--font-geist-mono)] text-[11px] text-[#556159]">
-                  {product.sku || "No SKU"}
-                  {product.barcode ? ` · ${product.barcode}` : ""}
-                  {" · "}
+                  {showBarcode && product.barcode ? `${product.barcode} · ` : ""}
                   <span className={product.sellingPrice == null ? "text-[#A55237]" : undefined}>
                     {tagPriceLabel(product.sellingPrice, currency)}
                     {product.pricePer ? ` / ${product.pricePer}` : ""}

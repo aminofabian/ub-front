@@ -76,14 +76,11 @@ export const DROP_ORDER: readonly FaceBlockKind[] = [
   "barcode",
 ];
 
-export function barcodeValueFor(product: TagProduct, layout: TagLayout): string {
+/** The product's own barcode. A SKU is never drawn in its place. */
+export function barcodeValueFor(product: TagProduct, _layout: TagLayout): string {
   const own = product.barcode.trim();
-  if (own) {
-    const assessed = assessBarcodeCode(own);
-    return canEncodeBarcode(assessed.state) ? assessed.code : "";
-  }
-  if (!layout.generateBarcodeFromSku) return "";
-  const assessed = assessBarcodeCode(product.sku);
+  if (!own) return "";
+  const assessed = assessBarcodeCode(own);
   return canEncodeBarcode(assessed.state) ? assessed.code : "";
 }
 
