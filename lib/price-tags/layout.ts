@@ -38,17 +38,18 @@ export type RollPreset = RollSpec & {
 };
 
 /**
- * Common label rolls. Multi-across gaps and edges are typical values; the
- * printer driver and the roll's own spec sheet are the final word.
+ * Common label rolls. Square stickers are named by the size a ruler reads,
+ * because sellers list the same 1″ roll as "1″ × 1″ (32 mm)": picking 32 mm
+ * for a 25 mm sticker prints every tag across the gap onto the next one. Multi-across gaps and edges are typical values; the printer driver and the roll's own spec sheet are the final word.
  */
 export const ROLL_PRESETS: readonly RollPreset[] = [
   { label: "40 × 30", widthMm: 40, heightMm: 30, across: 1, gapMm: 0, edgeMm: 0 },
   { label: "50 × 30", widthMm: 50, heightMm: 30, across: 1, gapMm: 0, edgeMm: 0 },
   { label: "58 × 40", widthMm: 58, heightMm: 40, across: 1, gapMm: 0, edgeMm: 0 },
   { label: "100 × 50", widthMm: 100, heightMm: 50, across: 1, gapMm: 0, edgeMm: 0 },
-  { label: "1″ × 1″ · 2 across", widthMm: 25.4, heightMm: 25.4, across: 2, gapMm: 2.5, edgeMm: 2.5, suggestSticker: true },
-  { label: "32 × 32 · 2 across", widthMm: 32, heightMm: 32, across: 2, gapMm: 2, edgeMm: 2, suggestSticker: true },
-  { label: "25 × 25 · 3 across", widthMm: 25, heightMm: 25, across: 3, gapMm: 2, edgeMm: 2, suggestSticker: true },
+  { label: "25 mm (1″) · 2 across", widthMm: 25.4, heightMm: 25.4, across: 2, gapMm: 2.5, edgeMm: 2.5, suggestSticker: true },
+  { label: "32 mm · 2 across", widthMm: 32, heightMm: 32, across: 2, gapMm: 2, edgeMm: 2, suggestSticker: true },
+  { label: "25 mm · 3 across", widthMm: 25, heightMm: 25, across: 3, gapMm: 2, edgeMm: 2, suggestSticker: true },
 ];
 
 export function rollSpecOf(layout: TagLayout): RollSpec {

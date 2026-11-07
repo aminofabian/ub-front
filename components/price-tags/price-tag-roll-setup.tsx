@@ -8,9 +8,13 @@ import {
   rollSpecOf,
   type RollPreset,
 } from "@/lib/price-tags/layout";
+import { TAG_NOTE } from "@/components/price-tags/price-tag-chrome";
 import { applyTemplate } from "@/lib/price-tags/templates";
 import type { TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
+
+/** 1″ rolls are often sold as "32 mm"; a square label in this range may really be 25 mm. */
+const MISNAMED_SQUARE_MM = { min: 30, max: 33 } as const;
 
 /**
  * Square stickers start on the sticker face; a full shelf tag will not fit.
@@ -51,36 +55,47 @@ export function PriceTagRollSetup({
   const tooWide = linerMm > ROLL_LIMITS.printWidthMm;
   const patch = (next: Parameters<typeof layoutForRoll>[1]) => onLayout((current) => layoutForRoll(current, next));
 
+  const maybeMisnamed =
+    spec.widthMm === spec.heightMm && spec.widthMm >= MISNAMED_SQUARE_MM.min && spec.widthMm <= MISNAMED_SQUARE_MM.max;
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <Measure name="Width" unit="mm" value={spec.widthMm} min={ROLL_LIMITS.minWidthMm} max={ROLL_LIMITS.maxWidthMm} step={0.5} onChange={(widthMm) => patch({ widthMm })} />
-      <span aria-hidden className="text-[12px] text-[#556159]">×</span>
-      <Measure name="Height" unit="mm" value={spec.heightMm} min={ROLL_LIMITS.minHeightMm} max={ROLL_LIMITS.maxHeightMm} step={0.5} onChange={(heightMm) => patch({ heightMm })} />
-      <Measure name="Across" value={spec.across} min={1} max={ROLL_LIMITS.maxAcross} onChange={(across) => patch({ across })} />
-      <Measure
-        name="Row"
-        unit="mm"
-        value={layout.rollRowGapMm}
-        min={0}
-        max={ROLL_LIMITS.maxRowGapMm}
-        step={0.5}
-        onChange={(rollRowGapMm) => onLayout((current) => ({ ...current, rollRowGapMm }))}
-      />
-      {spec.across > 1 ? (
-        <>
-          <Measure name="Gap" unit="mm" value={spec.gapMm} min={0} max={ROLL_LIMITS.maxGapMm} step={0.5} onChange={(gapMm) => patch({ gapMm })} />
-          <Measure name="Edge" unit="mm" value={spec.edgeMm} min={0} max={ROLL_LIMITS.maxEdgeMm} step={0.5} onChange={(edgeMm) => patch({ edgeMm })} />
-        </>
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Measure name="Width" unit="mm" value={spec.widthMm} min={ROLL_LIMITS.minWidthMm} max={ROLL_LIMITS.maxWidthMm} step={0.5} onChange={(widthMm) => patch({ widthMm })} />
+        <span aria-hidden className="text-[12px] text-[#556159]">×</span>
+        <Measure name="Height" unit="mm" value={spec.heightMm} min={ROLL_LIMITS.minHeightMm} max={ROLL_LIMITS.maxHeightMm} step={0.5} onChange={(heightMm) => patch({ heightMm })} />
+        <Measure name="Across" value={spec.across} min={1} max={ROLL_LIMITS.maxAcross} onChange={(across) => patch({ across })} />
+        <Measure
+          name="Row"
+          unit="mm"
+          value={layout.rollRowGapMm}
+          min={0}
+          max={ROLL_LIMITS.maxRowGapMm}
+          step={0.5}
+          onChange={(rollRowGapMm) => onLayout((current) => ({ ...current, rollRowGapMm }))}
+        />
+        {spec.across > 1 ? (
+          <>
+            <Measure name="Gap" unit="mm" value={spec.gapMm} min={0} max={ROLL_LIMITS.maxGapMm} step={0.5} onChange={(gapMm) => patch({ gapMm })} />
+            <Measure name="Edge" unit="mm" value={spec.edgeMm} min={0} max={ROLL_LIMITS.maxEdgeMm} step={0.5} onChange={(edgeMm) => patch({ edgeMm })} />
+          </>
+        ) : null}
+        <span
+          className={cn(
+            "font-[family-name:var(--font-geist-mono)] text-[12px] tabular-nums",
+            tooWide ? "text-[#A55237]" : "text-[#556159]",
+          )}
+          title={tooWide ? `Wider than the ${ROLL_LIMITS.printWidthMm} mm a 4-inch printer can print.` : "Width of one printed row"}
+        >
+          {linerMm} mm{tooWide ? " wide" : ""}
+        </span>
+      </div>
+      {maybeMisnamed ? (
+        <p className={TAG_NOTE}>
+          Measure one sticker with a ruler. A roll sold as “1″ × 1″ (32 mm)” is usually 25 mm: pick 25 mm (1″), then
+          Teach the printer again.
+        </p>
       ) : null}
-      <span
-        className={cn(
-          "font-[family-name:var(--font-geist-mono)] text-[12px] tabular-nums",
-          tooWide ? "text-[#A55237]" : "text-[#556159]",
-        )}
-        title={tooWide ? `Wider than the ${ROLL_LIMITS.printWidthMm} mm a 4-inch printer can print.` : "Width of one printed row"}
-      >
-        {linerMm} mm{tooWide ? " wide" : ""}
-      </span>
     </div>
   );
 }
