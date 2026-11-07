@@ -11,6 +11,9 @@ export type MeasuredBlock = {
 
 export const BLOCK_GAP_MM = 0.4;
 
+/** A shelf label lets its price shrink to 75% before the name or barcode gives way. */
+export const SHELF_PRICE_FLOOR = 0.75;
+
 export function stackHeight(blocks: readonly MeasuredBlock[]): number {
   if (blocks.length === 0) return 0;
   let total = BLOCK_GAP_MM * (blocks.length - 1);
@@ -27,10 +30,17 @@ export function fitFaceBlocks(
   measured: readonly MeasuredBlock[],
   availableMm: number,
   shortenName: (entry: MeasuredBlock) => MeasuredBlock,
+  /**
+   * Smallest share of its size the price may shrink to before any line is
+   * dropped or the name is cut. 1 (the default) never shrinks the price.
+   */
+  priceFloor = 1,
 ): { blocks: MeasuredBlock[]; heightMm: number; dropped: FaceBlockKind[] } {
   let blocks = measured.slice();
   const dropped: FaceBlockKind[] = [];
   const fits = () => stackHeight(blocks) <= availableMm + 0.01;
+
+  if (!fits() && priceFloor < 1) blocks = shrinkPrice(blocks, stackHeight(blocks) - availableMm, priceFloor);
 
   for (const kind of DROP_ORDER) {
     if (fits()) break;
@@ -47,4 +57,14 @@ export function fitFaceBlocks(
     }
   }
   return { blocks, heightMm: stackHeight(blocks), dropped };
+}
+
+/** Take up to `excessMm` off the price block's height, never below `floor` of its size. */
+function shrinkPrice(blocks: MeasuredBlock[], excessMm: number, floor: number): MeasuredBlock[] {
+  return blocks.map((entry) => {
+    if (entry.block.kind !== "price" || entry.heightMm <= 0) return entry;
+    const factor = Math.max(floor, (entry.heightMm - excessMm) / entry.heightMm);
+    if (factor >= 1) return entry;
+    return { ...entry, sizeMm: entry.sizeMm * factor, heightMm: entry.heightMm * factor, shrunk: true };
+  });
 }

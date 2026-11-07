@@ -10,6 +10,28 @@ export const LABEL_DOTS_PER_MM = 8;
 /** The print bridge refuses bodies over 256 KB; stay well under it. */
 export const MAX_TSPL_CHUNK_BYTES = 200_000;
 
+/**
+ * What one batch to a label printer may hold. Cheap TSPL printers (the B410
+ * among them) keep only about 130 KB of incoming data and silently drop the
+ * rest while they print, so a 38-label job came out as 7 labels. Small
+ * batches, sent one after another with time to print, never overflow it.
+ */
+export const LABEL_PRINTER_CHUNK_BYTES = 48_000;
+
+/** Print speed set on every job, so the wait between batches can be worked out. */
+export const TSPL_SPEED_IPS = 3;
+
+const MM_PER_INCH = 25.4;
+/** Time the printer spends taking in and preparing each row's bitmap. */
+const SECONDS_PER_ROW_SETUP = 0.35;
+const SECONDS_SAFETY_MARGIN = 0.8;
+
+/** How long a batch of rows takes to print at TSPL_SPEED_IPS, with a margin. */
+export function tsplPrintSeconds(rowCount: number, media: Pick<TsplMedia, "heightMm" | "rowGapMm">): number {
+  const feedMm = rowCount * (media.heightMm + media.rowGapMm);
+  return feedMm / (TSPL_SPEED_IPS * MM_PER_INCH) + rowCount * SECONDS_PER_ROW_SETUP + SECONDS_SAFETY_MARGIN;
+}
+
 export type TsplMedia = {
   widthMm: number;
   heightMm: number;
@@ -40,6 +62,7 @@ export function tsplHeader(media: TsplMedia): Uint8Array {
       `GAP ${mm(media.rowGapMm)} mm,0 mm`,
       `DIRECTION ${media.flip ? 0 : 1},0`,
       "REFERENCE 0,0",
+      `SPEED ${TSPL_SPEED_IPS}`,
       "",
     ].join("\r\n"),
   );

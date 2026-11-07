@@ -1,7 +1,7 @@
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth } from "@/lib/price-tags/code128";
 import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
-import { fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
+import { SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import { LABEL_DOTS_PER_MM } from "@/lib/price-tags/tspl";
 import type {
   PrinterCalibration,
@@ -110,9 +110,12 @@ function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
     if (block.kind === "price") {
       // Shrink a long price to the face width, as the PDF does, instead of clipping it.
       const perChars = block.per ? (block.per.length + 2) * 0.48 : 0;
-      const wide = (block.text.length + perChars) * sizeMm * PRICE_GLYPH_WIDTH_EM;
+      // The shelf label sets the currency beside the figures (about a third their size).
+      const inline = template === "shelf" && block.mark.trim() !== "";
+      const markChars = inline ? (block.mark.length + 0.5) * 0.36 : 0;
+      const wide = (block.text.length + perChars + markChars) * sizeMm * PRICE_GLYPH_WIDTH_EM;
       if (wide > innerW) sizeMm *= innerW / wide;
-      const mark = block.mark ? sizeMm * 0.42 : 0;
+      const mark = block.mark && !inline ? sizeMm * 0.42 : 0;
       const shrunk = wide > innerW;
       return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.15 + 0.2 + mark, shrunk };
     }
@@ -125,7 +128,7 @@ function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
     ...entry,
     lines: entry.lines.slice(0, 1),
     heightMm: entry.sizeMm * 1.2,
-  }));
+  }), template === "shelf" ? SHELF_PRICE_FLOOR : 1);
 }
 
 export function sheetHtml(

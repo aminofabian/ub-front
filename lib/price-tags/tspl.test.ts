@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkTsplRows, tsplGapDetect, tsplHeader, tsplRow } from "@/lib/price-tags/tspl";
+import {
+  LABEL_PRINTER_CHUNK_BYTES,
+  chunkTsplRows,
+  tsplGapDetect,
+  tsplHeader,
+  tsplPrintSeconds,
+  tsplRow,
+} from "@/lib/price-tags/tspl";
 
 const text = (bytes: Uint8Array) => new TextDecoder("latin1").decode(bytes);
 
 describe("TSPL for label printers", () => {
   it("sets the row size, gap and print direction", () => {
     const header = text(tsplHeader({ widthMm: 70, heightMm: 32, rowGapMm: 2, flip: false }));
-    expect(header).toBe("SIZE 70 mm,32 mm\r\nGAP 2 mm,0 mm\r\nDIRECTION 1,0\r\nREFERENCE 0,0\r\n");
+    expect(header).toBe("SIZE 70 mm,32 mm\r\nGAP 2 mm,0 mm\r\nDIRECTION 1,0\r\nREFERENCE 0,0\r\nSPEED 3\r\n");
     expect(text(tsplHeader({ widthMm: 70, heightMm: 32, rowGapMm: 2.5, flip: true }))).toContain("DIRECTION 0,0");
   });
 
@@ -38,5 +45,20 @@ describe("teaching the printer a roll", () => {
       tsplGapDetect({ widthMm: 70, heightMm: 32, rowGapMm: 2, flip: false }),
     );
     expect(bytes).toBe("SIZE 70 mm,32 mm\r\nGAP 2 mm,0 mm\r\nGAPDETECT\r\n");
+  });
+});
+
+describe("pacing a label printer", () => {
+  it("keeps every batch small enough for a printer that drops overflow", () => {
+    const header = tsplHeader({ widthMm: 50, heightMm: 30, rowGapMm: 2, flip: false });
+    const row = new Uint8Array(19_600);
+    const chunks = chunkTsplRows(header, Array.from({ length: 38 }, () => row), LABEL_PRINTER_CHUNK_BYTES);
+    expect(chunks.every((chunk) => chunk.bytes.length <= LABEL_PRINTER_CHUNK_BYTES)).toBe(true);
+    expect(chunks.reduce((sum, chunk) => sum + chunk.rowCount, 0)).toBe(38);
+  });
+
+  it("waits long enough for a batch to feed out at 3 inches a second", () => {
+    // Two 30 mm labels with 2 mm gaps: 64 mm at 76.2 mm/s, plus set-up and margin.
+    expect(tsplPrintSeconds(2, { heightMm: 30, rowGapMm: 2 })).toBeCloseTo(64 / 76.2 + 0.7 + 0.8, 5);
   });
 });

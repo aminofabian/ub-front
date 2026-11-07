@@ -133,6 +133,12 @@ const TYPE_RULES = `
   .ptag-premium .ptag-price { font-weight: 650; font-size: ${size(TAG_TYPE_MM.premiumPrice)}; }
   .ptag-sticker .ptag-name { font-size: ${size(TAG_TYPE_MM.stickerName)}; font-weight: 650; line-height: 1.15; }
   .ptag-sticker .ptag-price { font-size: ${size(TAG_TYPE_MM.stickerPrice)}; border-top: 0; padding-top: 0; letter-spacing: -0.04em; }
+  /* Shelf label: name on top, a big centred price with the currency beside it. */
+  .ptag-face.ptag-shelf { text-align: center; align-items: center; }
+  .ptag-shelf .ptag-name { font-size: ${size(TAG_TYPE_MM.shelfName)}; font-weight: 700; line-height: 1.15; }
+  .ptag-shelf .ptag-price { font-size: ${size(TAG_TYPE_MM.shelfPrice)}; flex-direction: row; align-items: flex-start; gap: 0.14em; }
+  .ptag-shelf .ptag-mark { font-size: 0.32em; letter-spacing: 0.06em; margin: 0.06em 0 0; }
+  .ptag-shelf .ptag-figure { border-bottom: 0; padding-bottom: 0; }
   .ptag-price.ptag-price-missing { font-size: ${size(TAG_TYPE_MM.missingPrice)}; font-weight: 650; color: #A55237; letter-spacing: 0; }
   .ptag-price.ptag-price-missing .ptag-figure { border-bottom: 0; }
   .ptag-per { font-size: 0.34em; font-weight: 600; letter-spacing: 0; color: #556159; }

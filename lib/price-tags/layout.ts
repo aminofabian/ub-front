@@ -326,6 +326,8 @@ export function faceSize(
 const BASE_FACE_WIDTH_MM = 40;
 const BASE_FACE_HEIGHT_MM = 32;
 const STICKER_FACE_MM = 32;
+const SHELF_FACE_WIDTH_MM = 50;
+const SHELF_FACE_HEIGHT_MM = 30;
 
 /**
  * Type scale for a tag face: 1 on the shelf tag, larger on big tags so the
@@ -340,8 +342,11 @@ export function tagTypeScale(
 ): number {
   const face = faceSize(geo, orientation);
   // The sticker's sizes are drawn for a 32 mm square, not the long shelf tag.
-  const base = templateId === "sticker" ? STICKER_FACE_MM : BASE_FACE_WIDTH_MM;
-  const baseHeight = templateId === "sticker" ? STICKER_FACE_MM : BASE_FACE_HEIGHT_MM;
+  // The shelf label's sizes are drawn for a 50 × 30 mm roll label.
+  const base =
+    templateId === "sticker" ? STICKER_FACE_MM : templateId === "shelf" ? SHELF_FACE_WIDTH_MM : BASE_FACE_WIDTH_MM;
+  const baseHeight =
+    templateId === "sticker" ? STICKER_FACE_MM : templateId === "shelf" ? SHELF_FACE_HEIGHT_MM : BASE_FACE_HEIGHT_MM;
   const fit = Math.min(face.width / base, face.height / baseHeight);
   return Math.round(clamp(fit, 0.48, 2.2) * 100) / 100;
 }

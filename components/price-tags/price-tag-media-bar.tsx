@@ -1,8 +1,8 @@
 "use client";
 
 import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_CHIP_SOLID, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
-import { PriceTagRollSetup, applyRollPreset } from "@/components/price-tags/price-tag-roll-setup";
-import { ROLL_PRESETS, SHEET_COUNTS, layoutForRoll, layoutForSheet, rollPresetMatches } from "@/lib/price-tags/layout";
+import { PriceTagRollSetup, applyRollPreset, enterLabelRoll } from "@/components/price-tags/price-tag-roll-setup";
+import { ROLL_PRESETS, SHEET_COUNTS, layoutForSheet, rollPresetMatches } from "@/lib/price-tags/layout";
 import type { PageDirection, SheetGeometry, TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +38,7 @@ export function PriceTagMediaBar({
             type="button"
             aria-pressed={roll}
             className={cn(TAG_CHIP, roll ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
-            onClick={() => onLayout((current) => layoutForRoll(current))}
+            onClick={() => onLayout((current) => enterLabelRoll(current))}
           >
             Roll
           </button>

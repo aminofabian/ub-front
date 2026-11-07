@@ -4,7 +4,9 @@ import { CanvasTagDoc } from "@/lib/price-tags/canvas-doc";
 import { barcodeImage, drawPageCells, type TagDrawJob } from "@/lib/price-tags/pdf";
 import {
   LABEL_DOTS_PER_MM,
+  LABEL_PRINTER_CHUNK_BYTES,
   chunkTsplRows,
+  tsplPrintSeconds,
   tsplGapDetect,
   tsplHeader,
   tsplRow,
@@ -116,6 +118,10 @@ async function prepareBarcodes(job: TagDrawJob, rows: readonly SheetCell[][]) {
   return { urls, decoded };
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export type LabelPrintProgress = { rowsSent: number; rowsTotal: number };
 
 export class LabelPrintError extends Error {
@@ -160,9 +166,11 @@ export async function printRowsToLabelPrinter(
     return tsplRow({ bytesPerRow, heightDots: doc.heightDots, black });
   });
 
-  const chunks = chunkTsplRows(tsplHeader(media), encoded);
+  const chunks = chunkTsplRows(tsplHeader(media), encoded, LABEL_PRINTER_CHUNK_BYTES);
   let rowsSent = 0;
-  for (const chunk of chunks) {
+  for (const [index, chunk] of chunks.entries()) {
+    // Let the previous batch finish printing; the printer drops data it has no room for.
+    if (index > 0) await wait(tsplPrintSeconds(chunks[index - 1].rowCount, media) * 1000);
     try {
       await printEscPosViaTillBridge(new Blob([chunk.bytes], { type: "application/octet-stream" }), {
         name: queueName,

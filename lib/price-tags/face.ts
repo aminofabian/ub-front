@@ -33,6 +33,10 @@ export const TAG_TYPE_MM = {
   /** Sticker: sized for 25–40 mm squares, where the price is the whole point. */
   stickerName: 3.4,
   stickerPrice: 9.5,
+  /** Shelf label: sized for a 50 × 30 mm roll label, with the currency beside the figures. */
+  shelfName: 3.4,
+  shelfPrice: 11.5,
+  shelfBarcodeHeight: 6,
 } as const;
 
 /** Text size for a block on the given template, before scaling. */
@@ -44,19 +48,21 @@ export function blockSizeMm(kind: FaceBlockKind, template: TagTemplateId, missin
       return TAG_TYPE_MM.deal;
     case "name":
       if (template === "sticker") return TAG_TYPE_MM.stickerName;
+      if (template === "shelf") return TAG_TYPE_MM.shelfName;
       return template === "premium" ? TAG_TYPE_MM.premiumName : TAG_TYPE_MM.name;
     case "price":
       if (missing) return TAG_TYPE_MM.missingPrice;
       if (template === "promo") return TAG_TYPE_MM.promoPrice;
       if (template === "premium") return TAG_TYPE_MM.premiumPrice;
       if (template === "sticker") return TAG_TYPE_MM.stickerPrice;
+      if (template === "shelf") return TAG_TYPE_MM.shelfPrice;
       return TAG_TYPE_MM.price;
     case "was":
       return TAG_TYPE_MM.was;
     case "off":
       return TAG_TYPE_MM.off;
     case "barcode":
-      return TAG_TYPE_MM.barcodeHeight;
+      return template === "shelf" ? TAG_TYPE_MM.shelfBarcodeHeight : TAG_TYPE_MM.barcodeHeight;
     default:
       return TAG_TYPE_MM.meta;
   }
@@ -146,5 +152,18 @@ export function buildFaceBlocks(product: TagProduct, input: FaceInput): FaceBloc
     const code = barcodeValueFor(product, layout);
     if (code) blocks.push({ kind: "barcode", code });
   }
+  // A shelf label reads name first, then the price, like the shelf edge it sits on.
+  if (layout.templateId === "shelf") return nameFirst(blocks);
   return blocks;
+}
+
+/** Move the product name in front of the price, keeping every other block in place. */
+export function nameFirst(blocks: FaceBlock[]): FaceBlock[] {
+  const nameAt = blocks.findIndex((block) => block.kind === "name");
+  const priceAt = blocks.findIndex((block) => block.kind === "price");
+  if (nameAt < 0 || priceAt < 0 || nameAt < priceAt) return blocks;
+  const next = blocks.slice();
+  const [name] = next.splice(nameAt, 1);
+  next.splice(priceAt, 0, name);
+  return next;
 }

@@ -2,7 +2,7 @@ import { barcodePngDataUrl } from "@/lib/price-tags/barcode";
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth, code128Modules } from "@/lib/price-tags/code128";
 import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
-import { BLOCK_GAP_MM, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
+import { BLOCK_GAP_MM, SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import type {
   PrinterCalibration,
   SheetCell,
@@ -171,9 +171,16 @@ function measure(doc: TagDoc, blocks: FaceBlock[], job: TagDrawJob, scale: numbe
       // Shrink a long price to the face width rather than run off the tag.
       const per = block.per ? ` / ${block.per}` : "";
       const text = plainSpaces(block.text);
-      const wide = doc.getTextWidth(text) + doc.getTextWidth(per) * 0.48;
+      const inline = markBesidePrice(template, block.mark);
+      let markW = 0;
+      if (inline) {
+        setFontMm(doc, sizeMm * INLINE_MARK_SHARE, true);
+        markW = doc.getTextWidth(inlineMarkText(block.mark)) + sizeMm * INLINE_MARK_GAP;
+        setFontMm(doc, sizeMm, style.bold);
+      }
+      const wide = doc.getTextWidth(text) + doc.getTextWidth(per) * 0.48 + markW;
       if (wide > innerW) sizeMm *= innerW / wide;
-      const mark = block.mark ? sizeMm * 0.42 : 0;
+      const mark = block.mark && !inline ? sizeMm * 0.42 : 0;
       return { block, sizeMm, lines: [text], heightMm: sizeMm * 1.18 + mark };
     }
     const text = plainSpaces(displayText(block));
@@ -203,9 +210,10 @@ function drawTag(
     ...entry,
     lines: entry.lines.slice(0, 1),
     heightMm: entry.sizeMm * 1.18,
-  }));
+  }), job.layout.templateId === "shelf" ? SHELF_PRICE_FLOOR : 1);
   // The sticker template is always centred, like its print CSS.
-  const center = job.layout.align === "center" || job.layout.templateId === "sticker";
+  const center =
+    job.layout.align === "center" || job.layout.templateId === "sticker" || job.layout.templateId === "shelf";
 
   // Face coordinates (fx, fy) are read left-to-right, top-to-bottom. A vertical
   // face is the same face turned a quarter anticlockwise, like the print CSS.
@@ -232,7 +240,8 @@ function drawTag(
     }
     const style = blockStyle(block, job.layout.templateId);
     doc.setTextColor(style.color[0], style.color[1], style.color[2]);
-    if (block.kind === "price" && block.mark) {
+    const inlineMark = block.kind === "price" && markBesidePrice(job.layout.templateId, block.mark);
+    if (block.kind === "price" && block.mark && !inlineMark) {
       const markSize = entry.sizeMm * 0.3;
       const markColor = job.layout.templateId === "promo" ? ACCENT : BRAND;
       setFontMm(doc, markSize, true);
@@ -247,7 +256,20 @@ function drawTag(
     for (const line of entry.lines) {
       const baseline = cursor + entry.sizeMm * 0.86;
       setFontMm(doc, entry.sizeMm, style.bold);
-      if (block.kind === "price" && block.per) {
+      if (block.kind === "price" && inlineMark) {
+        drawPriceWithMark(doc, {
+          figure: line,
+          mark: inlineMarkText(block.mark),
+          per: block.per ? ` / ${block.per}` : "",
+          sizeMm: entry.sizeMm,
+          bold: style.bold,
+          baseline,
+          lineX,
+          toPage,
+          angle,
+          figureColor: style.color,
+        });
+      } else if (block.kind === "price" && block.per) {
         const per = ` / ${block.per}`;
         const mainW = doc.getTextWidth(line);
         setFontMm(doc, entry.sizeMm * 0.48, true);
@@ -275,6 +297,60 @@ function drawTag(
       cursor += lineH;
     }
     cursor += BLOCK_GAP_MM;
+  }
+}
+
+/** The shelf label sets "KSH" beside the figures, cap-high, so the price can be taller. */
+const INLINE_MARK_SHARE = 0.32;
+const INLINE_MARK_GAP = 0.14;
+
+function markBesidePrice(template: TagLayout["templateId"], mark: string): boolean {
+  return template === "shelf" && mark.trim() !== "";
+}
+
+function inlineMarkText(mark: string): string {
+  return plainSpaces(mark).toUpperCase();
+}
+
+/** Mark, figures and "/ kg" centred as one unit; the mark's top lines up with the figures' tops. */
+function drawPriceWithMark(
+  doc: TagDoc,
+  part: {
+    figure: string;
+    mark: string;
+    per: string;
+    sizeMm: number;
+    bold: boolean;
+    baseline: number;
+    lineX: (width: number) => number;
+    toPage: (fx: number, fy: number) => { px: number; py: number };
+    angle: number;
+    figureColor: Rgb;
+  },
+) {
+  const markSize = part.sizeMm * INLINE_MARK_SHARE;
+  const gap = part.sizeMm * INLINE_MARK_GAP;
+  setFontMm(doc, markSize, true);
+  const markW = doc.getTextWidth(part.mark);
+  setFontMm(doc, part.sizeMm * 0.48, true);
+  const perW = part.per ? doc.getTextWidth(part.per) : 0;
+  setFontMm(doc, part.sizeMm, part.bold);
+  const figureW = doc.getTextWidth(part.figure);
+  const start = part.lineX(markW + gap + figureW + perW);
+  // Cap height of Helvetica is about 0.72 em: align the mark's caps with the figures'.
+  const capTop = part.baseline - part.sizeMm * 0.72;
+  setFontMm(doc, markSize, true);
+  doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
+  const markAt = part.toPage(start, capTop + markSize * 0.72);
+  doc.text(part.mark, markAt.px, markAt.py, { angle: part.angle });
+  doc.setTextColor(part.figureColor[0], part.figureColor[1], part.figureColor[2]);
+  setFontMm(doc, part.sizeMm, part.bold);
+  const figureAt = part.toPage(start + markW + gap, part.baseline);
+  doc.text(part.figure, figureAt.px, figureAt.py, { angle: part.angle });
+  if (part.per) {
+    setFontMm(doc, part.sizeMm * 0.48, true);
+    const perAt = part.toPage(start + markW + gap + figureW, part.baseline);
+    doc.text(part.per, perAt.px, perAt.py, { angle: part.angle });
   }
 }
 

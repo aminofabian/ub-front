@@ -3,7 +3,7 @@
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
 
-export type TagTemplateId = "classic" | "promo" | "barcode" | "premium" | "sticker";
+export type TagTemplateId = "classic" | "promo" | "barcode" | "premium" | "sticker" | "shelf";
 
 export type TagField =
   | "businessName"

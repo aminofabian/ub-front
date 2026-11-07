@@ -6,6 +6,7 @@ export const TEMPLATE_FIELDS: Record<TagTemplateId, TagField[]> = {
   barcode: ["productName", "sellingPrice", "barcode"],
   premium: ["productName", "sellingPrice", "unit", "category"],
   sticker: ["productName", "sellingPrice"],
+  shelf: ["productName", "sellingPrice", "barcode"],
 };
 
 export const TEMPLATE_COPY: Record<
@@ -31,6 +32,10 @@ export const TEMPLATE_COPY: Record<
   sticker: {
     label: "Sticker",
     detail: "A big centred price and a short name, for small square labels.",
+  },
+  shelf: {
+    label: "Shelf label",
+    detail: "Name across the top, a big centred price, and the barcode when it fits. Made for 40–100 mm roll labels.",
   },
 };
 

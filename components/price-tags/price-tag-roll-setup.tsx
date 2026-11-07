@@ -12,10 +12,27 @@ import { applyTemplate } from "@/lib/price-tags/templates";
 import type { TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
-/** Square stickers start on the sticker face; a full shelf tag will not fit. */
+/**
+ * Square stickers start on the sticker face; a full shelf tag will not fit.
+ * Rectangular rolls start on the shelf-label face, unless the person already
+ * picked another face for this roll.
+ */
 export function applyRollPreset(layout: TagLayout, preset: RollPreset): TagLayout {
   const next = layoutForRoll(layout, preset);
-  return preset.suggestSticker && next.templateId !== "sticker" ? applyTemplate(next, "sticker") : next;
+  if (preset.suggestSticker) return next.templateId === "sticker" ? next : applyTemplate(next, "sticker");
+  const comingFromSheet = layout.media !== "label-roll";
+  return comingFromSheet || next.templateId === "sticker" ? withShelfFace(next) : next;
+}
+
+/** Switch to the label roll on a face made for it: name, big centred price, barcode. */
+export function enterLabelRoll(layout: TagLayout): TagLayout {
+  const next = layoutForRoll(layout);
+  if (layout.media === "label-roll" || next.templateId === "sticker" || next.templateId === "shelf") return next;
+  return withShelfFace(next);
+}
+
+function withShelfFace(layout: TagLayout): TagLayout {
+  return { ...applyTemplate(layout, "shelf"), align: "center" };
 }
 
 /**
