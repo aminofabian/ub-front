@@ -11,7 +11,7 @@ export function printPriceTagPages(
   ctx: TagRenderContext,
   pageFrom: number,
   pageTo: number,
-  options: { offset: PrinterCalibration; skip: number },
+  options: { offset: PrinterCalibration; skip: number; whenClosed?: () => void },
 ): boolean {
   const start = Math.max(1, pageFrom);
   const end = Math.min(pages.length, pageTo);
@@ -27,7 +27,7 @@ export function printPriceTagPages(
     )
     .join("");
 
-  return printDocument(html, tagPrintCssForPage(ctx.geometry.pageWidthMm, ctx.geometry.pageHeightMm));
+  return printDocument(html, tagPrintCssForPage(ctx.geometry.pageWidthMm, ctx.geometry.pageHeightMm), options.whenClosed);
 }
 
 /**
@@ -41,7 +41,7 @@ export function printAlignmentTest(geometry: SheetGeometry, offset: PrinterCalib
   return printDocument(alignmentTestHtml(geometry, offset), css);
 }
 
-function printDocument(html: string, css: string): boolean {
+function printDocument(html: string, css: string, whenClosed?: () => void): boolean {
   // A frame left by an earlier job would print its sheets again on some browsers.
   for (const stale of Array.from(document.querySelectorAll(`iframe[${FRAME_ATTR}]`))) {
     stale.remove();
@@ -83,6 +83,8 @@ function printDocument(html: string, css: string): boolean {
   window.setTimeout(() => {
     win.focus();
     win.print();
+    // print() returns when the dialog closes. The sheet is finished either way.
+    whenClosed?.();
   }, 60);
   return true;
 }

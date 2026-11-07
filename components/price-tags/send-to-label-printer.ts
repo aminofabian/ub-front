@@ -29,22 +29,24 @@ export async function sendToLabelPrinter({
   rows: SheetCell[][];
   rowGapMm: number;
   printer: LabelPrinterSettings;
-}): Promise<void> {
+}): Promise<boolean> {
   const toastId = toast.loading(`Preparing ${rows(cells.length)} of labels…`);
   try {
     const done = await printRowsToLabelPrinter(job, cells, rowGapMm, printer, (progress) => {
       toast.loading(`Sent ${progress.rowsSent} of ${rows(progress.rowsTotal)}…`, { id: toastId });
     });
     toast.success(`Sent ${rows(done.rowsTotal)} to ${printer.queueName}.`, { id: toastId });
+    return true;
   } catch (error) {
     if (!(error instanceof LabelPrintError)) {
       toast.error("Could not prepare the labels.", { id: toastId });
-      return;
+      return false;
     }
     const sent = error.rowsSent > 0 ? ` ${rows(error.rowsSent)} already went to the printer.` : "";
     const unsure = error.uncertain
       ? " The last batch may also have printed; check the labels before sending the rest."
       : "";
     toast.error(`${error.message}${sent}${unsure}`, { id: toastId, duration: 15_000 });
+    return false;
   }
 }

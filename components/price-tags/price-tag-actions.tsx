@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 const TEMPLATES = Object.keys(TEMPLATE_COPY) as TagTemplateId[];
 const RANGE_INPUT = "h-8 w-14 px-0 text-center pointer-coarse:h-10";
-/** Full width on a phone, where the buttons stack under the thumb; natural width beside the range on wider screens. */
-const ACTION = "h-9 flex-1 justify-center sm:flex-none pointer-coarse:h-11";
+/** Beside the range on a laptop. A phone prints from the thumb bar instead. */
+const ACTION = "h-9 justify-center pointer-coarse:h-11";
 
 export type OutputKind = "print" | "pdf" | "label";
 
@@ -107,7 +107,7 @@ export function PriceTagActions({
         />
         <span className="tabular-nums">/ {totalPages}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+      <div className="hidden flex-wrap gap-1.5 lg:ml-auto lg:flex">
         <button type="button" className={cn(CATALOG_BTN_OUTLINE, ACTION)} disabled={!canOutput} title="Download PDF" onClick={() => onOutput("pdf")}>
           {busy === "pdf" ? "Checking…" : "PDF"}
         </button>

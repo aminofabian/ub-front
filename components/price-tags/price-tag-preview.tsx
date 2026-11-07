@@ -86,7 +86,7 @@ export function PriceTagPreview({
   return (
     // On a phone the page column scrolls and the preview is as tall as its strip;
     // on a laptop the preview takes the column's remaining height and scrolls inside.
-    <div className="flex flex-col gap-2 lg:min-h-[24rem] lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 lg:min-h-[24rem]">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)]">{summary}</p>
         <div className="flex items-center gap-1">
@@ -114,7 +114,7 @@ export function PriceTagPreview({
 
       <div
         ref={frameRef}
-        className="overflow-x-auto bg-[var(--catalog-panel,#EFEBE2)] p-3 lg:min-h-0 lg:flex-1 lg:overflow-auto"
+        className="min-h-[16rem] flex-1 overflow-auto bg-[var(--catalog-panel,#EFEBE2)] p-3 lg:min-h-0"
       >
         <div className="mx-auto" style={{ height: stripHeightMm * MM_TO_PX * scale, width: pageWidthPx * scale }}>
           <div

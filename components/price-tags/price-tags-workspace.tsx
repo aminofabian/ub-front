@@ -15,7 +15,7 @@ import { PriceTagProductList } from "@/components/price-tags/price-tag-product-l
 import { PriceTagSettings } from "@/components/price-tags/price-tag-settings";
 import { usePriceTagJob } from "@/components/price-tags/use-price-tag-job";
 import { ProductsPageLayout } from "@/app/(dashboard)/products/_components/products-page-layout";
-import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
+import { CATALOG_BTN_GHOST, CATALOG_BTN_PRIMARY } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { barcodeSvgMarkup } from "@/lib/price-tags/barcode";
@@ -42,6 +42,14 @@ function count(n: number, one: string, many: string): string {
   return n === 1 ? `1 ${one}` : `${n.toLocaleString("en-KE")} ${many}`;
 }
 
+const PHONE_STAGES = [
+  ["products", "Products"],
+  ["sheet", "Sheet"],
+  ["print", "Print"],
+] as const;
+
+type PhoneStage = (typeof PHONE_STAGES)[number][0];
+
 function pdfFileName(): string {
   const stamp = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(new Date());
   return `price-tags-${stamp}.pdf`;
@@ -67,6 +75,8 @@ export function PriceTagsWorkspace() {
   const [busy, setBusy] = useState<OutputKind | null>(null);
   const [catalogScope, setCatalogScope] = useState<CatalogScope | null>(null);
   const [catalogRunActive, setCatalogRunActive] = useState(false);
+  /** Phone only. A laptop shows the list and the sheet together. */
+  const [phoneStage, setPhoneStage] = useState<PhoneStage>("products");
   const [labelPrinter, setLabelPrinterState] = useState<LabelPrinterSettings>({ queueName: "", flip: false, taughtRoll: null });
 
   useEffect(() => {
@@ -188,13 +198,13 @@ export function PriceTagsWorkspace() {
       const start = Math.max(1, Math.min(printFrom, printTo, totalPages));
       const end = Math.min(totalPages, Math.max(printFrom, printTo));
       if (kind === "print") {
-        if (!printPriceTagPages(pages, live, start, end, { offset: calibration, skip })) {
+        if (!printPriceTagPages(pages, live, start, end, { offset: calibration, skip, whenClosed: () => job.clearAll() })) {
           toast.error("Could not open the print dialog");
         }
         return;
       }
       if (kind === "label") {
-        await sendToLabelPrinter({
+        const sent = await sendToLabelPrinter({
           job: {
             layout,
             geometry,
@@ -209,6 +219,7 @@ export function PriceTagsWorkspace() {
           rowGapMm: layout.rollRowGapMm,
           printer: labelPrinter,
         });
+        if (sent) job.clearAll();
         return;
       }
       await downloadPriceTagsPdf({
@@ -241,26 +252,57 @@ export function PriceTagsWorkspace() {
     return warning == null || window.confirm(warning);
   }
 
+  const canOutput = job.instances.length > 0 && busy == null && !job.restoring;
+  const roll = layout.media === "label-roll";
+  const needsPrinter = roll && labelPrinter.queueName.trim() === "";
+  const primaryOutput: OutputKind = roll ? "label" : "print";
+
   return (
     <ProductsPageLayout className="max-w-none">
-      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3">
+        <div className="grid shrink-0 grid-cols-3 border-b border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] lg:hidden" role="tablist" aria-label="Price tags">
+          {PHONE_STAGES.map(([id, label]) => {
+            const on = phoneStage === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                className={cn(
+                  "h-11 text-[13px]",
+                  on
+                    ? "text-[#1D4B3B] shadow-[inset_0_-2px_0_#1D4B3B]"
+                    : "text-[#556159]",
+                )}
+                onClick={() => setPhoneStage(id)}
+              >
+                {label}
+                {id === "sheet" && job.instances.length > 0 ? (
+                  <span className="ml-1 font-[family-name:var(--font-geist-mono)] text-[11px] tabular-nums">{job.instances.length}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
         {/*
           The picker scrolls as one column (a fieldset cannot shrink as a flex
           item, so the list must not try to scroll inside it); the search and
-          filters stay pinned at its top. On a phone it takes the upper half.
+          filters stay pinned at its top. On a phone it is the Products screen.
         */}
         <section
           className={cn(
-            "flex max-h-[48vh] min-h-0 w-full shrink-0 flex-col overflow-y-auto overscroll-contain lg:max-h-none lg:w-[24rem]",
+            "flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain lg:w-[24rem] lg:flex-none lg:shrink-0",
             TAG_PANEL,
+            phoneStage !== "products" && "max-lg:hidden",
           )}
         >
-          <header className={cn("flex items-start justify-between gap-2 border-b px-3 py-3", TAG_HAIRLINE)}>
+          <header className={cn("flex items-center justify-between gap-2 border-b px-3 py-2 lg:items-start lg:py-3", TAG_HAIRLINE)}>
             <div className="min-w-0">
-              <h1 className="font-[family-name:var(--font-cormorant)] text-[1.65rem] font-normal leading-none text-[var(--catalog-ink,#121A16)]">
+              <h1 className="hidden font-[family-name:var(--font-cormorant)] text-[1.65rem] font-normal leading-none text-[var(--catalog-ink,#121A16)] lg:block">
                 Price tags
               </h1>
-              <p className="mt-1.5 text-[12.5px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)]">
+              <p className="text-[12.5px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)] lg:mt-1.5">
                 {job.restoring
                   ? "Loading your last sheet…"
                   : job.selectedIds.length === 0
@@ -306,6 +348,7 @@ export function PriceTagsWorkspace() {
                 toast.message("A print run is still going. Stop it before starting another.");
                 return;
               }
+              setPhoneStage("print");
               setCatalogScope(scope);
             }}
             />
@@ -313,8 +356,13 @@ export function PriceTagsWorkspace() {
         </section>
 
         {/* Scrolls as a whole: the roll set-up and printer panel must not squash the preview. */}
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
-          <div className={cn(TAG_PANEL, "flex flex-col gap-1.5 px-2.5 py-2")}>
+        <section
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto",
+            phoneStage === "products" && "max-lg:hidden",
+          )}
+        >
+          <div className={cn(TAG_PANEL, "flex flex-col gap-1.5 px-2.5 py-2", phoneStage === "sheet" && "max-lg:hidden")}>
           <PriceTagMediaBar layout={layout} geometry={geometry} onLayout={setLayout} />
           {layout.media === "label-roll" ? (
             <PriceTagLabelPrinter
@@ -344,7 +392,7 @@ export function PriceTagsWorkspace() {
             printTo={printTo}
             startAt={startAt}
             busy={busy}
-            canOutput={job.instances.length > 0 && busy == null && !job.restoring}
+            canOutput={canOutput}
             labelPrinterReady={labelPrinter.queueName.trim() !== ""}
             onLayout={setLayout}
             onPrintFrom={setPrintFrom}
@@ -354,6 +402,7 @@ export function PriceTagsWorkspace() {
           />
           </div>
 
+          <div className={cn("flex flex-col gap-3", phoneStage === "sheet" && "max-lg:hidden")}>
           {blankInLastRow > 0 ? (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[#556159]">
               <p>
@@ -403,7 +452,9 @@ export function PriceTagsWorkspace() {
               confirmLabelRoll={confirmLabelRoll}
             />
           ) : null}
+          </div>
 
+          <div className={cn("flex min-h-0 flex-1 flex-col", phoneStage === "print" && "max-lg:hidden")}>
           <PriceTagPreview
             pages={pages}
             pageIndex={pageIndex}
@@ -420,7 +471,9 @@ export function PriceTagsWorkspace() {
               if (!busy) job.duplicateTag(key);
             }}
           />
+          </div>
 
+          <div className={cn(phoneStage !== "print" && "max-lg:hidden")}>
           <PriceTagSettings
             layout={layout}
             geometry={geometry}
@@ -441,7 +494,42 @@ export function PriceTagsWorkspace() {
                 : undefined
             }
           />
+          </div>
         </section>
+        <div className="flex shrink-0 items-center gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)] px-3 py-2 lg:hidden">
+          <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setPhoneStage("sheet")}>
+            <span className="block font-[family-name:var(--font-cormorant)] text-[1.65rem] leading-none text-[var(--catalog-ink,#121A16)] tabular-nums">
+              {job.instances.length.toLocaleString("en-KE")}
+            </span>
+            <span className="text-[12px] text-[#556159]">
+              {job.instances.length === 1 ? "tag on the sheet" : "tags on the sheet"}
+            </span>
+          </button>
+          {phoneStage === "print" ? (
+            <button
+              type="button"
+              className={cn(CATALOG_BTN_GHOST, "h-11 px-3")}
+              disabled={!canOutput || busy != null}
+              onClick={() => void runOutput("pdf")}
+            >
+              {busy === "pdf" ? "Making…" : "PDF"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={cn(CATALOG_BTN_PRIMARY, "h-11 px-4")}
+            disabled={!canOutput || (needsPrinter && phoneStage === "print")}
+            onClick={() => {
+              if (needsPrinter) {
+                setPhoneStage("print");
+                return;
+              }
+              void runOutput(primaryOutput);
+            }}
+          >
+            {busy === primaryOutput ? "Sending…" : needsPrinter && phoneStage !== "print" ? "Choose printer" : roll ? "Print labels" : "Print"}
+          </button>
+        </div>
       </div>
     </ProductsPageLayout>
   );

@@ -418,7 +418,7 @@ export function PriceTagProductList({
           enterKeyHint="done"
           className={cn(FIELD_CLASS, "h-9 px-3 pointer-coarse:h-11")}
         />
-        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
+        <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
           <select
             aria-label="Department"
             value={itemTypeId}
@@ -466,7 +466,7 @@ export function PriceTagProductList({
             aria-label="Supplier"
             value={supplierId}
             onChange={(event) => setSupplierId(event.target.value)}
-            className={FIELD_CLASS}
+            className={cn(FIELD_CLASS, "col-span-2 lg:col-span-1")}
           >
             <option value="">All suppliers</option>
             {suppliers.map((row) => (
