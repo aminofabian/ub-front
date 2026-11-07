@@ -49,11 +49,13 @@ type Doc = {
 
 export async function downloadPriceTagsPdf(job: PdfJob): Promise<void> {
   const { jsPDF } = await import("jspdf");
-  const direction = job.layout.pageDirection === "landscape" ? "landscape" : "portrait";
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: direction, compress: true });
+  // The page is the geometry's page: A4 either way round, or one roll label.
+  const format = [job.geometry.pageWidthMm, job.geometry.pageHeightMm];
+  const direction = format[0] > format[1] ? "landscape" : "portrait";
+  const doc = new jsPDF({ unit: "mm", format, orientation: direction, compress: true });
   const images = new Map<string, string>();
   job.pages.forEach((cells, pageIndex) => {
-    if (pageIndex > 0) doc.addPage("a4", direction);
+    if (pageIndex > 0) doc.addPage(format, direction);
     cells.forEach((slot, index) => {
       if (!slot) return;
       const product = job.products.get(slot.itemId);
@@ -86,6 +88,15 @@ function blockStyle(block: FaceBlock, template: TagLayout["templateId"]): { bold
   }
 }
 
+/**
+ * Intl puts a no-break space in "Ksh 65". jsPDF's built-in Helvetica measures
+ * it wider than it draws it, which pushes centred prices and strike-throughs
+ * off, so the PDF uses a plain space.
+ */
+function plainSpaces(text: string): string {
+  return text.replace(/[\u00a0\u202f]/g, " ");
+}
+
 function displayText(block: FaceBlock): string {
   if (block.kind === "barcode") return "";
   if (block.kind === "shop" || block.kind === "deal" || block.kind === "off") {
@@ -114,11 +125,13 @@ function measure(doc: Doc, blocks: FaceBlock[], job: PdfJob, scale: number, inne
     if (block.kind === "price") {
       // Shrink a long price to the face width rather than run off the tag.
       const per = block.per ? ` / ${block.per}` : "";
-      const wide = doc.getTextWidth(block.text) + doc.getTextWidth(per) * 0.48;
+      const text = plainSpaces(block.text);
+      const wide = doc.getTextWidth(text) + doc.getTextWidth(per) * 0.48;
       if (wide > innerW) sizeMm *= innerW / wide;
-      return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.18 };
+      const mark = block.mark ? sizeMm * 0.42 : 0;
+      return { block, sizeMm, lines: [text], heightMm: sizeMm * 1.18 + mark };
     }
-    const text = displayText(block);
+    const text = plainSpaces(displayText(block));
     const lines = block.kind === "name" ? nameLines(doc, text, innerW) : [text];
     return { block, sizeMm, lines, heightMm: lines.length * sizeMm * 1.18 };
   });
@@ -137,7 +150,7 @@ function drawTag(
   strokeBorder(doc, job.layout.border, x, y, geo.tagWidthMm, geo.tagHeightMm);
 
   const face = faceSize(geo, job.layout.orientation);
-  const scale = tagTypeScale(geo, job.layout.orientation);
+  const scale = tagTypeScale(geo, job.layout.orientation, job.layout.templateId);
   const innerW = Math.max(8, face.width - PAD_X * 2);
   const innerH = Math.max(6, face.height - PAD_Y * 2);
   const blocks = buildFaceBlocks(product, job);
@@ -146,7 +159,8 @@ function drawTag(
     lines: entry.lines.slice(0, 1),
     heightMm: entry.sizeMm * 1.18,
   }));
-  const center = job.layout.align === "center";
+  // The sticker template is always centred, like its print CSS.
+  const center = job.layout.align === "center" || job.layout.templateId === "sticker";
 
   // Face coordinates (fx, fy) are read left-to-right, top-to-bottom. A vertical
   // face is the same face turned a quarter anticlockwise, like the print CSS.
@@ -173,6 +187,17 @@ function drawTag(
     }
     const style = blockStyle(block, job.layout.templateId);
     doc.setTextColor(style.color[0], style.color[1], style.color[2]);
+    if (block.kind === "price" && block.mark) {
+      const markSize = entry.sizeMm * 0.3;
+      const markColor = job.layout.templateId === "promo" ? ACCENT : BRAND;
+      setFontMm(doc, markSize, true);
+      doc.setTextColor(markColor[0], markColor[1], markColor[2]);
+      const mark = plainSpaces(block.mark).toUpperCase();
+      const markAt = toPage(lineX(doc.getTextWidth(mark)), cursor + markSize * 0.82);
+      doc.text(mark, markAt.px, markAt.py, { angle });
+      cursor += entry.sizeMm * 0.42;
+      doc.setTextColor(style.color[0], style.color[1], style.color[2]);
+    }
     const lineH = entry.sizeMm * 1.18;
     for (const line of entry.lines) {
       const baseline = cursor + entry.sizeMm * 0.86;

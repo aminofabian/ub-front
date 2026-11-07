@@ -1,5 +1,6 @@
-import { tagPrintCss, sheetHtml, type TagRenderContext } from "@/lib/price-tags/markup";
-import type { PrinterCalibration, SheetCell } from "@/lib/price-tags/types";
+import { ALIGNMENT_TEST_CSS, alignmentTestHtml } from "@/lib/price-tags/alignment";
+import { tagPrintCssForPage, sheetHtml, type TagRenderContext } from "@/lib/price-tags/markup";
+import type { PrinterCalibration, SheetCell, SheetGeometry } from "@/lib/price-tags/types";
 
 const FRAME_ATTR = "data-price-tag-print";
 /** Removes the frame if the browser never fires `afterprint` (some iPadOS builds). */
@@ -26,6 +27,21 @@ export function printPriceTagPages(
     )
     .join("");
 
+  return printDocument(html, tagPrintCssForPage(ctx.geometry.pageWidthMm, ctx.geometry.pageHeightMm));
+}
+
+/**
+ * One page that outlines every label position, numbered, with a centre cross.
+ * Printed on the real labels (or held against them) it shows at a glance
+ * whether the printer nudge needs to move.
+ */
+export function printAlignmentTest(geometry: SheetGeometry, offset: PrinterCalibration): boolean {
+  if (typeof document === "undefined") return false;
+  const css = tagPrintCssForPage(geometry.pageWidthMm, geometry.pageHeightMm) + ALIGNMENT_TEST_CSS;
+  return printDocument(alignmentTestHtml(geometry, offset), css);
+}
+
+function printDocument(html: string, css: string): boolean {
   // A frame left by an earlier job would print its sheets again on some browsers.
   for (const stale of Array.from(document.querySelectorAll(`iframe[${FRAME_ATTR}]`))) {
     stale.remove();
@@ -50,7 +66,7 @@ export function printPriceTagPages(
   }
   frame.open();
   frame.write(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Price tags</title><style>${tagPrintCss(ctx.layout.pageDirection)}</style></head><body>${html}</body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Price tags</title><style>${css}</style></head><body>${html}</body></html>`,
   );
   frame.close();
 

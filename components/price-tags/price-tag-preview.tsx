@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { TAG_SCREEN_CSS, sheetHtml, type TagRenderContext } from "@/lib/price-tags/markup";
 import { cellPosition } from "@/lib/price-tags/layout";
 import type { SheetCell } from "@/lib/price-tags/types";
+import { cn } from "@/lib/utils";
 
 const MM_TO_PX = 96 / 25.4;
+const A4_SHORT_EDGE_PX = 210 * MM_TO_PX;
 
 export function PriceTagPreview({
   pages,
@@ -33,6 +35,7 @@ export function PriceTagPreview({
   const dragFrom = useRef<number | null>(null);
 
   const geo = context.geometry;
+  const roll = context.layout.media === "label-roll";
   const pageWidthPx = geo.pageWidthMm * MM_TO_PX;
   const pageHeightPx = geo.pageHeightMm * MM_TO_PX;
 
@@ -41,7 +44,9 @@ export function PriceTagPreview({
     if (!frame) return;
     const measure = () => {
       const width = frame.clientWidth;
-      if (width > 0) setScale(Math.min(1, (width - 8) / pageWidthPx));
+      // A single roll label is small; let it grow (up to 3×) so it can be read and dragged.
+      const maxScale = pageWidthPx < A4_SHORT_EDGE_PX ? 3 : 1;
+      if (width > 0) setScale(Math.min(maxScale, (width - 8) / pageWidthPx));
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -59,11 +64,26 @@ export function PriceTagPreview({
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)]">
-          {geo.columns} × {geo.rows}
-          <span className="px-1.5">·</span>
-          {geo.pageWidthMm} × {geo.pageHeightMm} mm
-          <span className="px-1.5">·</span>
-          {visible.length === 1 ? "1 page" : `${visible.length} pages`}
+          {roll ? (
+            <>
+              Label {geo.tagWidthMm} × {geo.tagHeightMm} mm
+              {geo.perPage > 1 ? ` · ${geo.perPage} across` : ""}
+              <span className="px-1.5">·</span>
+              {geo.perPage > 1
+                ? `${visible.length === 1 ? "1 row" : `${visible.length} rows`} (${visible.length * geo.perPage} labels)`
+                : visible.length === 1
+                  ? "1 label"
+                  : `${visible.length} labels`}
+            </>
+          ) : (
+            <>
+              {geo.columns} × {geo.rows}
+              <span className="px-1.5">·</span>
+              {geo.pageWidthMm} × {geo.pageHeightMm} mm
+              <span className="px-1.5">·</span>
+              {visible.length === 1 ? "1 page" : `${visible.length} pages`}
+            </>
+          )}
         </p>
         <div className="flex items-center gap-1">
           <button
@@ -140,16 +160,22 @@ export function PriceTagPreview({
               })}
             </div>
             {!hasTags ? (
-              <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center font-[family-name:var(--font-cormorant)] text-[1.7rem] text-[#556159]">
-                Select or scan products to fill this sheet.
+              <p
+                className={cn(
+                  "pointer-events-none absolute inset-0 flex items-center justify-center text-center font-[family-name:var(--font-cormorant)] text-[#556159]",
+                  roll ? "px-2 text-[3.5mm]" : "px-16 text-[1.7rem]",
+                )}
+              >
+                {roll ? "Select or scan products." : "Select or scan products to fill this sheet."}
               </p>
             ) : null}
           </div>
         </div>
       </div>
       <p className="text-[11.5px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_58%,transparent)]">
-        Drag a tag to move it. In the print dialog, set scale to 100% (not “Fit to page”) and turn off headers
-        and footers so the sheet lines up with the paper.
+        {roll
+          ? `Drag a tag to move it. Each tag prints on its own label. In the print dialog, choose the label printer, a paper size of ${geo.pageWidthMm} × ${geo.pageHeightMm} mm${geo.perPage > 1 ? ` (one row of ${geo.perPage})` : ""}, scale 100%, and no headers or footers.`
+          : "Drag a tag to move it. In the print dialog, set scale to 100% (not “Fit to page”) and turn off headers and footers so the sheet lines up with the paper."}
       </p>
     </div>
   );

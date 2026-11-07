@@ -11,7 +11,7 @@ import type {
 } from "@/lib/price-tags/types";
 
 export { barcodeValueFor, resolvedWasPrice } from "@/lib/price-tags/face";
-export { TAG_PRINT_CSS, TAG_SCREEN_CSS, tagPrintCss } from "@/lib/price-tags/css";
+export { TAG_PRINT_CSS, TAG_SCREEN_CSS, tagPrintCss, tagPrintCssForPage } from "@/lib/price-tags/css";
 
 export type TagRenderContext = {
   layout: TagLayout;
@@ -43,8 +43,9 @@ function blockHtml(block: FaceBlock, barcodes: TagRenderContext["barcodes"]): st
   switch (block.kind) {
     case "price": {
       const missing = block.missing ? " ptag-price-missing" : "";
+      const mark = block.mark ? `<span class="ptag-mark">${escapeHtml(block.mark)}</span>` : "";
       const per = block.per ? `<span class="ptag-per">/ ${escapeHtml(block.per)}</span>` : "";
-      return `<p class="ptag-price${missing}">${escapeHtml(block.text)}${per}</p>`;
+      return `<p class="ptag-price${missing}">${mark}<span class="ptag-figure"><span class="ptag-amount">${escapeHtml(block.text)}</span>${per}</span></p>`;
     }
     case "barcode": {
       const svg = barcodes[block.code] ?? "";
@@ -65,9 +66,13 @@ export function tagFaceHtml(slot: TagInstance, ctx: TagRenderContext): string {
   const body = fitted.blocks
     .map((entry) => {
       const html = blockHtml(entry.block, ctx.barcodes);
-      return entry.block.kind === "name" && entry.lines.length === 1
-        ? html.replace('class="ptag-name"', 'class="ptag-name ptag-name-1"')
-        : html;
+      if (entry.block.kind === "name" && entry.lines.length === 1) {
+        return html.replace('class="ptag-name"', 'class="ptag-name ptag-name-1"');
+      }
+      if (entry.block.kind === "price" && entry.shrunk) {
+        return html.replace('<p class="ptag-price', `<p style="font-size:${entry.sizeMm.toFixed(2)}mm" class="ptag-price`);
+      }
+      return html;
     })
     .join("");
   return `<article class="ptag-face ptag-${ctx.layout.templateId} ptag-align-${align}">${body}</article>`;
@@ -81,17 +86,28 @@ const GLYPH_WIDTH_EM = 0.56;
  * same lines in both outputs. Without a layout engine the heights are
  * estimates: line height times size, and name length times average glyph width.
  */
+/** Bold tabular figures run wider than average text. */
+const PRICE_GLYPH_WIDTH_EM = 0.62;
+
 function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
-  const scale = tagTypeScale(ctx.geometry, ctx.layout.orientation);
+  const scale = tagTypeScale(ctx.geometry, ctx.layout.orientation, ctx.layout.templateId);
   const face = faceSize(ctx.geometry, ctx.layout.orientation);
   const innerW = Math.max(8, face.width - 4);
   const innerH = Math.max(6, face.height - 3);
   const template = ctx.layout.templateId;
   const measured = blocks.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
-    const sizeMm = blockSizeMm(block.kind, template, missing) * scale;
+    let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
     if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };
-    if (block.kind === "price") return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.15 + 0.2 };
+    if (block.kind === "price") {
+      // Shrink a long price to the face width, as the PDF does, instead of clipping it.
+      const perChars = block.per ? (block.per.length + 2) * 0.48 : 0;
+      const wide = (block.text.length + perChars) * sizeMm * PRICE_GLYPH_WIDTH_EM;
+      if (wide > innerW) sizeMm *= innerW / wide;
+      const mark = block.mark ? sizeMm * 0.42 : 0;
+      const shrunk = wide > innerW;
+      return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.15 + 0.2 + mark, shrunk };
+    }
     const wide = block.text.length * sizeMm * GLYPH_WIDTH_EM;
     const count = block.kind === "name" ? Math.min(2, Math.max(1, Math.ceil(wide / innerW))) : 1;
     const lineHeight = block.kind === "name" ? 1.2 : 1.15;
@@ -115,7 +131,7 @@ export function sheetHtml(
   const dx = options.offset?.offsetXMm ?? 0;
   const dy = options.offset?.offsetYMm ?? 0;
   const skipped = options.skipped ?? 0;
-  const scale = tagTypeScale(geo, ctx.layout.orientation);
+  const scale = tagTypeScale(geo, ctx.layout.orientation, ctx.layout.templateId);
   const html: string[] = [];
   for (let index = 0; index < geo.perPage; index += 1) {
     const slot = cells[index] ?? null;

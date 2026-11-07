@@ -1,5 +1,5 @@
 import { canEncodeBarcode, assessBarcodeCode } from "@/lib/barcode-label";
-import { discountPercent, tagPriceLabel } from "@/lib/price-tags/money";
+import { discountPercent, tagPriceLabel, tagPriceParts } from "@/lib/price-tags/money";
 import type { TagLayout, TagProduct, TagTemplateId } from "@/lib/price-tags/types";
 
 /**
@@ -8,7 +8,7 @@ import type { TagLayout, TagProduct, TagTemplateId } from "@/lib/price-tags/type
  */
 export type FaceBlock =
   | { kind: "shop" | "deal" | "name" | "was" | "off" | "meta" | "sku"; text: string }
-  | { kind: "price"; text: string; per: string; missing: boolean }
+  | { kind: "price"; text: string; mark: string; per: string; missing: boolean }
   | { kind: "barcode"; code: string };
 
 export type FaceBlockKind = FaceBlock["kind"];
@@ -20,16 +20,19 @@ export type FaceBlockKind = FaceBlock["kind"];
 export const TAG_TYPE_MM = {
   shop: 2.4,
   deal: 2.5,
-  name: 3.3,
-  premiumName: 3.8,
-  price: 5.6,
-  promoPrice: 6.2,
-  premiumPrice: 6,
+  name: 3.15,
+  premiumName: 3.5,
+  price: 7.4,
+  promoPrice: 7.8,
+  premiumPrice: 7.2,
   missingPrice: 3.2,
   was: 2.8,
   off: 2.6,
   meta: 2.3,
   barcodeHeight: 8.5,
+  /** Sticker: sized for 25–40 mm squares, where the price is the whole point. */
+  stickerName: 3.4,
+  stickerPrice: 9.5,
 } as const;
 
 /** Text size for a block on the given template, before scaling. */
@@ -40,11 +43,13 @@ export function blockSizeMm(kind: FaceBlockKind, template: TagTemplateId, missin
     case "deal":
       return TAG_TYPE_MM.deal;
     case "name":
+      if (template === "sticker") return TAG_TYPE_MM.stickerName;
       return template === "premium" ? TAG_TYPE_MM.premiumName : TAG_TYPE_MM.name;
     case "price":
       if (missing) return TAG_TYPE_MM.missingPrice;
       if (template === "promo") return TAG_TYPE_MM.promoPrice;
       if (template === "premium") return TAG_TYPE_MM.premiumPrice;
+      if (template === "sticker") return TAG_TYPE_MM.stickerPrice;
       return TAG_TYPE_MM.price;
     case "was":
       return TAG_TYPE_MM.was;
@@ -111,12 +116,13 @@ export function buildFaceBlocks(product: TagProduct, input: FaceInput): FaceBloc
     blocks.push({ kind: "shop", text: input.businessName });
   }
   if (fields.has("promoMessage") && promo) blocks.push({ kind: "deal", text: promo });
-  if (fields.has("productName")) blocks.push({ kind: "name", text: product.name });
   if (fields.has("sellingPrice")) {
     const missing = product.sellingPrice == null;
+    const parts = tagPriceParts(product.sellingPrice, currency);
     blocks.push({
       kind: "price",
-      text: tagPriceLabel(product.sellingPrice, currency),
+      text: parts.amount,
+      mark: missing ? "" : parts.mark,
       per: missing ? "" : product.pricePer,
       missing,
     });
@@ -129,6 +135,7 @@ export function buildFaceBlocks(product: TagProduct, input: FaceInput): FaceBloc
   if (fields.has("discountPercent") && off != null) {
     blocks.push({ kind: "off", text: `${off}% off` });
   }
+  if (fields.has("productName")) blocks.push({ kind: "name", text: product.name });
   // The unit already follows a weighed item's price; do not print it twice.
   const unitShownWithPrice = fields.has("sellingPrice") && product.pricePer !== "";
   if (fields.has("unit") && product.unitType && !unitShownWithPrice) {

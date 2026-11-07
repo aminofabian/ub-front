@@ -100,7 +100,26 @@ describe("tag face content", () => {
       currency: "KES",
       wasOverrides: {},
     });
-    expect(blocks.find((block) => block.kind === "price")).toMatchObject({ missing: true, per: "" });
+    expect(blocks.find((block) => block.kind === "price")).toMatchObject({ missing: true, per: "", mark: "" });
+  });
+
+  it("leads with the selling price and leaves the shop name and barcode off", () => {
+    const blocks = buildFaceBlocks(product(), {
+      layout: DEFAULT_LAYOUT,
+      businessName: "Palmart",
+      currency: "KES",
+      wasOverrides: {},
+    });
+    expect(blocks.map((block) => block.kind)).toEqual(["price", "name"]);
+    expect(blocks[0]).toMatchObject({ kind: "price", text: "180", mark: "Ksh" });
+  });
+
+  it("drops a saved classic layout's shop name and barcode", () => {
+    const layout = sanitizeLayout({
+      templateId: "classic",
+      fields: ["businessName", "productName", "sellingPrice", "barcode"],
+    });
+    expect(layout.fields).toEqual(["productName", "sellingPrice"]);
   });
 });
 
@@ -142,7 +161,7 @@ describe("PDF fitting", () => {
     heightMm,
   });
   const price: MeasuredBlock = {
-    block: { kind: "price", text: "KES 180", per: "", missing: false },
+    block: { kind: "price", text: "180", mark: "KSh", per: "", missing: false },
     sizeMm: 6,
     lines: ["KES 180"],
     heightMm: 7,

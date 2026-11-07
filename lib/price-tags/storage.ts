@@ -1,4 +1,4 @@
-import { clamp } from "@/lib/price-tags/layout";
+import { ROLL_LIMITS, clamp } from "@/lib/price-tags/layout";
 import { ALL_TAG_FIELDS, DEFAULT_LAYOUT, LABEL_PRESETS, TEMPLATE_FIELDS } from "@/lib/price-tags/templates";
 import type {
   LabelPresetId,
@@ -11,10 +11,25 @@ import type {
   TagBorder,
   TagField,
   TagLayout,
+  TagMedia,
   TagTemplateId,
 } from "@/lib/price-tags/types";
 
 const FIELD_SET = new Set<TagField>(ALL_TAG_FIELDS);
+
+/** Layouts saved before the price-led face. Exact matches move to the new fields. */
+const PREVIOUS_DEFAULT_FIELDS: Record<string, readonly TagField[]> = {
+  "barcode,businessName,productName,sellingPrice": TEMPLATE_FIELDS.classic,
+  "businessName,discountPercent,previousPrice,productName,promoMessage,sellingPrice,sku": TEMPLATE_FIELDS.promo,
+  "barcode,productName,sellingPrice,sku": TEMPLATE_FIELDS.barcode,
+  "businessName,category,productName,sellingPrice,sku,unit": TEMPLATE_FIELDS.premium,
+};
+
+function migrateFields(fields: TagField[]): TagField[] {
+  const unique = Array.from(new Set(fields));
+  const previous = PREVIOUS_DEFAULT_FIELDS[unique.slice().sort().join(",")];
+  return previous ? previous.slice() : unique;
+}
 const BORDERS = new Set<TagBorder>(["none", "hairline", "solid", "dashed", "ticket"]);
 const MAX_SAVED = 24;
 /** Big enough for a full store relabel; bounded so localStorage stays small. */
@@ -41,6 +56,10 @@ function isTemplate(value: unknown): value is TagTemplateId {
 
 function isSheetCount(value: unknown): value is SheetCount {
   return value === 24 || value === 48 || value === 72 || value === 96;
+}
+
+function isMedia(value: unknown): value is TagMedia {
+  return value === "a4-sheet" || value === "label-roll";
 }
 
 function isPageDirection(value: unknown): value is PageDirection {
@@ -75,9 +94,15 @@ export function sanitizeLayout(raw: unknown): TagLayout {
     orientation: row.orientation === "vertical" ? "vertical" : "horizontal",
     pageDirection: isPageDirection(row.pageDirection) ? row.pageDirection : "portrait",
     sheetCount: isSheetCount(row.sheetCount) ? row.sheetCount : null,
+    media: isMedia(row.media) ? row.media : "a4-sheet",
+    rollWidthMm: clamp(num(row.rollWidthMm, base.rollWidthMm), ROLL_LIMITS.minWidthMm, ROLL_LIMITS.maxWidthMm),
+    rollHeightMm: clamp(num(row.rollHeightMm, base.rollHeightMm), ROLL_LIMITS.minHeightMm, ROLL_LIMITS.maxHeightMm),
+    rollAcross: clamp(Math.round(num(row.rollAcross, base.rollAcross)), 1, ROLL_LIMITS.maxAcross),
+    rollGapMm: clamp(num(row.rollGapMm, base.rollGapMm), 0, ROLL_LIMITS.maxGapMm),
+    rollEdgeMm: clamp(num(row.rollEdgeMm, base.rollEdgeMm), 0, ROLL_LIMITS.maxEdgeMm),
     border: BORDERS.has(row.border as TagBorder) ? (row.border as TagBorder) : "hairline",
     align: row.align === "center" ? "center" : "left",
-    fields: fields.length > 0 ? Array.from(new Set(fields)) : base.fields.slice(),
+    fields: fields.length > 0 ? migrateFields(fields) : base.fields.slice(),
     promoMessage: typeof row.promoMessage === "string" ? row.promoMessage.slice(0, 40) : "",
     generateBarcodeFromSku: row.generateBarcodeFromSku !== false,
   };

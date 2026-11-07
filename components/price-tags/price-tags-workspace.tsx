@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DraftNumberInput, rangeParser } from "@/components/price-tags/price-tag-inputs";
+import { PriceTagMediaBar } from "@/components/price-tags/price-tag-media-bar";
 import { PriceTagPreview } from "@/components/price-tags/price-tag-preview";
 import { PriceTagProductList } from "@/components/price-tags/price-tag-product-list";
 import { PriceTagSettings } from "@/components/price-tags/price-tag-settings";
@@ -18,13 +19,13 @@ import { useSessionBranch } from "@/hooks/use-session-scope";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { barcodeSvgMarkup } from "@/lib/price-tags/barcode";
 import { barcodeValueFor } from "@/lib/price-tags/face";
-import { clampSkip, layoutForSheet, pageCount, paginateCells, resolveSheet, SHEET_COUNTS } from "@/lib/price-tags/layout";
+import { clampSkip, pageCount, paginateCells, resolveSheet } from "@/lib/price-tags/layout";
 import type { TagRenderContext } from "@/lib/price-tags/markup";
 import { downloadPriceTagsPdf } from "@/lib/price-tags/pdf";
 import { printPriceTagPages } from "@/lib/price-tags/print";
 import { NO_CALIBRATION, readPriceTagPreferences, writePriceTagPreferences } from "@/lib/price-tags/storage";
 import { DEFAULT_LAYOUT, TEMPLATE_COPY, applyTemplate } from "@/lib/price-tags/templates";
-import type { PageDirection, PrinterCalibration, SavedTagLayout, TagLayout, TagTemplateId } from "@/lib/price-tags/types";
+import type { PrinterCalibration, SavedTagLayout, TagLayout, TagTemplateId } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
 const TEMPLATES = Object.keys(TEMPLATE_COPY) as TagTemplateId[];
@@ -117,6 +118,12 @@ export function PriceTagsWorkspace() {
     wasOverrides: job.wasOverrides,
     barcodes,
   };
+
+  // A multi-across roll prints whole rows; a part-filled last row wastes labels.
+  const blankInLastRow =
+    layout.media === "label-roll" && geometry.perPage > 1 && job.instances.length > 0
+      ? (geometry.perPage - (job.instances.length % geometry.perPage)) % geometry.perPage
+      : 0;
 
   const unpricedIds = job.selectedIds.filter((id) => {
     const product = job.products.get(id);
@@ -228,51 +235,7 @@ export function PriceTagsWorkspace() {
         </section>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="flex flex-wrap gap-1" role="group" aria-label="Tags on each A4 sheet">
-              {SHEET_COUNTS.map((countOnSheet) => (
-                <button
-                  key={countOnSheet}
-                  type="button"
-                  aria-pressed={layout.sheetCount === countOnSheet}
-                  className={cn(
-                    "h-8 min-w-10 border px-2.5 text-[12.5px] tabular-nums",
-                    layout.sheetCount === countOnSheet
-                      ? "border-[#1D4B3B] bg-[#1D4B3B] text-white"
-                      : "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white text-[var(--catalog-ink,#121A16)]",
-                  )}
-                  onClick={() =>
-                    setLayout((current) => layoutForSheet(current, countOnSheet, current.pageDirection))
-                  }
-                >
-                  {countOnSheet}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1" role="group" aria-label="Paper direction">
-              {(["portrait", "landscape"] as const satisfies readonly PageDirection[]).map((direction) => (
-                <button
-                  key={direction}
-                  type="button"
-                  aria-pressed={layout.pageDirection === direction}
-                  className={cn(
-                    "h-8 border px-2.5 text-[12.5px] capitalize",
-                    layout.pageDirection === direction
-                      ? "border-[#1D4B3B] text-[#1D4B3B]"
-                      : "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white text-[var(--catalog-ink,#121A16)]",
-                  )}
-                  onClick={() =>
-                    setLayout((current) => layoutForSheet(current, current.sheetCount ?? 24, direction))
-                  }
-                >
-                  {direction}
-                </button>
-              ))}
-            </div>
-            <p className="text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)]">
-              {geometry.perPage} on an A4 {layout.pageDirection} sheet
-            </p>
-          </div>
+          <PriceTagMediaBar layout={layout} geometry={geometry} onLayout={setLayout} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap gap-1">
               {TEMPLATES.map((templateId) => (
@@ -294,6 +257,7 @@ export function PriceTagsWorkspace() {
               ))}
             </div>
             <div className="flex flex-wrap items-end gap-2">
+{geometry.perPage > 1 && layout.media !== "label-roll" ? (
               <label
                 className="flex flex-col gap-1 text-[11px] text-[#556159]"
                 title="On a part-used sticker sheet, start at the first free label (counted left to right, top to bottom)."
@@ -308,8 +272,9 @@ export function PriceTagsWorkspace() {
                   onValue={setStartAt}
                 />
               </label>
+              ) : null}
               <div className="flex flex-col gap-1 text-[11px] text-[#556159]">
-                Pages
+                {layout.media !== "label-roll" ? "Pages" : geometry.perPage > 1 ? "Rows" : "Labels"}
                 <div className="flex items-center">
                   <DraftNumberInput
                     value={printFrom}
@@ -348,6 +313,25 @@ export function PriceTagsWorkspace() {
               </button>
             </div>
           </div>
+
+          {blankInLastRow > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[#556159]">
+              <p>
+                The last row of the roll has {count(blankInLastRow, "blank label", "blank labels")}.
+              </p>
+              <button
+                type="button"
+                className={cn(CATALOG_BTN_GHOST, "text-[#1D4B3B] underline underline-offset-2")}
+                disabled={busy != null}
+                onClick={() => {
+                  const last = job.instances[job.instances.length - 1];
+                  for (let index = 0; index < blankInLastRow; index += 1) job.duplicateTag(last.key);
+                }}
+              >
+                Fill it with copies of the last tag
+              </button>
+            </div>
+          ) : null}
 
           {unpricedIds.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[#A55237]">

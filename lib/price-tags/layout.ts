@@ -9,6 +9,115 @@ import {
 
 export const SHEET_COUNTS: readonly SheetCount[] = [24, 48, 72, 96];
 
+/** 4-inch thermal label printers print up to 108 mm wide and take liners up to about 118 mm. */
+export const ROLL_LIMITS = {
+  minWidthMm: 20,
+  maxWidthMm: 108,
+  minHeightMm: 10,
+  maxHeightMm: 300,
+  maxAcross: 4,
+  maxGapMm: 10,
+  maxEdgeMm: 10,
+  printWidthMm: 108,
+  maxLinerMm: 118,
+} as const;
+
+export type RollSpec = {
+  widthMm: number;
+  heightMm: number;
+  across: number;
+  gapMm: number;
+  edgeMm: number;
+};
+
+export type RollPreset = RollSpec & {
+  label: string;
+  /** Small square stickers read better with the sticker template. */
+  suggestSticker?: boolean;
+};
+
+/**
+ * Common label rolls. Multi-across gaps and edges are typical values; the
+ * printer driver and the roll's own spec sheet are the final word.
+ */
+export const ROLL_PRESETS: readonly RollPreset[] = [
+  { label: "40 × 30", widthMm: 40, heightMm: 30, across: 1, gapMm: 0, edgeMm: 0 },
+  { label: "50 × 30", widthMm: 50, heightMm: 30, across: 1, gapMm: 0, edgeMm: 0 },
+  { label: "58 × 40", widthMm: 58, heightMm: 40, across: 1, gapMm: 0, edgeMm: 0 },
+  { label: "100 × 50", widthMm: 100, heightMm: 50, across: 1, gapMm: 0, edgeMm: 0 },
+  { label: "32 × 32 · 2 across", widthMm: 32, heightMm: 32, across: 2, gapMm: 2, edgeMm: 2, suggestSticker: true },
+  { label: "25 × 25 · 3 across", widthMm: 25, heightMm: 25, across: 3, gapMm: 2, edgeMm: 2, suggestSticker: true },
+];
+
+export function rollSpecOf(layout: TagLayout): RollSpec {
+  return {
+    widthMm: clamp(layout.rollWidthMm, ROLL_LIMITS.minWidthMm, ROLL_LIMITS.maxWidthMm),
+    heightMm: clamp(layout.rollHeightMm, ROLL_LIMITS.minHeightMm, ROLL_LIMITS.maxHeightMm),
+    across: clamp(Math.round(layout.rollAcross), 1, ROLL_LIMITS.maxAcross),
+    gapMm: clamp(layout.rollGapMm, 0, ROLL_LIMITS.maxGapMm),
+    edgeMm: clamp(layout.rollEdgeMm, 0, ROLL_LIMITS.maxEdgeMm),
+  };
+}
+
+/** Full width of the roll the driver should be told about: labels, gaps, and both edges. */
+export function rollLinerWidthMm(spec: RollSpec): number {
+  return roundMm(spec.edgeMm * 2 + spec.across * spec.widthMm + (spec.across - 1) * spec.gapMm);
+}
+
+export function rollPresetMatches(layout: TagLayout, preset: RollSpec): boolean {
+  const spec = rollSpecOf(layout);
+  return (
+    spec.widthMm === preset.widthMm &&
+    spec.heightMm === preset.heightMm &&
+    spec.across === preset.across &&
+    (spec.across === 1 || (spec.gapMm === preset.gapMm && spec.edgeMm === preset.edgeMm))
+  );
+}
+
+/** Switch to a label roll; borders off, since a roll label is its own edge. */
+export function layoutForRoll(layout: TagLayout, patch: Partial<RollSpec> = {}): TagLayout {
+  const current = rollSpecOf(layout);
+  const next = { ...current, ...patch };
+  return {
+    ...layout,
+    media: "label-roll",
+    rollWidthMm: clamp(next.widthMm, ROLL_LIMITS.minWidthMm, ROLL_LIMITS.maxWidthMm),
+    rollHeightMm: clamp(next.heightMm, ROLL_LIMITS.minHeightMm, ROLL_LIMITS.maxHeightMm),
+    rollAcross: clamp(Math.round(next.across), 1, ROLL_LIMITS.maxAcross),
+    rollGapMm: clamp(next.gapMm, 0, ROLL_LIMITS.maxGapMm),
+    rollEdgeMm: clamp(next.edgeMm, 0, ROLL_LIMITS.maxEdgeMm),
+    border: layout.media === "label-roll" ? layout.border : "none",
+  };
+}
+
+/**
+ * One row of labels is one page: the printer feeds to the next gap after each
+ * row. With 2 across, tags fill the row left to right, then the next row.
+ */
+function rollGeometry(layout: TagLayout): SheetGeometry {
+  const spec = rollSpecOf(layout);
+  const pageWidthMm = rollLinerWidthMm(spec);
+  return {
+    columns: spec.across,
+    rows: 1,
+    perPage: spec.across,
+    tagWidthMm: spec.widthMm,
+    tagHeightMm: spec.heightMm,
+    gapXMm: spec.gapMm,
+    gapYMm: 0,
+    marginTopMm: 0,
+    marginRightMm: spec.edgeMm,
+    marginBottomMm: 0,
+    marginLeftMm: spec.edgeMm,
+    usedWidthMm: roundMm(pageWidthMm - spec.edgeMm * 2),
+    usedHeightMm: spec.heightMm,
+    usableWidthMm: roundMm(pageWidthMm - spec.edgeMm * 2),
+    usableHeightMm: spec.heightMm,
+    pageWidthMm,
+    pageHeightMm: spec.heightMm,
+  };
+}
+
 /** Columns and rows that keep a price tag wider than it is tall. */
 const SHEET_GRIDS: Record<PageDirection, Record<SheetCount, readonly [number, number]>> = {
   portrait: { 24: [3, 8], 48: [4, 12], 72: [6, 12], 96: [6, 16] },
@@ -83,6 +192,7 @@ function roundMm(value: number): number {
  * printed page describe the same paper.
  */
 export function resolveSheet(layout: TagLayout): SheetGeometry {
+  if (layout.media === "label-roll") return rollGeometry(layout);
   const marginTopMm = clamp(layout.marginTopMm, 0, 40);
   const marginRightMm = clamp(layout.marginRightMm, 0, 40);
   const marginBottomMm = clamp(layout.marginBottomMm, 0, 40);
@@ -207,6 +317,7 @@ export function faceSize(
 /** Reference face the base type sizes were drawn for (the 63 × 32 mm shelf tag). */
 const BASE_FACE_WIDTH_MM = 63;
 const BASE_FACE_HEIGHT_MM = 32;
+const STICKER_FACE_MM = 32;
 
 /**
  * Type scale for a tag face: 1 on the shelf tag, larger on big tags so the
@@ -215,8 +326,12 @@ const BASE_FACE_HEIGHT_MM = 32;
 export function tagTypeScale(
   geo: SheetGeometry,
   orientation: TagLayout["orientation"],
+  templateId?: TagLayout["templateId"],
 ): number {
   const face = faceSize(geo, orientation);
-  const fit = Math.min(face.width / BASE_FACE_WIDTH_MM, face.height / BASE_FACE_HEIGHT_MM);
+  // The sticker's sizes are drawn for a 32 mm square, not the long shelf tag.
+  const base = templateId === "sticker" ? STICKER_FACE_MM : BASE_FACE_WIDTH_MM;
+  const baseHeight = templateId === "sticker" ? STICKER_FACE_MM : BASE_FACE_HEIGHT_MM;
+  const fit = Math.min(face.width / base, face.height / baseHeight);
   return Math.round(clamp(fit, 0.48, 2.2) * 100) / 100;
 }

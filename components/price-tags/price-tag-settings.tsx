@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { FIELD_CLASS, NumberField } from "@/components/price-tags/price-tag-inputs";
 import { CATALOG_BTN_GHOST, CATALOG_BTN_OUTLINE } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { tagHeightForRows, tagWidthForColumns } from "@/lib/price-tags/layout";
+import { printAlignmentTest } from "@/lib/price-tags/print";
 import { CALIBRATION_LIMIT_MM } from "@/lib/price-tags/storage";
 import { ALL_TAG_FIELDS, LABEL_PRESETS, applyPreset, fieldLabel } from "@/lib/price-tags/templates";
 import type {
@@ -48,6 +50,7 @@ export function PriceTagSettings({
   onCalibration: (next: PrinterCalibration) => void;
   onSaved: (update: (current: SavedTagLayout[]) => SavedTagLayout[]) => void;
 }) {
+  const roll = layout.media === "label-roll";
   const [saveName, setSaveName] = useState("");
   const [savedId, setSavedId] = useState("");
 
@@ -74,10 +77,12 @@ export function PriceTagSettings({
   return (
     <details className="border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)]">
       <summary className="cursor-pointer px-3 py-2 text-[13px] text-[var(--catalog-ink,#121A16)]">
-        Sheet size, spacing, printer alignment, and what each tag shows
+        {roll ? "Printer alignment and what each tag shows" : "Sheet size, spacing, printer alignment, and what each tag shows"}
       </summary>
       <div className="grid gap-4 px-3 pb-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-2">
+          {/* A4 sizing only: on a roll the label size is the tag size. */}
+          {roll ? null : (
           <div className="flex flex-wrap gap-1">
             {PRESETS.map((presetId) => (
               <button
@@ -100,7 +105,10 @@ export function PriceTagSettings({
               <span className="self-center px-1 text-[11.5px] text-[#556159]">Custom size</span>
             ) : null}
           </div>
+          )}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {roll ? null : (
+              <>
             <NumberField
               label="Columns"
               value={geometry.columns}
@@ -123,6 +131,8 @@ export function PriceTagSettings({
             {mm("Right mm", "marginRightMm", 0, 30)}
             {mm("Bottom mm", "marginBottomMm", 0, 30)}
             {mm("Left mm", "marginLeftMm", 0, 30)}
+              </>
+            )}
             <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
               Tag
               <select
@@ -187,9 +197,19 @@ export function PriceTagSettings({
               />
             </div>
             <p className="text-[11.5px] leading-relaxed text-[#556159]">
-              Print one sheet on plain paper and hold it against a label sheet. If the tags sit off the labels,
-              move them here; negative numbers move left or up. This applies to this device only.
+              Print the alignment test{roll ? " on the label roll" : " on plain paper and hold it against a label sheet"}.
+              Each outline should sit on a label&apos;s edge, with its cross in the middle. If not, move the tags here;
+              negative numbers move left or up. This applies to this device only.
             </p>
+            <button
+              type="button"
+              className={cn(CATALOG_BTN_OUTLINE, "self-start")}
+              onClick={() => {
+                if (!printAlignmentTest(geometry, calibration)) toast.error("Could not open the print dialog");
+              }}
+            >
+              Print alignment test
+            </button>
           </fieldset>
         </div>
         <div className="flex flex-col gap-2">

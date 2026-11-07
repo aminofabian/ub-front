@@ -5,6 +5,8 @@ export type MeasuredBlock = {
   sizeMm: number;
   lines: string[];
   heightMm: number;
+  /** True when the text was made smaller than its template size to fit the width. */
+  shrunk?: boolean;
 };
 
 export const BLOCK_GAP_MM = 0.4;

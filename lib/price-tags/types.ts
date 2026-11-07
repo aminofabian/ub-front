@@ -3,7 +3,7 @@
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
 
-export type TagTemplateId = "classic" | "promo" | "barcode" | "premium";
+export type TagTemplateId = "classic" | "promo" | "barcode" | "premium" | "sticker";
 
 export type TagField =
   | "businessName"
@@ -22,6 +22,11 @@ export type TagOrientation = "horizontal" | "vertical";
 export type PageDirection = "portrait" | "landscape";
 /** Tags that fill one A4 sheet. */
 export type SheetCount = 24 | 48 | 72 | 96;
+/**
+ * What the tags print on: an A4 sheet in an office printer, or a roll of
+ * die-cut labels in a thermal label printer (one tag per label).
+ */
+export type TagMedia = "a4-sheet" | "label-roll";
 export type TagBorder = "none" | "hairline" | "solid" | "dashed" | "ticket";
 export type TagAlign = "left" | "center";
 
@@ -47,6 +52,16 @@ export type TagLayout = {
   orientation: TagOrientation;
   /** Portrait is 210 × 297 mm. Landscape is 297 × 210 mm. */
   pageDirection: PageDirection;
+  media: TagMedia;
+  /** One label on the roll. Kept apart from the A4 tag size so switching back loses nothing. */
+  rollWidthMm: number;
+  rollHeightMm: number;
+  /** Labels side by side on the roll (1 for a single row, 2 for "2 across"). */
+  rollAcross: number;
+  /** Backing showing between labels in the same row. */
+  rollGapMm: number;
+  /** Backing outside the outer labels, each side. */
+  rollEdgeMm: number;
   /**
    * 24, 48, 72, or 96 when the sheet was set from those choices.
    * Null once the tag size has been edited by hand.

@@ -1,18 +1,11 @@
 import type { LabelPresetId, TagField, TagLayout, TagTemplateId } from "@/lib/price-tags/types";
 
 export const TEMPLATE_FIELDS: Record<TagTemplateId, TagField[]> = {
-  classic: ["businessName", "productName", "sellingPrice", "barcode"],
-  promo: [
-    "businessName",
-    "promoMessage",
-    "productName",
-    "sellingPrice",
-    "previousPrice",
-    "discountPercent",
-    "sku",
-  ],
-  barcode: ["productName", "sellingPrice", "sku", "barcode"],
-  premium: ["businessName", "productName", "sellingPrice", "unit", "category", "sku"],
+  classic: ["productName", "sellingPrice"],
+  promo: ["promoMessage", "productName", "sellingPrice", "previousPrice", "discountPercent"],
+  barcode: ["productName", "sellingPrice", "sku"],
+  premium: ["productName", "sellingPrice", "unit", "category"],
+  sticker: ["productName", "sellingPrice"],
 };
 
 export const TEMPLATE_COPY: Record<
@@ -21,19 +14,23 @@ export const TEMPLATE_COPY: Record<
 > = {
   classic: {
     label: "Classic",
-    detail: "Name, price, and barcode.",
+    detail: "The price, then the product name.",
   },
   promo: {
     label: "Promotional",
-    detail: "Sale price beside the previous price.",
+    detail: "Today's price, with the previous one beside it.",
   },
   barcode: {
     label: "Barcode",
-    detail: "Name, price, SKU, and a scannable code.",
+    detail: "Price, name, and the SKU. Add a barcode from the sheet settings.",
   },
   premium: {
     label: "Premium",
-    detail: "Quieter type, with room for the product name.",
+    detail: "Price, name, unit, and category.",
+  },
+  sticker: {
+    label: "Sticker",
+    detail: "A big centred price and a short name, for small square labels.",
   },
 };
 
@@ -114,6 +111,12 @@ export const DEFAULT_LAYOUT: TagLayout = {
   orientation: "horizontal",
   pageDirection: "portrait",
   sheetCount: 24,
+  media: "a4-sheet",
+  rollWidthMm: 50,
+  rollHeightMm: 30,
+  rollAcross: 1,
+  rollGapMm: 0,
+  rollEdgeMm: 0,
   border: "hairline",
   align: "left",
   fields: TEMPLATE_FIELDS.classic.slice(),
