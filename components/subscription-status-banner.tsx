@@ -39,7 +39,6 @@ const TONES: Record<
   {
     shell: string;
     bar: string;
-    icon: string;
     eyebrow: string;
     chip: string;
     cta: string;
@@ -50,8 +49,6 @@ const TONES: Record<
     shell:
       "border-emerald-200/80 bg-emerald-50/85 text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-950/35 dark:text-emerald-50",
     bar: "bg-emerald-600/70",
-    icon:
-      "border-emerald-700/20 bg-white/70 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-900/30 dark:text-emerald-200",
     eyebrow: "text-emerald-800/75 dark:text-emerald-200/75",
     chip:
       "border-emerald-800/15 bg-white/55 text-emerald-900/75 dark:border-emerald-200/15 dark:bg-emerald-950/30 dark:text-emerald-100/75",
@@ -64,8 +61,6 @@ const TONES: Record<
     shell:
       "border-amber-300/80 bg-amber-50 text-amber-950 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-50",
     bar: "bg-amber-500",
-    icon:
-      "border-amber-700/20 bg-white/70 text-amber-700 dark:border-amber-300/20 dark:bg-amber-900/30 dark:text-amber-200",
     eyebrow: "text-amber-800/75 dark:text-amber-200/75",
     chip:
       "border-amber-800/15 bg-white/55 text-amber-900/75 dark:border-amber-200/15 dark:bg-amber-950/30 dark:text-amber-100/75",
@@ -78,8 +73,6 @@ const TONES: Record<
     shell:
       "border-rose-300/80 bg-rose-50 text-rose-950 dark:border-rose-500/25 dark:bg-rose-950/40 dark:text-rose-50",
     bar: "bg-rose-600",
-    icon:
-      "border-rose-700/20 bg-white/70 text-rose-700 dark:border-rose-300/20 dark:bg-rose-900/30 dark:text-rose-200",
     eyebrow: "text-rose-800/75 dark:text-rose-200/75",
     chip:
       "border-rose-800/15 bg-white/55 text-rose-900/75 dark:border-rose-200/15 dark:bg-rose-950/30 dark:text-rose-100/75",
@@ -92,8 +85,6 @@ const TONES: Record<
     shell:
       "border-orange-300/80 bg-orange-50 text-orange-950 dark:border-orange-500/25 dark:bg-orange-950/40 dark:text-orange-50",
     bar: "bg-orange-500",
-    icon:
-      "border-orange-700/20 bg-white/70 text-orange-700 dark:border-orange-300/20 dark:bg-orange-900/30 dark:text-orange-200",
     eyebrow: "text-orange-800/75 dark:text-orange-200/75",
     chip:
       "border-orange-800/15 bg-white/55 text-orange-900/75 dark:border-orange-200/15 dark:bg-orange-950/30 dark:text-orange-100/75",
@@ -106,8 +97,8 @@ const TONES: Record<
 
 /**
  * Single source of truth for subscription notices in the shell. Renders at most
- * one state, hides itself on the billing page, and only lets the low-urgency
- * "renewal coming up" notice be dismissed.
+ * one state as a single slim strip, hides itself on the billing page, and lets
+ * the renewal reminder and failed-payment notice (not a block) be hidden.
  */
 export function SubscriptionStatusBanner() {
   const pathname = usePathname();
@@ -141,89 +132,72 @@ export function SubscriptionStatusBanner() {
     setDismissedKey(banner.key);
   };
 
+  // One slim strip on every screen: the short label on a phone, label and title on a
+  // laptop, the full explanation on hover. It must not push the work area down.
   return (
     <div
       role="status"
       aria-live="polite"
-      className={cn(
-        "relative shrink-0 overflow-hidden border-b",
-        tone.shell,
-      )}
+      title={`${banner.title}. ${banner.description}`}
+      className={cn("relative shrink-0 overflow-hidden border-b", tone.shell)}
     >
       <span
         className={cn("absolute inset-y-0 left-0 w-[3px]", tone.bar)}
         aria-hidden
       />
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-2.5">
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center sm:gap-3">
-          <span
-            className={cn(
-              "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border shadow-[0_1px_2px_rgba(18,26,22,0.06)] sm:mt-0",
-              tone.icon,
-            )}
-          >
-            <Icon className="size-[15px]" strokeWidth={2.1} aria-hidden />
+      <div className="mx-auto flex h-10 w-full max-w-[1440px] items-center gap-2 pl-3 pr-1.5 sm:gap-3 sm:px-5">
+        <Icon
+          className={cn("size-4 shrink-0", tone.eyebrow)}
+          strokeWidth={2.1}
+          aria-hidden
+        />
+        <p className="flex min-w-0 flex-1 items-baseline gap-2 truncate text-[12.5px] leading-none">
+          <span className="shrink-0 font-semibold tracking-[-0.01em]">
+            {banner.eyebrow}
           </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span
-                className={cn(
-                  "text-[9px] font-bold uppercase tracking-[0.16em] sm:text-[9.5px]",
-                  tone.eyebrow,
-                )}
-              >
-                {banner.eyebrow}
-              </span>
-              {banner.meta.map((item) => (
-                <span
-                  key={item}
-                  className={cn(
-                    "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.03em]",
-                    tone.chip,
-                  )}
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-            <p className="mt-1 text-[12.5px] font-semibold leading-snug tracking-[-0.015em] sm:text-[13px]">
-              {banner.title}
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug opacity-70 sm:max-w-3xl sm:text-[11.5px]">
-              {banner.description}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5 pl-[2.6rem] sm:pl-0">
-          {banner.dismissible ? (
-            <button
-              type="button"
-              onClick={dismiss}
-              aria-label="Dismiss renewal reminder"
+          <span className="hidden truncate opacity-75 sm:inline">
+            {banner.title}
+          </span>
+          {banner.meta.map((item) => (
+            <span
+              key={item}
               className={cn(
-                "inline-flex size-8 items-center justify-center rounded-full transition-colors",
-                tone.dismiss,
+                "hidden shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold md:inline-flex",
+                tone.chip,
               )}
             >
-              <X className="size-3.5" aria-hidden />
-            </button>
-          ) : null}
-          <Button
+              {item}
+            </span>
+          ))}
+          <span className="sr-only">{`${banner.title}. ${banner.description}`}</span>
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          className={cn(
+            "h-7 shrink-0 gap-1 rounded-md px-2.5 text-[11.5px] font-semibold tracking-[-0.01em] shadow-none active:scale-[0.98]",
+            tone.cta,
+          )}
+          asChild
+        >
+          <Link href={banner.href}>
+            {banner.cta}
+            <ArrowRight className="size-3.5 opacity-80" aria-hidden />
+          </Link>
+        </Button>
+        {banner.dismissible ? (
+          <button
             type="button"
-            size="sm"
+            onClick={dismiss}
+            aria-label="Hide this notice"
             className={cn(
-              "h-8 gap-1 rounded-lg px-3 text-[11px] font-semibold tracking-[-0.01em] shadow-none active:scale-[0.98]",
-              tone.cta,
+              "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors",
+              tone.dismiss,
             )}
-            asChild
           >
-            <Link href={banner.href}>
-              {banner.cta}
-              <ArrowRight className="size-3.5 opacity-80" aria-hidden />
-            </Link>
-          </Button>
-        </div>
+            <X className="size-3.5" aria-hidden />
+          </button>
+        ) : null}
       </div>
     </div>
   );

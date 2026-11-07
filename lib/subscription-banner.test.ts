@@ -158,6 +158,8 @@ describe("subscription banner state", () => {
     );
     expect(banner?.tone).toBe("payment");
     expect(banner?.cta).toContain("Try payment");
+    // The plan is still active, so the notice can be hidden for the session.
+    expect(banner?.dismissible).toBe(true);
   });
 
   it("shows a dismissible notice inside the renewal window", () => {

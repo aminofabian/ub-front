@@ -43,7 +43,7 @@ export type SubscriptionBannerIcon =
 
 export type SubscriptionBannerState = {
   tone: SubscriptionBannerTone;
-  /** Stable key for "Later" dismissal (only notices are dismissible). */
+  /** Stable key for dismissal (renewal notices and failed-payment news; never a block). */
   key: string;
   eyebrow: string;
   title: string;
@@ -180,7 +180,8 @@ export function resolveSubscriptionBanner(
       href: billingHref,
       icon: "card",
       meta: [],
-      dismissible: false,
+      // The plan is still active, so this is news, not a block: it may be closed for the session.
+      dismissible: true,
     };
   }
 

@@ -67,7 +67,6 @@ export function PriceTagsWorkspace() {
   const [saved, setSaved] = useState<SavedTagLayout[]>([]);
   const [calibration, setCalibration] = useState<PrinterCalibration>(NO_CALIBRATION);
   const [prefsFor, setPrefsFor] = useState("");
-  const [pageIndex, setPageIndex] = useState(0);
   const [printFrom, setPrintFrom] = useState(1);
   const [printTo, setPrintTo] = useState(1);
   const [startAt, setStartAt] = useState(1);
@@ -113,7 +112,6 @@ export function PriceTagsWorkspace() {
   useEffect(() => {
     setPrintFrom(1);
     setPrintTo(totalPages);
-    setPageIndex((current) => Math.min(current, Math.max(0, totalPages - 1)));
   }, [totalPages]);
 
   const barcodeKey = useMemo(() => {
@@ -457,10 +455,8 @@ export function PriceTagsWorkspace() {
           <div className={cn("flex min-h-0 flex-1 flex-col", phoneStage === "print" && "max-lg:hidden")}>
           <PriceTagPreview
             pages={pages}
-            pageIndex={pageIndex}
             skip={skip}
             context={context}
-            onPageIndex={setPageIndex}
             onReorder={(from, to) => {
               if (!busy) job.reorder(from, to);
             }}
