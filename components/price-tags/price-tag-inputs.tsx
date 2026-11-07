@@ -101,7 +101,7 @@ export function NumberField({
 }) {
   const integer = Number.isInteger(step);
   return (
-    <label className="flex flex-col gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[#556159]">
+    <label className="flex flex-col gap-1 text-[12px] text-[#556159]">
       {label}
       <DraftNumberInput
         value={value}

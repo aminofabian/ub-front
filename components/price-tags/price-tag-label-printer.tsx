@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { TAG_LABEL, TAG_NOTE, TAG_PANEL } from "@/components/price-tags/price-tag-chrome";
+import { TAG_NOTE } from "@/components/price-tags/price-tag-chrome";
 import { FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
 import { CATALOG_BTN_GHOST, CATALOG_BTN_OUTLINE } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import type { LabelPrinterSettings } from "@/lib/price-tags/label-printer";
@@ -34,9 +34,9 @@ async function localNetworkPermission(): Promise<PermissionState | null> {
 function problemCopy(detection: Detection): string | null {
   if (detection.state !== "no-bridge") return null;
   if (detection.localNetwork === "denied") {
-    return "Chrome is blocking this site from reaching this computer, so no printers are listed. Click the icon left of the address bar, open Site settings, set “Local network access” to Allow, reload, then press Detect printers.";
+    return "Chrome is blocking this computer. Allow local network access, reload, then Detect.";
   }
-  return "This page cannot reach the Palmart print bridge on this computer. Start the bridge (the same helper the till uses for receipts), or allow “Local network access” for this site and let it through any ad blocker, then press Detect printers.";
+  return "Print bridge is off. Start it, then Detect.";
 }
 
 /**
@@ -75,62 +75,58 @@ export function PriceTagLabelPrinter({
   const problem = problemCopy(detection);
   const taught = settings.taughtRoll;
 
+  const taughtLabel = taught
+    ? `${taught.labelWidthMm}×${taught.labelHeightMm}${taught.across > 1 ? ` · ${taught.across}` : ""}`
+    : null;
+
   return (
-    <div className={cn(TAG_PANEL, "flex flex-col gap-2 px-3 py-2.5")}>
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-        <label className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
-          <span className={TAG_LABEL}>Label printer on this computer</span>
-          <select
-            value={settings.queueName}
-            className={FIELD_CLASS}
-            onChange={(event) => onChange({ ...settings, queueName: event.target.value })}
-          >
-            <option value="">{detection.state === "looking" ? "Looking for printers…" : "Choose a printer"}</option>
-            {printers.map((printer) => (
-              <option key={printer.name} value={printer.name}>
-                {printer.name}
-              </option>
-            ))}
-            {settings.queueName && !known ? <option value={settings.queueName}>{settings.queueName}</option> : null}
-          </select>
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select
+          aria-label="Label printer"
+          value={settings.queueName}
+          className={cn(FIELD_CLASS, "min-w-0 flex-1 basis-40")}
+          onChange={(event) => onChange({ ...settings, queueName: event.target.value })}
+        >
+          <option value="">{detection.state === "looking" ? "Looking…" : "Printer"}</option>
+          {printers.map((printer) => (
+            <option key={printer.name} value={printer.name}>
+              {printer.name}
+            </option>
+          ))}
+          {settings.queueName && !known ? <option value={settings.queueName}>{settings.queueName}</option> : null}
+        </select>
+        <button type="button" className={CATALOG_BTN_GHOST} disabled={detection.state === "looking"} onClick={() => void detect()}>
+          {detection.state === "looking" ? "Looking…" : "Detect"}
+        </button>
+        <button
+          type="button"
+          className={CATALOG_BTN_OUTLINE}
+          disabled={!settings.queueName || calibrating}
+          title="Feeds a few labels so the printer learns the gap. Once each time you load a different roll."
+          onClick={() => {
+            setCalibrating(true);
+            void onCalibrate().finally(() => setCalibrating(false));
+          }}
+        >
+          {calibrating ? "Sending…" : "Teach"}
+        </button>
+        <label className="flex h-8 items-center gap-1.5 px-1 text-[12.5px] text-[#556159] pointer-coarse:h-10" title="Turn every label upside down">
+          <input
+            type="checkbox"
+            className="size-4 accent-[#1D4B3B]"
+            checked={settings.flip}
+            onChange={(event) => onChange({ ...settings, flip: event.target.checked })}
+          />
+          180°
         </label>
-        <div className="flex flex-wrap gap-1.5">
-          <button type="button" className={CATALOG_BTN_GHOST} disabled={detection.state === "looking"} onClick={() => void detect()}>
-            {detection.state === "looking" ? "Looking…" : "Detect printers"}
-          </button>
-          <button
-            type="button"
-            className={CATALOG_BTN_OUTLINE}
-            disabled={!settings.queueName || calibrating}
-            title="The printer feeds a few labels while it measures them. Do this whenever you load a new kind of roll."
-            onClick={() => {
-              setCalibrating(true);
-              void onCalibrate().finally(() => setCalibrating(false));
-            }}
-          >
-            {calibrating ? "Sending…" : "Teach printer this roll"}
-          </button>
-          <label className="flex h-8 items-center gap-2 px-1 text-[12.5px] pointer-coarse:h-10">
-            <input
-              type="checkbox"
-              className="size-4 accent-[#1D4B3B]"
-              checked={settings.flip}
-              onChange={(event) => onChange({ ...settings, flip: event.target.checked })}
-            />
-            Upside down? Turn 180°
-          </label>
-        </div>
+        {taughtLabel && !problem ? (
+          <span className="font-[family-name:var(--font-geist-mono)] text-[12px] tabular-nums text-[#556159]" title="Roll the printer was last taught">
+            Taught {taughtLabel}
+          </span>
+        ) : null}
       </div>
-      {problem ? (
-        <p className={cn(TAG_NOTE, "max-w-prose text-[#A55237]")}>{problem}</p>
-      ) : (
-        <p className={cn(TAG_NOTE, "max-w-prose")}>
-          {taught
-            ? `Taught ${taught.labelWidthMm} × ${taught.labelHeightMm} mm${taught.across > 1 ? `, ${taught.across} across` : ""}. `
-            : "Not taught a roll yet: teach it once so it stops on each gap. "}
-          Labels go straight to the printer; no driver or paper size needed.
-        </p>
-      )}
+      {problem ? <p className={cn(TAG_NOTE, "text-[#A55237]")}>{problem}</p> : null}
     </div>
   );
 }

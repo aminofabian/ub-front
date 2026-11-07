@@ -1,6 +1,6 @@
 "use client";
 
-import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_LABEL, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
+import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
 import { DraftNumberInput, rangeParser } from "@/components/price-tags/price-tag-inputs";
 import { CATALOG_BTN_OUTLINE, CATALOG_BTN_PRIMARY } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { TEMPLATE_COPY, applyTemplate } from "@/lib/price-tags/templates";
@@ -53,91 +53,83 @@ export function PriceTagActions({
   const roll = layout.media === "label-roll";
   const rangeName = roll ? (geometry.perPage > 1 ? "Rows" : "Labels") : "Pages";
 
+  const singular = rangeName.toLowerCase().replace(/s$/, "");
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <span className={TAG_LABEL}>Tag face</span>
-        <div className={TAG_STRIP} role="group" aria-label="Tag face">
-          {TEMPLATES.map((templateId) => (
-            <button
-              key={templateId}
-              type="button"
-              title={TEMPLATE_COPY[templateId].detail}
-              aria-pressed={layout.templateId === templateId}
-              className={cn(TAG_CHIP, layout.templateId === templateId ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
-              onClick={() => onLayout((current) => applyTemplate(current, templateId))}
-            >
-              {TEMPLATE_COPY[templateId].label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-        {geometry.perPage > 1 && !roll ? (
-          <label
-            className="flex flex-col gap-1.5"
-            title="On a part-used sticker sheet, start at the first free label (counted left to right, top to bottom)."
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] pt-2">
+      <div className={TAG_STRIP} role="group" aria-label="Tag face">
+        {TEMPLATES.map((templateId) => (
+          <button
+            key={templateId}
+            type="button"
+            title={TEMPLATE_COPY[templateId].detail}
+            aria-pressed={layout.templateId === templateId}
+            className={cn(TAG_CHIP, layout.templateId === templateId ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+            onClick={() => onLayout((current) => applyTemplate(current, templateId))}
           >
-            <span className={TAG_LABEL}>Start at label</span>
-            <DraftNumberInput
-              value={startAt}
-              inputMode="numeric"
-              aria-label="Start at label number"
-              className={RANGE_INPUT}
-              parse={rangeParser(1, geometry.perPage, true)}
-              onValue={onStartAt}
-            />
-          </label>
-        ) : null}
-        <div className="flex flex-col gap-1.5">
-          <span className={TAG_LABEL}>{rangeName}</span>
-          <div className="flex items-center gap-1">
-            <DraftNumberInput
-              value={printFrom}
-              inputMode="numeric"
-              aria-label={`First ${rangeName.toLowerCase().replace(/s$/, "")} to print`}
-              className={RANGE_INPUT}
-              parse={rangeParser(1, totalPages, true)}
-              onValue={onPrintFrom}
-            />
-            <span className="text-[12px] text-[#556159]">to</span>
-            <DraftNumberInput
-              value={printTo}
-              inputMode="numeric"
-              aria-label={`Last ${rangeName.toLowerCase().replace(/s$/, "")} to print`}
-              className={RANGE_INPUT}
-              parse={rangeParser(1, totalPages, true)}
-              onValue={onPrintTo}
-            />
-            <span className="pl-1 text-[12px] tabular-nums text-[#556159]">of {totalPages}</span>
-          </div>
-        </div>
-
-        <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
-          <button type="button" className={cn(CATALOG_BTN_OUTLINE, ACTION)} disabled={!canOutput} onClick={() => onOutput("pdf")}>
-            {busy === "pdf" ? "Checking prices…" : "Download PDF"}
+            {TEMPLATE_COPY[templateId].label}
           </button>
+        ))}
+      </div>
+      {geometry.perPage > 1 && !roll ? (
+        <label
+          className="inline-flex h-8 items-center gap-1 text-[12px] text-[#556159] pointer-coarse:h-10"
+          title="On a part-used sheet, start at the first free label, left to right, top to bottom."
+        >
+          Start
+          <DraftNumberInput
+            value={startAt}
+            inputMode="numeric"
+            aria-label="Start at label number"
+            className={RANGE_INPUT}
+            parse={rangeParser(1, geometry.perPage, true)}
+            onValue={onStartAt}
+          />
+        </label>
+      ) : null}
+      <div className="inline-flex h-8 items-center gap-1 text-[12px] text-[#556159] pointer-coarse:h-10" aria-label={rangeName}>
+        <DraftNumberInput
+          value={printFrom}
+          inputMode="numeric"
+          aria-label={`First ${singular} to print`}
+          className={RANGE_INPUT}
+          parse={rangeParser(1, totalPages, true)}
+          onValue={onPrintFrom}
+        />
+        <span>–</span>
+        <DraftNumberInput
+          value={printTo}
+          inputMode="numeric"
+          aria-label={`Last ${singular} to print`}
+          className={RANGE_INPUT}
+          parse={rangeParser(1, totalPages, true)}
+          onValue={onPrintTo}
+        />
+        <span className="tabular-nums">/ {totalPages}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+        <button type="button" className={cn(CATALOG_BTN_OUTLINE, ACTION)} disabled={!canOutput} title="Download PDF" onClick={() => onOutput("pdf")}>
+          {busy === "pdf" ? "Checking…" : "PDF"}
+        </button>
+        <button
+          type="button"
+          className={cn(roll ? CATALOG_BTN_OUTLINE : CATALOG_BTN_PRIMARY, ACTION)}
+          disabled={!canOutput}
+          onClick={() => onOutput("print")}
+        >
+          {busy === "print" ? "Checking…" : "Print"}
+        </button>
+        {roll ? (
           <button
             type="button"
-            className={cn(roll ? CATALOG_BTN_OUTLINE : CATALOG_BTN_PRIMARY, ACTION)}
+            className={cn(CATALOG_BTN_PRIMARY, ACTION)}
             disabled={!canOutput}
-            onClick={() => onOutput("print")}
+            title={labelPrinterReady ? "Print to the label printer" : "Choose the label printer first."}
+            onClick={() => onOutput("label")}
           >
-            {busy === "print" ? "Checking prices…" : "Print"}
+            {busy === "label" ? "Sending…" : "Print labels"}
           </button>
-          {roll ? (
-            <button
-              type="button"
-              className={cn(CATALOG_BTN_PRIMARY, ACTION, "basis-full sm:basis-auto")}
-              disabled={!canOutput}
-              title={labelPrinterReady ? undefined : "Choose the label printer first."}
-              onClick={() => onOutput("label")}
-            >
-              {busy === "label" ? "Sending…" : "Print to label printer"}
-            </button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </div>
   );

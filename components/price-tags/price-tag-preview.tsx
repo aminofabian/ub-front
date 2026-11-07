@@ -190,8 +190,8 @@ export function PriceTagPreview({
       </div>
       <p className="text-[11.5px] leading-relaxed text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_58%,transparent)]">
         {roll
-          ? `Drag a tag to move it. Rows are shown in the order they come off the roll. "Print to label printer" needs no paper size; for the browser Print button choose the label printer, a paper size of ${geo.pageWidthMm} × ${geo.pageHeightMm} mm${geo.perPage > 1 ? ` (one row of ${geo.perPage})` : ""}, scale 100%, and no headers or footers.`
-          : "Drag a tag to move it. In the print dialog, set scale to 100% (not “Fit to page”) and turn off headers and footers so the sheet lines up with the paper."}
+          ? `Drag to reorder. Print labels needs no paper size. Browser Print: ${geo.pageWidthMm}×${geo.pageHeightMm} mm, scale 100%, no headers.`
+          : "Drag to reorder. Print at 100% scale, with headers and footers off."}
       </p>
     </div>
   );

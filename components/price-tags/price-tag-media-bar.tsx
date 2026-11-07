@@ -1,8 +1,8 @@
 "use client";
 
-import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_CHIP_SOLID, TAG_LABEL, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
-import { PriceTagRollSetup } from "@/components/price-tags/price-tag-roll-setup";
-import { SHEET_COUNTS, layoutForRoll, layoutForSheet } from "@/lib/price-tags/layout";
+import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_CHIP_SOLID, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
+import { PriceTagRollSetup, applyRollPreset } from "@/components/price-tags/price-tag-roll-setup";
+import { ROLL_PRESETS, SHEET_COUNTS, layoutForRoll, layoutForSheet, rollPresetMatches } from "@/lib/price-tags/layout";
 import type { PageDirection, SheetGeometry, TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
@@ -20,72 +20,82 @@ export function PriceTagMediaBar({
 }) {
   const roll = layout.media === "label-roll";
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex flex-col gap-1.5">
-          <span className={TAG_LABEL}>Print on</span>
-          <div className="flex gap-1.5" role="group" aria-label="Print on">
-            <button
-              type="button"
-              aria-pressed={!roll}
-              className={cn(TAG_CHIP, !roll ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
-              onClick={() => onLayout((current) => ({ ...current, media: "a4-sheet" }))}
-            >
-              A4 sheet
-            </button>
-            <button
-              type="button"
-              aria-pressed={roll}
-              className={cn(TAG_CHIP, roll ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
-              onClick={() => onLayout((current) => layoutForRoll(current))}
-            >
-              Label roll
-            </button>
-          </div>
-        </div>
+  const customRoll = roll && !ROLL_PRESETS.some((preset) => rollPresetMatches(layout, preset));
 
-        {roll ? null : (
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex gap-1" role="group" aria-label="Print on">
+          <button
+            type="button"
+            aria-pressed={!roll}
+            className={cn(TAG_CHIP, !roll ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
+            onClick={() => onLayout((current) => ({ ...current, media: "a4-sheet" }))}
+          >
+            A4
+          </button>
+          <button
+            type="button"
+            aria-pressed={roll}
+            className={cn(TAG_CHIP, roll ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
+            onClick={() => onLayout((current) => layoutForRoll(current))}
+          >
+            Roll
+          </button>
+        </div>
+        <span aria-hidden className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] sm:block" />
+        {roll ? (
+          <div className={cn(TAG_STRIP, "min-w-0 flex-1")} role="group" aria-label="Label roll">
+            {ROLL_PRESETS.map((preset) => {
+              const active = rollPresetMatches(layout, preset);
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  aria-pressed={active}
+                  className={cn(TAG_CHIP, active ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+                  onClick={() => onLayout((current) => applyRollPreset(current, preset))}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+            {customRoll ? <span className={cn(TAG_CHIP, TAG_CHIP_ON, "pointer-events-none")}>Custom</span> : null}
+          </div>
+        ) : (
           <>
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <span className={TAG_LABEL}>Tags per sheet</span>
-              <div className={TAG_STRIP} role="group" aria-label="Tags on each A4 sheet">
-                {SHEET_COUNTS.map((countOnSheet) => (
-                  <button
-                    key={countOnSheet}
-                    type="button"
-                    aria-pressed={layout.sheetCount === countOnSheet}
-                    className={cn(TAG_CHIP, "min-w-11", layout.sheetCount === countOnSheet ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
-                    onClick={() => onLayout((current) => layoutForSheet(current, countOnSheet, current.pageDirection))}
-                  >
-                    {countOnSheet}
-                  </button>
-                ))}
-              </div>
+            <div className={TAG_STRIP} role="group" aria-label="Tags on each A4 sheet">
+              {SHEET_COUNTS.map((countOnSheet) => (
+                <button
+                  key={countOnSheet}
+                  type="button"
+                  aria-pressed={layout.sheetCount === countOnSheet}
+                  className={cn(TAG_CHIP, "min-w-11", layout.sheetCount === countOnSheet ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+                  onClick={() => onLayout((current) => layoutForSheet(current, countOnSheet, current.pageDirection))}
+                >
+                  {countOnSheet}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <span className={TAG_LABEL}>Paper</span>
-              <div className="flex gap-1.5" role="group" aria-label="Paper direction">
-                {DIRECTIONS.map((direction) => (
-                  <button
-                    key={direction}
-                    type="button"
-                    aria-pressed={layout.pageDirection === direction}
-                    className={cn(TAG_CHIP, "capitalize", layout.pageDirection === direction ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
-                    onClick={() => onLayout((current) => layoutForSheet(current, current.sheetCount ?? 24, direction))}
-                  >
-                    {direction}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-1" role="group" aria-label="Paper direction">
+              {DIRECTIONS.map((direction) => (
+                <button
+                  key={direction}
+                  type="button"
+                  aria-pressed={layout.pageDirection === direction}
+                  className={cn(TAG_CHIP, "capitalize", layout.pageDirection === direction ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+                  onClick={() => onLayout((current) => layoutForSheet(current, current.sheetCount ?? 24, direction))}
+                >
+                  {direction}
+                </button>
+              ))}
             </div>
-            <p className="self-end text-[12px] text-[#556159] sm:pb-2">
-              {geometry.perPage} tags of {geometry.tagWidthMm} × {geometry.tagHeightMm} mm
-            </p>
+            <span className="font-[family-name:var(--font-geist-mono)] text-[12px] tabular-nums text-[#556159]">
+              {geometry.tagWidthMm}×{geometry.tagHeightMm}
+            </span>
           </>
         )}
       </div>
-
       {roll ? <PriceTagRollSetup layout={layout} onLayout={onLayout} /> : null}
     </div>
   );
