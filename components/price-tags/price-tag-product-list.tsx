@@ -28,6 +28,17 @@ import { cn } from "@/lib/utils";
 
 const NO_AISLE = "__none";
 const LIST_PAGE_SIZE = 40;
+
+/** The column the price-tag list actually scrolls in (the picker panel). */
+function scrollParent(node: HTMLElement): HTMLElement | null {
+  let current = node.parentElement;
+  while (current) {
+    const overflow = getComputedStyle(current).overflowY;
+    if (overflow === "auto" || overflow === "scroll") return current;
+    current = current.parentElement;
+  }
+  return null;
+}
 const BULK_PAGE_SIZE = 100;
 
 function toTagProducts(rows: Parameters<typeof tagProductFromSummary>[0][]): TagProduct[] {
@@ -66,6 +77,10 @@ export function PriceTagProductList({
   const scanQueue = useRef<{ code: string; onlyListed: TagProduct | null }[]>([]);
   /** Only the newest list request may fill the list; filters can change faster than replies arrive. */
   const listRequest = useRef(0);
+  /** Set before the await, so a still-visible sentinel cannot start a second page. */
+  const paging = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -137,6 +152,7 @@ export function PriceTagProductList({
     async (nextPage: number, replace: boolean) => {
       listRequest.current += 1;
       const request = listRequest.current;
+      paging.current = true;
       setListLoading(true);
       if (replace) {
         setRows([]);
@@ -156,17 +172,41 @@ export function PriceTagProductList({
       } catch {
         if (request === listRequest.current) toast.error("Could not load products");
       } finally {
-        if (request === listRequest.current) setListLoading(false);
+        if (request === listRequest.current) {
+          paging.current = false;
+          setListLoading(false);
+        }
       }
     },
     [debouncedSearch, filters],
   );
 
-  // With no filter the list browses the whole catalogue, a page at a time
-  // ("Load more"). Adding all of it to one sheet stays behind a filter.
+  // With no filter the list browses the whole catalogue. The next page loads
+  // when the end of the list scrolls into view. Adding all of it to one sheet
+  // stays behind a filter.
   useEffect(() => {
     void loadPage(0, true);
   }, [loadPage]);
+
+  loadMoreRef.current = () => {
+    if (paging.current || !hasMore || showSelected) return;
+    void loadPage(page + 1, false);
+  };
+
+  useEffect(() => {
+    if (showSelected || !hasMore || listLoading) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const root = scrollParent(sentinel);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreRef.current();
+      },
+      { root, rootMargin: "160px 0px", threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, showSelected, listLoading, rows.length]);
 
   function reportAdded(added: number, offered: number) {
     if (added === 0 && offered > 0) {
@@ -446,14 +486,13 @@ export function PriceTagProductList({
         })}
       </ul>
       {!showSelected && hasMore ? (
-        <button
-          type="button"
-          className={cn(CATALOG_BTN_GHOST, "m-2 self-center pointer-coarse:h-10")}
-          disabled={listLoading}
-          onClick={() => void loadPage(page + 1, false)}
+        <div
+          ref={sentinelRef}
+          className="flex min-h-12 items-center justify-center py-3 text-[12px] text-[#556159]"
+          aria-live="polite"
         >
-          {listLoading ? "Loading…" : "Load more"}
-        </button>
+          {listLoading && rows.length > 0 ? "Loading…" : <span className="sr-only">More products load as you scroll</span>}
+        </div>
       ) : null}
     </>
   );
