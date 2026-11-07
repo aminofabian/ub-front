@@ -195,8 +195,12 @@ export function PriceTagsWorkspace() {
       const live: TagRenderContext = { ...context, products: outcome.products, barcodes: liveBarcodes };
       const start = Math.max(1, Math.min(printFrom, printTo, totalPages));
       const end = Math.min(totalPages, Math.max(printFrom, printTo));
+      // Only a print of every row empties the sheet; after a test or partial range the rest still waits to print.
+      const clearIfWhole = () => {
+        if (start === 1 && end === totalPages) job.clearAll();
+      };
       if (kind === "print") {
-        if (!printPriceTagPages(pages, live, start, end, { offset: calibration, skip, whenClosed: () => job.clearAll() })) {
+        if (!printPriceTagPages(pages, live, start, end, { offset: calibration, skip, whenClosed: clearIfWhole })) {
           toast.error("Could not open the print dialog");
         }
         return;
@@ -217,7 +221,7 @@ export function PriceTagsWorkspace() {
           rowGapMm: layout.rollRowGapMm,
           printer: labelPrinter,
         });
-        if (sent) job.clearAll();
+        if (sent) clearIfWhole();
         return;
       }
       await downloadPriceTagsPdf({
