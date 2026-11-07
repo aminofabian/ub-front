@@ -72,11 +72,18 @@ export function drawPageCells(
   images: Map<string, string>,
 ): void {
   cells.forEach((slot, index) => {
-    if (!slot) return;
+    const { x, y } = cellPosition(job.geometry, index);
+    const px = x + job.calibration.offsetXMm;
+    const py = y + job.calibration.offsetYMm;
+    if (!slot) {
+      if (job.layout.media !== "label-roll" && job.layout.border !== "none") {
+        strokeBorder(doc, "dashed", px, py, job.geometry.tagWidthMm, job.geometry.tagHeightMm);
+      }
+      return;
+    }
     const product = job.products.get(slot.itemId);
     if (!product) return;
-    const { x, y } = cellPosition(job.geometry, index);
-    drawTag(doc, job, product, x + job.calibration.offsetXMm, y + job.calibration.offsetYMm, images);
+    drawTag(doc, job, product, px, py, images);
   });
 }
 
@@ -260,15 +267,15 @@ export function barcodeImage(images: Map<string, string>, code: string, rotated:
 function strokeBorder(doc: TagDoc, border: TagLayout["border"], x: number, y: number, w: number, h: number) {
   if (border === "none") return;
   doc.setDrawColor(INK[0], INK[1], INK[2]);
-  if (border === "dashed") {
+  if (border === "dashed" || border === "hairline") {
     doc.setLineWidth(0.3);
-    doc.setLineDashPattern([1.1, 0.7], 0);
+    doc.setLineDashPattern([0.35, 0.75], 0);
     doc.rect(x, y, w, h);
     doc.setLineDashPattern([], 0);
     return;
   }
   doc.setLineDashPattern([], 0);
-  doc.setLineWidth(border === "hairline" ? 0.15 : 0.4);
+  doc.setLineWidth(0.4);
   doc.rect(x, y, w, h);
   if (border === "ticket") {
     doc.setLineWidth(0.15);

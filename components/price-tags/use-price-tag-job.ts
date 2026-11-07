@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { ApiRequestError, fetchItemById } from "@/lib/api";
-import { tagProductFromDetail } from "@/lib/price-tags/product";
+import { ApiRequestError, fetchItemById, fetchItemsPage } from "@/lib/api";
+import { tagProductFromDetail, tagProductFromSummary } from "@/lib/price-tags/product";
 import { refreshTagProducts, type RefreshOutcome, type TagProductLoader } from "@/lib/price-tags/refresh";
 import {
   copiesOf,
@@ -22,7 +22,29 @@ import type { TagInstance, TagProduct } from "@/lib/price-tags/types";
 function loaderFor(branchId: string | null | undefined): TagProductLoader {
   return async (itemId) => {
     try {
-      return tagProductFromDetail(await fetchItemById(itemId, { branchId, toast: false }));
+      const detail = await fetchItemById(itemId, { branchId, toast: false });
+      const product = tagProductFromDetail(detail);
+      if (!product) return null;
+      // The item record stores the shelf price as bundlePrice. The catalog list
+      // is what resolves the open selling price (branch, then business, then shelf).
+      const listed = await fetchItemsPage(product.barcode ? undefined : product.sku || product.name, {
+        catalogScope: "SKUS_ONLY",
+        branchId: branchId || undefined,
+        barcode: product.barcode || undefined,
+        size: 8,
+      });
+      const match = listed.content
+        .map(tagProductFromSummary)
+        .find((row) => row?.id === product.id);
+      if (match?.sellingPrice != null) {
+        return {
+          ...product,
+          sellingPrice: match.sellingPrice,
+          catalogWasPrice: match.catalogWasPrice,
+          pricePer: match.pricePer || product.pricePer,
+        };
+      }
+      return product;
     } catch (error) {
       if (error instanceof ApiRequestError && (error.status === 404 || error.status === 410)) {
         return null;

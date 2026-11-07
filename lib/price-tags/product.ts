@@ -6,8 +6,10 @@ export function tagProductFromSummary(row: ItemSummaryRecord): TagProduct | null
   if (row.groupLabelOnly) return null;
   if (row.isSellable === false) return null;
   if (row.active === false) return null;
-  const sellingPrice = toAmount(row.sellingPrice);
   const bundle = toAmount(row.bundlePrice);
+  // Detail reads omit `sellingPrice`. The saved shelf price is `bundlePrice`,
+  // and an open selling-price row wins when the list includes it.
+  const sellingPrice = toAmount(row.sellingPrice) ?? bundle;
   const unitType = row.unitType?.trim() || (row.isWeighed ? "kg" : "");
   return {
     id: row.id,

@@ -88,6 +88,27 @@ describe("tag face content", () => {
     expect(blocks.some((block) => block.kind === "meta")).toBe(false);
   });
 
+  it("uses the saved shelf price when the payload has no separate selling price", () => {
+    const row = tagProductFromSummary({
+      id: "omo",
+      name: "Omo",
+      sku: "O1",
+      bundlePrice: "245.00",
+    });
+    expect(row?.sellingPrice).toBe(245);
+  });
+
+  it("prefers an open selling price over the shelf price", () => {
+    const row = tagProductFromSummary({
+      id: "omo",
+      name: "Omo",
+      sku: "O1",
+      sellingPrice: 199,
+      bundlePrice: 245,
+    });
+    expect(row?.sellingPrice).toBe(199);
+  });
+
   it("skips products that are inactive or cannot be sold", () => {
     expect(tagProductFromSummary({ id: "x", name: "X", sku: "X", active: false })).toBeNull();
     expect(tagProductFromSummary({ id: "y", name: "Y", sku: "Y", isSellable: false })).toBeNull();

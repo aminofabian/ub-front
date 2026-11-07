@@ -27,11 +27,13 @@ const SHEET_RULES = `
     background: #fff;
     color: #121A16;
   }
-  .ptag-border-hairline { border: 0.2mm solid #121A16; }
+  .ptag-border-hairline,
+  .ptag-border-dashed { border: 0.32mm dotted #121A16; }
   .ptag-border-solid { border: 0.45mm solid #121A16; }
-  .ptag-border-dashed { border: 0.35mm dashed #121A16; }
   .ptag-border-ticket { border: 0.4mm solid #121A16; box-shadow: inset 0 0 0 0.45mm #fff, inset 0 0 0 0.7mm #121A16; }
-  .ptag-border-none, .ptag-cell-empty { border: 0; box-shadow: none; }
+  .ptag-border-none { border: 0; box-shadow: none; }
+  /* Empty positions keep the same dotted line so the sheet can be cut on a grid. */
+  .ptag-cell-empty { border: 0.32mm dotted rgba(18, 26, 22, 0.55); box-shadow: none; }
   .ptag-orient { box-sizing: border-box; }
   .ptag-orient-vertical {
     position: absolute;
