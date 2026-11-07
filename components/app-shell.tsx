@@ -274,6 +274,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.products,
     items: [
       { href: APP_ROUTES.products, label: "Add products" },
+      { href: APP_ROUTES.priceTags, label: "Price tags" },
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
@@ -893,6 +894,10 @@ function itemIsActive(
   }
   if (hrefPath === APP_ROUTES.analytics) {
     return path === hrefPath;
+  }
+  // Product pages live under /products/p/. Price tags and the catalog must not light up "Add products".
+  if (hrefPath === APP_ROUTES.products) {
+    return path === hrefPath || path.startsWith(`${APP_ROUTES.products}/p/`);
   }
 
   // Home vs Take stock share /inventory/stock — distinguish by ?view=

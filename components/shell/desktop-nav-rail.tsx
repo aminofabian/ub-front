@@ -213,6 +213,9 @@ function itemIsActive(pathname: string, href: string): boolean {
   if (href === APP_ROUTES.order) {
     return path === APP_ROUTES.order || path.startsWith(`${APP_ROUTES.order}?`);
   }
+  if (href === APP_ROUTES.products) {
+    return path === href || path.startsWith(`${APP_ROUTES.products}/p/`);
+  }
   return path === href || path.startsWith(`${href}/`) || path.startsWith(`${href}?`);
 }
 
