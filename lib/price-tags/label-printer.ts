@@ -104,7 +104,8 @@ async function prepareBarcodes(job: TagDrawJob, rows: readonly SheetCell[][]) {
   }
   await Promise.all(
     Array.from(codes).map(async (code) => {
-      const url = barcodeImage(urls, code, vertical);
+      // One pixel per module: the bitmap scales it to whole dots, so every bar prints crisp.
+      const url = barcodeImage(urls, code, vertical, 1);
       if (!url || decoded.has(url)) return;
       const image = new Image();
       image.src = url;

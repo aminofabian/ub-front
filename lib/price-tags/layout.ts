@@ -316,14 +316,22 @@ export function faceSize(
     : { width: geo.tagWidthMm, height: geo.tagHeightMm };
 }
 
-/** Reference face the base type sizes were drawn for (the 63 × 32 mm shelf tag). */
-const BASE_FACE_WIDTH_MM = 63;
+/**
+ * Reference face the base type sizes were drawn for: the 63 × 32 mm shelf tag.
+ * Its width counts as 40 mm, not 63: the price and a wrapped name need about
+ * that much, and the rest of the shelf tag is breathing room. A squarer roll
+ * label (40 × 30, 50 × 30) is then sized by its height, like the shelf tag,
+ * instead of shrinking to a corner because it is narrower.
+ */
+const BASE_FACE_WIDTH_MM = 40;
 const BASE_FACE_HEIGHT_MM = 32;
 const STICKER_FACE_MM = 32;
 
 /**
  * Type scale for a tag face: 1 on the shelf tag, larger on big tags so the
- * price reads from the aisle, smaller on tiny ones so lines still fit.
+ * price reads from the aisle, smaller on tiny ones so lines still fit. It
+ * depends on the label size only, never the product, so every tag in a run
+ * shows its price at the same size.
  */
 export function tagTypeScale(
   geo: SheetGeometry,

@@ -11,7 +11,24 @@ import { cn } from "@/lib/utils";
 type Detection =
   | { state: "idle" | "looking" }
   | { state: "found"; printers: TillCupsPrinter[] }
-  | { state: "no-bridge" };
+  | { state: "no-bridge"; localNetwork: PermissionState | null };
+
+/**
+ * Chrome asks before a website may reach this computer ("Local network
+ * access"), and reports a refusal as a CORS error. Knowing the permission
+ * lets the page say what to change instead of blaming the bridge.
+ */
+async function localNetworkPermission(): Promise<PermissionState | null> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "local-network-access" as PermissionName,
+    });
+    return status.state;
+  } catch {
+    // Browsers without this permission (Safari, Firefox, older Chrome).
+    return null;
+  }
+}
 
 /**
  * Which printer on this computer gets the labels. The list comes from the
@@ -36,7 +53,7 @@ export function PriceTagLabelPrinter({
       const list = await fetchTillCupsPrinters();
       setDetection({ state: "found", printers: list.printers });
     } catch {
-      setDetection({ state: "no-bridge" });
+      setDetection({ state: "no-bridge", localNetwork: await localNetworkPermission() });
     }
   }, []);
 
@@ -94,8 +111,10 @@ export function PriceTagLabelPrinter({
         Upside down? Turn 180°
       </label>
       <p className={cn("basis-full text-[12px] leading-relaxed text-[#556159]")}>
-        {detection.state === "no-bridge"
-          ? "The Palmart print bridge is not running on this computer, so labels cannot go straight to the printer. Start it (the same helper the till uses for receipts), then Detect printers."
+        {detection.state === "no-bridge" && detection.localNetwork === "denied"
+          ? "Chrome is blocking this site from reaching this computer, so the printer list stays empty (the console shows it as a CORS error). Click the icon left of the address bar, open Site settings, set “Local network access” to Allow, reload, then press Detect printers."
+          : detection.state === "no-bridge"
+          ? "This page cannot reach the Palmart print bridge on this computer. Either the bridge is not running (start it; it is the same helper the till uses for receipts), or the browser is blocking the site from this computer: allow “Local network access” for this site (the icon left of the address bar), or let this site through your ad blocker or Brave Shields. Then press Detect printers."
           : "Labels go straight to the printer as TSPL, the language most 4-inch label printers speak, so no printer driver or paper size is needed. Prices are checked first. If tags land off-centre or blank labels feed out, press “Teach printer this roll” once, then print the alignment test."}
       </p>
     </div>

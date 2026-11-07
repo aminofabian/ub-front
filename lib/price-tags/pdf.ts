@@ -1,4 +1,5 @@
 import { barcodePngDataUrl } from "@/lib/price-tags/barcode";
+import { MIN_PRINT_MODULE_MM, barcodeFitsWidth, code128Modules } from "@/lib/price-tags/code128";
 import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
 import { BLOCK_GAP_MM, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
@@ -34,8 +35,13 @@ const PT_PER_MM = 72 / 25.4;
 const PAD_X = 2;
 const PAD_Y = 1.5;
 
+/** Share of the face width a barcode may take. */
+const BARCODE_WIDTH_SHARE = 0.96;
+
 /** The drawing calls a tag needs. jsPDF provides them; so does the label-printer canvas. */
 export type TagDoc = {
+  /** Set by a bitmap doc: barcodes snap to whole dots and need 2 dots per bar. */
+  dotsPerMm?: number;
   setDrawColor: (...args: number[]) => void;
   setLineWidth: (width: number) => void;
   setLineDashPattern: (pattern: number[], phase: number) => void;
@@ -134,9 +140,28 @@ function nameLines(doc: TagDoc, text: string, width: number): string[] {
   return [lines[0], `${second.trimEnd()}…`];
 }
 
+/** Narrowest bar this doc can print legibly. */
+function minModuleMm(doc: TagDoc): number {
+  return doc.dotsPerMm ? 2 / doc.dotsPerMm : MIN_PRINT_MODULE_MM;
+}
+
+/**
+ * Barcode width for the face: most of it, and on a bitmap doc a whole number
+ * of dots per bar so no bar is a dot wider than its neighbour.
+ */
+function barcodeWidthMm(doc: TagDoc, code: string, innerW: number): number {
+  const wanted = innerW * BARCODE_WIDTH_SHARE;
+  if (!doc.dotsPerMm) return wanted;
+  const dotsPerModule = Math.max(2, Math.floor((wanted * doc.dotsPerMm) / code128Modules(code)));
+  return (code128Modules(code) * dotsPerModule) / doc.dotsPerMm;
+}
+
 function measure(doc: TagDoc, blocks: FaceBlock[], job: TagDrawJob, scale: number, innerW: number) {
   const template = job.layout.templateId;
-  return blocks.map((block): MeasuredBlock => {
+  const drawable = blocks.filter(
+    (block) => block.kind !== "barcode" || barcodeFitsWidth(block.code, innerW * BARCODE_WIDTH_SHARE, minModuleMm(doc)),
+  );
+  return drawable.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
     let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
     if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };
@@ -193,9 +218,9 @@ function drawTag(
   for (const entry of fitted.blocks) {
     const { block } = entry;
     if (block.kind === "barcode") {
-      const barW = innerW * 0.96;
+      const barW = barcodeWidthMm(doc, block.code, innerW);
       const barH = entry.sizeMm;
-      const data = barcodeImage(images, block.code, vertical);
+      const data = barcodeImage(images, block.code, vertical, doc.dotsPerMm ? 1 : 2);
       if (data) {
         const fx = center ? (face.width - barW) / 2 : PAD_X;
         const top = toPage(fx, cursor + 0.4);
@@ -254,11 +279,11 @@ function drawTag(
 }
 
 /** PNG data URL for a barcode, cached in `images` under a key the label printer can prefill. */
-export function barcodeImage(images: Map<string, string>, code: string, rotated: boolean): string {
-  const key = `${rotated ? "r" : "h"}:${code}`;
+export function barcodeImage(images: Map<string, string>, code: string, rotated: boolean, modulePx = 2): string {
+  const key = `${rotated ? "r" : "h"}${modulePx}:${code}`;
   let data = images.get(key);
   if (data == null) {
-    data = barcodePngDataUrl(code, rotated);
+    data = barcodePngDataUrl(code, rotated, modulePx);
     images.set(key, data);
   }
   return data;

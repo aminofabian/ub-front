@@ -18,7 +18,8 @@ export class CanvasTagDoc implements TagDoc {
   constructor(
     widthMm: number,
     heightMm: number,
-    dotsPerMm: number,
+    /** Printer resolution; drawing code snaps barcodes to whole dots with it. */
+    readonly dotsPerMm: number,
     /** Decoded images for the data URLs addImage will be asked for. */
     private readonly images: ReadonlyMap<string, CanvasImageSource>,
   ) {

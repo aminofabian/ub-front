@@ -1,6 +1,8 @@
+import { MIN_PRINT_MODULE_MM, barcodeFitsWidth } from "@/lib/price-tags/code128";
 import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
 import { fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
+import { LABEL_DOTS_PER_MM } from "@/lib/price-tags/tspl";
 import type {
   PrinterCalibration,
   SheetCell,
@@ -95,7 +97,13 @@ function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
   const innerW = Math.max(8, face.width - 4);
   const innerH = Math.max(6, face.height - 3);
   const template = ctx.layout.templateId;
-  const measured = blocks.map((block): MeasuredBlock => {
+  // The print CSS draws the barcode 92% wide. Bars thinner than the printer can make are left
+  // off, as in the PDF and the label bitmap, so the preview shows what the roll will get.
+  const minModuleMm = ctx.layout.media === "label-roll" ? 2 / LABEL_DOTS_PER_MM : MIN_PRINT_MODULE_MM;
+  const drawable = blocks.filter(
+    (block) => block.kind !== "barcode" || barcodeFitsWidth(block.code, innerW * 0.92, minModuleMm),
+  );
+  const measured = drawable.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
     let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
     if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };

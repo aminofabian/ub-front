@@ -28,16 +28,18 @@ export function barcodeSvgMarkup(code: string): string {
 }
 
 /**
- * PNG for the PDF. `rotated` turns it a quarter turn anticlockwise to match a
- * vertical tag face, so the bars stay perpendicular to the reading direction
- * instead of being squashed into a strip.
+ * PNG for the PDF and the label printer. `rotated` turns it a quarter turn
+ * anticlockwise to match a vertical tag face, so the bars stay perpendicular
+ * to the reading direction instead of being squashed into a strip.
+ * `modulePx` is the narrowest bar in pixels: 2 looks smooth in a PDF; the
+ * label printer asks for 1 so it can scale each module to a whole number of dots.
  */
-export function barcodePngDataUrl(code: string, rotated = false): string {
+export function barcodePngDataUrl(code: string, rotated = false, modulePx = 2): string {
   const assessed = assessBarcodeCode(code);
   if (!canEncodeBarcode(assessed.state) || typeof document === "undefined") return "";
   const canvas = document.createElement("canvas");
   try {
-    JsBarcode(canvas, assessed.code, { ...OPTIONS, width: 2, height: 80 });
+    JsBarcode(canvas, assessed.code, { ...OPTIONS, width: modulePx, height: 80 });
   } catch {
     return "";
   }
