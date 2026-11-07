@@ -1,60 +1,128 @@
 import { barcodePngDataUrl } from "@/lib/price-tags/barcode";
-import { discountPercent, tagPriceLabel } from "@/lib/price-tags/money";
-import { barcodeValueFor, resolvedWasPrice } from "@/lib/price-tags/markup";
-import type { SheetGeometry, TagInstance, TagLayout, TagProduct } from "@/lib/price-tags/types";
-import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/price-tags/types";
+import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
+import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
+import { BLOCK_GAP_MM, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
+import type {
+  PrinterCalibration,
+  SheetCell,
+  SheetGeometry,
+  TagLayout,
+  TagProduct,
+} from "@/lib/price-tags/types";
 
 type PdfJob = {
   layout: TagLayout;
   geometry: SheetGeometry;
-  pages: TagInstance[][];
+  pages: SheetCell[][];
   products: ReadonlyMap<string, TagProduct>;
   wasOverrides: Readonly<Record<string, number | null>>;
   businessName: string;
   currency: string | null | undefined;
+  calibration: PrinterCalibration;
   fileName: string;
 };
 
-export async function downloadPriceTagsPdf(job: PdfJob): Promise<void> {
-  const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
-  const geo = job.geometry;
-  const images = new Map<string, string>();
+type Rgb = [number, number, number];
+const INK: Rgb = [18, 26, 22];
+const MUTED: Rgb = [85, 97, 89];
+const ACCENT: Rgb = [165, 82, 55];
+const BRAND: Rgb = [29, 75, 59];
 
-  job.pages.forEach((slots, pageIndex) => {
-    if (pageIndex > 0) doc.addPage([A4_WIDTH_MM, A4_HEIGHT_MM], "portrait");
-    slots.forEach((slot, index) => {
-      const product = job.products.get(slot.itemId);
-      if (!product) return;
-      const col = index % geo.columns;
-      const row = Math.floor(index / geo.columns);
-      const x = geo.marginLeftMm + col * (geo.tagWidthMm + geo.gapXMm);
-      const y = geo.marginTopMm + row * (geo.tagHeightMm + geo.gapYMm);
-      drawTag(doc, job, product, x, y, images);
-    });
-  });
-
-  doc.save(job.fileName);
-}
+const PT_PER_MM = 72 / 25.4;
+const PAD_X = 2;
+const PAD_Y = 1.5;
 
 type Doc = {
   setDrawColor: (...args: number[]) => void;
   setLineWidth: (width: number) => void;
   setLineDashPattern: (pattern: number[], phase: number) => void;
   rect: (x: number, y: number, w: number, h: number, style?: string) => void;
+  line: (x1: number, y1: number, x2: number, y2: number) => void;
   setTextColor: (...args: number[]) => void;
   setFont: (font: string, style: string) => void;
   setFontSize: (size: number) => void;
-  text: (
-    text: string | string[],
-    x: number,
-    y: number,
-    options?: { align?: "left" | "center" | "right"; angle?: number },
-  ) => void;
+  getTextWidth: (text: string) => number;
+  text: (text: string, x: number, y: number, options?: { angle?: number }) => void;
   splitTextToSize: (text: string, width: number) => string[];
   addImage: (data: string, format: string, x: number, y: number, w: number, h: number) => void;
-  setFillColor: (...args: number[]) => void;
 };
+
+export async function downloadPriceTagsPdf(job: PdfJob): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const direction = job.layout.pageDirection === "landscape" ? "landscape" : "portrait";
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: direction, compress: true });
+  const images = new Map<string, string>();
+  job.pages.forEach((cells, pageIndex) => {
+    if (pageIndex > 0) doc.addPage("a4", direction);
+    cells.forEach((slot, index) => {
+      if (!slot) return;
+      const product = job.products.get(slot.itemId);
+      if (!product) return;
+      const { x, y } = cellPosition(job.geometry, index);
+      drawTag(doc, job, product, x + job.calibration.offsetXMm, y + job.calibration.offsetYMm, images);
+    });
+  });
+  doc.save(job.fileName);
+}
+
+function setFontMm(doc: Doc, sizeMm: number, bold: boolean) {
+  doc.setFont("helvetica", bold ? "bold" : "normal");
+  doc.setFontSize(sizeMm * PT_PER_MM);
+}
+
+function blockStyle(block: FaceBlock, template: TagLayout["templateId"]): { bold: boolean; color: Rgb } {
+  switch (block.kind) {
+    case "shop":
+      return { bold: true, color: BRAND };
+    case "deal":
+    case "off":
+      return { bold: true, color: ACCENT };
+    case "name":
+      return { bold: template !== "premium", color: INK };
+    case "price":
+      return { bold: true, color: block.missing || template === "promo" ? ACCENT : INK };
+    default:
+      return { bold: false, color: MUTED };
+  }
+}
+
+function displayText(block: FaceBlock): string {
+  if (block.kind === "barcode") return "";
+  if (block.kind === "shop" || block.kind === "deal" || block.kind === "off") {
+    return block.text.toUpperCase();
+  }
+  return block.text;
+}
+
+/** Up to two lines, with an ellipsis when the name runs longer. */
+function nameLines(doc: Doc, text: string, width: number): string[] {
+  const lines = doc.splitTextToSize(text, width);
+  if (lines.length <= 2) return lines;
+  let second = lines[1];
+  while (second.length > 1 && doc.getTextWidth(`${second}…`) > width) second = second.slice(0, -1);
+  return [lines[0], `${second.trimEnd()}…`];
+}
+
+function measure(doc: Doc, blocks: FaceBlock[], job: PdfJob, scale: number, innerW: number) {
+  const template = job.layout.templateId;
+  return blocks.map((block): MeasuredBlock => {
+    const missing = block.kind === "price" && block.missing;
+    let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
+    if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };
+    const style = blockStyle(block, template);
+    setFontMm(doc, sizeMm, style.bold);
+    if (block.kind === "price") {
+      // Shrink a long price to the face width rather than run off the tag.
+      const per = block.per ? ` / ${block.per}` : "";
+      const wide = doc.getTextWidth(block.text) + doc.getTextWidth(per) * 0.48;
+      if (wide > innerW) sizeMm *= innerW / wide;
+      return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.18 };
+    }
+    const text = displayText(block);
+    const lines = block.kind === "name" ? nameLines(doc, text, innerW) : [text];
+    return { block, sizeMm, lines, heightMm: lines.length * sizeMm * 1.18 };
+  });
+}
 
 function drawTag(
   doc: Doc,
@@ -66,83 +134,93 @@ function drawTag(
 ) {
   const geo = job.geometry;
   const vertical = job.layout.orientation === "vertical";
-  const boxW = geo.tagWidthMm;
-  const boxH = geo.tagHeightMm;
-  strokeBorder(doc, job.layout.border, x, y, boxW, boxH);
+  strokeBorder(doc, job.layout.border, x, y, geo.tagWidthMm, geo.tagHeightMm);
 
-  const pad = 2;
-  const innerW = (vertical ? boxH : boxW) - pad * 2;
-  let cursor = vertical ? x + pad + 3.2 : y + pad + 3.2;
-  const align = job.layout.align === "center" ? "center" : "left";
-  const textX = align === "center" ? x + boxW / 2 : x + pad;
-  const fields = new Set(job.layout.fields);
-  const was = resolvedWasPrice(product, job.wasOverrides);
-  const off = discountPercent(product.sellingPrice, was);
+  const face = faceSize(geo, job.layout.orientation);
+  const scale = tagTypeScale(geo, job.layout.orientation);
+  const innerW = Math.max(8, face.width - PAD_X * 2);
+  const innerH = Math.max(6, face.height - PAD_Y * 2);
+  const blocks = buildFaceBlocks(product, job);
+  const fitted = fitFaceBlocks(measure(doc, blocks, job, scale, innerW), innerH, (entry) => ({
+    ...entry,
+    lines: entry.lines.slice(0, 1),
+    heightMm: entry.sizeMm * 1.18,
+  }));
+  const center = job.layout.align === "center";
 
-  const write = (text: string, size: number, style: "normal" | "bold", color: [number, number, number]) => {
-    doc.setFont("helvetica", style);
-    doc.setFontSize(size);
-    doc.setTextColor(color[0], color[1], color[2]);
-    if (vertical) {
-      doc.text(text, cursor, y + boxH - pad, { angle: -90, align: "left" });
-      cursor += size * 0.42;
-      return;
-    }
-    doc.text(text, textX, cursor, { align });
-    cursor += size * 0.38;
-  };
+  // Face coordinates (fx, fy) are read left-to-right, top-to-bottom. A vertical
+  // face is the same face turned a quarter anticlockwise, like the print CSS.
+  const toPage = (fx: number, fy: number) =>
+    vertical ? { px: x + fy, py: y + geo.tagHeightMm - fx } : { px: x + fx, py: y + fy };
+  const angle = vertical ? 90 : 0;
+  const lineX = (width: number) => (center ? (face.width - width) / 2 : PAD_X);
 
-  if (fields.has("businessName") && job.businessName) {
-    write(job.businessName.toUpperCase(), 7, "bold", [29, 75, 59]);
-  }
-  if (fields.has("promoMessage") && job.layout.promoMessage.trim()) {
-    write(job.layout.promoMessage.trim().toUpperCase(), 7.5, "bold", [165, 82, 55]);
-  }
-  if (fields.has("productName")) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    const lines = doc.splitTextToSize(product.name, Math.max(12, innerW)).slice(0, 2);
-    for (const line of lines) write(line, 9, "bold", [18, 26, 22]);
-  }
-  if (fields.has("sellingPrice")) {
-    const label = tagPriceLabel(product.sellingPrice, job.currency);
-    const missing = product.sellingPrice == null;
-    write(label, missing ? 8 : 14, "bold", missing ? [165, 82, 55] : job.layout.templateId === "promo" ? [165, 82, 55] : [18, 26, 22]);
-  }
-  if (fields.has("previousPrice") && was != null) {
-    write(tagPriceLabel(was, job.currency), 8, "normal", [85, 97, 89]);
-  }
-  if (fields.has("discountPercent") && off != null) {
-    write(`${off}% OFF`, 8, "bold", [165, 82, 55]);
-  }
-  if (fields.has("unit") && product.unitType) write(product.unitType, 7, "normal", [85, 97, 89]);
-  if (fields.has("category") && product.categoryName) write(product.categoryName, 7, "normal", [85, 97, 89]);
-  if (fields.has("sku") && product.sku) write(`SKU ${product.sku}`, 7, "normal", [85, 97, 89]);
-  if (fields.has("barcode")) {
-    const code = barcodeValueFor(product, job.layout);
-    if (code) {
-      let data = images.get(code);
-      if (!data) {
-        data = barcodePngDataUrl(code);
-        if (data) images.set(code, data);
-      }
+  let cursor = PAD_Y + Math.max(0, (innerH - fitted.heightMm) / 2);
+  for (const entry of fitted.blocks) {
+    const { block } = entry;
+    if (block.kind === "barcode") {
+      const barW = innerW * 0.96;
+      const barH = entry.sizeMm;
+      const data = barcodeImage(images, block.code, vertical);
       if (data) {
-        const bw = Math.min(innerW, vertical ? boxH - pad * 2 : boxW - pad * 2);
-        const bh = 8;
-        if (vertical) {
-          doc.addImage(data, "PNG", x + 1.5, y + pad, bh, Math.min(bw, boxH - pad * 2));
-        } else {
-          const bx = align === "center" ? x + (boxW - bw) / 2 : x + pad;
-          doc.addImage(data, "PNG", bx, Math.min(y + boxH - bh - 1.4, cursor), bw, bh);
-        }
+        const fx = center ? (face.width - barW) / 2 : PAD_X;
+        const top = toPage(fx, cursor + 0.4);
+        if (vertical) doc.addImage(data, "PNG", top.px, top.py - barW, barH, barW);
+        else doc.addImage(data, "PNG", top.px, top.py, barW, barH);
       }
+      cursor += entry.heightMm + BLOCK_GAP_MM;
+      continue;
     }
+    const style = blockStyle(block, job.layout.templateId);
+    doc.setTextColor(style.color[0], style.color[1], style.color[2]);
+    const lineH = entry.sizeMm * 1.18;
+    for (const line of entry.lines) {
+      const baseline = cursor + entry.sizeMm * 0.86;
+      setFontMm(doc, entry.sizeMm, style.bold);
+      if (block.kind === "price" && block.per) {
+        const per = ` / ${block.per}`;
+        const mainW = doc.getTextWidth(line);
+        setFontMm(doc, entry.sizeMm * 0.48, true);
+        const perW = doc.getTextWidth(per);
+        const start = lineX(mainW + perW);
+        setFontMm(doc, entry.sizeMm, style.bold);
+        const main = toPage(start, baseline);
+        doc.text(line, main.px, main.py, { angle });
+        setFontMm(doc, entry.sizeMm * 0.48, true);
+        const tail = toPage(start + mainW, baseline);
+        doc.text(per, tail.px, tail.py, { angle });
+      } else {
+        const at = toPage(lineX(doc.getTextWidth(line)), baseline);
+        doc.text(line, at.px, at.py, { angle });
+      }
+      if (block.kind === "was") {
+        const width = doc.getTextWidth(line);
+        const strikeY = baseline - entry.sizeMm * 0.3;
+        const from = toPage(lineX(width), strikeY);
+        const to = toPage(lineX(width) + width, strikeY);
+        doc.setDrawColor(style.color[0], style.color[1], style.color[2]);
+        doc.setLineWidth(0.15);
+        doc.line(from.px, from.py, to.px, to.py);
+      }
+      cursor += lineH;
+    }
+    cursor += BLOCK_GAP_MM;
   }
+}
+
+function barcodeImage(images: Map<string, string>, code: string, rotated: boolean): string {
+  const key = `${rotated ? "r" : "h"}:${code}`;
+  let data = images.get(key);
+  if (data == null) {
+    data = barcodePngDataUrl(code, rotated);
+    images.set(key, data);
+  }
+  return data;
 }
 
 function strokeBorder(doc: Doc, border: TagLayout["border"], x: number, y: number, w: number, h: number) {
   if (border === "none") return;
-  doc.setDrawColor(18, 26, 22);
+  doc.setDrawColor(INK[0], INK[1], INK[2]);
   if (border === "dashed") {
     doc.setLineWidth(0.3);
     doc.setLineDashPattern([1.1, 0.7], 0);

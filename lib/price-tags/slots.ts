@@ -1,6 +1,7 @@
+import { MAX_QUEUED_TAGS } from "@/lib/price-tags/storage";
 import type { TagInstance } from "@/lib/price-tags/types";
 
-const MAX_COPIES = 99;
+export const MAX_COPIES = 99;
 
 let slotSeq = 0;
 
@@ -79,4 +80,17 @@ export function moveSlot(
 function clampCopies(count: number): number {
   if (!Number.isFinite(count)) return 0;
   return Math.max(0, Math.min(MAX_COPIES, Math.round(count)));
+}
+
+/**
+ * Restored tags first, then anything picked while the restore ran, without a
+ * second set of tags for a product that was in both, and within the sheet cap.
+ */
+export function mergeRestored(
+  restored: readonly TagInstance[],
+  picked: readonly TagInstance[],
+): TagInstance[] {
+  const restoredIds = new Set(restored.map((slot) => slot.itemId));
+  const extra = picked.filter((slot) => !restoredIds.has(slot.itemId));
+  return restored.concat(extra).slice(0, MAX_QUEUED_TAGS);
 }

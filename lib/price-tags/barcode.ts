@@ -23,11 +23,16 @@ export function barcodeSvgMarkup(code: string): string {
   }
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", `Barcode ${assessed.code}`);
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("preserveAspectRatio", "none");
   return svg.outerHTML;
 }
 
-export function barcodePngDataUrl(code: string): string {
+/**
+ * PNG for the PDF. `rotated` turns it a quarter turn anticlockwise to match a
+ * vertical tag face, so the bars stay perpendicular to the reading direction
+ * instead of being squashed into a strip.
+ */
+export function barcodePngDataUrl(code: string, rotated = false): string {
   const assessed = assessBarcodeCode(code);
   if (!canEncodeBarcode(assessed.state) || typeof document === "undefined") return "";
   const canvas = document.createElement("canvas");
@@ -36,5 +41,14 @@ export function barcodePngDataUrl(code: string): string {
   } catch {
     return "";
   }
-  return canvas.toDataURL("image/png");
+  if (!rotated) return canvas.toDataURL("image/png");
+  const turned = document.createElement("canvas");
+  turned.width = canvas.height;
+  turned.height = canvas.width;
+  const draw = turned.getContext("2d");
+  if (!draw) return "";
+  draw.translate(0, turned.height);
+  draw.rotate(-Math.PI / 2);
+  draw.drawImage(canvas, 0, 0);
+  return turned.toDataURL("image/png");
 }

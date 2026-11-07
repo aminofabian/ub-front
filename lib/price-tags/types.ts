@@ -18,6 +18,10 @@ export type TagField =
   | "category";
 
 export type TagOrientation = "horizontal" | "vertical";
+/** Which way the A4 sheet goes through the printer. */
+export type PageDirection = "portrait" | "landscape";
+/** Tags that fill one A4 sheet. */
+export type SheetCount = 24 | 48 | 72 | 96;
 export type TagBorder = "none" | "hairline" | "solid" | "dashed" | "ticket";
 export type TagAlign = "left" | "center";
 
@@ -41,6 +45,13 @@ export type TagLayout = {
   marginBottomMm: number;
   marginLeftMm: number;
   orientation: TagOrientation;
+  /** Portrait is 210 × 297 mm. Landscape is 297 × 210 mm. */
+  pageDirection: PageDirection;
+  /**
+   * 24, 48, 72, or 96 when the sheet was set from those choices.
+   * Null once the tag size has been edited by hand.
+   */
+  sheetCount: SheetCount | null;
   border: TagBorder;
   align: TagAlign;
   fields: TagField[];
@@ -66,6 +77,8 @@ export type SheetGeometry = {
   usedHeightMm: number;
   usableWidthMm: number;
   usableHeightMm: number;
+  pageWidthMm: number;
+  pageHeightMm: number;
 };
 
 export type TagProduct = {
@@ -78,11 +91,31 @@ export type TagProduct = {
   sellingPrice: number | null;
   /** Catalog price when it is higher than the current selling price. */
   catalogWasPrice: number | null;
+  /** Unit the price is quoted per ("kg") for weighed items; empty otherwise. */
+  pricePer: string;
 };
 
 export type TagInstance = {
   key: string;
   itemId: string;
+};
+
+/** One position on a sheet: a tag, or a deliberately blank label. */
+export type SheetCell = TagInstance | null;
+
+/**
+ * Printer-specific nudge applied to printed and PDF output only.
+ * Positive X moves tags right, positive Y moves them down.
+ */
+export type PrinterCalibration = {
+  offsetXMm: number;
+  offsetYMm: number;
+};
+
+/** The current print job, kept across reloads. Holds item ids, never prices. */
+export type StoredTagQueue = {
+  itemIds: string[];
+  wasOverrides: Record<string, number | null>;
 };
 
 export type SavedTagLayout = {
@@ -94,4 +127,5 @@ export type SavedTagLayout = {
 export type PriceTagPreferences = {
   layout: TagLayout;
   saved: SavedTagLayout[];
+  calibration: PrinterCalibration;
 };

@@ -112,6 +112,8 @@ export const DEFAULT_LAYOUT: TagLayout = {
   ...LABEL_PRESETS["shelf-3x8"],
   templateId: "classic",
   orientation: "horizontal",
+  pageDirection: "portrait",
+  sheetCount: 24,
   border: "hairline",
   align: "left",
   fields: TEMPLATE_FIELDS.classic.slice(),
@@ -143,6 +145,7 @@ export function applyPreset(
     marginRightMm: preset.marginRightMm,
     marginBottomMm: preset.marginBottomMm,
     marginLeftMm: preset.marginLeftMm,
+    sheetCount: null,
   };
 }
 

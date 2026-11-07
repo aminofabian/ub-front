@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveSheet, paginate, tagHeightForRows, tagWidthForColumns } from "@/lib/price-tags/layout";
+import { resolveSheet, paginate, tagHeightForRows, tagWidthForColumns, layoutForSheet, SHEET_COUNTS } from "@/lib/price-tags/layout";
 import { discountPercent, wasPriceFromCatalog } from "@/lib/price-tags/money";
 import { escapeHtml, resolvedWasPrice, TAG_PRINT_CSS, TAG_SCREEN_CSS } from "@/lib/price-tags/markup";
 import { duplicateSlot, moveSlot, setCopies } from "@/lib/price-tags/slots";
@@ -43,6 +43,19 @@ describe("price tag sheet", () => {
     expect(sheet.columns).toBe(1);
     expect(sheet.usedWidthMm).toBeLessThanOrEqual(sheet.usableWidthMm + 0.05);
   });
+
+  it("fills an A4 sheet with 24, 48, 72, or 96 tags in either direction", () => {
+    for (const count of SHEET_COUNTS) {
+      for (const direction of ["portrait", "landscape"] as const) {
+        const sheet = resolveSheet(layoutForSheet(DEFAULT_LAYOUT, count, direction));
+        expect(sheet.perPage).toBe(count);
+        expect(sheet.pageWidthMm).toBe(direction === "landscape" ? 297 : 210);
+        expect(sheet.pageHeightMm).toBe(direction === "landscape" ? 210 : 297);
+        expect(sheet.usedWidthMm).toBeLessThanOrEqual(sheet.usableWidthMm + 0.05);
+        expect(sheet.usedHeightMm).toBeLessThanOrEqual(sheet.usableHeightMm + 0.05);
+      }
+    }
+  });
 });
 
 describe("price tag copies", () => {
@@ -72,6 +85,7 @@ describe("promotional price", () => {
     unitType: "piece",
     sellingPrice: 65,
     catalogWasPrice: 75,
+    pricePer: "",
   };
 
   it("uses a higher catalog price as the previous price", () => {
