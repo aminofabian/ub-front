@@ -27,7 +27,7 @@ export const TAG_CHIP_SOLID = "border-[#1D4B3B] bg-[#1D4B3B] text-white";
 export const TAG_STRIP =
   "flex gap-1.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible";
 
-export const TAG_LABEL = "text-[11px] uppercase tracking-[0.08em] text-[#556159]";
+export const TAG_LABEL = "text-[12px] text-[#556159]";
 
 export const TAG_NOTE = "text-[12px] leading-relaxed text-[#556159]";
 

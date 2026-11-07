@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { TAG_HAIRLINE, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
+import { TAG_HAIRLINE } from "@/components/price-tags/price-tag-chrome";
 import { CopiesInput, DraftNumberInput, FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
 import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import type { PriceTagJob } from "@/components/price-tags/use-price-tag-job";
-import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
+import { CATALOG_BTN_GHOST, CATALOG_BTN_PRIMARY } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { useDashboard } from "@/components/dashboard-provider";
 import { UNASSIGNED_SHELF_ZONE_VALUE } from "@/hooks/use-session-scope";
 import {
@@ -81,6 +81,8 @@ export function PriceTagProductList({
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /** Products read so far, against the catalogue total, while a bulk add is running. */
+  const [bulk, setBulk] = useState<{ seen: number; total: number } | null>(null);
   const [showSelected, setShowSelected] = useState(false);
   const scanning = useRef(false);
   const scanQueue = useRef<{ code: string; onlyListed: TagProduct | null }[]>([]);
@@ -247,8 +249,12 @@ export function PriceTagProductList({
 
   async function addEveryMatch() {
     setBulkBusy(true);
+    setBulk({ seen: 0, total: 0 });
     try {
-      const gathered: TagProduct[] = [];
+      let seen = 0;
+      let added = 0;
+      let offered = 0;
+      let onSheet = job.instances.length;
       let complete = false;
       const maxPages = Math.ceil(MAX_QUEUED_TAGS / BULK_PAGE_SIZE);
       for (let index = 0; index < maxPages; index += 1) {
@@ -257,15 +263,26 @@ export function PriceTagProductList({
           page: index,
           size: BULK_PAGE_SIZE,
         });
-        gathered.push(...toTagProducts(result.content));
-        if (result.last) {
-          complete = true;
+        const mapped = toTagProducts(result.content);
+        const cap = Math.min(result.totalElements, MAX_QUEUED_TAGS);
+        seen += mapped.length;
+        offered += mapped.length;
+        const pageAdded = job.addProducts(mapped);
+        added += pageAdded;
+        onSheet += pageAdded;
+        setBulk({ seen: Math.min(seen, cap || seen), total: cap || seen });
+        if (result.last || seen >= MAX_QUEUED_TAGS) {
+          complete = result.last;
           break;
         }
       }
-      const added = job.addProducts(gathered);
-      reportAdded(added, gathered.length);
-      if (!complete || added < gathered.filter((row) => copiesOf(job.instances, row.id) === 0).length) {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reduceMotion && seen > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 320));
+      }
+      reportAdded(added, offered);
+      const sheetFull = onSheet >= MAX_QUEUED_TAGS;
+      if (!complete || (sheetFull && added > 0 && added < offered)) {
         toast.warning(
           `The sheet holds ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print these, then add the rest — or use Print whole catalogue.`,
         );
@@ -273,6 +290,7 @@ export function PriceTagProductList({
     } catch {
       toast.error("Could not add the matching products");
     } finally {
+      setBulk(null);
       setBulkBusy(false);
     }
   }
@@ -353,7 +371,7 @@ export function PriceTagProductList({
           enterKeyHint="done"
           className={cn(FIELD_CLASS, "h-9 px-3 pointer-coarse:h-11")}
         />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
           <select
             aria-label="Department"
             value={itemTypeId}
@@ -398,76 +416,91 @@ export function PriceTagProductList({
             ))}
           </select>
         </div>
-        <div className={cn(TAG_STRIP, "-mx-3 gap-0.5 px-2 sm:mx-0 sm:px-0")}>
-          <button
-            type="button"
-            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10")}
-            disabled={rows.length === 0}
-            onClick={() => reportAdded(job.addProducts(rows), rows.length)}
-          >
-            Add listed
-          </button>
-          <button
-            type="button"
-            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10")}
-            disabled={bulkBusy}
-            title={
-              hasQuery
-                ? undefined
-                : `Adds every product, up to ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print whole catalogue sends them all.`
-            }
-            onClick={() => {
-              if (
-                !hasQuery &&
-                !window.confirm(
-                  `Add the whole catalogue to the sheet? It holds ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print whole catalogue sends every product.`,
-                )
-              ) {
-                return;
-              }
-              void addEveryMatch();
-            }}
-          >
-            {bulkBusy ? "Adding…" : hasQuery ? "Add every match" : "Add whole catalogue"}
-          </button>
-          {onPrintAll && hasQuery ? (
-            <button
-              type="button"
-              className={cn(CATALOG_BTN_GHOST, "shrink-0 text-[#1D4B3B] pointer-coarse:h-10")}
-              title="Print every matching product in batches, without adding them to the sheet."
-              onClick={() => onPrintAll({ search: debouncedSearch, filters: filters(), summary: scopeSummary() })}
-            >
-              Print all matches…
-            </button>
-          ) : null}
-          {onPrintAll ? (
-            <button
-              type="button"
-              className={cn(CATALOG_BTN_GHOST, "shrink-0 text-[#1D4B3B] pointer-coarse:h-10")}
-              title="Print every product in the catalogue, in batches, without adding them to the sheet."
-              onClick={() => onPrintAll(wholeCatalogueScope())}
-            >
-              Print whole catalogue…
-            </button>
-          ) : null}
-          <label className="flex h-8 shrink-0 items-center gap-1.5 text-[12.5px] pointer-coarse:h-10">
-            <input
-              type="checkbox"
-              className="size-4 accent-[#1D4B3B]"
-              checked={showBarcode}
-              onChange={(event) => onShowBarcode(event.target.checked)}
-            />
-            Show barcode
-          </label>
-          <button
-            type="button"
-            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10", showSelected && "text-[#1D4B3B]")}
-            aria-pressed={showSelected}
-            onClick={() => setShowSelected((current) => !current)}
-          >
-            {showSelected ? "Show search" : "Show selected"}
-          </button>
-        </div>
+        {bulk ? (
+          <CatalogueAddProgress seen={bulk.seen} total={bulk.total} />
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                className={cn(CATALOG_BTN_PRIMARY, "pointer-coarse:h-10")}
+                disabled={bulkBusy}
+                title={
+                  hasQuery
+                    ? undefined
+                    : `Adds every product, up to ${MAX_QUEUED_TAGS.toLocaleString("en-KE")} tags. Print whole catalogue sends them all.`
+                }
+                onClick={() => {
+                  if (hasQuery) {
+                    void addEveryMatch();
+                    return;
+                  }
+                  const limit = MAX_QUEUED_TAGS.toLocaleString("en-KE");
+                  toast("Add the whole catalogue to the sheet?", {
+                    id: "price-tags-whole-catalogue",
+                    description: `The sheet holds ${limit} tags. Print whole catalogue sends every product.`,
+                    duration: 12_000,
+                    action: {
+                      label: "Add",
+                      onClick: () => {
+                        void addEveryMatch();
+                      },
+                    },
+                  });
+                }}
+              >
+                {hasQuery ? "Add every match" : "Add whole catalogue"}
+              </button>
+              <button
+                type="button"
+                className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10")}
+                disabled={rows.length === 0}
+                onClick={() => reportAdded(job.addProducts(rows), rows.length)}
+              >
+                Add listed
+              </button>
+              {onPrintAll && hasQuery ? (
+                <button
+                  type="button"
+                  className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10")}
+                  title="Print every matching product in batches, without adding them to the sheet."
+                  onClick={() => onPrintAll({ search: debouncedSearch, filters: filters(), summary: scopeSummary() })}
+                >
+                  Print matches…
+                </button>
+              ) : null}
+              {onPrintAll ? (
+                <button
+                  type="button"
+                  className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10")}
+                  title="Print every product in the catalogue, in batches, without adding them to the sheet."
+                  onClick={() => onPrintAll(wholeCatalogueScope())}
+                >
+                  Print whole catalogue…
+                </button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <label className="flex h-8 items-center gap-1.5 text-[12.5px] text-[#556159] pointer-coarse:h-10">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[#1D4B3B]"
+                  checked={showBarcode}
+                  onChange={(event) => onShowBarcode(event.target.checked)}
+                />
+                Show barcode
+              </label>
+              <button
+                type="button"
+                className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10", showSelected && "text-[#1D4B3B]")}
+                aria-pressed={showSelected}
+                onClick={() => setShowSelected((current) => !current)}
+              >
+                {showSelected ? "Show search" : "Show selected"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <ul>
@@ -553,5 +586,32 @@ export function PriceTagProductList({
         </div>
       ) : null}
     </>
+  );
+}
+
+/** Fills as each catalogue page lands on the sheet. Scale, not width, so the bar stays on the compositor. */
+function CatalogueAddProgress({ seen, total }: { seen: number; total: number }) {
+  const share = total > 0 ? Math.min(1, seen / total) : 0;
+  const counted = total > 0 ? `${seen.toLocaleString("en-KE")} of ${total.toLocaleString("en-KE")}` : "Reading the catalogue";
+  return (
+    <div className="flex flex-col gap-1.5 py-1">
+      <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
+        <span className="text-[var(--catalog-ink,#121A16)]">Adding to the sheet</span>
+        <span className="font-[family-name:var(--font-geist-mono)] text-[12px] tabular-nums text-[#556159]">{counted}</span>
+      </div>
+      <div
+        className="h-1.5 w-full overflow-hidden bg-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)]"
+        role="progressbar"
+        aria-label={counted}
+        aria-valuemin={0}
+        aria-valuemax={Math.max(total, 1)}
+        aria-valuenow={seen}
+      >
+        <div
+          className="h-full w-full origin-left bg-[#1D4B3B] motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ transform: `scaleX(${share})` }}
+        />
+      </div>
+    </div>
   );
 }

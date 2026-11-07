@@ -314,6 +314,7 @@ export function PriceTagsWorkspace() {
 
         {/* Scrolls as a whole: the roll set-up and printer panel must not squash the preview. */}
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
+          <div className={cn(TAG_PANEL, "flex flex-col gap-3 p-3")}>
           <PriceTagMediaBar layout={layout} geometry={geometry} onLayout={setLayout} />
           {layout.media === "label-roll" ? (
             <PriceTagLabelPrinter
@@ -351,6 +352,7 @@ export function PriceTagsWorkspace() {
             onStartAt={setStartAt}
             onOutput={(kind) => void runOutput(kind)}
           />
+          </div>
 
           {blankInLastRow > 0 ? (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[#556159]">

@@ -152,11 +152,10 @@ export function usePriceTagJob(businessId: string, branchId: string | null | und
       const accepted = fresh.slice(0, Math.max(0, MAX_QUEUED_TAGS - sheet.length));
       if (accepted.length === 0) return 0;
       remember(accepted);
-      setInstances((current) => {
-        const room = Math.max(0, MAX_QUEUED_TAGS - current.length);
-        const missing = accepted.filter((product) => copiesOf(current, product.id) === 0).slice(0, room);
-        return current.concat(missing.map((product) => ({ key: createSlotKey(product.id), itemId: product.id })));
-      });
+      // Write the ref before React re-renders, so the next page of a bulk add sees these tags.
+      const next = sheet.concat(accepted.map((product) => ({ key: createSlotKey(product.id), itemId: product.id })));
+      instancesRef.current = next;
+      setInstances(next);
       return accepted.length;
     },
     [remember],
