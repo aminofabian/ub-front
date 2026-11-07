@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  TAG_CHIP,
+  TAG_CHIP_IDLE,
+  TAG_CHIP_ON,
+  TAG_HAIRLINE,
+  TAG_LABEL,
+  TAG_NOTE,
+  TAG_PANEL,
+  TAG_STRIP,
+} from "@/components/price-tags/price-tag-chrome";
 import { FIELD_CLASS, NumberField } from "@/components/price-tags/price-tag-inputs";
 import { CATALOG_BTN_GHOST, CATALOG_BTN_OUTLINE } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { tagHeightForRows, tagWidthForColumns } from "@/lib/price-tags/layout";
@@ -78,38 +88,33 @@ export function PriceTagSettings({
   );
 
   return (
-    <details className="border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)]">
-      <summary className="cursor-pointer px-3 py-2 text-[13px] text-[var(--catalog-ink,#121A16)]">
-        {roll ? "Printer alignment and what each tag shows" : "Sheet size, spacing, printer alignment, and what each tag shows"}
+    <details className={cn(TAG_PANEL, "group")}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[13px] text-[var(--catalog-ink,#121A16)] pointer-coarse:py-3 [&::-webkit-details-marker]:hidden">
+        <span>{roll ? "Printer alignment and what each tag shows" : "Sheet size, spacing, printer alignment, and what each tag shows"}</span>
+        <span className="text-[12px] text-[#556159] group-open:hidden">Show</span>
+        <span className="hidden text-[12px] text-[#556159] group-open:inline">Hide</span>
       </summary>
-      <div className="grid gap-4 px-3 pb-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className={cn("grid gap-5 border-t px-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]", TAG_HAIRLINE)}>
         <div className="flex flex-col gap-2">
           {/* A4 sizing only: on a roll the label size is the tag size. */}
           {roll ? null : (
-          <div className="flex flex-wrap gap-1">
+          <div className={TAG_STRIP} role="group" aria-label="Sheet layout">
             {PRESETS.map((presetId) => (
               <button
                 key={presetId}
                 type="button"
                 title={LABEL_PRESETS[presetId].detail}
                 aria-pressed={layout.presetId === presetId}
-                className={cn(
-                  "h-7 border px-2 text-[11.5px]",
-                  layout.presetId === presetId
-                    ? "border-[#1D4B3B] text-[#1D4B3B]"
-                    : "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)]",
-                )}
+                className={cn(TAG_CHIP, layout.presetId === presetId ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
                 onClick={() => onLayout((current) => applyPreset(current, presetId))}
               >
                 {LABEL_PRESETS[presetId].label}
               </button>
             ))}
-            {layout.presetId === "custom" ? (
-              <span className="self-center px-1 text-[11.5px] text-[#556159]">Custom size</span>
-            ) : null}
+            {layout.presetId === "custom" ? <span className={cn(TAG_CHIP, TAG_CHIP_ON, "pointer-events-none")}>Custom</span> : null}
           </div>
           )}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
             {roll ? null : (
               <>
             <NumberField
@@ -136,7 +141,7 @@ export function PriceTagSettings({
             {mm("Left mm", "marginLeftMm", 0, 30)}
               </>
             )}
-            <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
+            <label className={cn("flex flex-col gap-1.5", TAG_LABEL)}>
               Tag
               <select
                 value={layout.orientation}
@@ -149,7 +154,7 @@ export function PriceTagSettings({
                 <option value="vertical">Vertical</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
+            <label className={cn("flex flex-col gap-1.5", TAG_LABEL)}>
               Border
               <select
                 value={layout.border}
@@ -167,7 +172,7 @@ export function PriceTagSettings({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
+            <label className={cn("flex flex-col gap-1.5", TAG_LABEL)}>
               Alignment
               <select
                 value={layout.align}
@@ -179,9 +184,9 @@ export function PriceTagSettings({
               </select>
             </label>
           </div>
-          <fieldset className="mt-1 flex flex-col gap-1.5">
-            <legend className="mb-1 text-[11px] text-[#556159]">Printer alignment</legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <fieldset className="mt-2 flex flex-col gap-2">
+            <legend className={cn("mb-1.5", TAG_LABEL)}>Printer alignment</legend>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
               <NumberField
                 label="Move right mm"
                 value={calibration.offsetXMm}
@@ -199,14 +204,14 @@ export function PriceTagSettings({
                 onChange={(offsetYMm) => onCalibration({ ...calibration, offsetYMm })}
               />
             </div>
-            <p className="text-[11.5px] leading-relaxed text-[#556159]">
+            <p className={cn(TAG_NOTE, "max-w-prose")}>
               Print the alignment test{roll ? " on the label roll" : " on plain paper and hold it against a label sheet"}.
               Each outline should sit on a label&apos;s edge, with its cross in the middle. If not, move the tags here;
               negative numbers move left or up. This applies to this device only.
             </p>
             <button
               type="button"
-              className={cn(CATALOG_BTN_OUTLINE, "self-start")}
+              className={cn(CATALOG_BTN_OUTLINE, "self-start pointer-coarse:h-10")}
               onClick={() => {
                 if (onPrintAlignment) {
                   onPrintAlignment();
@@ -220,12 +225,13 @@ export function PriceTagSettings({
           </fieldset>
         </div>
         <div className="flex flex-col gap-2">
-          <fieldset className="grid grid-cols-2 gap-x-3 gap-y-1">
-            <legend className="mb-1 text-[11px] text-[#556159]">On each tag</legend>
+          <fieldset className="grid grid-cols-2 gap-x-3 gap-y-1 pointer-coarse:gap-y-2">
+            <legend className={cn("mb-1.5", TAG_LABEL)}>On each tag</legend>
             {ALL_TAG_FIELDS.map((field) => (
-              <label key={field} className="flex items-center gap-1.5 text-[12.5px]">
+              <label key={field} className="flex min-h-7 items-center gap-2 text-[12.5px] pointer-coarse:min-h-9">
                 <input
                   type="checkbox"
+                  className="size-4 accent-[#1D4B3B]"
                   checked={layout.fields.includes(field)}
                   onChange={() => patch({ fields: toggleField(layout.fields, field) })}
                 />
@@ -233,25 +239,26 @@ export function PriceTagSettings({
               </label>
             ))}
           </fieldset>
-          <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
+          <label className={cn("flex flex-col gap-1.5", TAG_LABEL)}>
             Promotional line
             <input
               value={layout.promoMessage}
               maxLength={40}
               placeholder="Fresh deal"
-              className={cn(FIELD_CLASS, "px-2 text-[13px]")}
+              className={cn(FIELD_CLASS, "normal-case tracking-normal")}
               onChange={(event) => patch({ promoMessage: event.target.value })}
             />
           </label>
-          <label className="flex items-center gap-2 text-[12.5px]">
+          <label className="flex min-h-7 items-center gap-2 text-[12.5px] pointer-coarse:min-h-9">
             <input
               type="checkbox"
+              className="size-4 accent-[#1D4B3B]"
               checked={layout.generateBarcodeFromSku}
               onChange={(event) => patch({ generateBarcodeFromSku: event.target.checked })}
             />
             Barcode from SKU when the product has none
           </label>
-          <p className="text-[11.5px] leading-relaxed text-[#556159]">
+          <p className={cn(TAG_NOTE, "max-w-prose")}>
             Selling prices are read again from this branch when you print or download. Saved layouts keep the
             sheet, not the prices. Weighed products show their price per unit. A previous price appears when
             the catalog price is higher than the selling price, or when you type one.
@@ -262,12 +269,12 @@ export function PriceTagSettings({
               maxLength={48}
               placeholder="Layout name"
               aria-label="Layout name"
-              className={cn(FIELD_CLASS, "min-w-0 flex-1 px-2 text-[12.5px]")}
+              className={cn(FIELD_CLASS, "min-w-0 flex-1")}
               onChange={(event) => setSaveName(event.target.value)}
             />
             <button
               type="button"
-              className={CATALOG_BTN_OUTLINE}
+              className={cn(CATALOG_BTN_OUTLINE, "pointer-coarse:h-10")}
               disabled={!saveName.trim()}
               onClick={() => {
                 const name = saveName.trim();

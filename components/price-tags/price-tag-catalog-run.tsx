@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_SOLID } from "@/components/price-tags/price-tag-chrome";
 import { NumberField } from "@/components/price-tags/price-tag-inputs";
 import {
   useCatalogRun,
@@ -112,12 +113,7 @@ export function PriceTagCatalogRun({
                   type="button"
                   aria-pressed={destination === option}
                   disabled={option === "label-printer" && !labelPrinterReady}
-                  className={cn(
-                    "h-8 border px-2.5 text-[12.5px] disabled:opacity-40",
-                    destination === option
-                      ? "border-[#1D4B3B] bg-[#1D4B3B] text-white"
-                      : "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white",
-                  )}
+                  className={cn(TAG_CHIP, "disabled:opacity-40", destination === option ? TAG_CHIP_SOLID : TAG_CHIP_IDLE)}
                   onClick={() => setDestination(option)}
                 >
                   {option === "label-printer" ? "Label printer, non-stop" : "One PDF"}
@@ -127,8 +123,8 @@ export function PriceTagCatalogRun({
             <div className="w-28">
               <NumberField label="Copies each" value={copies} min={1} max={MAX_RUN_COPIES} onChange={setCopies} />
             </div>
-            <label className="flex h-8 items-center gap-1.5 text-[12.5px]">
-              <input type="checkbox" checked={skipUnpriced} onChange={(event) => setSkipUnpriced(event.target.checked)} />
+            <label className="flex h-8 items-center gap-2 text-[12.5px] pointer-coarse:h-10">
+              <input type="checkbox" className="size-4 accent-[#1D4B3B]" checked={skipUnpriced} onChange={(event) => setSkipUnpriced(event.target.checked)} />
               Skip products without a price
             </label>
           </div>

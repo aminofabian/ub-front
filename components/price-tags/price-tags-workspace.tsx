@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { DraftNumberInput, rangeParser } from "@/components/price-tags/price-tag-inputs";
+import { PriceTagActions, type OutputKind } from "@/components/price-tags/price-tag-actions";
 import { PriceTagCatalogRun } from "@/components/price-tags/price-tag-catalog-run";
+import { TAG_HAIRLINE, TAG_PANEL } from "@/components/price-tags/price-tag-chrome";
 import { PriceTagLabelPrinter } from "@/components/price-tags/price-tag-label-printer";
 import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import { PriceTagMediaBar } from "@/components/price-tags/price-tag-media-bar";
@@ -14,11 +15,7 @@ import { PriceTagProductList } from "@/components/price-tags/price-tag-product-l
 import { PriceTagSettings } from "@/components/price-tags/price-tag-settings";
 import { usePriceTagJob } from "@/components/price-tags/use-price-tag-job";
 import { ProductsPageLayout } from "@/app/(dashboard)/products/_components/products-page-layout";
-import {
-  CATALOG_BTN_GHOST,
-  CATALOG_BTN_OUTLINE,
-  CATALOG_BTN_PRIMARY,
-} from "@/app/(dashboard)/products/_components/catalog-chrome";
+import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { barcodeSvgMarkup } from "@/lib/price-tags/barcode";
@@ -37,11 +34,9 @@ import {
   type LabelPrinterSettings,
 } from "@/lib/price-tags/label-printer";
 import { NO_CALIBRATION, readPriceTagPreferences, writePriceTagPreferences } from "@/lib/price-tags/storage";
-import { DEFAULT_LAYOUT, TEMPLATE_COPY, applyTemplate } from "@/lib/price-tags/templates";
-import type { PrinterCalibration, SavedTagLayout, TagLayout, TagTemplateId } from "@/lib/price-tags/types";
+import { DEFAULT_LAYOUT } from "@/lib/price-tags/templates";
+import type { PrinterCalibration, SavedTagLayout, TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
-
-const TEMPLATES = Object.keys(TEMPLATE_COPY) as TagTemplateId[];
 
 function count(n: number, one: string, many: string): string {
   return n === 1 ? `1 ${one}` : `${n.toLocaleString("en-KE")} ${many}`;
@@ -69,7 +64,7 @@ export function PriceTagsWorkspace() {
   const [printTo, setPrintTo] = useState(1);
   const [startAt, setStartAt] = useState(1);
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"print" | "pdf" | "label" | null>(null);
+  const [busy, setBusy] = useState<OutputKind | null>(null);
   const [catalogScope, setCatalogScope] = useState<CatalogScope | null>(null);
   const [catalogRunActive, setCatalogRunActive] = useState(false);
   const [labelPrinter, setLabelPrinterState] = useState<LabelPrinterSettings>({ queueName: "", flip: false, taughtRoll: null });
@@ -155,7 +150,7 @@ export function PriceTagsWorkspace() {
     return product != null && product.sellingPrice == null;
   });
 
-  async function runOutput(kind: "print" | "pdf" | "label") {
+  async function runOutput(kind: OutputKind) {
     if (kind === "label" && !labelPrinter.queueName.trim()) {
       toast.error("Choose the label printer first, under the roll settings.");
       return;
@@ -246,13 +241,21 @@ export function PriceTagsWorkspace() {
     return warning == null || window.confirm(warning);
   }
 
-  const pageInput = "h-8 w-12 text-center";
-
   return (
     <ProductsPageLayout className="max-w-none">
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
-        <section className="flex max-h-[46vh] min-h-0 w-full shrink-0 flex-col border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)] lg:max-h-none lg:w-[24rem]">
-          <header className="flex items-start justify-between gap-2 border-b border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] px-3 py-3">
+        {/*
+          The picker scrolls as one column (a fieldset cannot shrink as a flex
+          item, so the list must not try to scroll inside it); the search and
+          filters stay pinned at its top. On a phone it takes the upper half.
+        */}
+        <section
+          className={cn(
+            "flex max-h-[48vh] min-h-0 w-full shrink-0 flex-col overflow-y-auto overscroll-contain lg:max-h-none lg:w-[24rem]",
+            TAG_PANEL,
+          )}
+        >
+          <header className={cn("flex items-start justify-between gap-2 border-b px-3 py-3", TAG_HAIRLINE)}>
             <div className="min-w-0">
               <h1 className="font-[family-name:var(--font-cormorant)] text-[1.65rem] font-normal leading-none text-[var(--catalog-ink,#121A16)]">
                 Price tags
@@ -280,11 +283,7 @@ export function PriceTagsWorkspace() {
             ) : null}
           </header>
           {/* Locked while prices are checked: the job prints the sheet as it was when Print was pressed. */}
-          <fieldset
-            disabled={busy != null}
-            aria-busy={busy != null}
-            className="m-0 flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0"
-          >
+          <fieldset disabled={busy != null} aria-busy={busy != null} className="m-0 min-w-0 border-0 p-0">
             <PriceTagProductList
               job={job}
               branchId={branchId}
@@ -324,93 +323,22 @@ export function PriceTagsWorkspace() {
               }
             />
           ) : null}
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="flex flex-wrap gap-1">
-              {TEMPLATES.map((templateId) => (
-                <button
-                  key={templateId}
-                  type="button"
-                  title={TEMPLATE_COPY[templateId].detail}
-                  aria-pressed={layout.templateId === templateId}
-                  className={cn(
-                    "h-8 border px-2.5 text-[12px]",
-                    layout.templateId === templateId
-                      ? "border-[#1D4B3B] bg-[#1D4B3B] text-white"
-                      : "border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white text-[var(--catalog-ink,#121A16)]",
-                  )}
-                  onClick={() => setLayout((current) => applyTemplate(current, templateId))}
-                >
-                  {TEMPLATE_COPY[templateId].label}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-end gap-2">
-{geometry.perPage > 1 && layout.media !== "label-roll" ? (
-              <label
-                className="flex flex-col gap-1 text-[11px] text-[#556159]"
-                title="On a part-used sticker sheet, start at the first free label (counted left to right, top to bottom)."
-              >
-                Start at label
-                <DraftNumberInput
-                  value={startAt}
-                  inputMode="numeric"
-                  aria-label="Start at label number"
-                  className={pageInput}
-                  parse={rangeParser(1, geometry.perPage, true)}
-                  onValue={setStartAt}
-                />
-              </label>
-              ) : null}
-              <div className="flex flex-col gap-1 text-[11px] text-[#556159]">
-                {layout.media !== "label-roll" ? "Pages" : geometry.perPage > 1 ? "Rows" : "Labels"}
-                <div className="flex items-center">
-                  <DraftNumberInput
-                    value={printFrom}
-                    inputMode="numeric"
-                    aria-label="First page to print"
-                    className={pageInput}
-                    parse={rangeParser(1, totalPages, true)}
-                    onValue={setPrintFrom}
-                  />
-                  <span className="px-1">–</span>
-                  <DraftNumberInput
-                    value={printTo}
-                    inputMode="numeric"
-                    aria-label="Last page to print"
-                    className={pageInput}
-                    parse={rangeParser(1, totalPages, true)}
-                    onValue={setPrintTo}
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                className={CATALOG_BTN_OUTLINE}
-                disabled={job.instances.length === 0 || busy != null || job.restoring}
-                onClick={() => void runOutput("pdf")}
-              >
-                {busy === "pdf" ? "Checking prices…" : "Download PDF"}
-              </button>
-              <button
-                type="button"
-                className={layout.media === "label-roll" ? CATALOG_BTN_OUTLINE : CATALOG_BTN_PRIMARY}
-                disabled={job.instances.length === 0 || busy != null || job.restoring}
-                onClick={() => void runOutput("print")}
-              >
-                {busy === "print" ? "Checking prices…" : "Print"}
-              </button>
-              {layout.media === "label-roll" ? (
-                <button
-                  type="button"
-                  className={CATALOG_BTN_PRIMARY}
-                  disabled={job.instances.length === 0 || busy != null || job.restoring}
-                  onClick={() => void runOutput("label")}
-                >
-                  {busy === "label" ? "Sending…" : "Print to label printer"}
-                </button>
-              ) : null}
-            </div>
-          </div>
+          <PriceTagActions
+            layout={layout}
+            geometry={geometry}
+            totalPages={totalPages}
+            printFrom={printFrom}
+            printTo={printTo}
+            startAt={startAt}
+            busy={busy}
+            canOutput={job.instances.length > 0 && busy == null && !job.restoring}
+            labelPrinterReady={labelPrinter.queueName.trim() !== ""}
+            onLayout={setLayout}
+            onPrintFrom={setPrintFrom}
+            onPrintTo={setPrintTo}
+            onStartAt={setStartAt}
+            onOutput={(kind) => void runOutput(kind)}
+          />
 
           {blankInLastRow > 0 ? (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[#556159]">

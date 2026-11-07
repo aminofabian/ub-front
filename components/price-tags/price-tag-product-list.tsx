@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { TAG_HAIRLINE, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
 import { CopiesInput, DraftNumberInput, FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
 import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import type { PriceTagJob } from "@/components/price-tags/use-price-tag-job";
@@ -268,7 +269,8 @@ export function PriceTagProductList({
 
   return (
     <>
-      <div className="flex flex-col gap-2 px-3 py-2">
+      {/* Pinned while the list scrolls, so a scan or a new filter never needs a scroll back up. */}
+      <div className={cn("sticky top-0 z-10 flex flex-col gap-2 border-b bg-[var(--catalog-shelf,#FCFAF5)] px-3 py-2.5", TAG_HAIRLINE)}>
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -278,10 +280,11 @@ export function PriceTagProductList({
               addByCode();
             }
           }}
-          placeholder="Search the catalog by name, SKU, or barcode"
+          placeholder="Search by name, SKU, or scan a barcode"
           aria-label="Search the catalog"
           autoComplete="off"
-          className="h-9 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white px-2.5 text-[13px] outline-none focus:border-[#1D4B3B]"
+          enterKeyHint="done"
+          className={cn(FIELD_CLASS, "h-9 px-3 pointer-coarse:h-11")}
         />
         <div className="grid grid-cols-3 gap-2">
           <select
@@ -328,10 +331,10 @@ export function PriceTagProductList({
             ))}
           </select>
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className={cn(TAG_STRIP, "-mx-3 gap-0.5 px-2 sm:mx-0 sm:px-0")}>
           <button
             type="button"
-            className={CATALOG_BTN_GHOST}
+            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10")}
             disabled={rows.length === 0}
             onClick={() => reportAdded(job.addProducts(rows), rows.length)}
           >
@@ -339,7 +342,7 @@ export function PriceTagProductList({
           </button>
           <button
             type="button"
-            className={CATALOG_BTN_GHOST}
+            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10")}
             disabled={bulkBusy || !hasQuery}
             title={hasQuery ? undefined : "Pick a department, category, or shelf zone first. To print the whole catalogue, use Print all matches."}
             onClick={() => void addEveryMatch()}
@@ -349,7 +352,7 @@ export function PriceTagProductList({
           {onPrintAll ? (
             <button
               type="button"
-              className={cn(CATALOG_BTN_GHOST, "text-[#1D4B3B]")}
+              className={cn(CATALOG_BTN_GHOST, "shrink-0 text-[#1D4B3B] pointer-coarse:h-10")}
               title="Print every matching product in batches, without adding them to the sheet."
               onClick={() => onPrintAll({ search: debouncedSearch, filters: filters(), summary: scopeSummary() })}
             >
@@ -358,7 +361,7 @@ export function PriceTagProductList({
           ) : null}
           <button
             type="button"
-            className={cn(CATALOG_BTN_GHOST, showSelected && "text-[#1D4B3B]")}
+            className={cn(CATALOG_BTN_GHOST, "shrink-0 pointer-coarse:h-10", showSelected && "text-[#1D4B3B]")}
             aria-pressed={showSelected}
             onClick={() => setShowSelected((current) => !current)}
           >
@@ -367,9 +370,9 @@ export function PriceTagProductList({
         </div>
       </div>
 
-      <ul className="min-h-0 flex-1 overflow-auto border-t border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_8%,transparent)]">
+      <ul>
         {visibleRows.length === 0 ? (
-          <li className="px-3 py-8 text-center font-[family-name:var(--font-cormorant)] text-[1.35rem] text-[#556159]">
+          <li className="px-3 py-10 text-center font-[family-name:var(--font-cormorant)] text-[1.35rem] text-[#556159]">
             {showSelected
               ? job.restoring
                 ? "Loading your sheet…"
@@ -387,10 +390,14 @@ export function PriceTagProductList({
           return (
             <li
               key={product.id}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_6%,transparent)] px-3 py-2"
+              className={cn(
+                "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_6%,transparent)] px-3 py-2 transition-colors pointer-coarse:py-2.5",
+                checked && "bg-[color-mix(in_srgb,#1D4B3B_5%,transparent)]",
+              )}
             >
               <input
                 type="checkbox"
+                className="size-4 accent-[#1D4B3B] pointer-coarse:size-5"
                 checked={checked}
                 aria-label={`Select ${product.name}`}
                 onChange={() => {
@@ -402,7 +409,7 @@ export function PriceTagProductList({
                 <p className="truncate text-[13px] font-medium text-[var(--catalog-ink,#121A16)]">
                   {product.name}
                 </p>
-                <p className="truncate font-mono text-[11px] text-[#556159]">
+                <p className="truncate font-[family-name:var(--font-geist-mono)] text-[11px] text-[#556159]">
                   {product.sku || "No SKU"}
                   {product.barcode ? ` · ${product.barcode}` : ""}
                   {" · "}
@@ -441,7 +448,7 @@ export function PriceTagProductList({
       {!showSelected && hasMore ? (
         <button
           type="button"
-          className={cn(CATALOG_BTN_GHOST, "m-2")}
+          className={cn(CATALOG_BTN_GHOST, "m-2 self-center pointer-coarse:h-10")}
           disabled={listLoading}
           onClick={() => void loadPage(page + 1, false)}
         >

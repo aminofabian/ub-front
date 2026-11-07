@@ -4,8 +4,9 @@ import { useState, type InputHTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
+/** Fields grow to 40px on touch screens; 16px text stops iOS Safari zooming into them. */
 export const FIELD_CLASS =
-  "h-8 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white px-1.5 text-[12px] text-[var(--catalog-ink,#121A16)] tabular-nums outline-none focus:border-[#1D4B3B] disabled:opacity-40";
+  "h-8 min-w-0 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white px-2 text-[13px] text-[var(--catalog-ink,#121A16)] tabular-nums outline-none transition-colors focus:border-[#1D4B3B] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,#1D4B3B_28%,transparent)] disabled:opacity-40 pointer-coarse:h-10 pointer-coarse:text-[16px]";
 
 type DraftNumberInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -100,13 +101,14 @@ export function NumberField({
 }) {
   const integer = Number.isInteger(step);
   return (
-    <label className="flex flex-col gap-1 text-[11px] text-[#556159]">
+    <label className="flex flex-col gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[#556159]">
       {label}
       <DraftNumberInput
         value={value}
         inputMode={integer && min >= 0 ? "numeric" : "decimal"}
         parse={rangeParser(min, max, integer)}
         onValue={onChange}
+        className="normal-case tracking-normal"
       />
     </label>
   );
@@ -127,7 +129,7 @@ export function CopiesInput({
   onChange: (value: number) => void;
 }) {
   const stepClass =
-    "h-8 w-7 shrink-0 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white text-[14px] leading-none text-[var(--catalog-ink,#121A16)] disabled:opacity-40";
+    "h-8 w-8 shrink-0 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white text-[15px] leading-none text-[var(--catalog-ink,#121A16)] transition-colors hover:bg-[color-mix(in_srgb,var(--catalog-ink,#121A16)_4%,transparent)] disabled:opacity-40 disabled:hover:bg-white pointer-coarse:h-10 pointer-coarse:w-10";
   return (
     <div className="flex items-center">
       <button
@@ -144,7 +146,7 @@ export function CopiesInput({
         disabled={disabled}
         inputMode="numeric"
         aria-label={`Copies of ${label}`}
-        className="-mx-px w-9 text-center text-[13px]"
+        className="-mx-px w-10 px-0 text-center"
         parse={rangeParser(0, max, true)}
         onValue={onChange}
       />

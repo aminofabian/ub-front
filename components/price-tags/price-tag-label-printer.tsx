@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { TAG_LABEL, TAG_NOTE, TAG_PANEL } from "@/components/price-tags/price-tag-chrome";
 import { FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
-import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
+import { CATALOG_BTN_GHOST, CATALOG_BTN_OUTLINE } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import type { LabelPrinterSettings } from "@/lib/price-tags/label-printer";
 import { fetchTillCupsPrinters, type TillCupsPrinter } from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,14 @@ async function localNetworkPermission(): Promise<PermissionState | null> {
     // Browsers without this permission (Safari, Firefox, older Chrome).
     return null;
   }
+}
+
+function problemCopy(detection: Detection): string | null {
+  if (detection.state !== "no-bridge") return null;
+  if (detection.localNetwork === "denied") {
+    return "Chrome is blocking this site from reaching this computer, so no printers are listed. Click the icon left of the address bar, open Site settings, set “Local network access” to Allow, reload, then press Detect printers.";
+  }
+  return "This page cannot reach the Palmart print bridge on this computer. Start the bridge (the same helper the till uses for receipts), or allow “Local network access” for this site and let it through any ad blocker, then press Detect printers.";
 }
 
 /**
@@ -63,60 +72,65 @@ export function PriceTagLabelPrinter({
 
   const printers = detection.state === "found" ? detection.printers : [];
   const known = printers.some((printer) => printer.name === settings.queueName);
+  const problem = problemCopy(detection);
+  const taught = settings.taughtRoll;
 
   return (
-    <div className="flex flex-wrap items-end gap-2 border-l-2 border-[#1D4B3B] bg-white/70 px-3 py-2">
-      <label className="flex min-w-56 flex-col gap-1 text-[11px] text-[#556159]">
-        Label printer on this computer
-        <select
-          value={settings.queueName}
-          className={FIELD_CLASS}
-          onChange={(event) => onChange({ ...settings, queueName: event.target.value })}
-        >
-          <option value="">{detection.state === "looking" ? "Looking for printers…" : "Choose a printer"}</option>
-          {printers.map((printer) => (
-            <option key={printer.name} value={printer.name}>
-              {printer.name}
-            </option>
-          ))}
-          {settings.queueName && !known ? <option value={settings.queueName}>{settings.queueName}</option> : null}
-        </select>
-      </label>
-      <button
-        type="button"
-        className={CATALOG_BTN_GHOST}
-        disabled={detection.state === "looking"}
-        onClick={() => void detect()}
-      >
-        Detect printers
-      </button>
-      <button
-        type="button"
-        className={CATALOG_BTN_GHOST}
-        disabled={!settings.queueName || calibrating}
-        title="The printer feeds a few labels while it measures them. Do this whenever you load a new kind of roll."
-        onClick={() => {
-          setCalibrating(true);
-          void onCalibrate().finally(() => setCalibrating(false));
-        }}
-      >
-        {calibrating ? "Sending…" : "Teach printer this roll"}
-      </button>
-      <label className="flex h-8 items-center gap-1.5 text-[12.5px]">
-        <input
-          type="checkbox"
-          checked={settings.flip}
-          onChange={(event) => onChange({ ...settings, flip: event.target.checked })}
-        />
-        Upside down? Turn 180°
-      </label>
-      <p className={cn("basis-full text-[12px] leading-relaxed text-[#556159]")}>
-        {detection.state === "no-bridge" && detection.localNetwork === "denied"
-          ? "Chrome is blocking this site from reaching this computer, so the printer list stays empty (the console shows it as a CORS error). Click the icon left of the address bar, open Site settings, set “Local network access” to Allow, reload, then press Detect printers."
-          : detection.state === "no-bridge"
-          ? "This page cannot reach the Palmart print bridge on this computer. Either the bridge is not running (start it; it is the same helper the till uses for receipts), or the browser is blocking the site from this computer: allow “Local network access” for this site (the icon left of the address bar), or let this site through your ad blocker or Brave Shields. Then press Detect printers."
-          : "Labels go straight to the printer as TSPL, the language most 4-inch label printers speak, so no printer driver or paper size is needed. Prices are checked first. If tags land off-centre or blank labels feed out, press “Teach printer this roll” once, then print the alignment test."}
-      </p>
+    <div className={cn(TAG_PANEL, "flex flex-col gap-2 px-3 py-2.5")}>
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+        <label className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
+          <span className={TAG_LABEL}>Label printer on this computer</span>
+          <select
+            value={settings.queueName}
+            className={FIELD_CLASS}
+            onChange={(event) => onChange({ ...settings, queueName: event.target.value })}
+          >
+            <option value="">{detection.state === "looking" ? "Looking for printers…" : "Choose a printer"}</option>
+            {printers.map((printer) => (
+              <option key={printer.name} value={printer.name}>
+                {printer.name}
+              </option>
+            ))}
+            {settings.queueName && !known ? <option value={settings.queueName}>{settings.queueName}</option> : null}
+          </select>
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" className={CATALOG_BTN_GHOST} disabled={detection.state === "looking"} onClick={() => void detect()}>
+            {detection.state === "looking" ? "Looking…" : "Detect printers"}
+          </button>
+          <button
+            type="button"
+            className={CATALOG_BTN_OUTLINE}
+            disabled={!settings.queueName || calibrating}
+            title="The printer feeds a few labels while it measures them. Do this whenever you load a new kind of roll."
+            onClick={() => {
+              setCalibrating(true);
+              void onCalibrate().finally(() => setCalibrating(false));
+            }}
+          >
+            {calibrating ? "Sending…" : "Teach printer this roll"}
+          </button>
+          <label className="flex h-8 items-center gap-2 px-1 text-[12.5px] pointer-coarse:h-10">
+            <input
+              type="checkbox"
+              className="size-4 accent-[#1D4B3B]"
+              checked={settings.flip}
+              onChange={(event) => onChange({ ...settings, flip: event.target.checked })}
+            />
+            Upside down? Turn 180°
+          </label>
+        </div>
+      </div>
+      {problem ? (
+        <p className={cn(TAG_NOTE, "max-w-prose text-[#A55237]")}>{problem}</p>
+      ) : (
+        <p className={cn(TAG_NOTE, "max-w-prose")}>
+          {taught
+            ? `Taught ${taught.labelWidthMm} × ${taught.labelHeightMm} mm${taught.across > 1 ? `, ${taught.across} across` : ""}. `
+            : "Not taught a roll yet: teach it once so it stops on each gap. "}
+          Labels go straight to the printer; no driver or paper size needed.
+        </p>
+      )}
     </div>
   );
 }

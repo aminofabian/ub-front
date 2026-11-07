@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { CATALOG_BTN_GHOST } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import { TAG_SCREEN_CSS, sheetHtml, type TagRenderContext } from "@/lib/price-tags/markup";
 import { cellPosition } from "@/lib/price-tags/layout";
 import type { SheetCell } from "@/lib/price-tags/types";
@@ -9,8 +10,10 @@ import { cn } from "@/lib/utils";
 
 const MM_TO_PX = 96 / 25.4;
 const A4_SHORT_EDGE_PX = 210 * MM_TO_PX;
-/** A roll is previewed as a strip of this many rows, the way it comes out of the printer. */
+/** A roll is previewed as a strip of rows, the way it comes out of the printer: fewer on a phone, where each row is blown up to be readable. */
 const ROLL_ROWS_PER_VIEW = 8;
+const ROLL_ROWS_PER_VIEW_NARROW = 4;
+const NARROW_FRAME_PX = 600;
 
 export function PriceTagPreview({
   pages,
@@ -35,11 +38,12 @@ export function PriceTagPreview({
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.62);
+  const [narrow, setNarrow] = useState(false);
   const dragFrom = useRef<number | null>(null);
 
   const geo = context.geometry;
   const roll = context.layout.media === "label-roll";
-  const perView = roll ? ROLL_ROWS_PER_VIEW : 1;
+  const perView = roll ? (narrow ? ROLL_ROWS_PER_VIEW_NARROW : ROLL_ROWS_PER_VIEW) : 1;
   const rowGapMm = roll ? context.layout.rollRowGapMm : 0;
   const pageWidthPx = geo.pageWidthMm * MM_TO_PX;
 
@@ -51,6 +55,7 @@ export function PriceTagPreview({
       // A roll row is small; let it grow (up to 3×) so it can be read and dragged.
       const maxScale = pageWidthPx < A4_SHORT_EDGE_PX ? 3 : 1;
       if (width > 0) setScale(Math.min(maxScale, (width - 8) / pageWidthPx));
+      setNarrow(width > 0 && width < NARROW_FRAME_PX);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -79,13 +84,15 @@ export function PriceTagPreview({
     : `${first + 1} / ${visible.length}`;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    // On a phone the page column scrolls and the preview is as tall as its strip;
+    // on a laptop the preview takes the column's remaining height and scrolls inside.
+    <div className="flex flex-col gap-2 lg:min-h-[24rem] lg:flex-1">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_62%,transparent)]">{summary}</p>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="h-8 px-2 text-[12px] text-[var(--catalog-ink,#121A16)] disabled:opacity-40"
+            className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10 pointer-coarse:px-3")}
             disabled={first <= 0}
             onClick={() => onPageIndex(Math.max(0, first - perView))}
           >
@@ -96,7 +103,7 @@ export function PriceTagPreview({
           </span>
           <button
             type="button"
-            className="h-8 px-2 text-[12px] text-[var(--catalog-ink,#121A16)] disabled:opacity-40"
+            className={cn(CATALOG_BTN_GHOST, "pointer-coarse:h-10 pointer-coarse:px-3")}
             disabled={last >= visible.length - 1}
             onClick={() => onPageIndex(first + perView)}
           >
@@ -107,7 +114,7 @@ export function PriceTagPreview({
 
       <div
         ref={frameRef}
-        className={cn("min-h-0 flex-1 overflow-auto bg-[var(--catalog-panel,#EFEBE2)] p-3", roll && "min-h-[14rem]")}
+        className="overflow-x-auto bg-[var(--catalog-panel,#EFEBE2)] p-3 lg:min-h-0 lg:flex-1 lg:overflow-auto"
       >
         <div className="mx-auto" style={{ height: stripHeightMm * MM_TO_PX * scale, width: pageWidthPx * scale }}>
           <div
