@@ -30,6 +30,8 @@ export const TAG_TYPE_MM = {
   off: 2.6,
   meta: 2.3,
   barcodeHeight: 8.5,
+  /** Human-readable barcode digits, kept tiny so they sit under the bars. */
+  barcodeDigits: 1.4,
   /** Sticker: sized for 25–40 mm squares, where the price is the whole point. */
   stickerName: 3.4,
   stickerPrice: 9.5,

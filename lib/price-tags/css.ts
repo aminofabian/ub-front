@@ -166,6 +166,17 @@ const TYPE_RULES = `
   .ptag-barcode { width: 92%; margin-top: 0.4mm; }
   .ptag-align-center .ptag-barcode { margin-left: auto; margin-right: auto; }
   .ptag-barcode svg { width: 100%; height: ${size(TAG_TYPE_MM.barcodeHeight)}; display: block; }
+  .ptag-shelf .ptag-barcode svg { height: ${size(TAG_TYPE_MM.shelfBarcodeHeight)}; }
+  .ptag-barcode-num {
+    display: block;
+    margin: 0.15mm 0 0;
+    font-size: ${TAG_TYPE_MM.barcodeDigits}mm;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #121A16;
+  }
   .ptag-missing { font-size: 2.6mm; color: #556159; }
 `;
 

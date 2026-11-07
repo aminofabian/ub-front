@@ -1,6 +1,6 @@
 import { barcodePngDataUrl } from "@/lib/price-tags/barcode";
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth, code128Modules } from "@/lib/price-tags/code128";
-import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
+import { TAG_TYPE_MM, blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
 import { BLOCK_GAP_MM, SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import type {
@@ -164,7 +164,7 @@ function measure(doc: TagDoc, blocks: FaceBlock[], job: TagDrawJob, scale: numbe
   return drawable.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
     let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
-    if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };
+    if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 + TAG_TYPE_MM.barcodeDigits + 0.3 };
     const style = blockStyle(block, template);
     setFontMm(doc, sizeMm, style.bold);
     if (block.kind === "price") {
@@ -234,6 +234,13 @@ function drawTag(
         const top = toPage(fx, cursor + 0.4);
         if (vertical) doc.addImage(data, "PNG", top.px, top.py - barW, barH, barW);
         else doc.addImage(data, "PNG", top.px, top.py, barW, barH);
+        const digits = block.code;
+        const digitMm = TAG_TYPE_MM.barcodeDigits;
+        setFontMm(doc, digitMm, false);
+        doc.setTextColor(INK[0], INK[1], INK[2]);
+        const digitW = doc.getTextWidth(digits);
+        const digitAt = toPage(fx + Math.max(0, (barW - digitW) / 2), cursor + 0.4 + barH + digitMm * 0.9);
+        doc.text(digits, digitAt.px, digitAt.py, { angle });
       }
       cursor += entry.heightMm + BLOCK_GAP_MM;
       continue;

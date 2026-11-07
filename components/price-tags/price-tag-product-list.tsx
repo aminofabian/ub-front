@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { TAG_HAIRLINE } from "@/components/price-tags/price-tag-chrome";
+import { TAG_CHIP, TAG_CHIP_IDLE, TAG_CHIP_ON, TAG_HAIRLINE, TAG_STRIP } from "@/components/price-tags/price-tag-chrome";
 import { CopiesInput, DraftNumberInput, FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
 import type { CatalogScope } from "@/components/price-tags/use-catalog-run";
 import type { PriceTagJob } from "@/components/price-tags/use-price-tag-job";
@@ -14,9 +14,11 @@ import {
   fetchAisles,
   fetchCategories,
   fetchItemsPage,
+  fetchSuppliersPage,
   type AisleRecord,
   type CategoryRecord,
   type FetchItemsOpts,
+  type SupplierRecord,
 } from "@/lib/api";
 import { resolvedWasPrice } from "@/lib/price-tags/face";
 import { tagPriceLabel, toAmount } from "@/lib/price-tags/money";
@@ -74,7 +76,13 @@ export function PriceTagProductList({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [supplierId, setSupplierId] = useState("");
+  const [noPrice, setNoPrice] = useState(false);
+  const [noBarcode, setNoBarcode] = useState(false);
+  const [zeroStock, setZeroStock] = useState(false);
+  const [lowStock, setLowStock] = useState(false);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [aisles, setAisles] = useState<AisleRecord[]>([]);
   const [rows, setRows] = useState<TagProduct[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -114,6 +122,32 @@ export function PriceTagProductList({
 
   useEffect(() => {
     let cancelled = false;
+    void (async () => {
+      const gathered: SupplierRecord[] = [];
+      try {
+        for (let index = 0; index < 10; index += 1) {
+          const result = await fetchSuppliersPage({ page: index, size: 100 });
+          gathered.push(...result.content);
+          if (result.last) break;
+        }
+        if (!cancelled) {
+          setSuppliers(
+            gathered
+              .filter((row) => (row.status || "").toLowerCase() !== "inactive")
+              .sort((a, b) => a.name.localeCompare(b.name, "en")),
+          );
+        }
+      } catch {
+        if (!cancelled) setSuppliers([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     void fetchAisles({ itemTypeId: itemTypeId || null })
       .then((list) => {
         if (!cancelled) setAisles(list.filter((row) => row.active));
@@ -135,26 +169,39 @@ export function PriceTagProductList({
       itemTypeId: itemTypeId || undefined,
       aisleUnset: aisleId === UNASSIGNED_SHELF_ZONE_VALUE || undefined,
       aisleId: aisleId && aisleId !== UNASSIGNED_SHELF_ZONE_VALUE ? aisleId : undefined,
+      linkedSupplierId: supplierId || undefined,
+      noPrice: noPrice || undefined,
+      noBarcode: noBarcode || undefined,
+      zeroStock: zeroStock || undefined,
+      lowStock: lowStock || undefined,
       branchId: branchId || undefined,
       sort: [{ property: "name", direction: "asc" }],
     }),
-    [categoryId, itemTypeId, aisleId, branchId],
+    [categoryId, itemTypeId, aisleId, supplierId, noPrice, noBarcode, zeroStock, lowStock, branchId],
   );
 
-  const hasQuery = debouncedSearch.length > 0 || Boolean(categoryId || itemTypeId || aisleId);
+  const hasQuery =
+    debouncedSearch.length > 0 ||
+    Boolean(categoryId || itemTypeId || aisleId || supplierId || noPrice || noBarcode || zeroStock || lowStock);
 
   /** The current filters in plain words, e.g. "Dairy · Milk · search “fresh”". */
   function scopeSummary(): string {
     const parts: string[] = [];
     const department = itemTypes.find((row) => row.id === itemTypeId)?.label;
     const category = categories.find((row) => row.id === categoryId)?.name;
+    const supplier = suppliers.find((row) => row.id === supplierId)?.name;
     const zone =
       aisleId === UNASSIGNED_SHELF_ZONE_VALUE
         ? "No shelf zone"
         : aisles.find((row) => row.id === aisleId)?.name;
     if (department) parts.push(department);
     if (category) parts.push(category);
+    if (supplier) parts.push(supplier);
     if (zone) parts.push(`Shelf zone: ${zone}`);
+    if (noPrice) parts.push("No price");
+    if (noBarcode) parts.push("No barcode");
+    if (zeroStock) parts.push("Out of stock");
+    if (lowStock) parts.push("Low stock");
     if (debouncedSearch) parts.push(`search “${debouncedSearch}”`);
     return parts.length > 0 ? parts.join(" · ") : "The whole catalogue";
   }
@@ -415,6 +462,41 @@ export function PriceTagProductList({
               </option>
             ))}
           </select>
+          <select
+            aria-label="Supplier"
+            value={supplierId}
+            onChange={(event) => setSupplierId(event.target.value)}
+            className={FIELD_CLASS}
+          >
+            <option value="">All suppliers</option>
+            {suppliers.map((row) => (
+              <option key={row.id} value={row.id}>
+                {row.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className={TAG_STRIP} role="group" aria-label="More filters">
+          {(
+            [
+              ["No price", noPrice, () => setNoPrice((on) => !on), false],
+              ["No barcode", noBarcode, () => setNoBarcode((on) => !on), false],
+              ["Out of stock", zeroStock, () => setZeroStock((on) => !on), !branchId],
+              ["Low stock", lowStock, () => setLowStock((on) => !on), !branchId],
+            ] as const
+          ).map(([label, on, toggle, disabled]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={on}
+              disabled={disabled}
+              title={disabled ? "Choose a branch first." : undefined}
+              className={cn(TAG_CHIP, "px-2", on ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+              onClick={toggle}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         {bulk ? (
           <CatalogueAddProgress seen={bulk.seen} total={bulk.total} />

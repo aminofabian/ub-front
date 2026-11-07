@@ -1,5 +1,5 @@
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth } from "@/lib/price-tags/code128";
-import { blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
+import { TAG_TYPE_MM, blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
 import { SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import { LABEL_DOTS_PER_MM } from "@/lib/price-tags/tspl";
@@ -51,7 +51,9 @@ function blockHtml(block: FaceBlock, barcodes: TagRenderContext["barcodes"]): st
     }
     case "barcode": {
       const svg = barcodes[block.code] ?? "";
-      return svg ? `<div class="ptag-barcode">${svg}</div>` : "";
+      return svg
+        ? `<div class="ptag-barcode">${svg}<span class="ptag-barcode-num">${escapeHtml(block.code)}</span></div>`
+        : "";
     }
     default:
       return `<p class="ptag-${block.kind}">${escapeHtml(block.text)}</p>`;
@@ -106,7 +108,7 @@ function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
   const measured = drawable.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
     let sizeMm = blockSizeMm(block.kind, template, missing) * scale;
-    if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 };
+    if (block.kind === "barcode") return { block, sizeMm, lines: [], heightMm: sizeMm + 0.4 + TAG_TYPE_MM.barcodeDigits + 0.3 };
     if (block.kind === "price") {
       // Shrink a long price to the face width, as the PDF does, instead of clipping it.
       const perChars = block.per ? (block.per.length + 2) * 0.48 : 0;
