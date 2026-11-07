@@ -497,13 +497,15 @@ export function PriceTagsWorkspace() {
           </div>
         </section>
         <div className="flex shrink-0 items-center gap-2 border-t border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_10%,transparent)] bg-[var(--catalog-shelf,#FCFAF5)] px-3 py-2 lg:hidden">
-          <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setPhoneStage("sheet")}>
-            <span className="block font-[family-name:var(--font-cormorant)] text-[1.65rem] leading-none text-[var(--catalog-ink,#121A16)] tabular-nums">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate text-left"
+            onClick={() => setPhoneStage("sheet")}
+          >
+            <span className="font-[family-name:var(--font-cormorant)] text-[1.5rem] leading-none text-[var(--catalog-ink,#121A16)] tabular-nums">
               {job.instances.length.toLocaleString("en-KE")}
             </span>
-            <span className="text-[12px] text-[#556159]">
-              {job.instances.length === 1 ? "tag on the sheet" : "tags on the sheet"}
-            </span>
+            <span className="truncate text-[12.5px] text-[#556159]">{job.instances.length === 1 ? "tag" : "tags"}</span>
           </button>
           {phoneStage === "print" ? (
             <button

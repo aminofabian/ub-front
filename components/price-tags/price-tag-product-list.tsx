@@ -92,6 +92,8 @@ export function PriceTagProductList({
   /** Products read so far, against the catalogue total, while a bulk add is running. */
   const [bulk, setBulk] = useState<{ seen: number; total: number } | null>(null);
   const [showSelected, setShowSelected] = useState(false);
+  /** Phone only: the filters fold away so the list has room. A laptop always shows them. */
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const scanning = useRef(false);
   const scanQueue = useRef<{ code: string; onlyListed: TagProduct | null }[]>([]);
   /** Only the newest list request may fill the list; filters can change faster than replies arrive. */
@@ -180,6 +182,9 @@ export function PriceTagProductList({
     [categoryId, itemTypeId, aisleId, supplierId, noPrice, noBarcode, zeroStock, lowStock, branchId],
   );
 
+  const activeFilters = [categoryId, itemTypeId, aisleId, supplierId, noPrice, noBarcode, zeroStock, lowStock].filter(
+    Boolean,
+  ).length;
   const hasQuery =
     debouncedSearch.length > 0 ||
     Boolean(categoryId || itemTypeId || aisleId || supplierId || noPrice || noBarcode || zeroStock || lowStock);
@@ -401,102 +406,125 @@ export function PriceTagProductList({
 
   return (
     <>
-      {/* Pinned while the list scrolls, so a scan or a new filter never needs a scroll back up. */}
-      <div className={cn("sticky top-0 z-10 flex flex-col gap-2 border-b bg-[var(--catalog-shelf,#FCFAF5)] px-3 py-2.5", TAG_HAIRLINE)}>
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addByCode();
-            }
-          }}
-          placeholder="Search by name, SKU, or scan a barcode"
-          aria-label="Search the catalog"
-          autoComplete="off"
-          enterKeyHint="done"
-          className={cn(FIELD_CLASS, "h-9 px-3 pointer-coarse:h-11")}
-        />
-        <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
-          <select
-            aria-label="Department"
-            value={itemTypeId}
-            onChange={(event) => {
-              setItemTypeId(event.target.value);
-              setAisleId("");
+      {/*
+        On a laptop this is pinned while the list scrolls, so a scan or a new filter never needs a scroll
+        back up. A phone has no room to pin it: it scrolls away with the list, and the filters fold.
+      */}
+      <div className={cn("flex flex-col gap-2 border-b bg-[var(--catalog-shelf,#FCFAF5)] px-3 py-2.5 lg:sticky lg:top-0 lg:z-10", TAG_HAIRLINE)}>
+        <div className="flex gap-1.5">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addByCode();
+              }
             }}
-            className={FIELD_CLASS}
+            placeholder="Search by name, SKU, or scan a barcode"
+            aria-label="Search the catalog"
+            autoComplete="off"
+            enterKeyHint="done"
+            className={cn(FIELD_CLASS, "h-9 min-w-0 flex-1 px-3 pointer-coarse:h-11")}
+          />
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="price-tag-filters"
+            className={cn(
+              TAG_CHIP,
+              "h-9 shrink-0 px-3 pointer-coarse:h-11 lg:hidden",
+              filtersOpen || activeFilters > 0 ? TAG_CHIP_ON : TAG_CHIP_IDLE,
+            )}
+            onClick={() => setFiltersOpen((open) => !open)}
           >
-            <option value="">All departments</option>
-            {itemTypes.filter((type) => type.active).map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Category"
-            value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
-            className={FIELD_CLASS}
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Shelf zone"
-            value={aisleId}
-            onChange={(event) => setAisleId(event.target.value)}
-            className={FIELD_CLASS}
-          >
-            <option value="">All shelf zones</option>
-            <option value={UNASSIGNED_SHELF_ZONE_VALUE}>No shelf zone</option>
-            {aisles.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.code ? `${row.code} · ${row.name}` : row.name}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Supplier"
-            value={supplierId}
-            onChange={(event) => setSupplierId(event.target.value)}
-            className={cn(FIELD_CLASS, "col-span-2 lg:col-span-1")}
-          >
-            <option value="">All suppliers</option>
-            {suppliers.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name}
-              </option>
-            ))}
-          </select>
+            Filters
+            {activeFilters > 0 ? (
+              <span className="ml-1 font-[family-name:var(--font-geist-mono)] text-[11px] tabular-nums">{activeFilters}</span>
+            ) : null}
+          </button>
         </div>
-        <div className={TAG_STRIP} role="group" aria-label="More filters">
-          {(
-            [
-              ["No price", noPrice, () => setNoPrice((on) => !on), false],
-              ["No barcode", noBarcode, () => setNoBarcode((on) => !on), false],
-              ["Out of stock", zeroStock, () => setZeroStock((on) => !on), !branchId],
-              ["Low stock", lowStock, () => setLowStock((on) => !on), !branchId],
-            ] as const
-          ).map(([label, on, toggle, disabled]) => (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={on}
-              disabled={disabled}
-              title={disabled ? "Choose a branch first." : undefined}
-              className={cn(TAG_CHIP, "px-2", on ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
-              onClick={toggle}
+        <div id="price-tag-filters" className={cn("flex flex-col gap-2", !filtersOpen && "max-lg:hidden")}>
+          <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
+            <select
+              aria-label="Department"
+              value={itemTypeId}
+              onChange={(event) => {
+                setItemTypeId(event.target.value);
+                setAisleId("");
+              }}
+              className={FIELD_CLASS}
             >
-              {label}
-            </button>
-          ))}
+              <option value="">All departments</option>
+              {itemTypes.filter((type) => type.active).map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Category"
+              value={categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">All categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Shelf zone"
+              value={aisleId}
+              onChange={(event) => setAisleId(event.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">All shelf zones</option>
+              <option value={UNASSIGNED_SHELF_ZONE_VALUE}>No shelf zone</option>
+              {aisles.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.code ? `${row.code} · ${row.name}` : row.name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Supplier"
+              value={supplierId}
+              onChange={(event) => setSupplierId(event.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">All suppliers</option>
+              {suppliers.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={TAG_STRIP} role="group" aria-label="More filters">
+            {(
+              [
+                ["No price", noPrice, () => setNoPrice((on) => !on), false],
+                ["No barcode", noBarcode, () => setNoBarcode((on) => !on), false],
+                ["Out of stock", zeroStock, () => setZeroStock((on) => !on), !branchId],
+                ["Low stock", lowStock, () => setLowStock((on) => !on), !branchId],
+              ] as const
+            ).map(([label, on, toggle, disabled]) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={on}
+                disabled={disabled}
+                title={disabled ? "Choose a branch first." : undefined}
+                className={cn(TAG_CHIP, "px-2", on ? TAG_CHIP_ON : TAG_CHIP_IDLE)}
+                onClick={toggle}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         {bulk ? (
           <CatalogueAddProgress seen={bulk.seen} total={bulk.total} />
