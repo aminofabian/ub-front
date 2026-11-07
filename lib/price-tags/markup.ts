@@ -1,6 +1,7 @@
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth } from "@/lib/price-tags/code128";
 import { TAG_TYPE_MM, blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
+import { fitNameLines, type TextMeasure } from "@/lib/price-tags/name-fit";
 import { SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import { LABEL_DOTS_PER_MM } from "@/lib/price-tags/tspl";
 import type {
@@ -69,7 +70,10 @@ export function tagFaceHtml(slot: TagInstance, ctx: TagRenderContext): string {
   const align = ctx.layout.align === "center" ? "center" : "left";
   const body = fitted.blocks
     .map((entry) => {
-      const html = blockHtml(entry.block, ctx.barcodes);
+      // A long name is shortened in the middle, as on the label, so its variant shows.
+      const block =
+        entry.block.kind === "name" && entry.lines.length > 0 ? { ...entry.block, text: entry.lines.join(" ") } : entry.block;
+      const html = blockHtml(block, ctx.barcodes);
       if (entry.block.kind === "name" && entry.lines.length === 1) {
         return html.replace('class="ptag-name"', 'class="ptag-name ptag-name-1"');
       }
@@ -121,16 +125,43 @@ function fitForMarkup(blocks: FaceBlock[], ctx: TagRenderContext) {
       const shrunk = wide > innerW;
       return { block, sizeMm, lines: [block.text], heightMm: sizeMm * 1.15 + 0.2 + mark, shrunk };
     }
-    const wide = block.text.length * sizeMm * GLYPH_WIDTH_EM;
-    const count = block.kind === "name" ? Math.min(2, Math.max(1, Math.ceil(wide / innerW))) : 1;
-    const lineHeight = block.kind === "name" ? 1.2 : 1.15;
-    return { block, sizeMm, lines: Array.from({ length: count }, () => ""), heightMm: count * sizeMm * lineHeight };
+    if (block.kind === "name") {
+      const lines = fitNameLines(estimatedMeasure(sizeMm), block.text, innerW);
+      return { block, sizeMm, lines, heightMm: lines.length * sizeMm * 1.2 };
+    }
+    return { block, sizeMm, lines: [""], heightMm: sizeMm * 1.15 };
   });
-  return fitFaceBlocks(measured, innerH, (entry) => ({
-    ...entry,
-    lines: entry.lines.slice(0, 1),
-    heightMm: entry.sizeMm * 1.2,
-  }), template === "shelf" ? SHELF_PRICE_FLOOR : 1);
+  return fitFaceBlocks(
+    measured,
+    innerH,
+    (entry) => {
+      const text = entry.block.kind === "name" ? entry.block.text : "";
+      return { ...entry, lines: fitNameLines(estimatedMeasure(entry.sizeMm), text, innerW, 1), heightMm: entry.sizeMm * 1.2 };
+    },
+    template === "shelf" ? SHELF_PRICE_FLOOR : 1,
+  );
+}
+
+/** Text width by average glyph width, wrapped on spaces: the preview's stand-in for a font. */
+function estimatedMeasure(sizeMm: number): TextMeasure {
+  const widthOf = (text: string) => text.length * sizeMm * GLYPH_WIDTH_EM;
+  return {
+    getTextWidth: widthOf,
+    splitTextToSize(text, width) {
+      const lines: string[] = [];
+      let line = "";
+      for (const word of text.split(/\s+/)) {
+        const next = line ? `${line} ${word}` : word;
+        if (!line || widthOf(next) <= width) line = next;
+        else {
+          lines.push(line);
+          line = word;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    },
+  };
 }
 
 export function sheetHtml(

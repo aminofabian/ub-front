@@ -2,6 +2,7 @@ import { barcodePngDataUrl } from "@/lib/price-tags/barcode";
 import { MIN_PRINT_MODULE_MM, barcodeFitsWidth, code128Modules } from "@/lib/price-tags/code128";
 import { TAG_TYPE_MM, blockSizeMm, buildFaceBlocks, type FaceBlock } from "@/lib/price-tags/face";
 import { cellPosition, faceSize, tagTypeScale } from "@/lib/price-tags/layout";
+import { fitNameLines } from "@/lib/price-tags/name-fit";
 import { BLOCK_GAP_MM, SHELF_PRICE_FLOOR, fitFaceBlocks, type MeasuredBlock } from "@/lib/price-tags/pdf-fit";
 import type {
   PrinterCalibration,
@@ -131,15 +132,6 @@ function displayText(block: FaceBlock): string {
   return block.text;
 }
 
-/** Up to two lines, with an ellipsis when the name runs longer. */
-function nameLines(doc: TagDoc, text: string, width: number): string[] {
-  const lines = doc.splitTextToSize(text, width);
-  if (lines.length <= 2) return lines;
-  let second = lines[1];
-  while (second.length > 1 && doc.getTextWidth(`${second}…`) > width) second = second.slice(0, -1);
-  return [lines[0], `${second.trimEnd()}…`];
-}
-
 /** Narrowest bar this doc can print legibly. */
 function minModuleMm(doc: TagDoc): number {
   return doc.dotsPerMm ? 2 / doc.dotsPerMm : MIN_PRINT_MODULE_MM;
@@ -184,7 +176,7 @@ function measure(doc: TagDoc, blocks: FaceBlock[], job: TagDrawJob, scale: numbe
       return { block, sizeMm, lines: [text], heightMm: sizeMm * 1.18 + mark };
     }
     const text = plainSpaces(displayText(block));
-    const lines = block.kind === "name" ? nameLines(doc, text, innerW) : [text];
+    const lines = block.kind === "name" ? fitNameLines(doc, text, innerW) : [text];
     return { block, sizeMm, lines, heightMm: lines.length * sizeMm * 1.18 };
   });
 }
@@ -206,11 +198,18 @@ function drawTag(
   const innerW = Math.max(8, face.width - PAD_X * 2);
   const innerH = Math.max(6, face.height - PAD_Y * 2);
   const blocks = buildFaceBlocks(product, job);
-  const fitted = fitFaceBlocks(measure(doc, blocks, job, scale, innerW), innerH, (entry) => ({
-    ...entry,
-    lines: entry.lines.slice(0, 1),
-    heightMm: entry.sizeMm * 1.18,
-  }), job.layout.templateId === "shelf" ? SHELF_PRICE_FLOOR : 1);
+  // A name cut to one line keeps its variant too ("Sunlight… 500g"), not just its first words.
+  const toOneLine = (entry: MeasuredBlock): MeasuredBlock => {
+    setFontMm(doc, entry.sizeMm, blockStyle(entry.block, job.layout.templateId).bold);
+    const text = plainSpaces(displayText(entry.block));
+    return { ...entry, lines: fitNameLines(doc, text, innerW, 1), heightMm: entry.sizeMm * 1.18 };
+  };
+  const fitted = fitFaceBlocks(
+    measure(doc, blocks, job, scale, innerW),
+    innerH,
+    toOneLine,
+    job.layout.templateId === "shelf" ? SHELF_PRICE_FLOOR : 1,
+  );
   // The sticker template is always centred, like its print CSS.
   const center =
     job.layout.align === "center" || job.layout.templateId === "sticker" || job.layout.templateId === "shelf";

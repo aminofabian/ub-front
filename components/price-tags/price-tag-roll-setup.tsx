@@ -13,8 +13,8 @@ import { applyTemplate } from "@/lib/price-tags/templates";
 import type { TagLayout } from "@/lib/price-tags/types";
 import { cn } from "@/lib/utils";
 
-/** 1″ rolls are often sold as "32 mm"; a square label in this range may really be 25 mm. */
-const MISNAMED_SQUARE_MM = { min: 30, max: 33 } as const;
+/** Small square rolls are sold under loose names ("1″ × 1″ (32 mm)" measured 27 mm), so ask for a ruler. */
+const SMALL_SQUARE_MAX_MM = 40;
 
 /**
  * Square stickers start on the sticker face; a full shelf tag will not fit.
@@ -55,8 +55,7 @@ export function PriceTagRollSetup({
   const tooWide = linerMm > ROLL_LIMITS.printWidthMm;
   const patch = (next: Parameters<typeof layoutForRoll>[1]) => onLayout((current) => layoutForRoll(current, next));
 
-  const maybeMisnamed =
-    spec.widthMm === spec.heightMm && spec.widthMm >= MISNAMED_SQUARE_MM.min && spec.widthMm <= MISNAMED_SQUARE_MM.max;
+  const smallSquare = spec.widthMm === spec.heightMm && spec.widthMm <= SMALL_SQUARE_MAX_MM;
 
   return (
     <div className="flex flex-col gap-1">
@@ -90,10 +89,10 @@ export function PriceTagRollSetup({
           {linerMm} mm{tooWide ? " wide" : ""}
         </span>
       </div>
-      {maybeMisnamed ? (
+      {smallSquare ? (
         <p className={TAG_NOTE}>
-          Measure one sticker with a ruler. A roll sold as “1″ × 1″ (32 mm)” is usually 25 mm: pick 25 mm (1″), then
-          Teach the printer again.
+          Measure one sticker with a ruler and pick the size it reads; the name on the box is often wrong. Even 1–2 mm
+          off makes rows slip onto the next sticker. Then Teach the printer again.
         </p>
       ) : null}
     </div>
