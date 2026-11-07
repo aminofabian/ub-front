@@ -117,6 +117,7 @@ export const DEFAULT_LAYOUT: TagLayout = {
   rollAcross: 1,
   rollGapMm: 0,
   rollEdgeMm: 0,
+  rollRowGapMm: 2,
   border: "hairline",
   align: "left",
   fields: TEMPLATE_FIELDS.classic.slice(),

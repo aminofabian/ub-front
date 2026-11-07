@@ -100,6 +100,7 @@ export function sanitizeLayout(raw: unknown): TagLayout {
     rollAcross: clamp(Math.round(num(row.rollAcross, base.rollAcross)), 1, ROLL_LIMITS.maxAcross),
     rollGapMm: clamp(num(row.rollGapMm, base.rollGapMm), 0, ROLL_LIMITS.maxGapMm),
     rollEdgeMm: clamp(num(row.rollEdgeMm, base.rollEdgeMm), 0, ROLL_LIMITS.maxEdgeMm),
+    rollRowGapMm: clamp(num(row.rollRowGapMm, base.rollRowGapMm), 0, ROLL_LIMITS.maxRowGapMm),
     border: BORDERS.has(row.border as TagBorder) ? (row.border as TagBorder) : "hairline",
     align: row.align === "center" ? "center" : "left",
     fields: fields.length > 0 ? migrateFields(fields) : base.fields.slice(),

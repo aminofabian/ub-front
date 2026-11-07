@@ -18,6 +18,7 @@ export const ROLL_LIMITS = {
   maxAcross: 4,
   maxGapMm: 10,
   maxEdgeMm: 10,
+  maxRowGapMm: 10,
   printWidthMm: 108,
   maxLinerMm: 118,
 } as const;

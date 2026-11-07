@@ -84,6 +84,14 @@ export function PriceTagRollSetup({
           max={ROLL_LIMITS.maxAcross}
           onChange={(across) => patch({ across })}
         />
+        <NumberField
+          label="Gap between rows mm"
+          value={layout.rollRowGapMm}
+          min={0}
+          max={ROLL_LIMITS.maxRowGapMm}
+          step={0.5}
+          onChange={(rollRowGapMm) => onLayout((current) => ({ ...current, rollRowGapMm }))}
+        />
         {spec.across > 1 ? (
           <>
             <NumberField
@@ -107,14 +115,18 @@ export function PriceTagRollSetup({
       </div>
       <div className="border-l-2 border-[#1D4B3B] bg-white/70 px-3 py-2">
         <p className="text-[12.5px] font-medium text-[var(--catalog-ink,#121A16)]">
-          In the printer driver, set the paper to {linerMm} × {spec.heightMm} mm
-          {spec.across > 1 ? `, ${spec.across} labels across` : ""}.
+          Each printed row is {linerMm} × {spec.heightMm} mm
+          {spec.across > 1 ? `, ${spec.across} labels across` : ""}, with {layout.rollRowGapMm} mm between rows.
+        </p>
+        <p className={NOTE}>
+          “Print to label printer” sends this size to the printer itself. Only the browser “Print” button needs a
+          paper size of {linerMm} × {spec.heightMm} mm set up in the printer driver.
         </p>
         <p className={NOTE}>
           {spec.across > 1
             ? `Each printed page is one row of ${spec.across} labels; tags fill a row left to right before the next. `
             : "Each printed page is one label. "}
-          Set the gap between rows to match your roll (usually 2–3 mm), then run the printer&apos;s
+          Set “Gap between rows” to match your roll (usually 2–3 mm), then run the printer&apos;s
           calibration once so it stops on each gap. Use “Print alignment test” under the sheet settings to
           check the position before printing a big run.
         </p>

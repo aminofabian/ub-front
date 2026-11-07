@@ -41,6 +41,7 @@ export function PriceTagSettings({
   onLayout,
   onCalibration,
   onSaved,
+  onPrintAlignment,
 }: {
   layout: TagLayout;
   geometry: SheetGeometry;
@@ -49,6 +50,8 @@ export function PriceTagSettings({
   onLayout: (update: (current: TagLayout) => TagLayout) => void;
   onCalibration: (next: PrinterCalibration) => void;
   onSaved: (update: (current: SavedTagLayout[]) => SavedTagLayout[]) => void;
+  /** Set when tags go straight to a label printer; the test page goes there too. */
+  onPrintAlignment?: () => void;
 }) {
   const roll = layout.media === "label-roll";
   const [saveName, setSaveName] = useState("");
@@ -205,6 +208,10 @@ export function PriceTagSettings({
               type="button"
               className={cn(CATALOG_BTN_OUTLINE, "self-start")}
               onClick={() => {
+                if (onPrintAlignment) {
+                  onPrintAlignment();
+                  return;
+                }
                 if (!printAlignmentTest(geometry, calibration)) toast.error("Could not open the print dialog");
               }}
             >

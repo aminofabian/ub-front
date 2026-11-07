@@ -62,6 +62,8 @@ export type TagLayout = {
   rollGapMm: number;
   /** Backing outside the outer labels, each side. */
   rollEdgeMm: number;
+  /** Backing between rows down the roll; the gap sensor stops on it. */
+  rollRowGapMm: number;
   /**
    * 24, 48, 72, or 96 when the sheet was set from those choices.
    * Null once the tag size has been edited by hand.

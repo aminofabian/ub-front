@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DraftNumberInput, rangeParser } from "@/components/price-tags/price-tag-inputs";
+import { PriceTagLabelPrinter } from "@/components/price-tags/price-tag-label-printer";
 import { PriceTagMediaBar } from "@/components/price-tags/price-tag-media-bar";
+import { sendToLabelPrinter } from "@/components/price-tags/send-to-label-printer";
 import { PriceTagPreview } from "@/components/price-tags/price-tag-preview";
 import { PriceTagProductList } from "@/components/price-tags/price-tag-product-list";
 import { PriceTagSettings } from "@/components/price-tags/price-tag-settings";
@@ -23,6 +25,12 @@ import { clampSkip, pageCount, paginateCells, resolveSheet } from "@/lib/price-t
 import type { TagRenderContext } from "@/lib/price-tags/markup";
 import { downloadPriceTagsPdf } from "@/lib/price-tags/pdf";
 import { printPriceTagPages } from "@/lib/price-tags/print";
+import {
+  printAlignmentToLabelPrinter,
+  readLabelPrinter,
+  writeLabelPrinter,
+  type LabelPrinterSettings,
+} from "@/lib/price-tags/label-printer";
 import { NO_CALIBRATION, readPriceTagPreferences, writePriceTagPreferences } from "@/lib/price-tags/storage";
 import { DEFAULT_LAYOUT, TEMPLATE_COPY, applyTemplate } from "@/lib/price-tags/templates";
 import type { PrinterCalibration, SavedTagLayout, TagLayout, TagTemplateId } from "@/lib/price-tags/types";
@@ -56,7 +64,17 @@ export function PriceTagsWorkspace() {
   const [printTo, setPrintTo] = useState(1);
   const [startAt, setStartAt] = useState(1);
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"print" | "pdf" | null>(null);
+  const [busy, setBusy] = useState<"print" | "pdf" | "label" | null>(null);
+  const [labelPrinter, setLabelPrinterState] = useState<LabelPrinterSettings>({ queueName: "", flip: false });
+
+  useEffect(() => {
+    setLabelPrinterState(readLabelPrinter());
+  }, []);
+
+  const setLabelPrinter = (next: LabelPrinterSettings) => {
+    setLabelPrinterState(next);
+    writeLabelPrinter(next);
+  };
 
   useEffect(() => {
     if (!businessId || prefsFor === businessId) return;
@@ -130,7 +148,11 @@ export function PriceTagsWorkspace() {
     return product != null && product.sellingPrice == null;
   });
 
-  async function runOutput(kind: "print" | "pdf") {
+  async function runOutput(kind: "print" | "pdf" | "label") {
+    if (kind === "label" && !labelPrinter.queueName.trim()) {
+      toast.error("Choose the label printer first, under the roll settings.");
+      return;
+    }
     if (job.instances.length === 0 || busy) return;
     setBusy(kind);
     try {
@@ -168,6 +190,24 @@ export function PriceTagsWorkspace() {
         }
         return;
       }
+      if (kind === "label") {
+        await sendToLabelPrinter({
+          job: {
+            layout,
+            geometry,
+            pages: [],
+            products: outcome.products,
+            wasOverrides: job.wasOverrides,
+            businessName,
+            currency,
+            calibration,
+          },
+          rows: pages.slice(start - 1, end),
+          rowGapMm: layout.rollRowGapMm,
+          printer: labelPrinter,
+        });
+        return;
+      }
       await downloadPriceTagsPdf({
         layout,
         geometry,
@@ -180,7 +220,13 @@ export function PriceTagsWorkspace() {
         fileName: pdfFileName(),
       });
     } catch {
-      toast.error(kind === "print" ? "Could not open the print dialog" : "Could not build the PDF");
+      toast.error(
+        kind === "print"
+          ? "Could not open the print dialog"
+          : kind === "label"
+            ? "Could not prepare the labels"
+            : "Could not build the PDF",
+      );
     } finally {
       setBusy(null);
     }
@@ -236,6 +282,9 @@ export function PriceTagsWorkspace() {
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <PriceTagMediaBar layout={layout} geometry={geometry} onLayout={setLayout} />
+          {layout.media === "label-roll" ? (
+            <PriceTagLabelPrinter settings={labelPrinter} onChange={setLabelPrinter} />
+          ) : null}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap gap-1">
               {TEMPLATES.map((templateId) => (
@@ -305,12 +354,22 @@ export function PriceTagsWorkspace() {
               </button>
               <button
                 type="button"
-                className={CATALOG_BTN_PRIMARY}
+                className={layout.media === "label-roll" ? CATALOG_BTN_OUTLINE : CATALOG_BTN_PRIMARY}
                 disabled={job.instances.length === 0 || busy != null || job.restoring}
                 onClick={() => void runOutput("print")}
               >
                 {busy === "print" ? "Checking prices…" : "Print"}
               </button>
+              {layout.media === "label-roll" ? (
+                <button
+                  type="button"
+                  className={CATALOG_BTN_PRIMARY}
+                  disabled={job.instances.length === 0 || busy != null || job.restoring}
+                  onClick={() => void runOutput("label")}
+                >
+                  {busy === "label" ? "Sending…" : "Print to label printer"}
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -375,6 +434,17 @@ export function PriceTagsWorkspace() {
             onLayout={setLayout}
             onCalibration={setCalibration}
             onSaved={setSaved}
+            onPrintAlignment={
+              layout.media === "label-roll" && labelPrinter.queueName
+                ? () => {
+                    void printAlignmentToLabelPrinter(geometry, calibration, layout.rollRowGapMm, labelPrinter)
+                      .then(() => toast.success(`Alignment test sent to ${labelPrinter.queueName}.`))
+                      .catch((error: unknown) =>
+                        toast.error(error instanceof Error ? error.message : "Could not send the alignment test."),
+                      );
+                  }
+                : undefined
+            }
           />
         </section>
       </div>

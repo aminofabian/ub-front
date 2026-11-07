@@ -10,6 +10,8 @@ import type {
   TagProduct,
 } from "@/lib/price-tags/types";
 
+export type TagDrawJob = Omit<PdfJob, "fileName">;
+
 type PdfJob = {
   layout: TagLayout;
   geometry: SheetGeometry;
@@ -32,7 +34,8 @@ const PT_PER_MM = 72 / 25.4;
 const PAD_X = 2;
 const PAD_Y = 1.5;
 
-type Doc = {
+/** The drawing calls a tag needs. jsPDF provides them; so does the label-printer canvas. */
+export type TagDoc = {
   setDrawColor: (...args: number[]) => void;
   setLineWidth: (width: number) => void;
   setLineDashPattern: (pattern: number[], phase: number) => void;
@@ -56,18 +59,28 @@ export async function downloadPriceTagsPdf(job: PdfJob): Promise<void> {
   const images = new Map<string, string>();
   job.pages.forEach((cells, pageIndex) => {
     if (pageIndex > 0) doc.addPage(format, direction);
-    cells.forEach((slot, index) => {
-      if (!slot) return;
-      const product = job.products.get(slot.itemId);
-      if (!product) return;
-      const { x, y } = cellPosition(job.geometry, index);
-      drawTag(doc, job, product, x + job.calibration.offsetXMm, y + job.calibration.offsetYMm, images);
-    });
+    drawPageCells(doc, job, cells, images);
   });
   doc.save(job.fileName);
 }
 
-function setFontMm(doc: Doc, sizeMm: number, bold: boolean) {
+/** Draw one page (an A4 sheet or one row of a label roll) onto any TagDoc. */
+export function drawPageCells(
+  doc: TagDoc,
+  job: TagDrawJob,
+  cells: readonly SheetCell[],
+  images: Map<string, string>,
+): void {
+  cells.forEach((slot, index) => {
+    if (!slot) return;
+    const product = job.products.get(slot.itemId);
+    if (!product) return;
+    const { x, y } = cellPosition(job.geometry, index);
+    drawTag(doc, job, product, x + job.calibration.offsetXMm, y + job.calibration.offsetYMm, images);
+  });
+}
+
+function setFontMm(doc: TagDoc, sizeMm: number, bold: boolean) {
   doc.setFont("helvetica", bold ? "bold" : "normal");
   doc.setFontSize(sizeMm * PT_PER_MM);
 }
@@ -106,7 +119,7 @@ function displayText(block: FaceBlock): string {
 }
 
 /** Up to two lines, with an ellipsis when the name runs longer. */
-function nameLines(doc: Doc, text: string, width: number): string[] {
+function nameLines(doc: TagDoc, text: string, width: number): string[] {
   const lines = doc.splitTextToSize(text, width);
   if (lines.length <= 2) return lines;
   let second = lines[1];
@@ -114,7 +127,7 @@ function nameLines(doc: Doc, text: string, width: number): string[] {
   return [lines[0], `${second.trimEnd()}…`];
 }
 
-function measure(doc: Doc, blocks: FaceBlock[], job: PdfJob, scale: number, innerW: number) {
+function measure(doc: TagDoc, blocks: FaceBlock[], job: TagDrawJob, scale: number, innerW: number) {
   const template = job.layout.templateId;
   return blocks.map((block): MeasuredBlock => {
     const missing = block.kind === "price" && block.missing;
@@ -138,8 +151,8 @@ function measure(doc: Doc, blocks: FaceBlock[], job: PdfJob, scale: number, inne
 }
 
 function drawTag(
-  doc: Doc,
-  job: PdfJob,
+  doc: TagDoc,
+  job: TagDrawJob,
   product: TagProduct,
   x: number,
   y: number,
@@ -233,7 +246,8 @@ function drawTag(
   }
 }
 
-function barcodeImage(images: Map<string, string>, code: string, rotated: boolean): string {
+/** PNG data URL for a barcode, cached in `images` under a key the label printer can prefill. */
+export function barcodeImage(images: Map<string, string>, code: string, rotated: boolean): string {
   const key = `${rotated ? "r" : "h"}:${code}`;
   let data = images.get(key);
   if (data == null) {
@@ -243,7 +257,7 @@ function barcodeImage(images: Map<string, string>, code: string, rotated: boolea
   return data;
 }
 
-function strokeBorder(doc: Doc, border: TagLayout["border"], x: number, y: number, w: number, h: number) {
+function strokeBorder(doc: TagDoc, border: TagLayout["border"], x: number, y: number, w: number, h: number) {
   if (border === "none") return;
   doc.setDrawColor(INK[0], INK[1], INK[2]);
   if (border === "dashed") {
