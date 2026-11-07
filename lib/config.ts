@@ -92,6 +92,7 @@ export const APP_ROUTES = {
   myProfile: "/my-profile",
   staffPayPortal: (phone: string) => `/pay/${encodeURIComponent(phone)}`,
   products: "/products",
+  priceTags: "/products/price-tags",
   productsCatalog: "/products/catalog",
   /** Operator SKU ledger (sales, supplier spend). Static `p` so it does not collide with the storefront `/products/[handle]`. */
   productDossier: (slug: string) =>

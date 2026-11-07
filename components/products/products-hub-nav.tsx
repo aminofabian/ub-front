@@ -7,6 +7,7 @@ import {
   Layers,
   Library,
   Package,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,6 +31,13 @@ const HUB_TABS: HubTab[] = [
     match: (p) =>
       p === APP_ROUTES.products ||
       p.startsWith(`${APP_ROUTES.products}/p/`),
+  },
+  {
+    href: APP_ROUTES.priceTags,
+    label: "Price tags",
+    hint: "Print shelf labels",
+    icon: Tags,
+    match: (p) => p.startsWith(APP_ROUTES.priceTags),
   },
   {
     href: APP_ROUTES.itemTypes,
