@@ -112,13 +112,19 @@ export function PriceTagProductList({
     [categoryId, itemTypeId, aisle, branchId],
   );
 
+  const hasQuery = debouncedSearch.length > 0 || Boolean(categoryId || itemTypeId || aisle);
+
   const loadPage = useCallback(
     async (nextPage: number, replace: boolean) => {
       listRequest.current += 1;
       const request = listRequest.current;
       setListLoading(true);
+      if (replace) {
+        setRows([]);
+        setHasMore(false);
+      }
       try {
-        const result = await fetchItemsPage(debouncedSearch, {
+        const result = await fetchItemsPage(debouncedSearch || undefined, {
           ...filters(),
           page: nextPage,
           size: LIST_PAGE_SIZE,
@@ -138,8 +144,16 @@ export function PriceTagProductList({
   );
 
   useEffect(() => {
+    if (!hasQuery) {
+      listRequest.current += 1;
+      setRows([]);
+      setHasMore(false);
+      setPage(0);
+      setListLoading(false);
+      return;
+    }
     void loadPage(0, true);
-  }, [loadPage]);
+  }, [hasQuery, loadPage]);
 
   function reportAdded(added: number, offered: number) {
     if (added === 0 && offered > 0) {
@@ -252,8 +266,8 @@ export function PriceTagProductList({
               addByCode();
             }
           }}
-          placeholder="Search, or scan a barcode and press Enter"
-          aria-label="Search products or scan a barcode"
+          placeholder="Search the catalog by name, SKU, or barcode"
+          aria-label="Search the catalog"
           autoComplete="off"
           className="h-9 border border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_14%,transparent)] bg-white px-2.5 text-[13px] outline-none focus:border-[#1D4B3B]"
         />
@@ -314,7 +328,7 @@ export function PriceTagProductList({
           <button
             type="button"
             className={CATALOG_BTN_GHOST}
-            disabled={bulkBusy}
+            disabled={bulkBusy || !hasQuery}
             onClick={() => void addEveryMatch()}
           >
             {bulkBusy ? "Adding…" : "Add every match"}
@@ -331,13 +345,17 @@ export function PriceTagProductList({
       </div>
 
       <ul className="min-h-0 flex-1 overflow-auto border-t border-[color-mix(in_srgb,var(--catalog-ink,#121A16)_8%,transparent)]">
-        {visibleRows.length === 0 && !(listLoading && !showSelected) ? (
+        {visibleRows.length === 0 ? (
           <li className="px-3 py-8 text-center font-[family-name:var(--font-cormorant)] text-[1.35rem] text-[#556159]">
             {showSelected
               ? job.restoring
                 ? "Loading your sheet…"
                 : "No products on the sheet."
-              : "No products match."}
+              : listLoading || search.trim() !== debouncedSearch
+                ? "Searching the catalog…"
+                : hasQuery
+                  ? "No products match."
+                  : "Search the catalog. Nothing is listed until you do."}
           </li>
         ) : null}
         {visibleRows.map((product) => {
