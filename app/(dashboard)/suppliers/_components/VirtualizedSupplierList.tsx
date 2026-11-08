@@ -16,29 +16,21 @@ import { Button } from "@/components/ui/button";
 
 import { SupEmptyState, SupLoadingBlock } from "./supplier-layout-primitives";
 import {
-  statusBadgeClass,
+  HAIRLINE,
+  statusDotClass,
   supDirectoryShell,
   supDirectoryToolbar,
-  supRowHover,
-  supTableCell,
-  supTableHead,
-  supTableRowActive,
 } from "./supplier-ui-tokens";
 
-const ROW_PX_DEFAULT = 36;
-const ROW_PX_COMPACT = 34;
+const ROW_PX_DEFAULT = 44;
+const ROW_PX_COMPACT = 36;
 
-const COLS_DEFAULT =
-  "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)]";
-const COLS_DEFAULT_ACTIONS =
-  "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)_minmax(4.5rem,auto)]";
-const COLS_COMPACT = "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)]";
-const COLS_COMPACT_ACTIONS =
-  "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)_minmax(4.5rem,auto)]";
-/** Phones: name + status (+ actions) — the code column is dropped for width. */
-const COLS_MOBILE = "max-sm:grid-cols-[minmax(0,1fr)_minmax(4rem,auto)]";
-const COLS_MOBILE_ACTIONS =
-  "max-sm:grid-cols-[minmax(0,1fr)_minmax(4rem,auto)_minmax(4.5rem,auto)]";
+/** Wallet credit worth surfacing on the row, or 0. */
+function creditOf(row: SupplierRecord): number {
+  const v = row.prepaymentBalance;
+  const x = typeof v === "number" ? v : v != null ? Number(v) : 0;
+  return Number.isFinite(x) && x > 0.009 ? x : 0;
+}
 
 export type VirtualizedSupplierListProps = {
   rows: SupplierRecord[];
@@ -55,8 +47,15 @@ export type VirtualizedSupplierListProps = {
   hasMore: boolean;
   onLoadMore: () => void;
   compact?: boolean;
+  currency?: string;
 };
 
+/**
+ * The directory: one calm row per supplier. Status is a dot (and a word only
+ * when it is not "active"), wallet credit shows when there is some, and the
+ * edit/delete shortcuts appear on hover on pointer devices — on touch, the
+ * same actions live on the supplier's profile.
+ */
 export function VirtualizedSupplierList({
   rows,
   selectedId,
@@ -72,20 +71,11 @@ export function VirtualizedSupplierList({
   hasMore,
   onLoadMore,
   compact = false,
+  currency = "KES",
 }: VirtualizedSupplierListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowPx = compact ? ROW_PX_COMPACT : ROW_PX_DEFAULT;
   const showActions = canWrite && Boolean(onEdit || onDelete);
-  const cols = cn(
-    compact
-      ? showActions
-        ? COLS_COMPACT_ACTIONS
-        : COLS_COMPACT
-      : showActions
-        ? COLS_DEFAULT_ACTIONS
-        : COLS_DEFAULT,
-    showActions ? COLS_MOBILE_ACTIONS : COLS_MOBILE,
-  );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual list
   const virtualizer = useVirtualizer({
@@ -142,32 +132,6 @@ export function VirtualizedSupplierList({
       </div>
 
       <div
-        className={cn(
-          supTableHead,
-          "sticky top-0 z-10 grid items-stretch",
-          cols,
-        )}
-        role="row"
-      >
-        <span className={cn(supTableCell, "flex items-center py-1")}>Name</span>
-        {!compact ? (
-          <span className={cn(supTableCell, "flex items-center py-1 max-sm:hidden")}>
-            Code
-          </span>
-        ) : null}
-        <span className={cn(supTableCell, "flex items-center py-1")}>
-          Status
-        </span>
-        {showActions ? (
-          <span
-            className={cn(supTableCell, "flex items-center justify-end py-1")}
-          >
-            Actions
-          </span>
-        ) : null}
-      </div>
-
-      <div
         ref={parentRef}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
@@ -176,7 +140,7 @@ export function VirtualizedSupplierList({
             : "max-lg:max-h-[calc(100dvh-13.5rem)] xl:min-h-[12rem]",
         )}
         tabIndex={-1}
-        role="table"
+        role="listbox"
         aria-label="Suppliers directory"
       >
         {loadingInitial && rows.length === 0 ? (
@@ -192,7 +156,6 @@ export function VirtualizedSupplierList({
           <div
             className="relative w-full min-w-0"
             style={{ height: virtualizer.getTotalSize() }}
-            role="rowgroup"
           >
             {virtualizer.getVirtualItems().map((vi) => {
               const row = rows[vi.index];
@@ -206,28 +169,26 @@ export function VirtualizedSupplierList({
                 name: row.name,
                 code: row.code,
               });
+              const credit = creditOf(row);
               return (
                 <div
                   key={row.id}
-                  role="row"
+                  role="option"
                   tabIndex={0}
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
                   aria-label={`Supplier ${displayName}`}
                   aria-selected={active}
                   className={cn(
-                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch rounded-xl ring-1 ring-black/[0.05] text-left",
-                    cols,
-                    compact ? "h-[34px] text-[12px]" : "h-9 text-[13px] max-sm:h-12 max-sm:text-[14px]",
-                    "cursor-pointer",
+                    "group absolute left-0 top-0 flex w-full min-w-0 cursor-pointer items-center gap-2 border-b pl-2.5 pr-2 text-left",
+                    HAIRLINE,
+                    compact
+                      ? "h-9 text-[13px]"
+                      : "h-11 text-[13px] max-sm:h-12 max-sm:text-[14px]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_25%,transparent)]",
                     active
-                      ? cn(supTableRowActive, "bg-[#f0f9f7] ring-2 ring-[#0f766e]")
-                      : cn(
-                          supRowHover,
-                          vi.index % 2 === 1 &&
-                            "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,transparent)]",
-                        ),
+                      ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)] shadow-[inset_2px_0_0_0_var(--pos-primary,#0f766e)]"
+                      : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
                   )}
                   style={{ transform: `translateY(${vi.start}px)` }}
                   onClick={() => onRowClick(row.id)}
@@ -239,10 +200,16 @@ export function VirtualizedSupplierList({
                   }}
                 >
                   <span
-                    role="cell"
+                    aria-hidden
+                    title={row.status}
                     className={cn(
-                      supTableCell,
-                      "flex min-w-0 items-center truncate font-medium",
+                      "size-1.5 shrink-0 rounded-full",
+                      statusDotClass(row.status),
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate font-medium",
                       active
                         ? "text-[var(--pos-primary,#0f766e)]"
                         : "text-foreground",
@@ -254,37 +221,37 @@ export function VirtualizedSupplierList({
                       className="truncate"
                     />
                   </span>
-                  {!compact ? (
-                    <span
-                      role="cell"
-                      className={cn(
-                        supTableCell,
-                        "flex min-w-0 items-center truncate text-[11px] tabular-nums text-muted-foreground max-sm:hidden",
-                      )}
-                    >
-                      {isSystem ? "—" : code || "—"}
-                    </span>
-                  ) : null}
-                  <span
-                    role="cell"
-                    className={cn(supTableCell, "flex items-center")}
-                  >
+                  {row.status !== "active" ? (
                     <span
                       className={cn(
-                        "inline-flex px-1 py-px text-[10px] font-semibold capitalize leading-none",
-                        statusBadgeClass(row.status),
+                        "shrink-0 text-[10px] font-semibold capitalize",
+                        row.status === "blocked"
+                          ? "text-[#9a2e16]"
+                          : "text-muted-foreground",
                       )}
                     >
                       {row.status}
                     </span>
-                  </span>
+                  ) : null}
+                  {credit > 0 ? (
+                    <span
+                      title="Wallet credit"
+                      className="shrink-0 rounded-full border border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)] px-1.5 py-px text-[10px] font-semibold tabular-nums text-[var(--pos-primary,#0f766e)]"
+                    >
+                      {currency}{" "}
+                      {credit.toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
+                  ) : null}
+                  {!isSystem && code ? (
+                    <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground max-sm:hidden">
+                      {code}
+                    </span>
+                  ) : null}
                   {showActions ? (
                     <span
-                      role="cell"
-                      className={cn(
-                        supTableCell,
-                        "flex items-center justify-end gap-0.5",
-                      )}
+                      className="hidden shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100 pointer-fine:flex"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
@@ -293,11 +260,11 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-xl text-muted-foreground hover:text-foreground max-sm:size-9"
+                          className="size-6 rounded-xl text-muted-foreground hover:text-foreground"
                           aria-label={`Edit ${displayName}`}
                           onClick={() => onEdit(row.id)}
                         >
-                          <Pencil className="size-3 max-sm:size-4" aria-hidden />
+                          <Pencil className="size-3" aria-hidden />
                         </Button>
                       ) : null}
                       {onDelete && !isSystem ? (
@@ -305,12 +272,12 @@ export function VirtualizedSupplierList({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="size-6 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive max-sm:size-9"
+                          className="size-6 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           aria-label={`Delete ${displayName}`}
                           disabled={deletingId === row.id}
                           onClick={() => onDelete(row)}
                         >
-                          <Trash2 className="size-3 max-sm:size-4" aria-hidden />
+                          <Trash2 className="size-3" aria-hidden />
                         </Button>
                       ) : null}
                     </span>

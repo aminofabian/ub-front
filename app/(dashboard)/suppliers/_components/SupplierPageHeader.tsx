@@ -5,8 +5,6 @@ import {
   BookOpen,
   ChartNoAxesColumn,
   CircleDollarSign,
-  LayoutGrid,
-  Package,
   PackagePlus,
   Plus,
   Truck,
@@ -26,16 +24,6 @@ const RELATED_LINKS: {
   label: string;
   icon: LucideIcon;
 }[] = [
-  {
-    href: APP_ROUTES.products,
-    label: "Products",
-    icon: Package,
-  },
-  {
-    href: APP_ROUTES.categories,
-    label: "Categories",
-    icon: LayoutGrid,
-  },
   {
     href: APP_ROUTES.purchasingSpend,
     label: "Spend",
@@ -68,7 +56,7 @@ export function SupplierPageHeader({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.05)] sm:px-3",
+        "flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1.5 sm:px-3",
         HAIRLINE,
       )}
     >
@@ -79,8 +67,11 @@ export function SupplierPageHeader({
           </span>
           <div className="min-w-0">
             <h1
-              className="hidden truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground 2xl:block"
-              style={{ fontFamily: "var(--font-heading)" }}
+              className="hidden truncate text-[1.3rem] font-normal leading-[1.05] tracking-[-0.01em] text-[var(--op-ink)] sm:block"
+              style={{
+                fontFamily:
+                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+              }}
             >
               Suppliers
             </h1>
@@ -91,7 +82,7 @@ export function SupplierPageHeader({
                   <span className="tabular-nums font-semibold text-foreground">
                     {totalCount.toLocaleString()}
                   </span>{" "}
-                  vendors
+                  suppliers
                 </p>
               ) : null}
             </div>

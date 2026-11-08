@@ -11,6 +11,7 @@ import {
   Receipt,
   RefreshCw,
   Search,
+  Trash2,
   Truck,
   UserPlus,
   UserRoundPen,
@@ -1071,7 +1072,7 @@ export default function SuppliersPage() {
             className={cn(
               "grid min-h-0",
               isXl && detail
-                ? "min-h-0 flex-1 grid-cols-[minmax(15rem,17rem)_minmax(19rem,23rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
+                ? "min-h-0 flex-1 grid-cols-[minmax(16rem,19rem)_minmax(19rem,23rem)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
                 : isLg
                   ? "min-h-0 flex-1 grid-cols-[minmax(16rem,min(24rem,38%))_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch overflow-hidden"
                   : "gap-0",
@@ -1125,6 +1126,7 @@ export default function SuppliersPage() {
                           onClick={() => setStatusFilter(opt.value)}
                           className={cn(
                             active ? supChipActive : supChipIdle,
+                            "h-7 px-2 text-[11px]",
                           )}
                         >
                           {opt.label}
@@ -1169,6 +1171,7 @@ export default function SuppliersPage() {
                 totalLoaded={rows.length}
                 totalElements={listTotalElements}
                 onRowClick={(id) => void onSelectSupplier(id)}
+                currency={currency}
                 canWrite={canWrite}
                 deletingId={deletingSupplierId}
                 onEdit={(id) => void onEditSupplierFromList(id)}
@@ -1248,6 +1251,12 @@ export default function SuppliersPage() {
                         onDeposit={
                           canDeposit ? () => setAdvanceOpen(true) : undefined
                         }
+                        onDeleteSupplier={
+                          canWrite
+                            ? () => void onDeleteSupplierFromList(detail)
+                            : undefined
+                        }
+                        deletingSupplier={deletingSupplierId === detail.id}
                         selectedInvoiceId={
                           selectedInvoice?.supplierInvoiceId ?? null
                         }
@@ -1287,49 +1296,33 @@ export default function SuppliersPage() {
                   </aside>
                   {isXl ? (
                     <aside className="flex min-h-0 flex-col overflow-hidden border-l border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
-                      <div className={cn(supPanelHeader)}>
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          {selectedInvoice ? (
-                            <>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 shrink-0 gap-1 rounded-xl px-2 text-xs"
-                                onClick={() => setSelectedInvoice(null)}
-                              >
-                                <ChevronLeft className="size-3.5" aria-hidden />
-                                Back
-                              </Button>
-                              <span className={supPanelHeaderIcon()}>
-                                <Receipt className="size-3.5" aria-hidden />
-                              </span>
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                                  Invoice
-                                </p>
-                                <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                                  {selectedInvoice.invoiceNumber}
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <span className={supPanelHeaderIcon()}>
-                                <Link2 className="size-3.5" aria-hidden />
-                              </span>
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
-                                  Catalog
-                                </p>
-                                <p className="truncate text-sm font-semibold leading-tight text-foreground">
-                                  Linked products
-                                </p>
-                              </div>
-                            </>
-                          )}
+                      {selectedInvoice ? (
+                        <div className={cn(supPanelHeader)}>
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 shrink-0 gap-1 rounded-xl px-2 text-xs"
+                              onClick={() => setSelectedInvoice(null)}
+                            >
+                              <ChevronLeft className="size-3.5" aria-hidden />
+                              Back
+                            </Button>
+                            <span className={supPanelHeaderIcon()}>
+                              <Receipt className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold tracking-[-0.02em] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
+                                Invoice
+                              </p>
+                              <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                                {selectedInvoice.invoiceNumber}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
                       <div className={cn(supPanelBodyFill, "p-0")}>
                         {selectedInvoice ? (
                           <SupplierSupplyInvoicePanel
@@ -1458,7 +1451,23 @@ export default function SuppliersPage() {
                 <SupDrawerFooter
                   onCancel={() => setEditDrawerOpen(false)}
                   cancelLabel="Close"
-                />
+                >
+                  {canWrite && detail ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 w-full gap-1.5 rounded-xl px-4 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-9 sm:w-auto"
+                      disabled={deletingSupplierId === detail.id}
+                      onClick={() => {
+                        setEditDrawerOpen(false);
+                        void onDeleteSupplierFromList(detail);
+                      }}
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                      Delete supplier
+                    </Button>
+                  ) : null}
+                </SupDrawerFooter>
               }
             >
               <SupplierEditColumn

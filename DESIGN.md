@@ -379,3 +379,35 @@ logo, catalogue and copy still drive the page.
   empty-cart and checkout chrome were checked at desktop and phone widths.
   `tsc --noEmit` exits 0, `next build --webpack` exits 0, and the storefront
   theme tests (including the unique try-on layout invariant) pass.
+
+## Suppliers workspace round
+
+The `/suppliers` three-pane workspace (directory · profile · linked
+products), brought in line with the operator shell and the Records header
+family.
+
+- **Header:** Cormorant "Suppliers" title now shows from `sm` up (it was
+  hidden below `2xl`), with the scope line and a true supplier count under
+  it. Quick links trimmed to Spend · Compare · Guide — Products and
+  Categories belong to the main nav. One forest action (`New supplier`),
+  hairline card, no drop shadow.
+- **Directory rows:** the Status and Actions columns are gone. Status is a
+  dot (forest/grey/terracotta) plus a word only when it is not "active";
+  wallet credit shows as a small forest chip when there is some; the code
+  sits right-aligned and muted. Edit/delete appear on hover on pointer
+  devices only (`pointer-fine:`) — on touch they live on the profile pane
+  and in the Supplier details drawer footer. Rows are flat hairline rows;
+  the selected row carries a 2px forest inset bar, no zebra, no per-row
+  rings.
+- **Empty pane:** one serif heading, one sentence, one action, and the `/`
+  search hint. The New supply / Search directory / Receive till buttons
+  duplicated the page header and are gone.
+- **Profile pane:** Purchases summary is a 2×2 stat grid instead of a
+  label/value table; an open balance reads in terracotta `#8f3f2f`, not in
+  the action green. A quiet delete control joins the profile header.
+- **Linked products pane:** one header instead of two — the "Catalog /
+  Linked products" panel strip only renders for the invoice back state; the
+  section header now says "Linked products" with the count and Browse.
+- **Verification:** `tsc --noEmit` exits 0 and ESLint is clean on the
+  changed files; not yet eyeballed in `next dev` — check the directory at
+  `lg`/`xl` and the drawer delete on a phone width when next in there.

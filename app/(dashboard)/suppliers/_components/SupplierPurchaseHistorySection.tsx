@@ -17,10 +17,8 @@ import { cn } from "@/lib/utils";
 import { ReorderPastSupplyButton } from "./ReorderPastSupplyDialog";
 import { SupLoadingBlock, SupSection } from "./supplier-layout-primitives";
 import {
+  HAIRLINE,
   paymentStatusBadgeClass,
-  supKvLabel,
-  supKvTable,
-  supKvValue,
   supTableHead,
   supTableRow,
   supTableRowActive,
@@ -160,7 +158,7 @@ export function SupplierPurchaseHistorySection({
       label: compact ? "Balance" : "Open balance",
       value: formatMoney(n(summary?.openBalance ?? 0)),
       valueClassName:
-        n(summary?.openBalance ?? 0) > 0.009 ? "text-primary" : undefined,
+        n(summary?.openBalance ?? 0) > 0.009 ? "text-[#8f3f2f]" : undefined,
     },
     {
       label: compact ? "Last bill" : "Last invoice",
@@ -380,27 +378,31 @@ export function SupplierPurchaseHistorySection({
 
 function SidebarSummaryGrid({ rows }: { rows: SummaryRow[] }) {
   return (
-    <table className={cn(supKvTable, "text-[11px]")}>
-      <tbody>
-        {rows.map(({ label, value, valueClassName, mono = true }) => (
-          <tr key={label}>
-            <th scope="row" className={cn(supKvLabel, "w-[40%]")}>
-              {label}
-            </th>
-            <td
-              className={cn(
-                supKvValue,
-                "tabular-nums",
-                mono && "tabular-nums",
-                valueClassName,
-              )}
-            >
-              {value}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className={cn("grid grid-cols-2 border-b", HAIRLINE)}>
+      {rows.map(({ label, value, valueClassName }, index) => (
+        <div
+          key={label}
+          className={cn(
+            "px-2.5 py-2",
+            HAIRLINE,
+            index % 2 === 0 && "border-r",
+            index < rows.length - 2 && "border-b",
+          )}
+        >
+          <div className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
+            {label}
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 truncate text-[13px] font-semibold tabular-nums text-foreground",
+              valueClassName,
+            )}
+          >
+            {value}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -1377,7 +1377,7 @@ export function SupplierCatalogColumn({
     <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
       <SupSection
         compact
-        title={isUnassignedBucket ? "Unassigned items" : "Linked"}
+        title={isUnassignedBucket ? "Unassigned items" : "Linked products"}
         action={
           <div className="flex items-center gap-1">
             {itemLinks.length > 0 ? (

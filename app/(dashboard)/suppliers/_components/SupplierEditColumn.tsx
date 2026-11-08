@@ -65,6 +65,8 @@ export function SupplierEditColumn({
   onDeleteContact,
   deletingContactId = null,
   onDeposit,
+  onDeleteSupplier,
+  deletingSupplier = false,
   onSavePayout,
   onPayoutPhoneVerified,
   variant = "default",
@@ -83,6 +85,9 @@ export function SupplierEditColumn({
   onDeleteContact?: (contact: SupplierContactRecord) => void;
   deletingContactId?: string | null;
   onDeposit?: () => void;
+  /** Remove this supplier from the directory (the handler confirms first). */
+  onDeleteSupplier?: () => void;
+  deletingSupplier?: boolean;
   /** Persist KopoKopo payout settings from the supplier sidebar. */
   onSavePayout?: (input: {
     payoutType: "manual" | "mobile_wallet" | "till" | "paybill";
@@ -222,6 +227,20 @@ export function SupplierEditColumn({
                   <Send className="size-3.5" aria-hidden />
                   {inviteBusy ? "…" : "Invite"}
                 </Button>
+                {onDeleteSupplier ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="size-8 shrink-0 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    disabled={deletingSupplier}
+                    onClick={onDeleteSupplier}
+                    aria-label="Delete supplier"
+                    title="Delete supplier"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </Button>
+                ) : null}
               </div>
             ) : null}
           </div>
