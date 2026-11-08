@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  MarketplaceAttachResult,
-  SupplierDuplicateMatch,
-} from "@/lib/marketplace-api";
+import type { SupplierDuplicateMatch } from "@/lib/marketplace-api";
 import type { SupplierProfileDraft } from "./supplier-profile-shared";
 import { SupplierProfileFields } from "./supplier-profile-shared";
 import { MarketplaceAddSupplierBanner } from "./MarketplaceAddSupplierBanner";
@@ -17,7 +14,8 @@ export function NewSupplierForm({
   canViewMarketplace,
   canConnectMarketplace,
   onBrowseMarketplace,
-  onAttached,
+  onChooseSupplier,
+  onOpenSupplier,
   onIdentityConflictChange,
 }: {
   draft: SupplierProfileDraft;
@@ -27,7 +25,9 @@ export function NewSupplierForm({
   canViewMarketplace: boolean;
   canConnectMarketplace: boolean;
   onBrowseMarketplace?: () => void;
-  onAttached?: (result: MarketplaceAttachResult) => void;
+  /** An existing supplier was picked from the suggestions. */
+  onChooseSupplier?: (match: SupplierDuplicateMatch) => void;
+  onOpenSupplier?: (localSupplierId: string) => void;
   onIdentityConflictChange?: (match: SupplierDuplicateMatch | null) => void;
 }) {
   const lookupPhone = draft.contactPhone.trim() || draft.payoutPhone.trim();
@@ -53,7 +53,8 @@ export function NewSupplierForm({
             onSupplierNumberChange={onLookupSupplierNumberChange}
             canViewMarketplace={canViewMarketplace}
             canConnectMarketplace={canConnectMarketplace}
-            onAttached={onAttached}
+            onChooseSupplier={onChooseSupplier}
+            onOpenSupplier={onOpenSupplier}
             onIdentityConflictChange={onIdentityConflictChange}
           />
         }

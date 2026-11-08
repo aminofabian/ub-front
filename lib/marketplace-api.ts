@@ -142,6 +142,36 @@ export type MarketplaceAttachResult = {
   status: string;
 };
 
+/** One product on a global supplier's shelf, as it would land in the caller's shop. */
+export type MarketplaceAttachPreviewProduct = {
+  id: string;
+  name: string;
+  barcode: string | null;
+  sku: string | null;
+  categoryName: string | null;
+  packSize: number | null;
+  packUnit: string | null;
+  minOrderQty: number | null;
+  unitPrice: number | null;
+  currency: string | null;
+  /** The shop already stocks this barcode, so adding links it instead of creating an item. */
+  inShop: boolean;
+  /** Already linked to the shop's copy of this supplier. */
+  alreadyLinked: boolean;
+};
+
+export type MarketplaceAttachPreview = {
+  marketplaceSupplierId: string;
+  supplierNumber: string | null;
+  supplierName: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  /** The shop already has an active copy of this supplier. */
+  alreadyConnected: boolean;
+  localSupplierId: string | null;
+  products: MarketplaceAttachPreviewProduct[];
+};
+
 export type SupplierDuplicateMatch = {
   confidence: string;
   source: string;
@@ -534,35 +564,63 @@ export async function connectMarketplaceSupplier(
   );
 }
 
+/**
+ * The supplier's shelf as it would land in this shop, so the user can pick
+ * which products to add before calling {@link attachMarketplaceSupplier}.
+ */
+export async function fetchMarketplaceAttachPreview(
+  marketplaceSupplierId: string,
+): Promise<MarketplaceAttachPreview> {
+  return tenantFetch<MarketplaceAttachPreview>(
+    `${API_ROUTES.marketplace}/suppliers/${encodeURIComponent(marketplaceSupplierId)}/attach-preview`,
+  );
+}
+
+/**
+ * `productIds` omitted adds the supplier's whole shelf, an empty list adds
+ * the supplier alone, otherwise only the listed products are linked.
+ */
 export async function attachMarketplaceSupplier(
   marketplaceSupplierId: string,
+  productIds?: string[],
 ): Promise<MarketplaceAttachResult> {
   return tenantFetch<MarketplaceAttachResult>(
     `${API_ROUTES.marketplace}/suppliers/${encodeURIComponent(marketplaceSupplierId)}/attach`,
-    { method: "POST" },
+    productIds
+      ? { method: "POST", body: JSON.stringify({ productIds }) }
+      : { method: "POST" },
   );
 }
 
 export async function attachMarketplaceSupplierByNumber(
   supplierNumber: string,
+  productIds?: string[],
 ): Promise<MarketplaceAttachResult> {
   return tenantFetch<MarketplaceAttachResult>(
     `${API_ROUTES.marketplace}/suppliers/attach-by-number`,
     {
       method: "POST",
-      body: JSON.stringify({ supplierNumber }),
+      body: JSON.stringify(
+        productIds ? { supplierNumber, productIds } : { supplierNumber },
+      ),
     },
   );
 }
 
+/** `productIds` here are the other shop's supplier-product link ids (public detail `products[].id`). */
 export async function attachMarketplaceSupplierFromSeed(
   sourceLocalSupplierId: string,
+  productIds?: string[],
 ): Promise<MarketplaceAttachResult> {
   return tenantFetch<MarketplaceAttachResult>(
     `${API_ROUTES.marketplace}/suppliers/attach-from-seed`,
     {
       method: "POST",
-      body: JSON.stringify({ sourceLocalSupplierId }),
+      body: JSON.stringify(
+        productIds
+          ? { sourceLocalSupplierId, productIds }
+          : { sourceLocalSupplierId },
+      ),
     },
   );
 }

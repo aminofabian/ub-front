@@ -59,7 +59,10 @@ import {
   canWriteSuppliers,
 } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
-import type { SupplierDuplicateMatch } from "@/lib/marketplace-api";
+import type {
+  MarketplaceAttachResult,
+  SupplierDuplicateMatch,
+} from "@/lib/marketplace-api";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
 import { SupplierSupplyInvoicePanel } from "./_components/SupplierSupplyInvoicePanel";
@@ -71,6 +74,8 @@ import {
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
 import { NewSupplierForm } from "./_components/NewSupplierForm";
+import { SupplierAttachStep } from "./_components/SupplierAttachStep";
+import { describeAttachResult } from "./_components/supplier-attach";
 import { SupplierContactForm } from "./_components/SupplierContactForm";
 import {
   SupDrawerFooter,
@@ -158,6 +163,9 @@ export default function SuppliersPage() {
   const [lookupSupplierNumber, setLookupSupplierNumber] = useState("");
   const [createIdentityConflict, setCreateIdentityConflict] =
     useState<SupplierDuplicateMatch | null>(null);
+  /** An existing supplier picked from the suggestions; shows the product step. */
+  const [attachCandidate, setAttachCandidate] =
+    useState<SupplierDuplicateMatch | null>(null);
   const [contactDraft, setContactDraft] =
     useState<CreateSupplierContactPayload>(EMPTY_CONTACT_DRAFT);
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
@@ -193,6 +201,7 @@ export default function SuppliersPage() {
 
   const onCreateDrawerOpenChange = (open: boolean) => {
     if (!open) {
+      setAttachCandidate(null);
       if (skipCreateDrawerResetAfterCreate.current) {
         skipCreateDrawerResetAfterCreate.current = false;
       } else {
@@ -608,22 +617,49 @@ export default function SuppliersPage() {
           primaryContact: true,
         });
       }
+      toast.success(`${created.name} created`, {
+        description: created.supplierNumber
+          ? `Global number ${created.supplierNumber}`
+          : undefined,
+      });
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
       setLookupSupplierNumber("");
       await refreshList();
       await onSelectSupplier(created.id);
       skipCreateDrawerResetAfterCreate.current = true;
       setCreateDrawerOpen(false);
-      const numberNote = created.supplierNumber
-        ? ` Global number ${created.supplierNumber}.`
-        : "";
-      setFeedback({ text: `Supplier created.${numberNote}`, kind: "success" });
     } catch (error) {
       setFeedback({
         text: error instanceof Error ? error.message : "Create failed.",
         kind: "error",
       });
     }
+  };
+
+  /** The user picked an existing supplier and chose its products. */
+  const onAttachedFromDrawer = async (
+    result: MarketplaceAttachResult,
+    requested: number | null,
+  ) => {
+    const summary = describeAttachResult(result, requested);
+    if (summary.tone === "warning") {
+      toast.warning(summary.title, { description: summary.description });
+    } else {
+      toast.success(summary.title, { description: summary.description });
+    }
+    resetCreateDraft();
+    setAttachCandidate(null);
+    setCreateDrawerOpen(false);
+    await refreshList();
+    await onSelectSupplier(result.localSupplierId);
+  };
+
+  /** Leave "New supplier" to look at a supplier the shop already has. */
+  const openSupplierFromDrawer = (id: string) => {
+    resetCreateDraft();
+    setAttachCandidate(null);
+    setCreateDrawerOpen(false);
+    void onSelectSupplier(id);
   };
 
   const onPatchSave = async (event: React.FormEvent) => {
@@ -1600,68 +1636,72 @@ export default function SuppliersPage() {
             open={createDrawerOpen}
             onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
             onOpenChange={onCreateDrawerOpenChange}
-            title="New supplier"
-            description="Name first. Add how you pay them so Supplies → Pay is one tap later."
+            title={attachCandidate ? "Add supplier" : "New supplier"}
+            description={
+              attachCandidate
+                ? "Choose which of their products to bring into your shop."
+                : "Name first. Add how you pay them so Supplies → Pay is one tap later."
+            }
             contextLabel="Purchasing"
             icon={<Truck className="size-5 text-primary" aria-hidden />}
             width="wide"
+            bodyLayout={attachCandidate ? "fill" : "scroll"}
             footer={
-              <SupDrawerFooter
-                onCancel={() => onCreateDrawerOpenChange(false)}
-                submitLabel={
-                  createIdentityConflict
-                    ? "Already in your directory"
-                    : canViewMarketplace
-                      ? "Create global supplier"
-                      : "Create supplier"
-                }
-                submitForm="new-supplier-form"
-                submitDisabled={Boolean(createIdentityConflict)}
-              />
+              attachCandidate ? undefined : (
+                <SupDrawerFooter
+                  onCancel={() => onCreateDrawerOpenChange(false)}
+                  submitLabel={
+                    createIdentityConflict
+                      ? "Already in your directory"
+                      : canViewMarketplace
+                        ? "Create global supplier"
+                        : "Create supplier"
+                  }
+                  submitForm="new-supplier-form"
+                  submitDisabled={Boolean(createIdentityConflict)}
+                />
+              )
             }
           >
-            <form
-              id="new-supplier-form"
-              className="space-y-8"
-              onSubmit={onCreate}
-            >
-              <NewSupplierForm
-                draft={createDraft}
-                onDraftChange={(partial) =>
-                  setCreateDraft((d) => ({ ...d, ...partial }))
+            {/* Kept mounted (just hidden) while the product step shows, so Back returns to the same suggestions. */}
+            <div hidden={Boolean(attachCandidate)}>
+              <form
+                id="new-supplier-form"
+                className="space-y-8"
+                onSubmit={onCreate}
+              >
+                <NewSupplierForm
+                  draft={createDraft}
+                  onDraftChange={(partial) =>
+                    setCreateDraft((d) => ({ ...d, ...partial }))
+                  }
+                  lookupSupplierNumber={lookupSupplierNumber}
+                  onLookupSupplierNumberChange={setLookupSupplierNumber}
+                  canViewMarketplace={canViewMarketplace}
+                  canConnectMarketplace={canConnectMarketplace}
+                  onIdentityConflictChange={setCreateIdentityConflict}
+                  onBrowseMarketplace={() => {
+                    setCreateDrawerOpen(false);
+                    router.push(APP_ROUTES.findSuppliers);
+                  }}
+                  onChooseSupplier={setAttachCandidate}
+                  onOpenSupplier={openSupplierFromDrawer}
+                />
+              </form>
+            </div>
+            {attachCandidate ? (
+              <SupplierAttachStep
+                key={
+                  attachCandidate.marketplaceSupplierId ??
+                  attachCandidate.localSupplierId ??
+                  "candidate"
                 }
-                lookupSupplierNumber={lookupSupplierNumber}
-                onLookupSupplierNumberChange={setLookupSupplierNumber}
-                canViewMarketplace={canViewMarketplace}
-                canConnectMarketplace={canConnectMarketplace}
-                onIdentityConflictChange={setCreateIdentityConflict}
-                onBrowseMarketplace={() => {
-                  setCreateDrawerOpen(false);
-                  router.push(APP_ROUTES.findSuppliers);
-                }}
-                onAttached={async (result) => {
-                  setLookupSupplierNumber("");
-                  setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
-                  setCreateIdentityConflict(null);
-                  await refreshList();
-                  await onSelectSupplier(result.localSupplierId);
-                  skipCreateDrawerResetAfterCreate.current = true;
-                  setCreateDrawerOpen(false);
-                  const parts = [
-                    result.linkedExisting > 0
-                      ? `${result.linkedExisting} linked`
-                      : null,
-                    result.createdItems > 0
-                      ? `${result.createdItems} items created`
-                      : null,
-                  ].filter(Boolean);
-                  setFeedback({
-                    text: `Attached ${result.supplierName}${result.supplierNumber ? ` (${result.supplierNumber})` : ""}${parts.length ? ` — ${parts.join(", ")}` : ""}.`,
-                    kind: "success",
-                  });
-                }}
+                candidate={attachCandidate}
+                onBack={() => setAttachCandidate(null)}
+                onAttached={onAttachedFromDrawer}
+                onOpenSupplier={openSupplierFromDrawer}
               />
-            </form>
+            ) : null}
           </FormDrawer>
         ) : null}
 
