@@ -74,8 +74,12 @@ import {
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
 import { NewSupplierForm } from "./_components/NewSupplierForm";
+import { SupplierAttachReport } from "./_components/SupplierAttachReport";
 import { SupplierAttachStep } from "./_components/SupplierAttachStep";
-import { describeAttachResult } from "./_components/supplier-attach";
+import {
+  describeAttachResult,
+  hasAttachReport,
+} from "./_components/supplier-attach";
 import { SupplierContactForm } from "./_components/SupplierContactForm";
 import {
   SupDrawerFooter,
@@ -166,6 +170,12 @@ export default function SuppliersPage() {
   /** An existing supplier picked from the suggestions; shows the product step. */
   const [attachCandidate, setAttachCandidate] =
     useState<SupplierDuplicateMatch | null>(null);
+  /** What happened to each product, shown in the drawer once the supplier is added. */
+  const [attachReport, setAttachReport] = useState<{
+    result: MarketplaceAttachResult;
+    requested: number | null;
+    topUp: boolean;
+  } | null>(null);
   const [contactDraft, setContactDraft] =
     useState<CreateSupplierContactPayload>(EMPTY_CONTACT_DRAFT);
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
@@ -202,6 +212,7 @@ export default function SuppliersPage() {
   const onCreateDrawerOpenChange = (open: boolean) => {
     if (!open) {
       setAttachCandidate(null);
+      setAttachReport(null);
       if (skipCreateDrawerResetAfterCreate.current) {
         skipCreateDrawerResetAfterCreate.current = false;
       } else {
@@ -640,24 +651,40 @@ export default function SuppliersPage() {
   const onAttachedFromDrawer = async (
     result: MarketplaceAttachResult,
     requested: number | null,
+    topUp: boolean,
   ) => {
-    const summary = describeAttachResult(result, requested);
+    const summary = describeAttachResult(result, requested, { topUp });
     if (summary.tone === "warning") {
       toast.warning(summary.title, { description: summary.description });
     } else {
       toast.success(summary.title, { description: summary.description });
     }
-    resetCreateDraft();
-    setAttachCandidate(null);
-    setCreateDrawerOpen(false);
+    if (hasAttachReport(result)) {
+      // Something was already in the shop, already linked or not added: keep the
+      // drawer open on a report of each product instead of closing on it.
+      setAttachReport({ result, requested, topUp });
+    } else {
+      resetCreateDraft();
+      setAttachCandidate(null);
+      setCreateDrawerOpen(false);
+    }
     await refreshList();
     await onSelectSupplier(result.localSupplierId);
+  };
+
+  /** Done on the report: the supplier is already selected behind the drawer. */
+  const closeAttachReport = () => {
+    resetCreateDraft();
+    setAttachCandidate(null);
+    setAttachReport(null);
+    setCreateDrawerOpen(false);
   };
 
   /** Leave "New supplier" to look at a supplier the shop already has. */
   const openSupplierFromDrawer = (id: string) => {
     resetCreateDraft();
     setAttachCandidate(null);
+    setAttachReport(null);
     setCreateDrawerOpen(false);
     void onSelectSupplier(id);
   };
@@ -1636,11 +1663,21 @@ export default function SuppliersPage() {
             open={createDrawerOpen}
             onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
             onOpenChange={onCreateDrawerOpenChange}
-            title={attachCandidate ? "Add supplier" : "New supplier"}
+            title={
+              attachReport
+                ? attachReport.topUp
+                  ? "Supplier updated"
+                  : "Supplier added"
+                : attachCandidate
+                  ? "Add supplier"
+                  : "New supplier"
+            }
             description={
-              attachCandidate
-                ? "Choose which of their products to bring into your shop."
-                : "Name first. Add how you pay them so Supplies → Pay is one tap later."
+              attachReport
+                ? "Here is what happened to each of their products."
+                : attachCandidate
+                  ? "Choose which of their products to bring into your shop."
+                  : "Name first. Add how you pay them so Supplies → Pay is one tap later."
             }
             contextLabel="Purchasing"
             icon={<Truck className="size-5 text-primary" aria-hidden />}
@@ -1689,7 +1726,14 @@ export default function SuppliersPage() {
                 />
               </form>
             </div>
-            {attachCandidate ? (
+            {attachReport ? (
+              <SupplierAttachReport
+                result={attachReport.result}
+                requested={attachReport.requested}
+                topUp={attachReport.topUp}
+                onDone={closeAttachReport}
+              />
+            ) : attachCandidate ? (
               <SupplierAttachStep
                 key={
                   attachCandidate.marketplaceSupplierId ??

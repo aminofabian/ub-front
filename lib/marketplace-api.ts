@@ -129,6 +129,15 @@ export type MarketplaceConnectResult = {
   status: string;
 };
 
+/** One shelf row an attach did not add as a brand-new item. */
+export type MarketplaceAttachNote = {
+  /** The supplier's name for the product; null when it is no longer on their shelf. */
+  name: string | null;
+  barcode: string | null;
+  outcome: "existing_linked" | "already_linked" | "skipped";
+  reason: string;
+};
+
 export type MarketplaceAttachResult = {
   connectionId: string;
   localSupplierId: string;
@@ -140,6 +149,10 @@ export type MarketplaceAttachResult = {
   alreadyLinked: number;
   skipped: number;
   status: string;
+  /** Rows not added as new items (already in the shop, already linked, skipped). Capped by the server. */
+  notes?: MarketplaceAttachNote[];
+  /** How many more rows than `notes` lists. */
+  notesOmitted?: number;
 };
 
 /** One product on a global supplier's shelf, as it would land in the caller's shop. */

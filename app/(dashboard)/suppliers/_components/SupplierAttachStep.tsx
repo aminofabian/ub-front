@@ -74,10 +74,14 @@ async function loadShelf(candidate: SupplierDuplicateMatch): Promise<Shelf> {
 type Props = {
   candidate: SupplierDuplicateMatch;
   onBack: () => void;
-  /** `requested` is how many products were ticked, or null when the whole shelf was added. */
+  /**
+   * `requested` is how many products were ticked, or null when the whole shelf
+   * was added. `topUp` is true when the supplier was already in the directory.
+   */
   onAttached: (
     result: MarketplaceAttachResult,
     requested: number | null,
+    topUp: boolean,
   ) => void | Promise<void>;
   /** Close the drawer and show a supplier the shop already has. */
   onOpenSupplier?: (localSupplierId: string) => void;
@@ -172,7 +176,11 @@ export function SupplierAttachStep({
       setBusy(false);
       return;
     }
-    await onAttached(result, productIds ? productIds.length : null);
+    await onAttached(
+      result,
+      productIds ? productIds.length : null,
+      shelf?.alreadyConnected ?? false,
+    );
     setBusy(false);
   }
 

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   addableProducts,
   filterAttachProducts,
+  newProductIds,
   plural,
   type AttachMode,
   type AttachPickerProduct,
@@ -90,14 +91,20 @@ function ProductBadge({ product }: { product: AttachPickerProduct }) {
   }
   if (product.inShop === true) {
     return (
-      <span className="border border-primary/30 bg-primary/5 px-1.5 py-px text-[10px] font-medium text-primary">
+      <span
+        title="Already in your shop, so it is linked to this supplier instead of being added again"
+        className="border border-primary/30 bg-primary/5 px-1.5 py-px text-[10px] font-medium text-primary"
+      >
         In your shop
       </span>
     );
   }
   if (product.inShop === false) {
     return (
-      <span className="border border-border px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+      <span
+        title="Not in your shop yet, so it is created and linked"
+        className="border border-border px-1.5 py-px text-[10px] font-medium text-muted-foreground"
+      >
         New item
       </span>
     );
@@ -130,6 +137,7 @@ export function SupplierProductPicker({
 
   const knowsShop = addable.some((p) => p.inShop !== undefined);
   const newItems = addable.filter((p) => p.inShop === false).length;
+  const inShopCount = addable.filter((p) => p.inShop === true).length;
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -193,6 +201,9 @@ export function SupplierProductPicker({
             ? `, ${newItems} of them as new ${plural(newItems, "item")} in your catalogue`
             : ""}
           .
+          {knowsShop && inShopCount > 0
+            ? ` ${inShopCount} already ${plural(inShopCount, "is", "are")} in your shop and will be linked, not added again.`
+            : ""}
         </p>
       ) : (
         <div className="border border-border">
@@ -228,6 +239,20 @@ export function SupplierProductPicker({
                   ? `Select ${filteredAddable.length} shown`
                   : "Select all"}
               </Button>
+              {knowsShop && inShopCount > 0 && newItems > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-xl px-2.5"
+                  disabled={disabled}
+                  onClick={() =>
+                    onSelectedChange(new Set(newProductIds(products)))
+                  }
+                >
+                  Only new ({newItems})
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
@@ -241,13 +266,15 @@ export function SupplierProductPicker({
             </div>
           </div>
 
-          <p
-            className="border-b border-border px-2.5 py-1.5 text-[11px] text-muted-foreground"
-            aria-live="polite"
-          >
-            {selected.size} of {addable.length} selected
-            {query.trim() ? ` · ${filtered.length} match` : ""}
-          </p>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-border px-2.5 py-1.5 text-[11px] text-muted-foreground">
+            <p aria-live="polite">
+              {selected.size} of {addable.length} selected
+              {query.trim() ? ` · ${filtered.length} match` : ""}
+            </p>
+            {knowsShop && inShopCount > 0 ? (
+              <p>“In your shop” items are linked, not added again.</p>
+            ) : null}
+          </div>
 
           {filtered.length === 0 ? (
             <p className="px-2.5 py-4 text-sm text-muted-foreground">
