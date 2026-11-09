@@ -2668,6 +2668,78 @@ export async function fetchCsvExport(
   return requestBinary(`/api/v1/integrations/imports/exports/${kind}`);
 }
 
+export type ReportExportFormat = "xlsx" | "csv" | "pdf";
+
+type ReportExportJob = {
+  id: string;
+  status: string;
+  reportKey: string;
+  format: string;
+  downloadUrl: string | null;
+  expiresAt: string | null;
+  errorMessage: string | null;
+};
+
+export type ReportKey =
+  | "sales_by_category"
+  | "supplier_spend"
+  | "inventory_valuation";
+
+export type ReportExportInput = {
+  from: string;
+  to: string;
+  format: ReportExportFormat;
+  categoryId?: string;
+  branchId?: string;
+  itemTypeId?: string;
+};
+
+/**
+ * Create a report export job, then fetch the finished file as a Blob. The backend
+ * processes the job synchronously, so the created job comes back `completed` with a
+ * tokened, short-lived download URL. Returns the blob plus a human filename.
+ *
+ * Backend: POST /api/v1/reports/exports -> GET {downloadUrl} (perm reports.export).
+ */
+export async function downloadReport(
+  reportKey: ReportKey,
+  input: ReportExportInput,
+): Promise<{ blob: Blob; filename: string }> {
+  // Idempotency key avoids crypto.randomUUID so downloads work on iPadOS 15 /
+  // Safari 15 tills; each explicit click is a fresh export.
+  const idempotencyKey = `${reportKey}-${input.format}-${input.from}-${input.to}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+  const job = await request<ReportExportJob>("/api/v1/reports/exports", {
+    method: "POST",
+    idempotencyKey,
+    body: {
+      reportKey,
+      format: input.format,
+      from: input.from,
+      to: input.to,
+      branchId: input.branchId || undefined,
+      categoryId: input.categoryId || undefined,
+      itemTypeId: input.itemTypeId || undefined,
+    },
+  });
+  if (job.status !== "completed" || !job.downloadUrl) {
+    throw new Error(
+      job.errorMessage || "The report could not be generated. Please try again.",
+    );
+  }
+  const blob = await requestBinary(job.downloadUrl);
+  const filename = `${reportKey.replaceAll("_", "-")}-${input.from}_${input.to}.${input.format}`;
+  return { blob, filename };
+}
+
+/** @deprecated use downloadReport("sales_by_category", input) */
+export async function downloadSalesByCategoryReport(
+  input: ReportExportInput,
+): Promise<{ blob: Blob; filename: string }> {
+  return downloadReport("sales_by_category", input);
+}
+
 /** Multipart CSV item import (template: {@code /templates/items}). Same response shape as the JSON imports. */
 export async function postCsvItemsImport(
   file: File,

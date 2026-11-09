@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
+  Download,
   Filter,
   Gauge,
   RefreshCw,
   TrendingUp,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
+import { downloadBlob } from "@/lib/sales-activity-pdf";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -45,6 +48,8 @@ import {
   toISODate,
 } from "@/lib/analytics-date-range";
 import {
+  downloadSalesByCategoryReport,
+  type ReportExportFormat,
   fetchAuditEvents,
   fetchBranches,
   fetchCategories,
@@ -427,6 +432,11 @@ export function AnalyticsWorkspace({
   });
   const [refreshing, setRefreshing] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [downloadFormat, setDownloadFormat] =
+    useState<ReportExportFormat>("xlsx");
+  const [downloading, setDownloading] = useState<ReportExportFormat | null>(
+    null,
+  );
   const hasLoadedRef = useRef(false);
 
   const onChangeBranch = useCallback(
@@ -608,6 +618,37 @@ export function AnalyticsWorkspace({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const onDownload = useCallback(
+    async (format: ReportExportFormat) => {
+      if (!dateRange) {
+        toast.error("Choose a period to download.");
+        return;
+      }
+      setDownloading(format);
+      try {
+        const { blob, filename } = await downloadSalesByCategoryReport({
+          from: dateRange.from,
+          to: dateRange.to,
+          format,
+          categoryId: categoryId || undefined,
+          branchId: branchId || undefined,
+          itemTypeId: headerItemTypeId?.trim() || undefined,
+        });
+        downloadBlob(blob, filename);
+        toast.success("Report downloaded.");
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Could not download the report.",
+        );
+      } finally {
+        setDownloading(null);
+      }
+    },
+    [dateRange, categoryId, branchId, headerItemTypeId],
+  );
 
   const selectedCategory = categoryRevenue[0];
   const categoryFiltered = Boolean(categoryId);
@@ -793,6 +834,38 @@ export function AnalyticsWorkspace({
           <Users className="size-3.5" aria-hidden />
           Shoppers
         </Link>
+        {showCategoryTable ? (
+          <div className="flex items-center gap-1">
+            <label className="sr-only" htmlFor="report-format">
+              Download format
+            </label>
+            <select
+              id="report-format"
+              value={downloadFormat}
+              onChange={(e) =>
+                setDownloadFormat(e.target.value as ReportExportFormat)
+              }
+              disabled={downloading !== null}
+              className={cn(salesToolBtnClass(), "h-8 cursor-pointer bg-white px-2")}
+            >
+              <option value="xlsx">Excel</option>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => void onDownload(downloadFormat)}
+              disabled={downloading !== null}
+              className={cn(salesToolBtnClass(), "disabled:opacity-40")}
+            >
+              <Download
+                className={cn("size-3.5", downloading && "animate-pulse")}
+                aria-hidden
+              />
+              {downloading ? "Preparing\u2026" : "Download"}
+            </button>
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => {
