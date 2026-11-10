@@ -34,6 +34,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 import { ReportDownloadButton } from "@/components/reports/report-download-button";
+import { ReportSummaryPanel } from "@/components/reports/report-summary-panel";
 
 function formatMoney(amount: number, currencyCode: string): string {
   try {
@@ -335,6 +336,17 @@ export default function InventoryValuationPage() {
             <ReportDownloadButton
               reportKey="inventory_valuation"
               label="Download"
+              input={() => {
+                const today = new Date().toISOString().slice(0, 10);
+                return {
+                  from: today,
+                  to: today,
+                  branchId: appliedBranchId || undefined,
+                };
+              }}
+            />
+            <ReportSummaryPanel
+              reportKey="inventory_valuation"
               input={() => {
                 const today = new Date().toISOString().slice(0, 10);
                 return {

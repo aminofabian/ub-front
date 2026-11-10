@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadBlob } from "@/lib/sales-activity-pdf";
+import { ReportSummaryPanel } from "@/components/reports/report-summary-panel";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -864,6 +865,20 @@ export function AnalyticsWorkspace({
               />
               {downloading ? "Preparing\u2026" : "Download"}
             </button>
+            <ReportSummaryPanel
+              reportKey="sales_by_category"
+              input={() =>
+                dateRange
+                  ? {
+                      from: dateRange.from,
+                      to: dateRange.to,
+                      categoryId: categoryId || undefined,
+                      branchId: branchId || undefined,
+                      itemTypeId: headerItemTypeId?.trim() || undefined,
+                    }
+                  : null
+              }
+            />
           </div>
         ) : null}
         <button

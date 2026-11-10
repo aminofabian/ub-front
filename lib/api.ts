@@ -2740,6 +2740,66 @@ export async function downloadSalesByCategoryReport(
   return downloadReport("sales_by_category", input);
 }
 
+export type ReportSummaryHighlight = { label: string; value: string };
+
+export type ReportSummary = {
+  title: string;
+  businessName: string | null;
+  metaLines: string[];
+  highlights: ReportSummaryHighlight[];
+  topLines: string[];
+  text: string;
+};
+
+export type ReportSummaryFilters = Omit<ReportExportInput, "format">;
+
+/** Build a short, sendable summary of a report (headline figures + top rows + text). */
+export async function fetchReportSummary(
+  reportKey: ReportKey,
+  input: ReportSummaryFilters,
+): Promise<ReportSummary> {
+  return request<ReportSummary>("/api/v1/reports/summary", {
+    method: "POST",
+    body: {
+      reportKey,
+      from: input.from,
+      to: input.to,
+      branchId: input.branchId || undefined,
+      categoryId: input.categoryId || undefined,
+      itemTypeId: input.itemTypeId || undefined,
+    },
+  });
+}
+
+export type ReportSummaryChannel = "sms" | "whatsapp" | "both" | "auto";
+
+export type ReportSummarySendResult = {
+  channel: string;
+  outcome: string;
+  phoneMasked: string | null;
+};
+
+/** Send a report summary to the shop owner's verified alert phone via WhatsApp/SMS. */
+export async function sendReportSummary(
+  reportKey: ReportKey,
+  input: ReportSummaryFilters,
+  channel: ReportSummaryChannel,
+): Promise<ReportSummarySendResult> {
+  return request<ReportSummarySendResult>("/api/v1/reports/summary/send", {
+    method: "POST",
+    idempotencyKey: `summary-${reportKey}-${channel}-${input.from}-${input.to}-${Date.now()}`,
+    body: {
+      reportKey,
+      channel,
+      from: input.from,
+      to: input.to,
+      branchId: input.branchId || undefined,
+      categoryId: input.categoryId || undefined,
+      itemTypeId: input.itemTypeId || undefined,
+    },
+  });
+}
+
 /** Multipart CSV item import (template: {@code /templates/items}). Same response shape as the JSON imports. */
 export async function postCsvItemsImport(
   file: File,
@@ -12299,6 +12359,39 @@ export async function postPathAPurchaseOrderSendToSupplier(
   return request<PathAPurchaseOrderDetailRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/send-to-supplier`,
     { method: "POST", toast: opts?.toast },
+  );
+}
+
+export type PurchaseOrderNotifyChannel = "whatsapp" | "sms" | "both";
+
+export type PostPathAPurchaseOrderNotifyPayload = {
+  notifyAdmin: boolean;
+  adminChannel?: PurchaseOrderNotifyChannel;
+  notifySupplier: boolean;
+  supplierChannel?: PurchaseOrderNotifyChannel;
+};
+
+export type PurchaseOrderNotifyDelivery = {
+  recipient: "admin" | "supplier";
+  channel: PurchaseOrderNotifyChannel;
+  outcome: "sent" | "failed" | "skipped";
+  /** Short, user-safe explanation (e.g. "WhatsApp sent; SMS failed."). */
+  detail: string;
+  phoneMasked: string | null;
+};
+
+/**
+ * Optional WhatsApp / SMS copy of a saved order to the admin and/or supplier.
+ * Delivery problems come back per recipient; only a bad request or unknown order throws.
+ */
+export async function postPathAPurchaseOrderNotify(
+  purchaseOrderId: string,
+  body: PostPathAPurchaseOrderNotifyPayload,
+  opts?: { toast?: boolean },
+): Promise<{ deliveries: PurchaseOrderNotifyDelivery[] }> {
+  return request<{ deliveries: PurchaseOrderNotifyDelivery[] }>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/notify`,
+    { method: "POST", body, toast: opts?.toast },
   );
 }
 

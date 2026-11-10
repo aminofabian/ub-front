@@ -53,6 +53,7 @@ import {
   fetchSuppliers,
   postPathAPurchaseOrder,
   postPathAPurchaseOrderLine,
+  postPathAPurchaseOrderNotify,
   postPathAPurchaseOrderSend,
   postPathAPurchaseOrderSendToSupplier,
   dispatchTillPrint,
@@ -85,6 +86,10 @@ import { useOrderTemplate } from "@/hooks/use-order-template";
 import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
 import { applyPoDetailToCart } from "@/app/(dashboard)/order/_lib/order-lifetime-stats";
 import { OrderCatalogSetupPanel } from "./order-catalog-setup-panel";
+import {
+  OrderNotifyOptions,
+  useOrderNotifyPrefs,
+} from "./order-notify-options";
 import { OrderPastOrdersDrawer } from "./order-past-orders-drawer";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
@@ -387,6 +392,11 @@ export function TenantOrderWorkspace({
   const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
   const [printingOrder, setPrintingOrder] = useState(false);
   const [whatsapping, setWhatsapping] = useState(false);
+  const {
+    prefs: notifyPrefs,
+    setPrefs: setNotifyPrefs,
+    adminReady,
+  } = useOrderNotifyPrefs();
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositSeed, setDepositSeed] = useState<{
     supplierId: string;
@@ -1037,7 +1047,10 @@ export function TenantOrderWorkspace({
     );
   };
 
-  const savePurchaseOrder = async (): Promise<string | null> => {
+  const savePurchaseOrder = async (): Promise<{
+    id: string;
+    poNumber: string;
+  } | null> => {
     if (!supplierId || !activeSupplier) {
       toast.error("Pick a supplier first");
       return null;
@@ -1108,7 +1121,7 @@ export function TenantOrderWorkspace({
     }
 
     clearCart();
-    return po.poNumber;
+    return { id: po.id, poNumber: po.poNumber };
   };
 
   const openWhatsAppOrder = async (opts?: {
@@ -1230,6 +1243,55 @@ export function TenantOrderWorkspace({
     }
   };
 
+  /**
+   * Optional WhatsApp/SMS copy of the saved order to the admin and/or supplier.
+   * Runs after the order is saved and never blocks or fails the save.
+   */
+  const sendOrderNotifications = async (
+    purchaseOrderId: string,
+    poNumber: string,
+    supplierAlreadyWhatsApped: boolean,
+  ) => {
+    const toAdmin = notifyPrefs.admin && adminReady !== false;
+    const toSupplier =
+      notifyPrefs.supplier &&
+      Boolean(supplierPhone) &&
+      !supplierAlreadyWhatsApped;
+    if (!toAdmin && !toSupplier) return;
+    const supplierLabel = activeSupplier?.name || "Supplier";
+    const toastId = toast.loading(`Sending ${poNumber}…`);
+    try {
+      const { deliveries } = await postPathAPurchaseOrderNotify(
+        purchaseOrderId,
+        {
+          notifyAdmin: toAdmin,
+          adminChannel: notifyPrefs.adminChannel,
+          notifySupplier: toSupplier,
+          supplierChannel: notifyPrefs.supplierChannel,
+        },
+        { toast: false },
+      );
+      const description = deliveries
+        .map(
+          (d) =>
+            `${d.recipient === "admin" ? "Admin" : supplierLabel}: ${d.detail}`,
+        )
+        .join(" · ");
+      if (deliveries.length > 0 && deliveries.every((d) => d.outcome === "sent")) {
+        toast.success(`${poNumber} sent`, { id: toastId, description });
+      } else {
+        toast.warning(`${poNumber} saved — not every message went out`, {
+          id: toastId,
+          description,
+        });
+      }
+    } catch {
+      toast.warning(`${poNumber} was saved, but the messages could not be sent.`, {
+        id: toastId,
+      });
+    }
+  };
+
   const placeOrder = async (alsoWhatsApp = false) => {
     setPlacing(true);
     if (alsoWhatsApp) setWhatsapping(true);
@@ -1238,8 +1300,9 @@ export function TenantOrderWorkspace({
     try {
       const placedTotal = effectiveTotal;
       const placedSupplierId = supplierId;
-      const poNumber = await savePurchaseOrder();
-      if (!poNumber) return;
+      const saved = await savePurchaseOrder();
+      if (!saved) return;
+      const poNumber = saved.poNumber;
       if (printTo && slipLines.length > 0) {
         const branchName =
           branches.find((branch) => branch.id === branchId)?.name ?? "";
@@ -1274,6 +1337,7 @@ export function TenantOrderWorkspace({
       } else {
         toast.success(`Order ${poNumber} placed — confirm when goods arrive`);
       }
+      void sendOrderNotifications(saved.id, poNumber, alsoWhatsApp);
       if (!(canDeposit && placedSupplierId)) setMobileOrderOpen(false);
       setSlipMoreOpen(false);
       if (canDeposit && placedSupplierId) {
@@ -2100,6 +2164,18 @@ export function TenantOrderWorkspace({
               </button>
             </div>
           ) : null}
+
+          <OrderNotifyOptions
+            prefs={notifyPrefs}
+            onChange={setNotifyPrefs}
+            supplierName={activeSupplier?.name || "Supplier"}
+            supplierPhone={supplierPhone}
+            supplierPortalLinked={Boolean(
+              activeSupplier?.marketplaceSupplierId?.trim(),
+            )}
+            adminReady={adminReady}
+            disabled={placing}
+          />
 
           <CashierPrintPicker
             mode="single"

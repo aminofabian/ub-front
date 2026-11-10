@@ -97,6 +97,8 @@ import {
 import type { Period } from "@/lib/business-hub/types";
 import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
+import { ReportDownloadButton } from "@/components/reports/report-download-button";
+import { ReportSummaryPanel } from "@/components/reports/report-summary-panel";
 import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canWriteSuppliers } from "@/lib/supplier-access";
@@ -1562,6 +1564,23 @@ export function BusinessHubWorkspace() {
     todaySupplies,
   ]);
 
+  const canExportReports = hasPermission(me?.permissions, Permission.ReportsExport);
+  const reportBranchId = branchId || undefined;
+  const reportPeriodInput = useCallback(() => {
+    const r = period === "today" ? presetRange("today") : presetRange("last7");
+    if (!r) return null;
+    return { from: r.from, to: r.to, branchId: reportBranchId };
+  }, [period, reportBranchId]);
+  const reportSupplierInput = useCallback(() => {
+    const r = period === "today" ? presetRange("today") : presetRange("last7");
+    if (!r) return null;
+    return { from: r.from, to: r.to };
+  }, [period]);
+  const reportInventoryInput = useCallback(() => {
+    const today = toISODate(new Date());
+    return { from: today, to: today, branchId: reportBranchId };
+  }, [reportBranchId]);
+
   if (loading) return <BusinessHubSkeleton />;
 
   return (
@@ -1880,6 +1899,48 @@ export function BusinessHubWorkspace() {
                         {showMovers ? (
                           <TopMoversPanel movers={topMovers} />
                         ) : null}
+                      </div>
+                    </section>
+                  ) : null}
+                  {canExportReports ? (
+                    <section className="space-y-3">
+                      <HubSectionLabel title="Reports" className="px-0.5" />
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-muted-foreground">
+                            Sales by category
+                          </span>
+                          <ReportDownloadButton
+                            reportKey="sales_by_category"
+                            input={reportPeriodInput}
+                          />
+                          <ReportSummaryPanel
+                            reportKey="sales_by_category"
+                            input={reportPeriodInput}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-muted-foreground">
+                            Supplier spend
+                          </span>
+                          <ReportDownloadButton
+                            reportKey="supplier_spend"
+                            input={reportSupplierInput}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-muted-foreground">
+                            Inventory valuation
+                          </span>
+                          <ReportDownloadButton
+                            reportKey="inventory_valuation"
+                            input={reportInventoryInput}
+                          />
+                          <ReportSummaryPanel
+                            reportKey="inventory_valuation"
+                            input={reportInventoryInput}
+                          />
+                        </div>
                       </div>
                     </section>
                   ) : null}

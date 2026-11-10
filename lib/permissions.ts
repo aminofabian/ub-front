@@ -75,6 +75,7 @@ export const Permission = {
   AirtimeManage: "airtime.manage",
   ReportsNotificationsRead: "reports.notifications.read",
   ReportsNotificationsWrite: "reports.notifications.write",
+  ReportsExport: "reports.export",
   /** Talk to Us inbox */
   MessagesRead: "messages.read",
   MessagesReply: "messages.reply",
