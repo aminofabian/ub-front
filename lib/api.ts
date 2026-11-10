@@ -2800,6 +2800,79 @@ export async function sendReportSummary(
   });
 }
 
+export type ReportFrequency = "daily" | "weekly" | "monthly";
+export type ReportChannel = "whatsapp" | "sms" | "email";
+
+export type ReportSubscription = {
+  id: string;
+  reportKey: ReportKey;
+  format: ReportExportFormat;
+  frequency: ReportFrequency;
+  sendTime: string;
+  dayOfWeek: number | null;
+  dayOfMonth: number | null;
+  channels: ReportChannel[];
+  recipientEmail: string | null;
+  branchId: string | null;
+  categoryId: string | null;
+  active: boolean;
+  lastSentPeriod: string | null;
+  createdAt: string;
+};
+
+export type ReportSubscriptionInput = {
+  reportKey: ReportKey;
+  format?: ReportExportFormat;
+  frequency: ReportFrequency;
+  sendTime?: string;
+  dayOfWeek?: number | null;
+  dayOfMonth?: number | null;
+  channels: ReportChannel[];
+  recipientEmail?: string | null;
+  branchId?: string | null;
+  categoryId?: string | null;
+  active?: boolean;
+};
+
+export async function fetchReportSubscriptions(): Promise<ReportSubscription[]> {
+  return request<ReportSubscription[]>("/api/v1/reports/subscriptions");
+}
+
+export async function createReportSubscription(
+  input: ReportSubscriptionInput,
+): Promise<ReportSubscription> {
+  return request<ReportSubscription>("/api/v1/reports/subscriptions", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function updateReportSubscription(
+  id: string,
+  input: ReportSubscriptionInput,
+): Promise<ReportSubscription> {
+  return request<ReportSubscription>(
+    `/api/v1/reports/subscriptions/${encodeURIComponent(id)}`,
+    { method: "PUT", body: input },
+  );
+}
+
+export async function deleteReportSubscription(id: string): Promise<void> {
+  await request<void>(
+    `/api/v1/reports/subscriptions/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function sendReportSubscriptionNow(
+  id: string,
+): Promise<{ sent: string[]; failed: string[] }> {
+  return request<{ sent: string[]; failed: string[] }>(
+    `/api/v1/reports/subscriptions/${encodeURIComponent(id)}/send-now`,
+    { method: "POST" },
+  );
+}
+
 /** Multipart CSV item import (template: {@code /templates/items}). Same response shape as the JSON imports. */
 export async function postCsvItemsImport(
   file: File,

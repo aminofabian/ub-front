@@ -99,6 +99,7 @@ import { monthlyCommitmentForSchedule } from "@/lib/fixed-costs-utils";
 import { cn } from "@/lib/utils";
 import { ReportDownloadButton } from "@/components/reports/report-download-button";
 import { ReportSummaryPanel } from "@/components/reports/report-summary-panel";
+import { ReportDeliveryManager } from "@/components/reports/report-delivery-manager";
 import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canWriteSuppliers } from "@/lib/supplier-access";
@@ -1942,6 +1943,7 @@ export function BusinessHubWorkspace() {
                           />
                         </div>
                       </div>
+                      <ReportDeliveryManager />
                     </section>
                   ) : null}
 
