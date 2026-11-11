@@ -770,7 +770,7 @@ function StockMobileCard({
                   : "opacity-60",
               )}
             >
-              {canEdit ? "Set" : "Qty"}
+              {canEdit ? "Tap to set" : "Qty"}
             </span>
           </div>
         </button>
@@ -969,15 +969,31 @@ function StockRowItem({
     stockStatusMeta(row);
 
   const target = Number(editQty.trim());
-  const showCost =
-    editing && Number.isFinite(target) && target > row.stock;
+  const targetOk =
+    editQty.trim() !== "" && Number.isFinite(target) && target >= 0;
+  const showCost = editing && targetOk && target > row.stock;
+  const delta =
+    editing && targetOk
+      ? Math.round((target - row.stock) * 10000) / 10000
+      : 0;
+  const canEditQty = canWrite && row.editable;
+
+  const bumpQty = (step: number) => {
+    const current = Number(editQty.trim());
+    const base = Number.isFinite(current) ? current : row.stock;
+    const next = Math.max(0, Math.round((base + step) * 10000) / 10000);
+    onEditQtyChange(String(next));
+  };
 
   return (
     <tr
       className={cn(
         "transition-colors duration-150",
-        "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
-        loss &&
+        editing
+          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]"
+          : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
+        !editing &&
+          loss &&
           "bg-orange-500/[0.06] hover:bg-orange-500/[0.1] dark:bg-orange-400/[0.09] dark:hover:bg-orange-400/[0.14]",
       )}
     >
@@ -1119,25 +1135,91 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "p-0")}>
+      <td className={cn(stockCell, "p-1")}>
         {editing ? (
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            autoFocus
-            value={editQty}
-            disabled={saving}
-            onChange={(e) => onEditQtyChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSaveEdit();
-              if (e.key === "Escape") onCancelEdit();
-            }}
-            className={cn(catalogCellMoneyInput, "disabled:opacity-60")}
-            placeholder="Qty"
-            aria-label={`New stock for ${row.name}`}
-          />
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => bumpQty(-1)}
+              disabled={saving || (targetOk && target <= 0)}
+              className={cn(
+                "inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-white transition-colors disabled:opacity-40",
+                stockHair,
+                stockMute,
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-[var(--order-ink,#15231f)]",
+              )}
+              aria-label="Decrease by 1"
+            >
+              <Minus className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              autoFocus
+              value={editQty}
+              disabled={saving}
+              onChange={(e) => onEditQtyChange(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSaveEdit();
+                if (e.key === "Escape") onCancelEdit();
+              }}
+              className={cn(
+                catalogCellMoneyInput,
+                "h-8 min-w-0 flex-1 rounded-md border bg-white text-center text-[14px] font-semibold disabled:opacity-60",
+                stockHair,
+              )}
+              placeholder="0"
+              aria-label={`New stock for ${row.name}`}
+            />
+            <button
+              type="button"
+              onClick={() => bumpQty(1)}
+              disabled={saving}
+              className={cn(
+                "inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-white transition-colors disabled:opacity-40",
+                stockHair,
+                stockMute,
+                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] hover:text-[var(--order-ink,#15231f)]",
+              )}
+              aria-label="Increase by 1"
+            >
+              <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+        ) : canEditQty ? (
+          <button
+            type="button"
+            onClick={onStartEdit}
+            className={cn(
+              "group flex w-full flex-col items-end gap-0.5 rounded-md border px-2 py-1 text-right transition-colors",
+              out || low
+                ? "border-rose-300/70 bg-rose-50 hover:bg-rose-100/80"
+                : cn(
+                    stockHair,
+                    "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+                    "hover:border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
+                    "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_11%,white)]",
+                  ),
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+            )}
+            aria-label={`Set in-store qty for ${row.name}, currently ${row.stock}`}
+          >
+            <span
+              className={cn(
+                "text-[14px] font-semibold tabular-nums leading-none tracking-[-0.02em]",
+                out || low ? "text-rose-800" : stockInk,
+              )}
+            >
+              {row.stock.toLocaleString("en-KE")}
+            </span>
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--pos-primary,#0f766e)]">
+              <Pencil className="size-2.5 opacity-80" aria-hidden />
+              Tap to set
+            </span>
+          </button>
         ) : (
           <span
             className={cn(
@@ -1249,7 +1331,7 @@ function StockRowItem({
           </span>
         )}
       </td>
-      <td className={cn(stockCell, "p-0")}>
+      <td className={cn(stockCell, "p-1")}>
         {showCost ? (
           <input
             type="number"
@@ -1259,12 +1341,18 @@ function StockRowItem({
             value={editCost}
             disabled={saving}
             onChange={(e) => onEditCostChange(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
             onKeyDown={(e) => {
               if (e.key === "Enter") onSaveEdit();
               if (e.key === "Escape") onCancelEdit();
             }}
-            className={cn(catalogCellMoneyInput, "disabled:opacity-60")}
-            placeholder="Cost"
+            className={cn(
+              catalogCellMoneyInput,
+              "h-8 rounded-md border bg-white disabled:opacity-60",
+              stockHair,
+            )}
+            placeholder="Buy cost"
+            title={`Cost per unit for the +${delta.toLocaleString("en-KE")} you are adding`}
             aria-label={`Unit cost for ${row.name}`}
           />
         ) : (
@@ -1283,45 +1371,55 @@ function StockRowItem({
           {statusLabel}
         </span>
       </td>
-      <td className={cn(stockCell, "p-0 text-right")}>
+      <td className={cn(stockCell, "p-1 text-right")}>
         {editing ? (
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-1">
             <button
               type="button"
               onClick={onSaveEdit}
-              disabled={saving || !editQty.trim()}
-              className="inline-flex size-8 items-center justify-center bg-[var(--pos-primary,#0f766e)] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              aria-label="Save stock"
+              disabled={saving || !targetOk || Math.abs(delta) < 0.0001}
+              className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-[var(--pos-primary,#0f766e)] px-2.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
               <Check className="size-3.5" aria-hidden />
+              {saving
+                ? "…"
+                : targetOk && Math.abs(delta) >= 0.0001
+                  ? `Save ${target.toLocaleString("en-KE")}`
+                  : "Save"}
             </button>
             <button
               type="button"
               onClick={onCancelEdit}
               disabled={saving}
               className={cn(
-                "inline-flex size-8 items-center justify-center transition-colors disabled:opacity-40",
+                "inline-flex h-8 items-center justify-center rounded-md border px-2 text-[11px] font-medium transition-colors disabled:opacity-40",
+                stockHair,
                 stockMute,
-                "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                "bg-white hover:text-[var(--order-ink,#15231f)]",
               )}
-              aria-label="Cancel"
             >
-              <X className="size-3.5" aria-hidden />
+              Cancel
             </button>
           </div>
-        ) : canWrite && row.editable ? (
+        ) : canEditQty ? (
           <button
             type="button"
             onClick={onStartEdit}
             className={cn(
-              "inline-flex size-8 items-center justify-center transition-colors",
-              stockMute,
-              "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,transparent)] hover:text-[var(--pos-primary,#0f766e)]",
+              "inline-flex h-8 items-center justify-center gap-1 rounded-md border px-2.5 text-[11px] font-semibold transition-colors",
+              stockHair,
+              "bg-white text-[var(--pos-primary,#0f766e)]",
+              "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)]",
             )}
-            aria-label={`Edit stock for ${row.name}`}
+            aria-label={`Set stock for ${row.name}`}
           >
-            <Pencil className="size-3.5" aria-hidden />
+            <Pencil className="size-3" aria-hidden />
+            Set
           </button>
+        ) : !row.editable ? (
+          <span className={cn("block px-2 text-[10px]", stockMute)} title="Stock lives on the parent SKU">
+            Parent
+          </span>
         ) : (
           <span className={cn("block px-2 text-[10px]", stockMute)}>—</span>
         )}
@@ -2467,8 +2565,13 @@ export function StockLevelsPage() {
             icon={Package}
             title="Stock levels"
             description={
-              [activeBranchName, itemTypeLabel].filter(Boolean).join(" · ") ||
-              "Choose a branch to see in-store stock"
+              [
+                activeBranchName,
+                itemTypeLabel,
+                canWrite ? "Tap a qty to update" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Choose a branch to see in-store stock"
             }
           >
             <button
@@ -2856,7 +2959,23 @@ export function StockLevelsPage() {
             </p>
           ) : null}
 
-          {canWrite && rows.length > 0 ? null : !canWrite && !canCatalogWrite && rows.length > 0 ? (
+          {canWrite && rows.length > 0 ? (
+            <p
+              className={cn(
+                "border-b px-3 py-2 text-[12px] sm:text-[11px]",
+                stockHair,
+                "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_5%,white)] text-[var(--order-ink,#15231f)]",
+              )}
+            >
+              <span className="font-semibold text-[var(--pos-primary,#0f766e)]">
+                Tap any In store number
+              </span>
+              <span className={stockMute}>
+                {" "}
+                · type the count on the shelf · Save
+              </span>
+            </p>
+          ) : !canWrite && !canCatalogWrite && rows.length > 0 ? (
             <p
               className={cn(
                 "border-b px-3 py-1.5 text-[11px]",
@@ -3008,6 +3127,11 @@ export function StockLevelsPage() {
                         )}
                       >
                         In store
+                        {canWrite ? (
+                          <span className="ml-1 font-normal opacity-70">
+                            · tap
+                          </span>
+                        ) : null}
                         {renderColHandle("inStore")}
                       </th>
                       <th

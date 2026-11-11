@@ -11949,6 +11949,17 @@ export async function fetchSale(saleId: string): Promise<SaleRecord> {
   );
 }
 
+/** Resolve a sale by its short sequential receipt number for this business. */
+export async function fetchSaleByReceiptNo(
+  receiptNo: number,
+): Promise<SaleRecord> {
+  const n = Math.trunc(receiptNo);
+  if (!Number.isSafeInteger(n) || n <= 0) {
+    throw new Error("Receipt number must be a positive integer.");
+  }
+  return request<SaleRecord>(`/api/v1/sales/by-receipt/${n}`, { toast: false });
+}
+
 export type AdjustSalePaymentsPayload = {
   payments: PostSalePaymentPayload[];
   reason?: string | null;

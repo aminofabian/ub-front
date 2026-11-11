@@ -1237,7 +1237,7 @@ export function BusinessSettingsForm({
                 }
                 icon={<Warehouse className="size-4 text-muted-foreground" />}
                 title="Allow stock managers to edit stock"
-                description="Stock managers can set on-hand quantities on the Stock page. They still cannot edit the product catalog."
+                description="On by default. Stock managers can set on-hand quantities on Stock levels. They still cannot edit the product catalog."
               />
               <ToggleRow
                 checked={inventory.allowStockPageForStockManager}

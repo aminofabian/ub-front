@@ -14,7 +14,7 @@ describe("stock-column-widths", () => {
   it("clamps to min/max", () => {
     expect(clampStockColWidth("product", 1)).toBe(120);
     expect(clampStockColWidth("product", 9999)).toBe(560);
-    expect(clampStockColWidth("inStore", 84)).toBe(84);
+    expect(clampStockColWidth("inStore", 84)).toBe(96);
   });
 
   it("parses stored widths and ignores junk", () => {
@@ -33,7 +33,7 @@ describe("stock-column-widths", () => {
   });
 
   it("sums table min width", () => {
-    expect(stockTableMinWidthPx(STOCK_COL_WIDTH_DEFAULTS)).toBe(1244);
+    expect(stockTableMinWidthPx(STOCK_COL_WIDTH_DEFAULTS)).toBe(1316);
   });
 
   it("covers every column in table order", () => {
@@ -79,14 +79,14 @@ describe("stock-column-widths", () => {
       ["--stock-col-category", "104px"],
       ["--stock-col-department", "104px"],
       ["--stock-col-shelf", "104px"],
-      ["--stock-col-in-store", "84px"],
+      ["--stock-col-in-store", "128px"],
       ["--stock-col-reorder", "140px"],
       ["--stock-col-buy", "84px"],
       ["--stock-col-sell", "84px"],
       ["--stock-col-unit-cost", "76px"],
       ["--stock-col-status", "68px"],
-      ["--stock-col-edit", "84px"],
-      ["--stock-table-min-width", "1540px"],
+      ["--stock-col-edit", "112px"],
+      ["--stock-table-min-width", "1612px"],
     ]);
   });
 

@@ -53,6 +53,20 @@ describe("inventory-access", () => {
     expect(canViewStockLevels(me, businessWithStockEdits)).toBe(true);
   });
 
+  it("allows stock manager edit when the toggle is unset (default on)", () => {
+    const me: MeResponse = {
+      role: { key: "stock_manager" },
+      permissions: ["inventory.read"],
+    };
+    expect(canEditStockLevels(me, { name: "Test" })).toBe(true);
+    expect(
+      canEditStockLevels(me, {
+        name: "Test",
+        inventory: { stockLevels: { allowStockEditForStockManager: false } },
+      }),
+    ).toBe(false);
+  });
+
   it("hides stock page for stock managers when the page toggle is off", () => {
     const me: MeResponse = {
       role: { key: "stock_manager" },
@@ -157,6 +171,7 @@ describe("inventory-access", () => {
     );
     expect(managerLinks).toEqual([
       APP_ROUTES.inventoryRestock,
+      APP_ROUTES.inventoryMissingBarcodes,
       APP_ROUTES.inventoryStockTake,
     ]);
     expect(managerLinks).not.toContain(APP_ROUTES.products);
@@ -165,7 +180,10 @@ describe("inventory-access", () => {
     const clerkLinks = inventoryQuickLinksForUser(groceryClerk).map(
       (link) => link.href,
     );
-    expect(clerkLinks).toEqual([APP_ROUTES.inventoryRestock]);
+    expect(clerkLinks).toEqual([
+      APP_ROUTES.inventoryRestock,
+      APP_ROUTES.inventoryStockTake,
+    ]);
   });
 
   it("hides system stock for stock managers when the toggle is off even with approve", () => {

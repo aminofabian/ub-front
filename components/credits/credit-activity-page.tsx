@@ -38,6 +38,9 @@ import {
   slipFromPurchase,
   type CreditSlip,
 } from "@/components/credits/credit-ticket-drawer";
+import { ReceiptLookupBanner } from "@/components/sales/receipt-lookup-banner";
+import { SaleReceiptActions } from "@/components/sales/sale-receipt-actions";
+import { useReceiptLookup } from "@/components/sales/use-receipt-lookup";
 import {
   fetchCreditsActivitySummary,
   fetchCustomerCreditStatement,
@@ -140,6 +143,7 @@ function saleToSlip(
     })),
     grandTotal: toNum(sale.grandTotal),
     tabAmount: extras?.tabAmount,
+    saleId: sale.id,
   };
 }
 
@@ -402,10 +406,12 @@ export function CreditActivityPage({
       const name = (r.customerName ?? "").toLowerCase();
       const cashier = (r.cashierName ?? "").toLowerCase();
       const receipt = r.receiptNo != null ? String(r.receiptNo) : "";
+      const saleId = (r.saleId ?? "").toLowerCase();
       return (
         name.includes(query) ||
         cashier.includes(query) ||
-        receipt.includes(query)
+        receipt.includes(query.replace(/^#+/, "")) ||
+        saleId.includes(query)
       );
     });
   }, [rows, query]);
@@ -417,6 +423,18 @@ export function CreditActivityPage({
       ),
     [filteredCharges],
   );
+
+  const receiptAlreadyVisible = useMemo(() => {
+    const q = query.replace(/^#+/, "");
+    if (!q) return false;
+    return sortedCharges.some(
+      (r) =>
+        (r.receiptNo != null && String(r.receiptNo) === q) ||
+        (r.saleId ?? "").toLowerCase() === q,
+    );
+  }, [sortedCharges, query]);
+
+  const receiptLookup = useReceiptLookup(search, receiptAlreadyVisible);
 
   const sortedTabs = useMemo(
     () =>
@@ -539,6 +557,7 @@ export function CreditActivityPage({
           lines: [],
           grandTotal: extras?.tabAmount ?? 0,
           tabAmount: extras?.tabAmount,
+          saleId,
         });
       } finally {
         setSlipLoading(false);
@@ -546,6 +565,26 @@ export function CreditActivityPage({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!receiptAlreadyVisible) return;
+    const q = query.replace(/^#+/, "");
+    const match = sortedCharges.find(
+      (r) =>
+        (r.receiptNo != null && String(r.receiptNo) === q) ||
+        (r.saleId ?? "").toLowerCase() === q,
+    );
+    if (!match) return;
+    const name = match.customerName?.trim() || "Walk-in / unnamed";
+    selectTabByName(name);
+    void openSaleSlip(match.saleId, fmtDayTime(match.soldAt, false), {
+      customerName: name,
+      cashierName: match.cashierName?.trim() || undefined,
+      tabAmount: toNum(match.amount),
+    });
+    // Open once when a typed receipt appears in the filtered charges.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receiptAlreadyVisible, search]);
 
   if (sessionLoading) {
     return (
@@ -694,10 +733,10 @@ export function CreditActivityPage({
                     />
                     <input
                       className={styles.search}
-                      placeholder="Find name or phone"
+                      placeholder="Receipt #, name, or phone"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      aria-label="Search open tabs and credit sales"
+                      aria-label="Search open tabs, credit sales, and receipts"
                     />
                   </div>
                   ) : null}
@@ -916,14 +955,28 @@ export function CreditActivityPage({
                   />
                   <input
                     className={styles.search}
-                    placeholder="Find name, till, or receipt"
+                    placeholder="Receipt #, name, or till"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    aria-label="Search credit sales"
+                    aria-label="Search credit sales by receipt, name, or till"
                   />
                 </div>
               )}
             </div>
+            {receiptLookup.receiptNo != null ? (
+              <ReceiptLookupBanner
+                receiptNo={receiptLookup.receiptNo}
+                sale={receiptLookup.sale}
+                loading={receiptLookup.loading}
+                notFound={receiptLookup.notFound}
+                onOpen={(sale) => {
+                  void openSaleSlip(sale.id, "Receipt", {
+                    cashierName: sale.soldByName?.trim() || undefined,
+                    tabAmount: toNum(sale.grandTotal),
+                  });
+                }}
+              />
+            ) : null}
             {listLoading ? (
               <LedgerSkeleton rows={6} />
             ) : sortedCharges.length === 0 ? (
@@ -942,46 +995,62 @@ export function CreditActivityPage({
                   );
                   return (
                     <li key={row.paymentId || `${row.saleId}-${row.sortOrder}`}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          selectTabByName(name);
-                          void openSaleSlip(
-                            row.saleId,
-                            fmtDayTime(row.soldAt, false),
-                            {
-                              customerName: name,
-                              cashierName: row.cashierName?.trim() || undefined,
-                              tabAmount: amount,
-                            },
-                          );
-                        }}
+                      <div
                         className={cn(
                           styles.dayRow,
                           linked && styles.dayRowLinked,
+                          "items-center",
                         )}
                       >
-                        <p className={styles.dayWhen}>
-                          {fmtDayTime(row.soldAt, singleDay)}
-                        </p>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm">{name}</p>
-                          <p className={cn(styles.muted, "truncate text-xs")}>
-                            {[
-                              row.cashierName?.trim() || "Till",
-                              row.receiptNo != null
-                                ? `#${row.receiptNo}`
-                                : null,
-                              toNum(row.saleGrandTotal) > amount
-                                ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
-                                : null,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            selectTabByName(name);
+                            void openSaleSlip(
+                              row.saleId,
+                              fmtDayTime(row.soldAt, false),
+                              {
+                                customerName: name,
+                                cashierName:
+                                  row.cashierName?.trim() || undefined,
+                                tabAmount: amount,
+                              },
+                            );
+                          }}
+                          className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                        >
+                          <p className={styles.dayWhen}>
+                            {fmtDayTime(row.soldAt, singleDay)}
                           </p>
-                        </div>
-                        <p className={styles.nameOwed}>{fmtKes(amount)}</p>
-                      </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm">{name}</p>
+                            <p className={cn(styles.muted, "truncate text-xs")}>
+                              {[
+                                row.cashierName?.trim() || "Till",
+                                row.receiptNo != null
+                                  ? `#${row.receiptNo}`
+                                  : null,
+                                toNum(row.saleGrandTotal) > amount
+                                  ? `sale ${fmtKes(toNum(row.saleGrandTotal))}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </p>
+                          </div>
+                          <p className={styles.nameOwed}>{fmtKes(amount)}</p>
+                        </button>
+                        <SaleReceiptActions
+                          saleId={row.saleId}
+                          receiptLabel={
+                            row.receiptNo != null
+                              ? String(row.receiptNo)
+                              : undefined
+                          }
+                          showPdf={false}
+                          buttonClassName="h-8 px-2"
+                        />
+                      </div>
                     </li>
                   );
                 })}

@@ -328,7 +328,8 @@ export function stockManagerStockPageEnabled(
 export function stockManagerStoreRoomEnabled(
   business: BusinessRecord | null | undefined,
 ): boolean {
-  return Boolean(stockLevelsSettings(business)?.allowStockEditForStockManager);
+  // Mirror backend defaults: unset means allowed.
+  return stockLevelsSettings(business)?.allowStockEditForStockManager !== false;
 }
 
 export function canEditStockLevels(
@@ -343,7 +344,7 @@ export function canEditStockLevels(
   if (roleKey === "stock_manager") {
     return (
       stockManagerStockPageEnabled(business) &&
-      Boolean(settings?.allowStockEditForStockManager)
+      settings?.allowStockEditForStockManager !== false
     );
   }
   if (roleKey === "grocery_clerk") {

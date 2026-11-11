@@ -1,6 +1,7 @@
 "use client";
 
 import { FormDrawer } from "@/components/form-drawer";
+import { SaleReceiptActions } from "@/components/sales/sale-receipt-actions";
 
 import styles from "./credit-ticket-drawer.module.css";
 
@@ -21,6 +22,7 @@ export type CreditSlip =
       lines: CreditSlipLine[];
       grandTotal: number;
       tabAmount?: number;
+      saleId?: string;
     }
   | {
       kind: "payment";
@@ -120,6 +122,14 @@ export function CreditTicketDrawer({
                 </div>
               ) : null}
             </dl>
+            {slip.saleId ? (
+              <div className={styles.printRow}>
+                <SaleReceiptActions
+                  saleId={slip.saleId}
+                  receiptLabel={slip.heading.replace(/^#/, "")}
+                />
+              </div>
+            ) : null}
             <div className={styles.tear} aria-hidden />
           </div>
         ) : (
@@ -132,6 +142,7 @@ export function CreditTicketDrawer({
 
 export function slipFromPurchase(
   row: {
+    saleId?: string;
     receiptNo?: number | null;
     soldAt: string;
     grandTotal: number | string;
@@ -165,5 +176,6 @@ export function slipFromPurchase(
     })),
     grandTotal: num(row.grandTotal),
     tabAmount: num(row.creditAmount),
+    saleId: row.saleId,
   };
 }

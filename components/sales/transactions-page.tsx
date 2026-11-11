@@ -32,6 +32,7 @@ import {
   type RecentSaleRow,
 } from "@/lib/api";
 import { fetchMergedSalesActivity } from "@/lib/sales-activity";
+import { useReceiptLookup } from "@/components/sales/use-receipt-lookup";
 import {
   matchesChannelFilter,
   matchesStatusWithChannel,
@@ -251,6 +252,32 @@ export function TransactionsPage() {
       );
     });
   }, [transactions, search, statusFilter, paymentFilter, channelFilter]);
+
+  const receiptAlreadyVisible = useMemo(() => {
+    const q = search.trim().toLowerCase().replace(/^#+/, "");
+    if (!q) return false;
+    return filtered.some(
+      (tx) =>
+        (tx.receiptNo != null && String(tx.receiptNo) === q) ||
+        tx.saleId.toLowerCase().includes(q),
+    );
+  }, [filtered, search]);
+
+  const receiptLookup = useReceiptLookup(search, receiptAlreadyVisible);
+
+  useEffect(() => {
+    if (!receiptAlreadyVisible) return;
+    const q = search.trim().toLowerCase().replace(/^#+/, "");
+    const match = filtered.find(
+      (tx) =>
+        (tx.receiptNo != null && String(tx.receiptNo) === q) ||
+        tx.saleId.toLowerCase() === q,
+    );
+    if (match && selectedId !== match.saleId) {
+      setSelectedId(match.saleId);
+      setMobileShowDetail(true);
+    }
+  }, [receiptAlreadyVisible, filtered, search, selectedId]);
 
   const selectedTx = useMemo(
     () => filtered.find((tx) => tx.saleId === selectedId) ?? null,
@@ -486,6 +513,7 @@ export function TransactionsPage() {
         }}
         pdfLoading={pdfLoading}
         onDownloadPdf={downloadPdf}
+        receiptLookup={receiptLookup}
         />
       </SalesStage>
 

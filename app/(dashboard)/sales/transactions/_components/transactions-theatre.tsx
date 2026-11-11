@@ -6,11 +6,13 @@ import {
   BadgeCheck,
   Ban,
   ChevronRight,
-  Download,
   FileDown,
   Pencil,
   Search,
 } from "lucide-react";
+
+import { ReceiptLookupBanner } from "@/components/sales/receipt-lookup-banner";
+import { SaleReceiptActions } from "@/components/sales/sale-receipt-actions";
 
 import {
   dashboardInputClass,
@@ -45,7 +47,7 @@ import {
   txDisplayNo,
   type SaleTransaction,
 } from "@/lib/sale-transactions";
-import { fetchSaleReceiptPdf } from "@/lib/api";
+import type { SaleRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const RUST = "text-[#9a2e16]";
@@ -225,6 +227,12 @@ export type TransactionsTheatreProps = {
   pdfLoading: boolean;
   onDownloadPdf: () => void;
   listSkeleton?: ReactNode;
+  receiptLookup?: {
+    receiptNo: number | null;
+    sale: SaleRecord | null;
+    loading: boolean;
+    notFound: boolean;
+  };
 };
 
 function TransactionsContextBanner({
@@ -521,7 +529,6 @@ function TransactionDetailPanel({
   onAdjustPayment: () => void;
   onVoid: () => void;
 }) {
-  const [receiptLoading, setReceiptLoading] = useState(false);
   const refunded = isRefunded(tx.status);
   const voided = isVoided(tx.status);
   const isOnline = tx.channel === "online_store";
@@ -534,23 +541,6 @@ function TransactionDetailPanel({
       ? tx.customerName
       : tx.customerName?.trim() || tx.cashierName || tx.customerName
     )?.trim() || "—";
-
-  const onDownloadReceipt = async () => {
-    setReceiptLoading(true);
-    try {
-      const blob = await fetchSaleReceiptPdf(tx.saleId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `receipt-${txDisplayNo(tx)}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // silent
-    } finally {
-      setReceiptLoading(false);
-    }
-  };
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
@@ -609,17 +599,10 @@ function TransactionDetailPanel({
       <div className={cn("shrink-0 border-t px-3 py-2.5 sm:px-4", salesHair)}>
         {!isOnline ? (
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1 rounded-none px-2 text-[11px] text-muted-foreground hover:text-foreground"
-              disabled={receiptLoading}
-              onClick={() => void onDownloadReceipt()}
-            >
-              <Download className="size-3" aria-hidden />
-              {receiptLoading ? "…" : "Receipt"}
-            </Button>
+            <SaleReceiptActions
+              saleId={tx.saleId}
+              receiptLabel={txDisplayNo(tx)}
+            />
             {showAdjust ? (
               <Button
                 type="button"
@@ -726,6 +709,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
     pdfLoading,
     onDownloadPdf,
     listSkeleton,
+    receiptLookup,
   } = props;
 
   const isLg = useMediaLg();
@@ -816,6 +800,15 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
             </p>
           ) : null}
         </div>
+
+        {receiptLookup?.receiptNo != null ? (
+          <ReceiptLookupBanner
+            receiptNo={receiptLookup.receiptNo}
+            sale={receiptLookup.sale}
+            loading={receiptLookup.loading}
+            notFound={receiptLookup.notFound}
+          />
+        ) : null}
 
         <div
           className={cn(

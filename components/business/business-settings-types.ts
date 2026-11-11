@@ -230,7 +230,7 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   morningEndsAt: DEFAULT_MORNING_ENDS_AT,
   eveningStartsAt: DEFAULT_EVENING_STARTS_AT,
   eveningEndsAt: DEFAULT_EVENING_ENDS_AT,
-  allowStockEditForStockManager: false,
+  allowStockEditForStockManager: true,
   /** Match backend: grocery counter Edit stock defaults on. */
   allowStockEditForGroceryClerk: true,
   /** Match backend: grocery counter Spoils defaults on. */
@@ -462,9 +462,8 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
         b?.inventory?.stocktake?.countingEndsAt,
       DEFAULT_EVENING_ENDS_AT,
     ),
-    allowStockEditForStockManager: Boolean(
-      b?.inventory?.stockLevels?.allowStockEditForStockManager,
-    ),
+    allowStockEditForStockManager:
+      b?.inventory?.stockLevels?.allowStockEditForStockManager !== false,
     allowStockEditForGroceryClerk:
       b?.inventory?.stockLevels?.allowStockEditForGroceryClerk !== false,
     allowSpoilsForGroceryClerk:

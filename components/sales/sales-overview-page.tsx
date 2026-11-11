@@ -22,6 +22,10 @@ import {
   Search,
 } from "lucide-react";
 
+import { ReceiptLookupBanner } from "@/components/sales/receipt-lookup-banner";
+import { SaleReceiptActions } from "@/components/sales/sale-receipt-actions";
+import { useReceiptLookup } from "@/components/sales/use-receipt-lookup";
+
 import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
@@ -512,7 +516,8 @@ function SaleGroup({
   const isOnline = tx.channel === "online_store";
   const meta = saleMetaParts(tx);
   const receipt = txDisplayNo(tx);
-  const hasActions = canAdjust || canVoid;
+  const showReceiptActions = !isOnline;
+  const hasActions = showReceiptActions || canAdjust || canVoid;
 
   return (
     <article
@@ -655,10 +660,21 @@ function SaleGroup({
       {hasActions ? (
         <div
           className={cn(
-            "flex items-center justify-end gap-1 border-t px-2 py-1.5 sm:px-2.5",
+            "flex flex-wrap items-center justify-end gap-1 border-t px-2 py-1.5 sm:px-2.5",
             salesHair,
           )}
         >
+          {showReceiptActions ? (
+            <SaleReceiptActions
+              saleId={tx.saleId}
+              receiptLabel={receipt}
+              buttonClassName={cn(
+                "h-9 gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold sm:h-8",
+                salesMute,
+                "hover:text-[var(--order-ink,#15231f)]",
+              )}
+            />
+          ) : null}
           {canAdjust ? (
             <Button
               type="button"
@@ -911,6 +927,18 @@ export function SalesOverviewPage() {
     [filteredLines],
   );
 
+  const receiptAlreadyVisible = useMemo(() => {
+    const q = search.trim().toLowerCase().replace(/^#+/, "");
+    if (!q) return false;
+    return transactions.some(
+      (tx) =>
+        (tx.receiptNo != null && String(tx.receiptNo) === q) ||
+        tx.saleId.toLowerCase().includes(q),
+    );
+  }, [transactions, search]);
+
+  const receiptLookup = useReceiptLookup(search, receiptAlreadyVisible);
+
   const filteredSummary = useMemo(() => {
     let revenue = 0;
     let units = 0;
@@ -1139,6 +1167,14 @@ export function SalesOverviewPage() {
           showChannelFilter={canViewWebOrders}
         />
       <div className={cn("min-h-0 flex-1 overflow-y-auto border-t", salesHair)}>
+        {receiptLookup.receiptNo != null ? (
+          <ReceiptLookupBanner
+            receiptNo={receiptLookup.receiptNo}
+            sale={receiptLookup.sale}
+            loading={receiptLookup.loading}
+            notFound={receiptLookup.notFound}
+          />
+        ) : null}
         {loading ? (
           <FeedSkeleton />
         ) : transactions.length === 0 ? (

@@ -37,13 +37,13 @@ export const STOCK_COL_WIDTH_DEFAULTS: StockColumnWidths = {
   category: 104,
   department: 104,
   shelf: 104,
-  inStore: 84,
+  inStore: 128,
   reorder: 68,
   buy: 84,
   sell: 84,
   unitCost: 76,
   status: 68,
-  edit: 84,
+  edit: 112,
 };
 
 export const STOCK_COL_WIDTH_MIN: StockColumnWidths = {
@@ -53,7 +53,7 @@ export const STOCK_COL_WIDTH_MIN: StockColumnWidths = {
   category: 72,
   department: 72,
   shelf: 72,
-  inStore: 48,
+  inStore: 96,
   reorder: 44,
   buy: 56,
   sell: 56,
@@ -61,7 +61,7 @@ export const STOCK_COL_WIDTH_MIN: StockColumnWidths = {
   // Hard floors: the status badge and the edit save/cancel pair have
   // fixed-size content — shrinking below them would bleed into neighbors.
   status: 68,
-  edit: 84,
+  edit: 112,
 };
 
 export const STOCK_COL_WIDTH_MAX: StockColumnWidths = {
@@ -71,13 +71,13 @@ export const STOCK_COL_WIDTH_MAX: StockColumnWidths = {
   category: 240,
   department: 240,
   shelf: 240,
-  inStore: 160,
+  inStore: 220,
   reorder: 140,
   buy: 160,
   sell: 160,
   unitCost: 160,
   status: 120,
-  edit: 120,
+  edit: 160,
 };
 
 export const STOCK_COL_CSS_VARS: Record<StockResizableCol, string> = {
