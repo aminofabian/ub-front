@@ -6,7 +6,7 @@ import { barlowCondensed } from "@/app/fonts/barlow-condensed";
 import { cormorant } from "@/app/fonts/cormorant";
 import { geistMono } from "@/app/fonts/geist-mono";
 import { inter } from "@/app/fonts/inter";
-import { manrope } from "@/app/fonts/manrope";
+import { ttNormsPro } from "@/app/fonts/tt-norms-pro";
 import { TenantProvider } from "@/components/providers/tenant-provider";
 import { PlatformSupportLauncher } from "@/components/support/platform-support-launcher";
 import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
@@ -85,7 +85,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-KE"
-      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${cormorant.variable} ${manrope.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${cormorant.variable} ${ttNormsPro.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

@@ -25,11 +25,11 @@ import {
 import {
   DASHBOARD_MAX_WIDE,
   DashboardFeedback,
-  DashboardPageHero,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { FormDrawer } from "@/components/form-drawer";
 import { OpsClientLogsPanel } from "@/components/ops-client-logs-panel";
 import { useMediaLg } from "@/hooks/use-media-lg";
@@ -66,8 +66,9 @@ import { cn } from "@/lib/utils";
  *   1. Today's pulse — one sentence, attention chips only when non-zero.
  *   2. The feed — plain-English rows grouped by day and time of day.
  *   3. The forensic drawer — everything about one row, JSON included.
- * Operator-shell materials (DESIGN.md): ivory surface, hairline rules, 2px
- * corners, forest for the one action, terracotta only where attention is due.
+ * Operator-shell materials (DESIGN.md): ivory ground, paper surface, hairline
+ * rules, Cormorant for the diary voice, forest for the one action, terracotta
+ * only where attention is due.
  */
 
 const PAGE_SIZE = 100;
@@ -75,18 +76,24 @@ const POLL_MS = 20_000;
 
 const INK = "text-[var(--order-ink,#121a16)]";
 const MUTE =
-  "text-[color-mix(in_srgb,var(--order-ink,#121a16)_62%,transparent)]";
+  "text-[color-mix(in_srgb,var(--order-ink,#121a16)_58%,transparent)]";
 const FAINT =
-  "text-[color-mix(in_srgb,var(--order-ink,#121a16)_45%,transparent)]";
+  "text-[color-mix(in_srgb,var(--order-ink,#121a16)_42%,transparent)]";
 const HAIR =
-  "border-[color-mix(in_srgb,var(--order-ink,#121a16)_12%,transparent)]";
-const SURFACE = cn("rounded-[2px] border bg-[var(--op-surface,#fcfaf5)]", HAIR);
+  "border-[color-mix(in_srgb,var(--order-ink,#121a16)_11%,transparent)]";
+const SURFACE = cn(
+  "relative overflow-hidden rounded-[2px] border bg-[var(--op-surface,#fcfaf5)]",
+  HAIR,
+  "before:pointer-events-none before:absolute before:inset-0 before:bg-[url('/textures/paper-grain.png')] before:bg-repeat before:bg-[length:220px_220px] before:opacity-[0.045] before:content-['']",
+);
+const SERIF =
+  "font-[family-name:var(--font-cormorant),Georgia,'Times_New_Roman',serif]";
 const EASE =
-  "transition-[color,background-color,border-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]";
+  "transition-[color,background-color,border-color,opacity,transform] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)]";
 const FOCUS =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1d4b3b)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-surface,#fcfaf5)]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1d4b3b)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-bg,#f4f1ea)]";
 const SCROLLBAR =
-  "[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--order-ink,#121a16)_28%,transparent)_transparent]";
+  "[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--order-ink,#121a16)_26%,transparent)_transparent]";
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "custom";
 type Preset = "attention" | "everything";
@@ -179,14 +186,44 @@ function Chip({
   children,
   tone,
   title,
+  quiet,
 }: {
   active?: boolean;
   onClick: () => void;
   children: ReactNode;
   tone?: StoryTone;
   title?: string;
+  /** Period / view chips — underline instead of filled block. */
+  quiet?: boolean;
 }) {
   const alarm = tone === "alarm";
+  if (quiet) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title={title}
+        aria-pressed={active}
+        className={cn(
+          "inline-flex h-9 items-center gap-1.5 border-b-2 px-1.5 text-[12.5px] font-semibold tracking-[-0.01em] sm:h-8",
+          EASE,
+          FOCUS,
+          "focus-visible:ring-offset-0",
+          active
+            ? alarm
+              ? "border-[#9a2e16] text-[#9a2e16]"
+              : "border-[var(--pos-primary,#1d4b3b)] text-[var(--pos-primary,#1d4b3b)]"
+            : cn(
+                "border-transparent",
+                alarm ? "text-[#9a2e16]/80" : MUTE,
+                "hover:text-[var(--order-ink,#121a16)]",
+              ),
+        )}
+      >
+        {children}
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -194,19 +231,18 @@ function Chip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-[2px] border px-2.5 text-[12px] font-semibold tabular-nums sm:h-8",
+        "inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[11.5px] font-semibold tabular-nums tracking-[0.01em] sm:h-7",
         EASE,
         FOCUS,
         active
           ? alarm
-            ? "border-[#9a2e16] bg-[#9a2e16] text-white"
-            : "border-[var(--pos-primary,#1d4b3b)] bg-[var(--pos-primary,#1d4b3b)] text-white"
+            ? "bg-[#9a2e16] text-white"
+            : "bg-[var(--pos-primary,#1d4b3b)] text-white"
           : cn(
-              HAIR,
-              alarm ? "text-[#9a2e16]" : MUTE,
+              "ring-1 ring-inset",
               alarm
-                ? "hover:border-[#9a2e16]"
-                : "hover:border-[var(--pos-primary,#1d4b3b)] hover:text-[var(--pos-primary,#1d4b3b)]",
+                ? "text-[#9a2e16] ring-[#9a2e16]/30 hover:bg-[#9a2e16]/[0.06]"
+                : cn(MUTE, "ring-[color-mix(in_srgb,var(--order-ink,#121a16)_14%,transparent)] hover:text-[var(--order-ink,#121a16)] hover:ring-[color-mix(in_srgb,var(--order-ink,#121a16)_28%,transparent)]"),
             ),
       )}
     >
@@ -236,12 +272,12 @@ function ToolButton({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-10 items-center gap-1.5 rounded-[2px] border bg-[var(--op-surface,#fcfaf5)] px-3 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:px-2.5",
-        HAIR,
-        active ? "text-[var(--pos-primary,#1d4b3b)] border-[var(--pos-primary,#1d4b3b)]" : INK,
-        "hover:border-[var(--pos-primary,#1d4b3b)] hover:text-[var(--pos-primary,#1d4b3b)]",
+        "inline-flex h-10 items-center gap-1.5 rounded-[2px] px-2.5 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:h-8",
         EASE,
         FOCUS,
+        active
+          ? "bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_10%,transparent)] text-[var(--pos-primary,#1d4b3b)]"
+          : cn(MUTE, "hover:bg-[color-mix(in_srgb,var(--order-ink,#121a16)_4%,transparent)] hover:text-[var(--order-ink,#121a16)]"),
       )}
     >
       {children}
@@ -271,14 +307,20 @@ function StoryLine({ story, className }: { story: Story; className?: string }) {
 
 function FeedSkeleton() {
   return (
-    <div aria-hidden className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3">
-          <div className="h-3 w-10 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]" />
-          <div
-            className="h-3 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#121a16)_7%,transparent)]"
-            style={{ width: `${40 + ((i * 17) % 40)}%` }}
-          />
+    <div aria-hidden className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#121a16)_7%,transparent)]">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="flex items-start gap-3.5 px-4 py-3.5 sm:px-5">
+          <div className="mt-0.5 h-3 w-11 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]" />
+          <div className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--order-ink,#121a16)_12%,transparent)]" />
+          <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+            <div
+              className="h-3.5 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]"
+              style={{ width: `${48 + ((i * 13) % 36)}%` }}
+            />
+            {i % 3 === 0 ? (
+              <div className="h-2.5 w-24 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#121a16)_5%,transparent)]" />
+            ) : null}
+          </div>
         </div>
       ))}
     </div>
@@ -368,12 +410,12 @@ function EventDetailBody({
   const after = parseJsonObject(event.newState);
   const when = new Date(event.createdAt);
   return (
-    <div className="space-y-5 px-4 py-4">
+    <div className="space-y-5 px-4 py-5 sm:px-5">
       <div>
-        <p className={cn("text-[15px] leading-relaxed", INK)}>
+        <p className={cn(SERIF, "text-[1.35rem] font-normal leading-snug tracking-[-0.01em]", INK)}>
           <StoryLine story={story} />
         </p>
-        <p className={cn("mt-1.5 font-mono text-[11px] tabular-nums", MUTE)}>
+        <p className={cn("mt-2 font-mono text-[11px] tabular-nums tracking-[0.02em]", MUTE)}>
           {Number.isNaN(when.getTime())
             ? event.createdAt
             : when.toLocaleString("en-KE", {
@@ -389,7 +431,7 @@ function EventDetailBody({
           <Link
             href={story.link.href}
             className={cn(
-              "mt-3 inline-flex h-9 items-center gap-1.5 rounded-[2px] border border-[var(--pos-primary,#1d4b3b)] px-3 text-[12px] font-semibold text-[var(--pos-primary,#1d4b3b)] hover:bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_8%,transparent)] sm:h-8",
+              "mt-4 inline-flex h-9 items-center gap-1.5 rounded-[2px] bg-[var(--pos-primary,#1d4b3b)] px-3 text-[12px] font-semibold text-white hover:bg-[var(--kiosk-gold-hover,#163b2e)] sm:h-8",
               EASE,
               FOCUS,
             )}
@@ -709,16 +751,29 @@ export function ShopDiary() {
 
   // ── Render ──
   const pulse = (
-    <section className={cn(SURFACE, "overflow-hidden")}>
-      <div className={cn("flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between", HAIR)}>
-        <div role="group" aria-label="Period" className="flex flex-wrap gap-1">
+    <section className={SURFACE}>
+      <div
+        className={cn(
+          "flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-end sm:justify-between sm:px-5",
+          HAIR,
+        )}
+      >
+        <div role="group" aria-label="Period" className="flex flex-wrap gap-x-3 gap-y-0">
           {PERIODS.map((p) => (
-            <Chip key={p.id} active={effectivePeriod === p.id} onClick={() => { setPeriod(p.id); if (parsedQuery.period) setQuery(""); }}>
+            <Chip
+              key={p.id}
+              quiet
+              active={effectivePeriod === p.id}
+              onClick={() => {
+                setPeriod(p.id);
+                if (parsedQuery.period) setQuery("");
+              }}
+            >
               {p.label}
             </Chip>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {period === "custom" ? (
             <>
               <input
@@ -758,39 +813,67 @@ export function ShopDiary() {
         </div>
       </div>
 
-      <div className="px-4 pb-4 pt-4">
+      <div className="relative px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         {!range ? (
-          <p className={cn("text-[15px]", MUTE)}>Choose a start and end date.</p>
+          <p className={cn(SERIF, "text-[1.5rem] leading-snug", MUTE)}>
+            Choose a start and end date.
+          </p>
         ) : summary == null ? (
-          <div className="h-6 w-64 animate-pulse bg-[color-mix(in_srgb,var(--order-ink,#121a16)_7%,transparent)]" />
+          <div className="space-y-2">
+            <div className="h-8 w-[min(100%,22rem)] animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#121a16)_7%,transparent)]" />
+            <div className="h-3 w-40 animate-pulse rounded-sm bg-[color-mix(in_srgb,var(--order-ink,#121a16)_5%,transparent)]" />
+          </div>
         ) : (
           <>
-            <p className={cn("text-[1.35rem] font-semibold leading-tight tracking-[-0.02em]", INK)}>
+            <p
+              className={cn(
+                SERIF,
+                "max-w-[28rem] text-[1.75rem] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[2rem]",
+                INK,
+              )}
+            >
               {pulseSentence(attentionCount, periodWord)}
             </p>
-            <p className={cn("mt-1 text-[12px]", MUTE)}>
-              {[
-                summary.total > 0
-                  ? `${summary.total.toLocaleString("en-KE")} entr${summary.total === 1 ? "y" : "ies"} in all`
-                  : null,
-                compare,
-                isLive ? "Live" : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+            <p className={cn("mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]", MUTE)}>
+              {isLive ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-[var(--pos-primary,#1d4b3b)]">
+                  <span
+                    className="size-1.5 rounded-full bg-[var(--pos-primary,#1d4b3b)] motion-safe:animate-pulse"
+                    aria-hidden
+                  />
+                  Live
+                </span>
+              ) : null}
+              {isLive && summary.total > 0 ? <span aria-hidden>·</span> : null}
+              {summary.total > 0 ? (
+                <span>
+                  {summary.total.toLocaleString("en-KE")} entr
+                  {summary.total === 1 ? "y" : "ies"} in all
+                </span>
+              ) : null}
+              {compare ? (
+                <>
+                  {(isLive || summary.total > 0) ? <span aria-hidden>·</span> : null}
+                  <span>{compare}</span>
+                </>
+              ) : null}
             </p>
           </>
         )}
 
         {chipCounts.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Attention">
+          <div className="mt-4 flex flex-wrap gap-1.5" role="group" aria-label="Attention">
             {chipCounts.map((c) => (
               <Chip
                 key={c.id}
                 tone={c.tone}
                 active={chipId === c.id}
                 onClick={() => setChipId((cur) => (cur === c.id ? null : c.id))}
-                title={c.before > 0 || c.count > 0 ? `${c.before} the same period last week` : undefined}
+                title={
+                  c.before > 0 || c.count > 0
+                    ? `${c.before} the same period last week`
+                    : undefined
+                }
               >
                 <span className="tabular-nums">{c.count}</span>
                 <span className="font-medium">{c.label}</span>
@@ -800,19 +883,31 @@ export function ShopDiary() {
         ) : null}
 
         {streaks.length > 0 ? (
-          <ul className={cn("mt-3 divide-y border-t", HAIR, "divide-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]")}>
+          <ul
+            className={cn(
+              "mt-4 divide-y border-t",
+              HAIR,
+              "divide-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]",
+            )}
+          >
             {streaks.slice(0, 3).map((s) => (
-              <li key={`${s.actorId}-${s.eventType}`} className="flex items-center gap-2 py-2 text-[13px]">
+              <li
+                key={`${s.actorId}-${s.eventType}`}
+                className="flex items-center gap-2.5 py-2.5 text-[13px] leading-snug"
+              >
                 <Eye className="size-3.5 shrink-0 text-[#a55237]" aria-hidden />
-                <span className={INK}>{streakSentence(s)}</span>
-                <span className={cn("font-mono text-[11px] tabular-nums", FAINT)}>
+                <span className={cn("min-w-0 flex-1", INK)}>{streakSentence(s)}</span>
+                <span className={cn("shrink-0 font-mono text-[11px] tabular-nums", FAINT)}>
                   {clockFor(s.firstAt)}–{clockFor(s.lastAt)}
                 </span>
                 {s.actorId ? (
                   <button
                     type="button"
                     onClick={() => setActorId(s.actorId)}
-                    className={cn("ml-auto text-[12px] font-semibold text-[var(--pos-primary,#1d4b3b)] hover:underline", FOCUS)}
+                    className={cn(
+                      "shrink-0 text-[12px] font-semibold text-[var(--pos-primary,#1d4b3b)] underline-offset-2 hover:underline",
+                      FOCUS,
+                    )}
                   >
                     See theirs
                   </button>
@@ -826,66 +921,143 @@ export function ShopDiary() {
   );
 
   const feed = (
-    <section className={cn(SURFACE, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
-      <div className={cn("space-y-2.5 border-b px-4 py-3", HAIR)}>
+    <section className={cn(SURFACE, "flex min-h-0 flex-1 flex-col")}>
+      <div className={cn("space-y-3 border-b px-4 py-3.5 sm:px-5", HAIR)}>
         <div className="relative">
-          <Search className={cn("pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2", FAINT)} aria-hidden />
+          <Search
+            className={cn(
+              "pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2",
+              FAINT,
+            )}
+            aria-hidden
+          />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask the diary — voids yesterday, Faith password, M-Pesa fails, cleared sales on till 2"
+            placeholder="Ask the diary — voids yesterday, Faith password, M-Pesa fails…"
             aria-label="Ask the diary"
-            className={cn(dashboardInputClass(), "pl-8 pr-8")}
+            className={cn(
+              dashboardInputClass(),
+              "h-11 border-transparent bg-[color-mix(in_srgb,var(--order-ink,#121a16)_3.5%,transparent)] pl-9 pr-9 sm:h-9",
+              "placeholder:text-[color-mix(in_srgb,var(--order-ink,#121a16)_38%,transparent)]",
+              "focus-visible:border-[var(--pos-primary,#1d4b3b)] focus-visible:bg-[var(--op-surface,#fcfaf5)]",
+            )}
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className={cn("absolute right-1.5 top-1/2 -translate-y-1/2 rounded-[2px] p-1", FAINT, "hover:text-[var(--order-ink,#121a16)]", FOCUS)}
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 rounded-[2px] p-1",
+                FAINT,
+                "hover:text-[var(--order-ink,#121a16)]",
+                FOCUS,
+              )}
             >
               <X className="size-3.5" aria-hidden />
             </button>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <div role="group" aria-label="View" className="flex gap-1">
-            <Chip active={preset === "attention" && !chip && parsedQuery.eventTypes.length === 0} onClick={() => { setPreset("attention"); setChipId(null); }}>
+          <div role="group" aria-label="View" className="flex gap-x-3">
+            <Chip
+              quiet
+              active={
+                preset === "attention" &&
+                !chip &&
+                parsedQuery.eventTypes.length === 0
+              }
+              onClick={() => {
+                setPreset("attention");
+                setChipId(null);
+              }}
+            >
               Needs a look
             </Chip>
-            <Chip active={preset === "everything" && !chip && parsedQuery.eventTypes.length === 0} onClick={() => { setPreset("everything"); setChipId(null); }}>
+            <Chip
+              quiet
+              active={
+                preset === "everything" &&
+                !chip &&
+                parsedQuery.eventTypes.length === 0
+              }
+              onClick={() => {
+                setPreset("everything");
+                setChipId(null);
+              }}
+            >
               Everything
             </Chip>
           </div>
           {people.length > 0 ? (
             <>
-              <span aria-hidden className={cn("mx-1 hidden h-4 w-px sm:block", "bg-[color-mix(in_srgb,var(--order-ink,#121a16)_12%,transparent)]")} />
+              <span
+                aria-hidden
+                className="mx-1.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--order-ink,#121a16)_12%,transparent)] sm:block"
+              />
               {people.map((p) => (
-                <Chip key={p.id} active={actorId === p.id} onClick={() => setActorId((cur) => (cur === p.id ? null : p.id))} title={`${p.count} on this page`}>
+                <Chip
+                  key={p.id}
+                  active={actorId === p.id}
+                  onClick={() =>
+                    setActorId((cur) => (cur === p.id ? null : p.id))
+                  }
+                  title={`${p.count} on this page`}
+                >
                   {p.name}
-                  <span className={cn("tabular-nums", actorId === p.id ? "opacity-80" : FAINT)}>{p.count}</span>
+                  <span
+                    className={cn(
+                      "tabular-nums",
+                      actorId === p.id ? "opacity-80" : FAINT,
+                    )}
+                  >
+                    {p.count}
+                  </span>
                 </Chip>
               ))}
             </>
           ) : null}
-          <label className={cn("ml-auto inline-flex h-8 cursor-pointer select-none items-center gap-1.5 text-[12px]", MUTE)}>
+          <label
+            className={cn(
+              "ml-auto inline-flex h-8 cursor-pointer select-none items-center gap-1.5 text-[12px]",
+              MUTE,
+            )}
+          >
             <input
               type="checkbox"
               checked={showRoutine}
               onChange={(e) => setShowRoutine(e.target.checked)}
               className="size-3.5 accent-[var(--pos-primary,#1d4b3b)]"
             />
-            Show routine sales
+            Show routine
           </label>
         </div>
         {narrowed ? (
-          <p className={cn("flex items-center gap-2 text-[12px]", MUTE)}>
-            Showing{" "}
-            {chip ? <span className={INK}>{chip.label.toLowerCase()}</span> : null}
-            {actorId ? <span className={INK}>by {people.find((p) => p.id === actorId)?.name ?? "one person"}</span> : null}
-            {query.trim() ? <span className={INK}>matching “{query.trim()}”</span> : null}
-            <button type="button" onClick={clearNarrowing} className={cn("font-semibold text-[var(--pos-primary,#1d4b3b)] hover:underline", FOCUS)}>
+          <p className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]", MUTE)}>
+            Showing
+            {chip ? (
+              <span className={cn("font-medium", INK)}>{chip.label.toLowerCase()}</span>
+            ) : null}
+            {actorId ? (
+              <span className={cn("font-medium", INK)}>
+                by {people.find((p) => p.id === actorId)?.name ?? "one person"}
+              </span>
+            ) : null}
+            {query.trim() ? (
+              <span className={cn("font-medium", INK)}>
+                matching “{query.trim()}”
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={clearNarrowing}
+              className={cn(
+                "font-semibold text-[var(--pos-primary,#1d4b3b)] underline-offset-2 hover:underline",
+                FOCUS,
+              )}
+            >
               Clear
             </button>
           </p>
@@ -896,9 +1068,16 @@ export function ShopDiary() {
         {loading ? (
           <FeedSkeleton />
         ) : visible.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <BookOpen className={cn("mx-auto size-6", FAINT)} aria-hidden />
-            <p className={cn("mt-3 text-[15px] font-semibold", INK)}>
+          <div className="flex flex-col items-center px-6 py-20 text-center">
+            <div
+              className={cn(
+                "flex size-12 items-center justify-center rounded-full border",
+                HAIR,
+              )}
+            >
+              <BookOpen className={cn("size-5", FAINT)} aria-hidden />
+            </div>
+            <p className={cn(SERIF, "mt-4 text-[1.45rem] leading-snug", INK)}>
               {!range
                 ? "Pick a period"
                 : narrowed
@@ -907,13 +1086,13 @@ export function ShopDiary() {
                     ? "Only routine sales so far"
                     : "Quiet shop so far"}
             </p>
-            <p className={cn("mx-auto mt-1 max-w-[22rem] text-[13px]", MUTE)}>
+            <p className={cn("mx-auto mt-1.5 max-w-[22rem] text-[13px] leading-relaxed", MUTE)}>
               {!range
                 ? "Choose a start and end date above."
                 : narrowed
                   ? "Try fewer words, or clear the filters."
                   : rows.length > 0 && !showRoutine
-                    ? "Tick “Show routine sales” to see completions and sign-ins."
+                    ? "Tick “Show routine” to see completions and sign-ins."
                     : "Voids, password changes, cleared sales and drawer corrections will show up here."}
             </p>
           </div>
@@ -922,46 +1101,92 @@ export function ShopDiary() {
             <div key={g.key}>
               <div
                 className={cn(
-                  "sticky top-0 z-10 flex items-baseline gap-2 border-b bg-[var(--op-surface,#fcfaf5)] px-4 py-1.5",
+                  "sticky top-0 z-10 flex items-baseline gap-2.5 border-b px-4 py-2 backdrop-blur-[6px] sm:px-5",
+                  "bg-[color-mix(in_srgb,var(--op-surface,#fcfaf5)_92%,transparent)]",
                   HAIR,
                 )}
               >
-                <span className={cn("text-[12px] font-semibold", INK)}>{g.day}</span>
-                <span className={cn("text-[12px]", MUTE)}>{g.daypart}</span>
-                <span className={cn("ml-auto font-mono text-[11px] tabular-nums", FAINT)}>{g.items.length}</span>
+                <span className={cn(SERIF, "text-[1.05rem] leading-none", INK)}>
+                  {g.day}
+                </span>
+                <span className={cn("text-[11.5px] font-medium uppercase tracking-[0.06em]", FAINT)}>
+                  {g.daypart}
+                </span>
+                <span
+                  className={cn(
+                    "ml-auto font-mono text-[11px] tabular-nums",
+                    FAINT,
+                  )}
+                >
+                  {g.items.length}
+                </span>
               </div>
-              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#121a16)_8%,transparent)]">
+              <ul className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#121a16)_7%,transparent)]">
                 {g.items.map((r) => {
                   const story = stories.get(r.id)!;
                   const active = selectedId === r.id;
+                  const isNew = newIds.has(r.id);
                   return (
                     <li key={r.id}>
                       <button
                         type="button"
-                        onClick={() => setSelectedId((cur) => (cur === r.id ? null : r.id))}
+                        onClick={() =>
+                          setSelectedId((cur) => (cur === r.id ? null : r.id))
+                        }
                         aria-expanded={active}
                         className={cn(
-                          "flex w-full items-start gap-3 px-4 py-2.5 text-left",
+                          "group flex w-full items-start gap-3.5 px-4 py-3 text-left sm:px-5 sm:py-3.5",
                           EASE,
                           FOCUS,
                           "focus-visible:ring-inset focus-visible:ring-offset-0",
                           active
-                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_8%,transparent)]"
-                            : "hover:bg-[color-mix(in_srgb,var(--order-ink,#121a16)_3%,transparent)]",
-                          newIds.has(r.id) && "bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_10%,transparent)]",
+                            ? "bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_7%,transparent)]"
+                            : "hover:bg-[color-mix(in_srgb,var(--order-ink,#121a16)_2.5%,transparent)]",
+                          isNew &&
+                            "bg-[color-mix(in_srgb,var(--pos-primary,#1d4b3b)_9%,transparent)]",
                         )}
                       >
-                        <time dateTime={r.createdAt} className={cn("w-11 shrink-0 pt-px font-mono text-[11px] tabular-nums", MUTE)}>
+                        <time
+                          dateTime={r.createdAt}
+                          className={cn(
+                            "w-12 shrink-0 pt-0.5 font-mono text-[11.5px] tabular-nums tracking-[0.02em]",
+                            MUTE,
+                          )}
+                        >
                           {clockFor(r.createdAt)}
                         </time>
-                        <span className={cn("mt-[7px] size-1.5 shrink-0 rounded-full", toneDotClass(story.tone))} aria-hidden />
-                        <span className={cn("min-w-0 flex-1 text-[13px] leading-snug", MUTE)}>
+                        <span
+                          className={cn(
+                            "mt-2 size-1.5 shrink-0 rounded-full",
+                            toneDotClass(story.tone),
+                          )}
+                          aria-hidden
+                        />
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 text-[13.5px] leading-[1.45]",
+                            MUTE,
+                          )}
+                        >
                           <StoryLine story={story} />
-                          {branchId === "" && branches.length > 1 && r.branchId ? (
-                            <span className={cn("ml-1.5 text-[11px]", FAINT)}>{branchNames[r.branchId] ?? ""}</span>
+                          {branchId === "" &&
+                          branches.length > 1 &&
+                          r.branchId ? (
+                            <span className={cn("ml-1.5 text-[11px]", FAINT)}>
+                              {branchNames[r.branchId] ?? ""}
+                            </span>
                           ) : null}
                         </span>
-                        <ChevronRight className={cn("mt-0.5 size-3.5 shrink-0", FAINT, active && "rotate-90")} aria-hidden />
+                        <ChevronRight
+                          className={cn(
+                            "mt-1 size-3.5 shrink-0 opacity-0",
+                            FAINT,
+                            EASE,
+                            "group-hover:opacity-100 group-focus-visible:opacity-100",
+                            active && "rotate-90 opacity-100",
+                          )}
+                          aria-hidden
+                        />
                       </button>
                     </li>
                   );
@@ -971,12 +1196,18 @@ export function ShopDiary() {
           ))
         )}
         {!loading && hasMore ? (
-          <div className={cn("border-t px-4 py-3 text-center", HAIR)}>
-            <ToolButton onClick={() => void load({ append: true, nextPage: page + 1 })} disabled={loadingMore}>
-              {loadingMore ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+          <div className={cn("border-t px-4 py-3.5 text-center", HAIR)}>
+            <ToolButton
+              onClick={() => void load({ append: true, nextPage: page + 1 })}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : null}
               Older entries
               <span className={cn("font-mono tabular-nums", FAINT)}>
-                {rows.length.toLocaleString("en-KE")} of {total.toLocaleString("en-KE")}
+                {rows.length.toLocaleString("en-KE")} of{" "}
+                {total.toLocaleString("en-KE")}
               </span>
             </ToolButton>
           </div>
@@ -987,45 +1218,100 @@ export function ShopDiary() {
 
   const detailAside =
     isLg && selected ? (
-      <aside className={cn(SURFACE, "flex min-h-0 flex-col overflow-hidden")}>
-        <div className={cn("flex items-center justify-between gap-2 border-b px-4 py-2.5", HAIR)}>
-          <h2 className={cn("text-[13px] font-semibold", INK)}>Entry</h2>
+      <aside className={cn(SURFACE, "flex min-h-0 flex-col")}>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-5",
+            HAIR,
+          )}
+        >
+          <h2 className={cn(SERIF, "text-[1.15rem] leading-none", INK)}>
+            Entry
+          </h2>
           <button
             type="button"
             onClick={() => setSelectedId(null)}
             aria-label="Close entry"
-            className={cn("rounded-[2px] p-1", FAINT, "hover:text-[var(--order-ink,#121a16)]", FOCUS)}
+            className={cn(
+              "rounded-[2px] p-1",
+              FAINT,
+              "hover:text-[var(--order-ink,#121a16)]",
+              FOCUS,
+            )}
           >
             <X className="size-4" aria-hidden />
           </button>
         </div>
         <div className={cn("min-h-0 flex-1 overflow-y-auto", SCROLLBAR)}>
-          <EventDetailBody event={selected} branchName={selected.branchId ? branchNames[selected.branchId] ?? null : null} />
+          <EventDetailBody
+            event={selected}
+            branchName={
+              selected.branchId
+                ? (branchNames[selected.branchId] ?? null)
+                : null
+            }
+          />
         </div>
       </aside>
     ) : null;
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-2 pb-[calc(var(--shell-bottom-inset)+1.5rem)] sm:pb-8")}>
-      <DashboardPageHero
-        icon={BookOpen}
-        title="Activity"
-        description="What happened in the shop, in plain words."
-        showActiveScope
-      >
-        <ToolButton onClick={() => void load({ silent: true })} disabled={loading} title="Refresh">
-          <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} aria-hidden />
-          Refresh
-        </ToolButton>
-        <ToolButton onClick={() => void exportCsv()} disabled={!range || exporting} title="Download the entries in view as CSV">
-          {exporting ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Download className="size-3.5" aria-hidden />}
-          CSV
-        </ToolButton>
-        <ToolButton onClick={() => setDiagnosticsOpen(true)} title="This browser's own device logs" active={diagnosticsOpen}>
-          <MonitorSmartphone className="size-3.5" aria-hidden />
-          This device
-        </ToolButton>
-      </DashboardPageHero>
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "gap-3 pb-[calc(var(--shell-bottom-inset)+1.5rem)] sm:pb-8",
+      )}
+    >
+      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-0.5 pt-1">
+        <div className="min-w-0">
+          <h1
+            className={cn(
+              SERIF,
+              "text-[2rem] font-normal leading-none tracking-[-0.02em] sm:text-[2.25rem]",
+              INK,
+            )}
+          >
+            Shop diary
+          </h1>
+          <div className={cn("mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[13px] leading-snug", MUTE)}>
+            <span>What happened in the shop, in plain words.</span>
+            <ActiveScopeSubtitle className="text-[13px] text-inherit" />
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-0.5">
+          <ToolButton
+            onClick={() => void load({ silent: true })}
+            disabled={loading}
+            title="Refresh"
+          >
+            <RefreshCw
+              className={cn("size-3.5", refreshing && "animate-spin")}
+              aria-hidden
+            />
+            Refresh
+          </ToolButton>
+          <ToolButton
+            onClick={() => void exportCsv()}
+            disabled={!range || exporting}
+            title="Download the entries in view as CSV"
+          >
+            {exporting ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Download className="size-3.5" aria-hidden />
+            )}
+            CSV
+          </ToolButton>
+          <ToolButton
+            onClick={() => setDiagnosticsOpen(true)}
+            title="This browser's own device logs"
+            active={diagnosticsOpen}
+          >
+            <MonitorSmartphone className="size-3.5" aria-hidden />
+            This device
+          </ToolButton>
+        </div>
+      </header>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
@@ -1033,8 +1319,10 @@ export function ShopDiary() {
 
       <div
         className={cn(
-          "grid min-h-0 gap-2",
-          detailAside ? "lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]" : "lg:grid-cols-1",
+          "grid min-h-0 gap-3",
+          detailAside
+            ? "lg:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]"
+            : "lg:grid-cols-1",
           "lg:h-[min(78dvh,56rem)]",
         )}
       >
@@ -1053,7 +1341,14 @@ export function ShopDiary() {
           headerDensity="compact"
         >
           {selected ? (
-            <EventDetailBody event={selected} branchName={selected.branchId ? branchNames[selected.branchId] ?? null : null} />
+            <EventDetailBody
+              event={selected}
+              branchName={
+                selected.branchId
+                  ? (branchNames[selected.branchId] ?? null)
+                  : null
+              }
+            />
           ) : null}
         </FormDrawer>
       ) : null}
@@ -1070,6 +1365,7 @@ export function ShopDiary() {
           <OpsClientLogsPanel />
         </div>
       </FormDrawer>
+
     </div>
   );
 }

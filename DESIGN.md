@@ -33,15 +33,19 @@ the terracotta carries one accent per view at most.
 
 ## Type
 
-- **Display:** Cormorant Garamond (`--font-cormorant`). Weight 300–400.
-  Landing and page titles only. Italic is the emphasis, not a second family.
-- **Body / UI:** Manrope (`--font-manrope`). 15–17px body, 1.65 line height,
-  65–75 character measure. Controls and tables use Manrope too.
+- **Body / UI / headings:** TT Norms Pro (`--font-tt-norms`; alias
+  `--font-manrope`). Variable Thin→ExtraBlack. 15–17px body, 1.65 line height,
+  65–75 character measure. Self-hosted from `app/fonts/tt-norms-pro/` — do not
+  put the licensed family under `/public`.
+- **Display (editorial only):** Cormorant Garamond (`--font-cormorant`).
+  Landing heroes and deliberate page titles. Italic is the emphasis.
+- **Condensed (opt-in):** Barlow Condensed (`--font-condensed`) for narrow POS /
+  theatre titles that still need the compressed voice.
 - **Meta:** Geist Mono (`--font-geist-mono`) for timestamps, labels, receipts,
   and tabular numerals. Never as a decorative "technical" costume.
 
-Three families maximum. Do not introduce Inter, Fraunces, or a script face into
-new surfaces.
+Prefer TT Norms. Do not introduce Inter, Fraunces, or a script face into new
+surfaces.
 
 ## Material and shape
 
@@ -77,7 +81,7 @@ new surfaces.
 The dashboard keeps the same materials but changes the density:
 
 - Header fascia: `--op-bg` ivory, hairline bottom rule, forest logo stamp.
-  Page title in Cormorant, 1.4–1.7rem; the branch/place line is Manrope 10.5px
+  Page title in Cormorant, 1.4–1.7rem; the branch/place line is TT Norms 10.5px
   sentence case, muted. No "Aisle" eyebrow.
 - Navigation: one line, 44px tall, forest underline on the active tab. Hints
   belong in `title`, not in the visible row.

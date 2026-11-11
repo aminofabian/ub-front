@@ -16,8 +16,8 @@ export default function BusinessLogsPage() {
   if (!canViewAuditLog) {
     return (
       <DashboardAccessDenied
-        title="Activity unavailable"
-        description="Only owners, admins, and managers can read the shop's activity."
+        title="Shop diary unavailable"
+        description="Only owners, admins, and managers can read the shop's diary."
       />
     );
   }
