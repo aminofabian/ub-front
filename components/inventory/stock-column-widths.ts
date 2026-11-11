@@ -37,7 +37,8 @@ export const STOCK_COL_WIDTH_DEFAULTS: StockColumnWidths = {
   category: 104,
   department: 104,
   shelf: 104,
-  inStore: 128,
+  // Room for − / qty / + with 5–6 digit amounts (e.g. 20000).
+  inStore: 168,
   reorder: 68,
   buy: 84,
   sell: 84,
@@ -53,7 +54,7 @@ export const STOCK_COL_WIDTH_MIN: StockColumnWidths = {
   category: 72,
   department: 72,
   shelf: 72,
-  inStore: 96,
+  inStore: 156,
   reorder: 44,
   buy: 56,
   sell: 56,

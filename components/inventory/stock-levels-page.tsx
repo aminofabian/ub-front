@@ -370,6 +370,13 @@ const catalogCellMoneyInput = cn(
   "text-right tabular-nums",
 );
 
+/** Hide native number spinners so − / + steppers stay usable for large qtys. */
+const stockNumberNoSpinner = cn(
+  "[appearance:textfield]",
+  "[&::-webkit-inner-spin-button]:appearance-none",
+  "[&::-webkit-outer-spin-button]:appearance-none",
+);
+
 const catalogCellSelect = cn(
   catalogCellInput,
   "cursor-pointer appearance-none pr-5",
@@ -838,6 +845,7 @@ function StockMobileCard({
                 }}
                 className={cn(
                   mobileFieldInput,
+                  stockNumberNoSpinner,
                   "text-center text-[1.6rem] font-semibold tabular-nums",
                 )}
                 placeholder="0"
@@ -1168,7 +1176,8 @@ function StockRowItem({
               }}
               className={cn(
                 catalogCellMoneyInput,
-                "h-8 min-w-0 flex-1 rounded-md border bg-white text-center text-[14px] font-semibold disabled:opacity-60",
+                stockNumberNoSpinner,
+                "h-8 min-w-[5.5rem] flex-1 rounded-md border bg-white px-1.5 text-center text-[14px] font-semibold disabled:opacity-60",
                 stockHair,
               )}
               placeholder="0"
