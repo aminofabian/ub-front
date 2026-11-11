@@ -100,7 +100,13 @@ import { cn } from "@/lib/utils";
 import { ReportDownloadButton } from "@/components/reports/report-download-button";
 import { ReportSummaryPanel } from "@/components/reports/report-summary-panel";
 import { ReportDeliveryManager } from "@/components/reports/report-delivery-manager";
-import { HUB_ICON_BTN } from "@/lib/business-hub/constants";
+import {
+  HUB_BORDER,
+  HUB_DIVIDE,
+  HUB_ICON_BTN,
+  HUB_MUTED,
+  HUB_SECTION,
+} from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canWriteSuppliers } from "@/lib/supplier-access";
 import {
@@ -1904,46 +1910,82 @@ export function BusinessHubWorkspace() {
                     </section>
                   ) : null}
                   {canExportReports ? (
-                    <section className="space-y-3">
-                      <HubSectionLabel title="Reports" className="px-0.5" />
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-semibold text-muted-foreground">
-                            Sales by category
-                          </span>
-                          <ReportDownloadButton
-                            reportKey="sales_by_category"
-                            input={reportPeriodInput}
-                          />
-                          <ReportSummaryPanel
-                            reportKey="sales_by_category"
-                            input={reportPeriodInput}
-                          />
+                    <section
+                      className={cn(
+                        "rounded-[2px] border bg-[var(--hub-paper,#FCFAF5)]",
+                        HUB_BORDER,
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center justify-between gap-3 border-b px-3.5 py-2.5",
+                          HUB_BORDER,
+                        )}
+                      >
+                        <h2 className={cn(HUB_SECTION)}>Reports</h2>
+                        <ReportDeliveryManager />
+                      </div>
+                      <div className={cn("divide-y bg-white", HUB_DIVIDE)}>
+                        <div className="flex items-center gap-3 px-3.5 py-3">
+                          <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+                              Sales by category
+                            </div>
+                            <div className={cn("text-[11px]", HUB_MUTED)}>
+                              Revenue &amp; profit by category
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <ReportDownloadButton
+                              reportKey="sales_by_category"
+                              input={reportPeriodInput}
+                            />
+                            <ReportSummaryPanel
+                              reportKey="sales_by_category"
+                              input={reportPeriodInput}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-semibold text-muted-foreground">
-                            Supplier spend
-                          </span>
-                          <ReportDownloadButton
-                            reportKey="supplier_spend"
-                            input={reportSupplierInput}
-                          />
+                        <div className="flex items-center gap-3 px-3.5 py-3">
+                          <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+                              Supplier spend
+                            </div>
+                            <div className={cn("text-[11px]", HUB_MUTED)}>
+                              What you paid each supplier
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <ReportDownloadButton
+                              reportKey="supplier_spend"
+                              input={reportSupplierInput}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-semibold text-muted-foreground">
-                            Inventory valuation
-                          </span>
-                          <ReportDownloadButton
-                            reportKey="inventory_valuation"
-                            input={reportInventoryInput}
-                          />
-                          <ReportSummaryPanel
-                            reportKey="inventory_valuation"
-                            input={reportInventoryInput}
-                          />
+                        <div className="flex items-center gap-3 px-3.5 py-3">
+                          <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+                              Inventory valuation
+                            </div>
+                            <div className={cn("text-[11px]", HUB_MUTED)}>
+                              Stock on hand at cost
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <ReportDownloadButton
+                              reportKey="inventory_valuation"
+                              input={reportInventoryInput}
+                            />
+                            <ReportSummaryPanel
+                              reportKey="inventory_valuation"
+                              input={reportInventoryInput}
+                            />
+                          </div>
                         </div>
                       </div>
-                      <ReportDeliveryManager />
                     </section>
                   ) : null}
 

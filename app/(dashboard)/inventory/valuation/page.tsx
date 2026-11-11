@@ -335,7 +335,6 @@ export default function InventoryValuationPage() {
             </Button>
             <ReportDownloadButton
               reportKey="inventory_valuation"
-              label="Download"
               input={() => {
                 const today = new Date().toISOString().slice(0, 10);
                 return {

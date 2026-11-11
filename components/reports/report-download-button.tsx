@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,83 +12,107 @@ import {
 } from "@/lib/api";
 import { downloadBlob } from "@/lib/sales-activity-pdf";
 import { cn } from "@/lib/utils";
+import {
+  reportBtn,
+  reportFaint,
+  reportMenuItem,
+  reportMono,
+  reportOverlay,
+} from "./report-ui";
 
-/**
- * Format picker + download for any server-generated report. `input` is read
- * lazily on click so the current filters are used. The generated file reconciles
- * with the screen only where the screen is backed by the same report query, so
- * place this on pages whose data matches the chosen reportKey.
- */
+const FORMATS: { id: ReportExportFormat; label: string; note?: string }[] = [
+  { id: "pdf", label: "PDF", note: "styled" },
+  { id: "xlsx", label: "Excel" },
+  { id: "csv", label: "CSV" },
+];
+
+/** A "Download" control that opens a format menu (PDF / Excel / CSV) and streams the file. */
 export function ReportDownloadButton({
   reportKey,
   input,
   disabled,
-  label = "Download",
   className,
 }: {
   reportKey: ReportKey;
   input: () => Omit<ReportExportInput, "format"> | null;
   disabled?: boolean;
-  label?: string;
   className?: string;
 }) {
-  const [format, setFormat] = useState<ReportExportFormat>("xlsx");
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<ReportExportFormat | null>(null);
 
-  const onClick = async () => {
+  const run = async (format: ReportExportFormat) => {
+    setOpen(false);
     const current = input();
     if (!current) {
-      toast.error("Choose a period to download.");
+      toast.error("Choose a period first.");
       return;
     }
-    setBusy(true);
+    setBusy(format);
     try {
       const { blob, filename } = await downloadReport(reportKey, {
         ...current,
         format,
       });
       downloadBlob(blob, filename);
-      toast.success("Report downloaded.");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Could not download the report.",
       );
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
-  const control =
-    "h-9 rounded-xl border bg-white px-2.5 text-[12px] font-semibold disabled:opacity-40";
-
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <label className="sr-only" htmlFor={`report-format-${reportKey}`}>
-        Download format
-      </label>
-      <select
-        id={`report-format-${reportKey}`}
-        value={format}
-        onChange={(e) => setFormat(e.target.value as ReportExportFormat)}
-        disabled={busy || disabled}
-        className={cn(control, "cursor-pointer px-2")}
-      >
-        <option value="xlsx">Excel</option>
-        <option value="csv">CSV</option>
-        <option value="pdf">PDF</option>
-      </select>
+    <div className={cn("relative", className)}>
       <button
         type="button"
-        onClick={() => void onClick()}
-        disabled={busy || disabled}
-        className={cn(control, "inline-flex items-center gap-1")}
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled || busy !== null}
+        className={reportBtn}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <Download
-          className={cn("size-3.5", busy && "animate-pulse")}
+          className={cn("size-3.5", busy !== null && "animate-pulse")}
           aria-hidden
         />
-        {busy ? "Preparing…" : label}
+        {busy !== null ? "Preparing" : "Download"}
+        <ChevronDown className="size-3 opacity-60" aria-hidden />
       </button>
+      {open ? (
+        <>
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-20 cursor-default"
+          />
+          <div
+            className={cn("absolute right-0 z-30 mt-1 w-40 p-1", reportOverlay)}
+            role="menu"
+          >
+            {FORMATS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="menuitem"
+                onClick={() => void run(f.id)}
+                className={reportMenuItem}
+              >
+                <span>{f.label}</span>
+                {f.note ? (
+                  <span className={cn("text-[10px]", reportMono, reportFaint)}>
+                    {f.note}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

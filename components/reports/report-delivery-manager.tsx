@@ -12,10 +12,10 @@ import {
   Send,
   Smartphone,
   Trash2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { FormDrawer } from "@/components/form-drawer";
 import {
   createReportSubscription,
   deleteReportSubscription,
@@ -29,6 +29,17 @@ import {
   type ReportSubscriptionInput,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import {
+  reportBtn,
+  reportBtnGhost,
+  reportBtnPrimary,
+  reportChip,
+  reportDivide,
+  reportFaint,
+  reportHairline,
+  reportMono,
+  reportMuted,
+} from "./report-ui";
 
 const REPORTS: { key: ReportKey; label: string }[] = [
   { key: "sales_by_category", label: "Sales by category" },
@@ -41,6 +52,7 @@ const CHANNELS: { id: ReportChannel; label: string; Icon: typeof Mail }[] = [
   { id: "sms", label: "SMS", Icon: Smartphone },
   { id: "email", label: "Email", Icon: Mail },
 ];
+const ACCENT = "var(--hub-accent,#1D4B3B)";
 
 type Draft = ReportSubscriptionInput & { id?: string };
 
@@ -55,15 +67,14 @@ const BLANK: Draft = {
   active: true,
 };
 
-function reportLabel(key: string) {
-  return REPORTS.find((r) => r.key === key)?.label ?? key;
-}
+const reportLabel = (key: string) =>
+  REPORTS.find((r) => r.key === key)?.label ?? key;
 
 function cadence(s: ReportSubscription) {
-  if (s.frequency === "daily") return `Daily at ${s.sendTime}`;
+  if (s.frequency === "daily") return `Daily · ${s.sendTime}`;
   if (s.frequency === "weekly")
-    return `Weekly on ${WEEKDAYS[(s.dayOfWeek ?? 1) - 1]} at ${s.sendTime}`;
-  return `Monthly on day ${s.dayOfMonth ?? 1} at ${s.sendTime}`;
+    return `Weekly · ${WEEKDAYS[(s.dayOfWeek ?? 1) - 1]} · ${s.sendTime}`;
+  return `Monthly · day ${s.dayOfMonth ?? 1} · ${s.sendTime}`;
 }
 
 export function ReportDeliveryManager({ className }: { className?: string }) {
@@ -87,18 +98,20 @@ export function ReportDeliveryManager({ className }: { className?: string }) {
 
   useEffect(() => {
     if (open) void load();
+    if (!open) setDraft(null);
   }, [open, load]);
 
-  const toggleChannel = (c: ReportChannel) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const has = d.channels.includes(c);
-      const channels = has
-        ? d.channels.filter((x) => x !== c)
-        : [...d.channels, c];
-      return { ...d, channels };
-    });
-  };
+  const toggleChannel = (c: ReportChannel) =>
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            channels: d.channels.includes(c)
+              ? d.channels.filter((x) => x !== c)
+              : [...d.channels, c],
+          }
+        : d,
+    );
 
   const save = async () => {
     if (!draft) return;
@@ -171,8 +184,7 @@ export function ReportDeliveryManager({ className }: { className?: string }) {
     setBusyId(s.id);
     try {
       const r = await sendReportSubscriptionNow(s.id);
-      if (r.sent.length > 0)
-        toast.success(`Sent now via ${r.sent.join(", ")}.`);
+      if (r.sent.length > 0) toast.success(`Sent via ${r.sent.join(", ")}.`);
       else toast.error(r.failed.join("; ") || "Nothing sent.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send.");
@@ -181,205 +193,231 @@ export function ReportDeliveryManager({ className }: { className?: string }) {
     }
   };
 
-  const chip =
-    "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-[12px] font-semibold transition-colors";
+  const footer = draft ? (
+    <div className="flex items-center justify-end gap-2">
+      <button type="button" onClick={() => setDraft(null)} className={reportBtnGhost}>
+        Cancel
+      </button>
+      <button type="button" onClick={() => void save()} disabled={saving} className={reportBtnPrimary}>
+        <Check className="size-4" aria-hidden />
+        {saving ? "Saving" : draft.id ? "Update delivery" : "Schedule delivery"}
+      </button>
+    </div>
+  ) : (
+    <button type="button" onClick={() => setDraft({ ...BLANK })} className={cn(reportBtnPrimary, "w-full")}>
+      <Plus className="size-4" aria-hidden />
+      New delivery
+    </button>
+  );
 
   return (
     <div className={className}>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-xl border bg-white px-3 text-[12px] font-semibold"
-      >
+      <button type="button" onClick={() => setOpen(true)} className={reportBtnGhost}>
         <CalendarClock className="size-3.5" aria-hidden />
         Schedule delivery
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border bg-white shadow-2xl sm:rounded-2xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-[#1E3B26] to-[#2F5233] px-4 py-3 text-white">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="size-4" aria-hidden />
-                <div>
-                  <div className="text-sm font-bold leading-tight">Report delivery</div>
-                  <div className="text-[11px] text-white/70">
-                    Auto-send a summary by WhatsApp, SMS or email
+      <FormDrawer
+        open={open}
+        onOpenChange={setOpen}
+        title="Report delivery"
+        description="Send a report summary on a schedule — WhatsApp, SMS or email."
+        icon={<CalendarClock className="size-4" aria-hidden />}
+        appearance="sharp"
+        footer={footer}
+      >
+        {draft ? (
+          <DeliveryForm draft={draft} setDraft={setDraft} toggleChannel={toggleChannel} />
+        ) : loading ? (
+          <p className={cn("py-6 text-center text-[12px]", reportMuted)}>Loading…</p>
+        ) : subs.length === 0 ? (
+          <div className={cn("border px-5 py-10 text-center", reportHairline)}>
+            <CalendarClock
+              className={cn("mx-auto size-6", reportFaint)}
+              aria-hidden
+            />
+            <p className="mt-3 text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
+              No scheduled deliveries
+            </p>
+            <p className={cn("mt-1 text-[12px]", reportMuted)}>
+              Set one up and a summary arrives on your schedule.
+            </p>
+          </div>
+        ) : (
+          <ul className={cn("divide-y", reportDivide)}>
+            {subs.map((s) => (
+              <li key={s.id} className="py-3.5 first:pt-0">
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold tracking-[-0.01em] text-[var(--order-ink,#15231f)]">
+                        {reportLabel(s.reportKey)}
+                      </span>
+                      {!s.active ? (
+                        <span className={cn(reportChip, reportMuted)}>Paused</span>
+                      ) : null}
+                    </div>
+                    <div className={cn("mt-0.5 text-[11px]", reportMono, reportMuted)}>
+                      {cadence(s)}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                      {s.channels.map((c) => {
+                        const meta = CHANNELS.find((x) => x.id === c);
+                        if (!meta) return null;
+                        const Icon = meta.Icon;
+                        return (
+                          <span
+                            key={c}
+                            className={cn(reportChip)}
+                            style={{
+                              color: ACCENT,
+                              backgroundColor:
+                                "color-mix(in srgb, var(--hub-accent,#1D4B3B) 8%, white)",
+                            }}
+                          >
+                            <Icon className="size-3" aria-hidden />
+                            {meta.label}
+                          </span>
+                        );
+                      })}
+                      {s.recipientEmail ? (
+                        <span className={cn("text-[10px]", reportFaint)}>
+                          {s.recipientEmail}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
+                  <Switch
+                    checked={s.active}
+                    disabled={busyId === s.id}
+                    onChange={() => void toggleActive(s)}
+                  />
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setDraft(null);
-                }}
-                className="rounded-lg p-1 hover:bg-white/10"
-                aria-label="Close"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-auto p-4">
-              {draft ? (
-                <DeliveryForm
-                  draft={draft}
-                  setDraft={setDraft}
-                  saving={saving}
-                  onSave={save}
-                  onCancel={() => setDraft(null)}
-                  toggleChannel={toggleChannel}
-                  chip={chip}
-                />
-              ) : (
-                <div className="space-y-3">
+                <div className="mt-2.5 flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setDraft({ ...BLANK })}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#2F5233]/40 bg-[#F4F6F2] py-2.5 text-[13px] font-semibold text-[#2F5233] hover:bg-[#EDF1E9]"
+                    onClick={() => void sendNow(s)}
+                    disabled={busyId === s.id}
+                    className={reportBtn}
                   >
-                    <Plus className="size-4" aria-hidden />
-                    New delivery
+                    <Send className="size-3" aria-hidden /> Send now
                   </button>
-
-                  {loading ? (
-                    <p className="py-6 text-center text-xs text-muted-foreground">Loading…</p>
-                  ) : subs.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-muted-foreground">
-                      No scheduled deliveries yet. Create one above.
-                    </p>
-                  ) : (
-                    subs.map((s) => (
-                      <div
-                        key={s.id}
-                        className={cn(
-                          "rounded-xl border p-3",
-                          s.active ? "bg-white" : "bg-muted/30 opacity-70",
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="truncate text-[13px] font-bold">
-                              {reportLabel(s.reportKey)}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">
-                              {cadence(s)}
-                            </div>
-                          </div>
-                          <label className="flex cursor-pointer items-center gap-1 text-[10px] font-semibold text-muted-foreground">
-                            <input
-                              type="checkbox"
-                              checked={s.active}
-                              disabled={busyId === s.id}
-                              onChange={() => void toggleActive(s)}
-                            />
-                            {s.active ? "On" : "Off"}
-                          </label>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {s.channels.map((c) => {
-                            const meta = CHANNELS.find((x) => x.id === c);
-                            if (!meta) return null;
-                            const Icon = meta.Icon;
-                            return (
-                              <span
-                                key={c}
-                                className="inline-flex items-center gap-1 rounded-full bg-[#EDF1E9] px-2 py-0.5 text-[10px] font-semibold text-[#2F5233]"
-                              >
-                                <Icon className="size-3" aria-hidden />
-                                {meta.label}
-                              </span>
-                            );
-                          })}
-                          {s.recipientEmail ? (
-                            <span className="text-[10px] text-muted-foreground">
-                              {s.recipientEmail}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2.5 flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => void sendNow(s)}
-                            disabled={busyId === s.id}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border bg-white px-2 text-[11px] font-semibold disabled:opacity-40"
-                          >
-                            <Send className="size-3" aria-hidden /> Send now
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDraft({
-                                id: s.id,
-                                reportKey: s.reportKey,
-                                frequency: s.frequency,
-                                sendTime: s.sendTime,
-                                dayOfWeek: s.dayOfWeek ?? 1,
-                                dayOfMonth: s.dayOfMonth ?? 1,
-                                channels: s.channels,
-                                recipientEmail: s.recipientEmail ?? "",
-                                active: s.active,
-                              })
-                            }
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border bg-white px-2 text-[11px] font-semibold"
-                          >
-                            <Pencil className="size-3" aria-hidden /> Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void remove(s)}
-                            disabled={busyId === s.id}
-                            className="ml-auto inline-flex h-7 items-center gap-1 rounded-lg border border-red-200 bg-white px-2 text-[11px] font-semibold text-red-600 disabled:opacity-40"
-                          >
-                            <Trash2 className="size-3" aria-hidden /> Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  <p className="pt-1 text-[10px] text-muted-foreground">
-                    WhatsApp/SMS go to your verified alert phone (Ops alert settings). Deliveries
-                    send a summary; set it up once and it runs on schedule.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDraft({
+                        id: s.id,
+                        reportKey: s.reportKey,
+                        frequency: s.frequency,
+                        sendTime: s.sendTime,
+                        dayOfWeek: s.dayOfWeek ?? 1,
+                        dayOfMonth: s.dayOfMonth ?? 1,
+                        channels: s.channels,
+                        recipientEmail: s.recipientEmail ?? "",
+                        active: s.active,
+                      })
+                    }
+                    className={reportBtn}
+                  >
+                    <Pencil className="size-3" aria-hidden /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void remove(s)}
+                    disabled={busyId === s.id}
+                    className={cn(
+                      reportBtn,
+                      "ml-auto border-[color-mix(in_srgb,#A55237_35%,transparent)] text-[#A55237] hover:border-[#A55237] hover:text-[#A55237]",
+                    )}
+                  >
+                    <Trash2 className="size-3" aria-hidden /> Delete
+                  </button>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </FormDrawer>
     </div>
+  );
+}
+
+function Switch({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? "On" : "Off"}
+      disabled={disabled}
+      onClick={onChange}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors disabled:opacity-50",
+        checked
+          ? "border-[var(--hub-accent,#1D4B3B)] bg-[var(--hub-accent,#1D4B3B)]"
+          : cn("bg-white", reportHairline),
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform",
+          checked ? "translate-x-[18px]" : "translate-x-[3px]",
+        )}
+      />
+    </button>
   );
 }
 
 function DeliveryForm({
   draft,
   setDraft,
-  saving,
-  onSave,
-  onCancel,
   toggleChannel,
-  chip,
 }: {
   draft: Draft;
   setDraft: Dispatch<SetStateAction<Draft | null>>;
-  saving: boolean;
-  onSave: () => void;
-  onCancel: () => void;
   toggleChannel: (c: ReportChannel) => void;
-  chip: string;
 }) {
-  const set = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
-  const label = "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+  const set = (patch: Partial<Draft>) =>
+    setDraft((d) => (d ? { ...d, ...patch } : d));
+  const label = cn(
+    "text-[10px] font-semibold uppercase tracking-[0.06em]",
+    reportMono,
+    reportMuted,
+  );
+  const field =
+    "h-9 w-full rounded-[2px] border bg-white px-2.5 text-[13px] text-[var(--order-ink,#15231f)] " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]";
+  const seg = (on: boolean) =>
+    cn(
+      "h-8 rounded-[2px] px-3 text-[12px] font-semibold capitalize transition-colors",
+      on
+        ? "bg-[var(--hub-accent,#1D4B3B)] text-white"
+        : cn("text-[var(--order-ink,#15231f)]", reportMuted),
+    );
+  const pill = (on: boolean) =>
+    cn(
+      "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-[12px] font-semibold transition-colors",
+      on
+        ? "border-[var(--hub-accent,#1D4B3B)] bg-[color-mix(in_srgb,var(--hub-accent,#1D4B3B)_10%,white)] text-[var(--hub-accent,#1D4B3B)]"
+        : cn("bg-white text-[var(--order-ink,#15231f)]", reportHairline, reportMuted),
+    );
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="space-y-5">
+      <div className="space-y-1.5">
         <div className={label}>Report</div>
         <select
           value={draft.reportKey}
           onChange={(e) => set({ reportKey: e.target.value as ReportKey })}
-          className="mt-1 h-9 w-full rounded-xl border bg-white px-2 text-[13px]"
+          className={cn(field, reportHairline)}
         >
           {REPORTS.map((r) => (
             <option key={r.key} value={r.key}>
@@ -389,20 +427,15 @@ function DeliveryForm({
         </select>
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <div className={label}>How often</div>
-        <div className="mt-1 inline-flex rounded-xl border p-0.5">
+        <div className={cn("inline-flex rounded-[2px] border p-0.5", reportHairline)}>
           {(["daily", "weekly", "monthly"] as ReportFrequency[]).map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => set({ frequency: f })}
-              className={cn(
-                "h-8 rounded-lg px-3 text-[12px] font-semibold capitalize",
-                draft.frequency === f
-                  ? "bg-[#2F5233] text-white"
-                  : "text-muted-foreground",
-              )}
+              className={seg(draft.frequency === f)}
             >
               {f}
             </button>
@@ -411,20 +444,15 @@ function DeliveryForm({
       </div>
 
       {draft.frequency === "weekly" ? (
-        <div>
+        <div className="space-y-1.5">
           <div className={label}>Day of week</div>
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             {WEEKDAYS.map((d, i) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => set({ dayOfWeek: i + 1 })}
-                className={cn(
-                  chip,
-                  draft.dayOfWeek === i + 1
-                    ? "border-[#2F5233] bg-[#2F5233] text-white"
-                    : "bg-white text-muted-foreground",
-                )}
+                className={pill(draft.dayOfWeek === i + 1)}
               >
                 {d}
               </button>
@@ -434,35 +462,39 @@ function DeliveryForm({
       ) : null}
 
       {draft.frequency === "monthly" ? (
-        <div>
+        <div className="space-y-1.5">
           <div className={label}>Day of month</div>
-          <input
-            type="number"
-            min={1}
-            max={28}
-            value={draft.dayOfMonth ?? 1}
-            onChange={(e) =>
-              set({ dayOfMonth: Math.min(28, Math.max(1, Number(e.target.value) || 1)) })
-            }
-            className="mt-1 h-9 w-24 rounded-xl border bg-white px-2 text-[13px]"
-          />
-          <span className="ml-2 text-[11px] text-muted-foreground">1–28</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={28}
+              value={draft.dayOfMonth ?? 1}
+              onChange={(e) =>
+                set({
+                  dayOfMonth: Math.min(28, Math.max(1, Number(e.target.value) || 1)),
+                })
+              }
+              className={cn(field, reportHairline, reportMono, "w-24")}
+            />
+            <span className={cn("text-[11px]", reportMuted)}>1–28</span>
+          </div>
         </div>
       ) : null}
 
-      <div>
+      <div className="space-y-1.5">
         <div className={label}>Send time</div>
         <input
           type="time"
           value={draft.sendTime ?? "07:00"}
           onChange={(e) => set({ sendTime: e.target.value || "07:00" })}
-          className="mt-1 h-9 w-32 rounded-xl border bg-white px-2 text-[13px]"
+          className={cn(field, reportHairline, reportMono, "w-32")}
         />
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <div className={label}>Channels</div>
-        <div className="mt-1 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {CHANNELS.map(({ id, label: cl, Icon }) => {
             const on = draft.channels.includes(id);
             return (
@@ -470,12 +502,7 @@ function DeliveryForm({
                 key={id}
                 type="button"
                 onClick={() => toggleChannel(id)}
-                className={cn(
-                  chip,
-                  on
-                    ? "border-[#2F5233] bg-[#EDF1E9] text-[#2F5233]"
-                    : "bg-white text-muted-foreground",
-                )}
+                className={pill(on)}
               >
                 <Icon className="size-3.5" aria-hidden />
                 {cl}
@@ -487,36 +514,17 @@ function DeliveryForm({
       </div>
 
       {draft.channels.includes("email") ? (
-        <div>
+        <div className="space-y-1.5">
           <div className={label}>Recipient email</div>
           <input
             type="email"
             value={draft.recipientEmail ?? ""}
             onChange={(e) => set({ recipientEmail: e.target.value })}
             placeholder="owner@example.com"
-            className="mt-1 h-9 w-full rounded-xl border bg-white px-2 text-[13px]"
+            className={cn(field, reportHairline)}
           />
         </div>
       ) : null}
-
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="inline-flex h-9 items-center gap-1 rounded-xl bg-[#2F5233] px-4 text-[13px] font-semibold text-white disabled:opacity-40"
-        >
-          <Check className="size-4" aria-hidden />
-          {saving ? "Saving…" : draft.id ? "Update" : "Schedule"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="inline-flex h-9 items-center rounded-xl border bg-white px-4 text-[13px] font-semibold"
-        >
-          Cancel
-        </button>
-      </div>
     </div>
   );
 }
