@@ -5468,6 +5468,8 @@ export type AuditEventRecord = {
   targetType: string | null;
   targetId: string | null;
   targetLabel: string | null;
+  /** Display name when the target is a staff user of this business. */
+  targetName?: string | null;
   sessionId: string | null;
   correlationId: string | null;
   ipAddress: string | null;
@@ -5488,6 +5490,9 @@ export type AuditEventFilters = {
   branchId?: string | null;
   category?: AuditEventCategory | null;
   eventType?: string | null;
+  /** Any of these event types (server joins with OR). Ignored when `eventType` is set. */
+  eventTypes?: string[] | null;
+  actorId?: string | null;
   severity?: AuditEventSeverity | null;
   /** Inclusive lower bound — WARN surfaces WARN/ERROR/CRITICAL (failures view). */
   minSeverity?: AuditEventSeverity | null;
@@ -5502,6 +5507,8 @@ export type AuditEventSummary = {
   total: number;
   bySeverity: Partial<Record<AuditEventSeverity, number>>;
   byCategory: Partial<Record<AuditEventCategory, number>>;
+  /** Count per `eventType` — what the diary's attention chips read. */
+  byEventType: Record<string, number>;
 };
 
 function auditEventParams(
@@ -5521,6 +5528,11 @@ function auditEventParams(
   }
   if (filters.eventType?.trim()) {
     params.set("eventType", filters.eventType.trim());
+  } else if (filters.eventTypes && filters.eventTypes.length > 0) {
+    params.set("eventTypes", filters.eventTypes.join(","));
+  }
+  if (filters.actorId?.trim()) {
+    params.set("actorId", filters.actorId.trim());
   }
   if (filters.severity) {
     params.set("severity", filters.severity);
@@ -5575,6 +5587,7 @@ export async function fetchAuditEventSummary(
     byCategory: (record.byCategory ?? {}) as Partial<
       Record<AuditEventCategory, number>
     >,
+    byEventType: (record.byEventType ?? {}) as Record<string, number>,
   };
 }
 

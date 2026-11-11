@@ -210,13 +210,20 @@ export async function deletePosDraftLine(
 export async function cancelPosDraft(
   draftId: string,
   reason?: string,
+  opts?: {
+    /** The till's "Clear all" cleared this cart along with the others (diary rows differ). */
+    clearAll?: boolean;
+  },
 ): Promise<PosDraftResponse> {
   return posDraftRequest<PosDraftResponse>(
     `/api/v1/pos-drafts/${draftId}/cancel`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason: reason ?? null }),
+      body: JSON.stringify({
+        reason: reason ?? null,
+        clearAll: opts?.clearAll ? true : null,
+      }),
     },
   );
 }

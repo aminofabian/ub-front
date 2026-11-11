@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Ban,
   BadgeCheck,
@@ -754,7 +755,9 @@ export function SalesOverviewPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  // `?q=1563` lets the activity diary jump straight to a receipt.
+  const [search, setSearch] = useState(() => searchParams.get("q")?.trim() ?? "");
   const [lines, setLines] = useState<RecentSaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

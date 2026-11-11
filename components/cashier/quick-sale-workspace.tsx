@@ -4696,7 +4696,9 @@ export function QuickSaleWorkspace({
         online
       ) {
         cancelledAnyDraft = true;
-        void cancelPosDraft(cart.draftId, "Cleared all from till").catch(() => {
+        void cancelPosDraft(cart.draftId, "Cleared all from till", {
+          clearAll: true,
+        }).catch(() => {
           // Best-effort — draft may already be completed / cancelled.
         });
       }

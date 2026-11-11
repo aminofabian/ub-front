@@ -20,7 +20,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/super-admin/whatsapp/settings": {
+    "/api/v1/supplier-portal/easytax": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,6 +29,22 @@ export interface paths {
         };
         get: operations["get"];
         put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/whatsapp/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -59,8 +75,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
-        put: operations["update_1"];
+        get: operations["get_2"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -91,8 +107,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
-        put: operations["update_2"];
+        get: operations["get_3"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -123,22 +139,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
-        put: operations["update_3"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/super-admin/platform/integrations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
         get: operations["get_4"];
         put: operations["update_4"];
         post?: never;
@@ -148,7 +148,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/super-admin/platform/domains": {
+    "/api/v1/super-admin/platform/integrations": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,7 +164,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/super-admin/platform/auth": {
+    "/api/v1/super-admin/platform/domains": {
         parameters: {
             query?: never;
             header?: never;
@@ -173,6 +173,38 @@ export interface paths {
         };
         get: operations["get_6"];
         put: operations["update_6"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_7"];
+        put: operations["update_7"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/integrations/easytax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_8"];
+        put: operations["update_8"];
         post?: never;
         delete?: never;
         options?: never;
@@ -203,7 +235,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_7"];
+        get: operations["get_9"];
         put: operations["save"];
         post?: never;
         delete: operations["disconnect"];
@@ -253,6 +285,22 @@ export interface paths {
         };
         get?: never;
         put: operations["kplcDepletionAlerts"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/tax-rates/{taxRateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateTaxRate"];
         post?: never;
         delete?: never;
         options?: never;
@@ -331,8 +379,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
-        put: operations["update_7"];
+        get: operations["get_10"];
+        put: operations["update_9"];
         post?: never;
         delete?: never;
         options?: never;
@@ -347,8 +395,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
-        put: operations["update_8"];
+        get: operations["get_11"];
+        put: operations["update_10"];
         post?: never;
         delete?: never;
         options?: never;
@@ -395,13 +443,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_10"];
-        put: operations["update_9"];
+        get: operations["get_12"];
+        put: operations["update_11"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch: operations["patch"];
+        trace?: never;
+    };
+    "/api/v1/integrations/easytax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_13"];
+        put: operations["update_12"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/easytax/branches/{branchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_14"];
+        put: operations["update_13"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/grocery-drafts/{id}/lines/{lineId}": {
@@ -443,8 +523,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_11"];
-        put: operations["update_10"];
+        get: operations["get_15"];
+        put: operations["update_14"];
         post?: never;
         delete?: never;
         options?: never;
@@ -460,7 +540,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_11"];
+        put: operations["update_15"];
         post?: never;
         delete: operations["delete"];
         options?: never;
@@ -475,8 +555,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_12"];
-        put: operations["update_12"];
+        get: operations["get_16"];
+        put: operations["update_16"];
         post?: never;
         delete: operations["delete_1"];
         options?: never;
@@ -491,8 +571,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_13"];
-        put: operations["update_13"];
+        get: operations["get_17"];
+        put: operations["update_17"];
         post?: never;
         delete?: never;
         options?: never;
@@ -507,7 +587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_14"];
+        get: operations["get_18"];
         put: operations["put"];
         post?: never;
         delete?: never;
@@ -523,7 +603,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_15"];
+        get: operations["get_19"];
         put: operations["put_1"];
         post?: never;
         delete?: never;
@@ -836,6 +916,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/web-orders/{orderId}/payment/stk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["requestStk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-orders/{orderId}/payment/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markPaid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-orders/{orderId}/message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -862,6 +990,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["assignRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{userId}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactivateUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1588,6 +1732,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/supplier-portal/easytax/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/supplier-portal/auth/login": {
         parameters: {
             query?: never;
@@ -2173,7 +2333,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["markPaid"];
+        post: operations["markPaid_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2222,6 +2382,182 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["syncOpen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/resend-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resendLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markPaid_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deliver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/create-registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/connect-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["connectDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assign_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/campaign/test-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["testEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/campaign/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/campaign/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pause_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2285,7 +2621,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["test"];
+        post: operations["test_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2525,7 +2861,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel"];
+        post: operations["cancel_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3197,7 +3533,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["test_1"];
+        post: operations["test_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3684,6 +4020,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/purchasing/path-a/purchase-orders/{purchaseOrderId}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Optionally WhatsApp/SMS the order list to the admin and/or supplier
+         * @description Opt-in per call: a recipient is only messaged when its flag is true. Delivery problems are reported per recipient in the 200 body and are never an HTTP error; 404 for an unknown or other-tenant order, 409 for a cancelled order, 400 for an order with no lines or an unknown channel. Admin = the business's verified ops-alert number; supplier = primary contact phone (else any contact, else payout phone). WhatsApp is free-form text, which Meta only delivers inside its 24h session window; choose `both` when delivery must be certain.
+         */
+        post: operations["notifyParties"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/purchasing/path-a/purchase-orders/{purchaseOrderId}/send-to-supplier": {
         parameters: {
             query?: never;
@@ -3741,7 +4097,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_1"];
+        post: operations["cancel_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3822,6 +4178,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["startOrResume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/support/threads/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recover"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4286,6 +4658,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["approve_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/domain-offer/{token}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pay"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4845,7 +5233,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["pay"];
+        post: operations["pay_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4877,7 +5265,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["test_2"];
+        post: operations["test_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5101,7 +5489,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["test_3"];
+        post: operations["test_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5156,6 +5544,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markAllRead_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-campaigns": {
         parameters: {
             query?: never;
@@ -5197,7 +5601,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_2"];
+        post: operations["cancel_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5277,7 +5681,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["markAllRead_1"];
+        post: operations["markAllRead_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5421,7 +5825,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description The body is optional: no body pulls the supplier's whole active shelf, productIds limits it to the chosen products (an empty list attaches the supplier only). */
         post: operations["attach"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/suppliers/{marketplaceSupplierId}/attach-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Read-only look at the supplier's shelf as it would land in the caller's shop, so the user can choose which products to pull before calling /attach. Each product is flagged inShop when the shop already stocks its barcode and alreadyLinked when it is already linked to the shop's copy of the supplier. Requires marketplace.suppliers.connect; suspended suppliers are 404. */
+        get: operations["attachPreview"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5549,7 +5971,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["cancel_3"];
+        post: operations["cancel_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6276,6 +6698,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/stock-take/count-cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startCycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/{cycleId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelCycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/{cycleId}/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startOrResumeBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/batches/{sessionId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["finishBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/batches/{sessionId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["applyBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory/stock-increase": {
         parameters: {
             query?: never;
@@ -6286,6 +6788,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["stockIncrease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/return-to-supplier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["returnToSupplier"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6350,6 +6868,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/repairs/equity-clearance-correction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["previewEquityClearanceCorrection"];
+        put?: never;
+        post: operations["applyEquityClearanceCorrection"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6686,6 +7220,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["importItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/easytax/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7277,7 +7827,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["pause_1"];
+        post: operations["pause_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7805,7 +8355,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["assign_1"];
+        post: operations["assign_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7949,7 +8499,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["test_4"];
+        post: operations["test_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8205,7 +8755,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["pay_1"];
+        post: operations["pay_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8477,7 +9027,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["start"];
+        post: operations["start_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8494,6 +9044,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["exchange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/google/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeShop"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8859,7 +9425,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_16"];
+        get: operations["get_20"];
         put?: never;
         post?: never;
         delete: operations["delete_2"];
@@ -8929,7 +9495,7 @@ export interface paths {
         delete: operations["delete_3"];
         options?: never;
         head?: never;
-        patch: operations["update_14"];
+        patch: operations["update_18"];
         trace?: never;
     };
     "/api/v1/supplier-portal/payment-details": {
@@ -8939,7 +9505,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_17"];
+        get: operations["get_21"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9041,7 +9607,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["update_15"];
+        patch: operations["update_19"];
         trace?: never;
     };
     "/api/v1/super-admin/payments/mpesa-custody": {
@@ -9051,13 +9617,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_18"];
+        get: operations["get_22"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["update_16"];
+        patch: operations["update_20"];
         trace?: never;
     };
     "/api/v1/super-admin/payments/kiosk-pay": {
@@ -9067,13 +9633,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_19"];
+        get: operations["get_23"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["update_17"];
+        patch: operations["update_21"];
         trace?: never;
     };
     "/api/v1/super-admin/payments/daraja": {
@@ -9083,13 +9649,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_20"];
+        get: operations["get_24"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["update_18"];
+        patch: operations["update_22"];
         trace?: never;
     };
     "/api/v1/super-admin/me": {
@@ -9259,13 +9825,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_21"];
+        get: operations["get_25"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch: operations["update_19"];
+        patch: operations["update_23"];
         trace?: never;
     };
     "/api/v1/store-items/{id}": {
@@ -9387,7 +9953,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_22"];
+        get: operations["get_26"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9499,13 +10065,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_23"];
+        get: operations["get_27"];
         put?: never;
         post?: never;
         delete: operations["delete_5"];
         options?: never;
         head?: never;
-        patch: operations["update_20"];
+        patch: operations["update_24"];
         trace?: never;
     };
     "/api/v1/me": {
@@ -9585,7 +10151,7 @@ export interface paths {
         delete: operations["delete_8"];
         options?: never;
         head?: never;
-        patch: operations["update_21"];
+        patch: operations["update_25"];
         trace?: never;
     };
     "/api/v1/inventory/supply-batches/{id}": {
@@ -9668,6 +10234,22 @@ export interface paths {
         patch: operations["applyLineCount"];
         trace?: never;
     };
+    "/api/v1/inventory/stock-take/count-cycles/batches/{sessionId}/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["countLine"];
+        trace?: never;
+    };
     "/api/v1/inventory/items/{itemId}/stock-thresholds": {
         parameters: {
             query?: never;
@@ -9729,7 +10311,7 @@ export interface paths {
         delete: operations["deactivate_1"];
         options?: never;
         head?: never;
-        patch: operations["update_22"];
+        patch: operations["update_26"];
         trace?: never;
     };
     "/api/v1/discounts/{discountId}": {
@@ -9739,13 +10321,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_24"];
+        get: operations["get_28"];
         put?: never;
         post?: never;
         delete: operations["delete_9"];
         options?: never;
         head?: never;
-        patch: operations["update_23"];
+        patch: operations["update_27"];
         trace?: never;
     };
     "/api/v1/customers/{customerId}": {
@@ -9755,7 +10337,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_25"];
+        get: operations["get_29"];
         put?: never;
         post?: never;
         delete: operations["delete_10"];
@@ -10091,7 +10673,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_26"];
+        get: operations["get_30"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10187,7 +10769,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_27"];
+        get: operations["get_31"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10363,7 +10945,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_28"];
+        get: operations["get_32"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10660,6 +11242,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admin/platform/domains/coolify/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diagnoseCoolify"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admin/platform/domain-orders": {
         parameters: {
             query?: never;
@@ -10683,7 +11281,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_29"];
+        get: operations["get_33"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10700,6 +11298,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["resellerStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/platform/domain-offer/campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["campaign"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11083,7 +11729,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_30"];
+        get: operations["get_34"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11179,7 +11825,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_31"];
+        get: operations["get_35"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/contact-messages/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["unreadCount_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11227,7 +11889,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["orders_1"];
+        get: operations["orders_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11660,6 +12322,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["recentSales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/intelligence/recent-sales/tape": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recentSalesTape"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12580,6 +13258,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/domain-offer/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["offer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/domain-offer/{token}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["status_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/credits/tabs/{phone}": {
         parameters: {
             query?: never;
@@ -12909,7 +13619,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_32"];
+        get: operations["get_36"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12957,7 +13667,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["status_5"];
+        get: operations["status_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13134,6 +13844,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listPermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payroll/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["summary_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13414,6 +14140,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/bell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["bell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/shopper": {
         parameters: {
             query?: never;
@@ -13469,7 +14211,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["unreadCount_3"];
+        get: operations["unreadCount_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13485,7 +14227,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["status_6"];
+        get: operations["status_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13517,7 +14259,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["status_7"];
+        get: operations["status_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13549,7 +14291,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_33"];
+        get: operations["get_37"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13581,7 +14323,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_34"];
+        get: operations["get_38"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13950,6 +14692,70 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listInvestigations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["home"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/batches/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-take/count-cycles/batches/{sessionId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reviewBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/stock-drift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["stockDrift"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14470,6 +15276,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/vat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vatReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/vat/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vatReportCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/vat/buckets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["vatReportBuckets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/pulse": {
         parameters: {
             query?: never;
@@ -14493,7 +15347,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_35"];
+        get: operations["get_39"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14566,6 +15420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/expenses/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["summary_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/expense-schedules/occurrences": {
         parameters: {
             query?: never;
@@ -14574,6 +15444,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listOccurrences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/expense-schedules/occurrences/range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listOccurrenceRange"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14845,7 +15731,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["status_8"];
+        get: operations["status_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14877,7 +15763,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_36"];
+        get: operations["get_40"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14893,7 +15779,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_37"];
+        get: operations["get_41"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15005,7 +15891,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_38"];
+        get: operations["get_42"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contact-messages/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["unreadCount_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15101,7 +16003,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_39"];
+        get: operations["get_43"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/google/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["shops_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15165,7 +16083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["summary_2"];
+        get: operations["summary_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15229,7 +16147,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["order"];
+        get: operations["order_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15261,7 +16179,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["status_9"];
+        get: operations["status_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15690,8 +16608,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        NotifyPurchaseOrderRequest: {
+            notifyAdmin?: boolean;
+            /**
+             * @description Defaults to whatsapp when omitted.
+             * @enum {string}
+             */
+            adminChannel?: "whatsapp" | "sms" | "both";
+            notifySupplier?: boolean;
+            /**
+             * @description Defaults to whatsapp when omitted.
+             * @enum {string}
+             */
+            supplierChannel?: "whatsapp" | "sms" | "both";
+        };
+        NotifyPurchaseOrderResponse: {
+            /** @description One entry per requested recipient. */
+            deliveries?: components["schemas"]["NotifyPurchaseOrderDelivery"][];
+        };
+        NotifyPurchaseOrderDelivery: {
+            /** @enum {string} */
+            recipient?: "admin" | "supplier";
+            /** @enum {string} */
+            channel?: "whatsapp" | "sms" | "both";
+            /** @enum {string} */
+            outcome?: "sent" | "failed" | "skipped";
+            /** @description Short, user-safe explanation; never contains credentials. */
+            detail?: string;
+            phoneMasked?: string | null;
+        };
         SetUserItemTypesRequest: {
             itemTypeIds: string[];
+        };
+        SupplierEasyTaxSettingsRequest: {
+            enabled?: boolean;
+            environment?: string;
+            username?: string;
+            password?: string;
+            tin?: string;
+            kraBranchId?: string;
+            deviceSerial?: string;
+        };
+        SupplierEasyTaxSettingsResponse: {
+            enabled?: boolean;
+            environment?: string;
+            username?: string;
+            hasPassword?: boolean;
+            tin?: string;
+            kraBranchId?: string;
+            deviceSerial?: string;
+            configured?: boolean;
+            platformEnabled?: boolean;
+            resolvedBaseUrl?: string;
+            lastTestedAt?: string;
+            lastTestOk?: boolean;
+            lastTestMessage?: string;
         };
         UpdateSettingsRequest: {
             inboundEnabled?: boolean;
@@ -15809,6 +16780,7 @@ export interface components {
             productLimit?: number;
             /** Format: int32 */
             cashierLimit?: number;
+            dailyRevenueLimitKes?: number;
             active?: boolean;
             /** Format: int32 */
             sortOrder?: number;
@@ -15824,6 +16796,7 @@ export interface components {
             productLimit?: number;
             /** Format: int32 */
             cashierLimit?: number;
+            dailyRevenueLimitKes?: number;
             active?: boolean;
             /** Format: int32 */
             sortOrder?: number;
@@ -16077,6 +17050,11 @@ export interface components {
             domainOrderSyncInitialDelayMs?: number;
             envHostafricaConfigured?: boolean;
             envVercelConfigured?: boolean;
+            envCoolifyConfigured?: boolean;
+            coolifyApiUrl?: string;
+            coolifyAppUuid?: string;
+            hasCoolifyApiToken?: boolean;
+            coolifyTokenFingerprint?: string;
             secretsReadable?: boolean;
             secretsError?: string;
             encryptionEphemeral?: boolean;
@@ -16090,6 +17068,16 @@ export interface components {
             emailVerificationRequired?: boolean;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        PlatformEasyTaxSettingsRequest: {
+            enabled?: boolean;
+            sandboxBaseUrl?: string;
+            productionBaseUrl?: string;
+        };
+        PlatformEasyTaxSettingsResponse: {
+            enabled?: boolean;
+            sandboxBaseUrl?: string;
+            productionBaseUrl?: string;
         };
         UpsertProductSupplierLinkRequest: {
             globalSupplierTemplateId: string;
@@ -16166,6 +17154,21 @@ export interface components {
             sampleIntervals?: number;
             alreadyEmpty?: boolean;
             alertsEnabled?: boolean;
+        };
+        PutTaxRateRequest: {
+            name: string;
+            ratePercent: number;
+            inclusive?: boolean;
+            active?: boolean;
+            etimsTaxCode?: string;
+        };
+        TaxRateResponse: {
+            id?: string;
+            name?: string;
+            ratePercent?: number;
+            inclusive?: boolean;
+            active?: boolean;
+            etimsTaxCode?: string;
         };
         PutPriceRuleRequest: {
             name: string;
@@ -16489,6 +17492,36 @@ export interface components {
             status?: string;
             statusDetail?: string;
             ready?: boolean;
+        };
+        EasyTaxSettingsRequest: {
+            enabled?: boolean;
+            environment?: string;
+            username?: string;
+            password?: string;
+            tin?: string;
+        };
+        EasyTaxSettingsResponse: {
+            enabled?: boolean;
+            environment?: string;
+            username?: string;
+            hasPassword?: boolean;
+            tin?: string;
+            configured?: boolean;
+            platformEnabled?: boolean;
+            resolvedBaseUrl?: string;
+            lastTestedAt?: string;
+            lastTestOk?: boolean;
+            lastTestMessage?: string;
+        };
+        EasyTaxBranchSettingsRequest: {
+            kraBranchId?: string;
+            deviceSerial?: string;
+        };
+        EasyTaxBranchSettingsResponse: {
+            branchId?: string;
+            kraBranchId?: string;
+            deviceSerial?: string;
+            configured?: boolean;
         };
         PutGroceryDraftLineRequest: {
             quantity: number;
@@ -17103,6 +18136,20 @@ export interface components {
             claimed?: boolean;
             reason?: string;
         };
+        WebOrderStkPushResponse: {
+            accepted?: boolean;
+            checkoutRequestId?: string;
+            message?: string;
+        };
+        SendWebOrderMessageRequest: {
+            kind: string;
+            text?: string;
+        };
+        WebOrderMessageResponse: {
+            sent?: boolean;
+            channel?: string;
+            detail?: string;
+        };
         CreateUserRequest: {
             /** Format: email */
             email: string;
@@ -17251,6 +18298,7 @@ export interface components {
             guestName?: string;
             attachment?: components["schemas"]["SupportAttachmentDto"];
             replyToMessageId?: string;
+            clientMessageId?: string;
         };
         SupportAttachmentDto: {
             url: string;
@@ -17653,6 +18701,11 @@ export interface components {
             ok?: boolean;
             id?: string;
         };
+        EasyTaxTestResponse: {
+            ok?: boolean;
+            message?: string;
+            checkedAt?: string;
+        };
         SupplierPortalLoginRequest: {
             identifier: string;
             password: string;
@@ -17896,6 +18949,155 @@ export interface components {
         };
         AttachHostafricaRequest: {
             hostafricaDomainId: string;
+        };
+        DomainOfferOrderResponse: {
+            id?: string;
+            reference?: string;
+            businessId?: string;
+            businessName?: string;
+            businessSlug?: string;
+            status?: string;
+            domainMode?: string;
+            requestedDomain?: string;
+            suggestedDomain?: string;
+            themeKey?: string;
+            themeDirection?: string;
+            themeNotes?: string;
+            contactName?: string;
+            contactEmail?: string;
+            contactPhone?: string;
+            /** Format: int64 */
+            amountCents?: number;
+            currency?: string;
+            /** Format: int32 */
+            touchCount?: number;
+            /** Format: date-time */
+            lastTouchAt?: string;
+            /** Format: date-time */
+            nextTouchAt?: string;
+            /** Format: int32 */
+            emailSentCount?: number;
+            /** Format: int32 */
+            inAppSentCount?: number;
+            lastEmailError?: string;
+            lastStkStatus?: string;
+            mpesaReceipt?: string;
+            payerPhone?: string;
+            /** Format: date-time */
+            paymentStartedAt?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            /** Format: date-time */
+            slaDueAt?: string;
+            overdue?: boolean;
+            assignedTo?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            deliveredDomain?: string;
+            domainMappingId?: string;
+            domainOrderId?: string;
+            registrationStatus?: string;
+            fulfilmentNotes?: string;
+            lastError?: string;
+            payLink?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        RefundOrderRequest: {
+            note?: string;
+        };
+        DeliverOrderRequest: {
+            domain: string;
+            notes?: string;
+            connectDomain?: boolean;
+        };
+        CancelOrderRequest: {
+            reason?: string;
+        };
+        AssignOrderRequest: {
+            assignedTo?: string;
+        };
+        TestEmailRequest: {
+            /** Format: email */
+            email: string;
+        };
+        DeliveryResult: {
+            emailSent?: boolean;
+            inAppSent?: boolean;
+            error?: string;
+        };
+        StartCampaignRequest: {
+            name?: string;
+        };
+        DomainOfferCampaignResponse: {
+            id?: string;
+            name?: string;
+            status?: string;
+            audienceKey?: string;
+            /** Format: int64 */
+            priceCents?: number;
+            currency?: string;
+            /** Format: int32 */
+            intervalDays?: number;
+            /** Format: int32 */
+            maxTouches?: number;
+            emailEnabled?: boolean;
+            inAppEnabled?: boolean;
+            /** Format: int32 */
+            recipientsTargeted?: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            stats?: components["schemas"]["DomainOfferStats"];
+            touches?: components["schemas"]["DomainOfferTouch"][];
+        };
+        DomainOfferStats: {
+            /** Format: int64 */
+            eligible?: number;
+            /** Format: int64 */
+            invited?: number;
+            /** Format: int64 */
+            awaitingPayment?: number;
+            /** Format: int64 */
+            paid?: number;
+            /** Format: int64 */
+            inProgress?: number;
+            /** Format: int64 */
+            delivered?: number;
+            /** Format: int64 */
+            cancelled?: number;
+            /** Format: int64 */
+            expired?: number;
+            /** Format: int64 */
+            overdue?: number;
+            /** Format: int64 */
+            dueNow?: number;
+            /** Format: int64 */
+            revenueCents?: number;
+            /** Format: int32 */
+            conversionPct?: number;
+        };
+        DomainOfferTouch: {
+            /** Format: int32 */
+            index?: number;
+            /** Format: int32 */
+            dayOffset?: number;
+            label?: string;
+            subject?: string;
+            preview?: string;
+            bodyMarkdown?: string;
+            cta?: string;
+            inAppTitle?: string;
+            inAppBody?: string;
         };
         ReviewDarajaStorefrontRequest: {
             decision: string;
@@ -18938,12 +20140,16 @@ export interface components {
             batchId?: string;
             lineKind?: string;
             lineLabel?: string;
+            displayName?: string;
             quantity?: number;
             unitPrice?: number;
             lineTotal?: number;
             unitCost?: number;
             costTotal?: number;
             profit?: number;
+            taxCode?: string;
+            taxRatePercent?: number;
+            taxAmount?: number;
         };
         SalePaymentResponse: {
             method?: string;
@@ -18959,6 +20165,7 @@ export interface components {
             shiftId?: string;
             status?: string;
             grandTotal?: number;
+            taxTotal?: number;
             cashReceived?: number;
             refundedTotal?: number;
             journalEntryId?: string;
@@ -19319,6 +20526,14 @@ export interface components {
             guestId: string;
             guestName?: string;
             body?: string;
+            clientMessageId?: string;
+        };
+        RecoverGuestThreadRequest: {
+            type: string;
+            businessSlug?: string;
+            guestId: string;
+            phone: string;
+            phoneVerificationToken: string;
         };
         GuestThreadDto: {
             conversation?: components["schemas"]["SupportConversationDto"];
@@ -19419,6 +20634,7 @@ export interface components {
             countryCode?: string;
             branchLocalities?: string[];
             metaPixel?: components["schemas"]["MetaPixelPublicConfig"];
+            publicCatalogReady?: boolean;
         };
         TenantAuthConfigDto: {
             methods?: string[];
@@ -19433,6 +20649,21 @@ export interface components {
         };
         PublicRejectBody: {
             reason?: string;
+        };
+        PublicPayRequest: {
+            phoneNumber: string;
+            requestedDomain: string;
+            domainMode: string;
+            themeDirection: string;
+            themeKey?: string;
+            themeNotes?: string;
+            contactName?: string;
+        };
+        PublicPayResponse: {
+            status?: string;
+            message?: string;
+            promptSent?: boolean;
+            reference?: string;
         };
         PublicTabStkRequest: {
             amount: number;
@@ -19651,12 +20882,7 @@ export interface components {
             ratePercent: number;
             inclusive?: boolean;
             active?: boolean;
-        };
-        TaxRateResponse: {
-            id?: string;
-            name?: string;
-            ratePercent?: number;
-            inclusive?: boolean;
+            etimsTaxCode?: string;
         };
         PostSellingPriceRequest: {
             itemId: string;
@@ -19772,6 +20998,8 @@ export interface components {
         };
         CancelPosDraftRequest: {
             reason?: string;
+            /** @description True when the till's "Clear all" cleared this cart along with the others. */
+            clearAll?: boolean;
         };
         RegisterRequest: {
             installId?: string;
@@ -20235,6 +21463,18 @@ export interface components {
             /** Format: int32 */
             skipped?: number;
             status?: string;
+            /** @description The shelf rows that were not added as brand-new items: already in the shop (linked instead of created again), already linked to this supplier, or skipped with a reason. Capped at 200; `notesOmitted` counts any that did not fit. */
+            notes?: components["schemas"]["MarketplaceAttachNote"][];
+            /** Format: int32 */
+            notesOmitted?: number;
+        };
+        MarketplaceAttachNote: {
+            /** @description The supplier's name for the product (null when the shelf row is no longer there). */
+            name?: string | null;
+            barcode?: string | null;
+            /** @enum {string} */
+            outcome?: "existing_linked" | "already_linked" | "skipped";
+            reason?: string;
         };
         MarketplaceConnectResponse: {
             connectionId?: string;
@@ -20247,9 +21487,41 @@ export interface components {
         };
         AttachMarketplaceSupplierFromSeedRequest: {
             sourceLocalSupplierId: string;
+            /** @description Products to pull, as the seed shop's supplier-product link ids (the ids the public supplier detail lists). Omitted = the whole active shelf; empty = attach the supplier only. */
+            productIds?: string[];
         };
         AttachMarketplaceSupplierByNumberRequest: {
             supplierNumber: string;
+            /** @description Products to pull. Omitted = the whole active shelf; empty = attach the supplier only. */
+            productIds?: string[];
+        };
+        AttachMarketplaceSupplierRequest: {
+            /** @description Products to pull. Omitted = the whole active shelf; empty = attach the supplier only. */
+            productIds?: string[];
+        };
+        MarketplaceAttachPreviewProduct: {
+            id?: string;
+            name?: string;
+            barcode?: string;
+            sku?: string;
+            categoryName?: string;
+            packSize?: number;
+            packUnit?: string;
+            minOrderQty?: number;
+            unitPrice?: number;
+            currency?: string;
+            inShop?: boolean;
+            alreadyLinked?: boolean;
+        };
+        MarketplaceAttachPreviewResponse: {
+            marketplaceSupplierId?: string;
+            supplierNumber?: string;
+            supplierName?: string;
+            contactPhone?: string;
+            contactEmail?: string;
+            alreadyConnected?: boolean;
+            localSupplierId?: string;
+            products?: components["schemas"]["MarketplaceAttachPreviewProduct"][];
         };
         ReviewMarketplaceProductEditRequest: {
             note?: string;
@@ -20864,11 +22136,109 @@ export interface components {
             submittedCount?: number;
             lines?: components["schemas"]["DailyStockAuditLineResponse"][];
         };
+        StartCountCycleRequest: {
+            branchId: string;
+            /** Format: int32 */
+            batchSize?: number;
+        };
+        ActiveBatch: {
+            sessionId?: string;
+            /** Format: int32 */
+            batchNumber?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            countedCount?: number;
+        };
+        BatchSummary: {
+            sessionId?: string;
+            /** Format: int32 */
+            batchNumber?: number;
+            status?: string;
+            /** Format: date */
+            sessionDate?: string;
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            countedCount?: number;
+            /** Format: int32 */
+            awaitingApplyCount?: number;
+            /** Format: date-time */
+            closedAt?: string;
+        };
+        CountCycleResponse: {
+            cycleId?: string;
+            branchId?: string;
+            status?: string;
+            /** Format: int32 */
+            batchSize?: number;
+            /** Format: int32 */
+            totalItems?: number;
+            /** Format: int32 */
+            countedItems?: number;
+            /** Format: int32 */
+            remainingItems?: number;
+            /** Format: int32 */
+            batchesDone?: number;
+            /** Format: int32 */
+            daysRemaining?: number;
+            /** Format: date */
+            projectedFinishDate?: string;
+            countedToday?: boolean;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            activeBatch?: components["schemas"]["ActiveBatch"];
+            /** Format: int32 */
+            awaitingApplyCount?: number;
+            batches?: components["schemas"]["BatchSummary"][];
+        };
+        BatchLine: {
+            lineId?: string;
+            itemId?: string;
+            itemName?: string;
+            itemSku?: string;
+            barcode?: string;
+            categoryName?: string;
+            unitType?: string;
+            imageUrl?: string;
+            aisle?: string;
+            countedQty?: number;
+            systemQty?: number;
+            status?: string;
+        };
+        BatchResponse: {
+            sessionId?: string;
+            cycleId?: string;
+            /** Format: int32 */
+            batchNumber?: number;
+            status?: string;
+            /** Format: date */
+            sessionDate?: string;
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            countedCount?: number;
+            showsSystemStock?: boolean;
+            lines?: components["schemas"]["BatchLine"][];
+        };
+        ApplyBatchRequest: {
+            lineIds?: string[];
+        };
         PostStockIncreaseRequest: {
             branchId: string;
             itemId: string;
             quantity: number;
             unitCost: number;
+            notes?: string;
+        };
+        PostSupplierReturnRequest: {
+            branchId: string;
+            itemId: string;
+            quantity: number;
+            supplierId?: string;
+            batchId?: string;
             notes?: string;
         };
         SnoozeRestockSuggestionRequest: {
@@ -20963,6 +22333,17 @@ export interface components {
             itemId?: string;
             itemName?: string;
             reason?: string;
+        };
+        EquityClearanceCorrectionResponse: {
+            dryRun?: boolean;
+            /** Format: int32 */
+            candidates?: number;
+            /** Format: int32 */
+            corrected?: number;
+            /** Format: int32 */
+            skipped?: number;
+            totalAmount?: number;
+            lines?: components["schemas"]["Line"][];
         };
         CreateOrderPadItemRequest: {
             branchId: string;
@@ -21689,6 +23070,7 @@ export interface components {
             lineIndex?: number;
             lineKind?: string;
             lineLabel?: string;
+            displayName?: string;
             itemId?: string;
             batchId?: string;
             quantity: number;
@@ -22041,6 +23423,9 @@ export interface components {
             unreadCount?: number;
             /** Format: date-time */
             lastMessageAt?: string;
+            lastMessagePreview?: string;
+            lastMessageType?: string;
+            lastMessageDirection?: string;
             /** Format: date-time */
             windowExpiresAt?: string;
             contactId?: string;
@@ -22392,6 +23777,11 @@ export interface components {
             nextPath?: string;
             slug?: string;
             returnHost?: string;
+            status?: string;
+            email?: string;
+        };
+        GoogleOAuthCompleteShopRequest: {
+            slug: string;
         };
         LoginRequest: {
             /** Format: email */
@@ -23324,6 +24714,9 @@ export interface components {
             countedQty: number;
             note?: string;
         };
+        CountBatchLineRequest: {
+            countedQty: number;
+        };
         PatchItemStockThresholdsRequest: {
             minStockLevel?: number;
             reorderLevel?: number;
@@ -23932,6 +25325,7 @@ export interface components {
         };
         DunningAnalyticsResponse: {
             billingEnabled?: boolean;
+            autoBlockEnabled?: boolean;
             /** Format: int64 */
             tenantsInGrace?: number;
             /** Format: int64 */
@@ -24133,6 +25527,29 @@ export interface components {
             createdLast7Days?: number;
             /** Format: int64 */
             kioskPayActive?: number;
+        };
+        CoolifyDiagnostic: {
+            configured?: boolean;
+            apiUrl?: string;
+            appUuid?: string;
+            tokenFingerprint?: string;
+            /** Format: int32 */
+            versionStatus?: number;
+            versionMessage?: string;
+            /** Format: int32 */
+            applicationStatus?: number;
+            applicationMessage?: string;
+            applicationName?: string;
+            applicationFqdn?: string;
+            ok?: boolean;
+            hint?: string;
+            checks?: string[];
+        };
+        OrderListResponse: {
+            rows?: components["schemas"]["DomainOfferOrderResponse"][];
+            /** Format: int64 */
+            total?: number;
+            stats?: components["schemas"]["DomainOfferStats"];
         };
         DesktopLogRow: {
             id?: string;
@@ -24739,6 +26156,11 @@ export interface components {
             daysRemainingInGrace?: number;
             renewalUrl?: string;
             billingEnabled?: boolean;
+            autoBlockEnabled?: boolean;
+            accessBlocked?: boolean;
+            lastRenewalStatus?: string;
+            /** Format: date-time */
+            lastRenewalAt?: string;
             planFit?: components["schemas"]["PlanFitView"];
         };
         PlanFitView: {
@@ -24750,8 +26172,11 @@ export interface components {
             productLimit?: number;
             /** Format: int32 */
             userLimit?: number;
+            dailyRevenueKes?: number;
+            dailyRevenueLimit?: number;
             overProductLimit?: boolean;
             overUserLimit?: boolean;
+            overDailyRevenueLimit?: boolean;
             needsUpgrade?: boolean;
             negotiable?: boolean;
             talkToUs?: boolean;
@@ -25082,6 +26507,19 @@ export interface components {
             customerMaskedHint?: string;
             customerPhoneVerified?: boolean;
         };
+        RecentSaleTapeRow: {
+            saleId?: string;
+            /** Format: date-time */
+            soldAt?: string;
+            cashierName?: string;
+            paymentMethod?: string;
+            paymentMethods?: string;
+            itemName?: string;
+            quantity?: number;
+            lineTotal?: number;
+            profit?: number;
+            status?: string;
+        };
         PaymentMethodBreakdownRow: {
             method?: string;
             /** Format: int64 */
@@ -25404,6 +26842,8 @@ export interface components {
             invoiceNumber?: string;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date */
+            invoiceDate?: string;
             /** Format: int32 */
             lineCount?: number;
             grandTotal?: number;
@@ -25771,6 +27211,55 @@ export interface components {
             /** Format: date-time */
             expiresAt?: string;
             canApprove?: boolean;
+        };
+        PublicDomainOfferResponse: {
+            businessName?: string;
+            businessSlug?: string;
+            shopHost?: string;
+            shopUrl?: string;
+            suggestedDomain?: string;
+            /** Format: int64 */
+            priceCents?: number;
+            currency?: string;
+            status?: string;
+            paid?: boolean;
+            delivered?: boolean;
+            deliveredDomain?: string;
+            requestedDomain?: string;
+            domainMode?: string;
+            themeDirection?: string;
+            themeKey?: string;
+            themeNotes?: string;
+            maskedPhone?: string;
+            reference?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            /** Format: date-time */
+            slaDueAt?: string;
+            message?: string;
+            preview?: boolean;
+            canPay?: boolean;
+            paymentUnavailableReason?: string;
+            themes?: components["schemas"]["ThemeOption"][];
+            directions?: components["schemas"]["ThemeOption"][];
+        };
+        ThemeOption: {
+            id?: string;
+            label?: string;
+            hint?: string;
+        };
+        PublicStatusResponse: {
+            status?: string;
+            paid?: boolean;
+            delivered?: boolean;
+            deliveredDomain?: string;
+            lastStkStatus?: string;
+            message?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            /** Format: date-time */
+            slaDueAt?: string;
+            reference?: string;
         };
         PublicCustomerTabResponse: {
             customerName?: string;
@@ -26140,6 +27629,81 @@ export interface components {
             key?: string;
             description?: string;
         };
+        BranchBreakdown: {
+            branchId?: string;
+            branchName?: string;
+            /** Format: int32 */
+            headcount?: number;
+            /** Format: int32 */
+            paidCount?: number;
+            /** Format: int32 */
+            pendingCount?: number;
+            gross?: number;
+            netPayable?: number;
+        };
+        Comparison: {
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            month?: number;
+            gross?: number;
+            paidNet?: number;
+            /** Format: int32 */
+            headcount?: number;
+            grossDeltaPct?: number;
+        };
+        Finance: {
+            /** Format: int32 */
+            postedCount?: number;
+            /** Format: int32 */
+            unpostedCount?: number;
+            postedAmount?: number;
+            unpostedNet?: number;
+        };
+        Issue: {
+            code?: string;
+            label?: string;
+            detail?: string;
+            severity?: string;
+            /** Format: int32 */
+            count?: number;
+            staff?: components["schemas"]["StaffRef"][];
+        };
+        PayrollSummaryResponse: {
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            month?: number;
+            salaryReleased?: boolean;
+            /** Format: date */
+            unlockDate?: string;
+            /** Format: int32 */
+            headcount?: number;
+            /** Format: int32 */
+            paidCount?: number;
+            /** Format: int32 */
+            pendingCount?: number;
+            /** Format: int32 */
+            onLeaveCount?: number;
+            /** Format: int32 */
+            missingSalaryCount?: number;
+            currentGross?: number;
+            arrearsGross?: number;
+            gross?: number;
+            statutory?: number;
+            advancesScheduled?: number;
+            netPayable?: number;
+            paidNet?: number;
+            cashRequired?: number;
+            previous?: components["schemas"]["Comparison"];
+            finance?: components["schemas"]["Finance"];
+            issues?: components["schemas"]["Issue"][];
+            branches?: components["schemas"]["BranchBreakdown"][];
+        };
+        StaffRef: {
+            userId?: string;
+            displayName?: string;
+        };
         StaffSmsTemplateResponse: {
             key?: string;
             label?: string;
@@ -26196,6 +27760,9 @@ export interface components {
             payslipId?: string;
             /** Format: date-time */
             paidAt?: string;
+            phone?: string;
+            expenseId?: string;
+            paymentMethod?: string;
         };
         StaffPaySelfAdvanceRow: {
             id?: string;
@@ -26396,6 +27963,18 @@ export interface components {
             id?: string;
             type?: string;
             payloadJson?: string;
+            /** Format: date-time */
+            readAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        NotificationBellRow: {
+            id?: string;
+            type?: string;
+            priority?: string;
+            title?: string;
+            body?: string;
+            actionUrl?: string;
             /** Format: date-time */
             readAt?: string;
             /** Format: date-time */
@@ -26931,6 +28510,37 @@ export interface components {
             /** Format: date-time */
             reviewedAt?: string;
         };
+        CountCycleHomeResponse: {
+            cycle?: components["schemas"]["CountCycleResponse"];
+            /** Format: int32 */
+            catalogSize?: number;
+            /** Format: int32 */
+            defaultBatchSize?: number;
+        };
+        StockDriftLine: {
+            itemId?: string;
+            itemName?: string;
+            sku?: string;
+            branchId?: string;
+            branchName?: string;
+            batchOnHand?: number;
+            unbackedOutflow?: number;
+            correctedOnHand?: number;
+            alreadyRepaired?: boolean;
+        };
+        StockDriftResponse: {
+            /** Format: int32 */
+            candidates?: number;
+            /** Format: int32 */
+            repairable?: number;
+            /** Format: int32 */
+            alreadyRepaired?: number;
+            /** Format: int32 */
+            skippedNoBatches?: number;
+            totalOutstanding?: number;
+            truncated?: boolean;
+            lines?: components["schemas"]["StockDriftLine"][];
+        };
         RestockRunListRow: {
             id?: string;
             branchId?: string;
@@ -27208,6 +28818,35 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
         };
+        TaxCodeRow: {
+            taxCode?: string;
+            taxableAmount?: number;
+            taxAmount?: number;
+            /** Format: int64 */
+            lineCount?: number;
+        };
+        VatReportResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            branchId?: string;
+            vatCollected?: number;
+            vatReversed?: number;
+            vatPayable?: number;
+            netRevenue?: number;
+            byTaxCode?: components["schemas"]["TaxCodeRow"][];
+        };
+        VatBucketResponse: {
+            /** Format: date */
+            periodStart?: string;
+            /** Format: date */
+            periodEnd?: string;
+            vatCollected?: number;
+            vatReversed?: number;
+            vatPayable?: number;
+            netRevenue?: number;
+        };
         FinancePulseResponse: {
             /** Format: date */
             date?: string;
@@ -27267,6 +28906,36 @@ export interface components {
             latestDisbursementStatus?: string;
             latestDisbursementMessage?: string;
             alreadyPaid?: boolean;
+        };
+        CategoryTotal: {
+            categoryCode?: string;
+            postedAmount?: number;
+            pendingAmount?: number;
+            rejectedAmount?: number;
+            /** Format: int32 */
+            count?: number;
+        };
+        ExpenseSummaryResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            branchId?: string;
+            totalAmount?: number;
+            postedAmount?: number;
+            pendingAmount?: number;
+            rejectedAmount?: number;
+            postedFixedAmount?: number;
+            postedVariableAmount?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            postedCount?: number;
+            /** Format: int32 */
+            pendingCount?: number;
+            /** Format: int32 */
+            rejectedCount?: number;
+            categories?: components["schemas"]["CategoryTotal"][];
         };
         ExpenseCalendarMonthResponse: {
             /** Format: int32 */
@@ -27355,6 +29024,7 @@ export interface components {
             status?: string;
             idempotencyKey?: string;
             grandTotal?: number;
+            taxTotal?: number;
             cashReceived?: number;
             soldBy?: string;
             customerId?: string;
@@ -27375,6 +29045,7 @@ export interface components {
             lineIndex?: number;
             lineKind?: string;
             lineLabel?: string;
+            displayName?: string;
             itemId?: string;
             quantity?: number;
             unitPrice?: number;
@@ -27386,6 +29057,9 @@ export interface components {
             discountAmount?: number;
             discountId?: string;
             discountName?: string;
+            taxCode?: string;
+            taxRatePercent?: number;
+            taxAmount?: number;
         };
         CloudSalePaymentData: {
             id?: string;
@@ -27535,6 +29209,7 @@ export interface components {
             ratePercent?: number;
             inclusive?: boolean;
             active?: boolean;
+            etimsTaxCode?: string;
         };
         InventoryMovementSyncSnapshot: {
             movements?: components["schemas"]["MovementData"][];
@@ -27849,6 +29524,10 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
             empty?: boolean;
         };
+        GoogleOAuthShopChoiceResponse: {
+            email?: string;
+            destinations?: components["schemas"]["PublicSignInDestinationResponse"][];
+        };
         PublicBranchResponse: {
             id?: string;
             name?: string;
@@ -27858,6 +29537,8 @@ export interface components {
             /** @enum {string} */
             category?: "SECURITY" | "STAFF" | "SALES" | "CASH_DRAWER" | "INVENTORY" | "ORDERS" | "CUSTOMERS" | "PRODUCTS" | "SUPPLIERS" | "SYSTEM" | "FINANCE";
             eventType?: string;
+            /** @description Comma-separated event types; any match. Ignored when eventType is set. */
+            eventTypes?: string;
             /** @enum {string} */
             severity?: "DEBUG" | "INFO" | "WARN" | "ERROR" | "CRITICAL";
             /** @enum {string} */
@@ -27892,6 +29573,8 @@ export interface components {
             targetType?: string;
             targetId?: string;
             targetLabel?: string;
+            /** @description Display name when the target is a staff user of this business. */
+            targetName?: string;
             sessionId?: string;
             correlationId?: string;
             ipAddress?: string;
@@ -27932,6 +29615,9 @@ export interface components {
                 [key: string]: number;
             };
             byCategory?: {
+                [key: string]: number;
+            };
+            byEventType?: {
                 [key: string]: number;
             };
         };
@@ -28164,12 +29850,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SettingsResponse"];
+                    "*/*": components["schemas"]["SupplierEasyTaxSettingsResponse"];
                 };
             };
         };
     };
     update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierEasyTaxSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierEasyTaxSettingsResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -28219,7 +29949,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -28239,7 +29969,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -28289,7 +30019,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -28309,7 +30039,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -28359,7 +30089,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -28379,7 +30109,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -28403,7 +30133,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -28423,7 +30153,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -28447,7 +30177,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -28467,7 +30197,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -28491,7 +30221,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -28511,7 +30241,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -28531,6 +30261,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PlatformAuthSettingsResponse"];
+                };
+            };
+        };
+    };
+    get_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformEasyTaxSettingsResponse"];
+                };
+            };
+        };
+    };
+    update_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformEasyTaxSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlatformEasyTaxSettingsResponse"];
                 };
             };
         };
@@ -28587,7 +30361,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -28754,6 +30528,32 @@ export interface operations {
             };
         };
     };
+    updateTaxRate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxRateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutTaxRateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaxRateResponse"];
+                };
+            };
+        };
+    };
     updateRule: {
         parameters: {
             query?: never;
@@ -28902,7 +30702,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -28922,7 +30722,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -28946,7 +30746,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -28966,7 +30766,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -29084,7 +30884,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -29104,7 +30904,7 @@ export interface operations {
             };
         };
     };
-    update_9: {
+    update_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -29148,6 +30948,98 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PickupMtaaniSettingsResponse"];
+                };
+            };
+        };
+    };
+    get_13: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxSettingsResponse"];
+                };
+            };
+        };
+    };
+    update_12: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EasyTaxSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxSettingsResponse"];
+                };
+            };
+        };
+    };
+    get_14: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxBranchSettingsResponse"];
+                };
+            };
+        };
+    };
+    update_13: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EasyTaxBranchSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxBranchSettingsResponse"];
                 };
             };
         };
@@ -29228,7 +31120,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -29250,7 +31142,7 @@ export interface operations {
             };
         };
     };
-    update_10: {
+    update_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -29276,7 +31168,7 @@ export interface operations {
             };
         };
     };
-    update_11: {
+    update_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -29322,7 +31214,7 @@ export interface operations {
             };
         };
     };
-    get_12: {
+    get_16: {
         parameters: {
             query?: never;
             header?: never;
@@ -29344,7 +31236,7 @@ export interface operations {
             };
         };
     };
-    update_12: {
+    update_16: {
         parameters: {
             query?: never;
             header?: never;
@@ -29390,7 +31282,7 @@ export interface operations {
             };
         };
     };
-    get_13: {
+    get_17: {
         parameters: {
             query?: never;
             header?: never;
@@ -29410,7 +31302,7 @@ export interface operations {
             };
         };
     };
-    update_13: {
+    update_17: {
         parameters: {
             query?: never;
             header?: never;
@@ -29434,7 +31326,7 @@ export interface operations {
             };
         };
     };
-    get_14: {
+    get_18: {
         parameters: {
             query?: never;
             header?: never;
@@ -29478,7 +31370,7 @@ export interface operations {
             };
         };
     };
-    get_15: {
+    get_19: {
         parameters: {
             query?: never;
             header?: never;
@@ -29958,6 +31850,76 @@ export interface operations {
             };
         };
     };
+    requestStk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebOrderStkPushResponse"];
+                };
+            };
+        };
+    };
+    markPaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebOrderDetailResponse"];
+                };
+            };
+        };
+    };
+    message: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendWebOrderMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebOrderMessageResponse"];
+                };
+            };
+        };
+    };
     listUsers: {
         parameters: {
             query: {
@@ -30021,6 +31983,28 @@ export interface operations {
                 "application/json": components["schemas"]["AssignRoleRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    reactivateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -31304,6 +33288,26 @@ export interface operations {
             };
         };
     };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxTestResponse"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -32212,7 +34216,7 @@ export interface operations {
             };
         };
     };
-    markPaid: {
+    markPaid_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -32304,6 +34308,266 @@ export interface operations {
             };
         };
     };
+    resendLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefundOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    markPaid_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    deliver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliverOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    createRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    connectDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    assign_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    testEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DeliveryResult"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartCampaignRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferCampaignResponse"];
+                };
+            };
+        };
+    };
+    pause_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferCampaignResponse"];
+                };
+            };
+        };
+    };
     reviewStorefront: {
         parameters: {
             query?: never;
@@ -32378,7 +34642,7 @@ export interface operations {
             };
         };
     };
-    test: {
+    test_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -32769,7 +35033,7 @@ export interface operations {
             };
         };
     };
-    cancel: {
+    cancel_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -33976,7 +36240,7 @@ export interface operations {
             };
         };
     };
-    test_1: {
+    test_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -34899,7 +37163,7 @@ export interface operations {
         parameters: {
             query?: {
                 supplierId?: string;
-                status?: string;
+                status?: string[];
             };
             header?: never;
             path?: never;
@@ -34960,6 +37224,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PathAPurchaseOrderDetailResponse"];
+                };
+            };
+        };
+    };
+    notifyParties: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purchaseOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifyPurchaseOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotifyPurchaseOrderResponse"];
                 };
             };
         };
@@ -35034,7 +37324,7 @@ export interface operations {
             };
         };
     };
-    cancel_1: {
+    cancel_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -35176,6 +37466,30 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GuestThreadDto"];
+                };
+            };
+        };
+    };
+    recover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoverGuestThreadRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -35915,6 +38229,32 @@ export interface operations {
             };
         };
     };
+    pay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicPayRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicPayResponse"];
+                };
+            };
+        };
+    };
     initiateWalletStk: {
         parameters: {
             query?: never;
@@ -36426,7 +38766,9 @@ export interface operations {
     };
     listTaxRates: {
         parameters: {
-            query?: never;
+            query?: {
+                includeInactive?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -36852,7 +39194,7 @@ export interface operations {
             };
         };
     };
-    pay: {
+    pay_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -36902,7 +39244,7 @@ export interface operations {
             };
         };
     };
-    test_2: {
+    test_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -37288,7 +39630,7 @@ export interface operations {
             };
         };
     };
-    test_3: {
+    test_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -37380,6 +39722,24 @@ export interface operations {
             };
         };
     };
+    markAllRead_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_10: {
         parameters: {
             query?: never;
@@ -37446,7 +39806,7 @@ export interface operations {
             };
         };
     };
-    cancel_2: {
+    cancel_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -37568,7 +39928,7 @@ export interface operations {
             };
         };
     };
-    markAllRead_1: {
+    markAllRead_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -37795,7 +40155,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AttachMarketplaceSupplierRequest"];
+            };
+        };
         responses: {
             /** @description Created */
             201: {
@@ -37804,6 +40168,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MarketplaceAttachResponse"];
+                };
+            };
+        };
+    };
+    attachPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                marketplaceSupplierId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MarketplaceAttachPreviewResponse"];
                 };
             };
         };
@@ -37998,7 +40384,7 @@ export interface operations {
             };
         };
     };
-    cancel_3: {
+    cancel_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -39326,6 +41712,122 @@ export interface operations {
             };
         };
     };
+    startCycle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartCountCycleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CountCycleResponse"];
+                };
+            };
+        };
+    };
+    cancelCycle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CountCycleResponse"];
+                };
+            };
+        };
+    };
+    startOrResumeBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cycleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchResponse"];
+                };
+            };
+        };
+    };
+    finishBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CountCycleResponse"];
+                };
+            };
+        };
+    };
+    applyBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApplyBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchResponse"];
+                };
+            };
+        };
+    };
     stockIncrease: {
         parameters: {
             query?: never;
@@ -39336,6 +41838,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PostStockIncreaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InventoryMutationResponse"];
+                };
+            };
+        };
+    };
+    returnToSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostSupplierReturnRequest"];
             };
         };
         responses: {
@@ -39443,6 +41969,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RestockRunResponse"];
+                };
+            };
+        };
+    };
+    previewEquityClearanceCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquityClearanceCorrectionResponse"];
+                };
+            };
+        };
+    };
+    applyEquityClearanceCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquityClearanceCorrectionResponse"];
                 };
             };
         };
@@ -40033,6 +42599,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CsvImportResponse"];
+                };
+            };
+        };
+    };
+    test_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EasyTaxTestResponse"];
                 };
             };
         };
@@ -41064,7 +43650,7 @@ export interface operations {
             };
         };
     };
-    pause_1: {
+    pause_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -42045,7 +44631,7 @@ export interface operations {
             };
         };
     };
-    assign_1: {
+    assign_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -42306,7 +44892,7 @@ export interface operations {
             };
         };
     };
-    test_4: {
+    test_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -42800,7 +45386,7 @@ export interface operations {
             };
         };
     };
-    pay_1: {
+    pay_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -43318,7 +45904,7 @@ export interface operations {
             };
         };
     };
-    start: {
+    start_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -43352,6 +45938,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["GoogleOAuthExchangeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoogleOAuthExchangeResponse"];
+                };
+            };
+        };
+    };
+    completeShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleOAuthCompleteShopRequest"];
             };
         };
         responses: {
@@ -44031,7 +46641,7 @@ export interface operations {
             };
         };
     };
-    get_16: {
+    get_20: {
         parameters: {
             query?: {
                 includeDeleted?: boolean;
@@ -44239,7 +46849,7 @@ export interface operations {
             };
         };
     };
-    update_14: {
+    update_18: {
         parameters: {
             query?: never;
             header?: never;
@@ -44265,7 +46875,7 @@ export interface operations {
             };
         };
     };
-    get_17: {
+    get_21: {
         parameters: {
             query?: never;
             header?: never;
@@ -44515,7 +47125,7 @@ export interface operations {
             };
         };
     };
-    update_15: {
+    update_19: {
         parameters: {
             query?: never;
             header?: never;
@@ -44541,7 +47151,7 @@ export interface operations {
             };
         };
     };
-    get_18: {
+    get_22: {
         parameters: {
             query?: never;
             header?: never;
@@ -44561,7 +47171,7 @@ export interface operations {
             };
         };
     };
-    update_16: {
+    update_20: {
         parameters: {
             query?: never;
             header?: never;
@@ -44585,7 +47195,7 @@ export interface operations {
             };
         };
     };
-    get_19: {
+    get_23: {
         parameters: {
             query?: never;
             header?: never;
@@ -44605,7 +47215,7 @@ export interface operations {
             };
         };
     };
-    update_17: {
+    update_21: {
         parameters: {
             query?: never;
             header?: never;
@@ -44629,7 +47239,7 @@ export interface operations {
             };
         };
     };
-    get_20: {
+    get_24: {
         parameters: {
             query?: never;
             header?: never;
@@ -44649,7 +47259,7 @@ export interface operations {
             };
         };
     };
-    update_18: {
+    update_22: {
         parameters: {
             query?: never;
             header?: never;
@@ -45090,7 +47700,7 @@ export interface operations {
             };
         };
     };
-    get_21: {
+    get_25: {
         parameters: {
             query?: never;
             header?: never;
@@ -45110,7 +47720,7 @@ export interface operations {
             };
         };
     };
-    update_19: {
+    update_23: {
         parameters: {
             query?: never;
             header?: never;
@@ -45403,7 +48013,7 @@ export interface operations {
             };
         };
     };
-    get_22: {
+    get_26: {
         parameters: {
             query?: never;
             header?: never;
@@ -45671,7 +48281,7 @@ export interface operations {
             };
         };
     };
-    get_23: {
+    get_27: {
         parameters: {
             query?: never;
             header?: never;
@@ -45713,7 +48323,7 @@ export interface operations {
             };
         };
     };
-    update_20: {
+    update_24: {
         parameters: {
             query?: never;
             header?: never;
@@ -45971,7 +48581,7 @@ export interface operations {
             };
         };
     };
-    update_21: {
+    update_25: {
         parameters: {
             query?: never;
             header?: never;
@@ -46169,6 +48779,33 @@ export interface operations {
             };
         };
     };
+    countLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountBatchLineRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchResponse"];
+                };
+            };
+        };
+    };
     patchStockThresholds: {
         parameters: {
             query?: never;
@@ -46311,7 +48948,7 @@ export interface operations {
             };
         };
     };
-    update_22: {
+    update_26: {
         parameters: {
             query?: never;
             header?: never;
@@ -46337,7 +48974,7 @@ export interface operations {
             };
         };
     };
-    get_24: {
+    get_28: {
         parameters: {
             query?: never;
             header?: never;
@@ -46379,7 +49016,7 @@ export interface operations {
             };
         };
     };
-    update_23: {
+    update_27: {
         parameters: {
             query?: never;
             header?: never;
@@ -46405,7 +49042,7 @@ export interface operations {
             };
         };
     };
-    get_25: {
+    get_29: {
         parameters: {
             query?: never;
             header?: never;
@@ -47028,7 +49665,7 @@ export interface operations {
             };
         };
     };
-    get_26: {
+    get_30: {
         parameters: {
             query: {
                 localSupplierId: string;
@@ -47159,7 +49796,7 @@ export interface operations {
             };
         };
     };
-    get_27: {
+    get_31: {
         parameters: {
             query?: never;
             header?: never;
@@ -47391,7 +50028,7 @@ export interface operations {
             };
         };
     };
-    get_28: {
+    get_32: {
         parameters: {
             query?: never;
             header?: never;
@@ -47798,6 +50435,26 @@ export interface operations {
             };
         };
     };
+    diagnoseCoolify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CoolifyDiagnostic"];
+                };
+            };
+        };
+    };
     list_43: {
         parameters: {
             query?: {
@@ -47820,7 +50477,7 @@ export interface operations {
             };
         };
     };
-    get_29: {
+    get_33: {
         parameters: {
             query?: never;
             header?: never;
@@ -47860,6 +50517,72 @@ export interface operations {
                     "*/*": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    orders_1: {
+        parameters: {
+            query?: {
+                status?: string;
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderListResponse"];
+                };
+            };
+        };
+    };
+    order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferOrderResponse"];
+                };
+            };
+        };
+    };
+    campaign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainOfferCampaignResponse"];
                 };
             };
         };
@@ -48372,7 +51095,7 @@ export interface operations {
             };
         };
     };
-    get_30: {
+    get_34: {
         parameters: {
             query?: never;
             header?: never;
@@ -48505,7 +51228,7 @@ export interface operations {
             };
         };
     };
-    get_31: {
+    get_35: {
         parameters: {
             query?: never;
             header?: never;
@@ -48523,6 +51246,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ContactMessageDetailResponse"];
+                };
+            };
+        };
+    };
+    unreadCount_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -48571,7 +51316,7 @@ export interface operations {
             };
         };
     };
-    orders_1: {
+    orders_2: {
         parameters: {
             query?: {
                 limit?: number;
@@ -49199,6 +51944,7 @@ export interface operations {
                 branchId?: string;
                 itemTypeId?: string;
                 itemId?: string;
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -49213,6 +51959,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RecentSaleRow"][];
+                };
+            };
+        };
+    };
+    recentSalesTape: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                branchId?: string;
+                itemTypeId?: string;
+                itemId?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecentSaleTapeRow"][];
                 };
             };
         };
@@ -49749,6 +52522,7 @@ export interface operations {
         parameters: {
             query?: {
                 branchId?: string;
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -50472,7 +53246,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PublicHostResolveResponse"];
+                    "*/*": Record<string, never>;
                 };
             };
         };
@@ -50539,6 +53313,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PublicDrawoutReviewResponse"];
+                };
+            };
+        };
+    };
+    offer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicDomainOfferResponse"];
+                };
+            };
+        };
+    };
+    status_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicStatusResponse"];
                 };
             };
         };
@@ -51010,7 +53828,7 @@ export interface operations {
             };
         };
     };
-    get_32: {
+    get_36: {
         parameters: {
             query?: never;
             header?: never;
@@ -51078,7 +53896,7 @@ export interface operations {
             };
         };
     };
-    status_5: {
+    status_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -51341,6 +54159,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PermissionResponse"][];
+                };
+            };
+        };
+    };
+    summary_2: {
+        parameters: {
+            query: {
+                year: number;
+                month: number;
+                branchId?: string;
+                statutory?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PayrollSummaryResponse"];
                 };
             };
         };
@@ -51690,7 +54533,9 @@ export interface operations {
     };
     list_53: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -51704,6 +54549,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["NotificationResponse"][];
+                };
+            };
+        };
+    };
+    bell: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotificationBellRow"][];
                 };
             };
         };
@@ -51775,7 +54642,7 @@ export interface operations {
             };
         };
     };
-    unreadCount_3: {
+    unreadCount_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -51797,7 +54664,7 @@ export interface operations {
             };
         };
     };
-    status_6: {
+    status_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -51837,7 +54704,7 @@ export interface operations {
             };
         };
     };
-    status_7: {
+    status_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -51879,7 +54746,7 @@ export interface operations {
             };
         };
     };
-    get_33: {
+    get_37: {
         parameters: {
             query?: never;
             header?: never;
@@ -51921,7 +54788,7 @@ export interface operations {
             };
         };
     };
-    get_34: {
+    get_38: {
         parameters: {
             query?: never;
             header?: never;
@@ -52536,6 +55403,95 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DailyStockAuditInvestigationResponse"][];
+                };
+            };
+        };
+    };
+    home: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CountCycleHomeResponse"];
+                };
+            };
+        };
+    };
+    getBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchResponse"];
+                };
+            };
+        };
+    };
+    reviewBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchResponse"];
+                };
+            };
+        };
+    };
+    stockDrift: {
+        parameters: {
+            query?: {
+                branchId?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockDriftResponse"];
                 };
             };
         };
@@ -53255,6 +56211,80 @@ export interface operations {
             };
         };
     };
+    vatReport: {
+        parameters: {
+            query: {
+                from: string;
+                to?: string;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VatReportResponse"];
+                };
+            };
+        };
+    };
+    vatReportCsv: {
+        parameters: {
+            query: {
+                from: string;
+                to?: string;
+                bucket?: string;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    vatReportBuckets: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                bucket?: string;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VatBucketResponse"][];
+                };
+            };
+        };
+    };
     pulse: {
         parameters: {
             query?: {
@@ -53279,7 +56309,7 @@ export interface operations {
             };
         };
     };
-    get_35: {
+    get_39: {
         parameters: {
             query?: never;
             header?: never;
@@ -53395,11 +56425,64 @@ export interface operations {
             };
         };
     };
+    summary_3: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branchId?: string;
+                categoryType?: string;
+                categoryCode?: string;
+                source?: string;
+                approvalStatus?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseSummaryResponse"];
+                };
+            };
+        };
+    };
     listOccurrences: {
         parameters: {
             query: {
                 year: number;
                 month: number;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseScheduleOccurrenceResponse"][];
+                };
+            };
+        };
+    };
+    listOccurrenceRange: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
                 branchId?: string;
             };
             header?: never;
@@ -53784,7 +56867,7 @@ export interface operations {
             };
         };
     };
-    status_8: {
+    status_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -53829,7 +56912,7 @@ export interface operations {
             };
         };
     };
-    get_36: {
+    get_40: {
         parameters: {
             query?: never;
             header?: never;
@@ -53851,7 +56934,7 @@ export interface operations {
             };
         };
     };
-    get_37: {
+    get_41: {
         parameters: {
             query?: never;
             header?: never;
@@ -54004,7 +57087,7 @@ export interface operations {
             };
         };
     };
-    get_38: {
+    get_42: {
         parameters: {
             query?: never;
             header?: never;
@@ -54022,6 +57105,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ContactMessageDetailResponse"];
+                };
+            };
+        };
+    };
+    unreadCount_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -54130,7 +57235,7 @@ export interface operations {
             };
         };
     };
-    get_39: {
+    get_43: {
         parameters: {
             query?: never;
             header?: never;
@@ -54148,6 +57253,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DomainOrderResponse"];
+                };
+            };
+        };
+    };
+    shops_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GoogleOAuthShopChoiceResponse"];
                 };
             };
         };
@@ -54215,7 +57340,7 @@ export interface operations {
             };
         };
     };
-    summary_2: {
+    summary_4: {
         parameters: {
             query: {
                 filter: components["schemas"]["AuditEventFilterRequest"];
@@ -54302,7 +57427,7 @@ export interface operations {
             };
         };
     };
-    order: {
+    order_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -54346,7 +57471,7 @@ export interface operations {
             };
         };
     };
-    status_9: {
+    status_10: {
         parameters: {
             query?: never;
             header?: never;

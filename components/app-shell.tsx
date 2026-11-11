@@ -250,7 +250,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       {
         href: APP_ROUTES.businessLogs,
-        label: "What happened",
+        label: "Activity",
         group: "Monitoring",
       },
       {
