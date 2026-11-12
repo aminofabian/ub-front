@@ -1,5 +1,6 @@
 "use client";
 
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   API_ROUTES,
   APP_ROUTES,
@@ -14199,6 +14200,16 @@ export async function initiateMpesaStkIntent(
   );
 }
 
+/**
+ * Kiosk Desktop relays STK calls to the online shop (the gateway callback
+ * needs a public URL the till does not have) — see DesktopStkRelayController.
+ */
+function posStkBase(): string {
+  return IS_DESKTOP
+    ? "/api/v1/desktop/payments/stk"
+    : "/api/v1/payments/mpesa/stk";
+}
+
 export type PosStkPushResponseRecord = {
   accepted: boolean;
   checkoutRequestId: string | null;
@@ -14217,7 +14228,7 @@ export async function initiatePosStkPush(
   },
   idempotencyKey: string,
 ): Promise<PosStkPushResponseRecord> {
-  return request<PosStkPushResponseRecord>("/api/v1/payments/mpesa/stk/push", {
+  return request<PosStkPushResponseRecord>(`${posStkBase()}/push`, {
     method: "POST",
     body,
     idempotencyKey,
@@ -14237,7 +14248,7 @@ export type PosStkRailRecord = {
 /** Active STK / custody rails for the cashier M-Pesa lane picker. */
 export async function fetchPosStkRails(): Promise<PosStkRailRecord[]> {
   return shareInflight("payments/mpesa/stk/rails", () =>
-    request<PosStkRailRecord[]>("/api/v1/payments/mpesa/stk/rails"),
+    request<PosStkRailRecord[]>(`${posStkBase()}/rails`),
   );
 }
 
@@ -14261,7 +14272,7 @@ export async function fetchPosStkPushStatus(
 ): Promise<StkPushStatusRecord> {
   const q = new URLSearchParams({ checkoutRequestId });
   return request<StkPushStatusRecord>(
-    `/api/v1/payments/mpesa/stk/push/status?${q.toString()}`,
+    `${posStkBase()}/push/status?${q.toString()}`,
   );
 }
 

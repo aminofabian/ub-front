@@ -11,7 +11,10 @@ import {
   attemptDrawerKick,
   createDrawerKickReporter,
 } from "@/lib/cash-drawer-kick";
-import { kickDesktopCashDrawer } from "@/lib/desktop-api";
+import {
+  fetchDesktopPrinterConfig,
+  kickDesktopCashDrawer,
+} from "@/lib/desktop-api";
 import {
   appendCashTenderEscPos,
   drawerKickJobBytes,
@@ -179,6 +182,40 @@ async function prepareThermalEscPos(
   return new Blob([copy], { type: "application/octet-stream" });
 }
 
+/** Cached sidecar printer config so every sale does not re-read printer.json. */
+let desktopPrinterCfgAt = 0;
+let desktopPrinterCfgOk = false;
+const DESKTOP_PRINTER_CFG_TTL_MS = 30_000;
+let warnedNoDesktopPrinterAt = 0;
+
+async function desktopPrinterIsConfigured(): Promise<boolean> {
+  const now = Date.now();
+  if (now - desktopPrinterCfgAt < DESKTOP_PRINTER_CFG_TTL_MS) return desktopPrinterCfgOk;
+  try {
+    const cfg = await fetchDesktopPrinterConfig();
+    const mode = (cfg.mode || "").trim();
+    desktopPrinterCfgOk =
+      (mode === "cups" && Boolean(cfg.cupsName?.trim())) ||
+      (mode === "network" && Boolean(cfg.host?.trim()));
+  } catch {
+    // Can't read the config — let the backend try; it reports its own error.
+    desktopPrinterCfgOk = true;
+  }
+  desktopPrinterCfgAt = now;
+  return desktopPrinterCfgOk;
+}
+
+/** At most once every few minutes — the cashier should not be nagged per sale. */
+function warnNoDesktopPrinterOnce(): void {
+  const now = Date.now();
+  if (now - warnedNoDesktopPrinterAt < 5 * 60_000) return;
+  warnedNoDesktopPrinterAt = now;
+  toast.message(
+    "No receipt printer is set up on this till. The receipt is on screen \u2014 set the printer under Settings \u2192 Desktop & LAN.",
+    { duration: 8_000 },
+  );
+}
+
 /**
  * Print a completed sale on the configured ESC/POS printer.
  *
@@ -211,6 +248,13 @@ export async function printPosReceipt(
   }
 
   if (IS_DESKTOP) {
+    // The sidecar's default mode is `file` (receipts.log) and it answers 200
+    // for it, so without this check a till with no printer configured shows
+    // "Sent to receipt printer" while nothing prints.
+    if (!(await desktopPrinterIsConfigured())) {
+      if (!openDrawer) warnNoDesktopPrinterOnce();
+      return false;
+    }
     try {
       if (openDrawer) {
         await openDrawerBeforeReceipt(printer);

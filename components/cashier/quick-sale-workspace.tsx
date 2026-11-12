@@ -189,6 +189,7 @@ import {
   WEIGHTED_QTY_DECIMALS,
 } from "./cashier-qty-control";
 import { TillPrinterStatus } from "./till-printer-status";
+import { DesktopSyncPill } from "@/components/desktop/desktop-sync-pill";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
 import {
@@ -5319,14 +5320,17 @@ export function QuickSaleWorkspace({
             : null
         }
         tillPrinterStatus={
-          <TillPrinterStatus
-            compact
-            cupsName={
-              branches.find((b) => b.id === branchId.trim())?.receipt
-                ?.printerCupsName ?? null
-            }
-            branchId={branchId.trim() || null}
-          />
+          <>
+            <DesktopSyncPill />
+            <TillPrinterStatus
+              compact
+              cupsName={
+                branches.find((b) => b.id === branchId.trim())?.receipt
+                  ?.printerCupsName ?? null
+              }
+              branchId={branchId.trim() || null}
+            />
+          </>
         }
         cartTabs={carts.map((c) => ({
           grandTotal: cartSessionGrandTotal(c),

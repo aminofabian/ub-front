@@ -71,14 +71,31 @@ function friendlyConnectError(
   detail: string,
 ): { message: string; offersReset: boolean } {
   const d = (detail || "").toLowerCase();
-  if (
-    d.includes("uq_items_business_sku") ||
-    d.includes("duplicate entry") ||
-    d.includes("could not copy shop data")
-  ) {
+  // 409: the local business row already exists (an earlier Create/Connect on
+  // this PC, or a half-finished one). The only way forward is a reset.
+  if (status === 409 || d.includes("already set up")) {
+    return {
+      message:
+        "This PC is already linked to a shop. Reset this PC, then connect again \u2014 your online shop is untouched.",
+      offersReset: true,
+    };
+  }
+  if (d.includes("uq_items_business_sku") || d.includes("duplicate entry")) {
     return {
       message:
         "This PC already has shop data saved from a previous setup, so the copy clashed. Reset this PC and connect again \u2014 your online shop is untouched.",
+      offersReset: true,
+    };
+  }
+  if (d.includes("could not copy shop data")) {
+    // Any other seed failure (missing reference, bad row in the snapshot).
+    // Show the real reason — on a fresh PC "already has data" would be wrong.
+    const reason = detail.replace(/^could not copy shop data onto this pc:\s*/i, "").trim();
+    return {
+      message:
+        "Could not copy the shop onto this PC" +
+        (reason ? `: ${reason}` : ".") +
+        " Try again; if it keeps failing, send the logs from Settings \u2192 Desktop.",
       offersReset: true,
     };
   }
@@ -223,7 +240,7 @@ export function DesktopSetupWizard() {
     if (!emailForConnect) {
       setSubmitState({
         kind: "error",
-        message: "Enter the owner or staff email for this shop.",
+        message: "Enter the email you use to sign in to this shop.",
       });
       return;
     }
@@ -292,6 +309,17 @@ export function DesktopSetupWizard() {
             body?.message ||
             body?.title ||
             `Could not reset this PC (${res.status})`,
+        });
+        return;
+      }
+      if (res.headers.get("X-Kiosk-Restarting") === "true") {
+        // The app restarts to clear the old shop off this PC; connecting now
+        // would copy the new shop into a database that is about to be emptied.
+        setNeedsReset(false);
+        setSubmitState({
+          kind: "error",
+          message:
+            "This PC was backed up and is being cleared. Kiosk will restart in a few seconds \u2014 then connect your shop again.",
         });
         return;
       }
@@ -395,7 +423,8 @@ export function DesktopSetupWizard() {
       message={shellMessage}
       status={shellStatus}
     >
-      <div className="w-full text-left">
+      {/* Re-keyed per step so each screen eases in instead of snapping (first-run flow, seen once). */}
+      <div key={`${path}:${connectStep}`} className="desktop-step-in w-full text-left">
         {path === "choose" ? (
           <div className="space-y-3">
             <button
@@ -704,13 +733,18 @@ export function DesktopSetupWizard() {
                     <RotateCcw className="size-4" aria-hidden />
                   )}
                   {resetting
-                    ? "Resetting this PC\u2026"
-                    : "Reset this PC and try again"}
+                    ? "Backing up and clearing this PC\u2026"
+                    : "Back up, clear this PC and try again"}
                 </button>
               ) : null}
               <PrimaryButton disabled={submitting} busy={submitting}>
                 {submitting ? "Copying your shop\u2026" : "Connect this shop"}
               </PrimaryButton>
+              {submitting ? (
+                <p className="text-center text-xs leading-relaxed text-[var(--op-muted)]" aria-live="polite">
+                  Signing in, then copying products and staff onto this PC. A large shop can take a minute; keep this window open.
+                </p>
+              ) : null}
             </form>
           </Panel>
         ) : null}
@@ -748,15 +782,13 @@ export function DesktopSetupWizard() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--op-accent)_7%,var(--op-surface))]">
                 <div
-                  className="h-full rounded-full bg-[var(--op-accent)] transition-all duration-500"
+                  className="desktop-progress-fill h-full w-full origin-left rounded-full bg-[var(--op-accent)]"
                   style={{
-                    width: `${
+                    transform: `scaleX(${
                       mediaStatus && mediaStatus.total > 0
-                        ? Math.round(
-                            (mediaStatus.done / mediaStatus.total) * 100,
-                          )
+                        ? Math.min(1, mediaStatus.done / mediaStatus.total)
                         : 0
-                    }%`,
+                    })`,
                   }}
                 />
               </div>
@@ -979,7 +1011,7 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={disabled}
-      className="flex h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-[var(--op-accent)] text-sm font-semibold text-[var(--op-surface)] transition hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] disabled:opacity-60"
+      className="flex h-11 w-full items-center justify-center gap-2 rounded-[2px] bg-[var(--op-accent)] text-sm font-semibold text-[var(--op-surface)] transition-[background-color,transform] duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--op-accent)_84%,black)] active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100 motion-reduce:active:scale-100"
     >
       {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
       {children}

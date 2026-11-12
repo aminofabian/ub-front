@@ -6,6 +6,8 @@ import { Suspense } from "react";
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
 import { AppShell } from "@/components/app-shell";
 import { DesktopLicenseProvider } from "@/components/desktop/desktop-license-provider";
+import { DesktopOnlineSync } from "@/components/desktop/desktop-online-sync";
+import { DesktopSyncExpiredBanner } from "@/components/desktop/desktop-sync-pill";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { DashboardAccessRedirects } from "@/components/dashboard/dashboard-access-redirects";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
@@ -82,7 +84,13 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
     return shell;
   }
 
-  return <DesktopLicenseProvider>{shell}</DesktopLicenseProvider>;
+  return (
+    <DesktopLicenseProvider>
+      <DesktopOnlineSync />
+      <DesktopSyncExpiredBanner />
+      {shell}
+    </DesktopLicenseProvider>
+  );
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

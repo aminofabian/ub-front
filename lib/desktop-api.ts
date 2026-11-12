@@ -220,6 +220,33 @@ export function runDesktopSyncFull(): Promise<{ started: boolean }> {
   });
 }
 
+/**
+ * {@code POST /api/v1/desktop/sync/flush} — incremental pull+push, inline.
+ * Called when the till comes back online so pending sales leave at once.
+ */
+export function runDesktopSyncFlush(): Promise<{ ran: boolean }> {
+  return apiRequest<{ ran: boolean }>("/api/v1/desktop/sync/flush", {
+    method: "POST",
+    toast: false,
+  });
+}
+
+export type DesktopSyncSummary = {
+  connected: boolean;
+  pendingSales: number;
+  lastFlushAt: number;
+  lastOkAt: number;
+  sessionExpired: boolean;
+  lastError: string | null;
+};
+
+/** {@code GET /api/v1/desktop/sync/summary} — pending uploads + sync health for the cashier pill. */
+export function fetchDesktopSyncSummary(): Promise<DesktopSyncSummary> {
+  return apiRequest<DesktopSyncSummary>("/api/v1/desktop/sync/summary", {
+    toast: false,
+  });
+}
+
 /** {@code GET /api/v1/desktop/sync/status} — live phase + counts. */
 export function fetchDesktopSyncStatus(): Promise<DesktopSyncStatus> {
   return apiRequest<DesktopSyncStatus>("/api/v1/desktop/sync/status", {

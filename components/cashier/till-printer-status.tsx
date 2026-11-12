@@ -135,6 +135,27 @@ export function TillPrinterStatus({
 
   const desktopCupsName =
     desktopCfg?.mode === "cups" ? desktopCfg.cupsName?.trim() || null : null;
+
+  // Kiosk Desktop on Windows picks the receipt queue in the background on its
+  // first start; once /health reports it, re-read printer.json so the widget
+  // flips to ready without a reload.
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    const reported = health?.printerName?.trim() || "";
+    if (!reported || desktopCupsName === reported) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const cfg = await fetchDesktopPrinterConfig();
+        if (!cancelled) setDesktopCfg(cfg);
+      } catch {
+        // next health tick retries
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [health, desktopCupsName]);
   const desktopNetworkReady =
     desktopCfg?.mode === "network" && Boolean(desktopCfg.host?.trim());
   const effectiveName =
