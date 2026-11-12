@@ -11,6 +11,8 @@ import {
   fetchTillCupsPrinters,
   TILL_BRIDGE_START_HINT,
   type TillCupsPrinter,
+  LOOPBACK_BLOCKED_HINT,
+  queryLoopbackPermission,
 } from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +41,7 @@ function platformLabel(platform: string | null | undefined): string {
 function emptyPrintersMessage(platform: string | null | undefined): string {
   switch (platform) {
     case "win32":
-      return "No print queues found. Detect now adds USB/COM Xprinters that only show in Device Manager. If this is still empty: printer ON, data USB cable, Print Spooler running, then Detect again. Skip Microsoft Print to PDF / Fax.";
+      return "No Xprinter queue yet. Detect lists USB001 when Windows has registered the printer. If this is still empty: printer ON, data USB cable, unplug it, wait two seconds, plug it back in, then Detect again. Skip Microsoft Print to PDF / Fax.";
     case "linux":
       return "No CUPS printers found on Linux. Install cups, add the printer, then retry Detect.";
     case "darwin":
@@ -71,11 +73,14 @@ export function CupsPrinterPicker({
     try {
       const health = await fetchTillBridgeHealth();
       if (!health?.ok) {
+        const loopback = IS_DESKTOP ? null : await queryLoopbackPermission();
         const msg = IS_DESKTOP
           ? "Printer bridge is not running. Restart Kiosk Desktop, then Detect again."
-          : compact
-            ? "Printer helper is not running on this PC. Download it first, then detect."
-            : `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
+          : loopback === "denied"
+            ? LOOPBACK_BLOCKED_HINT
+            : compact
+              ? "Printer helper is not running on this PC. Download it first, then detect."
+              : `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
         setError(msg);
         toast.error(msg, { duration: compact ? 8_000 : 12_000 });
         setPrinters(null);

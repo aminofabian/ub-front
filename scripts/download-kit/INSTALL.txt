@@ -19,8 +19,15 @@ That:
   - installs under %LOCALAPPDATA%\Palmart\till-print-bridge
   - starts the bridge hidden in the background
   - auto-starts at every Windows sign-in
+  - tells Chrome / Edge to allow the Palmart site to reach this PC
+    (the "Local network access" prompt), so the cashier never sees it
+  - looks for the receipt printer right away and saves it (config.json);
+    Cashier picks it up with no Detect click
   - on Detect, adds an Xprinter / USB POS queue if Windows only shows
     the device in Device Manager (Generic / Text Only)
+
+The one-file installer downloaded from Cashier (Install-Palmart-Print-Bridge.cmd,
+no zip) does all of the above and then opens Cashier for you.
 
 You do NOT need to keep a window open while cashiering.
 If http://127.0.0.1:19500/health says site can't be reached, double-click

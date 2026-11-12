@@ -2,8 +2,10 @@
 # ASCII-only. Same HTTP API as the Win7 / Node bridges: http://127.0.0.1:19500
 # Uses TcpListener so no netsh URL ACL / admin is required.
 #
-# On Detect (/printers) this also turns USB Printing Support / COM POS devices
-# into a Generic / Text Only queue so they show up (Device Manager is not enough).
+# On Detect (/printers) this reads USB Printing Support ports (including the USB
+# Monitor key Windows 11 fills before any queue exists) and COM receipt devices,
+# then tries to add a Generic / Text Only queue. The port is still listed when
+# the driver cannot be installed without administrator.
 param(
   [switch]$ListOnly
 )
@@ -21,6 +23,7 @@ $LogFile = $env:TILL_PRINT_BRIDGE_LOG
 if (-not $LogFile) {
   $LogFile = Join-Path $ScriptDir "bridge.log"
 }
+$script:PnpDeviceCache = $null
 
 function Write-BridgeLog([string]$Message) {
   $line = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss") + " " + $Message
@@ -56,7 +59,33 @@ function Test-LikelyThermal([string]$Name, [string]$PortName) {
 
 function Test-LikelyReceiptPnp([string]$Name) {
   if (-not $Name) { return $false }
-  return [bool]($Name -match "USB Printing|POS-?80|POS80|Xprinter|X-Printer|XP-?\d+|Thermal|Receipt|Gprinter|Rongta|Caysn|Munbyn|CH340|CH341|CP210|USB.?Serial|USB.?COM|Printer")
+  return [bool]($Name -match "USB Printing|POS-?80|POS80|Xprinter|X-Printer|XP-?\d+|Thermal|Receipt|Gprinter|Rongta|Caysn|Munbyn|CH340|CH341|CP210|USB.?Serial|USB-to-Serial|USB to Serial|Printer")
+}
+
+function Normalize-PortName([string]$Name) {
+  if (-not $Name) { return "" }
+  $n = ([string]$Name).Trim().TrimEnd(":")
+  if (-not $n) { return "" }
+  if ($n -match "^(PSChildName|PSDrive|PSProvider|PSPath|PSParentPath|PSComputerName)$") { return "" }
+  if ($n -match "^(PS|Computer|Path|Provider)") { return "" }
+  if ($n -match "^(USB|COM|LPT)\d+$") { return $n.ToUpper() }
+  if ($n -match "^(DOT4|ESDPRT|TMUSB|USBPRINT)[_\-]?\d+$") { return $n.ToUpper() }
+  return $n
+}
+
+function Test-UsbClassPort([string]$Name) {
+  $n = Normalize-PortName $Name
+  if (-not $n) { return $false }
+  if ($n -match "^USB\d+$") { return $true }
+  if ($n -match "^(DOT4|ESDPRT|TMUSB|USBPRINT)[_\-]?\d+$") { return $true }
+  return $false
+}
+
+function Add-PortName($Ports, [string]$Name) {
+  $n = Normalize-PortName $Name
+  if (-not $n) { return }
+  if (-not (Test-UsbClassPort $n)) { return }
+  if (-not $Ports.Contains($n)) { [void]$Ports.Add($n) }
 }
 
 function Ensure-PrintSpooler {
@@ -88,36 +117,113 @@ function Get-GenericTextDriverName {
   return "Generic / Text Only"
 }
 
+function Add-PortsFromPrintKey($Ports, [string]$RegPath) {
+  if (-not (Test-Path -LiteralPath $RegPath)) { return }
+  try {
+    $key = Get-Item -LiteralPath $RegPath -ErrorAction SilentlyContinue
+    if ($key) {
+      foreach ($valueName in @($key.GetValueNames())) {
+        Add-PortName $Ports ([string]$valueName)
+        try {
+          $raw = $key.GetValue($valueName)
+          if ($null -ne $raw) { Add-PortName $Ports ([string]$raw) }
+        } catch { }
+      }
+    }
+  } catch { }
+  try {
+    foreach ($child in @(Get-ChildItem -LiteralPath $RegPath -ErrorAction SilentlyContinue)) {
+      Add-PortName $Ports ([string]$child.PSChildName)
+      try {
+        foreach ($valueName in @($child.GetValueNames())) {
+          Add-PortName $Ports ([string]$valueName)
+          $raw = $child.GetValue($valueName)
+          if ($null -ne $raw) { Add-PortName $Ports ([string]$raw) }
+        }
+      } catch { }
+    }
+  } catch { }
+}
+
+function Add-PortsFromUsbPrintEnum($Ports) {
+  $root = "HKLM:\SYSTEM\CurrentControlSet\Enum\USBPRINT"
+  if (-not (Test-Path -LiteralPath $root)) { return }
+  try {
+    foreach ($dev in @(Get-ChildItem -LiteralPath $root -Recurse -ErrorAction SilentlyContinue)) {
+      foreach ($propName in @("PortName", "Port")) {
+        try {
+          $raw = $dev.GetValue($propName)
+          if ($null -ne $raw) { Add-PortName $Ports ([string]$raw) }
+        } catch { }
+      }
+    }
+  } catch { }
+}
+
+function Get-PnpLabel($Device) {
+  $n = [string]$Device.FriendlyName
+  if (-not $n) { $n = [string]$Device.Name }
+  if (-not $n) { $n = [string]$Device.Description }
+  return $n
+}
+
+function Get-PnpDevicesAny {
+  if ($script:PnpDeviceCache) { return @($script:PnpDeviceCache) }
+  $devs = @()
+  try { $devs = @(Get-PnpDevice -ErrorAction SilentlyContinue) } catch { $devs = @() }
+  if ($devs.Count -eq 0) {
+    try { $devs = @(Get-WmiObject Win32_PnPEntity -ErrorAction SilentlyContinue) } catch { $devs = @() }
+  }
+  $script:PnpDeviceCache = $devs
+  return @($devs)
+}
+
+function Test-UsbPrintDevice($Device) {
+  $n = Get-PnpLabel $Device
+  $id = [string]$Device.InstanceId
+  if (-not $id) { $id = [string]$Device.DeviceID }
+  $svc = [string]$Device.Service
+  if ($id -like "USBPRINT*") { return $true }
+  if ($svc -eq "usbprint") { return $true }
+  if ($n -match "USB Printing Support") { return $true }
+  return $false
+}
+
+function Test-PnpPresent($Device) {
+  $st = [string]$Device.Status
+  if (-not $st) { return $true }
+  return [bool]($st -eq "OK")
+}
+
+function Get-LiveComPorts {
+  $live = @{}
+  try {
+    foreach ($c in [System.IO.Ports.SerialPort]::GetPortNames()) {
+      $n = Normalize-PortName ([string]$c)
+      if ($n -match "^COM\d+$") { $live[$n] = $true }
+    }
+  } catch { }
+  try {
+    foreach ($s in @(Get-WmiObject Win32_SerialPort -ErrorAction SilentlyContinue)) {
+      $n = Normalize-PortName ([string]$s.DeviceID)
+      if ($n -match "^COM\d+$") { $live[$n] = $true }
+    }
+  } catch { }
+  return $live
+}
+
 function Get-UsbPrintPorts {
   $ports = New-Object System.Collections.ArrayList
 
-  try {
-    $item = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports" -ErrorAction SilentlyContinue
-    if ($item) {
-      foreach ($prop in $item.PSObject.Properties) {
-        $n = [string]$prop.Name
-        if ($n -match "^(PS|Computer|Path|Provider)") { continue }
-        $n = $n.Trim().TrimEnd(":")
-        if ($n -match "^(USB|COM|LPT|DOT4)\d+") {
-          if (-not $ports.Contains($n)) { [void]$ports.Add($n) }
-        }
-      }
-    }
-  } catch { }
+  # CurrentVersion\Ports only gains USB001 after a queue exists. The USB Monitor
+  # key is where Windows 11 records the port as soon as USB Printing Support binds.
+  Add-PortsFromPrintKey $ports "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Monitors\USB Monitor\Ports"
+  Add-PortsFromPrintKey $ports "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Ports"
+  Add-PortsFromUsbPrintEnum $ports
 
   try {
     foreach ($p in @(Get-PrinterPort -ErrorAction SilentlyContinue)) {
-      $n = ([string]$p.Name).Trim()
-      if ($n -match "^(USB|COM|LPT|DOT4|USBPRINT|ESDPRT|TMUSB)") {
-        if (-not $ports.Contains($n)) { [void]$ports.Add($n) }
-      }
-    }
-  } catch { }
-
-  try {
-    foreach ($c in [System.IO.Ports.SerialPort]::GetPortNames()) {
-      $n = ([string]$c).Trim()
-      if ($n -and -not $ports.Contains($n)) { [void]$ports.Add($n) }
+      Add-PortName $ports ([string]$p.Name)
     }
   } catch { }
 
@@ -126,20 +232,28 @@ function Get-UsbPrintPorts {
 
 function Get-ReceiptComPortsFromPnp {
   $found = New-Object System.Collections.ArrayList
-  $devs = @()
-  try { $devs = @(Get-PnpDevice -Status OK -ErrorAction SilentlyContinue) } catch { $devs = @() }
-  if ($devs.Count -eq 0) {
-    try { $devs = @(Get-WmiObject Win32_PnPEntity -ErrorAction SilentlyContinue) } catch { $devs = @() }
-  }
-  foreach ($d in $devs) {
-    $n = [string]$d.FriendlyName
-    if (-not $n) { $n = [string]$d.Name }
+  $live = Get-LiveComPorts
+  foreach ($d in @(Get-PnpDevicesAny)) {
+    $n = Get-PnpLabel $d
     if (-not (Test-LikelyReceiptPnp $n)) { continue }
     if ($n -match "\((COM\d+)\)") {
-      $com = $Matches[1]
+      $com = Normalize-PortName $Matches[1]
+      if (-not $com) { continue }
+      $present = Test-PnpPresent $d
+      if (-not $present -and -not $live.ContainsKey($com)) { continue }
       if (-not $found.Contains($com)) { [void]$found.Add($com) }
     }
   }
+  try {
+    foreach ($s in @(Get-WmiObject Win32_SerialPort -ErrorAction SilentlyContinue)) {
+      $n = [string]$s.Name
+      if (-not (Test-LikelyReceiptPnp $n)) { continue }
+      $com = Normalize-PortName ([string]$s.DeviceID)
+      if ($com -match "^COM\d+$" -and -not $found.Contains($com)) {
+        [void]$found.Add($com)
+      }
+    }
+  } catch { }
   return @($found)
 }
 
@@ -147,13 +261,13 @@ function Get-UsedPrinterPorts {
   $used = @{}
   try {
     foreach ($p in @(Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue)) {
-      $pn = ([string]$p.PortName).Trim().TrimEnd(":")
+      $pn = Normalize-PortName ([string]$p.PortName)
       if ($pn) { $used[$pn] = $true }
     }
   } catch { }
   try {
     foreach ($p in @(Get-Printer -ErrorAction SilentlyContinue)) {
-      $pn = ([string]$p.PortName).Trim().TrimEnd(":")
+      $pn = Normalize-PortName ([string]$p.PortName)
       if ($pn) { $used[$pn] = $true }
     }
   } catch { }
@@ -169,36 +283,51 @@ function Get-UniqueQueueName([string]$Preferred, $ExistingNames) {
 
 function Add-GenericTextQueue([string]$Name, [string]$Port) {
   $driver = Get-GenericTextDriverName
-  try {
-    Add-Printer -Name $Name -DriverName $driver -PortName $Port -ErrorAction Stop
-    Write-BridgeLog ("Added queue '" + $Name + "' driver='" + $driver + "' port=" + $Port)
-    return $true
-  } catch { }
+  $portName = Normalize-PortName $Port
+  if (-not $portName) { $portName = $Port }
+  $lastError = ""
+  $tryPorts = @($portName)
+  if ($portName -notmatch ":$") { $tryPorts += ($portName + ":") }
+  foreach ($tryPort in $tryPorts) {
+    try {
+      Add-Printer -Name $Name -DriverName $driver -PortName $tryPort -ErrorAction Stop
+      Write-BridgeLog ("Added queue '" + $Name + "' driver='" + $driver + "' port=" + $tryPort)
+      return $true
+    } catch {
+      $lastError = $_.Exception.Message
+    }
+  }
+  if ($lastError) {
+    Write-BridgeLog ("Add-Printer failed for '" + $Name + "' on " + $portName + ": " + $lastError)
+  }
   try {
     $inf = Join-Path $env:SystemRoot "inf\ntprint.inf"
-    $argLine = "printui.dll,PrintUIEntry /if /b `"" + $Name + "`" /f `"" + $inf + "`" /r `"" + $Port + "`" /m `"Generic / Text Only`""
+    $argLine = "printui.dll,PrintUIEntry /if /b `"" + $Name + "`" /f `"" + $inf + "`" /r `"" + $portName + "`" /m `"Generic / Text Only`""
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "rundll32.exe"
     $psi.Arguments = $argLine
     $psi.UseShellExecute = $false
     $psi.CreateNoWindow = $true
     $p = [System.Diagnostics.Process]::Start($psi)
-    [void]$p.WaitForExit(15000)
+    if ($p) { [void]$p.WaitForExit(15000) }
     Start-Sleep -Milliseconds 600
     $safe = $Name -replace "'", "''"
     $check = Get-WmiObject Win32_Printer -Filter ("Name='" + $safe + "'") -ErrorAction SilentlyContinue
     if ($check) {
-      Write-BridgeLog ("Added queue via printui '" + $Name + "' port=" + $Port)
+      Write-BridgeLog ("Added queue via printui '" + $Name + "' port=" + $portName)
       return $true
     }
-  } catch { }
-  Write-BridgeLog ("Could not add queue '" + $Name + "' on " + $Port + " (will still list the port)")
+  } catch {
+    Write-BridgeLog ("printui failed for '" + $Name + "' on " + $portName + ": " + $_.Exception.Message)
+  }
+  Write-BridgeLog ("Could not add queue '" + $Name + "' on " + $portName + " (will still list the port)")
   return $false
 }
 
 function Ensure-UsbReceiptQueues {
   try {
   Ensure-PrintSpooler
+  $script:PnpDeviceCache = $null
   $used = Get-UsedPrinterPorts
   $existingNames = @{}
   try {
@@ -208,16 +337,34 @@ function Ensure-UsbReceiptQueues {
     }
   } catch { }
 
-  $targets = New-Object System.Collections.ArrayList
-
-  foreach ($port in @(Get-UsbPrintPorts)) {
-    if ($used.ContainsKey($port)) { continue }
-    if ($port -match "^(USB|DOT4)\d+") {
-      [void]$targets.Add($port)
-    }
+  $usbPorts = @(Get-UsbPrintPorts)
+  $comPorts = @(Get-ReceiptComPortsFromPnp)
+  $usbJoined = ""
+  if ($usbPorts.Count -gt 0) { $usbJoined = [string]::Join(",", $usbPorts) }
+  $comJoined = ""
+  if ($comPorts.Count -gt 0) { $comJoined = [string]::Join(",", $comPorts) }
+  Write-BridgeLog ("Receipt ports usb=[" + $usbJoined + "] com=[" + $comJoined + "]")
+  $usbDevice = $false
+  foreach ($d in @(Get-PnpDevicesAny)) {
+    if (Test-UsbPrintDevice $d) { $usbDevice = $true; break }
+  }
+  if ($usbPorts.Count -eq 0 -and $usbDevice) {
+    Write-BridgeLog "USB Printing Support is connected but Windows has not registered a USB00n port yet. Unplug the printer, wait two seconds, plug it back in, then Detect again."
   }
 
-  foreach ($com in @(Get-ReceiptComPortsFromPnp)) {
+  $targets = New-Object System.Collections.ArrayList
+
+  foreach ($port in $usbPorts) {
+    $port = Normalize-PortName $port
+    if (-not $port) { continue }
+    if ($used.ContainsKey($port)) { continue }
+    if (-not (Test-UsbClassPort $port)) { continue }
+    [void]$targets.Add($port)
+  }
+
+  foreach ($com in $comPorts) {
+    $com = Normalize-PortName $com
+    if (-not $com) { continue }
     if ($used.ContainsKey($com)) { continue }
     if (-not $targets.Contains($com)) { [void]$targets.Add($com) }
   }
@@ -288,14 +435,25 @@ function Get-PrinterRows {
 
   $usedPorts = @{}
   foreach ($row in $byName.Values) {
-    $pn = ([string]$row.PortName).Trim().TrimEnd(":")
+    $pn = Normalize-PortName ([string]$row.PortName)
     if ($pn) { $usedPorts[$pn] = $true }
   }
   foreach ($port in @(Get-UsbPrintPorts)) {
+    $port = Normalize-PortName $port
+    if (-not $port) { continue }
     if ($usedPorts.ContainsKey($port)) { continue }
-    if ($port -notmatch "^(USB|COM|DOT4)\d+") { continue }
-    if ($port -match "^COM[12]$") { continue }
-    $byName[$port] = New-PrinterRow $port $port "port" $false
+    if (-not (Test-UsbClassPort $port)) { continue }
+    if (-not $byName.ContainsKey($port)) {
+      $byName[$port] = New-PrinterRow $port $port "port" $false
+    }
+  }
+  foreach ($com in @(Get-ReceiptComPortsFromPnp)) {
+    $com = Normalize-PortName $com
+    if (-not $com) { continue }
+    if ($usedPorts.ContainsKey($com)) { continue }
+    if (-not $byName.ContainsKey($com)) {
+      $byName[$com] = New-PrinterRow $com $com "port" $false
+    }
   }
 
   $rows = @()
@@ -504,6 +662,17 @@ function Write-HttpResponse($Stream, [int]$StatusCode, [string]$Body, [string]$C
   $Stream.Flush()
 }
 
+function Get-ConfiguredPrinterJson {
+  try {
+    $cfg = Join-Path $ScriptDir "config.json"
+    if (-not (Test-Path -LiteralPath $cfg)) { return "null" }
+    $obj = (Get-Content -LiteralPath $cfg -Raw) | ConvertFrom-Json
+    $n = [string]$obj.printerName
+    if (-not $n) { return "null" }
+    return ('"' + (Escape-Json $n) + '"')
+  } catch { return "null" }
+}
+
 function Get-DrawerKickBytes {
   $pulse = [byte[]](0x1b, 0x40, 0x1b, 0x70, 0x00, 0x19, 0xfa, 0x1b, 0x70, 0x01, 0x19, 0xfa, 0x0a, 0x0a)
   $bytes = New-Object byte[] 64
@@ -521,7 +690,12 @@ function Handle-Request($Req, $Stream) {
   }
 
   if ($method -eq "GET" -and ($path -eq "/health" -or $path -eq "/")) {
-    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"noNode":true,"printEngine":"v5-bypass-epson","port":' + $Port + '}'
+    $spoolerJson = "false"
+    try {
+      $sp = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+      if ($sp -and $sp.Status -eq "Running") { $spoolerJson = "true" }
+    } catch { }
+    $body = '{"ok":true,"platform":"win32","spooler":' + $spoolerJson + ',"powershell":true,"networkRaw":true,"noNode":true,"printEngine":"v5-bypass-epson","listEngine":"usb-pnp-v2","port":' + $Port + ',"printerName":' + (Get-ConfiguredPrinterJson) + '}'
     Write-HttpResponse $Stream 200 $body "application/json"
     return
   }

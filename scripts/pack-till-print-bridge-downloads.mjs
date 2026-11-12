@@ -163,6 +163,45 @@ const packages = [
   },
 ];
 
+/**
+ * One-file Windows 10/11 installer: a .cmd that carries the Windows zip as
+ * base64 after an `exit /b`, extracts it with PowerShell into %TEMP% and runs
+ * the normal Install-Palmart-Print-Bridge.cmd. The cashier page replaces
+ * __PALMART_ORIGIN__ with the tenant's origin at download time so the installer
+ * can pre-grant browser local-network access and open Cashier afterwards.
+ */
+function writeWindowsOneFileInstaller(zipPath, outPath) {
+  const b64 = readFileSync(zipPath).toString("base64");
+  const lines = b64.match(/.{1,76}/g) || [];
+  const launcher = [
+    "@echo off",
+    "REM Palmart Till Print Bridge - one-file installer for Windows 10 / 11.",
+    "REM Double-click. It unpacks itself, installs the bridge, finds the receipt",
+    "REM printer and opens Palmart Cashier. No Node.js. Nothing to keep open.",
+    "setlocal",
+    'set "PALMART_ORIGIN=__PALMART_ORIGIN__"',
+    'if "%PALMART_ORIGIN%"=="__PALMART_ORIGIN__" set "PALMART_ORIGIN="',
+    'set "PALMART_WORK=%TEMP%\\palmart-print-bridge-setup"',
+    'if exist "%PALMART_WORK%" rmdir /s /q "%PALMART_WORK%" >nul 2>&1',
+    'mkdir "%PALMART_WORK%" >nul 2>&1',
+    "echo === Palmart Till Print Bridge ===",
+    "echo Unpacking...",
+    `powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $f=[IO.File]::ReadAllLines($env:PALMART_SELF); $i=[Array]::IndexOf($f,':::PAYLOAD'); if ($i -lt 0) { throw 'payload marker missing' }; $b=[string]::Join('', $f[($i+1)..($f.Length-1)]); $zip=Join-Path $env:PALMART_WORK 'kit.zip'; [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b)); Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $env:PALMART_WORK 'kit') -Force"`,
+    "if errorlevel 1 (",
+    "  echo.",
+    "  echo Could not unpack the installer. Download the Windows zip from Palmart Cashier instead.",
+    "  pause",
+    "  exit /b 1",
+    ")",
+    'call "%PALMART_WORK%\\kit\\Install-Palmart-Print-Bridge.cmd"',
+    "exit /b %ERRORLEVEL%",
+    ":::PAYLOAD",
+  ];
+  // PALMART_SELF is set before the PowerShell line so quoting of %~f0 is not an issue.
+  launcher.splice(5, 0, 'set "PALMART_SELF=%~f0"');
+  writeFileSync(outPath, launcher.join("\r\n") + "\r\n" + lines.join("\r\n") + "\r\n");
+}
+
 const built = [];
 for (const pkg of packages) {
   const dir = join(STAGE, pkg.id);
@@ -183,6 +222,12 @@ for (const pkg of packages) {
   zipDir(dir, zipPath);
   built.push(pkg.zip);
   console.log(`Wrote ${zipPath}`);
+  if (pkg.id === "windows") {
+    const oneFile = join(OUT, "Install-Palmart-Print-Bridge.cmd");
+    writeWindowsOneFileInstaller(zipPath, oneFile);
+    built.push("Install-Palmart-Print-Bridge.cmd");
+    console.log(`Wrote ${oneFile}`);
+  }
 }
 
 writeFileSync(
@@ -191,7 +236,7 @@ writeFileSync(
     {
       generatedAt: new Date().toISOString(),
       files: built,
-      note: "Unzip, run the installer for your OS, then Detect printers in Cashier.",
+      note: "Windows 10/11: run Install-Palmart-Print-Bridge.cmd (one file). Others: unzip, run the installer, then Detect printers in Cashier.",
     },
     null,
     2,

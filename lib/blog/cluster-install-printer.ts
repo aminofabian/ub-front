@@ -455,7 +455,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     {
       type: "callout",
       tone: "tip",
-      text: "“No print queues found” (or only Fax / Print to PDF) → the bridge is fine. Add the queue: Printers & scanners → Add a printer → The printer that I want isn’t listed → Local printer → port USB001 (or the COM port from Device Manager) → Generic / Text Only → name it Xprinter, set Online → Detect again. Until it appears under Printers & scanners, Detect cannot see it.",
+      text: "Only Fax / Print to PDF → the bridge is fine, and Windows has not registered a USB port yet. Unplug the printer, wait two seconds, plug it back in, then Detect again. USB001 or Xprinter in the list is the receipt printer. Still empty: Printers & scanners → Add a printer → The printer that I want isn’t listed → Local printer → port USB001 (or the COM port from Device Manager) → Generic / Text Only → name it Xprinter, set Online → Detect again.",
     },
     {
       type: "table",

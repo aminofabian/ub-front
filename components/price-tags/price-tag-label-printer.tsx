@@ -6,7 +6,11 @@ import { TAG_NOTE } from "@/components/price-tags/price-tag-chrome";
 import { FIELD_CLASS } from "@/components/price-tags/price-tag-inputs";
 import { CATALOG_BTN_GHOST, CATALOG_BTN_OUTLINE } from "@/app/(dashboard)/products/_components/catalog-chrome";
 import type { LabelPrinterSettings } from "@/lib/price-tags/label-printer";
-import { fetchTillCupsPrinters, type TillCupsPrinter } from "@/lib/till-print-bridge";
+import {
+  fetchTillCupsPrinters,
+  queryLoopbackPermission,
+  type TillCupsPrinter,
+} from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
 
 type Detection =
@@ -20,15 +24,7 @@ type Detection =
  * lets the page say what to change instead of blaming the bridge.
  */
 async function localNetworkPermission(): Promise<PermissionState | null> {
-  try {
-    const status = await navigator.permissions.query({
-      name: "local-network-access" as PermissionName,
-    });
-    return status.state;
-  } catch {
-    // Browsers without this permission (Safari, Firefox, older Chrome).
-    return null;
-  }
+  return queryLoopbackPermission();
 }
 
 function problemCopy(detection: Detection): string | null {

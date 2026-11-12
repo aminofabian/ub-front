@@ -21,6 +21,18 @@ $UninstallPath = Join-Path $InstallDir "Uninstall-Palmart-Print-Bridge.ps1"
 $TaskName = "PalmartTillPrintBridge"
 $StartupName = "Palmart-Till-Print-Bridge.cmd"
 $Port = 19500
+$ConfigPath = Join-Path $InstallDir "config.json"
+
+# Tenant site. The one-file installer sets PALMART_ORIGIN from the page it was
+# downloaded from; a plain zip install may ship an origin.txt next to this file.
+$Origin = [string]$env:PALMART_ORIGIN
+if (-not $Origin) {
+  $originFile = Join-Path $PkgDir "origin.txt"
+  if (Test-Path $originFile) {
+    try { $Origin = ([string](Get-Content -LiteralPath $originFile -First 1)).Trim() } catch { }
+  }
+}
+if ($Origin -and ($Origin -notmatch "^https?://[A-Za-z0-9\.\-]+(:\d+)?$")) { $Origin = "" }
 
 function Write-Step([string]$Message) {
   Write-Host (" - " + $Message)
@@ -118,6 +130,98 @@ function Start-BridgeProcess([string]$PowerShellExe, [string]$BridgeFile, [strin
   Start-Process -FilePath $PowerShellExe -ArgumentList $argList -WorkingDirectory $WorkDir -WindowStyle $style | Out-Null
 }
 
+function Test-IsAdmin {
+  try {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $p = New-Object Security.Principal.WindowsPrincipal($id)
+    return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  } catch { return $false }
+}
+
+# Chrome / Edge 142+ ask before a website may reach 127.0.0.1 ("Local network
+# access"). These policy keys pre-grant it for the Palmart site so the cashier
+# never sees the prompt. HKCU needs no admin; HKLM is added too when elevated.
+function Add-PolicyUrlList([string]$KeyPath, [string[]]$Patterns) {
+  if (-not (Test-Path $KeyPath)) { New-Item -Path $KeyPath -Force | Out-Null }
+  $item = Get-ItemProperty -Path $KeyPath -ErrorAction SilentlyContinue
+  $existing = @{}
+  $max = 0
+  if ($item) {
+    foreach ($prop in $item.PSObject.Properties) {
+      if ($prop.Name -match "^\d+$") {
+        $existing[[string]$prop.Value] = $true
+        $n = [int]$prop.Name
+        if ($n -gt $max) { $max = $n }
+      }
+    }
+  }
+  foreach ($pat in $Patterns) {
+    if ($existing.ContainsKey($pat)) { continue }
+    $max++
+    New-ItemProperty -Path $KeyPath -Name ([string]$max) -Value $pat -PropertyType String -Force | Out-Null
+    $existing[$pat] = $true
+  }
+}
+
+function Install-BrowserLocalNetworkPolicy([string[]]$Patterns) {
+  $hives = @("HKCU:")
+  if (Test-IsAdmin) { $hives += "HKLM:" }
+  $browsers = @("SOFTWARE\Policies\Google\Chrome", "SOFTWARE\Policies\Microsoft\Edge")
+  $policies = @("LocalNetworkAccessAllowedForUrls", "LoopbackNetworkAllowedForUrls")
+  $done = 0
+  foreach ($hive in $hives) {
+    foreach ($b in $browsers) {
+      foreach ($pol in $policies) {
+        try {
+          Add-PolicyUrlList ($hive + "\" + $b + "\" + $pol) $Patterns
+          $done++
+        } catch { }
+      }
+    }
+  }
+  return $done
+}
+
+function Get-LocalNetworkPatterns {
+  $pats = @("[*.]kiosk.ke")
+  if ($Origin) {
+    $originHost = ""
+    try { $originHost = ([Uri]$Origin).Host } catch { }
+    if ($originHost -and ($originHost -notmatch "(^|\.)kiosk\.ke$")) {
+      $pats += $Origin
+      $pats += ("[*.]" + $originHost)
+    }
+  }
+  return $pats
+}
+
+# Runs the bridge's own detection once (it also creates the Generic / Text
+# queue for a bare USB Xprinter) and records the suggested queue so the
+# cashier page can adopt it without a Detect click.
+function Select-ReceiptPrinter([string]$PowerShellExe, [string]$BridgeFile) {
+  $json = ""
+  # Windows PowerShell 5.1 turns a child's stderr into a terminating error when
+  # $ErrorActionPreference is Stop and the stream is redirected; relax it here.
+  $ErrorActionPreference = "Continue"
+  try {
+    $json = & $PowerShellExe -NoProfile -ExecutionPolicy Bypass -File $BridgeFile -ListOnly 2>$null | Out-String
+  } catch { $json = "" }
+  # The bridge logs with Write-Host before printing the JSON; keep only the JSON.
+  $idx = $json.LastIndexOf('{"ok":')
+  if ($idx -ge 0) { $json = $json.Substring($idx) }
+  $json = $json.Trim()
+  if (-not $json) { return $null }
+  $list = $null
+  try { $list = $json | ConvertFrom-Json } catch { return $null }
+  $name = [string]$list.suggested
+  if (-not $name) { return $null }
+  $now = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+  $safe = $name.Replace("\", "\\").Replace('"', '\"')
+  $cfg = '{"printerName":"' + $safe + '","chosenBy":"installer","chosenAt":"' + $now + '"}'
+  [System.IO.File]::WriteAllText($ConfigPath, $cfg, (New-Object System.Text.UTF8Encoding $false))
+  return $name
+}
+
 function Install-StartupCmd([string]$SourceCmd) {
   $startupDir = [Environment]::GetFolderPath("Startup")
   if (-not $startupDir) { return $null }
@@ -196,6 +300,14 @@ if (Test-Path $VisibleSrc) {
 Unblock-BridgeFiles $PkgDir
 Unblock-BridgeFiles $InstallDir
 
+$policyPatterns = Get-LocalNetworkPatterns
+$policyKeys = Install-BrowserLocalNetworkPolicy $policyPatterns
+if ($policyKeys -gt 0) {
+  Write-Step ("Browser local-network access pre-granted for: " + [string]::Join(", ", $policyPatterns))
+} else {
+  Write-Warning "Could not write browser policy. Chrome/Edge may ask once to allow local network access."
+}
+
 $startCmdLines = @(
   "@echo off",
   "REM Start the till print bridge (powershell.exe, no wscript).",
@@ -253,6 +365,14 @@ Write-Host ""
 if ($ok) {
   Write-Host "OK - running at http://127.0.0.1:19500"
   Write-Step "printEngine=v5-bypass-epson (PowerShell, no Node.js)"
+  Write-Step "Looking for the receipt printer..."
+  $picked = $null
+  try { $picked = Select-ReceiptPrinter -PowerShellExe $psExe -BridgeFile $BridgeDst } catch { }
+  if ($picked) {
+    Write-Host ("Receipt printer: " + $picked)
+  } else {
+    Write-Warning "No receipt printer found yet. Plug it in and switch it on, then use Detect printers in Cashier."
+  }
   Write-Host "It starts automatically when you sign in. You do NOT need to keep a window open."
   if ($taskOk) {
     Write-Host ("Autostart: Startup folder + Task Scheduler (" + $TaskName + ")")
@@ -262,8 +382,14 @@ if ($ok) {
   Write-Host ("Logs: " + $LogPath)
   Write-Host ("To remove autostart later: " + $UninstallPath)
   Write-Host ""
-  Write-Host "On THIS PC open: http://127.0.0.1:19500/health"
-  Write-Host "Then Palmart Cashier -> Detect printers."
+  if ($Origin) {
+    $cashierUrl = $Origin.TrimEnd("/") + "/cashier"
+    Write-Host ("Opening " + $cashierUrl)
+    try { Start-Process $cashierUrl | Out-Null } catch { }
+  } else {
+    Write-Host "Now open Palmart Cashier on this PC."
+  }
+  if (-not $picked) { Write-Host "In Cashier open Printer -> Detect printers." }
   exit 0
 }
 

@@ -541,6 +541,7 @@ const server = createServer(async (req, res) => {
         powershell: IS_WIN,
         networkRaw: true,
         printEngine: IS_WIN ? PRINT_ENGINE : "cups-or-network",
+        ...(IS_WIN ? { listEngine: "usb-pnp-v2" } : {}),
         port: PORT,
       },
       "application/json",

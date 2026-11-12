@@ -1226,8 +1226,8 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         type: "list",
         items: [
           "“Printer helper is not running” — the bridge. On this PC open http://127.0.0.1:19500/health. If that fails: Cashier → Connect a printer → download, run Install-Palmart-Print-Bridge.cmd, Detect again.",
-          "“No print queues found” (or only Fax / Print to PDF) — the bridge is fine. Add a queue: isn’t listed → USB001 or the COM port → Generic / Text Only → name it Xprinter, Online → Detect again.",
-          "Until Xprinter sits under Printers & scanners, Detect cannot see it. Device Manager showing USB Printing Support is not a queue.",
+          "Only Fax / Print to PDF — the bridge is fine, and Windows has not registered a USB port yet. Unplug the printer, wait two seconds, plug it back in, then Detect again. USB001 or Xprinter in the list is the receipt printer.",
+          "Still empty after a replug: add a queue (isn’t listed → USB001 or the COM port → Generic / Text Only → name it Xprinter, Online) and Detect again.",
           "Lights on, no paper — charger cable, or roll seated backwards.",
           "Job timed out — look at the printer before tapping print again. The bytes may already be spooled.",
         ],
@@ -1253,12 +1253,12 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           {
             question: "Device Manager shows the Xprinter. Why is Detect empty?",
             answer:
-              "Device Manager only proves the USB cable and printer are fine. The bridge never looks there. It only lists printers from Settings → Printers & scanners. Add a Generic / Text Only queue named Xprinter, set it Online, then Detect again.",
+              "Detect reads the USB port Windows creates for USB Printing Support, usually USB001, even before a queue exists. If the list is only Fax and Print to PDF, unplug the printer, wait two seconds, plug it back in, and Detect again. Still empty: add a Generic / Text Only queue on USB001 and name it Xprinter.",
           },
           {
             question: "Which Detect toast means what?",
             answer:
-              "“Printer helper is not running” is the bridge: download it from Cashier on this PC, then open http://127.0.0.1:19500/health and run Install-Palmart-Print-Bridge.cmd. “No print queues found” (or only Fax / PDF) means the bridge is fine — add the Windows queue first. Until the name sits under Printers & scanners, Detect cannot see it.",
+              "“Printer helper is not running” is the bridge: download it from Cashier on this PC, then open http://127.0.0.1:19500/health and run Install-Palmart-Print-Bridge.cmd. Only Fax / PDF means Windows has not registered a USB port yet — unplug the printer, wait two seconds, plug it back in, and Detect again. USB001 or Xprinter is the receipt printer.",
           },
           {
             question: "Where do I download the Print Bridge?",

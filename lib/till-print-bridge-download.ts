@@ -12,6 +12,8 @@ export type TillBridgeDownloadOs =
 export const TILL_BRIDGE_DOWNLOADS = {
   macos: "/downloads/palmart-till-print-bridge-macos.zip",
   windows: "/downloads/palmart-till-print-bridge-windows.zip",
+  /** One-file Windows 10/11 installer: the zip embedded in a .cmd. */
+  windowsOneClick: "/downloads/Install-Palmart-Print-Bridge.cmd",
   windows7: "/downloads/palmart-till-print-bridge-windows7.zip",
   linux: "/downloads/palmart-till-print-bridge-linux.zip",
 } as const;
@@ -61,17 +63,55 @@ export function tillBridgeDownloadLabel(os: TillBridgeDownloadOs): string {
   }
 }
 
-/** Trigger a browser download of the installer zip for this OS. */
-export function downloadTillPrintBridge(
-  os: TillBridgeDownloadOs = detectTillBridgeDownloadOs(),
-): void {
-  if (typeof document === "undefined") return;
-  const href = tillBridgeDownloadHref(os);
+function clickDownload(href: string, filename: string): void {
   const a = document.createElement("a");
   a.href = href;
-  a.download = href.split("/").pop() || "palmart-till-print-bridge.zip";
+  a.download = filename;
   a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/** Placeholder the pack script leaves in the one-file installer. */
+const ORIGIN_PLACEHOLDER = "__PALMART_ORIGIN__";
+
+/**
+ * Windows 10/11: hand out the single .cmd with this site's origin baked in, so
+ * the installer can pre-grant browser local-network access for this tenant
+ * (custom domains included) and open Cashier when it is done. Falls back to
+ * the zip if the one-file installer is not deployed.
+ */
+export async function downloadTillPrintBridgeWindowsOneClick(): Promise<boolean> {
+  if (typeof document === "undefined" || typeof window === "undefined") return false;
+  try {
+    const res = await fetch(TILL_BRIDGE_DOWNLOADS.windowsOneClick, { cache: "no-store" });
+    if (!res.ok) return false;
+    const text = await res.text();
+    if (!text.includes(ORIGIN_PLACEHOLDER)) return false;
+    const origin = window.location.origin;
+    const safeOrigin = /^https?:\/\/[A-Za-z0-9.\-]+(:\d+)?$/.test(origin) ? origin : "";
+    const body = text.replace(ORIGIN_PLACEHOLDER, safeOrigin);
+    const url = URL.createObjectURL(new Blob([body], { type: "application/octet-stream" }));
+    try {
+      clickDownload(url, "Install-Palmart-Print-Bridge.cmd");
+    } finally {
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Trigger a browser download of the installer for this OS. */
+export async function downloadTillPrintBridge(
+  os: TillBridgeDownloadOs = detectTillBridgeDownloadOs(),
+): Promise<void> {
+  if (typeof document === "undefined") return;
+  if (os === "windows" && (await downloadTillPrintBridgeWindowsOneClick())) {
+    return;
+  }
+  const href = tillBridgeDownloadHref(os);
+  clickDownload(href, href.split("/").pop() || "palmart-till-print-bridge.zip");
 }

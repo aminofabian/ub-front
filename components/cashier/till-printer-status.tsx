@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, CheckCircle2, ChevronDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchTillBridgeHealth,
   getLocalTillCupsName,
+  REQUIRED_WIN_LIST_ENGINE,
   REQUIRED_WIN_PRINT_ENGINE,
   setLocalTillCupsName,
   type TillBridgeHealth,
@@ -69,6 +70,23 @@ export function TillPrinterStatus({
   useEffect(() => {
     setLocalName(getLocalTillCupsName());
   }, [branchName]);
+
+  // The Windows installer records the queue it found; adopt it for this PC so
+  // the cashier never has to click Detect. Branch-level save stays a deliberate
+  // owner action (Detect / pick), so this only touches local storage.
+  const adoptedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (IS_DESKTOP) return;
+    const fromInstaller = health?.ok ? health.printerName?.trim() || "" : "";
+    if (!fromInstaller) return;
+    if (branchName || localName) return;
+    if (adoptedRef.current === fromInstaller) return;
+    adoptedRef.current = fromInstaller;
+    setLocalTillCupsName(fromInstaller);
+    setLocalName(fromInstaller);
+    onCupsNameChosen?.(fromInstaller);
+    toast.success(`Receipt printer ready: ${fromInstaller}`, { duration: 6_000 });
+  }, [health, branchName, localName, onCupsNameChosen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,7 +146,8 @@ export function TillPrinterStatus({
   const winEngineStale =
     !IS_DESKTOP &&
     health?.platform === "win32" &&
-    health.printEngine !== REQUIRED_WIN_PRINT_ENGINE;
+    (health.printEngine !== REQUIRED_WIN_PRINT_ENGINE ||
+      (health.win7 !== true && health.listEngine !== REQUIRED_WIN_LIST_ENGINE));
   const printerReady = Boolean(
     bridgeUp &&
       !winEngineStale &&

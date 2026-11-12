@@ -30,11 +30,19 @@ export type TillBridgeHealth = {
   networkRaw?: boolean;
   /** Windows raw engine id, e.g. v5-bypass-epson */
   printEngine?: string;
+  /** Windows 10/11 USB discovery revision. Absent on older helpers. */
+  listEngine?: string;
+  /** Set by the Windows 7 helper. */
+  win7?: boolean;
+  /** Receipt queue the Windows installer picked, so no Detect click is needed. */
+  printerName?: string | null;
   port?: number;
 };
 
 /** Minimum Windows print engine required for Epson/ePOS USB receipts. */
 export const REQUIRED_WIN_PRINT_ENGINE = "v5-bypass-epson";
+/** Windows 10/11 helpers older than this miss USB Printing Support ports. */
+export const REQUIRED_WIN_LIST_ENGINE = "usb-pnp-v2";
 
 export type TillCupsPrinter = {
   name: string;
@@ -88,6 +96,44 @@ function bridgeTimeoutSignal(timeoutMs: number): {
 }
 
 /**
+ * Chrome/Edge 142+ gate requests from an https page to 127.0.0.1 behind the
+ * "Local Network Access" permission. Declaring the target as loopback makes
+ * Chrome raise the permission prompt (and exempts the call from mixed-content
+ * blocking); without it the request fails as a CORS error and looks like the
+ * bridge is down. Browsers that do not know the option ignore it.
+ */
+const LOOPBACK_FETCH: RequestInit = {
+  mode: "cors",
+  cache: "no-store",
+  ...({ targetAddressSpace: "loopback" } as object),
+};
+
+/**
+ * State of the browser's loopback-network permission for this site, or null
+ * where the browser has no such permission (Safari, Firefox, older Chrome).
+ */
+export async function queryLoopbackPermission(): Promise<PermissionState | null> {
+  if (typeof navigator === "undefined" || !navigator.permissions?.query) {
+    return null;
+  }
+  for (const name of ["loopback-network", "local-network"]) {
+    try {
+      const status = await navigator.permissions.query({
+        name: name as PermissionName,
+      });
+      return status.state;
+    } catch {
+      // Unknown permission name in this browser — try the next.
+    }
+  }
+  return null;
+}
+
+/** Copy to show instead of "bridge not running" when the browser is the blocker. */
+export const LOOPBACK_BLOCKED_HINT =
+  "This browser is blocking the printer helper on this PC. Click the lock icon next to the address, open Site settings, set Local network / Loopback to Allow, reload, then Detect again.";
+
+/**
  * True when the till bridge responds on localhost (run `pnpm till-print-bridge`).
  * Retried once: a bridge still spooling the previous receipt can miss the first probe,
  * and a false negative here silently skips the auto-print.
@@ -110,9 +156,8 @@ export async function fetchTillBridgeHealth(): Promise<TillBridgeHealth | null> 
     const { signal, done } = bridgeTimeoutSignal(BRIDGE_HEALTH_TIMEOUT_MS);
     try {
       const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/health`, {
+        ...LOOPBACK_FETCH,
         method: "GET",
-        mode: "cors",
-        cache: "no-store",
         signal,
       });
       if (!res.ok) return null;
@@ -128,9 +173,8 @@ export async function fetchTillBridgeHealth(): Promise<TillBridgeHealth | null> 
 /** List local printers on this machine via the till bridge. */
 export async function fetchTillCupsPrinters(): Promise<TillCupsPrinterList> {
   const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/printers`, {
+    ...LOOPBACK_FETCH,
     method: "GET",
-    mode: "cors",
-    cache: "no-store",
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -242,8 +286,8 @@ export async function printEscPosViaTillBridge(
   let res: Response;
   try {
     res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
+      ...LOOPBACK_FETCH,
       method: "POST",
-      mode: "cors",
       headers,
       body: escpos,
       signal,
@@ -310,8 +354,8 @@ export async function kickCashDrawerViaTillBridge(
   let res: Response;
   try {
     res = await fetch(`${TILL_PRINT_BRIDGE_URL}/print`, {
+      ...LOOPBACK_FETCH,
       method: "POST",
-      mode: "cors",
       headers,
       body: new Blob([copy], { type: "application/octet-stream" }),
       signal,

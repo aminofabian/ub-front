@@ -49,7 +49,7 @@ const STEPS = [
   },
   {
     title: "Read the Detect toast once",
-    body: "Helper not running → open http://127.0.0.1:19500/health, then install from Cashier. No print queues found → add the Windows queue first. Until Xprinter sits under Printers & scanners, Detect is blind.",
+    body: "Helper not running → open http://127.0.0.1:19500/health, then install from Cashier. Only Fax / PDF → unplug the printer, wait two seconds, plug it back in, and Detect again. USB001 or Xprinter in the list is the receipt printer.",
     src: "/help/printer-detect-toasts.svg",
     alt: "Two Detect toasts: printer helper not running versus no print queues found",
   },

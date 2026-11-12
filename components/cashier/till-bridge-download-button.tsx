@@ -28,7 +28,7 @@ function toastForOs(os: TillBridgeDownloadOs): string {
     return "Download started. Unzip and run the Windows 7 installer, then Detect printers.";
   }
   if (os === "windows") {
-    return "Download started. Unzip and run Install-Palmart-Print-Bridge.cmd (no Node.js), then Detect printers.";
+    return "Download started. Open Install-Palmart-Print-Bridge.cmd and click Run. It finds the printer and brings you back here.";
   }
   return "Download started. Unzip, run the installer once, then Detect printers.";
 }
@@ -51,7 +51,7 @@ export function TillBridgeDownloadButton({
         : `Update helper (${tillBridgeDownloadLabel(resolved)})`
     : tillBridgeDownloadLabel(resolved);
   const onDownload = (target: TillBridgeDownloadOs) => {
-    downloadTillPrintBridge(target);
+    void downloadTillPrintBridge(target);
     toast.message(toastForOs(target), { duration: 8_000 });
   };
 
