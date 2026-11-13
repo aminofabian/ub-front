@@ -15,6 +15,7 @@ import { useShopCart } from "@/hooks/use-shop-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import { isMizuSpringsStoreTheme, isZetuStoreTheme } from "@/lib/storefront-theme-detect";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { useMizuPaletteStyle } from "@/components/storefront/templates/store/use-mizu-palette";
 import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { zetuFontVariables } from "@/app/fonts/zetu";
 import ztStyles from "@/components/storefront/templates/store/zetu.module.css";
@@ -106,6 +107,7 @@ export function WhatsAppCheckoutSheet() {
     refresh,
   } = useShopCart();
 
+  const mizuPalette = useMizuPaletteStyle();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [deliveryOpen, setDeliveryOpen] = useState(false);
@@ -272,6 +274,7 @@ export function WhatsAppCheckoutSheet() {
           mizu && cn(msStyles.waSheet, mizuSpringsFontVariables),
           zetu && cn(ztStyles.waSheet, zetuFontVariables),
         )}
+        style={mizu ? mizuPalette : undefined}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

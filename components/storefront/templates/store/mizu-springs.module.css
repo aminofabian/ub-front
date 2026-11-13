@@ -1,27 +1,36 @@
-.root {
+.root,
+.signInSheet,
+.waSheet,
+.cartShell,
+.checkoutShell {
+  /* Brand inputs — set inline from the shop's saved colours. */
   --ms-navy: #172554;
-  --ms-wave-navy: #082f49;
-  --ms-cyan: #0891b2;
-  --ms-blue: #2563eb;
-  --ms-wave-cyan: #0e7490;
-  --ms-sky: #0284c7;
-  --ms-cyan-600: #0e7490;
-  --ms-cyan-400: #22d3ee;
-  --ms-blue-600: #1d4ed8;
-  --ms-ice: #f5f8fc;
-  --ms-ink: #172554;
-  --ms-muted: #3d4f6f;
-  --ms-muted-soft: #5b6b86;
-  --ms-hero-sub: rgb(30 58 138 / 0.72);
-  --ms-card-border: rgb(23 37 84 / 0.1);
-  --ms-wa: #16a34a;
+  --ms-accent: #0891b2;
+  --ms-accent-ink: #0e7490;
+  /* Everything below is derived, so any two brand colours stay coherent. */
+  --ms-cyan: var(--ms-accent);
+  --ms-cyan-600: var(--ms-accent-ink);
+  --ms-cyan-400: color-mix(in srgb, var(--ms-accent) 55%, #fff);
+  --ms-blue: color-mix(in srgb, var(--ms-accent) 58%, var(--ms-navy));
+  --ms-blue-600: var(--ms-blue);
+  --ms-sky: var(--ms-accent-ink);
+  --ms-wave-navy: color-mix(in srgb, var(--ms-navy) 80%, #000);
+  --ms-wave-cyan: var(--ms-accent-ink);
+  --ms-ice: color-mix(in srgb, var(--ms-navy) 4%, #fff);
+  --ms-ink: var(--ms-navy);
+  --ms-muted: color-mix(in srgb, var(--ms-navy) 78%, #fff);
+  --ms-muted-soft: color-mix(in srgb, var(--ms-navy) 68%, #fff);
+  --ms-hero-sub: color-mix(in srgb, var(--ms-navy) 74%, transparent);
+  --ms-card-border: color-mix(in srgb, var(--ms-navy) 10%, transparent);
+  --ms-wa: #15803d;
   --ms-on-navy: #ffffff;
   --ms-header-h: 4.25rem;
   --ms-max: 72rem;
-  --ms-radius: 0.875rem;
-  --ms-radius-lg: 1.25rem;
-  --ms-radius-card: 1.25rem;
-  --ms-radius-media: 1rem;
+  --ms-radius: calc(0.875rem * var(--ms-brand-r, 1));
+  --ms-radius-lg: calc(1.25rem * var(--ms-brand-r, 1));
+  --ms-radius-card: calc(1.25rem * var(--ms-brand-r, 1));
+  --ms-radius-media: calc(1rem * var(--ms-brand-r, 1));
+  --ms-pill: var(--ms-brand-pill, 9999px);
   --ms-space-1: 0.25rem;
   --ms-space-2: 0.5rem;
   --ms-space-3: 0.75rem;
@@ -31,10 +40,13 @@
   --ms-space-7: 3rem;
   --ms-space-8: 4.5rem;
   --ms-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ms-shadow-sm: 0 1px 2px rgb(23 37 84 / 0.05), 0 4px 12px rgb(23 37 84 / 0.04);
-  --ms-shadow-md: 0 2px 4px rgb(23 37 84 / 0.05), 0 12px 28px -8px rgb(23 37 84 / 0.12);
-  --ms-shadow-lg: 0 4px 8px rgb(23 37 84 / 0.06), 0 24px 48px -16px rgb(23 37 84 / 0.18);
-  --ms-focus: 0 0 0 2px var(--ms-ice), 0 0 0 4px var(--ms-cyan);
+  --ms-shadow-sm: 0 1px 2px color-mix(in srgb, var(--ms-navy) 6%, transparent), 0 4px 12px color-mix(in srgb, var(--ms-navy) 5%, transparent);
+  --ms-shadow-md: 0 2px 4px color-mix(in srgb, var(--ms-navy) 6%, transparent), 0 12px 28px -8px color-mix(in srgb, var(--ms-navy) 14%, transparent);
+  --ms-shadow-lg: 0 4px 8px color-mix(in srgb, var(--ms-navy) 7%, transparent), 0 24px 48px -16px color-mix(in srgb, var(--ms-navy) 22%, transparent);
+  --ms-focus: 0 0 0 2px var(--ms-ice), 0 0 0 4px var(--ms-accent-ink);
+}
+
+.root {
   color: var(--ms-ink);
   background: var(--ms-ice);
   font-family: var(--font-inter), system-ui, sans-serif;
@@ -53,7 +65,7 @@
 }
 
 .body ::selection {
-  background: rgb(8 145 178 / 0.22);
+  background: color-mix(in srgb, var(--ms-accent) 22%, transparent);
   color: var(--ms-navy);
 }
 
@@ -64,7 +76,7 @@
 
 .body {
   scrollbar-width: thin;
-  scrollbar-color: rgb(23 37 84 / 0.25) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ms-navy) 25%, transparent) transparent;
 }
 
 /* ── Header ─────────────────────────────────────────────── */
@@ -143,9 +155,33 @@
   transition: color 0.2s var(--ms-ease);
 }
 
+.navLink {
+  position: relative;
+  padding: 0.4rem 0;
+}
+
+.navLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.1rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ms-cyan-400);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s var(--ms-ease);
+}
+
 .navLink:hover,
 .navLinkActive {
   color: #fff;
+}
+
+.navLink:hover::after,
+.navLinkActive::after {
+  transform: scaleX(1);
 }
 
 .tools {
@@ -160,7 +196,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 1.1rem;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   border: 0;
   background: linear-gradient(135deg, var(--ms-cyan) 0%, var(--ms-blue) 100%);
   color: #fff;
@@ -170,13 +206,13 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  box-shadow: 0 6px 16px -6px rgb(8 145 178 / 0.55);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--ms-accent) 55%, transparent);
   transition: transform 0.2s var(--ms-ease), box-shadow 0.2s var(--ms-ease);
 }
 
 .orderBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px -8px rgb(8 145 178 / 0.65);
+  box-shadow: 0 10px 20px -8px color-mix(in srgb, var(--ms-accent) 65%, transparent);
 }
 
 .cartBtn,
@@ -317,10 +353,10 @@
   overflow: hidden;
   background: linear-gradient(
     165deg,
-    #eff6ff 0%,
-    #e0f2fe 42%,
-    #ecfeff 78%,
-    #f8fafc 100%
+    color-mix(in srgb, var(--ms-navy) 6%, #fff) 0%,
+    color-mix(in srgb, var(--ms-accent) 13%, #fff) 46%,
+    color-mix(in srgb, var(--ms-accent) 7%, #fff) 80%,
+    color-mix(in srgb, var(--ms-navy) 3%, #fff) 100%
   );
 }
 
@@ -337,7 +373,7 @@
   width: 12rem;
   height: 12rem;
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  background: rgb(8 145 178 / 0.1);
+  background: color-mix(in srgb, var(--ms-accent) 10%, transparent);
   filter: blur(48px);
   animation: msLiquid 22s ease-in-out infinite;
 }
@@ -350,7 +386,7 @@
 .blobB {
   right: -6%;
   bottom: 20%;
-  background: rgb(37 99 235 / 0.08);
+  background: color-mix(in srgb, var(--ms-blue) 8%, transparent);
   animation-delay: -9s;
 }
 
@@ -393,8 +429,8 @@
   margin-bottom: 1.15rem;
   padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  border: 1px solid rgb(23 37 84 / 0.08);
-  background: rgb(255 255 255 / 0.55);
+  border: 1px solid color-mix(in srgb, var(--ms-navy) 8%, transparent);
+  background: #fff;
   color: var(--ms-navy);
   font-size: 0.62rem;
   font-weight: 600;
@@ -403,7 +439,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
   box-shadow: var(--ms-shadow-sm);
 }
 
@@ -413,7 +448,7 @@
   height: 0.35rem;
   border-radius: 9999px;
   background: var(--ms-cyan);
-  box-shadow: 0 0 0 3px rgb(8 145 178 / 0.16);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ms-accent) 16%, transparent);
 }
 
 .heroTitle {
@@ -458,7 +493,7 @@
   align-items: center;
   justify-content: center;
   padding: 0.85rem 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   background: var(--ms-navy);
   color: #fff;
   font-size: 0.72rem;
@@ -480,8 +515,8 @@
   align-items: center;
   justify-content: center;
   padding: 0.85rem 1.4rem;
-  border-radius: 9999px;
-  border: 1.5px solid rgb(23 37 84 / 0.16);
+  border-radius: var(--ms-pill);
+  border: 1.5px solid color-mix(in srgb, var(--ms-navy) 16%, transparent);
   background: rgb(255 255 255 / 0.45);
   backdrop-filter: blur(8px);
   color: var(--ms-navy);
@@ -497,6 +532,14 @@
   background: rgb(255 255 255 / 0.85);
   border-color: var(--ms-navy);
   transform: none;
+}
+
+.waveBack {
+  fill: var(--ms-cyan);
+}
+
+.waveFront {
+  fill: #fff;
 }
 
 .wave {
@@ -645,7 +688,7 @@
   overflow: hidden;
   border-radius: var(--ms-radius-card);
   border: 3px solid #fff;
-  background: #e2e8f0;
+  background: color-mix(in srgb, var(--ms-navy) 9%, #fff);
   box-shadow: var(--ms-shadow-md);
 }
 
@@ -662,7 +705,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: linear-gradient(160deg, #dbeafe, #bfdbfe 50%, #93c5fd);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ms-accent) 14%, #fff), color-mix(in srgb, var(--ms-accent) 26%, #fff) 55%, color-mix(in srgb, var(--ms-accent) 38%, #fff));
 }
 
 .pillarTitle {
@@ -716,7 +759,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-decoration: none;
-  border-bottom: 1.5px solid rgb(37 99 235 / 0.25);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--ms-blue) 25%, transparent);
   padding-bottom: 0.1rem;
   transition: color 0.2s var(--ms-ease), border-color 0.2s var(--ms-ease);
 }
@@ -744,7 +787,7 @@
   gap: 1.1rem;
   padding: 1.25rem;
   border-radius: var(--ms-radius-card);
-  border: 1px solid rgb(23 37 84 / 0.06);
+  border: 1px solid color-mix(in srgb, var(--ms-navy) 6%, transparent);
   background: rgb(255 255 255 / 0.88);
   backdrop-filter: blur(12px);
   box-shadow: var(--ms-shadow-sm);
@@ -764,7 +807,7 @@
   overflow: hidden;
   border-radius: var(--ms-radius-media);
   border: 1px solid rgb(255 255 255 / 0.6);
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--ms-navy) 5%, #fff);
 }
 
 .featureBadge {
@@ -881,18 +924,21 @@
   gap: 0.75rem;
   padding: 0.85rem;
   border-radius: var(--ms-radius-lg);
-  border: 1px solid rgb(23 37 84 / 0.06);
-  background: rgb(255 255 255 / 0.9);
-  backdrop-filter: blur(8px);
+  border: 0;
+  background: #fff;
   box-shadow: var(--ms-shadow-sm);
-  transition: background 0.2s var(--ms-ease), box-shadow 0.2s var(--ms-ease),
-    transform 0.2s var(--ms-ease);
+  transition: box-shadow 0.25s var(--ms-ease), transform 0.25s var(--ms-ease);
 }
 
-.card:hover {
-  background: #fff;
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: var(--ms-shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+.card:focus-within {
   box-shadow: var(--ms-shadow-md);
-  transform: translateY(-1px);
 }
 
 .cardVisual {
@@ -901,7 +947,7 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: var(--ms-radius);
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--ms-navy) 5%, #fff);
   text-decoration: none;
 }
 
@@ -909,7 +955,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: linear-gradient(145deg, #dbeafe, #bfdbfe);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ms-accent) 14%, #fff), color-mix(in srgb, var(--ms-accent) 26%, #fff));
 }
 
 .cardBody {
@@ -935,9 +981,10 @@
 
 .cardPrice {
   margin: 0;
-  color: var(--ms-cyan);
+  color: var(--ms-accent-ink);
   font-size: 0.9rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .addBtn {
@@ -948,7 +995,7 @@
   width: 100%;
   padding: 0.65rem 0.9rem;
   border: 0;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   background: linear-gradient(135deg, var(--ms-cyan), var(--ms-blue));
   color: #fff;
   font-size: 0.68rem;
@@ -956,18 +1003,22 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 6px 14px -6px rgb(37 99 235 / 0.4);
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--ms-blue) 40%, transparent);
   transition: transform 0.2s var(--ms-ease), box-shadow 0.2s var(--ms-ease);
 }
 
 .addBtn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 18px -8px rgb(37 99 235 / 0.5);
+  box-shadow: 0 10px 18px -8px color-mix(in srgb, var(--ms-blue) 50%, transparent);
+}
+
+.addBtn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .addBtn:disabled {
-  opacity: 0.7;
-  cursor: wait;
+  opacity: 0.65;
+  cursor: progress;
 }
 
 /* ── Custom CTA ─────────────────────────────────────────── */
@@ -1108,7 +1159,7 @@
 }
 
 .faqItem:hover {
-  border-color: rgb(23 37 84 / 0.14);
+  border-color: color-mix(in srgb, var(--ms-navy) 14%, transparent);
   box-shadow: var(--ms-shadow-sm);
 }
 
@@ -1198,7 +1249,7 @@
 
 @container mizu (min-width: 768px) {
   .footerGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   }
 }
 
@@ -1222,7 +1273,7 @@
   gap: 0.4rem;
   margin-top: 1.1rem;
   padding: 0.65rem 1.15rem;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   background: var(--ms-wa);
   color: #fff;
   font-size: 0.78rem;
@@ -1319,6 +1370,8 @@
   .shimmer,
   .pillar,
   .pillarMedia img,
+  .card,
+  .addBtn,
   .orderBtn,
   .ctaPrimary,
   .ctaSecondary,
@@ -1352,7 +1405,7 @@
   border: 1px solid color-mix(in srgb, var(--ms-navy) 10%, transparent);
   border-radius: var(--ms-radius-lg, 1.25rem);
   background: #fff;
-  box-shadow: var(--ms-shadow-lg, 0 24px 48px -16px rgb(23 37 84 / 0.18));
+  box-shadow: var(--ms-shadow-lg, 0 24px 48px -16px color-mix(in srgb, var(--ms-navy) 18%, transparent));
   transform-origin: bottom right;
   animation: ms-float-in 0.28s var(--ms-ease, cubic-bezier(0.22, 1, 0.36, 1));
   right: 0.75rem;
@@ -1407,7 +1460,7 @@
   border-radius: 9999px;
   background: linear-gradient(to right, var(--ms-cyan), var(--ms-blue));
   color: #fff;
-  box-shadow: 0 6px 12px -4px rgb(59 130 246 / 0.45);
+  box-shadow: 0 6px 12px -4px color-mix(in srgb, var(--ms-blue) 45%, transparent);
 }
 
 .cartHeadCopy {
@@ -1431,7 +1484,7 @@
   margin: 0.2rem 0 0;
   font-size: 0.72rem;
   font-weight: 500;
-  color: rgb(191 219 254 / 0.85);
+  color: color-mix(in srgb, var(--ms-navy) 22%, #fff);
 }
 
 .checkoutHeadCopy {
@@ -1495,13 +1548,13 @@
 .checkoutShell :global(a.bg-primary),
 .cartShell :global(button[type="submit"]),
 .checkoutShell :global(button[type="submit"]) {
-  border-radius: 9999px !important;
+  border-radius: var(--ms-pill) !important;
   background: linear-gradient(to right, var(--ms-cyan), var(--ms-blue)) !important;
   color: #fff !important;
   font-weight: 800 !important;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  box-shadow: 0 8px 14px -4px rgb(59 130 246 / 0.35);
+  box-shadow: 0 8px 14px -4px color-mix(in srgb, var(--ms-blue) 35%, transparent);
 }
 
 .cartShell :global(button.bg-primary:hover),
@@ -1530,120 +1583,194 @@
 /* ── Sign-in sheet ──────────────────────────────────────── */
 
 .signInSheet {
-  max-height: min(88dvh, 36rem);
+  max-height: min(90dvh, 40rem);
   overflow: hidden;
-  border-radius: 1.75rem !important;
-  border: 1px solid color-mix(in srgb, var(--ms-navy) 10%, transparent) !important;
-  background: #fff;
+  border-radius: 1rem !important;
+  border: 1px solid var(--ms-card-border) !important;
+  background: var(--ms-ice);
   color: var(--ms-navy);
   font-family: var(--font-inter), system-ui, sans-serif;
-  box-shadow:
-    0 24px 64px rgb(23 37 84 / 0.28),
-    0 2px 8px rgb(23 37 84 / 0.08);
+  box-shadow: var(--ms-shadow-lg);
 }
 
 .signInHead {
   position: relative;
-  overflow: hidden;
-  padding: 1.45rem 3rem 1.15rem 1.45rem;
-  background: var(--ms-navy);
+  padding: 1.5rem 3.25rem 1.3rem 1.5rem;
+  background:
+    radial-gradient(
+      120% 140% at 100% 0%,
+      color-mix(in srgb, var(--ms-accent) 38%, transparent),
+      transparent 62%
+    ),
+    var(--ms-navy);
   color: #fff;
 }
 
-.signInHead::after {
-  content: "";
-  position: absolute;
-  right: -2rem;
-  top: -2rem;
-  width: 9rem;
-  height: 9rem;
-  border-radius: 9999px;
-  background: var(--ms-blue-600);
-  opacity: 0.35;
-  filter: blur(28px);
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-
-.signInKicker {
-  margin: 0 0 0.45rem;
+.signInMark {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.28rem 0.7rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  background: rgb(255 255 255 / 0.08);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ms-cyan-400);
-}
-
-.signInKickerDot {
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 9999px;
-  background: var(--ms-cyan);
-  box-shadow: 0 0 10px rgb(6 182 212 / 0.8);
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.85rem;
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
 }
 
 .signInTitle {
   position: relative;
   margin: 0;
-  font-size: 1.55rem;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
   color: #fff;
+  text-wrap: balance;
 }
 
 .signInLead {
   position: relative;
-  margin-top: 0.5rem;
+  margin-top: 0.45rem;
+  max-width: 30ch;
   font-size: 0.9rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: rgb(191 219 254 / 0.85);
+  font-weight: 400;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--ms-navy) 16%, #fff);
+  text-wrap: pretty;
 }
 
 .signInBody {
   overflow-y: auto;
-  padding: 1.2rem 1.4rem 1.4rem;
+  padding: 1.35rem 1.5rem 1.5rem;
   background: var(--ms-ice);
+  scrollbar-width: thin;
 }
 
-.signInBody :global(button[type="submit"]) {
-  border-radius: 9999px !important;
-  background: linear-gradient(to right, var(--ms-cyan), var(--ms-blue)) !important;
-  color: #fff !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  box-shadow: 0 8px 14px -4px rgb(59 130 246 / 0.35);
-}
-
-.signInBody :global(button[type="submit"]:hover) {
-  filter: brightness(1.05);
+.signInBody :global(label > span:first-child) {
+  color: var(--ms-navy);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .signInBody :global(input),
 .signInBody :global(textarea) {
-  border-radius: 1rem !important;
-  border-color: var(--ms-card-border) !important;
+  min-height: 2.9rem;
+  border-radius: 0.75rem !important;
+  border: 1px solid color-mix(in srgb, var(--ms-navy) 18%, transparent) !important;
   background: #fff !important;
+  color: var(--ms-navy);
+  transition:
+    border-color 0.2s var(--ms-ease),
+    box-shadow 0.2s var(--ms-ease);
+}
+
+.signInBody :global(input::placeholder) {
+  color: color-mix(in srgb, var(--ms-navy) 52%, #fff);
+}
+
+.signInBody :global(input:hover) {
+  border-color: color-mix(in srgb, var(--ms-navy) 34%, transparent) !important;
+}
+
+.signInBody :global(input:focus),
+.signInBody :global(input:focus-visible) {
+  outline: none;
+  border-color: var(--ms-accent-ink) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ms-accent) 24%, transparent) !important;
+}
+
+.signInBody :global(button[type="submit"]) {
+  min-height: 3rem;
+  border-radius: var(--ms-pill) !important;
+  background: var(--ms-accent) !important;
+  color: #fff !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--ms-accent) 80%, #000);
+  transition:
+    transform 0.2s var(--ms-ease),
+    box-shadow 0.2s var(--ms-ease),
+    filter 0.2s var(--ms-ease);
+}
+
+.signInBody :global(button[type="submit"]:hover:not(:disabled)) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 22px -8px color-mix(in srgb, var(--ms-accent) 85%, #000);
+}
+
+.signInBody :global(button[type="submit"]:active:not(:disabled)) {
+  transform: translateY(0) scale(0.985);
+}
+
+.signInBody :global(button[type="submit"]:disabled) {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.signInBody :global(button:focus-visible),
+.signInBody :global(a:focus-visible) {
+  outline: none;
+  box-shadow: var(--ms-focus);
+}
+
+/* Text actions: "Create an account", "Back to sign in", "Resend code". */
+.signInBody :global(button.text-muted-foreground),
+.signInBody :global(button[class*="text-muted-foreground"]) {
+  color: var(--ms-accent-ink);
+  font-weight: 600;
+}
+
+.signInBody :global(button.text-muted-foreground:hover) {
+  color: var(--ms-navy);
+}
+
+.signInBody :global(.border-border\/60) {
+  border-color: var(--ms-card-border);
+}
+
+.signInBody :global(p.text-muted-foreground),
+.signInBody :global(p[class*="text-muted-foreground"]) {
+  color: var(--ms-muted);
+}
+
+.signInBody :global([role="alert"]) {
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, #b91c1c 28%, transparent);
+  background: color-mix(in srgb, #b91c1c 6%, #fff);
+  color: #991b1b;
+  font-size: 0.85rem;
 }
 
 .signInSheet :global(button[aria-label="Close"]) {
-  top: 0.95rem;
-  right: 0.95rem;
+  top: 1rem;
+  right: 1rem;
+  width: 2.25rem;
+  height: 2.25rem;
   color: #fff;
   border-radius: 9999px;
+  opacity: 0.85;
+  transition: background 0.2s var(--ms-ease), opacity 0.2s var(--ms-ease);
 }
 
 .signInSheet :global(button[aria-label="Close"]:hover) {
-  background: rgb(255 255 255 / 0.14);
+  opacity: 1;
+  background: rgb(255 255 255 / 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signInBody :global(button[type="submit"]),
+  .signInBody :global(input) {
+    transition: none;
+  }
 }
 
 /* ── Session chip (header) ──────────────────────────────── */
@@ -1795,8 +1922,8 @@
   overflow: hidden;
   border-radius: 2.5rem;
   border: 4px solid #fff;
-  background: #e2e8f0;
-  box-shadow: 0 20px 40px -16px rgb(30 58 138 / 0.2);
+  background: color-mix(in srgb, var(--ms-navy) 9%, #fff);
+  box-shadow: 0 20px 40px -16px color-mix(in srgb, var(--ms-navy) 20%, transparent);
 }
 
 .pdpThumbs {
@@ -1884,7 +2011,7 @@
   font-weight: 800 !important;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  box-shadow: 0 10px 18px -6px rgb(59 130 246 / 0.4);
+  box-shadow: 0 10px 18px -6px color-mix(in srgb, var(--ms-blue) 40%, transparent);
 }
 
 .pdpUnavailable,
@@ -2008,7 +2135,7 @@
   align-items: center;
   justify-content: center;
   padding: 0.85rem 1.65rem;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   background: linear-gradient(135deg, var(--ms-cyan), var(--ms-blue));
   color: #fff;
   font-size: 0.72rem;
@@ -2016,13 +2143,13 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-decoration: none;
-  box-shadow: 0 8px 18px -8px rgb(8 145 178 / 0.55);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--ms-accent) 55%, transparent);
   transition: transform 0.2s var(--ms-ease), box-shadow 0.2s var(--ms-ease);
 }
 
 .passCtaPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 22px -10px rgb(8 145 178 / 0.65);
+  box-shadow: 0 12px 22px -10px color-mix(in srgb, var(--ms-accent) 65%, transparent);
 }
 
 .passCtaSecondary {
@@ -2030,7 +2157,7 @@
   align-items: center;
   justify-content: center;
   padding: 0.85rem 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--ms-pill);
   border: 1.5px solid rgb(255 255 255 / 0.22);
   background: transparent;
   color: #fff;
@@ -2056,7 +2183,7 @@
   color: var(--ms-navy);
   font-family: var(--font-inter), system-ui, sans-serif;
   overflow: hidden;
-  box-shadow: 0 -20px 60px rgb(23 37 84 / 0.25);
+  box-shadow: 0 -20px 60px color-mix(in srgb, var(--ms-navy) 25%, transparent);
 }
 
 @media (min-width: 640px) {
@@ -2096,7 +2223,7 @@
 .waMeta {
   margin: 0.15rem 0 0;
   font-size: 0.72rem;
-  color: rgb(191 219 254 / 0.85);
+  color: color-mix(in srgb, var(--ms-navy) 22%, #fff);
 }
 
 .waClose {
@@ -2119,7 +2246,7 @@
 
 .waSheet :global(button.h-11),
 .waSheet :global(a.h-11) {
-  border-radius: 9999px !important;
+  border-radius: var(--ms-pill) !important;
 }
 
 .waSheet :global(button[type="submit"]),
@@ -2128,4 +2255,157 @@
   color: #fff !important;
 }
 
+/* ── Studio toggles ─────────────────────────────────────── */
 
+.home[data-motion="off"] .blob,
+.home[data-motion="off"] .floatIcon {
+  animation: none;
+}
+
+/* ── Shopping helpers ───────────────────────────────────── */
+
+.searchRow {
+  max-width: var(--ms-max);
+  margin: 0 auto;
+  padding: 0 1.1rem 0.8rem;
+}
+
+.search {
+  position: relative;
+  display: block;
+}
+
+.search input {
+  width: 100%;
+  height: 2.6rem;
+  padding: 0 2.9rem 0 1.05rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--ms-pill);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  caret-color: var(--ms-cyan-400);
+  transition:
+    background 0.2s var(--ms-ease),
+    border-color 0.2s var(--ms-ease);
+}
+
+.search input::placeholder {
+  color: rgb(255 255 255 / 0.72);
+}
+
+.search input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #fff;
+  color: var(--ms-navy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ms-accent) 45%, transparent);
+}
+
+.search input:focus::placeholder {
+  color: color-mix(in srgb, var(--ms-navy) 55%, #fff);
+}
+
+.search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search button {
+  position: absolute;
+  top: 50%;
+  right: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 0;
+  border-radius: var(--ms-pill);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.search:focus-within button {
+  color: var(--ms-navy);
+}
+
+@container mizu (min-width: 720px) {
+  .searchRow {
+    padding: 0 1.5rem 0.9rem;
+  }
+}
+
+.catChips {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1.35rem;
+  padding-bottom: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.catChips::-webkit-scrollbar {
+  display: none;
+}
+
+.catChip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--ms-pill);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--ms-card-border);
+  color: var(--ms-navy);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow 0.2s var(--ms-ease), color 0.2s var(--ms-ease);
+}
+
+.catChip:hover {
+  box-shadow: inset 0 0 0 1.5px var(--ms-accent-ink);
+  color: var(--ms-accent-ink);
+}
+
+.catChip span {
+  color: var(--ms-muted-soft);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardFlag {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1;
+  max-width: calc(100% - 1rem);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--ms-pill);
+  background: var(--ms-navy);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardWas {
+  margin-left: 0.45rem;
+  color: var(--ms-muted-soft);
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search input,
+  .catChip {
+    transition: none;
+  }
+}

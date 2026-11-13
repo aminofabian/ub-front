@@ -11,6 +11,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { useMizuPaletteStyle } from "@/components/storefront/templates/store/use-mizu-palette";
 import styles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { StorefrontProductImageShell } from "@/components/storefront/storefront-product-image-shell";
 import { useStorefrontDisplayImage } from "@/components/storefront/storefront-staff-edit";
@@ -30,6 +31,7 @@ export function MizuSpringsProduct({
   slug: string;
   item: PublicCatalogItemDetail;
 }) {
+  const palette = useMizuPaletteStyle();
   const [activeIdx, setActiveIdx] = useState(0);
   const [note, setNote] = useState("");
   const images = item.images.length > 0 ? item.images : [];
@@ -59,6 +61,7 @@ export function MizuSpringsProduct({
     <div
       className={cn(styles.root, styles.body, mizuSpringsFontVariables, styles.pdp)}
       data-store-theme-id="mizu-springs"
+      style={palette}
     >
       <div className={styles.pdpWrap}>
         <Link href={APP_ROUTES.shop} className={styles.pdpBack}>

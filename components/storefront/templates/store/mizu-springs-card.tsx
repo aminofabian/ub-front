@@ -72,6 +72,10 @@ export function MizuSpringsCard({
 }) {
   const href = shopItemPathFromCard(item) || APP_ROUTES.shop;
   const imageUrl = useStorefrontDisplayImage(item.id, item.imageUrl);
+  const onSale =
+    item.price != null &&
+    item.regularPrice != null &&
+    item.regularPrice > item.price;
 
   return (
     <article className={styles.card}>
@@ -94,12 +98,25 @@ export function MizuSpringsCard({
         ) : (
           <span className={styles.visualPlaceholder} aria-hidden />
         )}
+        {onSale ? (
+          <span className={styles.cardFlag}>
+            {item.discountName?.trim() || "Sale"}
+          </span>
+        ) : null}
       </StorefrontProductImageShell>
       <div className={styles.cardBody}>
         <Link href={href} className={styles.cardName}>
           {item.name}
         </Link>
-        <p className={styles.cardPrice}>{priceLabel(item, currency)}</p>
+        <p className={styles.cardPrice}>
+          {priceLabel(item, currency)}
+          {onSale ? (
+            <s className={styles.cardWas}>
+              <span className="sr-only">Was </span>
+              {formatDisplayPrice(currency, item.regularPrice as number)}
+            </s>
+          ) : null}
+        </p>
         <MizuSpringsAddButton item={item} />
       </div>
     </article>

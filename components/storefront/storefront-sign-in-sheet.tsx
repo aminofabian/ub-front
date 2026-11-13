@@ -21,6 +21,7 @@ import cmStyles from "@/components/storefront/templates/store/comilmart.module.c
 import { dailyGazetteFontVariables } from "@/components/storefront/templates/store/daily-gazette-fonts";
 import dgStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { useMizuPaletteStyle } from "@/components/storefront/templates/store/use-mizu-palette";
 import msStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { zetuFontVariables } from "@/app/fonts/zetu";
 import ztStyles from "@/components/storefront/templates/store/zetu.module.css";
@@ -290,6 +291,10 @@ function StorefrontSignInSheet({
   const gazette = isDailyGazetteStoreTheme();
   const mizu = isMizuSpringsStoreTheme();
   const zetu = isZetuStoreTheme();
+  const mizuPalette = useMizuPaletteStyle();
+  const [formPhase, setFormPhase] = useState<StorefrontSignInPhase>(
+    entry?.initialPhase ?? "credentials",
+  );
 
   const displayName =
     storeName?.trim() ||
@@ -314,7 +319,7 @@ function StorefrontSignInSheet({
     onOpenChange(false);
     toast.success(
       mizu
-        ? "You're in — welcome to the spring"
+        ? "You're in"
         : gazette
           ? "Press pass stamped"
           : "You're in",
@@ -447,7 +452,7 @@ function StorefrontSignInSheet({
                     "sm:rounded-none sm:border-b sm:pb-0",
                   )
         }
-        style={comilmart ? comilmartPaletteVars() : undefined}
+        style={comilmart ? comilmartPaletteVars() : mizu ? mizuPalette : undefined}
         overlayClassName="z-[89]"
       >
         <div
@@ -465,10 +470,9 @@ function StorefrontSignInSheet({
         >
           <DialogHeader className="space-y-1.5 text-left">
             {mizu ? (
-              <p className={msStyles.signInKicker}>
-                <span className={msStyles.signInKickerDot} aria-hidden />
-                Spring pass
-              </p>
+              <span className={msStyles.signInMark} aria-hidden>
+                {(shopLabel.trim().charAt(0) || "S").toUpperCase()}
+              </span>
             ) : null}
             {displayName && !themed ? (
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -491,7 +495,7 @@ function StorefrontSignInSheet({
               {gazette
                 ? "Press pass"
                 : mizu
-                  ? "Sip in"
+                  ? mizuSheetTitle(formPhase, door)
                   : comilmart
                     ? "Welcome back"
                     : zetu
@@ -516,9 +520,7 @@ function StorefrontSignInSheet({
                   ? `Sign the register at ${shopLabel} to hold orders.`
                   : "Sign the register to hold orders and track them."
                 : mizu
-                  ? shopLabel
-                    ? `Phone or email to track orders and refill with ${shopLabel}.`
-                    : "Phone or email to track orders, refills, and custom bottles."
+                  ? mizuSheetLead(formPhase, door, shopLabel)
                   : comilmart
                     ? shopLabel
                       ? `Log in to your ${shopLabel} account.`
@@ -555,6 +557,7 @@ function StorefrontSignInSheet({
               initialError={entry?.initialError ?? ""}
               nextPath={safeNext}
               onSignedIn={() => void finishSignedIn()}
+              onPhaseChange={setFormPhase}
             />
           ) : null}
         </div>
@@ -576,6 +579,7 @@ export function UnifiedSignInForm({
   initialError = "",
   nextPath,
   onSignedIn,
+  onPhaseChange,
 }: {
   initialPhone?: string;
   initialEmail?: string;
@@ -587,6 +591,8 @@ export function UnifiedSignInForm({
   /** Post-auth destination hint for Google OAuth `next`. */
   nextPath?: string | null;
   onSignedIn: () => void;
+  /** Lets a themed host retitle itself as the form moves between steps. */
+  onPhaseChange?: (phase: StorefrontSignInPhase) => void;
 }) {
   const tenant = useOptionalTenant();
   const pathname = usePathname();
@@ -611,6 +617,9 @@ export function UnifiedSignInForm({
     signInPhaseForDoor(initialPhase, door),
   );
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
   const [errorMessage, setErrorMessage] = useState(
     () => (initialError ?? "").trim(),
   );
@@ -1259,6 +1268,46 @@ export function UnifiedSignInForm({
       ) : null}
     </form>
   );
+}
+
+function mizuSheetTitle(
+  phase: StorefrontSignInPhase,
+  door: StorefrontSignInDoor,
+): string {
+  if (door === "staff") return "Staff sign in";
+  switch (phase) {
+    case "signup":
+      return "Create your account";
+    case "code":
+      return "Enter your code";
+    case "verify":
+      return "Check your email";
+    case "new-pin":
+      return "Confirm your PIN";
+    default:
+      return "Welcome back";
+  }
+}
+
+function mizuSheetLead(
+  phase: StorefrontSignInPhase,
+  door: StorefrontSignInDoor,
+  shop: string,
+): string {
+  const at = shop ? ` at ${shop}` : "";
+  if (door === "staff") return `Sign in to manage ${shop || "the shop"}.`;
+  switch (phase) {
+    case "signup":
+      return `Save your details so ordering${at} takes seconds.`;
+    case "code":
+      return "One quick step to confirm it is your phone.";
+    case "verify":
+      return "Confirm your email to finish creating your account.";
+    case "new-pin":
+      return "Four digits you will use next time.";
+    default:
+      return `Track your orders${at} and check out faster.`;
+  }
 }
 
 function ErrorBanner({ message }: { message: string }) {

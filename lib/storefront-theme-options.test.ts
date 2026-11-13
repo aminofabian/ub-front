@@ -18,6 +18,7 @@ import {
 describe("storefront theme options", () => {
   test("defines options for the flagship themes", () => {
     expect(storefrontThemeOptionDefs("chem-lab").map((d) => d.key)).toEqual([
+      "highlight",
       "voice",
       "grid",
       "glow",
@@ -30,6 +31,7 @@ describe("storefront theme options", () => {
       "rack",
     ]);
     expect(storefrontThemeOptionDefs("milk-run").map((d) => d.key)).toEqual([
+      "highlight",
       "paper",
     ]);
     expect(storefrontThemeOptionDefs("mart")).toEqual([]);
@@ -38,6 +40,7 @@ describe("storefront theme options", () => {
   test("defaults fill every option key", () => {
     const defaults = storefrontThemeOptionDefaults("chem-lab");
     expect(defaults).toEqual({
+      highlight: "#84cc16",
       voice: "shop",
       grid: true,
       glow: 1,

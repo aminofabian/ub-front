@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import {
@@ -11,22 +11,33 @@ import {
 } from "@/components/storefront/storefront-account-link";
 import { StorefrontEditableLogoMark } from "@/components/storefront/storefront-editable-logo";
 import styles from "@/components/storefront/templates/store/mizu-springs.module.css";
+import { resolveMizuTheme } from "@/components/storefront/templates/store/mizu-springs-copy";
+import { useStorefrontLiveDesign } from "@/components/storefront/storefront-staff-edit";
+import type { PublicCategory } from "@/lib/public-storefront";
+import type { StorefrontDesign } from "@/lib/storefront-design";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "#about", label: "About Us" },
-  { href: "#collection", label: "Products" },
-  { href: "#custom", label: "Custom" },
-  { href: "#faq", label: "FAQs" },
-] as const;
+function navItems(customLabel: string) {
+  return [
+    { href: "#about", label: "About" },
+    { href: "#collection", label: "Products" },
+    { href: "#custom", label: customLabel },
+    { href: "#faq", label: "FAQs" },
+  ] as const;
+}
 
 type MizuSpringsHeaderProps = {
   slug: string;
   storeName: string;
   logoUrl?: string | null;
   whatsapp?: string | null;
+  /** Category names — used to pick the right nav wording for the shop. */
+  categoryNames?: readonly string[];
+  /** Shop categories — used to pick the wording that fits the shop. */
+  categories?: readonly PublicCategory[];
+  design?: StorefrontDesign | null;
   className?: string;
 };
 
@@ -42,9 +53,27 @@ function MizuSpringsHeaderView({
   storeName,
   logoUrl,
   whatsapp,
+  categoryNames,
+  categories = [],
+  design: designProp,
   className,
 }: MizuSpringsHeaderProps) {
+  const design = useStorefrontLiveDesign(designProp ?? null);
+  const mizu = resolveMizuTheme({
+    shopName: storeName,
+    categoryNames: categoryNames ?? categories.map((c) => c.name),
+    options: design?.theme?.["mizu-springs"],
+  });
+  const NAV = navItems(mizu.t.navCustom || "Orders").filter(
+    (item) =>
+      (item.href !== "#about" || mizu.show.about) &&
+      (item.href !== "#custom" || mizu.show.custom) &&
+      (item.href !== "#faq" || mizu.show.faq),
+  );
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q")?.trim() ?? "";
+  const [searchOpen, setSearchOpen] = useState(Boolean(query));
   const { itemCount, openDrawer } = useShopCart();
   const { signedIn } = useStorefrontAccountLink();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -99,7 +128,7 @@ function MizuSpringsHeaderView({
             target={wa ? "_blank" : undefined}
             rel={wa ? "noopener noreferrer" : undefined}
           >
-            Order Now
+            Order now
             <MessageCircle size={16} aria-hidden />
           </a>
           <StorefrontAccountLink
@@ -132,6 +161,15 @@ function MizuSpringsHeaderView({
               </svg>
             )}
           </StorefrontAccountLink>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            aria-expanded={searchOpen}
+            aria-label={searchOpen ? "Close search" : "Search products"}
+            onClick={() => setSearchOpen((v) => !v)}
+          >
+            <SearchIcon />
+          </button>
           <button
             type="button"
             className={styles.cartBtn}
@@ -172,6 +210,33 @@ function MizuSpringsHeaderView({
         </div>
       </div>
 
+      {searchOpen ? (
+        <div className={styles.searchRow}>
+          <form
+            action={APP_ROUTES.shop}
+            method="get"
+            role="search"
+            className={styles.search}
+          >
+            <label className="sr-only" htmlFor="ms-search">
+              Search {storeName}
+            </label>
+            <input
+              id="ms-search"
+              name="q"
+              type="search"
+              defaultValue={query}
+              placeholder="Search products"
+              enterKeyHint="search"
+              autoFocus={!query}
+            />
+            <button type="submit" aria-label="Search">
+              <SearchIcon />
+            </button>
+          </form>
+        </div>
+      ) : null}
+
       <div className={styles.drawer}>
         <nav className={styles.nav} aria-label="Mobile">
           {NAV.map((item) => (
@@ -187,5 +252,14 @@ function MizuSpringsHeaderView({
         </nav>
       </div>
     </header>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   );
 }

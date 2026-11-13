@@ -21,6 +21,10 @@
  */
 "use client";
 
+import {
+  mizuPresetText,
+  type MizuKind,
+} from "@/components/storefront/templates/store/mizu-springs-copy";
 import Link from "next/link";
 import {
   useCallback,
@@ -420,10 +424,13 @@ function ThemeOptionControl({
   def,
   value,
   onChange,
+  placeholder,
 }: {
   def: ThemeOptionDef;
   value: ThemeOptionValue;
   onChange: (value: ThemeOptionValue) => void;
+  /** What shoppers see while a text option is left empty. */
+  placeholder?: string;
 }) {
   switch (def.type) {
     case "toggle":
@@ -557,18 +564,125 @@ function ThemeOptionControl({
           <span className="block text-sm font-medium text-foreground">
             {def.label}
           </span>
-          <input
-            type="text"
-            value={typeof value === "string" ? value : def.default}
-            maxLength={def.max ?? 80}
-            placeholder={def.placeholder ?? def.default}
-            onChange={(e) => onChange(e.target.value)}
-            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20"
-          />
+{(def.max ?? 80) > 100 ? (
+            <textarea
+              rows={3}
+              value={typeof value === "string" ? value : def.default}
+              maxLength={def.max ?? 80}
+              placeholder={placeholder ?? def.placeholder ?? def.default}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm leading-relaxed shadow-sm outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+          ) : (
+            <input
+              type="text"
+              value={typeof value === "string" ? value : def.default}
+              maxLength={def.max ?? 80}
+              placeholder={placeholder ?? def.placeholder ?? def.default}
+              onChange={(e) => onChange(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+          )}
           {def.hint ? <p className={dashboardHintClass()}>{def.hint}</p> : null}
         </div>
       );
   }
+}
+
+/**
+ * A theme's own controls, grouped under plain headings. Short lists show
+ * flat; long ones (a theme with editable copy) fold into sections with a
+ * search box and a count of what the shop has changed.
+ */
+function ThemeOptionsPanel({
+  themeId,
+  values,
+  onChange,
+}: {
+  themeId: string;
+  values: Record<string, ThemeOptionValue>;
+  onChange: (key: string, value: ThemeOptionValue) => void;
+}) {
+  const defs = storefrontThemeOptionDefs(themeId);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const voice = typeof values.voice === "string" ? values.voice : "auto";
+
+  const placeholderFor = (def: ThemeOptionDef): string | undefined => {
+    if (themeId !== "mizu-springs" || def.type !== "text") return undefined;
+    if (voice === "auto") return "Using the automatic wording";
+    return mizuPresetText(voice as MizuKind, def.key) || "Empty";
+  };
+  const changed = (def: ThemeOptionDef) => {
+    const v = values[def.key];
+    return v !== undefined && v !== null && v !== "" && v !== def.default;
+  };
+
+  const groups: { name: string; defs: ThemeOptionDef[] }[] = [];
+  for (const def of defs) {
+    if (
+      q &&
+      !`${def.label} ${def.group ?? ""} ${String(values[def.key] ?? "")}`
+        .toLowerCase()
+        .includes(q)
+    ) {
+      continue;
+    }
+    const name = def.group ?? "Look";
+    const hit = groups.find((g) => g.name === name);
+    if (hit) hit.defs.push(def);
+    else groups.push({ name, defs: [def] });
+  }
+
+  const grid = (list: readonly ThemeOptionDef[]) => (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {list.map((def) => (
+        <ThemeOptionControl
+          key={def.key}
+          def={def}
+          value={values[def.key] ?? def.default}
+          onChange={(value) => onChange(def.key, value)}
+          placeholder={placeholderFor(def)}
+        />
+      ))}
+    </div>
+  );
+
+  if (defs.length <= 8) return grid(defs);
+
+  return (
+    <div className="space-y-3">
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Find a setting or a line of text"
+        aria-label="Find a theme setting"
+        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20"
+      />
+      {groups.length === 0 ? (
+        <p className={dashboardHintClass()}>Nothing matches “{query}”.</p>
+      ) : null}
+      {groups.map((group, i) => {
+        const count = group.defs.filter(changed).length;
+        return (
+          <details
+            key={group.name}
+            open={Boolean(q) || i === 0 ? true : undefined}
+            className="group rounded-xl border border-border/70 bg-background"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium text-foreground">
+              <span>{group.name}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {count > 0 ? `${count} changed` : `${group.defs.length} settings`}
+              </span>
+            </summary>
+            <div className="border-t border-border/60 p-3">{grid(group.defs)}</div>
+          </details>
+        );
+      })}
+    </div>
+  );
 }
 
 const SOCIAL_FIELDS: {
@@ -1915,19 +2029,16 @@ export function StorefrontDesignEditor({
             <span className={dashboardLabelClass()}>
               Theme personality · {storeThemeMeta(themeId).name}
             </span>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {storefrontThemeOptionDefs(themeId).map((def) => (
-                <ThemeOptionControl
-                  key={def.key}
-                  def={def}
-                  value={form.themeOptions[def.key] ?? def.default}
-                  onChange={(value) => setThemeOption(def.key, value)}
-                />
-              ))}
-            </div>
+            <ThemeOptionsPanel
+              key={themeId}
+              themeId={themeId}
+              values={form.themeOptions}
+              onChange={setThemeOption}
+            />
             <p className={dashboardHintClass()}>
-              Extra dials this theme offers — saved per theme, so switching
-              looks keeps each one&apos;s personality.
+              These belong to this theme and are saved per theme, so switching
+              looks keeps each one&apos;s settings. Text left empty uses the
+              theme&apos;s own wording.
             </p>
           </div>
         ) : null}

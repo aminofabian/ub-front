@@ -4,6 +4,7 @@ import { ShoppingBag, X } from "lucide-react";
 
 import { ShopCartPanelBody } from "@/components/storefront/shop-cart-panel-body";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { useMizuPaletteStyle } from "@/components/storefront/templates/store/use-mizu-palette";
 import styles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { cn } from "@/lib/utils";
@@ -24,9 +25,13 @@ export function MizuSpringsCartPanel({
 }: Props) {
   const { itemCount, cartViewMode } = useShopCart();
   const focusMode = compactHeader && cartViewMode === "focus";
+  const palette = useMizuPaletteStyle();
 
   return (
-    <div className={cn(styles.cartShell, mizuSpringsFontVariables, className)}>
+    <div
+      className={cn(styles.cartShell, mizuSpringsFontVariables, className)}
+      style={palette}
+    >
       <header className={styles.cartHead}>
         <div className={styles.cartHeadMain}>
           <span className={styles.cartHeadIcon} aria-hidden>

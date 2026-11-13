@@ -49,8 +49,8 @@ export function MizuSpringsCatalog({
 
       {items.length === 0 ? (
         <div className={styles.empty}>
-          Nothing in this collection yet. Message us on WhatsApp for what we can
-          bottle next.
+          Nothing in this collection yet. Message the shop to ask what is coming
+          next.
         </div>
       ) : (
         <div className={styles.grid}>

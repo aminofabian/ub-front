@@ -24,6 +24,7 @@ import {
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { cn } from "@/lib/utils";
 
 /**
@@ -101,6 +102,7 @@ export function SpiritsCellarStoreHome(props: StoreHomeTemplateProps) {
         {
           ["--sc-wax" as string]: wax,
           ["--sc-spirit" as string]: spirit,
+          ...themeOptionVars("spirits-cellar", design?.theme ?? null),
         } as CSSProperties
       }
     >

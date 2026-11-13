@@ -24,6 +24,7 @@ import {
   storefrontSectionConfig,
   type StorefrontHeroSectionSettings,
 } from "@/lib/storefront-design";
+import { themeOptionVars } from "@/lib/storefront-theme-options";
 import { cn } from "@/lib/utils";
 
 /**
@@ -101,6 +102,7 @@ export function BoutiqueShelfStoreHome(props: StoreHomeTemplateProps) {
         {
           ["--bs-rose" as string]: rose,
           ["--bs-brass" as string]: brass,
+          ...themeOptionVars("boutique-shelf", design?.theme ?? null),
         } as CSSProperties
       }
     >

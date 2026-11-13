@@ -75,6 +75,8 @@ import { dailyGazetteFontVariables } from "@/components/storefront/templates/sto
 import dailyGazetteStyles from "@/components/storefront/templates/store/daily-gazette.module.css";
 import { MizuSpringsHeader } from "@/components/storefront/templates/store/mizu-springs-header";
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { mizuThemeStyle } from "@/components/storefront/templates/store/mizu-springs-palette";
+import { usePublishMizuTheme } from "@/components/storefront/templates/store/use-mizu-palette";
 import mizuSpringsStyles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { SoftVitrineHeader } from "@/components/storefront/templates/store/soft-vitrine-header";
 import { softVitrineFontVariables } from "@/components/storefront/templates/store/soft-vitrine-fonts";
@@ -324,6 +326,11 @@ export function ShopStorefrontChrome({
           usesChoiceSheet: isMilkRun,
         }
       : null;
+
+  const mizuStyle = isMizuSprings
+    ? mizuThemeStyle(primaryHex, accentHex, initialDesign?.theme)
+    : null;
+  usePublishMizuTheme(mizuStyle);
 
   const shellStyle: CSSProperties | undefined = isOxide && accentHex
     ? ({ ["--oxide-accent" as string]: accentHex } as CSSProperties)
@@ -576,7 +583,12 @@ export function ShopStorefrontChrome({
             ),
           pairing.variables,
         )}
-        style={{ ...shellStyle, ...optionStyle, ...pairingStyle }}
+        style={{
+          ...shellStyle,
+          ...optionStyle,
+          ...pairingStyle,
+          ...mizuStyle,
+        }}
       >
       {isOxide && !compactChrome ? (
         <OxideHeader storeName={headerTitle} />
@@ -725,6 +737,8 @@ export function ShopStorefrontChrome({
             storeName={headerTitle}
             logoUrl={themedLogoUrl}
             whatsapp={whatsappNumber}
+            categories={categories}
+            design={initialDesign}
           />
         </Suspense>
       ) : null}

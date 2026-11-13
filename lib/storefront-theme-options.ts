@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { MIZU_SPRINGS_OPTIONS } from "@/lib/mizu-springs-options";
 import type { StoreThemeId } from "@/lib/storefront-templates";
 
 /**
@@ -22,6 +23,8 @@ export type ThemeOptionDef =
       key: string;
       label: string;
       hint?: string;
+      /** Studio panel heading this option sits under. */
+      group?: string;
       type: "toggle";
       var: string;
       default: boolean;
@@ -34,6 +37,8 @@ export type ThemeOptionDef =
       key: string;
       label: string;
       hint?: string;
+      /** Studio panel heading this option sits under. */
+      group?: string;
       type: "select";
       var: string;
       default: string;
@@ -44,6 +49,8 @@ export type ThemeOptionDef =
       key: string;
       label: string;
       hint?: string;
+      /** Studio panel heading this option sits under. */
+      group?: string;
       type: "range";
       var: string;
       default: number;
@@ -56,6 +63,8 @@ export type ThemeOptionDef =
       key: string;
       label: string;
       hint?: string;
+      /** Studio panel heading this option sits under. */
+      group?: string;
       type: "color";
       var: string;
       default: string;
@@ -64,6 +73,8 @@ export type ThemeOptionDef =
       key: string;
       label: string;
       hint?: string;
+      /** Studio panel heading this option sits under. */
+      group?: string;
       type: "text";
       /** Optional CSS custom property (most copy is read in JS). */
       var?: string;
@@ -74,10 +85,24 @@ export type ThemeOptionDef =
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
+/** The one colour that carries a theme's buttons, badges and accents. */
+function highlight(cssVar: string, fallback: string, hint: string): ThemeOptionDef {
+  return {
+    key: "highlight",
+    label: "Highlight colour",
+    group: "Colour",
+    hint: `${hint} Pick one that keeps the text on it readable.`,
+    type: "color",
+    var: cssVar,
+    default: fallback,
+  };
+}
+
 export const STOREFRONT_THEME_OPTIONS: Partial<
   Record<StoreThemeId, readonly ThemeOptionDef[]>
 > = {
   "chem-lab": [
+    highlight("--cl-neon", "#84cc16", "The neon on buttons, prices and the cart."),
     {
       key: "voice",
       label: "Word choice",
@@ -179,6 +204,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "milk-run": [
+    highlight("--milk-accent", "#e8412c", "The cherry on buttons and the wordmark. Starts from your brand accent."),
     {
       key: "paper",
       label: "Paper tone",
@@ -201,6 +227,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   oxide: [
+    highlight("--oxide-accent", "#ff3d1f", "The signal colour on buttons and tags. Starts from your brand accent."),
     {
       key: "paper",
       label: "Paper tone",
@@ -230,6 +257,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "tint-lab": [
+    highlight("--tint-accent", "#e2432c", "The tint on buttons and swatches. Starts from your brand accent."),
     {
       key: "paper",
       label: "Paper tone",
@@ -250,6 +278,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "carbon-desk": [
+    highlight("--cd-carbon", "#3d6b9e", "The carbon-blue ink on links and stamps."),
     {
       key: "paper",
       label: "Desk tone",
@@ -270,6 +299,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "beauty-edit": [
+    highlight("--be-gold", "#b5853a", "The gold on details and accents."),
     {
       key: "paper",
       label: "Paper tone",
@@ -290,6 +320,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "soft-vitrine": [
+    highlight("--sv-gold", "#7b5e4f", "The warm tone on details and accents."),
     {
       key: "paper",
       label: "Paper tone",
@@ -346,6 +377,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "scent-story": [
+    highlight("--ss-gold", "#c5a04e", "The gold on rules, labels and buttons."),
     {
       key: "silk",
       label: "Salon silk",
@@ -426,6 +458,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "butcher-board": [
+    highlight("--bb-accent", "#f5c518", "The yellow on prices and frames. Starts from your brand accent."),
     {
       key: "frame",
       label: "Chalk frame weight",
@@ -440,6 +473,7 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
     },
   ],
   "daily-gazette": [
+    highlight("--dg-orange", "#e24e04", "The press orange on buttons and the masthead rule."),
     {
       key: "paper",
       label: "Newsprint tone",
@@ -468,25 +502,12 @@ export const STOREFRONT_THEME_OPTIONS: Partial<
       placeholder: "The Daily",
     },
   ],
-  "mizu-springs": [
-    {
-      key: "navy",
-      label: "Navy tone",
-      hint: "Header and headline colour when no brand colour is set",
-      type: "select",
-      var: "--ms-navy",
-      default: "deep",
-      values: {
-        deep: "#172554",
-        ocean: "#0c4a6e",
-        ink: "#1e3a8a",
-      },
-      options: [
-        { value: "deep", label: "Deep", swatch: "#172554" },
-        { value: "ocean", label: "Ocean", swatch: "#0c4a6e" },
-        { value: "ink", label: "Ink", swatch: "#1e3a8a" },
-      ],
-    },
+  "mizu-springs": MIZU_SPRINGS_OPTIONS,
+  "boutique-shelf": [
+    highlight("--bs-rose", "#db2777", "The rose on buttons, badges and prices. Starts from your brand colour."),
+  ],
+  "spirits-cellar": [
+    highlight("--sc-candle", "#e8a849", "The candlelight on prices, buttons and labels."),
   ],
   zetu: [
     {

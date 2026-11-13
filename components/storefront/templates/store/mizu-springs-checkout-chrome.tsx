@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft, X } from "lucide-react";
 
 import { mizuSpringsFontVariables } from "@/components/storefront/templates/store/mizu-springs-fonts";
+import { useMizuPaletteStyle } from "@/components/storefront/templates/store/use-mizu-palette";
 import styles from "@/components/storefront/templates/store/mizu-springs.module.css";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function MizuSpringsCheckoutChrome({
   orderPlaced = false,
   thankYou = false,
 }: Props) {
+  const palette = useMizuPaletteStyle();
   const exitHint = thankYou
     ? "Back to the shop"
     : orderPlaced
@@ -38,6 +40,7 @@ export function MizuSpringsCheckoutChrome({
   return (
     <div
       className={cn(styles.checkoutShell, mizuSpringsFontVariables, className)}
+      style={palette}
     >
       <header className={styles.checkoutHead}>
         <button
@@ -50,7 +53,6 @@ export function MizuSpringsCheckoutChrome({
           <ArrowLeft className="size-4" aria-hidden />
         </button>
         <div className={styles.checkoutHeadCopy}>
-          <p className={styles.checkoutEyebrow}>Secure checkout</p>
           <h2 className={styles.checkoutTitle}>{title}</h2>
         </div>
         <button
