@@ -53,9 +53,13 @@ const ORDER_NOTICES: Array<{ key: SmsOrderNoticeKey; title: string; standard: st
   },
 ];
 
-type Props = { canManage: boolean };
+type Props = {
+  canManage: boolean;
+  /** Keeps the page header in step after a save or the first load. */
+  onSaved?: (next: SmsAutomations) => void;
+};
 
-export function SmsHubAutomations({ canManage }: Props) {
+export function SmsHubAutomations({ canManage, onSaved }: Props) {
   const [data, setData] = useState<SmsAutomations | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -66,6 +70,7 @@ export function SmsHubAutomations({ canManage }: Props) {
 
   const adopt = (next: SmsAutomations) => {
     setData(next);
+    onSaved?.(next);
     setWinbackDays(String(next.winbackDays));
     setWeeklyCap(String(next.promoWeeklyCap));
     const d: Record<string, string> = {

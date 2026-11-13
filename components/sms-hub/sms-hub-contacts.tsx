@@ -47,14 +47,21 @@ const FILTERS: Array<{ reach: SmsReach | null; label: string; count: (c: SmsCont
 
 type Props = {
   canManage: boolean;
+  /** Filter the list opens on. The parent remounts this panel when it changes. */
+  initialReach?: SmsReach | null;
   /** Start a campaign for the ticked customers. */
   onTextSelected: (customerIds: string[]) => void;
   /** Called after consent changes so the page header counts refresh. */
   onChanged: () => void;
 };
 
-export function SmsHubContacts({ canManage, onTextSelected, onChanged }: Props) {
-  const [reach, setReach] = useState<SmsReach | null>(null);
+export function SmsHubContacts({
+  canManage,
+  initialReach = null,
+  onTextSelected,
+  onChanged,
+}: Props) {
+  const [reach, setReach] = useState<SmsReach | null>(initialReach);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(0);
