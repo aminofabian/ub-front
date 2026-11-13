@@ -407,9 +407,12 @@ export function useQuickEdit({
       return;
     }
     const shared = usesSharedPackageStock(detail);
-    if (detail.isStocked === false && !shared) {
+    // Typing a quantity on a product that isn't tracked yet says what the person wants:
+    // switch tracking on for them as part of the save instead of sending them away.
+    const needsTracking = detail.isStocked === false && !shared;
+    if (needsTracking && !canCatalogWrite) {
       setMessage(
-        "Turn on stock tracking first — then you can set how many you have on hand.",
+        "Stock is not tracked for this product yet. Ask someone who can edit products to turn it on.",
       );
       return;
     }
@@ -442,7 +445,7 @@ export function useQuickEdit({
     }
     const delta = Math.round((target - current) * 10000) / 10000;
 
-    if (Math.abs(delta) < 0.0001) {
+    if (Math.abs(delta) < 0.0001 && !needsTracking) {
       setQuickEdit(null);
       setQuickStockBaseline(null);
       setMessage("Stock unchanged.");
@@ -462,7 +465,12 @@ export function useQuickEdit({
     setQuickSaving(true);
     setMessage("");
     try {
-      if (delta > 0) {
+      if (needsTracking) {
+        await patchItem(selectedId, { isStocked: true });
+      }
+      if (Math.abs(delta) < 0.0001) {
+        // Nothing to add or remove; tracking is now on at the current count.
+      } else if (delta > 0) {
         await postStockIncrease({
           branchId,
           itemId: stockItemId,
@@ -513,7 +521,9 @@ export function useQuickEdit({
       setMessage(
         shared
           ? `Stock on base product set to ${target}.`
-          : `Stock set to ${target}.`,
+          : needsTracking
+            ? `Stock tracking is on. Stock set to ${target}.`
+            : `Stock set to ${target}.`,
       );
     } catch (e) {
       setMessage(formatMutationError(e, "Stock adjustment failed."));
@@ -521,6 +531,7 @@ export function useQuickEdit({
       setQuickSaving(false);
     }
   }, [
+    canCatalogWrite,
     selectedId,
     detail,
     canInventoryWrite,

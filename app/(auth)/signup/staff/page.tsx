@@ -25,9 +25,14 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { registerAccount, onboardBusiness } from "@/lib/api";
+import {
+  ShopAddressField,
+  useShopAddress,
+} from "@/components/onboarding/shop-address-field";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
+import { shopAddressToSubmit } from "@/lib/shop-lookup";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
@@ -46,6 +51,8 @@ function StaffSignupPageContent() {
   const [, ensureTenantResolved] = useTenantIdPrefill();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [businessName, setBusinessName] = useState("");
+  const { slugFor, editShopSlug } = useShopAddress();
+  const shopSlug = slugFor(businessName);
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const { countries } = useSelfServeCountries();
@@ -193,7 +200,13 @@ function StaffSignupPageContent() {
         return;
       }
 
-      const result = await onboardBusiness(host, businessName, countryCode);
+      const handle = shopAddressToSubmit(shopSlug, businessName);
+      if (handle.length < 2) {
+        setErrorMessage("Use at least two letters or numbers in the shop address.");
+        return;
+      }
+
+      const result = await onboardBusiness(host, businessName, countryCode, handle);
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -285,8 +298,8 @@ function StaffSignupPageContent() {
               Create your business
             </h3>
             <p className="mb-4 text-xs text-muted-foreground">
-              We couldn&apos;t find a business at this domain. Enter a name to
-              create your shop — you&apos;ll become the{" "}
+              We couldn&apos;t find a business at this domain. Enter a name,
+              then a short address customers can type. You&apos;ll become the{" "}
               <span className="font-semibold text-foreground">owner</span> and
               no invitation token is needed.
             </p>
@@ -301,13 +314,22 @@ function StaffSignupPageContent() {
                 <input
                   id="onboard-business-name"
                   className={authInputClassName}
-                  placeholder="My Shop"
+                  placeholder="Sunrise Bakery"
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
                   autoComplete="organization"
                   required
                 />
               </div>
+              <ShopAddressField
+                id="staff-onboard-shop-address"
+                businessName={businessName}
+                value={shopSlug}
+                onChange={editShopSlug}
+                inputClassName={authInputClassName}
+                labelClassName="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                disabled={isOnboarding}
+              />
               <div>
                 <label
                   className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"

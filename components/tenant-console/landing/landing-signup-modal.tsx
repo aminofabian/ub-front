@@ -30,7 +30,7 @@ import {
   readPendingOnboardDraft,
   savePendingOnboardDraft,
 } from "@/lib/pending-onboard-draft";
-import { businessNameToSlug } from "@/lib/shop-lookup";
+import { shopAddressToSubmit, suggestShopHandle } from "@/lib/shop-lookup";
 import {
   handleRegistrationResult,
   resolveDestinationAfterAuth,
@@ -166,7 +166,7 @@ export function LandingSignupModal({
         return;
       }
 
-      const handle = businessNameToSlug(shopSlug) || businessNameToSlug(businessName);
+      const handle = shopAddressToSubmit(shopSlug, businessName);
       const result = await onboardBusiness(
         host,
         businessName,
@@ -369,8 +369,8 @@ export function LandingSignupModal({
                     Name your business
                   </DialogTitle>
                   <DialogDescription className="text-sm leading-relaxed text-[var(--kiosk-text-muted)] sm:text-[15px]">
-                    Pick a name and a shop address. You&apos;ll create your
-                    owner account on the next step.
+                    The name goes on receipts. The address is what customers
+                    type and send on WhatsApp, so keep that one short.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -385,7 +385,7 @@ export function LandingSignupModal({
                     onBusinessNameChange={(value) => {
                       setBusinessName(value);
                       if (!slugLocked) {
-                        setShopSlug(businessNameToSlug(value));
+                        setShopSlug(suggestShopHandle(value));
                       }
                     }}
                     onShopSlugChange={(value) => {

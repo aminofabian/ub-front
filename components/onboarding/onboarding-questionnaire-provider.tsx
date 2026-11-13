@@ -41,7 +41,14 @@ import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import {
   isButcheryOnlyBusiness,
   isCatalogEligibleStoreTypes,
+  isServiceBusiness,
+  SERVICE_STORE_TYPES,
 } from "@/lib/business-store-type";
+import { getContrastSafeBrandingPresets } from "@/lib/branding-color-presets";
+import {
+  DEFAULT_LANDING_TEMPLATE_ID,
+  DEFAULT_STORE_THEME_ID,
+} from "@/lib/storefront-templates";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   applyOnboardingQuestionnaire,
@@ -92,6 +99,20 @@ const OnboardingQuestionnaireContext =
 
 export function useOnboardingQuestionnaire() {
   return useContext(OnboardingQuestionnaireContext);
+}
+
+/**
+ * A business that only sells services (a kinyozi, a salon). It has no product sections, and
+ * picking a storefront theme and brand colours can wait, so the questionnaire goes straight from
+ * shop type to the shop phone number; chairs, team, services and pay are set up afterwards on
+ * the service set-up page.
+ */
+function isServiceOnlyStoreTypes(storeTypes: readonly string[] | null | undefined): boolean {
+  return (
+    Array.isArray(storeTypes) &&
+    storeTypes.length > 0 &&
+    storeTypes.every((type) => (SERVICE_STORE_TYPES as readonly string[]).includes(type))
+  );
 }
 
 function isCompleteAnswers(
@@ -425,9 +446,14 @@ export function OnboardingQuestionnaireProvider({
   }, [dismissLayer]);
 
   const handleBack = useCallback(() => {
-    setStep((s) => Math.max(1, s - 1));
+    setStep((s) =>
+      // A service-only business skipped the retail steps on the way in; skip them going back too.
+      s === QUESTIONNAIRE_PHONE_STEP && isServiceOnlyStoreTypes(answers.storeTypes)
+        ? 2
+        : Math.max(1, s - 1),
+    );
     setErrorMessage("");
-  }, []);
+  }, [answers.storeTypes]);
 
   const handleContinue = useCallback(
     async (
@@ -437,6 +463,30 @@ export function OnboardingQuestionnaireProvider({
       const merged = { ...answers, ...patch };
       setAnswers(merged);
       setErrorMessage("");
+
+      if (step === 2 && isServiceOnlyStoreTypes(merged.storeTypes)) {
+        // No product sections, no storefront choice, default look: fill in what the apply step
+        // needs and go straight to the shop phone number.
+        const preset = getContrastSafeBrandingPresets()[0];
+        const prepared = {
+          ...merged,
+          selectedDepartments: [],
+          onlineStore: "no" as const,
+          landingTemplateId: merged.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+          storeThemeId: merged.storeThemeId || DEFAULT_STORE_THEME_ID,
+          displayName:
+            merged.displayName?.trim() ||
+            business?.branding?.displayName?.trim() ||
+            business?.name?.trim() ||
+            "My shop",
+          primaryColor: merged.primaryColor?.trim() || preset?.primary || "#0D9488",
+          accentColor: merged.accentColor?.trim() || preset?.accent || "#5EEAD4",
+        };
+        setAnswers(prepared);
+        saveQuestionnaireProgress(QUESTIONNAIRE_PHONE_STEP, prepared);
+        setStep(QUESTIONNAIRE_PHONE_STEP);
+        return;
+      }
 
       if (step < QUESTIONNAIRE_PHONE_STEP) {
         const nextStep = step + 1;
@@ -506,6 +556,16 @@ export function OnboardingQuestionnaireProvider({
     const merged = answers;
     setStep(QUESTIONNAIRE_STOCK_STEP);
     saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
+    if (
+      !isCatalogEligibleStoreTypes(merged.storeTypes) &&
+      isServiceBusiness({ profile: { storeTypes: merged.storeTypes } })
+    ) {
+      // Chairs, team, services and pay come next for a service business.
+      softSkipOnboardingQuestionnaire();
+      setActive(false);
+      router.replace(APP_ROUTES.servicesSetup);
+      return;
+    }
     if (!isCatalogEligibleStoreTypes(merged.storeTypes)) {
       softSkipOnboardingQuestionnaire();
       setActive(false);

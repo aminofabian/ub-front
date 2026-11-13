@@ -26,7 +26,12 @@ export type StoreTypeChoice =
   | "cosmetics"
   | "wines-spirits"
   | "pharmacy"
-  | "other";
+  | "other"
+  | "barbershop"
+  | "salon"
+  | "spa"
+  | "nail-studio"
+  | "beauty-parlour";
 
 export type OnlineStoreChoice = "yes" | "no";
 
@@ -181,6 +186,31 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "pharmacy",
     label: "Pharmacy / chemist",
     hint: "Medicines, OTC, first aid, and health supplies",
+  },
+  {
+    value: "barbershop",
+    label: "Kinyozi / barbershop",
+    hint: "Haircuts and shaves, with what each barber earns",
+  },
+  {
+    value: "salon",
+    label: "Salon",
+    hint: "Hair, braids, colour, and treatments",
+  },
+  {
+    value: "spa",
+    label: "Spa",
+    hint: "Massage, facials, and wellness",
+  },
+  {
+    value: "nail-studio",
+    label: "Nail studio",
+    hint: "Manicure, pedicure, and nail art",
+  },
+  {
+    value: "beauty-parlour",
+    label: "Beauty parlour",
+    hint: "Make-up, lashes, brows, and grooming",
   },
   {
     value: "other",

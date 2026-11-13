@@ -107,6 +107,21 @@ export async function fetchServicePerformers(): Promise<ServicePerformerRecord[]
   return apiRequest<ServicePerformerRecord[]>(`${API_ROUTES.services}/performers`);
 }
 
+/** How many chairs (stations, rooms) a branch has. They are numbered 1..count. */
+export async function fetchStationCount(branchId: string): Promise<number> {
+  const params = new URLSearchParams({ branchId });
+  const res = await apiRequest<{ count: number }>(`${API_ROUTES.serviceStations}?${params.toString()}`);
+  return res.count ?? 0;
+}
+
+export async function setStationCount(branchId: string, count: number): Promise<number> {
+  const res = await apiRequest<{ count: number }>(API_ROUTES.serviceStations, {
+    method: "PUT",
+    body: { branchId, count },
+  });
+  return res.count ?? 0;
+}
+
 // ------------------------------------------------------------------ staff
 
 export type CreateStaffPayload = {
@@ -251,6 +266,103 @@ export async function reverseStaffPayout(entryId: string): Promise<StaffLedgerEn
     `${API_ROUTES.commissions}/payouts/${encodeURIComponent(entryId)}/reverse`,
     { method: "POST", toast: false },
   );
+}
+
+// ---------------------------------------------------------------- tickets
+
+export type ServiceTicketStage = "WAITING" | "IN_SERVICE" | "READY_TO_PAY" | "ABANDONED";
+
+export type ServiceTicketRecord = {
+  id: string;
+  branchId: string;
+  ticketNumber: number;
+  stage: ServiceTicketStage;
+  status: "pending" | "completed" | "cancelled";
+  stationNo: number | null;
+  staffProfileId: string | null;
+  staffName: string | null;
+  total: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  saleId: string | null;
+  lines: { id: string; serviceId: string; name: string; unitPrice: number; lineTotal: number }[];
+};
+
+export type ServiceBoard = {
+  branchId: string;
+  /** Chairs at the branch, numbered 1..stationCount. */
+  stationCount: number;
+  tickets: ServiceTicketRecord[];
+};
+
+const ticketPath = (id: string, action?: string) =>
+  `${API_ROUTES.serviceTickets}/${encodeURIComponent(id)}${action ? `/${action}` : ""}`;
+
+export async function fetchServiceBoard(branchId: string): Promise<ServiceBoard> {
+  const params = new URLSearchParams({ branchId });
+  return apiRequest<ServiceBoard>(`${API_ROUTES.serviceTickets}?${params.toString()}`, { toast: false });
+}
+
+/** `clientTicketId` is made once per new customer and reused on retry, so a retry opens no second ticket. */
+export async function createServiceTicket(body: {
+  branchId: string;
+  clientTicketId: string;
+  requestedStaffProfileId?: string | null;
+  lines: { serviceId: string; unitPrice?: number }[];
+}): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(API_ROUTES.serviceTickets, { method: "POST", body, toast: false });
+}
+
+export async function startServiceTicket(
+  id: string,
+  body: { performerStaffProfileId: string; stationNo: number },
+): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(ticketPath(id, "start"), { method: "POST", body, toast: false });
+}
+
+export async function finishServiceTicket(id: string): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(ticketPath(id, "done"), { method: "POST", body: {}, toast: false });
+}
+
+export async function reopenServiceTicket(id: string): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(ticketPath(id, "reopen"), { method: "POST", body: {}, toast: false });
+}
+
+export async function addServiceTicketLine(
+  id: string,
+  body: { serviceId: string; unitPrice?: number },
+): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(ticketPath(id, "lines"), { method: "POST", body, toast: false });
+}
+
+export async function cancelServiceTicket(
+  id: string,
+  body: { reason?: string; abandoned?: boolean },
+): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(ticketPath(id, "cancel"), { method: "POST", body, toast: false });
+}
+
+/** `idempotencyKey` is made once per ticket payment and reused on retry; a ticket is never rung twice. */
+export async function payServiceTicket(
+  id: string,
+  body: {
+    payments: { method: "cash" | "mpesa_manual"; amount: number; reference?: string }[];
+    tips?: { staffProfileId: string; amount: number }[];
+    cashReceived?: number;
+    clientSoldAt?: string;
+  },
+  idempotencyKey: string,
+): Promise<{ ticket: ServiceTicketRecord; sale: { id: string; receiptNo?: number | null } }> {
+  return apiRequest(ticketPath(id, "pay"), { method: "POST", body, idempotencyKey, toast: false });
+}
+
+/** Minutes a customer has been waiting or in the chair, for the board. */
+export function minutesSince(iso: string | null, now: Date = new Date()): number {
+  if (!iso) return 0;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return 0;
+  return Math.max(0, Math.floor((now.getTime() - then) / 60000));
 }
 
 // ---------------------------------------------------------------- helpers

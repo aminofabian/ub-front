@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { nairobiToday, previewCommission } from "./service-business-api";
+import { minutesSince, nairobiToday, previewCommission } from "./service-business-api";
 
 describe("previewCommission", () => {
   test("percent of the price in whole shillings, half up", () => {
@@ -20,6 +20,16 @@ describe("previewCommission", () => {
     expect(previewCommission(300, "PERCENT", null)).toBe(0);
     expect(previewCommission(0, "PERCENT", 40)).toBe(0);
     expect(previewCommission(300, "PERCENT", -5)).toBe(0);
+  });
+});
+
+describe("minutesSince", () => {
+  test("whole minutes, never negative, zero for a missing or bad time", () => {
+    const now = new Date("2026-11-13T12:10:30Z");
+    expect(minutesSince("2026-11-13T12:00:00Z", now)).toBe(10);
+    expect(minutesSince("2026-11-13T12:15:00Z", now)).toBe(0);
+    expect(minutesSince(null, now)).toBe(0);
+    expect(minutesSince("not a date", now)).toBe(0);
   });
 });
 

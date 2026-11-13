@@ -103,6 +103,10 @@ export const APP_ROUTES = {
   services: "/services",
   /** Ring a service at the counter against the person who did it. */
   servicesSell: "/services/sell",
+  /** The queue and chairs of a service business. */
+  servicesFloor: "/services/floor",
+  /** First-time set-up for a service business: chairs, team, services, pay. */
+  servicesSetup: "/services/setup",
   /** What each staff member earned, was paid and is owed. */
   commissions: "/commissions",
   /** Simple store-room register — not sellable catalog / inventory stock. */
@@ -298,6 +302,8 @@ export const API_ROUTES = {
   aisles: "/api/v1/aisles",
   services: "/api/v1/services",
   serviceCategories: "/api/v1/service-categories",
+  serviceStations: "/api/v1/service-stations",
+  serviceTickets: "/api/v1/service-tickets",
   commissions: "/api/v1/commissions",
   storeItems: "/api/v1/store-items",
   /** Store room ↔ inventory connection choice + census. */

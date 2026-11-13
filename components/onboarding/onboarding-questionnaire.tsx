@@ -1,5 +1,8 @@
 "use client";
 
+import { SERVICE_STORE_TYPES } from "@/lib/business-store-type";
+import { IS_DESKTOP } from "@/lib/runtime";
+
 import {
   Check,
   ChevronLeft,
@@ -17,6 +20,10 @@ import {
   Shapes,
   Smartphone,
   Wine,
+  Bath,
+  Hand,
+  Heart,
+  Scissors,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -94,7 +101,22 @@ const STORE_TYPE_ICONS: Record<
   "wines-spirits": Wine,
   pharmacy: Pill,
   other: Shapes,
+  barbershop: Scissors,
+  salon: Sparkles,
+  spa: Bath,
+  "nail-studio": Hand,
+  "beauty-parlour": Heart,
 };
+
+/**
+ * Service shop types are not offered on the desktop app: its sync does not carry tips,
+ * performers or staff earnings yet.
+ */
+const SHOWN_STORE_TYPE_OPTIONS = IS_DESKTOP
+  ? STORE_TYPE_OPTIONS.filter(
+      (opt) => !(SERVICE_STORE_TYPES as readonly string[]).includes(opt.value),
+    )
+  : STORE_TYPE_OPTIONS;
 
 const FIELD_CLASS =
   "h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl sm:text-[15px]";
@@ -1174,7 +1196,7 @@ export function OnboardingQuestionnaire({
                   }
                 />
                 <div className="grid grid-cols-2 gap-2.5 sm:hidden">
-                  {STORE_TYPE_OPTIONS.map((opt) => {
+                  {SHOWN_STORE_TYPE_OPTIONS.map((opt) => {
                     const Icon = STORE_TYPE_ICONS[opt.value];
                     const selected = storeTypes.includes(opt.value);
                     return (
@@ -1210,7 +1232,7 @@ export function OnboardingQuestionnaire({
                   })}
                 </div>
                 <div className="hidden space-y-2.5 sm:block">
-                  {STORE_TYPE_OPTIONS.map((opt) => (
+                  {SHOWN_STORE_TYPE_OPTIONS.map((opt) => (
                     <OptionButton
                       key={opt.value}
                       selected={storeTypes.includes(opt.value)}

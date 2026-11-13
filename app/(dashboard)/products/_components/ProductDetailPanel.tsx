@@ -1153,7 +1153,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            sharedStock ? "Available" : "In store",
+            sharedStock ? "Available" : "Stock",
             stockLabel,
             "stock",
             () => void saveQuickStock(),
@@ -1200,7 +1200,7 @@ export function ProductDetailPanel(props: Props) {
               </label>
               <label className="w-[5.5rem] shrink-0">
                 <span className={cn(productFormLabelClass, "mb-0.5 block")}>
-                  In store
+                  Stock
                 </span>
                 <input
                   autoFocus
@@ -1209,7 +1209,7 @@ export function ProductDetailPanel(props: Props) {
                   value={quickStock}
                   onChange={(e) => setQuickStock(e.target.value)}
                   placeholder="0"
-                  aria-label="In-store quantity"
+                  aria-label="Stock quantity"
                 />
               </label>
               {(() => {

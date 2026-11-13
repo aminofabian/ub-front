@@ -29,9 +29,14 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { registerAccount, onboardBusiness } from "@/lib/api";
+import {
+  ShopAddressField,
+  useShopAddress,
+} from "@/components/onboarding/shop-address-field";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
 import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
+import { shopAddressToSubmit } from "@/lib/shop-lookup";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import {
   markOnboardingQuestionnairePending,
@@ -70,6 +75,8 @@ function SignupPageContent() {
   /** Set when signup was refused because this shop already has that email. */
   const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const { slugFor, editShopSlug } = useShopAddress();
+  const shopSlug = slugFor(businessName);
   const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
   /** Resume copy when localStorage still has an unfinished create-business. */
@@ -226,7 +233,13 @@ function SignupPageContent() {
         return;
       }
 
-      const result = await onboardBusiness(host, businessName, countryCode);
+      const handle = shopAddressToSubmit(shopSlug, businessName);
+      if (handle.length < 2) {
+        setErrorMessage("Use at least two letters or numbers in the shop address.");
+        return;
+      }
+
+      const result = await onboardBusiness(host, businessName, countryCode, handle);
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -424,10 +437,9 @@ function SignupPageContent() {
               Name your business
             </h3>
             <p className="mb-4 text-xs text-muted-foreground">
-              Pick a name for your shop. You&apos;ll get a free subdomain and
-              become the{" "}
-              <span className="font-semibold text-foreground">owner</span> — no
-              invite token needed.
+              The name goes on receipts. The address is what customers type,
+              so keep that one short. You become the{" "}
+              <span className="font-semibold text-foreground">owner</span>.
             </p>
             <form className="space-y-3" onSubmit={onOnboardSubmit}>
               <div>
@@ -440,13 +452,22 @@ function SignupPageContent() {
                 <input
                   id="onboard-business-name"
                   className={authInputClassName}
-                  placeholder="My Shop"
+                  placeholder="Sunrise Bakery"
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
                   autoComplete="organization"
                   required
                 />
               </div>
+              <ShopAddressField
+                id="onboard-shop-address"
+                businessName={businessName}
+                value={shopSlug}
+                onChange={editShopSlug}
+                inputClassName={authInputClassName}
+                labelClassName="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                disabled={isOnboarding}
+              />
               <div>
                 <label
                   className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"

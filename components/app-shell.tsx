@@ -292,6 +292,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Scissors,
     entryHref: APP_ROUTES.services,
     items: [
+      { href: APP_ROUTES.servicesFloor, label: "Floor" },
       { href: APP_ROUTES.servicesSell, label: "Ring a service" },
       { href: APP_ROUTES.services, label: "Services" },
       { href: APP_ROUTES.commissions, label: "Commissions" },
@@ -761,7 +762,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
-  if (item.href === APP_ROUTES.servicesSell)
+  if (item.href === APP_ROUTES.servicesSell || item.href === APP_ROUTES.servicesFloor)
     return gate.isServiceBusiness && gate.canSell;
   if (item.href === APP_ROUTES.services)
     return gate.isServiceBusiness && (gate.canManageServices || gate.canSell);
@@ -1228,7 +1229,9 @@ export function AppShell({ children }: AppShellProps) {
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
       featureFlags: mergedFeatureFlags,
-      isServiceBusiness: isServiceBusiness(business),
+      // Desktop sync does not carry tips, performers or staff earnings yet, so the service
+      // screens stay off on the desktop app rather than lose that data on the way to the cloud.
+      isServiceBusiness: isServiceBusiness(business) && !IS_DESKTOP,
       canManageServices: hasPermission(me?.permissions, Permission.ServicesCatalogManage),
       canSell: hasPermission(me?.permissions, Permission.SalesSell),
       canReadCommissions: hasPermission(me?.permissions, Permission.CommissionsRead),

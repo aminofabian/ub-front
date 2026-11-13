@@ -308,12 +308,6 @@ export function ProductEditDrawer({
 
   const handleStockIncrease = async (): Promise<boolean> => {
     if (!d) return false;
-    if (d.isStocked === false) {
-      setMessage(
-        "Turn on stock tracking first — then you can add how many you have.",
-      );
-      return false;
-    }
     const qtyRaw = stockQty.trim();
     if (!qtyRaw) return true;
     const qty = Number(qtyRaw);
@@ -330,6 +324,11 @@ export function ProductEditDrawer({
     const unitCost = costRaw === "" ? 0 : Number(costRaw);
     if (!Number.isFinite(unitCost) || unitCost < 0) {
       setMessage("Unit cost must be a valid non-negative number.");
+      return false;
+    }
+    // A quantity on a product that isn't tracked yet says what the person wants: switch
+    // tracking on for them, then add it.
+    if (d.isStocked === false && !(await handleEnableStockTracking())) {
       return false;
     }
     setStockSaving(true);

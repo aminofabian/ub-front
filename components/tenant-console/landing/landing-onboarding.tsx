@@ -4,10 +4,11 @@ import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { ShopAddressCoach } from "@/components/onboarding/shop-address-coach";
 import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
 import { fetchTenantIdForHost } from "@/lib/api";
 import { PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
-import { businessNameToSlug } from "@/lib/shop-lookup";
+import { businessNameToSlug, keepTypedShopAddress } from "@/lib/shop-lookup";
 import type { SelfServeCountry } from "@/lib/selfserve-countries";
 import { cn } from "@/lib/utils";
 
@@ -146,11 +147,7 @@ export function LandingOnboarding({
               id="landing-shop-slug"
               className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-mono text-[15px] tracking-tight text-[var(--kiosk-text)] outline-none placeholder:text-[var(--kiosk-text-faint)]"
               value={shopSlug}
-              onChange={(e) =>
-                onShopSlugChange(
-                  e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                )
-              }
+              onChange={(e) => onShopSlugChange(keepTypedShopAddress(e.target.value))}
               spellCheck={false}
               autoComplete="off"
               aria-describedby="landing-shop-slug-help"
@@ -160,37 +157,38 @@ export function LandingOnboarding({
               {suffix}
             </span>
           </div>
-          <p
+          <ShopAddressCoach
             id="landing-shop-slug-help"
-            className={cn(
-              "mt-1.5 text-xs",
+            className="mt-1.5"
+            businessName={businessName}
+            shopSlug={shopSlug}
+            onPick={onShopSlugChange}
+            message={
+              availability === "checking" ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  Checking {previewHost}…
+                </span>
+              ) : availability === "available" && checkedSlug === shopSlug ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                  {previewHost} is free. Continue to claim it.
+                </span>
+              ) : availability === "taken" ? (
+                `${previewHost} is already in use. Try a shorter one, or another word.`
+              ) : availability === "invalid" ? (
+                "Use at least two letters or numbers."
+              ) : undefined
+            }
+            messageClassName={
               availability === "taken" || availability === "invalid"
                 ? "text-[var(--kiosk-danger)]"
                 : availability === "available"
                   ? "text-[var(--kiosk-gold)]"
-                  : "text-[var(--kiosk-text-faint)]",
-            )}
-          >
-            {availability === "checking" ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                Checking {previewHost}…
-              </span>
-            ) : availability === "available" && checkedSlug === shopSlug ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" aria-hidden />
-                {previewHost} is free — continue to claim it.
-              </span>
-            ) : availability === "taken" ? (
-              `${previewHost} is already in use. Try another handle.`
-            ) : availability === "invalid" ? (
-              "Use at least two letters or numbers. Hyphens are fine."
-            ) : previewHost ? (
-              <>This becomes your storefront: {previewHost}</>
-            ) : (
-              "Type a name above — we’ll suggest an address you can edit."
-            )}
-          </p>
+                  : "text-[var(--kiosk-text-faint)]"
+            }
+            chipClassName="border-[var(--kiosk-border)] bg-[var(--kiosk-surface)] text-[var(--kiosk-text)] hover:border-[var(--kiosk-gold-border-strong)]"
+          />
         </div>
 
         <div>
