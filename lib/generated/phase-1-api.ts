@@ -24231,6 +24231,8 @@ export interface components {
             posCashierDrawout?: boolean;
             posCashierClearSale?: boolean;
             posCashierClearAllSales?: boolean;
+            /** Cashiers may type an M-Pesa transaction code on the till. Absent / false keeps the prompt only. */
+            posCashierMpesaCode?: boolean;
             posCatalogHybrid?: boolean;
             shiftsPrefillOpeningFromLastClose?: boolean;
             tillListen?: components["schemas"]["PosTillListenFeatureFlagsPatch"];
@@ -26490,6 +26492,8 @@ export interface components {
             customerName?: string;
             paymentMethod?: string;
             paymentMethods?: string;
+            /** Comma-separated M-Pesa and other tender references on the sale. */
+            paymentReferences?: string;
             itemId?: string;
             itemName?: string;
             itemSku?: string;

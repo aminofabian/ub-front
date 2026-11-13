@@ -67,6 +67,7 @@ import {
   parseStkPhoneParts,
   stkPhoneLookupVariants,
 } from "@/lib/stk-phone";
+import { mpesaCodeForPayment } from "@/lib/mpesa-transaction-code";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   OPEN_POS_SHIFT_EVENT,
@@ -449,6 +450,8 @@ export function QuickSaleWorkspace({
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false;
   const addPhotoFlagEnabled =
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true;
+  const allowMpesaCode =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.mpesaCode] === true;
   const allowPriceEdit =
     hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
     priceEditFlagEnabled;
@@ -3863,7 +3866,7 @@ export function QuickSaleWorkspace({
         payments.push({
           method: "mpesa_manual",
           amount: m,
-          reference: splitMpesaRef.trim() || null,
+          reference: mpesaCodeForPayment(splitMpesaRef),
         });
       }
       const creditRem = roundMoney2(grandTotal - roundMoney2(w + c + m));
@@ -3883,7 +3886,11 @@ export function QuickSaleWorkspace({
       payments.push({
         method: saleMethod,
         amount: mpesaPaymentAmount ?? payableTotal,
-        reference: isStkTender(payMethod) ? mpesaRef.trim() || null : null,
+        reference: isStkTender(payMethod)
+          ? mpesaCodeForPayment(mpesaRef, {
+              verified: stkPushStatus === "confirmed",
+            })
+          : null,
       });
     }
 
@@ -4129,7 +4136,7 @@ export function QuickSaleWorkspace({
               {
                 method: "mpesa_manual" as const,
                 amount: parseMoney(mpesaSplitStr)!,
-                reference: splitMpesaRef.trim() || undefined,
+                reference: mpesaCodeForPayment(splitMpesaRef) ?? undefined,
               },
             ]
           : [
@@ -4137,7 +4144,9 @@ export function QuickSaleWorkspace({
                 method: groceryPayMethod,
                 amount: mpesaPaymentAmount ?? groceryCoverTotal,
                 reference: isStkTender(payMethod)
-                  ? mpesaRef.trim() || undefined
+                  ? mpesaCodeForPayment(mpesaRef, {
+                      verified: stkPushStatus === "confirmed",
+                    }) ?? undefined
                   : undefined,
               },
             ];
@@ -5352,6 +5361,7 @@ export function QuickSaleWorkspace({
         onRemoveCart={removeCart}
         allowNegativeStock={allowNegativeStock}
         allowPriceEdit={allowPriceEdit}
+        allowMpesaCode={allowMpesaCode}
         canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
         allowAddPhoto={allowAddPhoto}

@@ -102,6 +102,8 @@ export default function BusinessConfigurationPage() {
       editor.cashierCapabilities.orderPad,
       editor.cashierCapabilities.orderConfirm,
       editor.cashierCapabilities.drawout,
+      editor.cashierCapabilities.clearAllSales,
+      editor.cashierCapabilities.mpesaCode,
       editor.cashierCapabilities.catalogHybrid,
       editor.posDrafts.enabled,
       editor.posDrafts.uiVisible,

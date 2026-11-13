@@ -25,6 +25,8 @@ export type SaleLineLike = {
   customerMaskedHint?: string | null;
   customerPhoneVerified?: boolean | null;
   paymentMethods?: string | null;
+  /** Comma-separated M-Pesa and other tender references on the sale. */
+  paymentReferences?: string | null;
   channel?: string | null;
   mpesaVerified?: boolean | null;
 };
@@ -41,6 +43,7 @@ export type SaleTransaction<L extends SaleLineLike = RecentSaleRow> = {
   customerPhoneVerified: boolean;
   paymentMethod: string;
   paymentMethods: string | null;
+  paymentReferences: string | null;
   channel: string;
   status: string;
   lineCount: number;
@@ -91,6 +94,7 @@ export function groupLinesIntoTransactions<L extends SaleLineLike>(
         customerPhoneVerified: Boolean(row.customerPhoneVerified),
         paymentMethod: row.paymentMethod,
         paymentMethods: row.paymentMethods ?? null,
+        paymentReferences: row.paymentReferences ?? null,
         channel: row.channel ?? "walk_in",
         status: row.status,
         lineCount: 0,
@@ -104,6 +108,19 @@ export function groupLinesIntoTransactions<L extends SaleLineLike>(
     tx.lines.push(row);
     if (row.mpesaVerified) {
       tx.mpesaVerified = true;
+    }
+    if (row.paymentReferences?.trim()) {
+      const seen = new Set(
+        (tx.paymentReferences ?? "")
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean),
+      );
+      for (const part of row.paymentReferences.split(",")) {
+        const code = part.trim();
+        if (code) seen.add(code);
+      }
+      tx.paymentReferences = [...seen].join(",");
     }
     tx.lineCount += 1;
     const refunded = isRefunded(row.status);

@@ -17,12 +17,15 @@ function fmtKes(n: number | string | null | undefined): string {
 
 export function ReceiptLookupBanner({
   receiptNo,
+  code,
   sale,
   loading,
   notFound,
   onOpen,
 }: {
-  receiptNo: number;
+  receiptNo?: number | null;
+  /** M-Pesa transaction code lookup. Takes the banner copy when set. */
+  code?: string | null;
   sale: SaleRecord | null;
   loading: boolean;
   notFound: boolean;
@@ -30,6 +33,10 @@ export function ReceiptLookupBanner({
   onOpen?: (sale: SaleRecord) => void;
 }) {
   if (!loading && !sale && !notFound) return null;
+  const looking = code ? `M-Pesa code ${code}` : `receipt #${receiptNo}`;
+  const foundLabel = code
+    ? code
+    : `Receipt #${sale?.receiptNo ?? receiptNo}`;
 
   return (
     <div
@@ -40,12 +47,16 @@ export function ReceiptLookupBanner({
       )}
     >
       {loading ? (
-        <p className={cn("text-[12px]", salesMute)}>Looking up receipt #{receiptNo}…</p>
+        <p className={cn("text-[12px]", salesMute)}>Looking up {looking}…</p>
       ) : sale ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <p className={cn("text-[12.5px] font-semibold", salesInk)}>
-              Receipt #{sale.receiptNo ?? receiptNo}
+              {code ? (
+                <span className="font-mono tracking-[0.04em]">{foundLabel}</span>
+              ) : (
+                foundLabel
+              )}
               <span className={cn("ml-2 font-mono tabular-nums font-medium", salesMute)}>
                 {fmtKes(sale.grandTotal)}
               </span>
@@ -71,7 +82,11 @@ export function ReceiptLookupBanner({
             <SaleReceiptActions
               saleId={sale.id}
               receiptLabel={
-                sale.receiptNo != null ? String(sale.receiptNo) : String(receiptNo)
+                code
+                  ? code
+                  : sale.receiptNo != null
+                    ? String(sale.receiptNo)
+                    : String(receiptNo ?? "")
               }
               receiptPrinter={{ branchId: sale.branchId }}
             />
@@ -79,7 +94,7 @@ export function ReceiptLookupBanner({
         </div>
       ) : (
         <p className={cn("text-[12px]", salesMute)}>
-          No receipt #{receiptNo} on this shop.
+          No sale for {looking}.
         </p>
       )}
     </div>

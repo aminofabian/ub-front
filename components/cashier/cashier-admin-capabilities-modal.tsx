@@ -40,6 +40,7 @@ type CashierAdminCapabilitiesModalProps = {
   drawoutEnabled: boolean;
   drawoutAccess?: CashierDrawoutAccess | null;
   catalogHybridEnabled: boolean;
+  mpesaCodeEnabled: boolean;
   branchId?: string | null;
   onSaved: () => Promise<void> | void;
 };
@@ -63,6 +64,7 @@ export function CashierAdminCapabilitiesModal({
   drawoutEnabled,
   drawoutAccess = null,
   catalogHybridEnabled,
+  mpesaCodeEnabled,
   branchId = null,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
@@ -81,6 +83,7 @@ export function CashierAdminCapabilitiesModal({
   const [staffLoading, setStaffLoading] = useState(false);
   const [staffError, setStaffError] = useState<string | null>(null);
   const [catalogHybrid, setCatalogHybrid] = useState(catalogHybridEnabled);
+  const [mpesaCode, setMpesaCode] = useState(mpesaCodeEnabled);
   const [saving, setSaving] = useState(false);
   const { preferred, setTemplate } = useCashierTemplate(branchId);
   // Phones get the same panel as a bottom sheet — a right-edge slide-over is a
@@ -111,6 +114,7 @@ export function CashierAdminCapabilitiesModal({
     setDrawoutScope(cashierDrawoutScopeFromAccess(drawoutAccess));
     setDrawoutUserIds(cashierDrawoutUserIdsFromAccess(drawoutAccess));
     setCatalogHybrid(catalogHybridEnabled);
+    setMpesaCode(mpesaCodeEnabled);
   }, [
     open,
     priceEditEnabled,
@@ -122,6 +126,7 @@ export function CashierAdminCapabilitiesModal({
     drawoutEnabled,
     drawoutAccess,
     catalogHybridEnabled,
+    mpesaCodeEnabled,
   ]);
 
   useEffect(() => {
@@ -170,7 +175,8 @@ export function CashierAdminCapabilitiesModal({
     drawout !== drawoutEnabled ||
     drawoutScope !== savedScope ||
     !sameIdSet(drawoutUserIds, savedUserIds) ||
-    catalogHybrid !== catalogHybridEnabled;
+    catalogHybrid !== catalogHybridEnabled ||
+    mpesaCode !== mpesaCodeEnabled;
 
   const toggleDrawoutUser = (userId: string) => {
     setDrawoutUserIds((prev) => {
@@ -202,6 +208,7 @@ export function CashierAdminCapabilitiesModal({
             userIds: drawoutUserIds,
           },
           posCatalogHybrid: catalogHybrid,
+          posCashierMpesaCode: mpesaCode,
         },
       });
       await onSaved();
@@ -394,6 +401,15 @@ export function CashierAdminCapabilitiesModal({
                 ) : null}
               </div>
             ) : null}
+          </SettingSection>
+
+          <SettingSection title="M-Pesa">
+            <SettingToggle
+              title="Transaction code"
+              description="Type the code from the customer's message when they have already paid. Off waits for the prompt."
+              checked={mpesaCode}
+              onCheckedChange={setMpesaCode}
+            />
           </SettingSection>
 
           <SettingSection title="Suppliers">

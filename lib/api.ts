@@ -1656,6 +1656,8 @@ export type FeatureFlagsPatchPayload = {
   posCashierClearSale?: boolean;
   /** Clear voids every open till tab/draft at once (default off). */
   posCashierClearAllSales?: boolean;
+  /** Cashiers may type an M-Pesa transaction code on the till (default off). */
+  posCashierMpesaCode?: boolean;
   /** Which cashiers may draw out when the flag is on. */
   posCashierDrawoutAccess?: {
     scope?: "all" | "selected" | string;
@@ -7481,6 +7483,8 @@ export type RecentSaleRow = {
   paymentMethod: string;
   /** Comma-separated payment methods on the sale (when provided by API). */
   paymentMethods?: string | null;
+  /** Comma-separated M-Pesa and other tender references on the sale. */
+  paymentReferences?: string | null;
   /** walk_in (POS) or online_store (storefront). */
   channel?: string | null;
   itemId: string;
@@ -11959,6 +11963,18 @@ export async function fetchSaleByReceiptNo(
     throw new Error("Receipt number must be a positive integer.");
   }
   return request<SaleRecord>(`/api/v1/sales/by-receipt/${n}`, { toast: false });
+}
+
+/** Find a sale by the M-Pesa code on its payment, including outside the open period. */
+export async function fetchSaleByMpesaCode(code: string): Promise<SaleRecord> {
+  const compact = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (compact.length < 6) {
+    throw new Error("Enter an M-Pesa transaction code.");
+  }
+  return request<SaleRecord>(
+    `/api/v1/sales/by-mpesa-code/${encodeURIComponent(compact)}`,
+    { toast: false },
+  );
 }
 
 export type AdjustSalePaymentsPayload = {

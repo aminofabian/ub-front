@@ -18,6 +18,7 @@ import {
   Save,
   ScanLine,
   ShoppingCart,
+  Smartphone,
   Truck,
   UserRound,
   Users,
@@ -1605,6 +1606,18 @@ export function BusinessSettingsForm({
                 icon={<ShoppingCart className="size-4 text-muted-foreground" />}
                 title="Allow cashiers to edit prices"
                 description="Change unit prices on cart lines (override shelf price at checkout)."
+              />
+              <ToggleRow
+                checked={cashierCapabilities.mpesaCode}
+                onChange={(checked) =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    mpesaCode: checked,
+                  }))
+                }
+                icon={<Smartphone className="size-4 text-muted-foreground" />}
+                title="Enter M-Pesa transaction codes"
+                description="On the till, cashiers can type the code from the customer's M-Pesa message. Leave off to wait for the prompt only."
               />
               <ToggleRow
                 checked={cashierCapabilities.weighedToggle}

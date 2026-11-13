@@ -781,7 +781,7 @@ export function DayLedgerPage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Receipt, cashier, ref…"
+            placeholder="Receipt, cashier, M-Pesa code…"
             className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
             aria-label="Search payments"
           />

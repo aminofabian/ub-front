@@ -101,6 +101,7 @@ import {
 } from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
+import { MpesaTransactionCodeField } from "@/components/cashier/mpesa-transaction-code-field";
 
 import type { CashierPosLayoutProps } from "../cashier-pos-layout";
 import { LedgerBestSellers } from "./ledger-best-sellers";
@@ -184,6 +185,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     onCreateCart,
     onSwitchCart,
     allowPriceEdit = false,
+    allowMpesaCode = false,
     allowCreateProduct = false,
     allowCreateSupplier = false,
     allowLinkSupplierProducts = false,
@@ -1565,6 +1567,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs"
                 />
               </div>
+              {allowMpesaCode ? (
+                <MpesaTransactionCodeField
+                  value={cart.mpesaRef}
+                  onChange={cart.setMpesaRef}
+                  locked={cart.stkPushStatus === "confirmed"}
+                />
+              ) : null}
               <button
                 type="button"
                 disabled={
@@ -2098,6 +2107,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
         currency={currency}
         branchSelected={branchSelected}
         brandTheme={dialogBrandTheme}
+        allowMpesaCode={allowMpesaCode}
         {...cart}
       />
 

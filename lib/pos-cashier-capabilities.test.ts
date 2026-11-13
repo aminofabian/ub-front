@@ -5,7 +5,40 @@ import {
   cashierMayRecordDrawout,
   posClearAllSalesEnabled,
   posClearSaleEnabled,
+  posMpesaCodeEnabled,
 } from "@/lib/pos-cashier-capabilities";
+import { normalizeMpesaTransactionCode, mpesaCodeForPayment, parseMpesaCodeSearchQuery } from "@/lib/mpesa-transaction-code";
+
+describe("posMpesaCodeEnabled", () => {
+  it("stays off until the shop turns it on", () => {
+    expect(posMpesaCodeEnabled({})).toBe(false);
+    expect(posMpesaCodeEnabled(undefined)).toBe(false);
+    expect(
+      posMpesaCodeEnabled({
+        [POS_CASHIER_CAPABILITY_FLAGS.mpesaCode]: true,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("normalizeMpesaTransactionCode", () => {
+  it("keeps a pasted Safaricom code as 10 letters and digits", () => {
+    expect(normalizeMpesaTransactionCode(" qh7x 2k9lmx ")).toBe("QH7X2K9LMX");
+    expect(normalizeMpesaTransactionCode("QH7X2K9LMXEXTRA")).toBe("QH7X2K9LMX");
+  });
+
+  it("keeps a verified receipt and drops a half-typed code", () => {
+    expect(mpesaCodeForPayment("qk7abc1234", { verified: true })).toBe("qk7abc1234");
+    expect(mpesaCodeForPayment("QH7X")).toBeNull();
+    expect(mpesaCodeForPayment("qh7x2k9lmx")).toBe("QH7X2K9LMX");
+  });
+
+  it("treats a mixed code as a search and leaves receipt numbers alone", () => {
+    expect(parseMpesaCodeSearchQuery("qh7x2k9lmx")).toBe("QH7X2K9LMX");
+    expect(parseMpesaCodeSearchQuery("1563")).toBeNull();
+    expect(parseMpesaCodeSearchQuery("QH7")).toBeNull();
+  });
+});
 
 describe("posClearSaleEnabled", () => {
   it("defaults on when the flag is absent", () => {

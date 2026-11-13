@@ -21,6 +21,7 @@ function tx(
     customerPhoneVerified: false,
     paymentMethod: "cash",
     paymentMethods: null,
+    paymentReferences: null,
     channel: "walk_in",
     status: "completed",
     lineCount: 1,

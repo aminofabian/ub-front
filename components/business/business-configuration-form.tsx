@@ -996,6 +996,18 @@ export function BusinessConfigurationForm({
               description="Change unit prices on cart lines (override shelf price at checkout)."
             />
             <PolicySwitch
+              checked={cashierCapabilities.mpesaCode}
+              onChange={(checked) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  mpesaCode: checked,
+                }))
+              }
+              icon={<Smartphone className="size-4" aria-hidden />}
+              title="Enter M-Pesa transaction codes"
+              description="On the till, cashiers can type the code from the customer's M-Pesa message. Leave off to wait for the prompt only."
+            />
+            <PolicySwitch
               checked={cashierCapabilities.weighedToggle}
               onChange={(checked) =>
                 setCashierCapabilities((previous) => ({

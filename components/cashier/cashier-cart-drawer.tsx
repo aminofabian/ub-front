@@ -20,6 +20,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
+import { MpesaTransactionCodeField } from "@/components/cashier/mpesa-transaction-code-field";
 import {
   Dialog,
   DialogClose,
@@ -143,6 +144,8 @@ export type CashierCartDrawerProps = {
   setStkConfigId?: (id: string) => void;
   mpesaRef: string;
   setMpesaRef: (s: string) => void;
+  /** Shop setting. Off hides the transaction-code field. */
+  allowMpesaCode?: boolean;
   splitPay: boolean;
   setSplitPay: (b: boolean) => void;
   cashSplitStr: string;
@@ -357,6 +360,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     stkConfigId = null,
     setStkConfigId,
     mpesaRef,
+    setMpesaRef,
+    allowMpesaCode = false,
     setSplitPay,
     splitPay,
     cashSplitStr,
@@ -1486,6 +1491,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               Enter a valid Kenyan mobile number.
                             </p>
                           ) : null}
+                          {allowMpesaCode && payMethod === "mpesa_manual" ? (
+                            <MpesaTransactionCodeField
+                              value={mpesaRef}
+                              onChange={setMpesaRef}
+                            />
+                          ) : null}
                           <Button
                             type="button"
                             className="h-11 w-full rounded-none bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -1545,6 +1556,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           >
                             Send prompt again
                           </Button>
+                          {allowMpesaCode && payMethod === "mpesa_manual" ? (
+                            <MpesaTransactionCodeField
+                              value={mpesaRef}
+                              onChange={setMpesaRef}
+                            />
+                          ) : null}
                           {onCancelInFlightMpesa ? (
                             <Button
                               type="button"
@@ -1701,12 +1718,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           />
                         </label>
                       </div>
-                      <input
-                        className={fieldClass("h-11 w-full")}
-                        value={splitMpesaRef}
-                        onChange={(e) => setSplitMpesaRef(e.target.value)}
-                        placeholder="M-Pesa reference (optional)"
-                      />
+                      {allowMpesaCode ? (
+                        <MpesaTransactionCodeField
+                          value={splitMpesaRef}
+                          onChange={setSplitMpesaRef}
+                        />
+                      ) : null}
                       {(() => {
                         const w =
                           selectedCustomer && walletAvail > 0

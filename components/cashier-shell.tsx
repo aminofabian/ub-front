@@ -780,6 +780,9 @@ export function CashierShell({ children }: CashierShellProps) {
             catalogHybridEnabled={
               featureFlags[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true
             }
+            mpesaCodeEnabled={
+              featureFlags[POS_CASHIER_CAPABILITY_FLAGS.mpesaCode] === true
+            }
             branchId={branchId}
             onSaved={() => refreshSession()}
           />

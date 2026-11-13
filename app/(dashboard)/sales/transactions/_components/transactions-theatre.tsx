@@ -145,6 +145,7 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   }
   if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);
   if (tx.customerMaskedHint) parts.push(tx.customerMaskedHint);
+  if (tx.paymentReferences?.trim()) parts.push(tx.paymentReferences.trim());
   return parts;
 }
 
@@ -229,6 +230,12 @@ export type TransactionsTheatreProps = {
   listSkeleton?: ReactNode;
   receiptLookup?: {
     receiptNo: number | null;
+    sale: SaleRecord | null;
+    loading: boolean;
+    notFound: boolean;
+  };
+  mpesaCodeLookup?: {
+    code: string | null;
     sale: SaleRecord | null;
     loading: boolean;
     notFound: boolean;
@@ -710,6 +717,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
     onDownloadPdf,
     listSkeleton,
     receiptLookup,
+    mpesaCodeLookup,
   } = props;
 
   const isLg = useMediaLg();
@@ -755,7 +763,7 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
               )}
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Receipt, product, SKU…"
+              placeholder="Receipt, M-Pesa code, product…"
               aria-label="Search transactions"
             />
           </label>
@@ -807,6 +815,14 @@ export function TransactionsTheatre(props: TransactionsTheatreProps) {
             sale={receiptLookup.sale}
             loading={receiptLookup.loading}
             notFound={receiptLookup.notFound}
+          />
+        ) : null}
+        {mpesaCodeLookup?.code != null ? (
+          <ReceiptLookupBanner
+            code={mpesaCodeLookup.code}
+            sale={mpesaCodeLookup.sale}
+            loading={mpesaCodeLookup.loading}
+            notFound={mpesaCodeLookup.notFound}
           />
         ) : null}
 

@@ -273,6 +273,8 @@ export type CashierPosLayoutProps = {
   allowNegativeStock?: boolean;
   /** Override shelf unit prices (permission or admin flag). */
   allowPriceEdit?: boolean;
+  /** Cashiers may type an M-Pesa transaction code. Off until the shop enables it. */
+  allowMpesaCode?: boolean;
   /**
    * Admins with pricing.sell_price.set may also write the shelf price
    * when editing a cart line from POS.
@@ -1122,6 +1124,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     onRemoveCart,
     allowNegativeStock = false,
     allowPriceEdit = false,
+    allowMpesaCode = false,
     canPersistShelfPrice = false,
     allowCreateProduct = false,
     allowAddPhoto = false,
@@ -3399,6 +3402,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         allowClearSale={allowClearSale}
         allowClearAllSales={allowClearAllSales}
         clearableSaleCount={clearableSaleCount}
+        allowMpesaCode={allowMpesaCode}
         {...cart}
       />
 

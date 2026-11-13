@@ -127,6 +127,8 @@ export type CashierCapabilitiesForm = {
    * Default off — unfinished sales stay trackable until voided one by one.
    */
   clearAllSales: boolean;
+  /** Cashiers may type an M-Pesa transaction code from the customer's message. */
+  mpesaCode: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -149,6 +151,8 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   clearSale: true,
   /** Default off — keep unfinished sales accountable unless admin opts in. */
   clearAllSales: false,
+  /** Default off — the till waits for the M-Pesa prompt unless the shop opts in. */
+  mpesaCode: false,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -171,6 +175,7 @@ export function cashierCapabilitiesFromRecord(
     catalogHybrid: ff[POS_CASHIER_CAPABILITY_FLAGS.catalogHybrid] === true,
     clearSale: ff[POS_CASHIER_CAPABILITY_FLAGS.clearSale] !== false,
     clearAllSales: ff[POS_CASHIER_CAPABILITY_FLAGS.clearAllSales] === true,
+    mpesaCode: ff[POS_CASHIER_CAPABILITY_FLAGS.mpesaCode] === true,
   };
 }
 

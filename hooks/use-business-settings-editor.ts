@@ -488,6 +488,7 @@ export function useBusinessSettingsEditor() {
             posCashierDrawout: cashierCapabilities.drawout,
             posCashierClearSale: cashierCapabilities.clearSale,
             posCashierClearAllSales: cashierCapabilities.clearAllSales,
+            posCashierMpesaCode: cashierCapabilities.mpesaCode,
             posCatalogHybrid: cashierCapabilities.catalogHybrid,
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,

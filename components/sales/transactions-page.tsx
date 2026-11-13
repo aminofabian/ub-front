@@ -33,6 +33,7 @@ import {
 } from "@/lib/api";
 import { fetchMergedSalesActivity } from "@/lib/sales-activity";
 import { useReceiptLookup } from "@/components/sales/use-receipt-lookup";
+import { useMpesaCodeLookup } from "@/components/sales/use-mpesa-code-lookup";
 import {
   matchesChannelFilter,
   matchesStatusWithChannel,
@@ -248,6 +249,7 @@ export function TransactionsPage() {
         tx.customerName,
         tx.paymentMethod,
         tx.paymentMethods,
+        tx.paymentReferences,
         ...tx.lines.flatMap((l) => [l.itemName, l.itemSku, l.itemBarcode]),
       );
     });
@@ -259,11 +261,13 @@ export function TransactionsPage() {
     return filtered.some(
       (tx) =>
         (tx.receiptNo != null && String(tx.receiptNo) === q) ||
-        tx.saleId.toLowerCase().includes(q),
+        tx.saleId.toLowerCase().includes(q) ||
+        (tx.paymentReferences ?? "").toLowerCase().includes(q),
     );
   }, [filtered, search]);
 
   const receiptLookup = useReceiptLookup(search, receiptAlreadyVisible);
+  const mpesaCodeLookup = useMpesaCodeLookup(search, receiptAlreadyVisible);
 
   useEffect(() => {
     if (!receiptAlreadyVisible) return;
@@ -514,6 +518,7 @@ export function TransactionsPage() {
         pdfLoading={pdfLoading}
         onDownloadPdf={downloadPdf}
         receiptLookup={receiptLookup}
+        mpesaCodeLookup={mpesaCodeLookup}
         />
       </SalesStage>
 

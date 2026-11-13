@@ -39,7 +39,19 @@ export const POS_CASHIER_CAPABILITY_FLAGS = {
    * Absent / false keeps the classic product grid.
    */
   catalogHybrid: "pos.catalog_hybrid",
+  /**
+   * Let the till type an M-Pesa transaction code from the customer's message.
+   * Absent / false keeps checkout on the prompt only.
+   */
+  mpesaCode: "pos.cashier_mpesa_code",
 } as const;
+
+/** Opt-in: cashier may record the M-Pesa code shown on the customer's phone. */
+export function posMpesaCodeEnabled(
+  featureFlags: Record<string, boolean> | null | undefined,
+): boolean {
+  return featureFlags?.[POS_CASHIER_CAPABILITY_FLAGS.mpesaCode] === true;
+}
 
 /** Clear / cancel the whole open cart from the till. Default on when absent. */
 export function posClearSaleEnabled(

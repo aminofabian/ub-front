@@ -25,6 +25,7 @@ import {
 import { ReceiptLookupBanner } from "@/components/sales/receipt-lookup-banner";
 import { SaleReceiptActions } from "@/components/sales/sale-receipt-actions";
 import { useReceiptLookup } from "@/components/sales/use-receipt-lookup";
+import { useMpesaCodeLookup } from "@/components/sales/use-mpesa-code-lookup";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -456,6 +457,7 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   }
   if (tx.customerNo != null) parts.push(`C-${tx.customerNo}`);
   if (tx.customerMaskedHint) parts.push(tx.customerMaskedHint);
+  if (tx.paymentReferences?.trim()) parts.push(tx.paymentReferences.trim());
   return parts;
 }
 
@@ -916,6 +918,7 @@ export function SalesOverviewPage() {
         row.customerName,
         row.paymentMethod,
         row.paymentMethods,
+        row.paymentReferences,
         row.saleId,
         row.receiptNo,
       );
@@ -933,11 +936,13 @@ export function SalesOverviewPage() {
     return transactions.some(
       (tx) =>
         (tx.receiptNo != null && String(tx.receiptNo) === q) ||
-        tx.saleId.toLowerCase().includes(q),
+        tx.saleId.toLowerCase().includes(q) ||
+        (tx.paymentReferences ?? "").toLowerCase().includes(q),
     );
   }, [transactions, search]);
 
   const receiptLookup = useReceiptLookup(search, receiptAlreadyVisible);
+  const mpesaCodeLookup = useMpesaCodeLookup(search, receiptAlreadyVisible);
 
   const filteredSummary = useMemo(() => {
     let revenue = 0;
@@ -1127,7 +1132,7 @@ export function SalesOverviewPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Receipt, product, SKU…"
+              placeholder="Receipt, M-Pesa code, product…"
               className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
               aria-label="Search sales"
             />
@@ -1173,6 +1178,14 @@ export function SalesOverviewPage() {
             sale={receiptLookup.sale}
             loading={receiptLookup.loading}
             notFound={receiptLookup.notFound}
+          />
+        ) : null}
+        {mpesaCodeLookup.code != null ? (
+          <ReceiptLookupBanner
+            code={mpesaCodeLookup.code}
+            sale={mpesaCodeLookup.sale}
+            loading={mpesaCodeLookup.loading}
+            notFound={mpesaCodeLookup.notFound}
           />
         ) : null}
         {loading ? (
