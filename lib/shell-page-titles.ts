@@ -19,6 +19,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.customers]: "All customers",
     [APP_ROUTES.customerSegments]: "Segments",
     [APP_ROUTES.customerPhones]: "Phone numbers",
+    [APP_ROUTES.customerSms]: "SMS",
     [APP_ROUTES.creditsPaymentClaims]: "They say they paid",
     [APP_ROUTES.inventoryStock]: "Home",
     [APP_ROUTES.inventoryRestock]: "Sold out",
@@ -99,6 +100,7 @@ export function shellPageTitle(pathname: string): string {
   if (path === APP_ROUTES.customerPhones || path.startsWith(`${APP_ROUTES.customerPhones}/`))
     return "Customer phones";
   if (path === APP_ROUTES.customerSegments) return "Segments";
+  if (path === APP_ROUTES.customerSms) return "SMS";
   if (/^\/customers\/[^/]+$/.test(path)) return "Customer profile";
   if (path.startsWith(APP_ROUTES.customers)) return "Customers";
 
