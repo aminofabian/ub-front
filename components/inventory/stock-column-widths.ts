@@ -121,7 +121,7 @@ export const STOCK_COLUMN_LABELS: Record<StockResizableCol, string> = {
   category: "Category",
   department: "Department",
   shelf: "Shelf",
-  inStore: "In store",
+  inStore: "Stock",
   reorder: "Reorder",
   buy: "Buy",
   sell: "Sell",

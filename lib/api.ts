@@ -4072,6 +4072,83 @@ export async function requestMyMobilePublish(opts?: {
   });
 }
 
+const MY_SHOP_ADDRESS_PATH = "/api/v1/businesses/me/address";
+
+/** Where the shop's free platform address (name.kiosk.ke) stands. */
+export type ShopAddressStatus = {
+  /** False when this installation issues no free addresses. */
+  available: boolean;
+  suffix: string | null;
+  currentHost: string | null;
+  /** The part before the suffix; null when the main address is a custom domain. */
+  currentName: string | null;
+  /** Earlier free addresses that still open the shop. */
+  otherAddresses: string[];
+  /** When a brand-new name may next be taken; null when there is no wait. */
+  nextNewNameAllowedAt: string | null;
+  minLength: number;
+  maxLength: number;
+};
+
+export type ShopAddressCheck = {
+  name: string | null;
+  host: string | null;
+  available: boolean;
+  reason: string | null;
+};
+
+export type ShopAddressChange = {
+  host: string;
+  previousHost: string | null;
+  url: string;
+  /** Channels the owner was told on: email, whatsapp, sms. */
+  notified: string[];
+};
+
+export async function fetchMyShopAddress(): Promise<ShopAddressStatus> {
+  const raw = await request<Partial<ShopAddressStatus>>(MY_SHOP_ADDRESS_PATH, {
+    toast: false,
+  });
+  return {
+    available: raw.available === true,
+    suffix: raw.suffix ?? null,
+    currentHost: raw.currentHost ?? null,
+    currentName: raw.currentName ?? null,
+    otherAddresses: Array.isArray(raw.otherAddresses) ? raw.otherAddresses : [],
+    nextNewNameAllowedAt: raw.nextNewNameAllowedAt ?? null,
+    minLength: Number(raw.minLength ?? 3),
+    maxLength: Number(raw.maxLength ?? 40),
+  };
+}
+
+export async function checkMyShopAddress(name: string): Promise<ShopAddressCheck> {
+  const raw = await request<Partial<ShopAddressCheck>>(
+    `${MY_SHOP_ADDRESS_PATH}/check?name=${encodeURIComponent(name)}`,
+    { toast: false },
+  );
+  return {
+    name: raw.name ?? null,
+    host: raw.host ?? null,
+    available: raw.available === true,
+    reason: raw.reason ?? null,
+  };
+}
+
+export async function changeMyShopAddress(name: string): Promise<ShopAddressChange> {
+  const raw = await request<Partial<ShopAddressChange>>(MY_SHOP_ADDRESS_PATH, {
+    method: "POST",
+    body: { name },
+    toast: false,
+  });
+  const host = raw.host ?? "";
+  return {
+    host,
+    previousHost: raw.previousHost ?? null,
+    url: raw.url ?? `https://${host}`,
+    notified: Array.isArray(raw.notified) ? raw.notified : [],
+  };
+}
+
 export async function fetchMyDomains(): Promise<DomainRecord[]> {
   return request<DomainRecord[]>(MY_DOMAINS_PATH);
 }

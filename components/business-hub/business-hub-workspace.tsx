@@ -128,7 +128,7 @@ import {
   fetchFinancePulse,
   fetchInventoryExpiryPipeline,
   fetchInventoryValuation,
-  fetchItemsPage,
+  fetchCatalogListStats,
   fetchCreditsActivitySummary,
   fetchOutstandingTabs,
   fetchPaymentsByMethod,
@@ -379,7 +379,7 @@ export function BusinessHubWorkspace() {
       const [
         owner,
         v,
-        itemsPage,
+        catalogStats,
         chartReg,
         pulseRes,
         prevPulseRes,
@@ -404,9 +404,9 @@ export function BusinessHubWorkspace() {
         canViewInventoryValuation
           ? fetchInventoryValuation(branch, type).catch(() => null)
           : Promise.resolve(null),
-        fetchItemsPage(undefined, {
-          page: 0,
-          size: 1,
+        // Server-side count of sellable products (a family row plus its packs is
+        // not "2 products"), same figure the Products page shows.
+        fetchCatalogListStats(undefined, {
           branchId: branch,
           itemTypeId: type,
         }).catch(() => null),
@@ -508,7 +508,7 @@ export function BusinessHubWorkspace() {
       setOwnerSummary(owner ?? null);
       setBatchDashboard(batchDash);
       setExpiryPipeline(expiryRes);
-      setCatalogueCount(itemsPage?.totalElements ?? null);
+      setCatalogueCount(catalogStats?.products ?? null);
       setChartPoints(
         buildDailyRevenueSeries(chartReg?.days ?? [], chartFrom, chartTo),
       );

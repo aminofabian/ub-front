@@ -48,6 +48,7 @@ import {
   DomainsTheatre,
   type TabId,
 } from "./_components/domains-theatre";
+import { ChangeAddressDialog } from "./_components/change-address-dialog";
 import type { ConnectOwnedResult } from "./_components/connect-owned-panel";
 
 type Busy =
@@ -326,6 +327,7 @@ export default function DomainsPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [detailRow, setDetailRow] = useState<DomainRecord | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [changeAddressOpen, setChangeAddressOpen] = useState(false);
   const orderStats = useDomainOrderStats();
 
   const reload = useCallback(async () => {
@@ -442,9 +444,11 @@ export default function DomainsPage() {
 
   const rowBusyId = busy.kind === "row" ? busy.id : null;
   const showListLoading = fetchPass === 0 && !loadFailed && rows.length === 0;
-  const platformRow = rows.find(
+  // A shop can hold more than one free address once it has changed it: show the main one.
+  const platformRows = rows.filter(
     (r) => (r.source || "").toLowerCase() === "platform_subdomain",
   );
+  const platformRow = platformRows.find((r) => r.primary) ?? platformRows[0];
   const liveCount = rows.filter((r) => r.active).length;
   const pendingCount = rows.filter((r) => !r.active).length;
 
@@ -497,6 +501,12 @@ export default function DomainsPage() {
           }}
           rowBusyId={rowBusyId}
           dockRef={setDockRoot}
+          onChangeAddress={() => setChangeAddressOpen(true)}
+        />
+        <ChangeAddressDialog
+          open={changeAddressOpen}
+          onOpenChange={setChangeAddressOpen}
+          onChanged={() => void reload()}
         />
       </div>
 

@@ -771,7 +771,7 @@ export const VirtualizedCatalogBody = forwardRef<
                       {isParentSelector ? (
                         <span
                           className="text-[10px] tabular-nums text-foreground/20"
-                          title="In-store stock on variants"
+                          title="Stock on variants"
                         >
                           –
                         </span>

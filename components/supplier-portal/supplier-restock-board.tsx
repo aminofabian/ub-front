@@ -274,7 +274,7 @@ export function SupplierRestockBoard({ className }: Props) {
               <th className="px-2 py-2.5 text-right font-bold">Supplied</th>
               <th className="px-2 py-2.5 text-right font-bold">Till</th>
               <th className="px-2 py-2.5 text-right font-bold">Damage</th>
-              <th className="px-2 py-2.5 text-right font-bold">In store</th>
+              <th className="px-2 py-2.5 text-right font-bold">Stock</th>
               <th className="px-2 py-2.5 text-right font-bold">Cover</th>
               <th className="px-3.5 py-2.5 text-right font-bold sm:px-4">Load next</th>
             </tr>

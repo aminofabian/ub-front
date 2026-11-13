@@ -552,7 +552,7 @@ function EditDrawer({
           {(!labelOnlyGroup && !detailLoading) || selectedVariant ? (
             <>
               {field(
-                stockedBase ? "Base in store" : "In store",
+                stockedBase ? "Base stock" : "Stock",
                 stock,
                 setStock,
                 formatQty(editTarget?.stockQty ?? row.currentStock),

@@ -2977,7 +2977,7 @@ export function StockLevelsPage() {
               )}
             >
               <span className="font-semibold text-[var(--pos-primary,#0f766e)]">
-                Tap any In store number
+                Tap any Stock number
               </span>
               <span className={stockMute}>
                 {" "}
@@ -3135,7 +3135,7 @@ export function StockLevelsPage() {
                           "group/stock-col text-right",
                         )}
                       >
-                        In store
+                        Stock
                         {canWrite ? (
                           <span className="ml-1 font-normal opacity-70">
                             · tap

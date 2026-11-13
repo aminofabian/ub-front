@@ -8682,6 +8682,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/businesses/me/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the shop's free platform address stands */
+        get: operations["shopAddressStatus"];
+        put?: never;
+        /**
+         * Change the shop's free platform address
+         * @description Adds the new address as the primary one and keeps the old address active. A brand-new name is allowed once every 30 days; going back to an address the shop already holds is always allowed. The owner is told by email and on the verified alert phone.
+         */
+        post: operations["changeShopAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/businesses/me/address/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether a name can be used as the shop's address */
+        get: operations["checkShopAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/businesses/me/domains": {
         parameters: {
             query?: never;
@@ -20209,6 +20247,34 @@ export interface components {
             impersonatedBy?: string;
             /** Format: int64 */
             expiresInSeconds?: number;
+        };
+        ChangeShopAddressRequest: {
+            name: string;
+        };
+        ShopAddressStatusResponse: {
+            available?: boolean;
+            suffix?: string;
+            currentHost?: string;
+            currentName?: string;
+            otherAddresses?: string[];
+            /** Format: date-time */
+            nextNewNameAllowedAt?: string;
+            /** Format: int32 */
+            minLength?: number;
+            /** Format: int32 */
+            maxLength?: number;
+        };
+        ShopAddressCheckResponse: {
+            name?: string;
+            host?: string;
+            available?: boolean;
+            reason?: string;
+        };
+        ShopAddressChangeResponse: {
+            host?: string;
+            previousHost?: string;
+            url?: string;
+            notified?: string[];
         };
         AddDomainRequest: {
             domain: string;
@@ -45963,6 +46029,86 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MobilePublishStatusResponse"];
+                };
+            };
+        };
+    };
+    shopAddressStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopAddressStatusResponse"];
+                };
+            };
+        };
+    };
+    changeShopAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeShopAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopAddressChangeResponse"];
+                };
+            };
+            /** @description The name is not well formed or is reserved */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The name is taken, the shop is still inside its 30-day wait, or it already holds the maximum number of addresses */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    checkShopAddress: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopAddressCheckResponse"];
                 };
             };
         };

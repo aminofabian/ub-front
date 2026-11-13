@@ -72,6 +72,8 @@ export type DomainsTheatreProps = {
   onBuyLive: () => void;
   rowBusyId: string | null;
   dockRef?: (node: HTMLDivElement | null) => void;
+  /** Opens the dialog for swapping the free address for a shorter or tidier one. */
+  onChangeAddress?: () => void;
 };
 
 function DomainsBanner({
@@ -494,6 +496,7 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
     onBuyLive,
     rowBusyId,
     dockRef,
+    onChangeAddress,
   } = props;
 
   const isLg = useMediaLg();
@@ -814,6 +817,15 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
           <p className={cn(dashboardHintClass(), "mt-1.5")}>
             Staff sign in here until you make another address the main one.
           </p>
+          {onChangeAddress ? (
+            <button
+              type="button"
+              className="mt-2 text-left text-[12px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+              onClick={onChangeAddress}
+            >
+              Change this address
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -867,6 +879,15 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
               >
                 I already own a domain
               </button>
+              {platformRow && onChangeAddress ? (
+                <button
+                  type="button"
+                  className="text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
+                  onClick={onChangeAddress}
+                >
+                  Change my free address
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="text-left text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
