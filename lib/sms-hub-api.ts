@@ -21,6 +21,9 @@ export type SmsHubSummary = {
   messagesLast30Days: number;
   creditsLast30Days: number;
   byReason: Array<{ reason: string; messages: number; credits: number }>;
+  /** Thirty Africa/Nairobi days ending today, oldest first. */
+  daily?: Array<{ date: string; messages: number; credits: number }>;
+  statuses?: { sent: number; delivered: number; failed: number; blocked: number };
   smsConfigured: boolean;
   sendWindow: string;
 };

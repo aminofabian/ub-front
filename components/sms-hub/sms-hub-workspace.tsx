@@ -2,34 +2,47 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { MessageSquareText, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
-  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { useSmsCreditBalance } from "@/components/messaging/sms-credits-header";
 import { SmsHubActivity } from "@/components/sms-hub/sms-hub-activity";
 import { SmsHubAutomations } from "@/components/sms-hub/sms-hub-automations";
-import { SmsHubCampaigns } from "@/components/sms-hub/sms-hub-campaigns";
+import {
+  SmsHubCampaigns,
+  type CampaignRequest,
+} from "@/components/sms-hub/sms-hub-campaigns";
 import { SmsHubContacts } from "@/components/sms-hub/sms-hub-contacts";
-import { errorText } from "@/components/sms-hub/sms-hub-ui";
+import { SmsHubOverview } from "@/components/sms-hub/sms-hub-overview";
+import {
+  SMS_INK,
+  SMS_MUTED,
+  SMS_RULE,
+  SMS_WARN_TEXT,
+  errorText,
+  formatNumber,
+} from "@/components/sms-hub/sms-hub-ui";
+import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSmsAutomations,
   fetchSmsHubSummary,
+  type SmsAutomations,
   type SmsHubSummary,
+  type SmsReach,
 } from "@/lib/sms-hub-api";
 import { cn } from "@/lib/utils";
 
-type TabKey = "contacts" | "automations" | "campaigns" | "activity";
+type TabKey = "overview" | "contacts" | "automations" | "campaigns" | "activity";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: "overview", label: "Overview" },
   { key: "contacts", label: "Contacts" },
   { key: "automations", label: "Automatic texts" },
   { key: "campaigns", label: "Campaigns" },
@@ -38,11 +51,14 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 export function SmsHubWorkspace() {
   const { loading, canViewCustomers, canManageCustomers } = useDashboard();
-  const [tab, setTab] = useState<TabKey>("contacts");
+  const { balance } = useSmsCreditBalance();
+  const [tab, setTab] = useState<TabKey>("overview");
   const [summary, setSummary] = useState<SmsHubSummary | null>(null);
-  const [optOutFooter, setOptOutFooter] = useState("Reply STOP to opt out");
+  const [automations, setAutomations] = useState<SmsAutomations | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [composeFor, setComposeFor] = useState<string[] | null>(null);
+  const [campaignRequest, setCampaignRequest] = useState<CampaignRequest | null>(null);
+  const [contactsReach, setContactsReach] = useState<SmsReach | null>(null);
+  const [contactsKey, setContactsKey] = useState(0);
 
   const loadSummary = useCallback(() => {
     fetchSmsHubSummary()
@@ -50,17 +66,43 @@ export function SmsHubWorkspace() {
       .catch((err) => setError(errorText(err, "Could not load the SMS summary.")));
   }, []);
 
+  const loadAutomations = useCallback(() => {
+    fetchSmsAutomations()
+      .then(setAutomations)
+      .catch(() => {
+        // The Automatic texts tab reports its own load errors.
+      });
+  }, []);
+
   useEffect(() => {
     if (loading || !canViewCustomers) return;
     loadSummary();
-    fetchSmsAutomations()
-      .then((a) => setOptOutFooter(a.optOutFooter))
-      .catch(() => {
-        // The default wording above is used until settings load.
-      });
-  }, [loading, canViewCustomers, loadSummary]);
+    loadAutomations();
+  }, [loading, canViewCustomers, loadSummary, loadAutomations]);
 
-  const consumeCompose = useCallback(() => setComposeFor(null), []);
+  const go = useCallback(
+    (next: TabKey) => {
+      setTab(next);
+      if (next === "overview") {
+        loadSummary();
+        loadAutomations();
+      }
+    },
+    [loadSummary, loadAutomations],
+  );
+
+  const openContacts = useCallback((reach: SmsReach | null) => {
+    setContactsReach(reach);
+    setContactsKey((k) => k + 1);
+    setTab("contacts");
+  }, []);
+
+  const requestCampaign = useCallback((request: CampaignRequest) => {
+    setCampaignRequest(request);
+    setTab("campaigns");
+  }, []);
+
+  const consumeCampaignRequest = useCallback(() => setCampaignRequest(null), []);
 
   if (loading) {
     return <DashboardLoading label="Loading session…" />;
@@ -76,74 +118,54 @@ export function SmsHubWorkspace() {
     );
   }
 
-  const contacts = summary?.contacts;
+  const metered = Boolean(balance?.meteringEnabled);
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
-      <DashboardPageHero
-        icon={MessageSquareText}
-        title="SMS"
-        description="Who you can text, what goes out on its own, and offers you send to a group."
-      >
-        <DashboardQuickLinks
-          compact
-          links={[
-            {
-              href: APP_ROUTES.customers,
-              label: "Customers",
-              desc: "Full directory",
-              icon: Users,
-            },
-          ]}
-        />
-      </DashboardPageHero>
-
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-      {summary && !summary.smsConfigured ? (
-        <DashboardFeedback
-          kind="warning"
-          text="SMS is not set up for this shop yet, so nothing can be sent. You can still record which customers agreed to offers and write drafts."
-        />
-      ) : null}
-
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4")}>
-        <Figure
-          label="Can get offers"
-          value={contacts ? contacts.canText : null}
-          hint={contacts ? `of ${contacts.total.toLocaleString("en-KE")} customers` : undefined}
-        />
-        <Figure
-          label="Order updates only"
-          value={contacts ? contacts.receiptsOnly + contacts.optedOut : null}
-          hint="have not agreed, or opted out"
-        />
-        <Figure
-          label="No number to text"
-          value={contacts ? contacts.noNumber : null}
-          hint="includes M-Pesa masked numbers"
-        />
-        <Figure
-          label="Sent in 30 days"
-          value={summary ? summary.messagesLast30Days : null}
-          hint={summary ? `${summary.creditsLast30Days.toLocaleString("en-KE")} credits` : undefined}
-        />
-      </section>
-
-      {contacts && contacts.total > 0 && contacts.canText === 0 ? (
-        <DashboardFeedback
-          kind="warning"
-          text="No customer has agreed to offers yet. Ask at the till, then tick them on the Contacts tab and choose “Mark as agreed to offers”. Order updates still go out without this."
-        />
-      ) : null}
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-3 px-3 pt-3 sm:px-4")}>
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className={cn("font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em]", SMS_INK)}>
+            SMS
+          </h1>
+          <p className={cn("mt-1.5 text-[13.5px]", SMS_MUTED)}>
+            Who you can text, what sends itself, and the offers you send to a group.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {metered && balance ? (
+            <div className="text-right">
+              <p className={cn("text-[12px] leading-none", SMS_MUTED)}>Credits left</p>
+              <p
+                className={cn(
+                  "mt-1 font-mono text-[18px] font-medium leading-none tabular-nums",
+                  balance.lowBalance ? SMS_WARN_TEXT : SMS_INK,
+                )}
+              >
+                {formatNumber(balance.available)}
+              </p>
+            </div>
+          ) : null}
+          {canManageCustomers ? (
+            <Button
+              type="button"
+              className="rounded-[2px]"
+              onClick={() => requestCampaign({ kind: "new" })}
+            >
+              <Plus className="size-4" aria-hidden />
+              New campaign
+            </Button>
+          ) : null}
+        </div>
+      </header>
 
       <div
         role="tablist"
         aria-label="SMS sections"
-        className="flex gap-0.5 overflow-x-auto border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+        className={cn("flex h-11 items-stretch gap-1 overflow-x-auto border-b", SMS_RULE)}
       >
         {TABS.map((t) => {
           const active = tab === t.key;
+          const count = t.key === "contacts" ? summary?.contacts.total : undefined;
           return (
             <button
               key={t.key}
@@ -152,72 +174,81 @@ export function SmsHubWorkspace() {
               id={`sms-tab-${t.key}`}
               aria-selected={active}
               aria-controls={`sms-panel-${t.key}`}
-              onClick={() => setTab(t.key)}
+              onClick={() => go(t.key)}
               className={cn(
-                "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors",
+                "-mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-[14px] transition-colors",
+                "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--op-accent,#1d4b3b)]",
                 active
-                  ? "border-[var(--pos-primary,#1D4B3B)] font-semibold text-[var(--pos-primary,#1D4B3B)]"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+                  ? "border-[var(--op-accent,#1d4b3b)] font-semibold text-[var(--op-accent,#1d4b3b)]"
+                  : cn("border-transparent hover:text-[var(--op-ink,#121a16)]", SMS_MUTED),
               )}
             >
               {t.label}
+              {count !== undefined ? (
+                <span className="font-mono text-[12px] font-normal tabular-nums opacity-70">
+                  {formatNumber(count)}
+                </span>
+              ) : null}
             </button>
           );
         })}
       </div>
 
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {summary && !summary.smsConfigured ? (
+        <DashboardFeedback
+          kind="warning"
+          text="SMS is not set up for this shop yet, so nothing can be sent. You can still record who agreed to offers and write drafts."
+        />
+      ) : null}
+
       <div role="tabpanel" id={`sms-panel-${tab}`} aria-labelledby={`sms-tab-${tab}`}>
+        {tab === "overview" ? (
+          <SmsHubOverview
+            summary={summary}
+            automations={automations}
+            balance={balance}
+            canManage={canManageCustomers}
+            onOpenContacts={openContacts}
+            onOpenAutomations={() => go("automations")}
+            onOpenCampaigns={() => go("campaigns")}
+            onOpenCampaign={(id) => requestCampaign({ kind: "open", id })}
+            onOpenActivity={() => go("activity")}
+            onNewCampaign={() => requestCampaign({ kind: "new" })}
+          />
+        ) : null}
         {tab === "contacts" ? (
           <>
             <SmsHubContacts
+              key={contactsKey}
+              initialReach={contactsReach}
               canManage={canManageCustomers}
               onChanged={loadSummary}
-              onTextSelected={(ids) => {
-                setComposeFor(ids);
-                setTab("campaigns");
-              }}
+              onTextSelected={(ids) => requestCampaign({ kind: "selected", customerIds: ids })}
             />
-            <p className="px-1 pt-2 text-sm text-muted-foreground">
+            <p className={cn("px-1 pt-3 text-[13px]", SMS_MUTED)}>
               To collect more numbers, turn on adding a customer at checkout for cash and M-Pesa sales in{" "}
-              <Link className="text-primary hover:underline" href={APP_ROUTES.businessSettings}>
+              <Link className="text-[var(--op-accent,#1d4b3b)] underline-offset-4 hover:underline" href={APP_ROUTES.businessSettings}>
                 Business settings
               </Link>
               .
             </p>
           </>
         ) : null}
-        {tab === "automations" ? <SmsHubAutomations canManage={canManageCustomers} /> : null}
+        {tab === "automations" ? (
+          <SmsHubAutomations canManage={canManageCustomers} onSaved={setAutomations} />
+        ) : null}
         {tab === "campaigns" ? (
           <SmsHubCampaigns
             canManage={canManageCustomers}
             sendWindow={summary?.sendWindow ?? "8:00 am to 6:00 pm"}
-            optOutFooter={optOutFooter}
-            composeFor={composeFor}
-            onComposeConsumed={consumeCompose}
+            optOutFooter={automations?.optOutFooter ?? "Reply STOP to opt out"}
+            request={campaignRequest}
+            onRequestConsumed={consumeCampaignRequest}
           />
         ) : null}
         {tab === "activity" ? <SmsHubActivity /> : null}
       </div>
-    </div>
-  );
-}
-
-function Figure({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: number | null;
-  hint?: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-semibold tabular-nums">
-        {value === null ? "…" : value.toLocaleString("en-KE")}
-      </p>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
