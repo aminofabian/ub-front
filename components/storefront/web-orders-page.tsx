@@ -22,7 +22,9 @@ import {
   RefreshCw,
   ShoppingBag,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { showConfirmModal } from "@/components/confirm-modal";
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
@@ -45,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
+  clearOpenWebOrders,
   fetchWebOrderDetail,
   fetchWebOrders,
   type WebOrderDetail,
@@ -157,6 +160,14 @@ function isOpenOrder(order: WebOrderSummary): boolean {
   if (fulfillment === "completed") return false;
   if (OPEN_FULFILLMENT.has(fulfillment)) return true;
   return (order.status ?? "").toLowerCase() !== "cancelled";
+}
+
+/** Orders Clear all can void. Completed pickups and cancelled rows stay. */
+function isVoidableOrder(order: WebOrderSummary): boolean {
+  const status = (order.status ?? "").trim().toLowerCase();
+  if (status === "cancelled") return false;
+  const fulfillment = (order.fulfillmentStatus ?? "").trim().toLowerCase();
+  return fulfillment !== "completed" && fulfillment !== "cancelled";
 }
 
 function StatusPill({
@@ -278,6 +289,7 @@ export function WebOrdersPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"open" | "all">("open");
   const [channelTab, setChannelTab] = useState<"all" | "whatsapp">("all");
@@ -402,6 +414,68 @@ export function WebOrdersPage() {
     [scopedOrders],
   );
 
+  const clearableCount = useMemo(
+    () => scopedOrders.filter(isVoidableOrder).length,
+    [scopedOrders],
+  );
+
+  const clearAll = useCallback(() => {
+    if (clearableCount === 0 || clearing) return;
+    const listMayBePartial = orders.length >= 100;
+    const title = listMayBePartial
+      ? "Clear all open orders?"
+      : clearableCount === 1
+        ? "Clear this open order?"
+        : `Clear all ${clearableCount} open orders?`;
+    showConfirmModal({
+      id: "clear-all-web-orders",
+      title,
+      description:
+        "Open orders are voided and leave this list. Completed orders stay in All. Stock held for them goes back on the shelf. Settle any payment a customer already made.",
+      confirmLabel: clearableCount === 1 ? "Clear order" : "Clear all",
+      onConfirm: () => {
+        const selectedWasOpen = selectedId
+          ? scopedOrders.some((order) => order.id === selectedId && isVoidableOrder(order))
+          : false;
+        setClearing(true);
+        setError("");
+        void (async () => {
+          try {
+            const result = await clearOpenWebOrders(branchId);
+            if (selectedWasOpen) {
+              setSelectedId(null);
+              setDetail(null);
+            }
+            await loadOrders({ soft: true });
+            if (result.failed > 0) {
+              setError(
+                result.voided > 0
+                  ? `Cleared ${result.voided}. ${result.failed} could not be cleared.`
+                  : "Could not clear these orders.",
+              );
+            } else if (result.voided === 0) {
+              toast.message("Nothing open to clear.");
+            } else if (result.moreRemaining) {
+              toast.success(
+                `Cleared ${result.voided}. Some orders are still open.`,
+              );
+            } else {
+              toast.success(
+                result.voided === 1
+                  ? "Cleared 1 order."
+                  : `Cleared ${result.voided} orders.`,
+              );
+            }
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Could not clear orders.");
+          } finally {
+            setClearing(false);
+          }
+        })();
+      },
+    });
+  }, [branchId, clearableCount, clearing, loadOrders, orders.length, scopedOrders, selectedId]);
+
   const onDetailUpdated = useCallback((next: WebOrderDetail) => {
     setDetail(next);
     setOrders((prev) =>
@@ -521,19 +595,38 @@ export function WebOrdersPage() {
             </button>
           ) : null}
         </div>
-        <button
-          type="button"
-          className={cn(salesToolBtnClass(), "gap-1.5")}
-          disabled={refreshing || loading}
-          onClick={() => void loadOrders({ soft: true })}
-        >
-          {refreshing ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          ) : (
-            <RefreshCw className="size-3.5" aria-hidden />
-          )}
-          Refresh
-        </button>
+        <div className="flex items-center gap-1.5">
+          {clearableCount > 0 ? (
+            <button
+              type="button"
+              className={cn(salesToolBtnClass(), "gap-1.5")}
+              disabled={clearing || refreshing || loading}
+              onClick={clearAll}
+            >
+              {clearing ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : null}
+              {clearing
+                ? "Clearing…"
+                : orders.length >= 100
+                  ? "Clear all"
+                  : `Clear all (${clearableCount})`}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={cn(salesToolBtnClass(), "gap-1.5")}
+            disabled={refreshing || loading || clearing}
+            onClick={() => void loadOrders({ soft: true })}
+          >
+            {refreshing ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <RefreshCw className="size-3.5" aria-hidden />
+            )}
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">

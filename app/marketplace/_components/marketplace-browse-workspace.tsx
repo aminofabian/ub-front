@@ -20,7 +20,7 @@ import { toast } from "sonner";
 
 import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { TelLink } from "@/components/tel-link";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchMarketplaceSupplierBySlug,
@@ -178,7 +178,8 @@ function MarketplaceBrowseWorkspaceInner({
   }, [ordering]);
 
   useEffect(() => {
-    setSignedIn(Boolean(getSessionTokens()?.accessToken));
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    setSignedIn(hasAccessSession() || Boolean(getSessionTokens()?.accessToken));
   }, []);
 
   useEffect(() => {

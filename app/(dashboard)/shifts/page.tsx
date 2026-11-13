@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -60,6 +61,7 @@ import { cashierMayRecordDrawout } from "@/lib/pos-cashier-capabilities";
 import { humanTillLabel } from "@/lib/till-device";
 import { cn } from "@/lib/utils";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
+import { isShiftsDisabled } from "@/lib/shift-settings";
 
 import {
   KES_DENOMINATIONS,
@@ -533,6 +535,11 @@ function ShiftRow({
             >
               {shift.cashierName}
             </span>
+            {shift.autoManaged ? (
+              <span className="block truncate text-[11px] text-muted-foreground">
+                Automatic · shifts were off
+              </span>
+            ) : null}
             <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
               <MapPin className="size-3 shrink-0" aria-hidden />
               <span className="truncate">{shift.branchName}</span>
@@ -1632,8 +1639,9 @@ function ShiftDetail({
 // ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function ShiftsPage() {
-  const { me, business } = useDashboard();
+  const { me, business, canManageBusinessSettings } = useDashboard();
   const featureFlags = useFeatureFlags();
+  const shiftsDisabled = isShiftsDisabled(featureFlags);
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
@@ -2036,7 +2044,7 @@ export default function ShiftsPage() {
             icon,
           }))}
         />
-        {canOpen ? (
+        {canOpen && !shiftsDisabled ? (
           <Button
             type="button"
             size="sm"
@@ -2047,6 +2055,31 @@ export default function ShiftsPage() {
           </Button>
         ) : null}
       </DashboardPageHero>
+
+      {shiftsDisabled ? (
+        <p
+          role="status"
+          className="border border-[var(--op-rule)] bg-[var(--op-surface)] px-3 py-2 text-[13px] leading-relaxed text-[var(--op-muted)]"
+        >
+          Shifts are switched off for this business. Tills sell without anyone opening
+          one, and each till keeps one automatic shift for its sales. Those are marked
+          Automatic in the list below.{" "}
+          {canManageBusinessSettings ? (
+            <>
+              You can turn shifts back on in{" "}
+              <Link
+                href={`${APP_ROUTES.businessConfiguration}#settings-shifts`}
+                className="underline underline-offset-2 hover:text-[var(--op-ink)]"
+              >
+                Business configuration
+              </Link>
+              .
+            </>
+          ) : (
+            "An owner can turn them back on in Business configuration."
+          )}
+        </p>
+      ) : null}
 
       {notice || error || (canApproveDrawouts && pendingDrawouts.length > 0) ? (
         <div className="flex flex-col gap-2">

@@ -34,6 +34,7 @@ import {
 import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
 import { CashierReceiptShopModal } from "@/components/cashier/cashier-receipt-shop-modal";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { PosReadinessBanner } from "@/components/pos-readiness-banner";
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
@@ -732,6 +733,7 @@ export function CashierShell({ children }: CashierShellProps) {
         </header>
         <BranchRequiredBanner />
         <PosReadinessBanner />
+        <SetupRequirementHost />
         <main
           className={cn(
             "mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden",

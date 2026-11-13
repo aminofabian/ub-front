@@ -60,6 +60,7 @@ import {
   toKenyanLocal07,
 } from "@/lib/kenyan-phone";
 import { setPageSealUnlock } from "@/lib/page-seal";
+import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import {
   applyShopperTabHint,
   buyerStaysOnPage,
@@ -330,6 +331,23 @@ function StorefrontSignInSheet({
       // Best-effort: the cart merge can retry on the next cart fetch.
     }
 
+    /**
+     * Storefront paths stay in this shell. Anything else is a staff home in the
+     * dashboard shell: finish it like every other login — a hard navigation
+     * through store-session, which sets the session cookies server-side and
+     * re-checks the role. A soft `router.push` from the storefront shell into
+     * the dashboard throws removeChild mid-unmount and strands the user here.
+     */
+    const leaveFor = (dest: string) => {
+      if (isShopNextPath(dest) || isCustomerTabPath(dest)) {
+        router.push(dest);
+        return;
+      }
+      void completeAuthAndNavigate(dest, tenant?.slug).catch(() => {
+        window.location.assign(dest);
+      });
+    };
+
     const keepShoppersOnPage =
       door !== "staff" &&
       surface !== "landing" &&
@@ -397,9 +415,10 @@ function StorefrontSignInSheet({
     }
 
     if (destination && destination !== pathname) {
-      router.push(destination);
+      leaveFor(destination);
     }
   }, [
+    tenant?.slug,
     surface,
     rawNext,
     safeNext,

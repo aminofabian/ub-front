@@ -75,6 +75,16 @@ import {
   notifyPosGuidanceResolved,
 } from "@/lib/pos-guidance";
 import {
+  completeSetup,
+  pauseForSetup,
+  registerSetupDelegate,
+  setupGapFromShiftProbe,
+  type SetupRequiredDetail,
+  type SetupRequirement,
+} from "@/lib/setup-requirements";
+import { isShiftsDisabled } from "@/lib/shift-settings";
+import { useTurnOffShifts } from "@/components/setup/use-turn-off-shifts";
+import {
   ensureTillRegisteredForBranch,
   FIRST_SALE_ACTIVATE_PARAM,
   isFirstSaleActivateParam,
@@ -3451,11 +3461,25 @@ export function QuickSaleWorkspace({
     }
   }, [online, refreshOutbox]);
 
+  const shiftsDisabled = isShiftsDisabled(featureFlags);
+  /** Latest `onComplete`, so a sale paused for the open-shift dialog resumes with fresh state. */
+  const onCompleteRef = useRef<
+    | ((opts?: {
+        skipBranchConfirm?: boolean;
+        skipBelowCostConfirm?: boolean;
+        allowOutOfStock?: boolean;
+        setupTried?: SetupRequirement[];
+      }) => Promise<void>)
+    | null
+  >(null);
+
   const onComplete = useCallback(async (opts?: {
     skipBranchConfirm?: boolean;
     skipBelowCostConfirm?: boolean;
     /** Admin override — allow this sale to drive stock negative. */
     allowOutOfStock?: boolean;
+    /** Set-up steps this sale already went through (register the till, open a shift). */
+    setupTried?: SetupRequirement[];
   }) => {
     const bid = branchId.trim();
     if (!bid) {
@@ -4010,18 +4034,33 @@ export function QuickSaleWorkspace({
     }
 
     setLoading(true);
-    try {
-      await fetchCurrentShift(bid);
-    } catch (e) {
-      setLoading(false);
-      const msg = e instanceof Error ? e.message : "No open shift.";
-      if (/not\s*found|404|no open shift/i.test(msg)) {
-        notifyPosGuidance("open-shift");
-        setError("Open a shift on this till before completing the sale.");
-      } else {
-        setError(msg);
+    // A missing shift or an unregistered till is something to fix on the spot, not a dead end:
+    // explain it in a dialog, then pick this sale back up where it left off.
+    const holdForSetup = (gap: SetupRequiredDetail) => {
+      pauseForSetup(gap, {
+        action: "completing the sale",
+        tried: opts?.setupTried,
+        resume: (tried) =>
+          void onCompleteRef.current?.({ ...opts, setupTried: tried }),
+        onBlocked: setError,
+      });
+    };
+    // With shifts switched off the server opens a hidden one on the first sale, so there is
+    // nothing to check or ask for here.
+    if (!shiftsDisabled) {
+      try {
+        await fetchCurrentShift(bid, { toast: false });
+      } catch (e) {
+        setLoading(false);
+        const gap = setupGapFromShiftProbe(e);
+        if (gap) {
+          setError("");
+          holdForSetup(gap);
+        } else {
+          setError(e instanceof Error ? e.message : "No open shift.");
+        }
+        return;
       }
-      return;
     }
 
     try {
@@ -4330,6 +4369,7 @@ export function QuickSaleWorkspace({
       let sale: SaleRecord | null = null;
       let failMsg = "Sale failed.";
       let failStatus = 0;
+      let failSetup: SetupRequiredDetail | undefined;
 
       // Use draft-complete path whenever we have a server draft ID,
       // even if pos_drafts.enabled was toggled OFF mid-day.
@@ -4344,6 +4384,7 @@ export function QuickSaleWorkspace({
         } else {
           failMsg = draftResult.message;
           failStatus = draftResult.status;
+          failSetup = draftResult.setup;
         }
       } else {
         const postResult = await tryPostSaleWithRetries(salePayload, idem);
@@ -4352,6 +4393,7 @@ export function QuickSaleWorkspace({
         } else {
           failMsg = postResult.message;
           failStatus = postResult.status;
+          failSetup = postResult.setup;
         }
       }
 
@@ -4431,6 +4473,13 @@ export function QuickSaleWorkspace({
         if (drain.status === "blocked") {
           setError(`Earlier queued sale blocked: ${drain.message}`);
         }
+        return;
+      }
+
+      // The server turned the sale away because something has to be set up first (the till
+      // isn't registered, no shift is open). Nothing was recorded: explain, fix, then retry.
+      if (failSetup) {
+        holdForSetup(failSetup);
         return;
       }
 
@@ -4526,7 +4575,9 @@ export function QuickSaleWorkspace({
     dismissCompletedSaleUi,
     marginGuardMode,
     canApproveBelowCost,
+    shiftsDisabled,
   ]);
+  onCompleteRef.current = onComplete;
 
   // Auto-complete the sale once M-Pesa is gateway-verified (STK or till webhook).
   useEffect(() => {
@@ -4869,10 +4920,14 @@ export function QuickSaleWorkspace({
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canCloseShiftPerm = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canReadShift = hasPermission(me?.permissions, Permission.ShiftsRead);
+  // With shifts switched off there is nothing to open, close or count, so the till neither
+  // polls for the open shift nor shows the shift shortcuts.
   const showPosShiftLinks =
-    useTillChrome && (canOpenShift || canCloseShiftPerm);
+    useTillChrome && !shiftsDisabled && (canOpenShift || canCloseShiftPerm);
   const shouldFetchOpenShift =
-    useTillChrome && (canOpenShift || canCloseShiftPerm || canReadShift);
+    useTillChrome &&
+    !shiftsDisabled &&
+    (canOpenShift || canCloseShiftPerm || canReadShift);
 
   const tillLock = useOptionalPosTillLock();
   const tillLocked = tillLock?.locked ?? false;
@@ -4884,6 +4939,8 @@ export function QuickSaleWorkspace({
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
   const [openShiftGate, setOpenShiftGate] = useState(false);
+  /** The count modal opened because a sale was blocked: lead with what a shift is. */
+  const [openShiftExplain, setOpenShiftExplain] = useState(false);
   const [staleClosePrompt, setStaleClosePrompt] = useState(false);
   /** Hub / setup-progress deep link: allow empty opening float. */
   const [firstSaleFloatMode, setFirstSaleFloatMode] = useState(false);
@@ -4957,6 +5014,28 @@ export function QuickSaleWorkspace({
     return () =>
       window.removeEventListener(OPEN_POS_SHIFT_EVENT, onOpenShiftRequest);
   }, []);
+
+  // When the server (or another screen) says no shift is open, the shared "set this up first"
+  // prompt hands the request to this screen's own count modal instead of drawing a second one.
+  const { turnOff: turnOffShifts } = useTurnOffShifts();
+  useEffect(() => {
+    if (!useTillChrome || !canOpenShift) {
+      return;
+    }
+    return registerSetupDelegate("shift", () => {
+      // The server is the authority: if it says nothing is open, forget what this screen
+      // last fetched, otherwise the "a live shift keeps the gate down" effect closes the modal.
+      branchOpenShiftRef.current = null;
+      setBranchOpenShift(null);
+      setError("");
+      setStaleClosePrompt(false);
+      setCloseShiftModal(false);
+      setOpenShiftExplain(true);
+      setOpenShiftGate(true);
+      setOpenShiftModal(true);
+      return true;
+    });
+  }, [useTillChrome, canOpenShift]);
 
   /**
    * Deep link: /cashier?activate=first-sale
@@ -5538,9 +5617,21 @@ export function QuickSaleWorkspace({
               setOpenShiftModal(false);
               setOpenShiftGate(false);
               setFirstSaleFloatMode(false);
+              setOpenShiftExplain(false);
+              // Closed without opening: let whatever was waiting on the shift stand down.
+              completeSetup("shift", false);
             }}
             requireAction={openShiftGate}
             allowZeroFloat={firstSaleFloatMode}
+            explain={openShiftExplain}
+            onSkipShifts={
+              openShiftExplain && turnOffShifts
+                ? async () => {
+                    await turnOffShifts();
+                    completeSetup("shift", true);
+                  }
+                : undefined
+            }
             branches={branches.filter((b) => b.active)}
             preferredBranchId={branchId?.trim() || null}
             lockBranchSelectionTo={

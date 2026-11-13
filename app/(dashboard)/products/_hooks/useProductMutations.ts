@@ -37,6 +37,7 @@ import {
   formatProductNameForCatalog,
 } from "@/lib/catalog-display";
 import { isSystemUnassignedSupplier } from "@/lib/supplier-display";
+import { requestSetup } from "@/lib/setup-requirements";
 import {
   type ParentDraft,
   type ProductDrawerId,
@@ -174,6 +175,8 @@ export function useProductMutations(d: Dependencies) {
   const [bulkActivateBusy, setBulkActivateBusy] = useState(false);
   const [nextAutoSkuHint, setNextAutoSkuHint] = useState<string | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  /** True once the branch list has loaded, so "no branches" is not mistaken for "not loaded yet". */
+  const [branchesReady, setBranchesReady] = useState(false);
   const [quickSavingVariant, setQuickSavingVariant] = useState(false);
   const [packageCreateBusy, setPackageCreateBusy] = useState(false);
   const [changeItemTypeBusy, setChangeItemTypeBusy] = useState(false);
@@ -257,7 +260,9 @@ export function useProductMutations(d: Dependencies) {
     let cancelled = false;
     fetchBranches()
       .then((list) => {
-        if (!cancelled) setBranches(list.filter((b) => b.active));
+        if (cancelled) return;
+        setBranches(list.filter((b) => b.active));
+        setBranchesReady(true);
       })
       .catch(() => {
         if (!cancelled) setBranches([]);
@@ -450,6 +455,32 @@ export function useProductMutations(d: Dependencies) {
           return;
         }
 
+        // Prices and opening stock are kept per branch. A shop with no branch yet would save the
+        // product with neither, so stop here, explain what a branch is, and let them add one.
+        // Nothing has been created at this point, so it is safe to pause and carry on after.
+        let openingBranchId = parentDraft.openingBranchId.trim();
+        let knownBranches = branches;
+        if (
+          branchesReady &&
+          !openingBranchId &&
+          !headerBranchId.trim() &&
+          branches.length === 0
+        ) {
+          const added = await requestSetup({
+            requirement: "branch",
+            hint: "none",
+          });
+          if (!added) {
+            setMessage(
+              "Add a branch to save this product. Prices and stock are kept per branch.",
+            );
+            return;
+          }
+          knownBranches = (await fetchBranches()).filter((b) => b.active);
+          setBranches(knownBranches);
+          openingBranchId = knownBranches[0]?.id?.trim() ?? "";
+        }
+
         const payload: Parameters<typeof createItem>[0] = isCreatingGroup
           ? {
               name: displayName,
@@ -531,7 +562,7 @@ export function useProductMutations(d: Dependencies) {
             );
             return;
           }
-          const branchId = parentDraft.openingBranchId.trim();
+          const branchId = openingBranchId;
           if (!branchId) {
             setMessage(
               "Choose a branch so this product can be linked from the shared catalog.",
@@ -730,9 +761,9 @@ export function useProductMutations(d: Dependencies) {
         // Family + options: create each option on this screen (no drawer handoff)
         if (isCreatingGroup && groupOptions.length > 0) {
           const branchId =
-            parentDraft.openingBranchId.trim() ||
+            openingBranchId ||
             headerBranchId.trim() ||
-            branches[0]?.id?.trim() ||
+            knownBranches[0]?.id?.trim() ||
             "";
           const warnings: string[] = [];
           let lastVid: string | null = null;
@@ -861,7 +892,7 @@ export function useProductMutations(d: Dependencies) {
           !openingStockHandledByAdopt &&
           canInventoryWrite &&
           parentDraft.openingQty.trim() &&
-          parentDraft.openingBranchId.trim()
+          openingBranchId
         ) {
           const qty = Number(parentDraft.openingQty.trim());
           if (!Number.isFinite(qty) || qty <= 0) {
@@ -882,7 +913,7 @@ export function useProductMutations(d: Dependencies) {
             } else {
               try {
                 await postStockIncrease({
-                  branchId: parentDraft.openingBranchId.trim(),
+                  branchId: openingBranchId,
                   itemId: created.id,
                   quantity: qty,
                   unitCost,
@@ -960,6 +991,7 @@ export function useProductMutations(d: Dependencies) {
       setMessage,
       headerBranchId,
       branches,
+      branchesReady,
     ],
   );
 

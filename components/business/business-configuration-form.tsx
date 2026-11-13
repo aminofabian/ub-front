@@ -907,11 +907,24 @@ export function BusinessConfigurationForm({
         <PolicyPanel
           id="settings-shifts"
           title="Shifts & cash drawer"
-          hint="How opening float is prepared when a cashier starts a shift."
+          hint="Whether tills use shifts, and how opening float is prepared when a cashier starts one."
           accent="amber"
           fieldsOnly={theatreFieldsOnly}
         >
           <PolicySwitch
+            checked={!shiftSettings.disabled}
+            onChange={(checked) =>
+              setShiftSettings((previous) => ({
+                ...previous,
+                disabled: !checked,
+              }))
+            }
+            icon={<Banknote className="size-4" aria-hidden />}
+            title="Use shifts"
+            description="Cashiers open a shift with a counted float and close it with a cash count. Turn this off and tills sell straight away, with no shift to open and no drawer count. Turning it back on clears unfinished carts saved on tills."
+          />
+          <PolicySwitch
+            disabled={shiftSettings.disabled}
             checked={shiftSettings.prefillOpeningFromLastClose}
             onChange={(checked) =>
               setShiftSettings((previous) => ({

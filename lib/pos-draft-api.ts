@@ -3,6 +3,10 @@
 import { apiRequest, ApiRequestError } from "@/lib/api";
 import type { PostSaleLinePayload, PostSalePaymentPayload, SaleRecord } from "@/lib/api";
 import { shareInflight } from "@/lib/share-inflight";
+import {
+  parseSetupRequired,
+  type SetupRequiredDetail,
+} from "@/lib/setup-requirements";
 
 export const POS_DRAFT_FLAGS = {
   enabled: "pos_drafts.enabled",
@@ -247,7 +251,13 @@ export type CompletePosDraftResponse = {
 
 export type CompletePosDraftAttemptResult =
   | { ok: true; result: CompletePosDraftResponse; sale: SaleRecord }
-  | { ok: false; status: number; message: string };
+  | {
+      ok: false;
+      status: number;
+      message: string;
+      /** Set when the API says something has to be set up first (no open shift, unregistered till). */
+      setup?: SetupRequiredDetail;
+    };
 
 const COMPLETE_RETRY_ATTEMPTS = 3;
 const COMPLETE_RETRY_DELAY_MS = 400;
@@ -274,7 +284,10 @@ export async function tryCompletePosDraft(
     return { ok: true, result, sale: result.sale };
   } catch (e) {
     if (e instanceof PosDraftApiError) {
-      return { ok: false, status: e.status, message: e.message };
+      const setup = parseSetupRequired(e.payload);
+      return setup
+        ? { ok: false, status: e.status, message: e.message, setup }
+        : { ok: false, status: e.status, message: e.message };
     }
     return {
       ok: false,

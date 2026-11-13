@@ -492,6 +492,7 @@ export function useBusinessSettingsEditor() {
             posCatalogHybrid: cashierCapabilities.catalogHybrid,
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,
+            shiftsDisabled: shiftSettings.disabled,
             tillListen: {
               checkout: tillListen.checkout,
               openCart: tillListen.openCart,

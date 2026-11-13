@@ -246,7 +246,8 @@ export function isOnboardingIncomplete(
  * storefront `?next=` so owners stay in the console. The onboarding gate is
  * cloud-only (`!IS_DESKTOP`): the desktop SKU uses its own `/setup` first-run
  * wizard and should keep its prior routing. Otherwise role homes beat generic
- * defaults; tenant default is the storefront for roles without a dedicated home.
+ * defaults; staff roles without a dedicated home land on the business hub, and
+ * only an unknown account falls back to the storefront.
  */
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
@@ -310,6 +311,14 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.butcher;
   }
 
+  // Signed-in staff whose role has no dedicated app (manager, viewer, custom
+  // roles) still belong in the workstation. Sending them to the storefront
+  // left them signed in with nowhere to work. Only an unknown account falls
+  // back to the shop.
+  if (roleKeyOf(me)) {
+    return APP_ROUTES.business;
+  }
+
   return APP_ROUTES.shop;
 }
 
@@ -340,7 +349,7 @@ export function roleLandingRedirect(
   ) {
     return null;
   }
-  // Storefront is the tenant default for roles without a dedicated home.
+  // Storefront is the fallback only when the account's role is unknown.
   if (isStorefrontHome(home) || isCustomerTabPath(home)) {
     return null;
   }

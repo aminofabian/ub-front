@@ -27,6 +27,7 @@ import Link from "next/link";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -461,6 +462,7 @@ export default function GroceryInvoicesPage() {
         style={{ paddingBottom: GROCERY_TAB_BAR_CLEARANCE }}
       >
         <BranchRequiredBanner />
+        <SetupRequirementHost />
         <div
           className={cn(
             "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:gap-5 sm:px-5 sm:pt-4",

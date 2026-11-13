@@ -50,7 +50,7 @@ import {
 } from "@/components/support/support-chat-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { getRealtimeClient } from "@/lib/realtime";
 import { cn } from "@/lib/utils";
 
@@ -336,7 +336,8 @@ export function InboxWorkspace() {
 
   // Live refresh on crm.* frames (mapped to onNotification in lib/realtime).
   useEffect(() => {
-    if (!getSessionTokens()) return;
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    if (!hasAccessSession() && !getSessionTokens()) return;
     const client = getRealtimeClient();
     const unregister = client.registerListener("crm-inbox", {
       channels: ["notifications"],

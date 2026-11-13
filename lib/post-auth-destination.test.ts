@@ -213,11 +213,25 @@ describe("resolvePostAuthDestination", () => {
     ).toBe("/products");
   });
 
-  it("defaults staff roles to the storefront when no business payload exists", () => {
+  it("sends staff roles without a dedicated app to the business hub", () => {
     expect(resolvePostAuthDestination({ role: { key: "viewer" } })).toBe(
-      APP_ROUTES.shop,
+      APP_ROUTES.business,
     );
     expect(resolvePostAuthDestination({ role: { key: "manager" } })).toBe(
+      APP_ROUTES.business,
+    );
+    // A leftover `/shop/account` door must not pin them to the storefront.
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "manager" } },
+        APP_ROUTES.shopAccount,
+      ),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("falls back to the storefront only when the account is unknown", () => {
+    expect(resolvePostAuthDestination(null)).toBe(APP_ROUTES.shop);
+    expect(resolvePostAuthDestination({ role: { key: "" } })).toBe(
       APP_ROUTES.shop,
     );
   });

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { TalkToUsModal } from "@/components/contact/talk-to-us-modal";
 import { useStorefrontAccountLink } from "@/components/storefront/storefront-account-link";
+import { useStorefrontStaffEditOptional } from "@/components/storefront/storefront-staff-edit";
 import {
   useClientHasSession,
   useClientSessionReady,
@@ -31,6 +32,10 @@ export function ShopUtilityBar({
   const ready = useClientSessionReady();
   const signedIn = useClientHasSession();
   const { href: signInHref, onActivate } = useStorefrontAccountLink();
+  // Shoppers must not be offered the dashboard: it only bounces them back
+  // here. Staff who can edit the shop get the door; other staff reach their
+  // role home through Account, which forwards them.
+  const showDashboard = useStorefrontStaffEditOptional()?.canEdit === true;
   const [talkOpen, setTalkOpen] = useState(false);
 
   const onSignOut = useCallback(async () => {
@@ -119,15 +124,21 @@ export function ShopUtilityBar({
               >
                 Account
               </Link>
-              <span className="text-white/25 select-none" aria-hidden>
-                ·
-              </span>
-              <Link
-                href={APP_ROUTES.business}
-                className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
-              >
-                Dashboard
-              </Link>
+              {showDashboard ? (
+                <>
+                  <span className="text-white/25 select-none" aria-hidden>
+                    ·
+                  </span>
+                  {/* Plain <a>: a soft transition from the storefront shell into
+                      the dashboard shell fails mid-unmount. */}
+                  <a
+                    href={APP_ROUTES.business}
+                    className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
+                  >
+                    Dashboard
+                  </a>
+                </>
+              ) : null}
               <span className="text-white/25 select-none" aria-hidden>
                 ·
               </span>

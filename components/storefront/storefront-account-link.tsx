@@ -66,7 +66,11 @@ export function useStorefrontAccountLink(): {
   // "Sign in" once the client knows the hint is stale.
   const clientSignedIn = ready && hasSession;
   const signedIn = clientSignedIn || (hasPresence && !restoreFailed);
-  const staffOnFloor = Boolean(staffEdit && signedIn);
+  // The staff-edit provider wraps every storefront visitor, so its presence
+  // says nothing about who is signed in. Only staff who may edit the shop get
+  // the workspace door; shoppers keep "Account", and other staff reach their
+  // role home through `/shop/account`, which forwards them.
+  const staffOnFloor = Boolean(staffEdit?.canEdit && signedIn);
 
   const next = isShopNextPath(pathname) ? pathname : APP_ROUTES.shopAccount;
 

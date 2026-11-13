@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 
 function isHex(v: string | null | undefined): v is string {
@@ -20,7 +20,9 @@ export function ShopOrderHistoryCard({
   const primary = isHex(primaryHex) ? primaryHex.trim() : null;
 
   const sync = useCallback(() => {
-    setSignedIn(getSessionTokens() != null);
+    // Browser sessions are cookie-only: there is no JS-readable token, so go
+    // by the session claims as well.
+    setSignedIn(hasAccessSession() || getSessionTokens() != null);
   }, []);
 
   useEffect(() => {

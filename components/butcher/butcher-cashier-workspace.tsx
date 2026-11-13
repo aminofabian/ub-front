@@ -17,7 +17,7 @@ import { useButcherTheme } from "@/components/butcher/butcher-theme-provider";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
-import { useFeatureFlag } from "@/components/providers/tenant-provider";
+import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +72,13 @@ import {
   salesMute,
   salesToolBtnClass,
 } from "@/components/sales/sales-surface";
+import {
+  pauseForSetup,
+  setupGapFromShiftProbe,
+  type SetupRequiredDetail,
+  type SetupRequirement,
+} from "@/lib/setup-requirements";
+import { isShiftsDisabled } from "@/lib/shift-settings";
 import { cn } from "@/lib/utils";
 
 type ButcherCartLine = {
@@ -628,7 +635,21 @@ export function ButcherCashierWorkspace() {
     [resetTenderFields],
   );
 
-  const onCharge = useCallback(async (opts?: { skipBranchConfirm?: boolean }) => {
+  const shiftsDisabled = isShiftsDisabled(useFeatureFlags());
+  /** Latest `onCharge`, so a sale paused for the open-shift dialog resumes with fresh state. */
+  const onChargeRef = useRef<
+    | ((opts?: {
+        skipBranchConfirm?: boolean;
+        setupTried?: SetupRequirement[];
+      }) => Promise<void>)
+    | null
+  >(null);
+
+  const onCharge = useCallback(async (opts?: {
+    skipBranchConfirm?: boolean;
+    /** Set-up steps this sale already went through (register the till, open a shift). */
+    setupTried?: SetupRequirement[];
+  }) => {
     setError("");
     if (!bid) {
       setError("Choose a branch.");
@@ -692,17 +713,31 @@ export function ButcherCashierWorkspace() {
       }
     }
     setCharging(true);
-    try {
-      await fetchCurrentShift(bid);
-    } catch (e) {
-      setCharging(false);
-      const msg = e instanceof Error ? e.message : "No open shift.";
-      setError(
-        /not\s*found|404|no open shift/i.test(msg)
-          ? "Open a shift for this branch before charging."
-          : msg,
-      );
-      return;
+    // A missing shift or an unregistered till is something to fix on the spot, not a dead end:
+    // explain it in a dialog, then pick this sale back up where it left off.
+    const holdForSetup = (gap: SetupRequiredDetail) => {
+      pauseForSetup(gap, {
+        action: "charging",
+        tried: opts?.setupTried,
+        resume: (tried) =>
+          void onChargeRef.current?.({ ...opts, setupTried: tried }),
+        onBlocked: setError,
+      });
+    };
+    // With shifts switched off the server opens a hidden one on the first sale.
+    if (!shiftsDisabled) {
+      try {
+        await fetchCurrentShift(bid, { toast: false });
+      } catch (e) {
+        setCharging(false);
+        const gap = setupGapFromShiftProbe(e);
+        if (gap) {
+          holdForSetup(gap);
+        } else {
+          setError(e instanceof Error ? e.message : "No open shift.");
+        }
+        return;
+      }
     }
 
     const payments = splitPay
@@ -748,6 +783,10 @@ export function ButcherCashierWorkspace() {
 
         setCharging(false);
         if (!completeResult.ok) {
+          if (completeResult.setup) {
+            holdForSetup(completeResult.setup);
+            return;
+          }
           setError(completeResult.message);
           return;
         }
@@ -781,6 +820,10 @@ export function ButcherCashierWorkspace() {
     );
     setCharging(false);
     if (!result.ok) {
+      if (result.setup) {
+        holdForSetup(result.setup);
+        return;
+      }
       setError(result.message);
       return;
     }
@@ -807,7 +850,9 @@ export function ButcherCashierWorkspace() {
     refreshPosDraftList,
     splitMpesaRef,
     splitPay,
+    shiftsDisabled,
   ]);
+  onChargeRef.current = onCharge;
 
   const categories = useMemo(() => {
     const all = { id: null as string | null, label: "All" };

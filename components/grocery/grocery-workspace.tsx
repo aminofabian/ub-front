@@ -45,6 +45,7 @@ import {
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
@@ -1693,6 +1694,7 @@ export function GroceryWorkspace() {
       </header>
 
       <BranchRequiredBanner />
+      <SetupRequirementHost />
 
       {/* ── Error Toast ── */}
       {error && (

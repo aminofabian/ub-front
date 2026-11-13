@@ -95,6 +95,7 @@ export default function BusinessConfigurationPage() {
     }
     return [
       editor.shiftSettings.prefillOpeningFromLastClose,
+      !editor.shiftSettings.disabled,
       editor.cashierCapabilities.priceEdit,
       editor.cashierCapabilities.createProduct,
       editor.cashierCapabilities.weighedToggle,

@@ -37,6 +37,7 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
+import { isBuyerAccount } from "@/lib/buyer-role";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchBusiness,
@@ -187,6 +188,14 @@ function LoginPageContent() {
         window.location.replace(
           safeNext ?? (office ? APP_ROUTES.overview : APP_ROUTES.business),
         );
+        return;
+      }
+      // A shopper session left on this device (a customer who signed in to
+      // the shop, or a staff member's own shopping account) is not a staff
+      // sign-in. Forwarding it sent everyone who opened this page straight
+      // back to the storefront, so they never saw the form. Stay here; signing
+      // in replaces that session.
+      if (isBuyerAccount(me)) {
         return;
       }
       window.location.replace(

@@ -15,8 +15,13 @@ import { normalizeWhatsApp } from "@/lib/whatsapp-order";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
-import { getSessionTokens } from "@/lib/auth";
+import {
+  getSessionTokens,
+  hasAccessSession,
+  hasSessionPresenceCookie,
+} from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { useSessionRestoreFailed } from "@/lib/session-restore-status";
 
 const STOREFRONT_PREVIEW_LANDING_PARAM = "previewLanding";
@@ -35,9 +40,20 @@ export function useLandingOwnerRedirect() {
     let cancelled = false;
     void (async () => {
       try {
-        const tokens = getSessionTokens();
-        if (!tokens?.accessToken) {
-          return;
+        // Browsers hold no access JWT (cookie-only sessions), so a token check
+        // here never matched and owners were left on the landing page. Go by
+        // the session claims, restoring them from the cookie when only the
+        // presence hint is left.
+        if (!hasAccessSession() && !getSessionTokens()) {
+          if (!hasSessionPresenceCookie()) {
+            return;
+          }
+          const restored = await restoreClientSessionFromCookie().catch(
+            () => false,
+          );
+          if (cancelled || !restored) {
+            return;
+          }
         }
         const me = await fetchMe();
         if (cancelled || !me) {

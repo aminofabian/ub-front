@@ -10,7 +10,7 @@ import {
   updateWebOrderFulfillment,
   type WebOrderSummary,
 } from "@/lib/api";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import {
   DESKTOP_THERMAL_WIDTH_MM,
   printWebOrderReceipt,
@@ -119,7 +119,8 @@ export function CashierWebOrdersPanel() {
 
   // Live refresh on new/paid order frames (skip historical polls).
   useEffect(() => {
-    if (!canView || !getSessionTokens()) return;
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    if (!canView || (!hasAccessSession() && !getSessionTokens())) return;
     const client = getRealtimeClient();
     const unregister = client.registerListener("cashier-web-orders", {
       channels: ["notifications"],

@@ -84,7 +84,7 @@ import {
   fetchShopperPickupOrderDetail,
 } from "@/lib/api";
 import { useClientHasSession } from "@/hooks/use-client-session";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { joinProductNameParts } from "@/lib/catalog-display";
 import { joinKenyanCheckoutPhone } from "@/lib/kenyan-phone";
 import { APP_ROUTES } from "@/lib/config";
@@ -147,6 +147,7 @@ function shopperIsSignedIn(serverAuthenticated = false): boolean {
     return serverAuthenticated;
   }
   return (
+    hasAccessSession() ||
     getSessionTokens() != null ||
     Boolean(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)) ||
     serverAuthenticated
@@ -777,8 +778,8 @@ export default function ShopCheckoutForm({
     let loadedAddressFromHistory = false;
 
     // Signed-in shoppers without server profile: enrich from account history
-    const tokens = getSessionTokens();
-    if (!tokens) return;
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    if (!hasAccessSession() && !getSessionTokens()) return;
 
     try {
       const overview = await fetchShopperAccountOverview(0, 1);

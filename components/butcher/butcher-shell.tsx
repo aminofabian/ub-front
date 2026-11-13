@@ -20,6 +20,7 @@ import {
 } from "@/components/butcher/butcher-theme-provider";
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { PosReadinessBanner } from "@/components/pos-readiness-banner";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -212,6 +213,7 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
 
       <BranchRequiredBanner />
       <PosReadinessBanner />
+      <SetupRequirementHost />
 
       <ButcherNav />
 

@@ -99,10 +99,19 @@ function sectionSummary(
     case "settings-shifts":
       return (
         <>
-          Prefill float{" "}
+          Shifts{" "}
           <span className="font-semibold">
-            {shiftSettings.prefillOpeningFromLastClose ? "on" : "off"}
+            {shiftSettings.disabled ? "off" : "on"}
           </span>
+          {shiftSettings.disabled ? null : (
+            <>
+              {" "}
+              · Prefill float{" "}
+              <span className="font-semibold">
+                {shiftSettings.prefillOpeningFromLastClose ? "on" : "off"}
+              </span>
+            </>
+          )}
         </>
       );
     case "settings-pos-drafts":
@@ -206,9 +215,13 @@ function ConfigurationContextBanner({
         </button>
         <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-muted-foreground">
           <Banknote className="size-3" aria-hidden />
-          Prefill{" "}
+          {shiftSettings.disabled ? "Shifts " : "Prefill "}
           <span className="font-semibold text-foreground">
-            {shiftSettings.prefillOpeningFromLastClose ? "on" : "off"}
+            {shiftSettings.disabled
+              ? "off"
+              : shiftSettings.prefillOpeningFromLastClose
+                ? "on"
+                : "off"}
           </span>
         </span>
         <span className="inline-flex items-center gap-1 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-muted-foreground">
@@ -307,9 +320,13 @@ function ConfigurationPulse({
             </span>
           </li>
           <li>
-            Prefill float{" "}
+            {shiftSettings.disabled ? "Shifts " : "Prefill float "}
             <span className="font-semibold text-foreground">
-              {shiftSettings.prefillOpeningFromLastClose ? "on" : "off"}
+              {shiftSettings.disabled
+                ? "off"
+                : shiftSettings.prefillOpeningFromLastClose
+                  ? "on"
+                  : "off"}
             </span>
           </li>
           <li>

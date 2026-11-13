@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { BranchRequiredBanner } from "@/components/branch-required-banner";
+import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { BranchSwitcher } from "@/components/branches/branch-switcher";
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
@@ -2095,6 +2096,7 @@ export function AppShell({ children }: AppShellProps) {
         <SubscriptionStatusBanner />
         {isStockManager ? null : <SubscriptionPlanFitBanner />}
         <BranchRequiredBanner />
+        <SetupRequirementHost />
         {canManageBusinessSettings ? <SetupProgressContextStrip /> : null}
 
         {/* ── Main content ───────────────────────────────────────────────────── */}

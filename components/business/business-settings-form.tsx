@@ -142,19 +142,29 @@ function ToggleRow({
   title,
   description,
   icon,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   title: string;
   description: string;
   icon?: ReactNode;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/55 bg-background px-2.5 py-2 text-sm transition-colors hover:bg-muted/40">
+    <label
+      className={cn(
+        "flex items-start gap-2.5 rounded-lg border border-border/55 bg-background px-2.5 py-2 text-sm transition-colors",
+        disabled
+          ? "cursor-not-allowed opacity-60"
+          : "cursor-pointer hover:bg-muted/40",
+      )}
+    >
       <input
         type="checkbox"
         className="mt-0.5 size-3.5 shrink-0 rounded border-input text-primary focus:ring-ring"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="min-w-0 flex-1 space-y-0.5">
@@ -1548,9 +1558,22 @@ export function BusinessSettingsForm({
             <FormDrawerFields
             compact
               legend="Shifts & cash drawer"
-              hint="How opening float is prepared when a cashier starts a shift."
+              hint="Whether tills use shifts, and how opening float is prepared when a cashier starts one."
             >
               <ToggleRow
+                checked={!shiftSettings.disabled}
+                onChange={(checked) =>
+                  setShiftSettings((previous) => ({
+                    ...previous,
+                    disabled: !checked,
+                  }))
+                }
+                icon={<Banknote className="size-4 text-muted-foreground" />}
+                title="Use shifts"
+                description="Cashiers open a shift with a counted float and close it with a cash count. Turn this off and tills sell straight away, with no shift to open and no drawer count. Turning it back on clears unfinished carts saved on tills."
+              />
+              <ToggleRow
+                disabled={shiftSettings.disabled}
                 checked={shiftSettings.prefillOpeningFromLastClose}
                 onChange={(checked) =>
                   setShiftSettings((previous) => ({

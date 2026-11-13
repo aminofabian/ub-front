@@ -23,6 +23,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
+import { SetupExplainer } from "@/components/setup/setup-explainer";
 import {
   fetchLastClosedShiftFloat,
   fetchShiftDetail,
@@ -519,6 +520,8 @@ export function OpenShiftModal({
   lockBranchSelectionTo,
   requireAction = false,
   allowZeroFloat = false,
+  explain = false,
+  onSkipShifts,
 }: {
   open: boolean;
   onClose: () => void;
@@ -535,6 +538,17 @@ export function OpenShiftModal({
    * When true, empty float is allowed so new owners aren't stuck before selling.
    */
   allowZeroFloat?: boolean;
+  /**
+   * Opened because a sale was blocked, not because someone chose to: lead with what a shift is
+   * and why a till needs one. Also lets the float start empty, so a new shop is not stuck
+   * before its first sale.
+   */
+  explain?: boolean;
+  /**
+   * Offered to owners next to the count: sell without shifts at all. Should save the setting
+   * and resolve; the modal closes itself afterwards. Reject with a message to show in place.
+   */
+  onSkipShifts?: () => Promise<void>;
 }) {
   const featureFlags = useFeatureFlags();
   const dashboard = useOptionalDashboard();
@@ -542,6 +556,7 @@ export function OpenShiftModal({
   const useDenomBreakdown = supportsCashDenominationBreakdown(currency);
   const prefillFromLastClose =
     isPrefillOpeningFromLastCloseEnabled(featureFlags);
+  const zeroFloatOk = allowZeroFloat || explain;
   const businessId = dashboard?.business?.id?.trim() ?? "";
   const userId = dashboard?.me?.id?.trim() ?? "";
 
@@ -558,8 +573,27 @@ export function OpenShiftModal({
   /** When true, skip last-close API prefill — user draft takes priority. */
   const [skipPrefillFromDraft, setSkipPrefillFromDraft] = useState(false);
   const skipPersistRef = useRef(true);
+  const [confirmingSkip, setConfirmingSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const [skipError, setSkipError] = useState("");
+  const skipPanelRef = useRef<HTMLDivElement | null>(null);
 
   const lockedBranch = lockBranchSelectionTo?.trim() ?? "";
+
+  // Each time the modal opens, start with the "sell without shifts" prompt folded away.
+  useEffect(() => {
+    if (!open) return;
+    setConfirmingSkip(false);
+    setSkipping(false);
+    setSkipError("");
+  }, [open]);
+
+  // The prompt sits at the top of the body; bring it into view if the count was scrolled.
+  useEffect(() => {
+    if (confirmingSkip) {
+      skipPanelRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [confirmingSkip]);
 
   // Restore draft or reset when modal opens.
   useEffect(() => {
@@ -713,7 +747,7 @@ export function OpenShiftModal({
       setError("Please select a branch/register.");
       return;
     }
-    if (totalCash < 0 || (!allowZeroFloat && totalCash <= 0)) {
+    if (totalCash < 0 || (!zeroFloatOk && totalCash <= 0)) {
       setError(
         useDenomBreakdown
           ? "Please enter at least one denomination quantity."
@@ -747,7 +781,7 @@ export function OpenShiftModal({
     quantities,
     totalCash,
     useDenomBreakdown,
-    allowZeroFloat,
+    zeroFloatOk,
     businessId,
     userId,
     onOpened,
@@ -778,6 +812,24 @@ export function OpenShiftModal({
     }
   }, [branchId, notes, businessId, userId, onOpened, onClose]);
 
+  const skipShifts = useCallback(async () => {
+    if (!onSkipShifts) return;
+    setSkipError("");
+    setSkipping(true);
+    try {
+      await onSkipShifts();
+      onClose();
+    } catch (e) {
+      setSkipError(
+        e instanceof Error && e.message
+          ? e.message
+          : "Could not turn shifts off. Try again.",
+      );
+    } finally {
+      setSkipping(false);
+    }
+  }, [onSkipShifts, onClose]);
+
   return (
     <Dialog
       open={open}
@@ -804,10 +856,16 @@ export function OpenShiftModal({
             </span>
             <div className="min-w-0 flex-1 space-y-0.5 pr-9">
               <DialogTitle className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]">
-                {allowZeroFloat ? "Open till for first sale" : "Open New Shift"}
+                {explain
+                  ? "Open a shift to start selling"
+                  : allowZeroFloat
+                    ? "Open till for first sale"
+                    : "Open New Shift"}
               </DialogTitle>
               <DialogDescription className="text-[12px] leading-relaxed text-[var(--op-muted)]">
-                {allowZeroFloat
+                {explain
+                  ? "This till has no open shift, so it cannot sell yet. Count the cash in the drawer, or start with an empty float."
+                  : allowZeroFloat
                   ? "Count what's in the drawer, or start with an empty float — then ring your first sale."
                   : requireAction
                     ? "No shift is open on this till. Count the float before selling."
@@ -823,6 +881,61 @@ export function OpenShiftModal({
 
           <div className={SHIFT_MODAL_BODY}>
             <div className="space-y-2">
+              {onSkipShifts && confirmingSkip ? (
+                <div
+                  ref={skipPanelRef}
+                  role="group"
+                  aria-label="Sell without shifts"
+                  className="space-y-2 border border-[var(--op-rule)] px-3 py-2.5"
+                >
+                  <p className="text-[12px] leading-relaxed text-[var(--op-muted)]">
+                    Sales will be saved without a cash-drawer count, and nobody has to
+                    open or close a shift. You can switch shifts back on in Business
+                    settings; doing so clears unfinished carts saved on tills.
+                  </p>
+                  {skipError ? (
+                    <DashboardFeedback kind="error" text={skipError} />
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={skipping}
+                      onClick={() => void skipShifts()}
+                      className={SHIFT_MODAL_BTN_PRIMARY}
+                    >
+                      {skipping ? "Saving…" : "Sell without shifts"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={skipping}
+                      onClick={() => {
+                        setConfirmingSkip(false);
+                        setSkipError("");
+                      }}
+                      className={SHIFT_MODAL_BTN_OUTLINE}
+                    >
+                      Keep shifts
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              {explain ? (
+                <SetupExplainer
+                  items={[
+                    {
+                      label: "What is a shift?",
+                      body: "A shift is one cashier's session on a till. It starts when you count the cash in the drawer and ends when you count it again.",
+                    },
+                    {
+                      label: "Why it matters",
+                      body: "Sales are recorded against the open shift, and the closing count is checked against the opening float, so cash that goes missing shows up as a difference.",
+                    },
+                  ]}
+                />
+              ) : null}
               {/* Branch select */}
               <div className="space-y-1.5">
                 <label className={dashboardFilterFieldLabelClass()}>
@@ -902,16 +1015,25 @@ export function OpenShiftModal({
 
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
+            {onSkipShifts && !confirmingSkip ? (
+              <button
+                type="button"
+                className="text-left text-[12px] text-[var(--op-muted)] underline underline-offset-2 hover:text-[var(--op-ink)] sm:mr-auto sm:self-center"
+                onClick={() => setConfirmingSkip(true)}
+              >
+                Prefer not to use shifts?
+              </button>
+            ) : null}
             <DialogClose asChild>
               <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
-                {requireAction ? "Later" : "Cancel"}
+                {requireAction ? "Later" : explain ? "Not now" : "Cancel"}
               </Button>
             </DialogClose>
-            {allowZeroFloat ? (
+            {zeroFloatOk ? (
               <Button
                 type="button"
                 variant="outline"
-                disabled={loading || prefillBusy || !branchId}
+                disabled={loading || prefillBusy || skipping || !branchId}
                 onClick={() => void openWithEmptyFloat()}
                 className={SHIFT_MODAL_BTN_OUTLINE}
               >
@@ -920,7 +1042,7 @@ export function OpenShiftModal({
             ) : null}
             <Button
               type="button"
-              disabled={loading || prefillBusy}
+              disabled={loading || prefillBusy || skipping}
               onClick={handleOpen}
               className={SHIFT_MODAL_BTN_PRIMARY}
             >

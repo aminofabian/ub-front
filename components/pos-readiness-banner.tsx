@@ -6,6 +6,7 @@ import { Banknote, MonitorSmartphone } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { fetchCurrentShift } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -19,6 +20,7 @@ import {
   type PosGuidanceDetail,
 } from "@/lib/pos-guidance";
 import { isOpenShiftStatus } from "@/lib/pos-till-shift-gate";
+import { isShiftsDisabled } from "@/lib/shift-settings";
 import { fetchTillDeviceMe } from "@/lib/till-devices-api";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,8 @@ export function PosReadinessBanner() {
   const pathname = usePathname();
   const online = useOnlineStatus();
   const { me, branchId } = useDashboard();
+  // With shifts switched off there is no open shift to ask for, so that row never shows.
+  const shiftsDisabled = isShiftsDisabled(useFeatureFlags());
   const [active, setActive] = useState<Set<PosGuidanceKind>>(() => new Set());
 
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
@@ -108,24 +112,28 @@ export function PosReadinessBanner() {
         if (!cancelled) markActive("register-till");
       });
 
-    void fetchCurrentShift(bid, { toast: false })
-      .then((shift) => {
-        if (!cancelled) {
-          if (isOpenShiftStatus(shift.status)) {
-            markResolved("open-shift");
-          } else {
-            markActive("open-shift");
+    if (shiftsDisabled) {
+      markResolved("open-shift");
+    } else {
+      void fetchCurrentShift(bid, { toast: false })
+        .then((shift) => {
+          if (!cancelled) {
+            if (isOpenShiftStatus(shift.status)) {
+              markResolved("open-shift");
+            } else {
+              markActive("open-shift");
+            }
           }
-        }
-      })
-      .catch(() => {
-        if (!cancelled) markActive("open-shift");
-      });
+        })
+        .catch(() => {
+          if (!cancelled) markActive("open-shift");
+        });
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [bid, online, markActive, markResolved]);
+  }, [bid, online, shiftsDisabled, markActive, markResolved]);
 
   const onCashierRoute = pathname === APP_ROUTES.cashier;
 
@@ -140,9 +148,9 @@ export function PosReadinessBanner() {
   const rows = useMemo(() => {
     const kinds: PosGuidanceKind[] = [];
     if (active.has("register-till")) kinds.push("register-till");
-    if (active.has("open-shift")) kinds.push("open-shift");
+    if (!shiftsDisabled && active.has("open-shift")) kinds.push("open-shift");
     return kinds;
-  }, [active]);
+  }, [active, shiftsDisabled]);
 
   if (rows.length === 0) {
     return null;

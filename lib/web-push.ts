@@ -1,7 +1,12 @@
 "use client";
 
 import { apiRequest, ApiRequestError } from "@/lib/api";
-import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
+import {
+  getSessionTenantHost,
+  getSessionTenantId,
+  getSessionTokens,
+  hasAccessSession,
+} from "@/lib/auth";
 
 type PushConfig = {
   enabled: boolean;
@@ -21,8 +26,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export async function fetchPushConfig(): Promise<PushConfig> {
-  const tokens = getSessionTokens();
-  if (!tokens) {
+  // Cookie-only browser sessions carry claims, not a JS-readable token.
+  if (!hasAccessSession() && !getSessionTokens()) {
     return { enabled: false, publicKey: null };
   }
   const tenantId = getSessionTenantId();
@@ -75,7 +80,7 @@ export async function registerWebPushSubscription(): Promise<boolean> {
     return false;
   }
 
-  if (!getSessionTokens()) {
+  if (!hasAccessSession() && !getSessionTokens()) {
     return false;
   }
 

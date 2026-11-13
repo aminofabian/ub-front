@@ -56,6 +56,11 @@ import type {
 import { notifyBranchRequired } from "@/lib/branch-guidance";
 import { notifyPosGuidance } from "@/lib/pos-guidance";
 import {
+  notifySetupRequired,
+  parseSetupRequired,
+  type SetupRequiredDetail,
+} from "@/lib/setup-requirements";
+import {
   parseProblem,
   formatApiProblemMessage,
   getBranchGuidanceKind,
@@ -200,6 +205,15 @@ function notifyHttpErrorToast(
       message: status != null ? `${message} (HTTP ${status})` : message,
       kind: "api_unreachable",
     });
+    return;
+  }
+  /*
+   * Tagged "set this up first" problems (no branch, no open shift, unregistered till) open a
+   * dialog that explains the thing and lets the person fix it on the spot. When no dialog host
+   * is mounted on this screen we fall through to the older banner path below.
+   */
+  const setup = parseSetupRequired(payload);
+  if (setup && notifySetupRequired(setup)) {
     return;
   }
   const branchKind = getBranchGuidanceKind(message);
@@ -1666,6 +1680,11 @@ export type FeatureFlagsPatchPayload = {
   /** Search-first hybrid POS catalog (list + chips). Absent / false = grid. */
   posCatalogHybrid?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;
+  /**
+   * Turn shifts off: tills sell without anyone opening one (the server keeps a hidden
+   * shift per till). Turning it back on closes those hidden shifts.
+   */
+  shiftsDisabled?: boolean;
   tillListen?: {
     checkout?: boolean;
     openCart?: boolean;
@@ -8989,6 +9008,26 @@ export async function voidWebOrder(orderId: string): Promise<WebOrderDetail> {
   );
 }
 
+export type WebOrderClearResult = {
+  voided: number;
+  failed: number;
+  moreRemaining: boolean;
+};
+
+/** Void every open web order. Pass the desk's branch so other branches stay. */
+export async function clearOpenWebOrders(
+  branchId?: string | null,
+): Promise<WebOrderClearResult> {
+  const params = new URLSearchParams();
+  const branch = branchId?.trim();
+  if (branch) params.set("branchId", branch);
+  const qs = params.toString();
+  return request<WebOrderClearResult>(
+    `/api/v1/web-orders/clear${qs ? `?${qs}` : ""}`,
+    { method: "POST", toast: false },
+  );
+}
+
 /**
  * Record that payment was received off-platform (cash, send-money, till).
  * Unlocks the fulfilment path for a previously `pending_payment` order.
@@ -11198,6 +11237,8 @@ export type ShiftListItem = {
   registerName?: string | null;
   shiftNumber?: string | null;
   cashTakenOut?: number | string | null;
+  /** The hidden shift the system keeps for a till while shifts are switched off. */
+  autoManaged?: boolean;
 };
 
 export type ShiftListResponse = {
@@ -11782,7 +11823,13 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
 
 export type PostSaleAttemptResult =
   | { ok: true; sale: SaleRecord }
-  | { ok: false; status: number; message: string };
+  | {
+      ok: false;
+      status: number;
+      message: string;
+      /** Set when the API says something has to be set up first (no open shift, unregistered till). */
+      setup?: SetupRequiredDetail;
+    };
 
 function isTransientSaleFailure(r: PostSaleAttemptResult): boolean {
   if (r.ok) {
@@ -11891,7 +11938,10 @@ export async function tryPostSale(
   if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
     return { ok: false, status: response.status, message };
   }
-  return { ok: false, status: response.status, message };
+  const setup = parseSetupRequired(payload);
+  return setup
+    ? { ok: false, status: response.status, message, setup }
+    : { ok: false, status: response.status, message };
 }
 
 export async function tryPostSaleWithRetries(

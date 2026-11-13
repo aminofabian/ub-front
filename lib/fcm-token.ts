@@ -1,7 +1,7 @@
 "use client";
 
 import { apiRequest } from "@/lib/api";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 
 export type FcmPlatform = "ANDROID" | "IOS";
 
@@ -9,7 +9,7 @@ export async function registerFcmDeviceToken(
   platform: FcmPlatform,
   token: string,
 ): Promise<boolean> {
-  if (!getSessionTokens()) {
+  if (!hasAccessSession() && !getSessionTokens()) {
     return false;
   }
   try {

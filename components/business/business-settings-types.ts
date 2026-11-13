@@ -133,6 +133,11 @@ export type CashierCapabilitiesForm = {
 
 export type ShiftSettingsForm = {
   prefillOpeningFromLastClose: boolean;
+  /**
+   * Shifts switched off: tills sell without anyone opening one. Stored as
+   * `shifts.disabled`, so an absent flag means shifts stay on.
+   */
+  disabled: boolean;
 };
 
 export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
@@ -157,6 +162,7 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
   prefillOpeningFromLastClose: false,
+  disabled: false,
 };
 
 export function cashierCapabilitiesFromRecord(
@@ -186,6 +192,7 @@ export function shiftSettingsFromRecord(
   return {
     prefillOpeningFromLastClose:
       ff[SHIFT_SETTINGS_FLAGS.prefillOpeningFromLastClose] === true,
+    disabled: ff[SHIFT_SETTINGS_FLAGS.disabled] === true,
   };
 }
 

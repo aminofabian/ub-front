@@ -8,7 +8,7 @@ import { showPriceChangedToast } from "@/components/price-changed-toast";
 import type { BrandingRecord } from "@/lib/api";
 import { getNotificationPresentation } from "@/lib/notification-display";
 import { APP_ROUTES } from "@/lib/config";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 import { notifyStorefrontPriceRefresh } from "@/lib/storefront-price-events";
 
@@ -25,7 +25,8 @@ export function ShopStorefrontRealtime({
   brandingRef.current = branding;
 
   useEffect(() => {
-    if (!getSessionTokens()) {
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    if (!hasAccessSession() && !getSessionTokens()) {
       return;
     }
 

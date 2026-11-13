@@ -836,6 +836,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/web-orders/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["clearOpenOrders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/web-orders/{orderId}/void": {
         parameters: {
             query?: never;
@@ -12122,6 +12138,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/by-receipt/{receiptNo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSaleByReceiptNo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/by-mpesa-code/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSaleByMpesaCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/{saleId}": {
         parameters: {
             query?: never;
@@ -18077,6 +18125,13 @@ export interface components {
             workflowUrl?: string;
             lastError?: string;
         };
+        WebOrderClearResponse: {
+            /** Format: int32 */
+            voided: number;
+            /** Format: int32 */
+            failed: number;
+            moreRemaining: boolean;
+        };
         WebOrderDetailResponse: {
             id?: string;
             orderCode?: string;
@@ -18206,6 +18261,7 @@ export interface components {
             branchId: string;
             deviceKey?: string;
             label?: string;
+            /** @description Till chrome. shelf, ledger, or counter. */
             cashierTemplate?: string;
         };
         TillDeviceResponse: {
@@ -18213,6 +18269,7 @@ export interface components {
             branchId?: string;
             deviceKey?: string;
             label?: string;
+            /** @description Till chrome. shelf, ledger, or counter. */
             cashierTemplate?: string;
             registeredBy?: string;
             /** Format: date-time */
@@ -23930,6 +23987,7 @@ export interface components {
             status?: string;
         };
         PatchTillDeviceRequest: {
+            /** @description Till chrome. shelf, ledger, or counter. */
             cashierTemplate?: string;
         };
         PatchSupplierRequest: {
@@ -24230,11 +24288,14 @@ export interface components {
             posCashierOrderConfirm?: boolean;
             posCashierDrawout?: boolean;
             posCashierClearSale?: boolean;
+            /** @description Clear voids every open till tab at once. Absent or false keeps single-tab clear. */
             posCashierClearAllSales?: boolean;
-            /** Cashiers may type an M-Pesa transaction code on the till. Absent / false keeps the prompt only. */
+            /** @description Cashiers may type an M-Pesa transaction code from the customer's message. Absent or false keeps the prompt only. */
             posCashierMpesaCode?: boolean;
             posCatalogHybrid?: boolean;
             shiftsPrefillOpeningFromLastClose?: boolean;
+            /** @description Turn cash-drawer shifts off for the shop. Tills then sell without opening one and sales ride on a hidden system-managed shift. Absent or false keeps shifts required. */
+            shiftsDisabled?: boolean;
             tillListen?: components["schemas"]["PosTillListenFeatureFlagsPatch"];
             hubAlerts?: components["schemas"]["HubAlertsFeatureFlagsPatch"];
             posCashierDrawoutAccess?: components["schemas"]["CashierDrawoutAccessPatch"];
@@ -26279,6 +26340,8 @@ export interface components {
             registerName?: string;
             shiftNumber?: string;
             cashTakenOut?: number;
+            /** @description True for the hidden shift the system keeps for a till while the shop has shifts switched off. */
+            autoManaged?: boolean;
         };
         ShiftListResponse: {
             shifts?: components["schemas"]["ShiftListItemResponse"][];
@@ -26492,7 +26555,7 @@ export interface components {
             customerName?: string;
             paymentMethod?: string;
             paymentMethods?: string;
-            /** Comma-separated M-Pesa and other tender references on the sale. */
+            /** @description Comma-separated M-Pesa and other tender references on the sale. */
             paymentReferences?: string;
             itemId?: string;
             itemName?: string;
@@ -31740,6 +31803,28 @@ export interface operations {
                     "*/*": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    clearOpenOrders: {
+        parameters: {
+            query?: {
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebOrderClearResponse"];
                 };
             };
         };
@@ -51643,6 +51728,51 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ShiftResponse"];
+                };
+            };
+        };
+    };
+    getSaleByReceiptNo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiptNo: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SaleResponse"];
+                };
+            };
+        };
+    };
+    getSaleByMpesaCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description M-Pesa transaction code stored on the sale payment. */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SaleResponse"];
                 };
             };
         };

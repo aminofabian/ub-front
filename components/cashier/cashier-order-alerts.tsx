@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getNotificationPresentation } from "@/lib/notification-display";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, hasAccessSession } from "@/lib/auth";
 import { claimWebOrderPickupTicket } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -187,7 +187,8 @@ export function CashierOrderAlerts() {
   const seenRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!canRead || !getSessionTokens()) {
+    // Cookie-only browser sessions carry claims, not a JS-readable token.
+    if (!canRead || (!hasAccessSession() && !getSessionTokens())) {
       return;
     }
 
