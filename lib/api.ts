@@ -4977,6 +4977,8 @@ export type CatalogListStats = {
   missingPrice: number;
   zeroStock: number;
   lowStock: number;
+  /** Sellable things (packs plus standalone items), as counted by the server. Family rows are not products. */
+  products: number;
 };
 
 /** @deprecated Use CatalogListStats */
@@ -5427,6 +5429,11 @@ export async function fetchCatalogListStats(
     missingPrice: Number(raw?.missingPrice ?? raw?.missing_price ?? 0),
     zeroStock: Number(raw?.zeroStock ?? raw?.zero_stock ?? 0),
     lowStock: Number(raw?.lowStock ?? raw?.low_stock ?? 0),
+    // An older server doesn't send the total; packs plus standalone items is the same figure.
+    products: Number(
+      raw?.products ??
+        Number(raw?.variants ?? 0) + Number(raw?.standalones ?? 0),
+    ),
   };
 }
 

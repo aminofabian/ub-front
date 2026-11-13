@@ -116,6 +116,7 @@ export function useCatalogList(
     missingPrice: 0,
     zeroStock: 0,
     lowStock: 0,
+    products: 0,
   });
   const [letterJumpBusy, setLetterJumpBusy] = useState(false);
 
@@ -155,6 +156,25 @@ export function useCatalogList(
 
   const stockFiltersNeedBranch =
     (filterZeroStock || filterLowStock) && !branchIdForStock;
+
+  /**
+   * The number beside the list. The server's product count (packs plus standalone items; a
+   * family row only groups its packs) is what a shop means by "products". A needs-a-look,
+   * price or row-type filter narrows the list in ways that count doesn't follow, so there
+   * the figure is the rows that matched.
+   */
+  const listHeadline = useMemo(
+    () =>
+      attentionFiltersActive || rowTypeFilterActive
+        ? { count: listTotalElements, noun: "matching" as const }
+        : { count: catalogStats.products, noun: "products" as const },
+    [
+      attentionFiltersActive,
+      rowTypeFilterActive,
+      listTotalElements,
+      catalogStats.products,
+    ],
+  );
 
   const listStatsOpts = useMemo(
     () => ({
@@ -806,6 +826,7 @@ export function useCatalogList(
     rowTypeFilter,
     rowTypeFilterActive,
     attentionFiltersActive,
+    listHeadline,
     stockFiltersNeedBranch,
     toggleRowTypeFilter,
     setRowTypeFilter,

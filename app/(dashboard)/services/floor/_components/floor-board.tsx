@@ -46,6 +46,7 @@ import {
   type ServiceRecord,
   type ServiceTicketRecord,
 } from "@/lib/service-business-api";
+import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { cn } from "@/lib/utils";
 
 const kes = (n: number) => formatMoney(n, "KES");
@@ -203,13 +204,14 @@ export function FloorBoard() {
                         variant="ghost"
                         size="sm"
                         disabled={busy === ticket.id}
-                        onClick={() =>
+                        onClick={() => {
+                          if (!window.confirm(`Ticket ${ticket.ticketNumber}: did the customer leave?`)) return;
                           void run(
                             ticket.id,
                             () => cancelServiceTicket(ticket.id, { abandoned: true }),
                             "Could not update the ticket.",
-                          )
-                        }
+                          );
+                        }}
                       >
                         Left
                       </Button>
@@ -242,6 +244,7 @@ export function FloorBoard() {
                       >
                         Done
                       </Button>
+                      <CancelButton ticket={ticket} busy={busy === ticket.id} run={run} />
                     </>
                   ) : (
                     <p className={cn("mt-2", dashboardHintClass())}>Free</p>
@@ -273,6 +276,7 @@ export function FloorBoard() {
                       >
                         Not done
                       </Button>
+                      <CancelButton ticket={ticket} busy={busy === ticket.id} run={run} />
                     </div>
                   </li>
                 ))}
@@ -310,6 +314,12 @@ export function FloorBoard() {
       {paying ? (
         <PayDialog
           ticket={paying}
+          onChanged={async (text) => {
+            // The ticket was changed under us (a price update): show why and the new total.
+            setPaying(null);
+            setNotice(text);
+            await refresh();
+          }}
           onClose={() => setPaying(null)}
           onDone={async () => {
             setPaying(null);
@@ -318,6 +328,38 @@ export function FloorBoard() {
         />
       ) : null}
     </div>
+  );
+}
+
+/** Cancels a ticket that has been started. The server only allows it for a manager. */
+function CancelButton({
+  ticket,
+  busy,
+  run,
+}: {
+  ticket: ServiceTicketRecord;
+  busy: boolean;
+  run: (ticketId: string, action: () => Promise<unknown>, failure: string) => Promise<void>;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="mt-1"
+      disabled={busy}
+      onClick={() => {
+        const reason = window.prompt(`Cancel ticket ${ticket.ticketNumber}? Say why.`);
+        if (reason == null) return;
+        if (!reason.trim()) return;
+        void run(
+          ticket.id,
+          () => cancelServiceTicket(ticket.id, { reason: reason.trim() }),
+          "Only a manager can cancel a ticket once the customer has been served.",
+        );
+      }}
+    >
+      Cancel ticket
+    </Button>
   );
 }
 
@@ -587,10 +629,12 @@ function PayDialog({
   ticket,
   onClose,
   onDone,
+  onChanged,
 }: {
   ticket: ServiceTicketRecord;
   onClose: () => void;
   onDone: () => Promise<void> | void;
+  onChanged: (text: string) => Promise<void> | void;
 }) {
   const [method, setMethod] = useState<"cash" | "mpesa_manual">("cash");
   const [tip, setTip] = useState("");
@@ -601,13 +645,12 @@ function PayDialog({
   // One key per ticket payment: a retry never rings the ticket twice.
   const keyRef = useRef<string>(nextIdempotencyKey());
 
-  const tipNumber = tip.trim() === "" ? 0 : Number(tip);
+  const tipNumber = parseMoney(tip) ?? 0;
   const toPay = Math.round((ticket.total + (tipNumber > 0 ? tipNumber : 0)) * 100) / 100;
-  const cashNumber = cash.trim() === "" ? null : Number(cash);
+  const cashNumber = parseMoney(cash);
   const change = method === "cash" && cashNumber != null && cashNumber >= toPay ? cashNumber - toPay : null;
 
   async function pay() {
-    if (!Number.isFinite(tipNumber) || tipNumber < 0) return setError("Check the tip");
     if (method === "cash" && cashNumber != null && cashNumber < toPay) return setError(`That is less than ${kes(toPay)}`);
     setError(null);
     setSaving(true);
@@ -632,6 +675,11 @@ function PayDialog({
       );
       await onDone();
     } catch (err) {
+      if (err instanceof ApiRequestError && err.status === 409) {
+        // The total on screen is out of date; nothing was charged.
+        await onChanged(message(err, "This ticket has changed. Check it and take payment again."));
+        return;
+      }
       setError(message(err, "The payment was not recorded. Try again."));
     } finally {
       setSaving(false);
@@ -656,7 +704,7 @@ function PayDialog({
               placeholder="0"
               value={tip}
               onChange={(e) => {
-                setTip(e.target.value.replace(/[^0-9.]/g, ""));
+                setTip(cleanMoneyText(e.target.value));
                 setError(null);
               }}
             />
@@ -680,7 +728,7 @@ function PayDialog({
                 inputMode="decimal"
                 value={cash}
                 onChange={(e) => {
-                  setCash(e.target.value.replace(/[^0-9.]/g, ""));
+                  setCash(cleanMoneyText(e.target.value));
                   setError(null);
                 }}
               />

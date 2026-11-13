@@ -136,6 +136,17 @@ export async function createStaffWithoutLogin(body: CreateStaffPayload): Promise
   return apiRequest<{ id: string }>(`${API_ROUTES.staff}/profiles`, { method: "POST", body });
 }
 
+/**
+ * Marks the signed-in user as someone who serves customers, creating their staff profile if they
+ * have none. For an owner who works alone.
+ */
+export async function markSelfAsServingCustomers(userId: string): Promise<void> {
+  const profile = await apiRequest<{ id: string }>(
+    `${API_ROUTES.staff}/${encodeURIComponent(userId)}/profile`,
+  );
+  await updateStaffProfileById(profile.id, { bookable: true });
+}
+
 export async function updateStaffProfileById(
   profileId: string,
   body: { displayName?: string; bookable?: boolean; employmentStatus?: "active" | "on_leave" | "terminated" },

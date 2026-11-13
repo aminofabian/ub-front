@@ -51,6 +51,7 @@ type Props = {
     | "setIncludeCategoryDescendants"
     | "resetFilters"
     | "listTotalElements"
+    | "listHeadline"
   >;
   canCreate: boolean;
   onCreateNew: () => void;
@@ -269,7 +270,7 @@ export function ProductMobileChrome({
           </div>
           <div className="flex h-9 shrink-0 items-center gap-2 border-l border-border bg-muted/15 px-2.5">
             <p className="text-[11px] font-semibold tabular-nums tracking-tight text-foreground/55">
-              {catalog.listTotalElements.toLocaleString()}
+              {catalog.listHeadline.count.toLocaleString()}
               {searchPending ? (
                 <span className="font-medium text-foreground/35">…</span>
               ) : null}

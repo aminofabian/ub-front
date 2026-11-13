@@ -12003,11 +12003,27 @@ export interface paths {
         };
         get: operations["listProfiles"];
         put?: never;
-        post?: never;
+        post: operations["createProfile"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateProfileById"];
         trace?: never;
     };
     "/api/v1/sms-credits/purchases/{id}": {
@@ -16652,6 +16668,358 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listServiceCategories"];
+        put?: never;
+        post: operations["createServiceCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["patchServiceCategory"];
+        trace?: never;
+    };
+    "/api/v1/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listServices"];
+        put?: never;
+        post: operations["createService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getService"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteService"];
+        options?: never;
+        head?: never;
+        patch: operations["patchService"];
+        trace?: never;
+    };
+    "/api/v1/services/{id}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setServiceStaff"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCommissionPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/plans/{staffProfileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setCommissionPlan"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["commissionStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/staff/{staffProfileId}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["staffLedgerEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/staff/{staffProfileId}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["adjustStaffEarnings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/staff/{staffProfileId}/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/payouts/{entryId}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reverseStaffPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/performers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listServicePerformers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getServiceStations"];
+        put: operations["setServiceStations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["serviceTicketBoard"];
+        put?: never;
+        post: operations["createServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addServiceTicketLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeServiceTicketLine"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["finishServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reopenServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["payServiceTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -20173,6 +20541,8 @@ export interface components {
             airtimeNetwork?: string;
             sellAtRegular?: boolean;
             airtime?: boolean;
+            serviceId?: string;
+            performerStaffProfileId?: string;
         };
         PostSalePaymentRequest: {
             method: string;
@@ -20188,6 +20558,7 @@ export interface components {
             customerId?: string;
             cashReceived?: number;
             allowOutOfStock?: boolean;
+            tips?: components["schemas"]["PostSaleTipRequest"][];
         };
         SaleItemResponse: {
             id?: string;
@@ -20207,6 +20578,11 @@ export interface components {
             taxCode?: string;
             taxRatePercent?: number;
             taxAmount?: number;
+            serviceId?: string;
+            performerStaffProfileId?: string;
+            performerName?: string;
+            /** Format: int32 */
+            serviceMinutes?: number;
         };
         SalePaymentResponse: {
             method?: string;
@@ -20234,6 +20610,7 @@ export interface components {
             soldByName?: string;
             voidJournalEntryId?: string;
             voidNotes?: string;
+            tipTotal?: number;
         };
         PostVoidSaleRequest: {
             notes?: string;
@@ -24486,6 +24863,9 @@ export interface components {
                 [key: string]: unknown;
             };
             notes?: string;
+            bookable?: boolean;
+            /** Format: int32 */
+            usualStationNo?: number;
         };
         PrivateFields: {
             phone?: string;
@@ -24509,6 +24889,17 @@ export interface components {
             includeInPayroll?: boolean;
             prorateJoinMonth?: boolean;
             joinPayMode?: string;
+            bookable?: boolean;
+            /** Format: int32 */
+            usualStationNo?: number;
+        };
+        CreateStaffProfileRequest: {
+            displayName: string;
+            title?: string;
+            phone?: string;
+            /** Format: date */
+            startDate?: string;
+            bookable?: boolean;
         };
         StaffProfileResponse: {
             id?: string;
@@ -28206,6 +28597,11 @@ export interface components {
             zeroStock?: number;
             /** Format: int64 */
             lowStock?: number;
+            /**
+             * Format: int64
+             * @description Sellable products (packs plus standalone items). Family rows only group their packs and are not counted here, nor in missingBarcode or missingPrice.
+             */
+            products?: number;
         };
         PriceStatusCountsResponse: {
             /** Format: int64 */
@@ -29840,6 +30236,256 @@ export interface components {
             createdAt?: string;
             resolvedAt?: string;
             resolvedBy?: string;
+        };
+        ServiceCategoryResponse: {
+            id?: string;
+            name?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            active?: boolean;
+        };
+        CreateServiceCategoryRequest: {
+            name: string;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        PatchServiceCategoryRequest: {
+            name?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            active?: boolean;
+        };
+        ServiceResponse: {
+            id?: string;
+            categoryId?: string;
+            name?: string;
+            description?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            price?: number;
+            priceIsVariable?: boolean;
+            /** @enum {string} */
+            commissionType?: "PERCENT" | "FIXED";
+            commissionValue?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+            active?: boolean;
+            staffProfileIds?: string[];
+            /** Format: int64 */
+            version?: number;
+        };
+        CreateServiceRequest: {
+            name: string;
+            categoryId?: string;
+            description?: string;
+            /** Format: int32 */
+            durationMinutes: number;
+            price: number;
+            priceIsVariable?: boolean;
+            commissionType?: string;
+            commissionValue?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+            staffProfileIds?: string[];
+        };
+        PatchServiceRequest: {
+            name?: string;
+            categoryId?: string;
+            clearCategory?: boolean;
+            description?: string;
+            clearDescription?: boolean;
+            /** Format: int32 */
+            durationMinutes?: number;
+            price?: number;
+            priceIsVariable?: boolean;
+            commissionType?: string;
+            commissionValue?: number;
+            clearCommission?: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+            active?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        SetServiceStaffRequest: {
+            staffProfileIds: string[];
+        };
+        PageServiceResponse: {
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["ServiceResponse"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            empty?: boolean;
+        };
+        PostSaleTipRequest: {
+            staffProfileId: string;
+            amount: number;
+        };
+        CommissionPlanResponse: {
+            staffProfileId?: string;
+            displayName?: string;
+            bookable?: boolean;
+            current?: boolean;
+            /** @enum {string} */
+            type?: "PERCENT" | "FIXED";
+            rate?: number;
+            productRate?: number;
+        };
+        SetCommissionPlanRequest: {
+            type?: string;
+            rate?: number;
+            productRate?: number;
+        };
+        StatementRow: {
+            staffProfileId?: string;
+            displayName?: string;
+            current?: boolean;
+            /** Format: int64 */
+            servicesDone?: number;
+            serviceRevenue?: number;
+            opening?: number;
+            commission?: number;
+            tips?: number;
+            reversals?: number;
+            adjustments?: number;
+            paid?: number;
+            closing?: number;
+        };
+        StatementResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            rows?: components["schemas"]["StatementRow"][];
+            ledgerTotal?: number;
+            generalLedgerTotal?: number;
+            reconciled?: boolean;
+        };
+        LedgerEntryResponse: {
+            id?: string;
+            staffProfileId?: string;
+            branchId?: string;
+            /** @enum {string} */
+            kind?: "COMMISSION" | "TIP" | "REVERSAL" | "ADJUSTMENT" | "PAYOUT";
+            bucket?: string;
+            amount?: number;
+            baseAmount?: number;
+            rule?: string;
+            source?: string;
+            saleId?: string;
+            saleItemId?: string;
+            reversesId?: string;
+            payoutMethod?: string;
+            reference?: string;
+            reason?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
+        AdjustmentRequest: {
+            amount: number;
+            reason: string;
+        };
+        PayoutRequest: {
+            amount: number;
+            /** @enum {string} */
+            method: "DRAWER" | "MPESA" | "OTHER";
+            branchId?: string;
+            reference?: string;
+            allowOverpay?: boolean;
+        };
+        ServicePerformerResponse: {
+            staffProfileId?: string;
+            displayName?: string;
+        };
+        StationsResponse: {
+            branchId?: string;
+            /** Format: int32 */
+            count?: number;
+        };
+        SetStationsRequest: {
+            branchId: string;
+            /** Format: int32 */
+            count: number;
+        };
+        TicketLineInput: {
+            serviceId: string;
+            unitPrice?: number;
+        };
+        CreateServiceTicketRequest: {
+            branchId: string;
+            clientTicketId: string;
+            customerId?: string;
+            requestedStaffProfileId?: string;
+            lines: components["schemas"]["TicketLineInput"][];
+        };
+        StartTicketRequest: {
+            performerStaffProfileId: string;
+            /** Format: int32 */
+            stationNo: number;
+        };
+        CancelTicketRequest: {
+            reason?: string;
+            abandoned?: boolean;
+        };
+        PayTicketRequest: {
+            payments: components["schemas"]["PostSalePaymentRequest"][];
+            tips?: components["schemas"]["PostSaleTipRequest"][];
+            cashReceived?: number;
+            /** Format: date-time */
+            clientSoldAt?: string;
+        };
+        TicketLineResponse: {
+            id?: string;
+            serviceId?: string;
+            name?: string;
+            unitPrice?: number;
+            lineTotal?: number;
+        };
+        TicketResponse: {
+            id?: string;
+            branchId?: string;
+            /** Format: int64 */
+            ticketNumber?: number;
+            /** @enum {string} */
+            stage?: "WAITING" | "IN_SERVICE" | "READY_TO_PAY" | "ABANDONED";
+            status?: string;
+            /** Format: int32 */
+            stationNo?: number;
+            staffProfileId?: string;
+            staffName?: string;
+            customerId?: string;
+            total?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            saleId?: string;
+            /** Format: int64 */
+            version?: number;
+            lines?: components["schemas"]["TicketLineResponse"][];
+        };
+        ServiceBoardResponse: {
+            branchId?: string;
+            /** Format: int32 */
+            stationCount?: number;
+            tickets?: components["schemas"]["TicketResponse"][];
+        };
+        PaidTicketResponse: {
+            ticket?: components["schemas"]["TicketResponse"];
+            sale?: components["schemas"]["SaleResponse"];
         };
     };
     responses: never;
@@ -51554,6 +52200,56 @@ export interface operations {
             };
         };
     };
+    createProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStaffProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffProfileResponse"];
+                };
+            };
+        };
+    };
+    updateProfileById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStaffProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffProfileResponse"];
+                };
+            };
+        };
+    };
     purchaseStatus: {
         parameters: {
             query?: never;
@@ -58176,6 +58872,678 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listServiceCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceCategoryResponse"][];
+                };
+            };
+        };
+    };
+    createServiceCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateServiceCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceCategoryResponse"];
+                };
+            };
+        };
+    };
+    patchServiceCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchServiceCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceCategoryResponse"];
+                };
+            };
+        };
+    };
+    listServices: {
+        parameters: {
+            query?: {
+                categoryId?: string;
+                active?: boolean;
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageServiceResponse"];
+                };
+            };
+        };
+    };
+    createService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
+    getService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
+    deleteService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    patchService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
+    setServiceStaff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetServiceStaffRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
+    listCommissionPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommissionPlanResponse"][];
+                };
+            };
+        };
+    };
+    setCommissionPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCommissionPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommissionPlanResponse"];
+                };
+            };
+        };
+    };
+    commissionStatement: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatementResponse"];
+                };
+            };
+        };
+    };
+    staffLedgerEntries: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LedgerEntryResponse"][];
+                };
+            };
+        };
+    };
+    adjustStaffEarnings: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LedgerEntryResponse"];
+                };
+            };
+        };
+    };
+    payStaff: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                "X-Till-Device-Id"?: string;
+            };
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LedgerEntryResponse"][];
+                };
+            };
+        };
+    };
+    reverseStaffPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LedgerEntryResponse"][];
+                };
+            };
+        };
+    };
+    listServicePerformers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServicePerformerResponse"][];
+                };
+            };
+        };
+    };
+    getServiceStations: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StationsResponse"];
+                };
+            };
+        };
+    };
+    setServiceStations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetStationsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StationsResponse"];
+                };
+            };
+        };
+    };
+    serviceTicketBoard: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceBoardResponse"];
+                };
+            };
+        };
+    };
+    createServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateServiceTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    addServiceTicketLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketLineInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    removeServiceTicketLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    startServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    finishServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    reopenServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    cancelServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    payServiceTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaidTicketResponse"];
+                };
             };
         };
     };

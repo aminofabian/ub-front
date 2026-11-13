@@ -406,9 +406,9 @@ export function CatalogListColumn({
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <p className={catalogListToolbarMetaClass}>
               <span className="tabular-nums font-medium text-foreground">
-                {catalog.listTotalElements.toLocaleString()}
+                {catalog.listHeadline.count.toLocaleString()}
               </span>{" "}
-              products
+              {catalog.listHeadline.noun}
               {loadedHint ? (
                 <span className="text-muted-foreground"> · {loadedHint}</span>
               ) : null}

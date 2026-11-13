@@ -22,6 +22,7 @@ import {
   fetchServicePerformers,
   fetchServices,
   fetchStationCount,
+  markSelfAsServingCustomers,
   previewCommission,
   setCommissionPlan,
   setStationCount,
@@ -59,7 +60,7 @@ const isConflict = (err: unknown) => err instanceof ApiRequestError && err.statu
  */
 export function ServiceSetupWizard() {
   const router = useRouter();
-  const { business, branchId } = useDashboard();
+  const { business, branchId, me } = useDashboard();
   const stationWord = serviceStationLabel(business).toLowerCase();
 
   const [index, setIndex] = useState(0);
@@ -152,6 +153,11 @@ export function ServiceSetupWizard() {
         if (!alone && everyone.length === 0) {
           setError("Add at least one person, or choose I work alone");
           return;
+        }
+        if (alone && me?.id) {
+          // The owner is the one serving customers, so the till must be able to pick them.
+          await markSelfAsServingCustomers(me.id);
+          setTeam(await fetchServicePerformers());
         }
         const added: string[] = [];
         for (const name of newNames) {
@@ -357,7 +363,7 @@ export function ServiceSetupWizard() {
               ) : null}
               {alone ? (
                 <p className={cn("mt-2", dashboardHintClass())}>
-                  Add yourself under Team on the commissions page when you are ready to ring services.
+                  Services will be rung against you.
                 </p>
               ) : null}
             </>
