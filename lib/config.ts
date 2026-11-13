@@ -101,6 +101,8 @@ export const APP_ROUTES = {
   aisles: "/aisles",
   /** Service catalogue of a service business (kinyozi, salon, spa). */
   services: "/services",
+  /** Ring a service at the counter against the person who did it. */
+  servicesSell: "/services/sell",
   /** What each staff member earned, was paid and is owed. */
   commissions: "/commissions",
   /** Simple store-room register — not sellable catalog / inventory stock. */

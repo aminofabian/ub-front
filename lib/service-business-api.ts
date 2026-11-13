@@ -97,6 +97,16 @@ export async function deleteService(id: string): Promise<void> {
   await apiRequest<void>(`${API_ROUTES.services}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export type ServicePerformerRecord = {
+  staffProfileId: string;
+  displayName: string;
+};
+
+/** Staff who serve customers — the till's "who did it" list. Open to anyone who can sell. */
+export async function fetchServicePerformers(): Promise<ServicePerformerRecord[]> {
+  return apiRequest<ServicePerformerRecord[]>(`${API_ROUTES.services}/performers`);
+}
+
 // ------------------------------------------------------------------ staff
 
 export type CreateStaffPayload = {

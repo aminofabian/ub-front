@@ -292,6 +292,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Scissors,
     entryHref: APP_ROUTES.services,
     items: [
+      { href: APP_ROUTES.servicesSell, label: "Ring a service" },
       { href: APP_ROUTES.services, label: "Services" },
       { href: APP_ROUTES.commissions, label: "Commissions" },
     ],
@@ -760,6 +761,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
+  if (item.href === APP_ROUTES.servicesSell)
+    return gate.isServiceBusiness && gate.canSell;
   if (item.href === APP_ROUTES.services)
     return gate.isServiceBusiness && (gate.canManageServices || gate.canSell);
   if (item.href === APP_ROUTES.commissions)

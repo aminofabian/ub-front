@@ -11649,10 +11649,19 @@ export type PostSaleLinePayload = {
   itemId?: string;
   quantity: number | string;
   unitPrice: number | string;
-  kind?: "ITEM" | "AIRTIME";
+  kind?: "ITEM" | "AIRTIME" | "SERVICE";
   label?: string;
   airtimePhone?: string;
   airtimeNetwork?: string;
+  /** `SERVICE` lines: the service sold and the staff profile that performed it. */
+  serviceId?: string;
+  performerStaffProfileId?: string;
+};
+
+/** A tip for a staff member who performed a service on the sale; not part of the sale total. */
+export type PostSaleTipPayload = {
+  staffProfileId: string;
+  amount: number | string;
 };
 
 export type PostSalePaymentPayload = {
@@ -11676,6 +11685,8 @@ export type PostSalePayload = {
    * short on hand. Requires `inventory.write`; ignored otherwise.
    */
   allowOutOfStock?: boolean;
+  /** Tips for staff on this sale. The payments must cover the total plus the tips. */
+  tips?: PostSaleTipPayload[];
 };
 
 export type SaleItemResponseRecord = {
@@ -11791,6 +11802,12 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
       if (l.airtimeNetwork?.trim()) {
         row.airtimeNetwork = l.airtimeNetwork.trim();
       }
+      if (l.serviceId?.trim()) {
+        row.serviceId = l.serviceId.trim();
+      }
+      if (l.performerStaffProfileId?.trim()) {
+        row.performerStaffProfileId = l.performerStaffProfileId.trim();
+      }
       return row;
     }),
     payments: body.payments.map((p) => {
@@ -11811,6 +11828,12 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   const cust = body.customerId?.trim();
   if (cust) {
     payload.customerId = cust;
+  }
+  if (body.tips && body.tips.length > 0) {
+    payload.tips = body.tips.map((t) => ({
+      staffProfileId: t.staffProfileId.trim(),
+      amount: t.amount,
+    }));
   }
   if (body.cashReceived != null && body.cashReceived !== "") {
     payload.cashReceived = body.cashReceived;
