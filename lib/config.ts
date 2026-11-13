@@ -99,6 +99,10 @@ export const APP_ROUTES = {
     `/products/p/${encodeURIComponent(slug)}`,
   itemTypes: "/item-types",
   aisles: "/aisles",
+  /** Service catalogue of a service business (kinyozi, salon, spa). */
+  services: "/services",
+  /** What each staff member earned, was paid and is owed. */
+  commissions: "/commissions",
   /** Simple store-room register — not sellable catalog / inventory stock. */
   store: "/store",
   categories: "/categories",
@@ -290,6 +294,9 @@ export const API_ROUTES = {
   items: "/api/v1/items",
   itemTypes: "/api/v1/item-types",
   aisles: "/api/v1/aisles",
+  services: "/api/v1/services",
+  serviceCategories: "/api/v1/service-categories",
+  commissions: "/api/v1/commissions",
   storeItems: "/api/v1/store-items",
   /** Store room ↔ inventory connection choice + census. */
   storeRoomSettings: "/api/v1/store-items/settings",

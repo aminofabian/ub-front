@@ -309,3 +309,62 @@ export function cancelSmsCampaign(id: string): Promise<SmsCampaignDetail> {
     { method: "POST", body: {} },
   );
 }
+
+export type SmsContactImportRow = { name?: string; phone: string };
+
+export type SmsContactImportResult = {
+  added: number;
+  alreadyThere: number;
+  markedAgreed: number;
+  keptOptedOut: number;
+  renamed: number;
+  invalid: number;
+  failed: number;
+  invalidSamples: string[];
+};
+
+/** The server takes at most this many numbers per request. */
+export const SMS_CONTACT_IMPORT_BATCH = 500;
+
+export function importSmsContacts(body: {
+  rows: SmsContactImportRow[];
+  customerAgreed: boolean;
+}): Promise<SmsContactImportResult> {
+  return apiRequest("/api/v1/sms-hub/contacts/import", { method: "POST", body });
+}
+
+/** Every contact matching the list's filter and search, for a file download. */
+export function exportSmsContacts(opts: {
+  reach?: SmsReach | null;
+  q?: string;
+}): Promise<{ rows: SmsContactRow[] }> {
+  const params = new URLSearchParams();
+  if (opts.reach) params.set("reach", opts.reach);
+  if (opts.q?.trim()) params.set("q", opts.q.trim());
+  const query = params.toString();
+  return apiRequest(`/api/v1/sms-hub/contacts/export${query ? `?${query}` : ""}`);
+}
+
+export type SmsTestResult = {
+  sent: boolean;
+  phone: string | null;
+  text: string;
+  parts: number;
+  error: string | null;
+};
+
+/** Text the wording to one number. Costs credits like any text. */
+export function sendSmsTest(body: string, phone: string): Promise<SmsTestResult> {
+  return apiRequest("/api/v1/customer-sms-campaigns/test", {
+    method: "POST",
+    body: { body, phone },
+  });
+}
+
+/** A new draft with the same wording and audience as an earlier campaign. */
+export function duplicateSmsCampaign(id: string): Promise<SmsCampaignDetail> {
+  return apiRequest(
+    `/api/v1/customer-sms-campaigns/${encodeURIComponent(id)}/duplicate`,
+    { method: "POST", body: {} },
+  );
+}

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, MessageSquarePlus, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Download, Loader2, MessageSquarePlus, Search, UserPlus } from "lucide-react";
 
 import {
   DASHBOARD_SECTION_SURFACE,
@@ -10,6 +10,8 @@ import {
   DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   dashboardInputClass,
+  dashboardLabelClass,
+  dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
 import {
   Chip,
@@ -25,9 +27,14 @@ import {
 } from "@/components/sms-hub/sms-hub-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
+import { contactsToCsv, downloadCsv, parseContactLines } from "@/lib/sms-contact-file";
 import {
+  SMS_CONTACT_IMPORT_BATCH,
+  exportSmsContacts,
   fetchSmsContacts,
+  importSmsContacts,
   updateSmsConsent,
+  type SmsContactImportResult,
   type SmsConsentStatus,
   type SmsContactCounts,
   type SmsContactRow,
@@ -75,6 +82,26 @@ export function SmsHubContacts({
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const download = async () => {
+    setExporting(true);
+    setFeedback(null);
+    try {
+      const res = await exportSmsContacts({ reach, q: debounced });
+      const list = res.rows ?? [];
+      if (list.length === 0) {
+        setFeedback({ kind: "error", text: "There are no contacts to download." });
+        return;
+      }
+      downloadCsv(`sms-contacts-${new Date().toISOString().slice(0, 10)}.csv`, contactsToCsv(list));
+    } catch (err) {
+      setFeedback({ kind: "error", text: errorText(err, "Could not download the list.") });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -206,17 +233,58 @@ export function SmsHubContacts({
             next time they pay, then add it on the customer&rsquo;s page.
           </p>
         ) : null}
-        <label className="mt-3 flex max-w-sm items-center gap-2">
-          <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <input
-            className={dashboardInputClass()}
-            placeholder="Search by name or number"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search contacts by name or number"
-          />
-        </label>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="flex min-w-[14rem] max-w-sm flex-1 items-center gap-2">
+            <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <input
+              className={dashboardInputClass()}
+              placeholder="Search by name or number"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search contacts by name or number"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {canManage ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={adding ? "secondary" : "outline"}
+                aria-expanded={adding}
+                onClick={() => setAdding((open) => !open)}
+              >
+                <UserPlus className="size-3.5" aria-hidden />
+                Add numbers
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={exporting || totalRows === 0}
+              onClick={() => void download()}
+            >
+              {exporting ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Download className="size-3.5" aria-hidden />
+              )}
+              Download list
+            </Button>
+          </div>
+        </div>
       </section>
+
+      {canManage && adding ? (
+        <AddNumbers
+          onClose={() => setAdding(false)}
+          onDone={() => {
+            setPage(0);
+            setReloadKey((k) => k + 1);
+            onChanged();
+          }}
+        />
+      ) : null}
 
       {feedback ? <DashboardFeedback kind={feedback.kind} text={feedback.text} /> : null}
 
@@ -389,5 +457,166 @@ export function SmsHubContacts({
         ) : null}
       </section>
     </div>
+  );
+}
+
+function importSummary(total: SmsContactImportResult): string {
+  const parts: string[] = [];
+  parts.push(total.added === 0 ? "No new numbers added" : `${plural(total.added, "number")} added`);
+  if (total.alreadyThere > 0) parts.push(`${total.alreadyThere} already on your list`);
+  if (total.renamed > 0) parts.push(`${plural(total.renamed, "name")} filled in`);
+  if (total.markedAgreed > 0) parts.push(`${total.markedAgreed} marked as agreed to offers`);
+  if (total.keptOptedOut > 0) parts.push(`${total.keptOptedOut} opted out earlier and stay opted out`);
+  let text = `${parts.join(", ")}.`;
+  if (total.invalid > 0) {
+    const shown = total.invalidSamples.slice(0, 5).join(", ");
+    text += ` ${plural(total.invalid, "line")} could not be read as a Kenyan mobile number${
+      shown ? ` (${shown}${total.invalid > 5 ? ", …" : ""})` : ""
+    }.`;
+  }
+  if (total.failed > 0) {
+    text += ` ${plural(total.failed, "number")} could not be saved this time. Add the same list again to retry; nothing is added twice.`;
+  }
+  return text;
+}
+
+/** Type, paste or upload phone numbers. Each number becomes a customer. */
+function AddNumbers({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [text, setText] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [result, setResult] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const parsed = useMemo(() => parseContactLines(text), [text]);
+
+  const readFile = async (file: File | undefined) => {
+    if (!file) return;
+    setResult(null);
+    if (file.size > 2_000_000) {
+      setResult({ kind: "error", text: "That file is too large. Split it into files under 2 MB." });
+      return;
+    }
+    try {
+      const content = await file.text();
+      setText((current) => (current.trim() ? `${current.trim()}\n${content}` : content));
+    } catch {
+      setResult({ kind: "error", text: "Could not read that file. Save it as CSV and try again." });
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const submit = async () => {
+    if (parsed.length === 0) return;
+    setBusy(true);
+    setResult(null);
+    const total: SmsContactImportResult = {
+      added: 0,
+      alreadyThere: 0,
+      markedAgreed: 0,
+      keptOptedOut: 0,
+      renamed: 0,
+      invalid: 0,
+      failed: 0,
+      invalidSamples: [],
+    };
+    let done = 0;
+    try {
+      for (let from = 0; from < parsed.length; from += SMS_CONTACT_IMPORT_BATCH) {
+        const batch = parsed.slice(from, from + SMS_CONTACT_IMPORT_BATCH);
+        if (parsed.length > SMS_CONTACT_IMPORT_BATCH) {
+          setProgress(`Adding ${Math.min(parsed.length, from + batch.length)} of ${parsed.length}…`);
+        }
+        const res = await importSmsContacts({ rows: batch, customerAgreed: agreed });
+        total.added += res.added;
+        total.alreadyThere += res.alreadyThere;
+        total.markedAgreed += res.markedAgreed;
+        total.keptOptedOut += res.keptOptedOut;
+        total.renamed += res.renamed;
+        total.invalid += res.invalid;
+        total.failed += res.failed ?? 0;
+        total.invalidSamples = total.invalidSamples.concat(res.invalidSamples ?? []);
+        done += batch.length;
+      }
+      setResult({ kind: "success", text: importSummary(total) });
+      setText("");
+      setAgreed(false);
+    } catch (err) {
+      setResult({
+        kind: "error",
+        text:
+          done > 0
+            ? `${errorText(err, "Something went wrong.")} The first ${done} lines were saved; add again to finish, nothing is added twice.`
+            : errorText(err, "Could not add these numbers."),
+      });
+    } finally {
+      setBusy(false);
+      setProgress(null);
+      onDone();
+    }
+  };
+
+  return (
+    <section className={cn(DASHBOARD_SECTION_SURFACE, "flex flex-col gap-3")} aria-label="Add phone numbers">
+      <label className="flex flex-col gap-1">
+        <span className={dashboardLabelClass()}>Phone numbers, one per line</span>
+        <textarea
+          className={cn(dashboardTextareaClass(), "font-mono")}
+          rows={5}
+          value={text}
+          placeholder={"0712345678\n0733222000, Wanjiku Kamau"}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <span className="text-sm text-muted-foreground">
+          Add a name after a comma if you have it. Without a name, the customer&rsquo;s M-Pesa name
+          is filled in the next time they pay.
+        </span>
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.txt,text/csv,text/plain"
+          className="sr-only"
+          aria-label="Choose a CSV or text file of phone numbers"
+          onChange={(e) => void readFile(e.target.files?.[0])}
+        />
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => fileRef.current?.click()}>
+          Choose a CSV file
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          A column of numbers, with or without a name column. Save Excel sheets as CSV first.
+        </span>
+      </div>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+        />
+        <span>
+          These people told us they want offers by SMS. Leave this unticked and they are added for
+          receipts and order updates only.
+        </span>
+      </label>
+      {result ? <DashboardFeedback kind={result.kind} text={result.text} /> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" disabled={busy || parsed.length === 0} onClick={() => void submit()}>
+          {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
+          {parsed.length === 0 ? "Add numbers" : `Add ${plural(parsed.length, "number")}`}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onClose}>
+          Close
+        </Button>
+        {progress ? (
+          <span className="text-sm text-muted-foreground" aria-live="polite">
+            {progress}
+          </span>
+        ) : null}
+      </div>
+    </section>
   );
 }

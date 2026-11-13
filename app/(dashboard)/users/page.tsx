@@ -184,6 +184,8 @@ export default function UsersPage() {
       const profiles = await fetchStaffProfiles();
       const next: Record<string, boolean> = {};
       for (const profile of profiles) {
+        // Staff with no login have no user row in this directory.
+        if (!profile.userId) continue;
         next[profile.userId] = profile.publicFields.includeInPayroll !== false;
       }
       setPayrollInclude(next);

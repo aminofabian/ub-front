@@ -16065,7 +16065,8 @@ export type StaffProfilePrivateFields = {
 
 export type StaffProfileRecord = {
   id: string | null;
-  userId: string;
+  /** Null for staff who have no login (for example a barber); address those by `id`. */
+  userId: string | null;
   branchId: string | null;
   branchName: string | null;
   loginName: string | null;

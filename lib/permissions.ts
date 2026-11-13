@@ -50,6 +50,13 @@ export const Permission = {
   /** Approve or reject cash drawouts. */
   ShiftsDrawoutsApprove: "shifts.drawouts.approve",
   SalesSell: "sales.sell",
+  /** Service businesses: manage services, categories and who performs each. */
+  ServicesCatalogManage: "services.catalog.manage",
+  CommissionsPlansManage: "commissions.plans.manage",
+  CommissionsRead: "commissions.read",
+  CommissionsReadOwn: "commissions.read_own",
+  CommissionsAdjust: "commissions.adjust",
+  CommissionsPayout: "commissions.payout",
   SalesVoidOwn: "sales.void.own",
   SalesVoidAny: "sales.void.any",
   SalesRefundCreate: "sales.refund.create",

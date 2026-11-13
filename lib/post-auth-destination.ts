@@ -369,6 +369,11 @@ export function formatBusinessStoreTypesLabel(
     "wines-spirits": "Wines & spirits",
     pharmacy: "Pharmacy / chemist",
     other: "Other",
+    barbershop: "Kinyozi / barbershop",
+    salon: "Salon",
+    spa: "Spa",
+    "nail-studio": "Nail studio",
+    "beauty-parlour": "Beauty parlour",
   };
   const types = getBusinessStoreTypes(business);
   if (types.length === 0) {

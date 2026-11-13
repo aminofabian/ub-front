@@ -9,7 +9,24 @@ export type StoreTypeId =
   | "cosmetics"
   | "wines-spirits"
   | "pharmacy"
-  | "other";
+  | "other"
+  | "barbershop"
+  | "salon"
+  | "spa"
+  | "nail-studio"
+  | "beauty-parlour";
+
+/**
+ * Shop formats that sell services rather than (or as well as) goods. A store type only picks
+ * defaults and wording; branch on {@link isServiceBusiness}, never on one of these by name.
+ */
+export const SERVICE_STORE_TYPES: readonly StoreTypeId[] = [
+  "barbershop",
+  "salon",
+  "spa",
+  "nail-studio",
+  "beauty-parlour",
+];
 
 /** Shop formats that get a starter-product catalogue during onboarding. */
 export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
@@ -28,6 +45,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "wines-spirits",
   "pharmacy",
   "other",
+  ...SERVICE_STORE_TYPES,
 ];
 
 type StoreTypeSource = {
@@ -117,6 +135,31 @@ export function isGroceryOperationsBusiness(
   return getBusinessStoreTypes(source).some((type) =>
     GROCERY_OPERATIONS_TYPES.has(type),
   );
+}
+
+/** True when any selected format is a service format (kinyozi, salon, spa, …). */
+export function isServiceBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return getBusinessStoreTypes(source).some((type) =>
+    (SERVICE_STORE_TYPES as readonly string[]).includes(type),
+  );
+}
+
+/** What a seat is called for this business: Chair, Station or Room. */
+export function serviceStationLabel(
+  source: StoreTypeSource | null | undefined,
+): "Chair" | "Station" | "Room" {
+  const types = getBusinessStoreTypes(source);
+  if (types.includes("barbershop") || types.includes("salon")) {
+    return "Chair";
+  }
+  if (types.includes("spa")) {
+    return "Room";
+  }
+  return types.includes("nail-studio") || types.includes("beauty-parlour")
+    ? "Station"
+    : "Chair";
 }
 
 export function isButcheryBusiness(

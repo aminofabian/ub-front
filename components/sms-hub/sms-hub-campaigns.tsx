@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Loader2, Megaphone, Plus } from "lucide-react";
+import { ArrowLeft, Copy, Loader2, Megaphone, Plus, Send } from "lucide-react";
 
 import {
   DashboardFeedback,
@@ -40,11 +40,13 @@ import type { CustomerEmailAudienceFilter } from "@/lib/api";
 import {
   cancelSmsCampaign,
   createSmsCampaign,
+  duplicateSmsCampaign,
   fetchSmsCampaign,
   fetchSmsCampaigns,
   previewSmsAudience,
   scheduleSmsCampaign,
   sendSmsCampaign,
+  sendSmsTest,
   type SmsAudiencePreview,
   type SmsCampaignDetail,
   type SmsCampaignSummary,
@@ -59,9 +61,12 @@ export type CampaignRequest =
   | { kind: "selected"; customerIds: string[] }
   | { kind: "open"; id: string };
 
+/** Wording carried over from an earlier campaign. */
+type Seed = { name: string; body: string };
+
 type View =
   | { kind: "list" }
-  | { kind: "compose"; customerIds: string[] | null }
+  | { kind: "compose"; customerIds: string[] | null; seed?: Seed }
   | { kind: "detail"; id: string };
 
 type Props = {
@@ -93,6 +98,8 @@ export function SmsHubCampaigns({
     return (
       <CampaignComposer
         customerIds={view.customerIds}
+        seed={view.seed}
+        canManage={canManage}
         optOutFooter={optOutFooter}
         onBack={() => setView({ kind: "list" })}
         onCreated={(id) => setView({ kind: "detail", id })}
@@ -102,10 +109,13 @@ export function SmsHubCampaigns({
   if (view.kind === "detail") {
     return (
       <CampaignDetail
+        key={view.id}
         id={view.id}
         canManage={canManage}
         sendWindow={sendWindow}
         onBack={() => setView({ kind: "list" })}
+        onOpen={(id) => setView({ kind: "detail", id })}
+        onReuse={(seed, customerIds) => setView({ kind: "compose", customerIds, seed })}
       />
     );
   }
@@ -311,11 +321,15 @@ function PhonePreview({ sender, text }: { sender: string; text: string }) {
 
 function CampaignComposer({
   customerIds,
+  seed,
+  canManage,
   optOutFooter,
   onBack,
   onCreated,
 }: {
   customerIds: string[] | null;
+  seed?: Seed;
+  canManage: boolean;
   optOutFooter: string;
   onBack: () => void;
   onCreated: (id: string) => void;
@@ -323,8 +337,54 @@ function CampaignComposer({
   const { business } = useDashboard();
   const shopName = business?.name?.trim() || "your shop";
   const hasSelection = customerIds !== null && customerIds.length > 0;
-  const [name, setName] = useState("");
-  const [body, setBody] = useState("Hi {first_name}, ");
+  const [name, setName] = useState(seed?.name ?? "");
+  const [body, setBody] = useState(seed?.body ?? "Hi {first_name}, ");
+  const [earlier, setEarlier] = useState<SmsCampaignSummary[]>([]);
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSmsCampaigns({ size: 50 })
+      .then((page) => {
+        if (!cancelled) setEarlier(page.content ?? []);
+      })
+      .catch(() => {
+        // Reusing earlier wording is optional; the composer works without the list.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sendTest = async () => {
+    if (body.trim().length === 0) {
+      setTestResult({ ok: false, text: "Write the message first." });
+      return;
+    }
+    if (testPhone.trim().length === 0) {
+      setTestResult({ ok: false, text: "Enter the number to send the test to." });
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await sendSmsTest(body.trim(), testPhone.trim());
+      setTestResult(
+        res.sent
+          ? {
+              ok: true,
+              text: `Test sent to ${res.phone ?? testPhone.trim()}. It used ${plural(res.parts, "credit")}.`,
+            }
+          : { ok: false, text: res.error ?? "The test was not sent." },
+      );
+    } catch (err) {
+      setTestResult({ ok: false, text: errorText(err, "Could not send the test.") });
+    } finally {
+      setTesting(false);
+    }
+  };
   const [method, setMethod] = useState<SmsRecipientMethod>(hasSelection ? "specific" : "all_eligible");
   const [group, setGroup] = useState<GroupKey>("lapsed");
   const [groupValue, setGroupValue] = useState("60");
@@ -559,6 +619,31 @@ function CampaignComposer({
           </Panel>
 
           <Panel title="What it says">
+            {earlier.length > 0 ? (
+              <label className="mb-4 flex max-w-md flex-col gap-1">
+                <span className={dashboardLabelClass()}>Start from an earlier campaign</span>
+                <select
+                  className={dashboardSelectClass()}
+                  value=""
+                  onChange={(e) => {
+                    const picked = earlier.find((c) => c.id === e.target.value);
+                    if (!picked) return;
+                    setBody(picked.body);
+                    if (name.trim().length === 0) setName(picked.name);
+                  }}
+                >
+                  <option value="">Choose one to reuse its wording</option>
+                  {earlier.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className={cn("text-[12.5px]", SMS_MUTED)}>
+                  This replaces the message below. You can edit it before saving.
+                </span>
+              </label>
+            ) : null}
             <label className="flex max-w-md flex-col gap-1">
               <span className={dashboardLabelClass()}>Campaign name</span>
               <input
@@ -626,6 +711,48 @@ function CampaignComposer({
             </p>
           </Panel>
 
+          {canManage ? (
+            <Panel title="Try it first">
+              <label className="flex flex-col gap-1">
+                <span className={dashboardLabelClass()}>Send a test to</span>
+                <input
+                  className={dashboardInputClass()}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="0712 345 678"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                />
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 w-full rounded-[2px]"
+                disabled={testing}
+                onClick={() => void sendTest()}
+              >
+                {testing ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Send className="size-4" aria-hidden />
+                )}
+                Send test text
+              </Button>
+              <p
+                className={cn(
+                  "mt-2 text-[12.5px] leading-snug",
+                  testResult && !testResult.ok ? SMS_WARN_TEXT : SMS_MUTED,
+                )}
+                aria-live="polite"
+              >
+                {testResult
+                  ? testResult.text
+                  : `Use your own phone. A test costs ${plural(size.parts, "credit")} and greets you as “there” where a name goes.`}
+              </p>
+            </Panel>
+          ) : null}
+
           <Panel title="Cost">
             <dl className="flex flex-col gap-1.5 text-sm">
               <div className="flex items-baseline justify-between gap-3">
@@ -679,11 +806,15 @@ function CampaignDetail({
   canManage,
   sendWindow,
   onBack,
+  onOpen,
+  onReuse,
 }: {
   id: string;
   canManage: boolean;
   sendWindow: string;
   onBack: () => void;
+  onOpen: (id: string) => void;
+  onReuse: (seed: Seed, customerIds: string[] | null) => void;
 }) {
   const { business } = useDashboard();
   const [campaign, setCampaign] = useState<SmsCampaignDetail | null>(null);
@@ -692,6 +823,18 @@ function CampaignDetail({
   const [confirm, setConfirm] = useState("");
   const [when, setWhen] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
+
+  const copyCampaign = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const copy = await duplicateSmsCampaign(id);
+      onOpen(copy.id);
+    } catch (err) {
+      setError(errorText(err, "Could not copy this campaign."));
+      setBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -928,6 +1071,46 @@ function CampaignDetail({
               Shown with a sample name. {plural(campaign.partsPerMessage, "credit")} per customer.
             </p>
           </Panel>
+          {canManage ? (
+            <Panel title="Use again">
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  disabled={busy}
+                  onClick={() => void copyCampaign()}
+                >
+                  <Copy className="size-3.5" aria-hidden />
+                  Same text, same audience
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={busy}
+                  onClick={() =>
+                    onReuse(
+                      { name: `${campaign.name} (copy)`.slice(0, 255), body: campaign.body },
+                      // A hand-picked list is carried over only when all of it is on screen.
+                      campaign.recipientMethod === "specific" &&
+                        campaign.recipientsTargeted <= campaign.recipients.length
+                        ? campaign.recipients.map((r) => r.customerId)
+                        : null,
+                    )
+                  }
+                >
+                  Change the text first
+                </Button>
+              </div>
+              <p className={cn("mt-2 text-[12.5px] leading-snug", SMS_MUTED)}>
+                Makes a new draft. Nothing is sent until you choose when, and anyone who opted out
+                since is left out.
+              </p>
+            </Panel>
+          ) : null}
           {canManage && canCancel ? (
             <Panel>
               {confirmCancel ? (

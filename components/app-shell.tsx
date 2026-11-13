@@ -22,6 +22,7 @@ import {
   Sparkles,
   Store,
   Tags,
+  Scissors,
   Truck,
   Users,
   UserRound,
@@ -95,6 +96,7 @@ import {
   type BranchRecord,
 } from "@/lib/api";
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
+import { isServiceBusiness } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -279,6 +281,19 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
+    ],
+  },
+  {
+    // Service businesses only (kinyozi, salon, spa) — see isNavItemVisible.
+    id: "services",
+    title: "Services",
+    shortLabel: "Services",
+    blurb: "What you offer and what your team earns",
+    icon: Scissors,
+    entryHref: APP_ROUTES.services,
+    items: [
+      { href: APP_ROUTES.services, label: "Services" },
+      { href: APP_ROUTES.commissions, label: "Commissions" },
     ],
   },
   {
@@ -565,6 +580,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
 
 type NavGate = {
   featureFlags: Record<string, boolean> | undefined;
+  /** The business sells services (kinyozi, salon, spa…). */
+  isServiceBusiness: boolean;
+  canManageServices: boolean;
+  canSell: boolean;
+  canReadCommissions: boolean;
   canListUsers: boolean;
   canViewPayroll: boolean;
   canReadFinanceExpenses: boolean;
@@ -740,6 +760,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
+  if (item.href === APP_ROUTES.services)
+    return gate.isServiceBusiness && (gate.canManageServices || gate.canSell);
+  if (item.href === APP_ROUTES.commissions)
+    return gate.isServiceBusiness && gate.canReadCommissions;
   if (item.href === APP_ROUTES.overview) return true;
   if (item.href === APP_ROUTES.business) return true;
   if (
@@ -1201,6 +1225,10 @@ export function AppShell({ children }: AppShellProps) {
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
       featureFlags: mergedFeatureFlags,
+      isServiceBusiness: isServiceBusiness(business),
+      canManageServices: hasPermission(me?.permissions, Permission.ServicesCatalogManage),
+      canSell: hasPermission(me?.permissions, Permission.SalesSell),
+      canReadCommissions: hasPermission(me?.permissions, Permission.CommissionsRead),
       canListUsers,
       canViewPayroll,
       canReadFinanceExpenses,
@@ -1273,6 +1301,8 @@ export function AppShell({ children }: AppShellProps) {
       };
     }).filter((s) => s.items.length > 0);
   }, [
+    business,
+    me?.permissions,
     mergedFeatureFlags,
     canListUsers,
     canViewPayroll,
