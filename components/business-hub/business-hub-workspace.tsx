@@ -55,6 +55,7 @@ import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
+import { isServiceOnlyBusiness } from "@/lib/business-store-type";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
@@ -1648,7 +1649,11 @@ export function BusinessHubWorkspace() {
           {canManageBusinessSettings ? (
             <QuestionnaireResumeBanner
               businessOnboardingStatus={business?.onboarding?.status}
-              catalogEmpty={catalogueCount === 0}
+              // A shop that only sells services has no shelves to stock.
+              catalogEmpty={
+                catalogueCount === 0 &&
+                !isServiceOnlyBusiness(business)
+              }
             />
           ) : null}
           {canManageBusinessSettings ? <SetupProgressBanner /> : null}

@@ -29,6 +29,8 @@ import {
 } from "@/lib/service-business-api";
 import {
   buildServiceSalePayload,
+  cleanMoneyText,
+  parseMoney,
   serviceCartProblem,
   serviceCartTotals,
   type ServiceCartLine,
@@ -59,7 +61,11 @@ export function ServiceCheckout() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [performerId, setPerformerId] = useState<string>("");
   const [lines, setLines] = useState<ServiceCartLine[]>([]);
-  const [tips, setTips] = useState<Record<string, number>>({});
+  // Money fields are kept as the text the attendant typed. Parsing on every keystroke would
+  // drop a trailing "." and turn 150.50 into 15050.
+  const [tipText, setTipText] = useState<Record<string, string>>({});
+  const [priceText, setPriceText] = useState<Record<string, string>>({});
+  const [outboxProblem, setOutboxProblem] = useState<string | null>(null);
   const [method, setMethod] = useState<"cash" | "mpesa_manual">("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [reference, setReference] = useState("");
@@ -90,7 +96,14 @@ export function ServiceCheckout() {
   // Send anything this device saved while offline, now and whenever the connection returns.
   useEffect(() => {
     if (!isSaleOutboxSupported()) return;
-    const flush = () => void flushSaleOutbox().catch(() => undefined);
+    const flush = () =>
+      void flushSaleOutbox()
+        .then((result) => {
+          // A saved sale the server refuses stays at the head of the queue and holds up every
+          // sale behind it, so it must be seen, not swallowed.
+          setOutboxProblem(result.status === "blocked" ? result.message : null);
+        })
+        .catch(() => undefined);
     flush();
     window.addEventListener("online", flush);
     return () => window.removeEventListener("online", flush);
@@ -102,6 +115,14 @@ export function ServiceCheckout() {
     return map;
   }, [performers]);
 
+  const tips = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [id, text] of Object.entries(tipText)) {
+      const value = parseMoney(text);
+      if (value != null && value > 0) out[id] = value;
+    }
+    return out;
+  }, [tipText]);
   const totals = serviceCartTotals(lines, tips);
   const performersOnSale = useMemo(() => Array.from(new Set(lines.map((l) => l.performerId))), [lines]);
   const cashNumber = cashReceived.trim() === "" ? null : Number(cashReceived);
@@ -136,7 +157,8 @@ export function ServiceCheckout() {
   function reset() {
     saleKeyRef.current = nextIdempotencyKey();
     setLines([]);
-    setTips({});
+    setTipText({});
+    setPriceText({});
     setCashReceived("");
     setReference("");
     setError(null);
@@ -170,7 +192,10 @@ export function ServiceCheckout() {
         setDone({ kind: "paid", sale: result.sale, toPay: totals.toPay, change });
         return;
       }
-      const unreachable = result.status === 0 || result.status >= 500;
+      // Only a server that could not be reached. A 500 is the server refusing this sale; saving
+      // it would just fail again later and block the queue.
+      const unreachable =
+        result.status === 0 || result.status === 502 || result.status === 503 || result.status === 504;
       if (unreachable && isSaleOutboxSupported()) {
         // Keep the sale on this device with its key; it is sent, once, when the server is back.
         await enqueuePendingSale(key, payload);
@@ -235,6 +260,13 @@ export function ServiceCheckout() {
         title="Ring a service"
         description="Who did it, what they did, then take payment."
       />
+
+      {outboxProblem ? (
+        <p role="alert" className={cn(DASHBOARD_SECTION_SURFACE, "text-sm text-red-700")}>
+          A sale saved on this device could not be sent: {outboxProblem} Sales saved after it are
+          waiting behind it. Open the cashier screen to clear it, or call support.
+        </p>
+      ) : null}
 
       {services.length === 0 || performers.length === 0 ? (
         <div className={DASHBOARD_SECTION_SURFACE}>
@@ -323,13 +355,13 @@ export function ServiceCheckout() {
                         inputMode="decimal"
                         aria-label={`Price for ${line.name}`}
                         placeholder="Price"
-                        value={line.unitPrice > 0 ? String(line.unitPrice) : ""}
+                        value={priceText[line.key] ?? (line.unitPrice > 0 ? String(line.unitPrice) : "")}
                         onChange={(e) => {
-                          const value = Number(e.target.value.replace(/[^0-9.]/g, ""));
+                          const text = cleanMoneyText(e.target.value);
+                          setPriceText((prev) => ({ ...prev, [line.key]: text }));
+                          const value = parseMoney(text);
                           setLines((prev) =>
-                            prev.map((l) =>
-                              l.key === line.key ? { ...l, unitPrice: Number.isFinite(value) ? value : 0 } : l,
-                            ),
+                            prev.map((l) => (l.key === line.key ? { ...l, unitPrice: value ?? 0 } : l)),
                           );
                           setError(null);
                         }}
@@ -359,10 +391,10 @@ export function ServiceCheckout() {
                       className={dashboardInputClass(false, "w-24 text-right font-mono")}
                       inputMode="decimal"
                       placeholder="0"
-                      value={tips[id] ? String(tips[id]) : ""}
+                      value={tipText[id] ?? ""}
                       onChange={(e) => {
-                        const value = Number(e.target.value.replace(/[^0-9.]/g, ""));
-                        setTips((prev) => ({ ...prev, [id]: Number.isFinite(value) ? value : 0 }));
+                        const text = cleanMoneyText(e.target.value);
+                        setTipText((prev) => ({ ...prev, [id]: text }));
                       }}
                     />
                   </label>

@@ -6,6 +6,7 @@ import {
   getBusinessStoreTypes,
   isGroceryOperationsBusiness,
   isServiceBusiness,
+  isServiceOnlyBusiness,
   serviceStationLabel,
 } from "./business-store-type";
 import { starterServicesForStoreTypes } from "./service-starter-kits";
@@ -42,6 +43,14 @@ describe("service store types", () => {
     expect(
       isServiceBusiness({ onboarding: { answers: { storeTypes: ["nail-studio"] } } }),
     ).toBe(true);
+  });
+
+  test("service-only means no retail format at all", () => {
+    expect(isServiceOnlyBusiness(business(["barbershop"]))).toBe(true);
+    expect(isServiceOnlyBusiness(business(["salon", "spa"]))).toBe(true);
+    expect(isServiceOnlyBusiness(business(["salon", "cosmetics"]))).toBe(false);
+    expect(isServiceOnlyBusiness(business(["mini-mart"]))).toBe(false);
+    expect(isServiceOnlyBusiness(business([]))).toBe(false);
   });
 
   test("a seat is named for the shop", () => {

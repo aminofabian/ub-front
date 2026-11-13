@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import {
   buildServiceSalePayload,
+  cleanMoneyText,
+  parseMoney,
   serviceCartProblem,
   serviceCartTotals,
   type ServiceCartLine,
@@ -44,6 +46,28 @@ describe("serviceCartProblem", () => {
     );
     expect(serviceCartProblem([line({ quantity: 0 })])).toBe("Check the quantity for Haircut");
     expect(serviceCartProblem([line()])).toBeNull();
+  });
+});
+
+describe("money typing", () => {
+  test("typing 150.50 a key at a time keeps the decimal point", () => {
+    let text = "";
+    for (const key of "150.50") text = cleanMoneyText(text + key);
+    expect(text).toBe("150.50");
+    expect(parseMoney(text)).toBe(150.5);
+  });
+
+  test("stray characters, a second dot and extra decimals are dropped", () => {
+    expect(cleanMoneyText("1.2.3")).toBe("1.23");
+    expect(cleanMoneyText("KSh 300/=")).toBe("300");
+    expect(cleanMoneyText("12.3456")).toBe("12.34");
+  });
+
+  test("an unfinished amount is not a number yet", () => {
+    expect(parseMoney("")).toBeNull();
+    expect(parseMoney(".")).toBeNull();
+    expect(parseMoney("150.")).toBe(150);
+    expect(parseMoney("0.5")).toBe(0.5);
   });
 });
 

@@ -93,6 +93,22 @@ export function buildServiceSalePayload(input: {
   return payload;
 }
 
+/** Keeps digits and at most one decimal point, with at most two decimals, as the user types. */
+export function cleanMoneyText(raw: string): string {
+  const digits = raw.replace(/[^0-9.]/g, "");
+  const dot = digits.indexOf(".");
+  if (dot === -1) return digits;
+  return `${digits.slice(0, dot)}.${digits.slice(dot + 1).replace(/\./g, "").slice(0, 2)}`;
+}
+
+/** The amount typed so far, or null when it is not a number yet ("", "."). */
+export function parseMoney(text: string): number | null {
+  const trimmed = text.trim();
+  if (trimmed === "" || trimmed === ".") return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? round2(value) : null;
+}
+
 function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }

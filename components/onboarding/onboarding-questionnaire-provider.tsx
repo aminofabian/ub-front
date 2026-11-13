@@ -479,8 +479,17 @@ export function OnboardingQuestionnaireProvider({
             business?.branding?.displayName?.trim() ||
             business?.name?.trim() ||
             "My shop",
-          primaryColor: merged.primaryColor?.trim() || preset?.primary || "#0D9488",
-          accentColor: merged.accentColor?.trim() || preset?.accent || "#5EEAD4",
+          // Keep colours the shop already has; only fall back to the default preset.
+          primaryColor:
+            merged.primaryColor?.trim() ||
+            business?.branding?.primaryColor?.trim() ||
+            preset?.primary ||
+            "#0D9488",
+          accentColor:
+            merged.accentColor?.trim() ||
+            business?.branding?.accentColor?.trim() ||
+            preset?.accent ||
+            "#5EEAD4",
         };
         setAnswers(prepared);
         saveQuestionnaireProgress(QUESTIONNAIRE_PHONE_STEP, prepared);
@@ -560,8 +569,9 @@ export function OnboardingQuestionnaireProvider({
       !isCatalogEligibleStoreTypes(merged.storeTypes) &&
       isServiceBusiness({ profile: { storeTypes: merged.storeTypes } })
     ) {
-      // Chairs, team, services and pay come next for a service business.
-      softSkipOnboardingQuestionnaire();
+      // Chairs, team, services and pay come next for a service business. It has no shelves to
+      // stock, so the questionnaire is finished here rather than left waiting on products.
+      completeOnboardingQuestionnaire(merged);
       setActive(false);
       router.replace(APP_ROUTES.servicesSetup);
       return;

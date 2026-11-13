@@ -146,6 +146,17 @@ export function isServiceBusiness(
   );
 }
 
+/** True when every selected format is a service format: the shop sells no goods. */
+export function isServiceOnlyBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  const types = getBusinessStoreTypes(source);
+  return (
+    types.length > 0 &&
+    types.every((type) => (SERVICE_STORE_TYPES as readonly string[]).includes(type))
+  );
+}
+
 /** What a seat is called for this business: Chair, Station or Room. */
 export function serviceStationLabel(
   source: StoreTypeSource | null | undefined,
