@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import {
   BookOpen,
   Building2,
+  Columns3,
   LayoutGrid,
   Lock,
   LockKeyhole,
@@ -208,17 +209,19 @@ export function CashierShell({ children }: CashierShellProps) {
   }, []);
 
   /**
-   * Template picker — the shelf (tiles) or the ledger (spreadsheet + keypad).
-   * Saved against the registered till and this browser, so an owner can set a
-   * counter till from their phone and it lands the next time it opens wide.
+   * Template picker — shelf (tiles), ledger (spreadsheet), or counter
+   * (menu, sizes, and the sale). Saved against the registered till and this
+   * browser, so an owner can set a counter till from their phone and it lands
+   * the next time it opens wide.
    */
   const templateMore = (
     <MoreSection label="Template">
-      <div className="grid grid-cols-2 gap-1.5 px-2">
+      <div className="grid grid-cols-3 gap-1.5 px-2">
         {CASHIER_TEMPLATES.map((t) => {
           const saved = preferred === t.id;
           const live = effective === t.id;
-          const Icon = t.id === "ledger" ? Table2 : LayoutGrid;
+          const Icon =
+            t.id === "ledger" ? Table2 : t.id === "counter" ? Columns3 : LayoutGrid;
           return (
             <button
               key={t.id}

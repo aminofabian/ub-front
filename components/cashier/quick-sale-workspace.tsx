@@ -351,8 +351,11 @@ export function QuickSaleWorkspace({
     canPathBWrite,
     canViewSuppliers,
   } = useDashboard();
-  const { isLedger: tillWantsLedger } = useCashierTemplate(branchId);
+  const { isLedger: tillWantsLedger, effective: tillTemplate } =
+    useCashierTemplate(branchId);
   const isLedger = variant === "cashier" && tillWantsLedger;
+  const cashierPresentation =
+    variant === "cashier" && tillTemplate === "counter" ? "counter" : "shelf";
   /** Shell Sell drawer uses the same till chrome as `/cashier` (bottom nav, shifts). */
   const useTillChrome = variant === "cashier" || inShellDrawer;
   const isCashier = variant === "cashier";
@@ -5225,7 +5228,7 @@ export function QuickSaleWorkspace({
           "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
       )}
     >
-      {!isLedger ? (
+      {!isLedger && cashierPresentation !== "counter" ? (
         <div
           className={cn(
             "flex items-center justify-between px-1",
@@ -5253,6 +5256,7 @@ export function QuickSaleWorkspace({
         </div>
       ) : null}
       <PosChrome
+        presentation={cashierPresentation}
         checkoutDrawerOpen={checkoutDrawerOpen}
         onCheckoutDrawerOpenChange={setCheckoutDrawerOpen}
         pageTitle={heading}

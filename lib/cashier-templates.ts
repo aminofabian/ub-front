@@ -1,9 +1,10 @@
 /**
- * Cashier chrome templates. Shelf is the tile POS; ledger is the spreadsheet till.
+ * Cashier chrome templates. Shelf is the tile POS, ledger is the spreadsheet
+ * till, counter is the three-column till for size- and flavour-heavy catalogs.
  * Preference is per device: registered till_devices row wins, else localStorage.
  */
 
-export const CASHIER_TEMPLATE_IDS = ["shelf", "ledger"] as const;
+export const CASHIER_TEMPLATE_IDS = ["shelf", "ledger", "counter"] as const;
 
 export type CashierTemplateId = (typeof CASHIER_TEMPLATE_IDS)[number];
 
@@ -30,10 +31,18 @@ export const CASHIER_TEMPLATES: readonly CashierTemplateMeta[] = [
     name: "Ledger",
     blurb: "Spreadsheet till with keypad",
   },
+  {
+    id: "counter",
+    name: "Counter",
+    blurb: "Menu, sizes, and the sale",
+  },
 ] as const;
 
 export function isCashierTemplateId(value: unknown): value is CashierTemplateId {
-  return value === "shelf" || value === "ledger";
+  return (
+    typeof value === "string" &&
+    (CASHIER_TEMPLATE_IDS as readonly string[]).includes(value)
+  );
 }
 
 export function parseCashierTemplateId(raw: unknown): CashierTemplateId {

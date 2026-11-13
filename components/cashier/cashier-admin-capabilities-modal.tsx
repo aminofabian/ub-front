@@ -420,11 +420,11 @@ export function CashierAdminCapabilitiesModal({
                 Till layout
               </p>
               <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-                Shelf for picture tiles. Ledger for a spreadsheet till — needs a
-                wide screen; phones stay on Shelf.
+                Shelf for picture tiles. Counter for sizes and flavours in three
+                columns. Ledger for a spreadsheet till.
               </p>
               <ChoicePair
-                className="mt-3"
+                className="mt-3 grid-cols-3"
                 ariaLabel="This till cashier layout"
               >
                 {CASHIER_TEMPLATES.map((t) => (

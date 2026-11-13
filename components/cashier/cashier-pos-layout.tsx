@@ -94,6 +94,7 @@ import {
   type CashierCartDrawerProps,
 } from "./cashier-cart-drawer";
 import { CashierCartSidePanel } from "./cashier-cart-side-panel";
+import { CashierCounterStage } from "./cashier-counter-stage";
 import {
   CashierCurrencySuffix,
   CashierDottedLeader,
@@ -184,6 +185,11 @@ export type CashierPosLayoutProps = {
   inDrawer?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
   brandTheme?: CSSProperties;
+  /**
+   * Shelf is the picture till. Counter is the three-column till:
+   * products, sizes, and the sale.
+   */
+  presentation?: "shelf" | "counter";
   /** Compact pending-invoice / draft controls (ledger header). */
   toolbarExtras?: ReactNode;
   online: boolean;
@@ -1067,6 +1073,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     embeddedInDashboard = false,
     inDrawer = false,
     brandTheme,
+    presentation = "shelf",
     toolbarExtras,
     online,
     offlineBanner,
@@ -1850,20 +1857,114 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   return (
     <div
       className={cn(
-        "premium-cashier mx-auto w-full max-w-[1600px]",
-        embeddedInDashboard
-          ? cn(
-              "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6 [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",
-              // Drawer: flex column host — scroller + absolute dock. Page: scroll
-              // with the dashboard main and keep bottom padding for the fixed dock.
-              inDrawer
-                ? "relative flex min-h-0 flex-1 flex-col overflow-hidden pb-0"
-                : "pb-28",
-            )
-          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-0",
+        presentation === "counter"
+          ? "premium-cashier flex h-full min-h-0 w-full max-w-none flex-1 flex-col overflow-hidden"
+          : "premium-cashier mx-auto w-full max-w-[1600px]",
+        presentation !== "counter" &&
+          (embeddedInDashboard
+            ? cn(
+                "pos-market-paper max-w-none px-2 py-2 sm:px-3 sm:py-3 lg:pb-6 [--pos-paper:#f4f7f5] [--pos-paper-deep:#e8efeb]",
+                // Drawer: flex column host — scroller + absolute dock. Page: scroll
+                // with the dashboard main and keep bottom padding for the fixed dock.
+                inDrawer
+                  ? "relative flex min-h-0 flex-1 flex-col overflow-hidden pb-0"
+                  : "pb-28",
+              )
+            : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-0"),
       )}
       style={brandTheme}
     >
+      {presentation === "counter" ? (
+        <CashierCounterStage
+          clearBottomNav={!embeddedInDashboard}
+          pageTitle={pageTitle}
+          activeBranchName={activeBranchName}
+          branchesLoading={branchesLoading}
+          online={online}
+          offlineBanner={offlineBanner}
+          tillPrinterStatus={tillPrinterStatus}
+          toolbarExtras={toolbarExtras}
+          currency={currency}
+          search={search}
+          setSearch={setSearch}
+          searchInputRef={searchInputRef}
+          searchBanner={searchBanner}
+          scanToCartEnabled={scanToCartEnabled}
+          onBarcode={applyBarcodeSearch}
+          onOpenScanner={() => setShowScanner(true)}
+          catalogHybrid={catalogHybrid}
+          hits={hits}
+          topProducts={topProducts}
+          topProductsLoading={topProductsLoading}
+          topProductsTitle={topProductsTitle}
+          alwaysShowTopProducts={alwaysShowTopProducts}
+          shelfLine={(id) => tileShelfLine(online, tileShelfPrices, id, uiCopy)}
+          cartQtyByItem={cartQtyByItem}
+          justAddedId={justAddedId}
+          onSell={handlePickItem}
+          canBrowseCategories={canBrowseCategories}
+          visibleCategoryTiles={visibleCategoryTiles}
+          categoryBrowseStack={categoryBrowseStack}
+          setCategoryBrowseStack={setCategoryBrowseStack}
+          applySubtreeFilter={applySubtreeFilter}
+          clearCategoryFilter={clearCategoryFilter}
+          categoryFilterId={categoryFilterId}
+          categoryFilterLabel={categoryFilterLabel}
+          categoryTreeBusy={categoryTreeBusy}
+          categoryBrowseParentId={categoryBrowseParentId}
+          keepAisleFilter={keepAisleFilter}
+          onKeepAisleFilterChange={onKeepAisleFilterChange}
+          typeFilterId={typeFilterId}
+          typeFilterLabel={typeFilterLabel}
+          clearTypeFilter={clearTypeFilter}
+          allowAddPhoto={allowAddPhoto}
+          photoUploadingId={photoUploadingId}
+          onOpenPhotoPicker={allowAddPhoto ? openProductPhotoPicker : undefined}
+          branchId={branchId}
+          businessId={businessId}
+          onStalePosItem={onStalePosItem}
+          lines={cart.lines}
+          grandTotal={cart.grandTotal}
+          cartTabs={cartTabs}
+          activeCartId={activeCartId}
+          canCreateCart={canCreateCart}
+          onCreateCart={onCreateCart}
+          onSwitchCart={onSwitchCart}
+          onRemoveCart={onRemoveCart}
+          updateLine={cart.updateLine}
+          removeLine={cart.removeLine}
+          onCheckout={() => setCheckoutDrawerOpen(true)}
+          checkoutLoading={cart.loading}
+          branchSelected={branchSelected}
+          orderError={cart.error}
+          tillListening={cart.stkPushStatus === "awaiting_till"}
+          allowPriceEdit={allowPriceEdit}
+          onEditPrice={(key) => setEditPriceKey(key)}
+          allowWeighedToggle={allowWeighedToggle}
+          weighedToggleBusyItemId={weighedToggleBusyItemId}
+          onToggleWeighed={onToggleWeighed}
+          allowClearSale={allowClearSale}
+          allowClearAllSales={allowClearAllSales}
+          clearableSaleCount={clearableSaleCount}
+          onClearSale={cart.onClearSale}
+          allowCreateProduct={allowCreateProduct}
+          onCreateProduct={() => setCreateProductOpen(true)}
+          allowManageSuppliers={allowManageSuppliers}
+          onOpenSuppliers={() => setSuppliersOpen(true)}
+          allowCreditTabs={allowCreditTabs}
+          onOpenCreditTabs={() => setCreditTabsOpen(true)}
+          allowOrderPad={allowOrderPad}
+          onOpenOrderPad={() => setOrderPadOpen(true)}
+          allowSupplierOrder={allowSupplierOrder}
+          onOpenSupplierOrder={() => setSupplierOrderOpen(true)}
+          allowOrderConfirm={allowOrderConfirm}
+          onOpenOrderConfirm={() => setOrderConfirmOpen(true)}
+          allowAirtime={allowAirtime}
+          onAddAirtimeToCart={onAddAirtimeToCart}
+          posShiftLinks={posShiftLinks}
+        />
+      ) : (
+      <>
       <div
         className={cn(
           "flex gap-3 lg:gap-4",
@@ -3072,6 +3173,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         })()}
       </div>
       ) : null}
+      </>
+      )}
 
       <input
         ref={photoFileInputRef}

@@ -17,6 +17,7 @@ import {
   CreditCard,
   Lock,
   LockKeyhole,
+  Columns3,
   LayoutGrid,
   LogOut,
   MapPin,
@@ -1903,7 +1904,13 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   return (
                     <MoreRow
                       key={t.id}
-                      icon={t.id === "ledger" ? Table2 : LayoutGrid}
+                      icon={
+                        t.id === "ledger"
+                          ? Table2
+                          : t.id === "counter"
+                            ? Columns3
+                            : LayoutGrid
+                      }
                       hint={t.blurb}
                       onClick={() => {
                         setMoreOpen(false);

@@ -52,6 +52,7 @@ describe("cashier-templates", () => {
 
   it("parses known ids and falls back to shelf", () => {
     expect(parseCashierTemplateId("ledger")).toBe("ledger");
+    expect(parseCashierTemplateId("COUNTER")).toBe("counter");
     expect(parseCashierTemplateId("SHELF")).toBe("shelf");
     expect(parseCashierTemplateId("nope")).toBe(DEFAULT_CASHIER_TEMPLATE_ID);
     expect(parseCashierTemplateId(null)).toBe("shelf");
