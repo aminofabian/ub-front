@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Filter, Phone, Receipt, TrendingUp, Users } from "lucide-react";
+import {
+  Filter,
+  MessageSquareText,
+  Phone,
+  Receipt,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
 import { dashboardHintClass } from "@/components/dashboard-page-ui";
 import { APP_ROUTES } from "@/lib/config";
@@ -70,6 +77,12 @@ export function CustomerCrmNavRail({
       href: APP_ROUTES.customerPhones,
       label: "Phones",
       icon: Phone,
+      show: true,
+    },
+    {
+      href: APP_ROUTES.customerSms,
+      label: "SMS",
+      icon: MessageSquareText,
       show: true,
     },
     {

@@ -138,6 +138,7 @@ export const APP_ROUTES = {
   customer: (id: string) => `/customers/${encodeURIComponent(id)}`,
   customerPhones: "/customers/phones",
   customerSegments: "/customers/segments",
+  customerSms: "/customers/sms",
   customerEmailCampaigns: "/customers/email-campaigns",
   customerEmailCampaignNew: "/customers/email-campaigns/new",
   customerEmailCampaign: (id: string) =>

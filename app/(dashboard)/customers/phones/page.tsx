@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Phone, Users } from "lucide-react";
+import { MessageSquareText, Phone, Users } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -135,6 +135,12 @@ export default function CustomerPhonesPage() {
               desc: "Full directory",
               icon: Users,
             },
+            {
+              href: APP_ROUTES.customerSms,
+              label: "SMS",
+              desc: "Campaigns and automatic texts",
+              icon: MessageSquareText,
+            },
           ]}
         />
       </DashboardPageHero>
@@ -142,6 +148,24 @@ export default function CustomerPhonesPage() {
       {message ? (
         <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
+
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Text these customers
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose who gets offers, set the texts that go out on their own,
+            and send a campaign to a group.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href={APP_ROUTES.customerSms}>
+            <MessageSquareText className="size-4" />
+            Open SMS
+          </Link>
+        </Button>
+      </section>
 
       <section className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3">
         <h2 className="text-lg font-semibold tracking-tight">Find a number</h2>
