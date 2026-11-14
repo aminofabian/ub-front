@@ -80,37 +80,40 @@ const MINI_STEPS = [
 
 function WelcomeBody() {
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
+    <div>
+      {/* The order matters here, so the numerals are the structure. */}
+      <ol className="divide-y divide-[rgba(18,26,22,0.1)] border-y border-[rgba(18,26,22,0.1)]">
         {MINI_STEPS.map((step, index) => (
-          <div
-            key={step.title}
-            className="flex min-h-12 items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white p-3.5"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDFA] text-[#0D9488]">
-              <step.icon className="size-4" aria-hidden />
+          <li key={step.title} className="flex items-start gap-4 py-3.5">
+            <span
+              className="w-6 shrink-0 text-center font-serif text-[1.9rem] font-medium leading-none tabular-nums text-[#1D4B3B]"
+              aria-hidden
+            >
+              {index + 1}
             </span>
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-[13px] font-semibold tracking-tight text-[#1F2937]">
-                <span className="mr-1.5 tabular-nums text-[#9CA3AF]">
-                  {index + 1}.
-                </span>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#121A16]">
                 {step.title}
               </p>
-              <p className="text-[12px] leading-relaxed text-[#6B7280]">
+              <p className="text-[13px] leading-relaxed text-[#556159]">
                 {step.body}
               </p>
             </div>
-          </div>
+            <step.icon
+              className="mt-1 size-4 shrink-0 text-[#626D66]"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          </li>
         ))}
-      </div>
+      </ol>
 
-      <div className="rounded-2xl border border-[#99F6E4]/80 bg-[#F0FDFA] px-3.5 py-3 text-[12px] leading-relaxed text-[#134E4A]">
-        <span className="font-semibold">Tip:</span> selling the same brand in
-        several sizes (Coca-Cola → 300 ml, 500 ml, 1 L)? Use a{" "}
-        <span className="font-semibold">Group</span> with variants so the till
-        and your storefront stay tidy.
-      </div>
+      <p className="pt-3.5 text-[13px] leading-relaxed text-[#2A332E]">
+        <span className="font-semibold text-[#121A16]">Tip:</span> selling the
+        same brand in several sizes (Coca-Cola → 300 ml, 500 ml, 1 L)? Use a{" "}
+        <span className="font-semibold text-[#121A16]">Group</span> with
+        variants so the till and your storefront stay tidy.
+      </p>
     </div>
   );
 }
@@ -137,7 +140,7 @@ function WelcomeActions({
         size="sm"
         disabled={busy}
         onClick={onAddProduct}
-        className="h-12 w-full gap-1.5 rounded-2xl bg-[#0D9488] text-white shadow-none hover:bg-[#0F766E] sm:h-9 sm:rounded-md"
+        className="h-12 w-full gap-1.5 rounded-[2px] bg-[#1D4B3B] text-[#F4F1EA] shadow-none hover:bg-[#163B2E] sm:h-10"
       >
         <PackagePlus className="size-3.5" aria-hidden />
         Add your first product
@@ -155,7 +158,7 @@ function WelcomeActions({
               disabled={busy}
               onClick={onAddSupplier}
               className={cn(
-                "h-12 w-full gap-1.5 rounded-2xl shadow-none sm:h-9 sm:rounded-md",
+                "h-12 w-full gap-1.5 rounded-[2px] shadow-none sm:h-10",
                 !onOpenTill && "col-span-2",
               )}
             >
@@ -171,7 +174,7 @@ function WelcomeActions({
               disabled={busy}
               onClick={onOpenTill}
               className={cn(
-                "h-12 w-full gap-1.5 rounded-2xl shadow-none sm:h-9 sm:rounded-md",
+                "h-12 w-full gap-1.5 rounded-[2px] shadow-none sm:h-10",
                 !onAddSupplier && "col-span-2",
               )}
             >
@@ -188,7 +191,7 @@ function WelcomeActions({
           variant="outline"
           disabled={busy}
           onClick={onReadGuide}
-          className="h-11 w-full gap-1.5 rounded-2xl shadow-none sm:h-9 sm:rounded-md"
+          className="h-11 w-full gap-1.5 rounded-[2px] shadow-none sm:h-10"
         >
           <BookOpen className="size-3.5" aria-hidden />
           Read the guide
@@ -199,7 +202,7 @@ function WelcomeActions({
           variant="ghost"
           disabled={busy}
           onClick={onDismiss}
-          className="h-11 w-full rounded-2xl text-muted-foreground shadow-none hover:text-foreground sm:h-9 sm:rounded-md"
+          className="h-11 w-full rounded-[2px] text-muted-foreground shadow-none hover:text-foreground sm:h-10"
         >
           Not now
         </Button>
@@ -286,23 +289,23 @@ export function NewMerchantWelcomeSheet({
         side="bottom"
         showCloseButton={false}
         className={cn(
-          "gap-0 bg-[#FBF9F5] p-0",
+          "gap-0 rounded-t-[2px] bg-[#FCFAF5] p-0",
           "max-h-[min(92dvh,40rem)]",
         )}
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#D1D5DB]" aria-hidden />
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#C9C3B5]" aria-hidden />
         <div className="space-y-1 px-5 pb-3 pt-4">
-          <DialogTitle className="text-[1.35rem] font-semibold tracking-tight text-[#1F2937]">
+          <DialogTitle className="text-balance font-serif text-[1.9rem] font-medium leading-[1.05] text-[#121A16]">
             Welcome to your shop
           </DialogTitle>
-          <DialogDescription className="text-[15px] leading-relaxed text-[#6B7280]">
+          <DialogDescription className="text-[15px] leading-relaxed text-[#556159]">
             {description}
           </DialogDescription>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
           <WelcomeBody />
         </div>
-        <div className="border-t border-[#E8E4DC] bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="border-t border-[rgba(18,26,22,0.1)] bg-[#FCFAF5] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <WelcomeActions
             busy={busy}
             onAddProduct={onAddProduct}

@@ -67,8 +67,29 @@ describe("starter services", () => {
     expect(list.length).toBeGreaterThan(3);
     for (const service of list) {
       expect(service.durationMinutes).toBeGreaterThan(0);
-      expect(Object.keys(service).sort()).toEqual(["durationMinutes", "name"]);
+      // Never a price: the shop types its own.
+      expect(Object.keys(service).sort()).toEqual(["durationMinutes", "name", "storeType"]);
     }
+  });
+
+  test("every service format has its own starter list", () => {
+    for (const type of SERVICE_STORE_TYPES) {
+      const list = starterServicesForStoreTypes([type]);
+      expect(list.length).toBeGreaterThan(3);
+      expect(list.every((s) => s.storeType === type)).toBe(true);
+    }
+  });
+
+  test("a shop that is a kinyozi, a salon, a spa and a nail studio sees all four lists", () => {
+    const list = starterServicesForStoreTypes(["barbershop", "salon", "spa", "nail-studio"]);
+    const names = list.map((s) => s.name);
+    expect(names).toContain("Haircut");
+    expect(names).toContain("Box braids");
+    expect(names).toContain("Full body massage");
+    expect(names).toContain("Gel polish");
+    // A service two formats share is offered once, under the first.
+    expect(names.filter((n) => n === "Hair colouring")).toHaveLength(1);
+    expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(names.length);
   });
 
   test("retail types and unknown values get nothing", () => {

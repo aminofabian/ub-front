@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { QuickSaleWorkspace } from "@/components/cashier/quick-sale-workspace";
+
+import { CashierScreen } from "@/components/cashier/cashier-screen";
 
 export default function CashierHomePage() {
   return (
     <Suspense fallback={null}>
-      <QuickSaleWorkspace variant="cashier" />
+      <CashierScreen />
     </Suspense>
   );
 }

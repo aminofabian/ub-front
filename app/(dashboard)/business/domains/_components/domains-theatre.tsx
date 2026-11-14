@@ -684,7 +684,11 @@ export function DomainsTheatre(props: DomainsTheatreProps) {
                         </p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                           {sourceLabel(row)}
-                          {row.primary ? " · Primary" : ""}
+                          {row.primary
+                            ? " · Primary"
+                            : row.redirectToPrimary
+                              ? " · Sends visitors to the main address"
+                              : ""}
                         </p>
                       </div>
                       <span

@@ -6,6 +6,10 @@ export const SETUP_STEP_ROUTE_PREFIXES: Record<string, string[]> = {
   invite_cashier: ["/users"],
   first_sale: ["/cashier", "/shifts"],
   go_live: ["/business/settings", "/business/themes"],
+  // A shop that only sells services (see SetupProgressService.buildForServiceShop).
+  service_menu: ["/services"],
+  service_team: ["/commissions"],
+  online_booking: ["/services/appointments"],
 };
 
 export function setupStepMatchesPath(stepKey: string | null | undefined, pathname: string): boolean {

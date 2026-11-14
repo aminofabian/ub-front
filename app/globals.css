@@ -8738,3 +8738,55 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     transition: none;
   }
 }
+
+/* ── Shop setup (onboarding questionnaire) ───────────────────────────────── */
+
+/* The setup slip: a till receipt with a torn lower edge. The edge is a mask,
+   so depth comes from drop-shadow on the wrapper, not box-shadow here. */
+.kiosk-setup-slip {
+    --slip-tooth: 12px;
+    -webkit-mask:
+        conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+        50% / var(--slip-tooth) 100%;
+    mask:
+        conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg)
+        50% / var(--slip-tooth) 100%;
+}
+
+/* The one authored moment of the flow: the stamp lands when the shop is set up. */
+.kiosk-setup-stamp {
+    transform: rotate(-7deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .kiosk-setup-stamp {
+        animation: kiosk-setup-stamp 420ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+    }
+}
+
+@keyframes kiosk-setup-stamp {
+    from {
+        opacity: 0;
+        transform: rotate(-16deg) scale(1.7);
+    }
+    to {
+        opacity: 1;
+        transform: rotate(-7deg) scale(1);
+    }
+}
+
+/* Browser surfaces inside setup belong to the palette too. */
+.kiosk-setup ::selection {
+    background: #1d4b3b;
+    color: #f4f1ea;
+}
+
+.kiosk-setup input,
+.kiosk-setup textarea {
+    caret-color: #1d4b3b;
+}
+
+.kiosk-setup main {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(18, 26, 22, 0.22) transparent;
+}

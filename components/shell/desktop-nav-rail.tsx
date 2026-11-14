@@ -4,7 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
+  Armchair,
+  Banknote,
   BarChart3,
+  CalendarClock,
+  HandCoins,
+  History,
+  LifeBuoy,
+  MessageCircle,
+  MessagesSquare,
+  Percent,
+  Scissors,
+  Send,
+  Settings2,
+  UserRound,
+  Workflow,
   Building2,
   ClipboardCheck,
   ClipboardList,
@@ -93,6 +107,22 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.businessDomains]: Globe,
   [APP_ROUTES.branches]: MapPin,
   [APP_ROUTES.users]: Users,
+  [APP_ROUTES.payroll]: HandCoins,
+  [APP_ROUTES.myProfile]: UserRound,
+  [APP_ROUTES.inbox]: MessageCircle,
+  [APP_ROUTES.inboxSettings]: Settings2,
+  [APP_ROUTES.inboxAutomations]: Workflow,
+  [APP_ROUTES.inboxBroadcasts]: Send,
+  [APP_ROUTES.messages]: MessagesSquare,
+  [APP_ROUTES.support]: LifeBuoy,
+  [APP_ROUTES.businessLogs]: History,
+  [APP_ROUTES.servicesFloor]: Armchair,
+  [APP_ROUTES.servicesAppointments]: CalendarClock,
+  [APP_ROUTES.servicesCalendar]: CalendarDays,
+  [APP_ROUTES.servicesSell]: Banknote,
+  [APP_ROUTES.services]: Scissors,
+  [APP_ROUTES.commissions]: Percent,
+  [APP_ROUTES.myEarnings]: Wallet,
   [APP_ROUTES.businessImport]: FileUp,
   [APP_ROUTES.promoCampaigns]: Megaphone,
   [APP_ROUTES.desktopSettings]: Monitor,
@@ -218,6 +248,11 @@ function itemIsActive(pathname: string, href: string): boolean {
   if (href === APP_ROUTES.products) {
     return path === href || path.startsWith(`${APP_ROUTES.products}/p/`);
   }
+  // The floor, bookings, calendar and till under `/services/…` have entries of their own, so
+  // "Services" (the menu of what is offered) lights up only for itself and its set-up page.
+  if (href === APP_ROUTES.services) {
+    return path === href || path.startsWith(`${href}?`) || path.startsWith(`${APP_ROUTES.servicesSetup}`);
+  }
   return path === href || path.startsWith(`${href}/`) || path.startsWith(`${href}?`);
 }
 
@@ -258,15 +293,26 @@ function groupNavItems(items: readonly DesktopNavItem[]): ItemGroup[] {
 
 function clusterVisibleSections(
   sections: readonly DesktopNavSection[],
+  leadSectionIds: readonly string[] = [],
 ): DesktopNavSection[][] {
   const byId = new Map(sections.map((section) => [section.id, section]));
   const used = new Set<string>();
   const clusters: DesktopNavSection[][] = [];
 
-  for (const ids of RAIL_CLUSTER_IDS) {
+  // A shop may name the sections that are its daily work (a salon's Services and Customers):
+  // they form their own cluster straight after the first one instead of trailing at the end.
+  const lead = leadSectionIds
+    .map((id) => byId.get(id))
+    .filter((section): section is DesktopNavSection => Boolean(section));
+  const groups: (readonly string[])[] =
+    lead.length > 0
+      ? [RAIL_CLUSTER_IDS[0]!, lead.map((section) => section.id), ...RAIL_CLUSTER_IDS.slice(1)]
+      : [...RAIL_CLUSTER_IDS];
+
+  for (const ids of groups) {
     const cluster = ids
       .map((id) => byId.get(id))
-      .filter((section): section is DesktopNavSection => Boolean(section));
+      .filter((section): section is DesktopNavSection => Boolean(section) && !used.has(section!.id));
     if (cluster.length === 0) continue;
     for (const section of cluster) used.add(section.id);
     clusters.push(cluster);
@@ -590,6 +636,8 @@ type DesktopNavRailProps = {
   flat?: boolean;
   /** Live unread counts keyed by nav href (e.g. the support thread). */
   badgeByHref?: Readonly<Record<string, number>>;
+  /** Section ids to show as their own cluster right after the first one. Product shops pass none. */
+  leadSectionIds?: readonly string[];
 };
 
 const NAV_PANEL_COLLAPSED_KEY = "ub.navPanel.collapsed";
@@ -604,6 +652,7 @@ export function DesktopNavRail({
   sections,
   flat = false,
   badgeByHref,
+  leadSectionIds,
 }: DesktopNavRailProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -646,8 +695,8 @@ export function DesktopNavRail({
     : [];
 
   const railClusters = useMemo(
-    () => (flat ? [] : clusterVisibleSections(sections)),
-    [flat, sections],
+    () => (flat ? [] : clusterVisibleSections(sections, leadSectionIds)),
+    [flat, sections, leadSectionIds],
   );
 
   // The expanded sub-nav column always mirrors the section you're currently in

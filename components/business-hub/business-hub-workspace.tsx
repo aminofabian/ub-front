@@ -55,7 +55,8 @@ import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
-import { isServiceOnlyBusiness } from "@/lib/business-store-type";
+import { isServiceBusiness, isServiceOnlyBusiness } from "@/lib/business-store-type";
+import { ServiceFloorPanel } from "@/components/business-hub/service-floor-panel";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
 import { SupplyBillsRail } from "@/components/business-hub/supply-bills-rail";
@@ -109,6 +110,7 @@ import {
   HUB_SECTION,
 } from "@/lib/business-hub/constants";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { canWriteSuppliers } from "@/lib/supplier-access";
 import {
   completeOnboardingQuestionnaire,
@@ -1589,13 +1591,20 @@ export function BusinessHubWorkspace() {
     return { from: today, to: today, branchId: reportBranchId };
   }, [reportBranchId]);
 
+  // A shop that sells services and has nothing on a shelf runs on its floor: the service page
+  // takes the lead and the "stock the shelves" wording steps aside. Product shops are untouched.
+  const serviceFloor = !IS_DESKTOP && isServiceBusiness(business);
+  const serviceHome = serviceFloor && shopNotReady;
+
   if (loading) return <BusinessHubSkeleton />;
 
   return (
     <BusinessPageLayout
-      title={shopNotReady ? "Open the shop" : null}
+      title={serviceHome ? null : shopNotReady ? "Open the shop" : null}
       description={
-        shopNotReady
+        serviceHome
+          ? null
+          : shopNotReady
           ? "Stock the shelves, dress the window, then invite the people who will sell. The till waits until there is something to sell."
           : null
       }
@@ -1643,6 +1652,7 @@ export function BusinessHubWorkspace() {
           "mx-auto w-full max-w-5xl",
           showTillStage && "max-w-6xl xl:max-w-7xl",
           dualLanes && "max-w-7xl",
+          serviceFloor && "max-w-[1400px]",
         )}
       >
         <div className="flex flex-col gap-2">
@@ -1657,6 +1667,15 @@ export function BusinessHubWorkspace() {
             />
           ) : null}
           {canManageBusinessSettings ? <SetupProgressBanner /> : null}
+          {serviceFloor ? (
+            <ServiceFloorPanel
+              branchId={branchId ?? null}
+              business={business}
+              shopName={business?.branding?.displayName?.trim() || business?.name?.trim() || ""}
+              canSell={hasPermission(me?.permissions, Permission.SalesSell)}
+              canSeeMoney={hasPermission(me?.permissions, Permission.CommissionsRead)}
+            />
+          ) : null}
 
           <div
             className={cn(
@@ -1667,31 +1686,39 @@ export function BusinessHubWorkspace() {
           >
             <div className={cn("flex flex-col gap-2", showCleanRail && "xl:pr-1")}>
               {shopNotReady ? (
-                <>
-                  <ShopOpenBoard
-                    shopName={
-                      business?.branding?.displayName?.trim() ||
-                      business?.name?.trim() ||
-                      ""
-                    }
-                    shopHost={
-                      business?.primaryDomain?.trim() ||
-                      (business?.slug?.trim()
-                        ? `${business.slug.trim()}.${PLATFORM_DOMAIN}`
-                        : null)
-                    }
-                    storefrontEnabled={Boolean(business?.storefront?.enabled)}
-                    themeId={business?.storefront?.storeThemeId}
-                    landingTemplateId={business?.storefront?.landingTemplateId}
-                    logoUrl={business?.branding?.logoUrl}
-                    brandPrimary={business?.branding?.primaryColor}
-                    hours={business?.storefront?.landingContent?.hours}
-                    address={business?.storefront?.landingContent?.address}
-                    currency={business?.currency}
-                    shopEnabled={shopEnabled}
-                    canManageStorefront={canManageBusinessSettings}
-                    canListUsers={canListUsers}
-                  />
+                <div
+                  className={cn(
+                    "flex flex-col gap-2",
+                    serviceHome && "xl:grid xl:grid-cols-2",
+                  )}
+                >
+                  <div className={cn(serviceHome && "xl:col-span-2")}>
+                    <ShopOpenBoard
+                      shopName={
+                        business?.branding?.displayName?.trim() ||
+                        business?.name?.trim() ||
+                        ""
+                      }
+                      shopHost={
+                        business?.primaryDomain?.trim() ||
+                        (business?.slug?.trim()
+                          ? `${business.slug.trim()}.${PLATFORM_DOMAIN}`
+                          : null)
+                      }
+                      storefrontEnabled={Boolean(business?.storefront?.enabled)}
+                      themeId={business?.storefront?.storeThemeId}
+                      landingTemplateId={business?.storefront?.landingTemplateId}
+                      logoUrl={business?.branding?.logoUrl}
+                      brandPrimary={business?.branding?.primaryColor}
+                      hours={business?.storefront?.landingContent?.hours}
+                      address={business?.storefront?.landingContent?.address}
+                      currency={business?.currency}
+                      shopEnabled={shopEnabled}
+                      canManageStorefront={canManageBusinessSettings}
+                      canListUsers={canListUsers}
+                      hideShelf={serviceHome}
+                    />
+                  </div>
                   <ReceiveMpesaSetupCard
                     compact
                     ownerPhone={me?.phone}
@@ -1703,14 +1730,16 @@ export function BusinessHubWorkspace() {
                     permissions={me?.permissions}
                   />
                   {canManageBusinessSettings ? (
-                    <ManageTillsHubCard
-                      compact
-                      branches={branches}
-                      branchId={branchId}
-                      initiallyOpen={manageTillsInitiallyOpen}
-                    />
+                    <div className={cn(serviceHome && "xl:col-span-2")}>
+                      <ManageTillsHubCard
+                        compact
+                        branches={branches}
+                        branchId={branchId}
+                        initiallyOpen={manageTillsInitiallyOpen}
+                      />
+                    </div>
                   ) : null}
-                </>
+                </div>
               ) : salesEmpty ? (
                 <BusinessHubEmptyState
                   period={period}

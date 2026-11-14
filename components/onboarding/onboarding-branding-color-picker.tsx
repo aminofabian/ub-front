@@ -29,10 +29,10 @@ const ONBOARDING_DIALOG_Z = "z-[650]";
 
 export const onboardingBrandingTileClass = cn(
   "group flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-2 py-3.5 text-center shadow-sm transition sm:rounded-xl",
-  "border-[#0D9488]/35 bg-gradient-to-b from-[#F0FDFA] to-white",
-  "hover:border-[#0D9488] hover:from-[#CCFBF1] hover:to-[#F0FDFA] hover:shadow-md",
+  "border-[#1D4B3B]/35 bg-gradient-to-b from-[#EFEBE2] to-white",
+  "hover:border-[#1D4B3B] hover:from-[#E3EBE5] hover:to-[#EFEBE2] hover:shadow-md",
   "active:scale-[0.98]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-2",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-2",
 );
 
 type Props = {
@@ -63,14 +63,14 @@ function ColorFieldWithHint({
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
         <label
-          className="text-xs font-medium text-[#6B7280]"
+          className="text-xs font-medium text-[#556159]"
           htmlFor={htmlId}
           title={hint}
         >
           {label}
         </label>
         <span
-          className="inline-flex cursor-help text-[#9CA3AF] hover:text-[#6B7280]"
+          className="inline-flex cursor-help text-[#626D66] hover:text-[#556159]"
           title={hint}
         >
           <CircleHelp className="size-3.5" aria-hidden />
@@ -83,12 +83,12 @@ function ColorFieldWithHint({
           type="color"
           value={valid ? value : "#000000"}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="h-11 w-14 cursor-pointer rounded-xl border border-[#E5E7EB] bg-white shadow-sm"
+          className="h-11 w-14 cursor-pointer rounded-xl border border-[#DDD8CC] bg-white shadow-sm"
           title={hint}
         />
         <input
           aria-label={`${label} hex value`}
-          className="h-11 w-32 max-w-full rounded-xl border border-[#E5E7EB] bg-white px-3 font-mono text-sm uppercase text-[#1F2937] outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
+          className="h-11 w-32 max-w-full rounded-xl border border-[#DDD8CC] bg-white px-3 font-mono text-sm uppercase text-[#121A16] outline-none focus:border-[#1D4B3B] focus:ring-2 focus:ring-[#1D4B3B]/20"
           value={value}
           maxLength={7}
           onChange={(e) => onChange(e.target.value)}
@@ -118,8 +118,8 @@ function PresetCard({
       className={cn(
         "flex min-h-12 items-center gap-2 rounded-xl border px-2.5 py-2.5 text-left transition",
         selected
-          ? "border-[#0D9488] bg-[#F0FDFA] ring-1 ring-[#0D9488]/30"
-          : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
+          ? "border-[#1D4B3B] bg-[#EFEBE2] ring-1 ring-[#1D4B3B]/30"
+          : "border-[#DDD8CC] hover:border-[#C9C3B5] hover:bg-[#FCFAF5]",
       )}
       aria-pressed={selected}
     >
@@ -135,7 +135,7 @@ function PresetCard({
           aria-hidden
         />
       </span>
-      <span className="min-w-0 truncate text-xs font-medium text-[#374151]">
+      <span className="min-w-0 truncate text-xs font-medium text-[#2A332E]">
         {preset.name}
       </span>
     </button>
@@ -165,7 +165,7 @@ function ColorSwatchSummary({
           aria-hidden
         />
       </span>
-      <span className="min-w-0 truncate text-sm font-medium text-[#374151]">
+      <span className="min-w-0 truncate text-sm font-medium text-[#2A332E]">
         {label}
       </span>
     </span>
@@ -211,10 +211,10 @@ export function OnboardingBrandingColorPicker({
         onClick={() => setOpen(true)}
         className={onboardingBrandingTileClass}
       >
-        <span className="flex size-10 items-center justify-center rounded-xl bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-[#1D4B3B]/15 text-[#1D4B3B] transition group-hover:bg-[#1D4B3B]/25">
           <Palette className="size-5" aria-hidden />
         </span>
-        <span className="text-sm font-semibold text-[#134E4A]">Pick colours</span>
+        <span className="text-sm font-semibold text-[#121A16]">Pick colours</span>
         <span className="flex gap-0.5 overflow-hidden rounded border border-black/10">
           <span
             className="size-4"
@@ -227,7 +227,7 @@ export function OnboardingBrandingColorPicker({
             aria-hidden
           />
         </span>
-        <span className="max-w-full truncate px-1 text-[10px] font-medium text-[#6B7280]">
+        <span className="max-w-full truncate px-1 text-[10px] font-medium text-[#556159]">
           {summaryLabel}
         </span>
       </button>
@@ -236,17 +236,17 @@ export function OnboardingBrandingColorPicker({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "flex w-full flex-col gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-left transition sm:flex-row sm:items-center sm:rounded-xl",
-          "hover:border-[#0D9488]/40 hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/30",
+          "flex w-full flex-col gap-3 rounded-2xl border border-[#DDD8CC] bg-white px-3 py-3 text-left transition sm:flex-row sm:items-center sm:rounded-xl",
+          "hover:border-[#1D4B3B]/40 hover:bg-[#FCFAF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B]/30",
         )}
       >
         <span className="flex min-w-0 flex-1 items-start gap-3">
-          <Palette className="mt-0.5 size-5 shrink-0 text-[#0D9488]" aria-hidden />
+          <Palette className="mt-0.5 size-5 shrink-0 text-[#1D4B3B]" aria-hidden />
           <span className="min-w-0">
-            <span className="block text-sm font-medium text-[#1F2937]">
+            <span className="block text-sm font-medium text-[#121A16]">
               Let&apos;s help you select your colours
             </span>
-            <span className="mt-0.5 block text-xs text-[#9CA3AF]">
+            <span className="mt-0.5 block text-xs text-[#626D66]">
               Choose from here — themes or custom primary &amp; secondary
             </span>
           </span>
@@ -262,7 +262,7 @@ export function OnboardingBrandingColorPicker({
   return (
     <div className={layout === "tile" ? "" : "space-y-2"}>
       {layout === "full" ? (
-        <p className="text-xs font-medium text-[#6B7280]">Brand colours</p>
+        <p className="text-xs font-medium text-[#556159]">Brand colours</p>
       ) : null}
 
       {trigger}
@@ -283,13 +283,13 @@ export function OnboardingBrandingColorPicker({
           )}
           overlayClassName={ONBOARDING_DIALOG_Z}
         >
-          <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[#D1D5DB] sm:hidden" aria-hidden />
+          <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[#C9C3B5] sm:hidden" aria-hidden />
           <div className="flex max-h-[min(90dvh,720px)] flex-col">
-            <DialogHeader className="border-b border-[#F3F4F6] px-5 pb-4 pt-5">
-              <DialogTitle className="text-[#1F2937]">
+            <DialogHeader className="border-b border-[#EFEBE2] px-5 pb-4 pt-5">
+              <DialogTitle className="text-[#121A16]">
                 Pick your brand colours
               </DialogTitle>
-              <DialogDescription className="text-[#6B7280]">
+              <DialogDescription className="text-[#556159]">
                 Choose a ready-made theme below, or set a custom primary and
                 secondary. We only show combinations with readable contrast.
               </DialogDescription>
@@ -297,7 +297,7 @@ export function OnboardingBrandingColorPicker({
 
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
               <div>
-                <p className="mb-2 text-xs font-medium text-[#6B7280]">
+                <p className="mb-2 text-xs font-medium text-[#556159]">
                   Ready-made looks
                 </p>
                 <div
@@ -323,8 +323,8 @@ export function OnboardingBrandingColorPicker({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-dashed border-[#D1D5DB] bg-[#FAFAFA] p-4">
-                <p className="mb-3 text-xs font-medium text-[#6B7280]">
+              <div className="rounded-2xl border border-dashed border-[#C9C3B5] bg-[#FCFAF5] p-4">
+                <p className="mb-3 text-xs font-medium text-[#556159]">
                   Or use custom colours
                 </p>
                 <div className="space-y-4">
@@ -353,10 +353,10 @@ export function OnboardingBrandingColorPicker({
               ) : null}
             </div>
 
-            <DialogFooter className="border-t border-[#F3F4F6] px-5 py-4 sm:justify-stretch">
+            <DialogFooter className="border-t border-[#EFEBE2] px-5 py-4 sm:justify-stretch">
               <Button
                 type="button"
-                className="h-11 w-full rounded-xl bg-[#0D9488] text-white hover:bg-[#0F766E]"
+                className="h-11 w-full rounded-xl bg-[#1D4B3B] text-white hover:bg-[#163B2E]"
                 disabled={!contrastOk}
                 onClick={() => setOpen(false)}
               >

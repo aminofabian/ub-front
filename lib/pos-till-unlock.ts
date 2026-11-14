@@ -38,6 +38,18 @@ export function resolveTillUnlockEmail(
 export const TILL_WAITING_FOR_OWNER_COPY =
   "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.";
 
+/**
+ * At sign-in nobody is signed in yet, so the till cannot be registered on the spot. The way
+ * through is the password, which is accepted on any computer; the till then offers to register.
+ */
+export const TILL_SIGN_IN_WITH_PASSWORD_COPY =
+  "Your PIN is right, but this computer is not a registered till yet. Type your password here instead to sign in, and you can register it straight away. No password? The shop owner has been sent a link to approve this computer.";
+
+/** The sign-in page's wording for a refused PIN on an unregistered till; other errors pass through. */
+export function formatSignInTillDeniedMessage(raw: string): string {
+  return getPosGuidanceKind(raw) === "register-till" ? TILL_SIGN_IN_WITH_PASSWORD_COPY : raw;
+}
+
 export function formatTillAccessDeniedMessage(raw: string): string {
   if (getPosGuidanceKind(raw) === "register-till") {
     return TILL_WAITING_FOR_OWNER_COPY;

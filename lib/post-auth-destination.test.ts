@@ -338,6 +338,29 @@ describe("resolvePostAuthDestination", () => {
     ).toBe("/shop/cart");
   });
 
+  it("keeps an owner with a half-answered questionnaire on the business hub", () => {
+    const draft = {
+      // The API copies the shop-type answer here while it is still a draft.
+      profile: { storeTypes: ["barbershop"] },
+      onboarding: {
+        status: "active",
+        step: 3,
+        answers: { storeTypes: ["barbershop"] },
+      },
+    };
+    expect(
+      resolvePostAuthDestination({ role: { key: "owner" } }, null, draft),
+    ).toBe(APP_ROUTES.business);
+    // Once setup has been applied the same answers count as a configured shop.
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        { ...draft, onboarding: { ...draft.onboarding, step: 8 } },
+      ),
+    ).toBe(APP_ROUTES.overview);
+  });
+
   it("stops gating once onboarding is finished", () => {
     expect(
       resolvePostAuthDestination(

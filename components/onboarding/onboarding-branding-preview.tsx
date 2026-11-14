@@ -30,9 +30,9 @@ export function OnboardingBrandingPreview({
   return (
     <div className="space-y-3">
       {showHeading ? (
-        <p className="text-xs font-medium text-[#6B7280]">Preview</p>
+        <p className="text-xs font-medium text-[#556159]">Preview</p>
       ) : null}
-      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm ring-1 ring-black/[0.04]">
+      <div className="overflow-hidden rounded-xl border border-[#DDD8CC] bg-white shadow-sm ring-1 ring-black/[0.04]">
         <div
           className="relative px-4 py-4"
           style={{
@@ -81,23 +81,23 @@ export function OnboardingBrandingPreview({
           </div>
         </div>
 
-        <div className="space-y-3 bg-[#FAFAFA] p-4">
+        <div className="space-y-3 bg-[#FCFAF5] p-4">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-[#626D66]">
               Receipt
             </p>
-            <div className="mt-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5 text-center shadow-sm">
+            <div className="mt-1.5 rounded-lg border border-[#DDD8CC] bg-white px-3 py-2.5 text-center shadow-sm">
               <p className="text-sm font-semibold" style={{ color: primary }}>
                 {brand}
               </p>
-              <p className="mt-0.5 text-[10px] text-[#9CA3AF]">
+              <p className="mt-0.5 text-[10px] text-[#626D66]">
                 Sale #1042 · Today
               </p>
             </div>
           </div>
 
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-[#626D66]">
               Call to action
             </p>
             <button

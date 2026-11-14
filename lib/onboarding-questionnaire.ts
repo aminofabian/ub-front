@@ -6,6 +6,7 @@ import {
   type OnboardingStateRecord,
 } from "@/lib/api";
 import { STORE_SECTION_STARTER_KITS } from "@/lib/item-type-suggestions";
+import { onboardingAnswersAreDraft } from "@/lib/onboarding-draft";
 import {
   kenyanAirtimePhoneOk,
   toKenyanMsisdn254,
@@ -678,6 +679,55 @@ export function hasFreshSignupSession(): boolean {
   }
 }
 
+const EMAIL_JUST_VERIFIED_SESSION_KEY =
+  "palmart.onboardingQuestionnaire.emailJustVerified.v1";
+
+/**
+ * Call in the tab where an email address was just verified.
+ *
+ * The fresh-signup flag is set where the account was created (often the
+ * platform apex), but verification happens on the shop's own host or in a new
+ * tab opened from the email — neither shares that sessionStorage. This marker
+ * is written on the host the owner lands on, so the dashboard can pick the
+ * signup back up. It carries no role: {@link continueSignupAfterVerification}
+ * decides who it applies to.
+ */
+export function markEmailJustVerified(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.setItem(EMAIL_JUST_VERIFIED_SESSION_KEY, "1");
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+/**
+ * Turns a just-verified marker into a fresh-signup session, once. Call after
+ * the server state is hydrated and the signed-in user is known; pass whether
+ * they own or administer the shop — staff and shoppers verify emails too and
+ * must never be walked through shop setup.
+ */
+export function continueSignupAfterVerification(isOwnerOrAdmin: boolean): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  let verified = false;
+  try {
+    verified =
+      window.sessionStorage.getItem(EMAIL_JUST_VERIFIED_SESSION_KEY) === "1";
+    window.sessionStorage.removeItem(EMAIL_JUST_VERIFIED_SESSION_KEY);
+  } catch {
+    return;
+  }
+  if (!verified || !isOwnerOrAdmin) {
+    return;
+  }
+  clearOnboardingQuestionnaireSessionSkip();
+  markFreshSignupSession();
+}
+
 /** Call before Google `sign_up` redirect from the create-shop flow. */
 export function prepareOnboardingForGoogleSignup(): void {
   clearOnboardingQuestionnaireSessionSkip();
@@ -744,10 +794,31 @@ export function shouldStartOnboardingQuestionnaire(): boolean {
 }
 
 /**
+ * True when the shop itself says nobody has been walked through setup yet.
+ *
+ * The record is tenant-level: `onboarding.status` on the business is `pending`
+ * from the moment the shop is created until the walkthrough first opens (which
+ * moves it to `active`), on any device and for any owner or admin. So this
+ * holds across devices and tabs where the per-tab fresh-signup flag cannot.
+ * Pass the status the server returned, never the local cache.
+ */
+export function shopAwaitsFirstWalkthrough(
+  serverStatus: string | null | undefined,
+  isOwnerOrAdmin: boolean,
+): boolean {
+  if (!isOwnerOrAdmin || wasOnboardingQuestionnaireSkippedThisSession()) {
+    return false;
+  }
+  return (serverStatus?.trim().toLowerCase() ?? "") === "pending";
+}
+
+/**
  * Shop already has real setup — do not force the step-1 overlay (heal instead).
  */
 export function shopLooksAlreadyConfigured(input?: {
   onboardingStatus?: string | null;
+  /** Saved questionnaire step; tells a half-answered draft from applied setup. */
+  onboardingStep?: number | null;
   onboardingAnswers?: Record<string, unknown> | null;
   storeTypes?: string[] | null;
   storeType?: string | null;
@@ -759,6 +830,13 @@ export function shopLooksAlreadyConfigured(input?: {
   }
   if ((input?.catalogueCount ?? 0) > 0) {
     return true;
+  }
+  // Answers are saved as the owner goes, and the API copies the shop-type
+  // answer onto the business profile at the same moment. Mid-questionnaire
+  // both are a draft: counting them marked a shop "completed" on reload before
+  // anything (branches, shop line, branding) had been created.
+  if (onboardingAnswersAreDraft(status, input?.onboardingStep)) {
+    return false;
   }
   const types = input?.storeTypes?.filter((t) => t.trim().length > 0) ?? [];
   if (types.length > 0 || Boolean(input?.storeType?.trim())) {

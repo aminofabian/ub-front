@@ -29,6 +29,8 @@ type Props = {
   shopEnabled: boolean;
   canManageStorefront: boolean;
   canListUsers: boolean;
+  /** A shop that sells services has no shelf to stock: leave the "add a product" card out. */
+  hideShelf?: boolean;
 };
 
 export function ShopOpenBoard({
@@ -45,6 +47,7 @@ export function ShopOpenBoard({
   shopEnabled,
   canManageStorefront,
   canListUsers,
+  hideShelf = false,
 }: Props) {
   const look = storefrontEnabled
     ? storeThemeMeta(normalizeStoreThemeId(themeId))
@@ -57,6 +60,8 @@ export function ShopOpenBoard({
 
   return (
     <section aria-label="Open the shop" className="space-y-3">
+      {hideShelf ? null : (
+      <>
       <Link
         href={APP_ROUTES.products}
         className="group block text-left focus-visible:outline-none"
@@ -122,6 +127,8 @@ export function ShopOpenBoard({
       <p className={cn("px-0.5 text-[12px] leading-relaxed", HUB_MUTED)}>
         Sales and the till wait here until there is something to sell.
       </p>
+      </>
+      )}
 
       {canManageStorefront && shopEnabled ? (
         <div className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">

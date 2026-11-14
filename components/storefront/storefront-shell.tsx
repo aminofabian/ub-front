@@ -1,3 +1,4 @@
+import { ShopBookLauncher } from "@/components/storefront/shop-book-launcher";
 import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
 import { StorefrontPwaRuntime } from "@/components/storefront/storefront-pwa-runtime";
@@ -141,6 +142,7 @@ export async function StorefrontShell({
         >
           {children}
         </StorefrontSignInProvider>
+        <ShopBookLauncher slug={slug} />
         <StorefrontPwaRuntime
           slug={slug}
           name={headerTitle}
@@ -209,6 +211,7 @@ export async function StorefrontShell({
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
+      <ShopBookLauncher slug={slug} />
       <StorefrontPwaRuntime
         slug={slug}
         name={headerTitle}

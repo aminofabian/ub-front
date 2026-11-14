@@ -27,6 +27,8 @@ import {
 } from "@/lib/service-business-api";
 
 import { ServiceFormDialog } from "./service-form-dialog";
+import { PackageOfferDialog } from "./package-offer-dialog";
+import { ProductsUsedDialog } from "./products-used-dialog";
 
 function durationLabel(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
@@ -41,6 +43,8 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
   const [staff, setStaff] = useState<CommissionPlanRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<ServiceRecord | "new" | null>(null);
+  const [packaging, setPackaging] = useState<ServiceRecord | null>(null);
+  const [productsFor, setProductsFor] = useState<ServiceRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -190,6 +194,23 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
                           <Button
                             variant="outline"
                             size="sm"
+                            disabled={busyId === service.id || service.priceIsVariable}
+                            title={service.priceIsVariable ? "A package needs a fixed price" : undefined}
+                            onClick={() => setPackaging(service)}
+                          >
+                            Package
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busyId === service.id}
+                            onClick={() => setProductsFor(service)}
+                          >
+                            Products used
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             disabled={busyId === service.id}
                             onClick={() => void toggleActive(service)}
                           >
@@ -226,6 +247,8 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
           }}
         />
       ) : null}
+      {productsFor ? <ProductsUsedDialog service={productsFor} onClose={() => setProductsFor(null)} /> : null}
+      {packaging ? <PackageOfferDialog service={packaging} onClose={() => setPackaging(null)} /> : null}
     </div>
   );
 }

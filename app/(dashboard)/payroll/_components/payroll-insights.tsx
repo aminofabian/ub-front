@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
-  CircleDollarSign,
   Info,
   Minus,
   ReceiptText,
@@ -38,33 +37,33 @@ type Props = {
   onSelectRow: (row: PayrollRunRow) => void;
 };
 
-const HAIRLINE =
-  "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]";
+const HAIRLINE = "border-[var(--op-rule)]";
 
 function Tile({
   label,
   value,
   hint,
   tone = "default",
+  span = false,
 }: {
   label: string;
   value: string;
   hint: string;
   tone?: "default" | "warning" | "muted" | "good";
+  span?: boolean;
 }) {
   return (
-    <div className="min-w-0 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <div className={cn("min-w-0 bg-[var(--op-surface)] px-3 py-2", span && "col-span-2 lg:col-span-1")}>
+      <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--op-muted)]">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 truncate text-[1.05rem] font-semibold leading-none tracking-[-0.03em] tabular-nums",
-          tone === "warning" && "text-[#9a2e16]",
-          tone === "muted" && "text-muted-foreground",
-          tone === "good" && "text-[var(--pos-primary,#0f766e)]",
+          "mt-1 truncate font-mono text-[15px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--op-ink)]",
+          tone === "warning" && "text-[var(--op-highlight)]",
+          tone === "muted" && "text-[var(--op-muted)]",
+          tone === "good" && "text-[var(--op-accent)]",
         )}
-        style={{ fontFamily: "var(--font-heading)" }}
         title={value}
       >
         {value}
@@ -127,7 +126,7 @@ export function PayrollInsights({
   return (
     <section
       className={cn(
-        "overflow-hidden border bg-white transition-opacity",
+        "overflow-hidden rounded-[2px] border bg-[var(--op-surface)] transition-opacity",
         HAIRLINE,
         loading && "opacity-60",
       )}
@@ -139,15 +138,8 @@ export function PayrollInsights({
           HAIRLINE,
         )}
       >
-        <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[-0.01em] text-foreground">
-          <CircleDollarSign
-            className="size-3.5 text-[var(--pos-primary,#0f766e)]"
-            aria-hidden
-          />
-          Run overview
-          <span className="font-normal text-muted-foreground">
-            · {payrollMonthLabel(summary.year, summary.month)}
-          </span>
+        <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.02em] text-[var(--op-ink)]">
+          {payrollMonthLabel(summary.year, summary.month)}
         </p>
         <span
           className={cn(
@@ -168,12 +160,7 @@ export function PayrollInsights({
         </p>
       </div>
 
-      <div
-        className={cn(
-          "grid grid-cols-2 divide-x divide-y border-b sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0",
-          HAIRLINE,
-        )}
-      >
+      <div className="grid grid-cols-2 gap-px border-b bg-[var(--op-rule)] lg:grid-cols-5">
         <Tile
           label="Cash to pay"
           value={formatPayrollMoney(summary.netPayable)}
@@ -216,13 +203,14 @@ export function PayrollInsights({
           value={formatPayrollMoney(summary.paidNet)}
           hint={`${summary.paidCount} of ${summary.headcount} payslips recorded`}
           tone={summary.paidCount > 0 ? "good" : "muted"}
+          span
         />
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
         <div className={cn("px-3 py-2.5 lg:border-r", HAIRLINE)}>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--op-muted)]">
               Before you pay
             </p>
             {ready ? (
@@ -271,7 +259,7 @@ export function PayrollInsights({
         </div>
 
         <div className={cn("px-3 py-2.5 lg:border-r", HAIRLINE)}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--op-muted)]">
             Finance
           </p>
           <div className="mt-1.5 flex items-baseline gap-1.5">
@@ -301,7 +289,7 @@ export function PayrollInsights({
         </div>
 
         <div className="px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[11px] font-semibold tracking-[-0.02em] text-[var(--op-muted)]">
             vs {payrollMonthLabel(summary.previous.year, summary.previous.month)}
           </p>
           <div className="mt-1.5 flex items-baseline gap-1.5">

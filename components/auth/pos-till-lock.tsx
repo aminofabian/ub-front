@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Lock } from "lucide-react";
+import { Lock, MonitorSmartphone } from "lucide-react";
 
 import { PosTillSetupPanel } from "@/components/auth/pos-till-setup-panel";
 import { TillUnlockButton } from "@/components/auth/till-unlock-button";
@@ -47,7 +47,8 @@ import {
   type PosTillUnlockMethod,
   type PosTillUnlockMode,
 } from "@/lib/pos-till-unlock";
-import { notifyPosGuidanceResolved } from "@/lib/pos-guidance";
+import { notifyPosGuidance, notifyPosGuidanceResolved } from "@/lib/pos-guidance";
+import { getPosGuidanceKind } from "@/lib/problem";
 import {
   humanTillLabel,
   setTillDeviceLabel,
@@ -494,6 +495,15 @@ function PosTillLockOverlay() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [setupHeld, setSetupHeld] = useState(false);
+  // The PIN was right but this computer is not a registered till: instead of an error, the
+  // overlay turns into "Register this till". `pin` is kept to finish the unlock afterwards.
+  const [registering, setRegistering] = useState<{
+    pin: string;
+    mode: PosTillUnlockMode;
+    email: string;
+    /** True when registering needs a fresh sign-in first (another person, or an expired session). */
+    needsPassword: boolean;
+  } | null>(null);
   const [ctx, setCtx] = useState<TillUnlockContext | null>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -528,6 +538,7 @@ function PosTillLockOverlay() {
       setError("");
       setBusy(false);
       setSetupHeld(false);
+      setRegistering(null);
       return;
     }
     setCtx(readTillUnlockContext());
@@ -686,6 +697,75 @@ function PosTillLockOverlay() {
     }
   };
 
+  /** Registers this computer as a till for the branch, then finishes the unlock that was refused. */
+  const onRegisterTill = async () => {
+    if (!registering) return;
+    setError("");
+    setBusy(true);
+    const bid = me?.branchId?.trim() || ctx?.branchId?.trim() || branchId.trim();
+    const register = async () => {
+      const row = await registerTillDevice({
+        branchId: bid,
+        label: tillLabel.trim() || undefined,
+        toast: false,
+      });
+      setTillDeviceLabel(humanTillLabel(row.label) ?? "");
+      notifyPosGuidanceResolved("register-till");
+    };
+    try {
+      if (!bid) {
+        throw new Error("Choose a branch for this till first: use Full sign out, sign in, and pick the branch.");
+      }
+      if (registering.needsPassword) {
+        if (password.length < 1) {
+          throw new Error("Enter your password to confirm it is you.");
+        }
+        // The password signs this person in (it is accepted on any computer); the till is then
+        // registered in their name.
+        await unlockWithPin({
+          method: "password",
+          password,
+          mode: registering.mode,
+          email: registering.mode === "switch" ? registering.email : undefined,
+        });
+        try {
+          await register();
+        } catch (err) {
+          // They are in; the banner at the top of the till still offers to register it.
+          notifyPosGuidance("register-till");
+          throw err;
+        }
+        return;
+      }
+      try {
+        await register();
+      } catch (err) {
+        if (err instanceof ApiRequestError && err.status === 401) {
+          // The session ran out while the till was locked: ask for the password instead.
+          setRegistering({ ...registering, needsPassword: true });
+          return;
+        }
+        throw err;
+      }
+      await unlockWithPin({
+        method: "pin",
+        pin: registering.pin,
+        mode: registering.mode,
+        email: registering.mode === "switch" ? registering.email : undefined,
+      });
+    } catch (err) {
+      const raw =
+        err instanceof ApiRequestError
+          ? tillDeviceErrorMessage(err)
+          : err instanceof Error
+            ? err.message
+            : "Could not register this till.";
+      setError(formatTillUnlockError(raw, registering.needsPassword ? "password" : "pin"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -705,6 +785,18 @@ function PosTillLockOverlay() {
           : err instanceof Error
             ? err.message
             : "Could not unlock.";
+      if (method === "pin" && getPosGuidanceKind(raw) === "register-till") {
+        // Not an error to read: the next step is to register this computer, so offer exactly that.
+        setRegistering({
+          pin,
+          mode,
+          email: switchEmail,
+          needsPassword: mode === "switch" || lockReason === "session",
+        });
+        setTillLabel((current) => current.trim() || branchName);
+        setPassword("");
+        return;
+      }
       setError(formatTillUnlockError(raw, method));
       if (method === "password") {
         setPassword("");
@@ -751,7 +843,92 @@ function PosTillLockOverlay() {
         aria-modal="true"
         aria-labelledby="pos-till-lock-title"
       >
-        {setupMode ? (
+        {registering ? (
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onRegisterTill();
+            }}
+          >
+            <div className="flex items-center gap-2 text-foreground">
+              <MonitorSmartphone className="size-5 shrink-0" aria-hidden />
+              <h2
+                id="pos-till-lock-title"
+                className="text-[1.5rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{ fontFamily: 'var(--font-cormorant), Georgia, "Times New Roman", serif' }}
+              >
+                Register this till
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your PIN is right. {branchName} only accepts a PIN on tills it knows, and this computer is not one yet. Give it a
+              name and carry on.
+            </p>
+            <label className="block text-xs font-medium text-muted-foreground">
+              Till name
+              <input
+                data-till-overlay-field="1"
+                autoFocus
+                maxLength={80}
+                placeholder="e.g. Front counter"
+                value={tillLabel}
+                disabled={busy}
+                onChange={(e) => {
+                  setTillLabel(e.target.value.slice(0, 80));
+                  setError("");
+                }}
+                className={fieldClass}
+              />
+            </label>
+            {registering.needsPassword ? (
+              <label className="block text-xs font-medium text-muted-foreground">
+                Your password, to confirm it is you
+                <input
+                  ref={passwordInputRef}
+                  data-till-unlock-password="1"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  className={fieldClass}
+                />
+              </label>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Sales, shifts and receipts are kept against the till that made them. A manager can remove a till later in
+              Business settings, under Trusted tills.
+            </p>
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <TillUnlockButton
+              ready={!registering.needsPassword || password.length >= 1}
+              busy={busy}
+              idleLabel="Register and unlock"
+              busyLabel="Registering"
+            />
+            <button
+              type="button"
+              className="w-full text-center text-xs font-medium text-foreground underline-offset-2 hover:underline"
+              disabled={busy}
+              onClick={() => {
+                setRegistering(null);
+                setError("");
+                setPin("");
+                setPassword("");
+              }}
+            >
+              Not now
+            </button>
+          </form>
+        ) : setupMode ? (
           <PosTillSetupPanel
             displayName={ctx?.displayName || me?.name || ""}
             needsPassword={needsPassword}
@@ -913,6 +1090,7 @@ function PosTillLockOverlay() {
 
         <button
           type="button"
+          hidden={registering != null}
           className="mt-3 w-full text-center text-xs font-medium text-foreground underline-offset-2 hover:underline"
           disabled={busy}
           onClick={() => {

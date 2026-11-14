@@ -76,7 +76,8 @@ import {
   GOOGLE_SHOP_PICK_PARAM,
 } from "@/lib/google-shop-pick";
 import { getPosGuidanceKind, isEmailNotVerifiedError } from "@/lib/problem";
-import { formatTillAccessDeniedMessage } from "@/lib/pos-till-unlock";
+import { rememberRegisterTillAfterSignIn } from "@/lib/pos-guidance";
+import { formatSignInTillDeniedMessage } from "@/lib/pos-till-unlock";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass = authPrimaryCtaClass;
@@ -569,14 +570,18 @@ function LoginPageContent() {
           }
         }
       }
+      const failure =
+        error instanceof Error
+          ? error.message
+          : usePin
+            ? "PIN login failed."
+            : "Login failed.";
+      if (getPosGuidanceKind(failure) === "register-till") {
+        // Once they are in with their password, the till opens its register dialog by itself.
+        rememberRegisterTillAfterSignIn();
+      }
       setErrorMessage(
-        formatTillAccessDeniedMessage(
-          error instanceof Error
-            ? error.message
-            : usePin
-              ? "PIN login failed."
-              : "Login failed.",
-        ) +
+        formatSignInTillDeniedMessage(failure) +
           (IS_DESKTOP
             ? " If this is a staff account, open Settings → Sync now after an owner signs in, then try again."
             : ""),
@@ -608,11 +613,11 @@ function LoginPageContent() {
       }
       setErrorMessage("Could not open that shop. Try again or contact support.");
     } catch (error) {
-      setErrorMessage(
-        formatTillAccessDeniedMessage(
-          error instanceof Error ? error.message : "Could not sign in to that shop.",
-        ),
-      );
+      const failure = error instanceof Error ? error.message : "Could not sign in to that shop.";
+      if (getPosGuidanceKind(failure) === "register-till") {
+        rememberRegisterTillAfterSignIn();
+      }
+      setErrorMessage(formatSignInTillDeniedMessage(failure));
     } finally {
       setShopPickerBusy(false);
       setIsSubmitting(false);

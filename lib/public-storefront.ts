@@ -254,6 +254,11 @@ export type TenantContext = {
    * (e.g. Westlands) for SEO snippets.
    */
   branchLocalities: string[];
+  /**
+   * When set, this request's host should send the browser here. Absent means
+   * stay on the host that was opened.
+   */
+  canonicalHost: string | null;
 };
 
 const DEFAULT_REVALIDATE_SEC = 60;
@@ -769,6 +774,13 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
         .filter((v) => v.length > 0)
     : [];
 
+  const canonicalRaw =
+    typeof o.canonicalHost === "string" ? o.canonicalHost.trim().toLowerCase() : "";
+  const canonicalHost =
+    canonicalRaw.length > 0 && !canonicalRaw.includes("/") && !canonicalRaw.includes(" ")
+      ? canonicalRaw
+      : null;
+
   return {
     tenantId,
     tenantName,
@@ -786,6 +798,7 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     resolvedAt,
     countryCode,
     branchLocalities,
+    canonicalHost,
   };
 }
 

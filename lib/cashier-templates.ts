@@ -4,7 +4,7 @@
  * Preference is per device: registered till_devices row wins, else localStorage.
  */
 
-export const CASHIER_TEMPLATE_IDS = ["shelf", "ledger", "counter"] as const;
+export const CASHIER_TEMPLATE_IDS = ["shelf", "ledger", "counter", "floor"] as const;
 
 export type CashierTemplateId = (typeof CASHIER_TEMPLATE_IDS)[number];
 
@@ -18,6 +18,8 @@ export type CashierTemplateMeta = {
   id: CashierTemplateId;
   name: string;
   blurb: string;
+  /** Only offered to shops that sell services. */
+  serviceOnly?: boolean;
 };
 
 export const CASHIER_TEMPLATES: readonly CashierTemplateMeta[] = [
@@ -36,7 +38,37 @@ export const CASHIER_TEMPLATES: readonly CashierTemplateMeta[] = [
     name: "Counter",
     blurb: "Menu, sizes, and the sale",
   },
+  {
+    id: "floor",
+    name: "Floor",
+    blurb: "Queue, chairs, and who is paying",
+    serviceOnly: true,
+  },
 ] as const;
+
+/** Templates this shop can pick: the floor till is only for shops that sell services. */
+export function cashierTemplatesFor(sellsServices: boolean): readonly CashierTemplateMeta[] {
+  return CASHIER_TEMPLATES.filter((t) => sellsServices || !t.serviceOnly);
+}
+
+/**
+ * What the till shows. A shop that only sells services opens on the floor unless this device was
+ * deliberately set to something else; a till row's default of "shelf" is not a deliberate choice.
+ */
+export function cashierScreenFor(opts: {
+  effective: CashierTemplateId;
+  localPick: CashierTemplateId | null;
+  sellsServices: boolean;
+  serviceOnly: boolean;
+}): CashierTemplateId {
+  if (!opts.sellsServices) {
+    return opts.effective === "floor" ? DEFAULT_CASHIER_TEMPLATE_ID : opts.effective;
+  }
+  if (opts.serviceOnly && opts.localPick == null && opts.effective === "shelf") {
+    return "floor";
+  }
+  return opts.effective;
+}
 
 export function isCashierTemplateId(value: unknown): value is CashierTemplateId {
   return (

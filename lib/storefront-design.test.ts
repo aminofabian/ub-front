@@ -398,3 +398,29 @@ describe("resolveStorefrontDesign", () => {
     expect(resolved.heroPhoto?.focalX).toBe(25);
   });
 });
+
+describe("booking page wording", () => {
+  it("keeps only known keys, trimmed and cut to length, and round-trips", () => {
+    const raw = JSON.stringify({
+      version: 1,
+      booking: {
+        headline: "  Fresh cuts in Mirema  ",
+        line: "x".repeat(400),
+        visitTitle: "",
+        script: "<img src=x onerror=alert(1)>",
+        pricesTitle: 42,
+      },
+    });
+    const design = parseStorefrontDesignJson(raw);
+    expect(design?.booking?.headline).toBe("Fresh cuts in Mirema");
+    expect(design?.booking?.line).toHaveLength(160);
+    expect(Object.keys(design?.booking ?? {}).sort()).toEqual(["headline", "line"]);
+    expect(parseStorefrontDesignJson(serializeStorefrontDesign(design))).toEqual(design);
+  });
+
+  it("wording alone is a design worth storing, and clearing it stores nothing", () => {
+    expect(serializeStorefrontDesign({ version: 1, booking: { bookTitle: "Choose a day" } })).toContain("Choose a day");
+    expect(serializeStorefrontDesign({ version: 1, booking: {} })).toBeNull();
+    expect(serializeStorefrontDesign({ version: 1, booking: null })).toBeNull();
+  });
+});

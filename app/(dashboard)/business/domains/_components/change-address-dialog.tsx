@@ -71,7 +71,7 @@ function waitText(nextAllowedAt: string): string {
 
 /**
  * Lets the owner swap the shop's free address for a shorter or tidier one. The old address
- * keeps working, so nothing printed or bookmarked breaks.
+ * sends visitors to the new one. That can be turned off under Your domains.
  */
 export function ChangeAddressDialog({ open, onOpenChange, onChanged }: Props) {
   const [status, setStatus] = useState<ShopAddressStatus | null>(null);
@@ -184,7 +184,7 @@ export function ChangeAddressDialog({ open, onOpenChange, onChanged }: Props) {
             <DialogDescription className="text-[13px] leading-relaxed">
               {done
                 ? "Customers and staff can use the new address straight away."
-                : "Pick a shorter or tidier name. Your old address keeps working, so links and QR codes you have shared still open the shop."}
+                : "Pick a shorter or tidier name. Your old address sends visitors to the new one, so links and QR codes you have shared still open the shop."}
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -208,7 +208,10 @@ export function ChangeAddressDialog({ open, onOpenChange, onChanged }: Props) {
                 <span className="break-all font-mono text-[12px]">
                   {done.previousHost}
                 </span>{" "}
-                still opens the shop. Anyone signed in there stays signed in.
+                sends people to the new address, including the page they opened.
+                Turn that off under Your domains if this address should stay
+                open on its own. Anyone signed in on the old address signs in
+                again on the new one.
               </p>
             ) : null}
             <p className="text-muted-foreground">

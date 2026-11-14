@@ -1,5 +1,19 @@
 "use client";
 
+import { useTeamAccountSync } from "@/hooks/use-team-account-sync";
+import { commissionMonth, payrollMonthRange } from "@/lib/payroll-commission";
+import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  fetchCommissionPlans,
+  fetchCommissionStatement,
+  type CommissionPlanRecord,
+  type CommissionStatement,
+} from "@/lib/service-business-api";
+import { PayrollCommissionPanel } from "./_components/payroll-commission-panel";
+import { PayoutDialog } from "../commissions/_components/payout-dialogs";
+import { nairobiToday, type CommissionStatementRow } from "@/lib/service-business-api";
+import { isServiceBusiness } from "@/lib/business-store-type";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
@@ -16,7 +30,6 @@ import {
   DashboardFeedback,
   DashboardLoadError,
   DashboardLoading,
-  DashboardPageHero,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -73,6 +86,7 @@ export default function PayrollPage() {
     canRunPayroll,
     canReadStaffProfile,
     branches,
+    business,
   } = useDashboard();
 
   const defaultPeriod = useMemo(() => defaultPayrollPeriod(), []);
@@ -248,6 +262,85 @@ export default function PayrollPage() {
       void load();
     }
   }, [dashLoading, canViewPayroll, load, tab]);
+
+  // A service shop's team members added by name get their account here, so the pay run lists everyone.
+  useTeamAccountSync(isServiceBusiness(business) && !IS_DESKTOP && canViewPayroll, () => void load());
+
+  // A shop that pays by commission: the month's commission and tips sit beside the salaries.
+  // Product shops, and people who may not see the team's earnings, never ask for it.
+  const showsCommission =
+    isServiceBusiness(business) && !IS_DESKTOP && canViewPayroll && hasPermission(me?.permissions, Permission.CommissionsRead);
+  const [commissionStatement, setCommissionStatement] = useState<CommissionStatement | null>(null);
+  const [commissionPlans, setCommissionPlans] = useState<CommissionPlanRecord[]>([]);
+  const [commissionLoading, setCommissionLoading] = useState(false);
+  const [commissionFailed, setCommissionFailed] = useState(false);
+  // Bumped after a pay-out so the month's figures are read again.
+  const [commissionReload, setCommissionReload] = useState(0);
+  useEffect(() => {
+    if (!showsCommission) return;
+    let live = true;
+    const { from, to } = payrollMonthRange(year, month);
+    setCommissionLoading(true);
+    setCommissionFailed(false);
+    void Promise.all([fetchCommissionStatement(from, to), fetchCommissionPlans().catch(() => [])])
+      .then(([statement, plans]) => {
+        if (!live) return;
+        setCommissionStatement(statement);
+        setCommissionPlans(plans);
+      })
+      .catch(() => {
+        if (live) setCommissionFailed(true);
+      })
+      .finally(() => {
+        if (live) setCommissionLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+    // `rows` changes when the run is read again (a refresh, a payment), so the commission follows it.
+  }, [showsCommission, year, month, rows, commissionReload]);
+  const commission = useMemo(() => commissionMonth(commissionStatement), [commissionStatement]);
+
+  // Paying out from here. The month on screen may be an old one, and what someone is owed may
+  // have changed since, so the pay-out is always opened on today's balance, read at that moment.
+  const canPayOutCommission = showsCommission && hasPermission(me?.permissions, Permission.CommissionsPayout);
+  const [payoutOpeningId, setPayoutOpeningId] = useState<string | null>(null);
+  const [payoutRow, setPayoutRow] = useState<CommissionStatementRow | null>(null);
+  const openCommissionPayout = useCallback(async (staffProfileId: string) => {
+    setPayoutOpeningId(staffProfileId);
+    try {
+      const today = nairobiToday();
+      const now = await fetchCommissionStatement(today, today);
+      const row = now.rows.find((candidate) => candidate.staffProfileId === staffProfileId);
+      if (!row || row.closing <= 0) {
+        setFeedback({ kind: "success", text: "Nothing is owed to them today. It may have been paid out already." });
+        setCommissionReload((n) => n + 1);
+        return;
+      }
+      setPayoutRow(row);
+    } catch {
+      setFeedback({ kind: "error", text: "Could not read what is owed today. Check your connection and try again." });
+    } finally {
+      setPayoutOpeningId(null);
+    }
+  }, []);
+  /** By staff profile: what the month earned and what is owed, for the people on commission. */
+  const commissionByProfile = useMemo(() => {
+    const out = new Map<string, { earned: number; owed: number }>();
+    if (!showsCommission) return out;
+    for (const plan of commissionPlans) {
+      if (plan.type) out.set(plan.staffProfileId, { earned: 0, owed: 0 });
+    }
+    for (const person of commission.people) {
+      out.set(person.staffProfileId, { earned: person.earned, owed: person.owed });
+    }
+    return out;
+  }, [showsCommission, commissionPlans, commission]);
+  const rowProfiles = useMemo(() => new Set(rows.map((row) => row.staffProfileId)), [rows]);
+  /** People with no salary who are paid by commission: not a gap in the run. */
+  const onCommissionWithoutSalary = rows.filter(
+    (row) => Number(row.monthlySalary ?? row.baseSalary) <= 0 && commissionByProfile.has(row.staffProfileId),
+  ).length;
 
   function openSmsBulk() {
     setSmsUserId(null);
@@ -541,19 +634,23 @@ export default function PayrollPage() {
   const branchOptions = branches.map((b) => ({ id: b.id, name: b.name }));
 
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-1.5")}>
-      <DashboardPageHero
-        icon={Banknote}
-        title="Payroll"
-        description="Run monthly salaries with clarity — review each person, apply statutory, recover advances, and close the period."
-      >
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-3")}>
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-[family-name:var(--font-cormorant)] text-[clamp(1.5rem,2.2vw,1.9rem)] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]">
+            Payroll
+          </h1>
+          <p className="mt-1 max-w-[65ch] text-[13px] leading-snug text-[var(--op-muted)]">
+            Review each person, apply statutory, recover advances, and close the month.
+          </p>
+        </div>
         {tab === "run" && !loading && !error && rows.length > 0 ? (
-          <>
+          <div className="flex flex-wrap items-center gap-1">
             {canRunPayroll && summary.pendingCount > 0 ? (
               <Button
                 type="button"
                 size="sm"
-                className="h-8 gap-1.5 shadow-none"
+                className="h-10 gap-1.5 rounded-[2px] shadow-none sm:h-8"
                 disabled={payingAll || payingId != null}
                 onClick={() => void onPayAll()}
               >
@@ -569,7 +666,7 @@ export default function PayrollPage() {
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 shadow-none"
+              className="h-10 gap-1.5 rounded-[2px] shadow-none sm:h-8"
               onClick={() =>
                 exportPayrollRunCsv(rows, year, month, applyStatutory)
               }
@@ -581,7 +678,7 @@ export default function PayrollPage() {
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 shadow-none"
+              className="h-10 gap-1.5 rounded-[2px] shadow-none sm:h-8"
               disabled={payrollPaymentScheduleRows(rows).length === 0}
               onClick={() =>
                 exportPayrollPaymentScheduleCsv(
@@ -601,16 +698,16 @@ export default function PayrollPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 gap-1.5 shadow-none"
+                className="h-10 gap-1.5 rounded-[2px] shadow-none sm:h-8"
                 onClick={openSmsBulk}
               >
                 <MessageSquare className="size-3.5" aria-hidden />
                 SMS
               </Button>
             ) : null}
-          </>
+          </div>
         ) : null}
-      </DashboardPageHero>
+      </header>
 
       <PayrollTabs tab={tab} onTabChange={setTab} />
 
@@ -631,6 +728,34 @@ export default function PayrollPage() {
               postExpense={postExpenseDefault}
               rows={rows}
               onSelectRow={openStaffDrawer}
+            />
+          ) : null}
+
+          {showsCommission && !loading && !error ? (
+            <PayrollCommissionPanel
+              month={commission}
+              monthLabel={payrollMonthLabel(year, month)}
+              loading={commissionLoading && !commissionStatement}
+              failed={commissionFailed}
+              canSelect={rowProfiles}
+              onSelectPerson={(staffProfileId) => {
+                const row = rows.find((candidate) => candidate.staffProfileId === staffProfileId);
+                if (row) openStaffDrawer(row);
+              }}
+              canPayOut={canPayOutCommission}
+              payingId={payoutOpeningId}
+              onPayOut={(staffProfileId) => void openCommissionPayout(staffProfileId)}
+            />
+          ) : null}
+          {payoutRow ? (
+            <PayoutDialog
+              row={payoutRow}
+              onClose={() => setPayoutRow(null)}
+              onDone={() => {
+                setFeedback({ kind: "success", text: `Paid out to ${payoutRow.displayName}.` });
+                setPayoutRow(null);
+                setCommissionReload((n) => n + 1);
+              }}
             />
           ) : null}
 
@@ -662,6 +787,7 @@ export default function PayrollPage() {
                   : summary
               }
               selectedRow={selectedRow}
+              commissionByProfile={showsCommission ? commissionByProfile : undefined}
               staffDrawerOpen={staffDrawerOpen}
               onSelectRow={openStaffDrawer}
               onRemoveFromPayroll={(row) => void removeFromPayroll(row)}
@@ -694,10 +820,18 @@ export default function PayrollPage() {
                     </AlertBanner>
                   ) : null}
                   {summary.missingSalary > 0 && canManagePayroll ? (
-                    <AlertBanner tone="amber">
-                      {summary.missingSalary} without salary — open their row to
-                      set pay before marking paid.
-                    </AlertBanner>
+                    onCommissionWithoutSalary >= summary.missingSalary ? (
+                      <AlertBanner tone="sky">
+                        {summary.missingSalary} paid by commission, with no salary. Set a salary only for someone who
+                        also gets one.
+                      </AlertBanner>
+                    ) : (
+                      <AlertBanner tone="amber">
+                        {summary.missingSalary} without salary — open their row to
+                        set pay before marking paid.
+                        {onCommissionWithoutSalary > 0 ? ` ${onCommissionWithoutSalary} of them are paid by commission.` : ""}
+                      </AlertBanner>
+                    )
                   ) : null}
                 </>
               }
@@ -967,7 +1101,7 @@ function AlertBanner({
       ? "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)] text-[var(--order-ink,#15231f)]"
       : "border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] text-[#9a2e16]";
   return (
-    <p className={cn("rounded-none border px-3 py-2 text-sm", cls)}>{children}</p>
+    <p className={cn("rounded-[2px] border px-3 py-2 text-[13px]", cls)}>{children}</p>
   );
 }
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { useOptionalDashboard } from "@/components/dashboard-provider";
+import { isServiceBusiness } from "@/lib/business-store-type";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Settings2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -16,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { fetchUsers, updateBusiness, type UserRecord } from "@/lib/api";
-import { CASHIER_TEMPLATES, type CashierTemplateId } from "@/lib/cashier-templates";
+import { cashierTemplatesFor, type CashierTemplateId } from "@/lib/cashier-templates";
 import { useCashierTemplate } from "@/hooks/use-cashier-template";
 import {
   cashierDrawoutScopeFromAccess,
@@ -45,6 +48,12 @@ type CashierAdminCapabilitiesModalProps = {
   onSaved: () => Promise<void> | void;
 };
 
+/** Whether this shop sells services, so the floor till can be offered. Off on the desktop build. */
+function useSellsServices(): boolean {
+  const dashboard = useOptionalDashboard();
+  return !IS_DESKTOP && isServiceBusiness(dashboard?.business ?? null);
+}
+
 function sameIdSet(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   const other = new Set(b.map((id) => id.toLowerCase()));
@@ -68,6 +77,7 @@ export function CashierAdminCapabilitiesModal({
   branchId = null,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
+  const sellsServices = useSellsServices();
   const savedScope = cashierDrawoutScopeFromAccess(drawoutAccess);
   const savedUserIds = cashierDrawoutUserIdsFromAccess(drawoutAccess);
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
@@ -443,7 +453,7 @@ export function CashierAdminCapabilitiesModal({
                 className="mt-3 grid-cols-3"
                 ariaLabel="This till cashier layout"
               >
-                {CASHIER_TEMPLATES.map((t) => (
+                {cashierTemplatesFor(sellsServices).map((t) => (
                   <Choice
                     key={t.id}
                     selected={preferred === t.id}

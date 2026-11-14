@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronRight, Megaphone, MessagesSquare } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 
 import {
   CAMPAIGN_STATUS_LABEL,
   Chip,
-  EmptyState,
   Panel,
   REACH_COLOR,
   REACH_LABEL,
@@ -143,17 +142,56 @@ export function SmsHubOverview({
 
   return (
     <div className="flex flex-col gap-3">
+      {stepsLeft > 0 ? (
+        <Panel title={`${plural(stepsLeft, "step")} left before texts can go out`} flush>
+          <ol>
+            {steps.map((step) => (
+              <li key={step.title} className={cn("flex items-start gap-3 px-4 py-3", SMS_ROW)}>
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border",
+                    step.done ? "border-[#1D4B3B] bg-[#1D4B3B] text-white" : "border-[#B8B2A4] text-transparent",
+                  )}
+                >
+                  <Check className="size-3" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm font-medium", step.done ? SMS_MUTED : SMS_INK)}>
+                    {step.title}
+                    <span className="sr-only">{step.done ? " (done)" : " (to do)"}</span>
+                  </p>
+                  <p className={cn("mt-0.5 text-[13px] leading-snug", SMS_MUTED)}>{step.body}</p>
+                </div>
+                {!step.done && step.action ? (
+                  <button
+                    type="button"
+                    onClick={step.action.run}
+                    className="shrink-0 text-[13px] font-medium text-[var(--op-accent,#1d4b3b)] underline decoration-[var(--op-rule)] underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--op-accent,#1d4b3b)]"
+                  >
+                    {step.action.label}
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </Panel>
+      ) : null}
+
       <Panel>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <p className={cn("max-w-[34ch] text-[19px] leading-snug tracking-[-0.01em]", SMS_INK)}>
+          <p className={cn("max-w-[46ch] text-[15px] leading-snug", SMS_INK)}>
             {counts ? (
-              <>
-                You can send offers to{" "}
-                <span className="font-mono font-medium tabular-nums">{formatNumber(counts.canText)}</span> of
-                your{" "}
-                <span className="font-mono font-medium tabular-nums">{formatNumber(total)}</span>{" "}
-                {total === 1 ? "customer" : "customers"}.
-              </>
+              total === 0 ? (
+                "No customers yet. Offers go only to people who have agreed."
+              ) : (
+                <>
+                  Offers can go to{" "}
+                  <span className="font-mono font-medium tabular-nums">{formatNumber(counts.canText)}</span> of{" "}
+                  <span className="font-mono font-medium tabular-nums">{formatNumber(total)}</span>{" "}
+                  {total === 1 ? "customer" : "customers"}.
+                </>
+              )
             ) : (
               "Counting your customers…"
             )}
@@ -220,47 +258,7 @@ export function SmsHubOverview({
         </div>
       </Panel>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <ActivityChart summary={summary} onOpenActivity={onOpenActivity} />
-        <CreditsPanel summary={summary} balance={balance} />
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Panel
-          title={stepsLeft === 0 ? "Set up" : `Set up: ${plural(stepsLeft, "step")} left`}
-          flush
-        >
-          <ol>
-            {steps.map((step) => (
-              <li key={step.title} className={cn("flex items-start gap-3 px-4 py-3", SMS_ROW)}>
-                <span
-                  aria-hidden
-                  className={cn(
-                    "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border",
-                    step.done
-                      ? "border-[#1D4B3B] bg-[#1D4B3B] text-white"
-                      : "border-[#B8B2A4] text-transparent",
-                  )}
-                >
-                  <Check className="size-3" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className={cn("text-sm font-medium", step.done ? SMS_MUTED : SMS_INK)}>
-                    {step.title}
-                    <span className="sr-only">{step.done ? " (done)" : " (to do)"}</span>
-                  </p>
-                  <p className={cn("mt-0.5 text-[13px] leading-snug", SMS_MUTED)}>{step.body}</p>
-                </div>
-                {!step.done && step.action ? (
-                  <Button type="button" size="sm" variant="outline" onClick={step.action.run}>
-                    {step.action.label}
-                  </Button>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        </Panel>
-
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         <Panel
           title="Sending on their own"
           aside={
@@ -302,9 +300,13 @@ export function SmsHubOverview({
             </li>
           </ul>
         </Panel>
+        <div className="flex flex-col gap-3">
+          <CreditsPanel summary={summary} balance={balance} />
+          <ActivityChart summary={summary} onOpenActivity={onOpenActivity} />
+        </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         <Panel
           title="Campaigns"
           aside={
@@ -316,18 +318,21 @@ export function SmsHubOverview({
           flush
         >
           {campaigns && campaigns.length === 0 ? (
-            <EmptyState
-              icon={Megaphone}
-              title="No campaigns yet"
-              body="Write one text and send it to a group of customers who agreed to offers."
-              action={
-                canManage ? (
-                  <Button type="button" size="sm" variant="outline" onClick={onNewCampaign}>
-                    New campaign
-                  </Button>
-                ) : undefined
-              }
-            />
+            <p className={cn("px-4 py-3 text-[13.5px] leading-snug", SMS_MUTED)}>
+              No campaigns yet. One text, sent to customers who agreed to offers.
+              {canManage ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={onNewCampaign}
+                    className="font-medium text-[var(--op-accent,#1d4b3b)] underline decoration-[var(--op-rule)] underline-offset-2"
+                  >
+                    Write one
+                  </button>
+                </>
+              ) : null}
+            </p>
           ) : (
             <ul>
               {(campaigns ?? []).map((c) => (
@@ -365,11 +370,9 @@ export function SmsHubOverview({
           flush
         >
           {messages && messages.length === 0 ? (
-            <EmptyState
-              icon={MessagesSquare}
-              title="Nothing sent yet"
-              body="Every text the shop sends is listed here, with its cost and whether it arrived."
-            />
+            <p className={cn("px-4 py-3 text-[13.5px] leading-snug", SMS_MUTED)}>
+              Nothing sent yet. Each text will show here with its cost and whether it arrived.
+            </p>
           ) : (
             <ul>
               {(messages ?? []).map((m) => (
@@ -430,7 +433,6 @@ function ActivityChart({
 
   return (
     <Panel
-      className="lg:col-span-2"
       title="Last 30 days"
       description={
         summary
@@ -476,11 +478,11 @@ function ActivityChart({
           </div>
         </>
       ) : (
-        <p className={cn("flex h-32 items-center justify-center text-[13.5px]", SMS_MUTED)}>
+        <p className={cn("text-[13.5px]", SMS_MUTED)}>
           {summary ? "No texts in the last 30 days." : "Loading…"}
         </p>
       )}
-      {statuses ? (
+      {statuses && (statuses.delivered > 0 || statuses.sent > 0 || statuses.failed > 0 || statuses.blocked > 0) ? (
         <dl className={cn("mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t pt-3 sm:grid-cols-4", SMS_RULE)}>
           <Outcome label="Delivered" value={statuses.delivered} />
           <Outcome label="Sent, no report yet" value={statuses.sent} />
@@ -517,31 +519,30 @@ function CreditsPanel({
   return (
     <Panel title="Credits">
       {metered && balance ? (
-        <>
-          <p
-            className={cn(
-              "font-mono text-[34px] font-medium leading-none tabular-nums tracking-[-0.03em]",
-              balance.lowBalance ? SMS_WARN_TEXT : SMS_INK,
-            )}
-          >
-            {formatNumber(balance.available)}
-          </p>
-          <p className={cn("mt-1.5 text-[13px]", SMS_MUTED)}>
-            {balance.lowBalance ? "Running low. " : ""}
-            {formatNumber(balance.includedRemaining)} left in this month&rsquo;s plan,{" "}
-            {formatNumber(balance.purchasedBalance)} bought.
-          </p>
-          <p className={cn("mt-1 text-[13px]", SMS_MUTED)}>
-            Top up from the SMS balance at the top of the page.
-          </p>
-        </>
+        <p className={cn("text-[13.5px] leading-snug", balance.lowBalance ? SMS_WARN_TEXT : SMS_MUTED)}>
+          <span className={cn("font-mono font-medium tabular-nums", balance.lowBalance ? SMS_WARN_TEXT : SMS_INK)}>
+            {formatNumber(balance.includedRemaining)}
+          </span>{" "}
+          left in this month&rsquo;s plan
+          {balance.purchasedBalance > 0 ? (
+            <>
+              ,{" "}
+              <span className="font-mono font-medium tabular-nums text-[var(--op-ink,#121a16)]">
+                {formatNumber(balance.purchasedBalance)}
+              </span>{" "}
+              bought
+            </>
+          ) : null}
+          . {balance.lowBalance ? "Running low. " : ""}
+          Top up from the balance at the top of the page.
+        </p>
       ) : (
         <p className={cn("text-[13.5px]", SMS_MUTED)}>
           {balance ? "SMS is not metered on this shop." : "Loading balance…"}
         </p>
       )}
 
-      <div className={cn("mt-4 border-t pt-3", SMS_RULE)}>
+      <div className={cn("mt-3 border-t pt-3", SMS_RULE)}>
         <p className={cn("text-[12px]", SMS_MUTED)}>Where credits went, 30 days</p>
         {reasons.length === 0 ? (
           <p className={cn("mt-2 text-[13.5px]", SMS_MUTED)}>Nothing spent yet.</p>

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  TILL_SIGN_IN_WITH_PASSWORD_COPY,
   assertTillUnlockUserAllowed,
+  formatSignInTillDeniedMessage,
   formatTillAccessDeniedMessage,
   formatTillUnlockError,
   resolveTillUnlockEmail,
@@ -102,5 +104,16 @@ describe("formatTillUnlockError", () => {
         "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.",
       ),
     ).toMatch(/shop owner/i);
+  });
+});
+
+describe("sign-in on an unregistered till", () => {
+  it("points to the password instead of leaving the person at a dead end", () => {
+    expect(
+      formatSignInTillDeniedMessage(
+        "This till is not registered for this branch. We asked the shop owner to tap a link and register this computer. Try your PIN again after they do.",
+      ),
+    ).toBe(TILL_SIGN_IN_WITH_PASSWORD_COPY);
+    expect(formatSignInTillDeniedMessage("Incorrect email or password.")).toBe("Incorrect email or password.");
   });
 });

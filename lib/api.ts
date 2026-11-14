@@ -3992,6 +3992,8 @@ export type DomainRecord = {
   businessId: string;
   domain: string;
   primary: boolean;
+  /** When true, opening this host sends visitors to the main address. */
+  redirectToPrimary?: boolean;
   active: boolean;
   status?: "pending" | "verifying" | "active" | "failed" | string;
   source?: "platform_subdomain" | "manual_connect" | "hostafrica_purchase" | string;
@@ -4166,6 +4168,16 @@ export async function setMyPrimaryDomain(
   return request<DomainRecord>(
     `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/primary`,
     { method: "POST" },
+  );
+}
+
+export async function setMyDomainRedirect(
+  domainId: string,
+  enabled: boolean,
+): Promise<DomainRecord> {
+  return request<DomainRecord>(
+    `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/redirect`,
+    { method: "POST", body: { enabled } },
   );
 }
 
@@ -16453,6 +16465,8 @@ export type PayAllRunResult = {
 };
 
 export type UpdateStaffProfilePayload = {
+  /** Can be chosen for a service at the till and booked (service shops). */
+  bookable?: boolean;
   displayName?: string | null;
   title?: string | null;
   photoUrl?: string | null;

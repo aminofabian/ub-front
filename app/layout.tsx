@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
@@ -17,6 +19,7 @@ import {
   metadataFromTenantAndHost,
   themeColorFromTenant,
 } from "@/lib/tenant-metadata";
+import { canonicalRedirectUrl } from "@/lib/canonical-host";
 import { platformApexHostname, STORAGE_KEYS } from "@/lib/config";
 import {
   getRequestHostname,
@@ -79,7 +82,19 @@ const IS_DESKTOP = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const tenant = await resolveTenantContext();
+  const [tenant, host] = await Promise.all([
+    resolveTenantContext(),
+    getRequestHostname(),
+  ]);
+  if (!IS_DESKTOP && tenant?.canonicalHost) {
+    const requestHeaders = await headers();
+    const target = canonicalRedirectUrl(
+      host,
+      tenant.canonicalHost,
+      requestHeaders.get("x-kiosk-request-path"),
+    );
+    if (target) redirect(target);
+  }
   const body = renderBody(tenant, children);
 
   return (

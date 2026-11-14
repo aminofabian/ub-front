@@ -1,22 +1,14 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
-import { CalendarDays, LayoutGrid, Receipt, Wallet } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 
 export type PayrollTab = "run" | "calendar" | "advances" | "history";
 
-const TABS: {
-  id: PayrollTab;
-  label: string;
-  short: string;
-  icon: LucideIcon;
-}[] = [
-  { id: "run", label: "Pay run", short: "Run", icon: LayoutGrid },
-  { id: "calendar", label: "Calendar", short: "Calendar", icon: CalendarDays },
-  { id: "advances", label: "Advances", short: "Advances", icon: Wallet },
-  { id: "history", label: "Payslips", short: "Payslips", icon: Receipt },
+const TABS: { id: PayrollTab; label: string }[] = [
+  { id: "run", label: "Pay run" },
+  { id: "calendar", label: "Calendar" },
+  { id: "advances", label: "Advances" },
+  { id: "history", label: "Payslips" },
 ];
 
 type Props = {
@@ -26,30 +18,24 @@ type Props = {
 
 export function PayrollTabs({ tab, onTabChange }: Props) {
   return (
-    <nav
-      className="flex gap-1 overflow-x-auto rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-1"
-      aria-label="Payroll sections"
-    >
-      {TABS.map(({ id, label, short, icon: Icon }) => {
+    <nav className="flex flex-wrap gap-1" aria-label="Payroll sections">
+      {TABS.map(({ id, label }) => {
         const active = tab === id;
         return (
           <button
             key={id}
             type="button"
+            aria-pressed={active}
             className={cn(
-              "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-none px-3 py-2.5 text-sm font-medium transition-all",
+              "h-8 rounded-[2px] px-2.5 text-[13px] font-medium",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]",
               active
-                ? "bg-[var(--pos-primary,#0f766e)] text-white"
-                : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]",
+                ? "bg-[var(--op-ink)] text-white"
+                : "text-[var(--op-muted)] hover:text-[var(--op-ink)]",
             )}
             onClick={() => onTabChange(id)}
           >
-            <Icon
-              className={cn("size-4 shrink-0", active && "text-white")}
-              aria-hidden
-            />
-            <span className="hidden truncate sm:inline">{label}</span>
-            <span className="truncate sm:hidden">{short}</span>
+            {label}
           </button>
         );
       })}

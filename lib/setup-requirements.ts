@@ -306,6 +306,40 @@ export function pauseForSetup(
 }
 
 /**
+ * Runs a call that the server may refuse with "set this up first" (no open shift, an
+ * unregistered till, no branch). Instead of handing that back as an error, the matching dialog
+ * opens; once the person has set the thing up, the call runs again and its result is returned.
+ *
+ * For calls made with `toast: false`, which otherwise never reach the dialog. A new shop can need
+ * two things in a row (register the till, then open a shift), so each requirement is offered
+ * once; a second refusal for the same one is a real failure and is thrown. If the person puts
+ * the dialog away, the older till banner is raised and the server's own error is thrown for the
+ * screen to show. The call must be safe to repeat: give it the same idempotency key each time.
+ */
+export async function withSetup<T>(call: () => Promise<T>): Promise<T> {
+  const offered: SetupRequirement[] = [];
+  for (;;) {
+    try {
+      return await call();
+    } catch (error) {
+      const gap = parseSetupRequired((error as { payload?: unknown } | null)?.payload);
+      if (!gap || offered.includes(gap.requirement)) {
+        throw error;
+      }
+      offered.push(gap.requirement);
+      if (!(await requestSetup(gap))) {
+        if (gap.requirement === "shift") {
+          notifyPosGuidance("open-shift");
+        } else if (gap.requirement === "till") {
+          notifyPosGuidance("register-till");
+        }
+        throw error;
+      }
+    }
+  }
+}
+
+/**
  * The dialog (or a delegate) reports the outcome. `done` is true when the requirement is now
  * met. Safe to call when nothing is pending.
  */

@@ -87,3 +87,30 @@ describe("cashier-templates", () => {
     expect(readLocalCashierTemplate()).toBe("shelf");
   });
 });
+
+describe("the floor till", () => {
+  const { cashierScreenFor, cashierTemplatesFor } = require("./cashier-templates") as typeof import("./cashier-templates");
+
+  it("is only offered to shops that sell services", () => {
+    expect(cashierTemplatesFor(false).map((t) => t.id)).toEqual(["shelf", "ledger", "counter"]);
+    expect(cashierTemplatesFor(true).map((t) => t.id)).toContain("floor");
+  });
+
+  it("opens for a service-only shop that has not chosen a till", () => {
+    expect(cashierScreenFor({ effective: "shelf", localPick: null, sellsServices: true, serviceOnly: true })).toBe("floor");
+  });
+
+  it("respects a deliberate pick on this device, and a till set to something else", () => {
+    expect(cashierScreenFor({ effective: "shelf", localPick: "shelf", sellsServices: true, serviceOnly: true })).toBe("shelf");
+    expect(cashierScreenFor({ effective: "ledger", localPick: null, sellsServices: true, serviceOnly: true })).toBe("ledger");
+  });
+
+  it("a salon that also sells products keeps its product till unless it picks the floor", () => {
+    expect(cashierScreenFor({ effective: "shelf", localPick: null, sellsServices: true, serviceOnly: false })).toBe("shelf");
+    expect(cashierScreenFor({ effective: "floor", localPick: "floor", sellsServices: true, serviceOnly: false })).toBe("floor");
+  });
+
+  it("never shows the floor to a shop that sells no services", () => {
+    expect(cashierScreenFor({ effective: "floor", localPick: "floor", sellsServices: false, serviceOnly: false })).toBe("shelf");
+  });
+});

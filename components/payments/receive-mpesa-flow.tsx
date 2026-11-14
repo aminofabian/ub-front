@@ -392,31 +392,31 @@ export function ReceiveMpesaFlow({
     ? "rounded-2xl sm:rounded-xl"
     : "rounded-none";
   const ctaPrimary = soft
-    ? "h-12 rounded-2xl bg-[#0D9488] text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] transition-[transform,background-color] duration-150 hover:bg-[#0F766E] active:scale-[0.98] sm:rounded-xl"
-    : "h-11 rounded-none bg-[var(--pos-primary,#0f766e)] text-sm font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-[#0d6b63] active:scale-[0.99]";
+    ? "h-12 rounded-2xl bg-[#1D4B3B] text-sm font-semibold text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] transition-[transform,background-color] duration-150 hover:bg-[#163B2E] active:scale-[0.98] sm:rounded-xl"
+    : "h-11 rounded-none bg-[var(--pos-primary,#0f766e)] text-sm font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-[#163B2E] active:scale-[0.99]";
   const ctaGhost = soft
-    ? "h-11 text-sm font-medium text-[#6B7280] transition-colors hover:text-[#1F2937]"
+    ? "h-11 text-sm font-medium text-[#556159] transition-colors hover:text-[#121A16]"
     : "h-10 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground";
   const cardIdle = soft
-    ? "border-[#E5E7EB] bg-white hover:border-[#0D9488]/50"
+    ? "border-[#DDD8CC] bg-white hover:border-[#1D4B3B]/50"
     : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white hover:border-[var(--pos-primary,#0f766e)]";
   const cardSelected = soft
-    ? "border-[#0D9488] bg-[#F0FDFA] ring-2 ring-[#0D9488]/25"
+    ? "border-[#1D4B3B] bg-[#EFEBE2] ring-2 ring-[#1D4B3B]/25"
     : "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] ring-1 ring-[var(--pos-primary,#0f766e)]";
   const wash = soft
-    ? "border-[#99F6E4] bg-[#F0FDFA]"
+    ? "border-[#B9D0C0] bg-[#EFEBE2]"
     : "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,#f3eee6)]";
   const inputClass = soft
-    ? "h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm tabular-nums text-[#1F2937] outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl"
+    ? "h-12 w-full rounded-2xl border border-[#DDD8CC] bg-white px-4 text-sm tabular-nums text-[#121A16] outline-none focus:border-[#1D4B3B] focus:ring-2 focus:ring-[#1D4B3B]/20 sm:rounded-xl"
     : "h-10 w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white px-3 text-sm tabular-nums outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-1 focus:ring-[var(--pos-primary,#0f766e)]";
   const labelClass = soft
-    ? "mb-1.5 block text-xs font-medium text-[#6B7280]"
+    ? "mb-1.5 block text-xs font-medium text-[#556159]"
     : "mb-1.5 block text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground";
   const titleClass = soft
-    ? "text-[1.35rem] font-semibold tracking-[-0.03em] text-[#1F2937] sm:text-2xl"
+    ? "text-balance font-serif text-[2rem] font-medium leading-[1.05] tracking-[-0.01em] text-[#121A16] sm:text-[2.6rem]"
     : "text-[1.15rem] font-semibold tracking-[-0.025em] text-[var(--order-ink,#15231f)]";
   const descClass = soft
-    ? "text-sm leading-relaxed text-[#6B7280]"
+    ? "mt-2.5 max-w-[54ch] text-[15px] leading-relaxed text-[#556159]"
     : "text-[13px] leading-relaxed text-muted-foreground";
 
   if (availability && !availability.available) {
@@ -512,14 +512,14 @@ export function ReceiveMpesaFlow({
             <p
               className={cn(
                 "text-[13px]",
-                soft ? "text-[#6B7280]" : "text-muted-foreground",
+                soft ? "text-[#556159]" : "text-muted-foreground",
               )}
             >
               Customers currently pay to{" "}
               <span
                 className={cn(
                   "font-semibold tabular-nums",
-                  soft ? "text-[#134E4A]" : "text-foreground",
+                  soft ? "text-[#121A16]" : "text-foreground",
                 )}
               >
                 {savedLine}
@@ -554,10 +554,10 @@ export function ReceiveMpesaFlow({
                       soft ? "rounded-full" : "rounded-none",
                       selected
                         ? soft
-                          ? "border-[#0D9488] bg-[#0D9488]"
+                          ? "border-[#1D4B3B] bg-[#1D4B3B]"
                           : "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)]"
                         : soft
-                          ? "border-[#D1D5DB] bg-white"
+                          ? "border-[#C9C3B5] bg-white"
                           : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)] bg-white",
                     )}
                     aria-hidden
@@ -577,10 +577,10 @@ export function ReceiveMpesaFlow({
                       soft ? "rounded-xl" : "rounded-none",
                       selected
                         ? soft
-                          ? "bg-[#0D9488] text-white"
+                          ? "bg-[#1D4B3B] text-white"
                           : "bg-[var(--pos-primary,#0f766e)] text-white"
                         : soft
-                          ? "bg-[#F3F4F6] text-[#6B7280]"
+                          ? "bg-[#EFEBE2] text-[#556159]"
                           : "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_5%,#f3eee6)] text-muted-foreground",
                     )}
                   >
@@ -590,7 +590,7 @@ export function ReceiveMpesaFlow({
                     <span
                       className={cn(
                         "block text-sm font-semibold",
-                        soft ? "text-[#1F2937]" : "text-foreground",
+                        soft ? "text-[#121A16]" : "text-foreground",
                       )}
                     >
                       {opt.title}
@@ -598,7 +598,7 @@ export function ReceiveMpesaFlow({
                     <span
                       className={cn(
                         "mt-0.5 block text-xs",
-                        soft ? "text-[#6B7280]" : "text-muted-foreground",
+                        soft ? "text-[#556159]" : "text-muted-foreground",
                       )}
                     >
                       {opt.blurb}
@@ -609,7 +609,7 @@ export function ReceiveMpesaFlow({
                       className={cn(
                         "size-4 shrink-0",
                         soft
-                          ? "text-[#0D9488]"
+                          ? "text-[#1D4B3B]"
                           : "text-[var(--pos-primary,#0f766e)]",
                       )}
                       aria-hidden
@@ -720,7 +720,7 @@ export function ReceiveMpesaFlow({
                     "border px-3 py-2 text-[13px] font-semibold tabular-nums",
                     shell,
                     wash,
-                    soft ? "text-[#134E4A]" : "text-foreground",
+                    soft ? "text-[#121A16]" : "text-foreground",
                   )}
                 >
                   Customers will pay to: {previewLine}
@@ -748,14 +748,14 @@ export function ReceiveMpesaFlow({
             <Smartphone
               className={cn(
                 "size-7",
-                soft ? "text-[#0D9488]" : "text-[var(--pos-primary,#0f766e)]",
+                soft ? "text-[#1D4B3B]" : "text-[var(--pos-primary,#0f766e)]",
               )}
               aria-hidden
             />
             <Loader2
               className={cn(
                 "absolute -right-1 -top-1 size-5 animate-spin",
-                soft ? "text-[#0D9488]" : "text-[var(--pos-primary,#0f766e)]",
+                soft ? "text-[#1D4B3B]" : "text-[var(--pos-primary,#0f766e)]",
               )}
               aria-hidden
             />
@@ -764,7 +764,7 @@ export function ReceiveMpesaFlow({
             <p
               className={cn(
                 "text-base font-semibold",
-                soft ? "text-[#134E4A]" : "text-foreground",
+                soft ? "text-[#121A16]" : "text-foreground",
               )}
             >
               {phase === "sending"
@@ -774,7 +774,7 @@ export function ReceiveMpesaFlow({
             <p
               className={cn(
                 "mt-1 text-sm",
-                soft ? "text-[#0F766E]" : "text-muted-foreground",
+                soft ? "text-[#163B2E]" : "text-muted-foreground",
               )}
             >
               {testResult?.destinationSummary
@@ -810,7 +810,7 @@ export function ReceiveMpesaFlow({
               "h-12 border text-sm font-semibold transition-colors",
               shell,
               soft
-                ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#F9FAFB]"
+                ? "border-[#DDD8CC] bg-white text-[#2A332E] hover:bg-[#FCFAF5]"
                 : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white text-foreground hover:bg-muted/40",
             )}
           >
@@ -831,7 +831,7 @@ export function ReceiveMpesaFlow({
             className={cn(
               "flex size-12 items-center justify-center text-white",
               soft
-                ? "rounded-full bg-[#0D9488]"
+                ? "rounded-full bg-[#1D4B3B]"
                 : "rounded-none bg-[var(--pos-primary,#0f766e)]",
             )}
           >
@@ -840,7 +840,7 @@ export function ReceiveMpesaFlow({
           <p
             className={cn(
               "text-sm font-semibold",
-              soft ? "text-[#134E4A]" : "text-foreground",
+              soft ? "text-[#121A16]" : "text-foreground",
             )}
           >
             {testResult?.destinationSummary ?? "Your payment method"} is ready
@@ -879,7 +879,7 @@ export function ReceiveMpesaFlow({
             <p
               className={cn(
                 "text-center text-xs",
-                soft ? "text-[#9CA3AF]" : "text-muted-foreground",
+                soft ? "text-[#626D66]" : "text-muted-foreground",
               )}
             >
               Fill in the details above to continue
@@ -888,7 +888,7 @@ export function ReceiveMpesaFlow({
             <p
               className={cn(
                 "text-center text-xs",
-                soft ? "text-[#9CA3AF]" : "text-muted-foreground",
+                soft ? "text-[#626D66]" : "text-muted-foreground",
               )}
             >
               Tap one option to continue
@@ -1004,10 +1004,10 @@ function BankPicker({
                   shell,
                   selected
                     ? soft
-                      ? "border-[#0D9488] bg-[#F0FDFA] text-[#0F766E]"
+                      ? "border-[#1D4B3B] bg-[#EFEBE2] text-[#163B2E]"
                       : "border-[var(--pos-primary,#0f766e)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)] text-[var(--pos-primary,#0f766e)]"
                     : soft
-                      ? "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#0D9488]/40"
+                      ? "border-[#DDD8CC] bg-white text-[#2A332E] hover:border-[#1D4B3B]/40"
                       : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white hover:border-[var(--pos-primary,#0f766e)]",
                 )}
               >
@@ -1023,7 +1023,7 @@ function BankPicker({
           "max-h-40 overflow-y-auto border",
           shell,
           soft
-            ? "border-[#E5E7EB]"
+            ? "border-[#DDD8CC]"
             : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]",
         )}
       >
@@ -1037,11 +1037,11 @@ function BankPicker({
               className={cn(
                 "flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-sm last:border-b-0",
                 soft
-                  ? "border-[#F3F4F6]"
+                  ? "border-[#EFEBE2]"
                   : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
                 selected
                   ? soft
-                    ? "bg-[#F0FDFA] font-semibold text-[#134E4A]"
+                    ? "bg-[#EFEBE2] font-semibold text-[#121A16]"
                     : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] font-semibold"
                   : "hover:bg-muted/30",
               )}
@@ -1060,7 +1060,7 @@ function BankPicker({
             "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm",
             bankId === CUSTOM_BANK_ID
               ? soft
-                ? "bg-[#F0FDFA] font-semibold text-[#134E4A]"
+                ? "bg-[#EFEBE2] font-semibold text-[#121A16]"
                 : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] font-semibold"
               : "hover:bg-muted/30",
           )}

@@ -383,20 +383,20 @@ export function AiLogoGenerator({
   }
 
   const fieldLabel = onboarding
-    ? "mb-1.5 block text-xs font-medium text-[#6B7280]"
+    ? "mb-1.5 block text-xs font-medium text-[#556159]"
     : "mb-1.5 block text-sm font-medium text-foreground";
   const textareaClass = onboarding
-    ? "w-full resize-none rounded-2xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-base text-[#1F2937] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 disabled:opacity-60 sm:rounded-xl sm:text-[15px]"
+    ? "w-full resize-none rounded-2xl border border-[#DDD8CC] bg-white px-4 py-2.5 text-base text-[#121A16] outline-none transition placeholder:text-[#626D66] focus:border-[#1D4B3B] focus:ring-2 focus:ring-[#1D4B3B]/20 disabled:opacity-60 sm:rounded-xl sm:text-[15px]"
     : "w-full resize-none rounded-none border border-input bg-background px-3 py-2.5 text-sm shadow-none outline-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60";
   const chipClass = onboarding
-    ? "h-8 rounded-full border border-[#E5E7EB] bg-white px-2.5 text-[11px] font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] disabled:opacity-50"
+    ? "h-8 rounded-full border border-[#DDD8CC] bg-white px-2.5 text-[11px] font-medium text-[#2A332E] transition active:scale-[0.98] hover:bg-[#FCFAF5] disabled:opacity-50"
     : "h-8 rounded-full border border-input bg-background px-2.5 text-[11px] font-medium text-foreground transition hover:bg-muted disabled:opacity-50";
   const hintClass = onboarding
-    ? "text-xs text-[#9CA3AF]"
+    ? "text-xs text-[#626D66]"
     : "text-xs leading-relaxed text-muted-foreground";
   const primaryBtnClass =
-    "inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#0D9488] px-4 text-sm font-medium text-white transition active:scale-[0.98] hover:bg-[#0F766E] disabled:opacity-60 sm:h-10 sm:rounded-xl";
-  const secondaryLinkClass = "min-h-10 text-xs text-[#6B7280] active:opacity-70";
+    "inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#1D4B3B] px-4 text-sm font-medium text-white transition active:scale-[0.98] hover:bg-[#163B2E] disabled:opacity-60 sm:h-10 sm:rounded-xl";
+  const secondaryLinkClass = "min-h-10 text-xs text-[#556159] active:opacity-70";
 
   return (
     <div className={cn("w-full", onboarding ? "text-center sm:text-left" : "")}>
@@ -409,7 +409,7 @@ export function AiLogoGenerator({
               setError("");
               setOpen(true);
             }}
-            className="h-11 w-full rounded-2xl border border-[#0D9488]/30 bg-[#F0FDFA] px-3 text-sm font-medium text-[#0F766E] transition active:scale-[0.98] hover:bg-[#CCFBF1] disabled:opacity-50 sm:h-auto sm:rounded-xl sm:py-2"
+            className="h-11 w-full rounded-2xl border border-[#1D4B3B]/30 bg-[#EFEBE2] px-3 text-sm font-medium text-[#163B2E] transition active:scale-[0.98] hover:bg-[#E3EBE5] disabled:opacity-50 sm:h-auto sm:rounded-xl sm:py-2"
           >
             Generate with AI
           </button>
@@ -448,7 +448,7 @@ export function AiLogoGenerator({
               <div
                 className={cn(
                   onboarding
-                    ? "rounded-2xl border border-[#CCFBF1] bg-[#F0FDFA] p-3 text-left sm:rounded-xl"
+                    ? "rounded-2xl border border-[#E3EBE5] bg-[#EFEBE2] p-3 text-left sm:rounded-xl"
                     : "border border-[color-mix(in_srgb,#0f766e_28%,transparent)] bg-[color-mix(in_srgb,#0f766e_6%,white)] p-3",
                 )}
               >
@@ -516,7 +516,7 @@ export function AiLogoGenerator({
               <div
                 className={cn(
                   "flex items-center justify-center border bg-white p-4",
-                  onboarding ? "rounded-2xl border-[#E5E7EB] sm:rounded-xl" : "rounded-none",
+                  onboarding ? "rounded-2xl border-[#DDD8CC] sm:rounded-xl" : "rounded-none",
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -601,7 +601,7 @@ export function AiLogoGenerator({
                 <div
                   className={cn(
                     onboarding
-                      ? "rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-left sm:rounded-xl"
+                      ? "rounded-2xl border border-[#DDD8CC] bg-[#FCFAF5] px-3 py-2 text-left sm:rounded-xl"
                       : "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2",
                   )}
                 >

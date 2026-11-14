@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   ClipboardList,
+  CalendarDays,
   Clock,
   CreditCard,
   LayoutDashboard,
@@ -96,7 +97,8 @@ import {
   type BranchRecord,
 } from "@/lib/api";
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
-import { isServiceBusiness } from "@/lib/business-store-type";
+import { isServiceBusiness, isServiceOnlyBusiness } from "@/lib/business-store-type";
+import { isServiceCashier, serviceCashierMayOpen, SERVICE_CASHIER_ROUTES, trimNavForServiceOnly } from "@/lib/service-nav";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -134,6 +136,9 @@ type NavSection = {
   entryHref: string;
   items: readonly NavItem[];
 };
+
+/** In a service-only shop these two are the day's work, so they follow Business in the icon rail. */
+const SERVICE_LEAD_SECTIONS: readonly string[] = ["services", "customers"];
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -293,9 +298,12 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.services,
     items: [
       { href: APP_ROUTES.servicesFloor, label: "Floor" },
+      { href: APP_ROUTES.servicesAppointments, label: "Bookings" },
+      { href: APP_ROUTES.servicesCalendar, label: "Calendar" },
       { href: APP_ROUTES.servicesSell, label: "Ring a service" },
       { href: APP_ROUTES.services, label: "Services" },
       { href: APP_ROUTES.commissions, label: "Commissions" },
+      { href: APP_ROUTES.myEarnings, label: "My earnings" },
     ],
   },
   {
@@ -584,9 +592,13 @@ type NavGate = {
   featureFlags: Record<string, boolean> | undefined;
   /** The business sells services (kinyozi, salon, spa…). */
   isServiceBusiness: boolean;
+  /** Every format of the business is a service format: it has no shelves. */
+  isServiceOnly: boolean;
   canManageServices: boolean;
   canSell: boolean;
   canReadCommissions: boolean;
+  /** Sees their own earnings page (a barber, or a cashier who also serves). */
+  canReadOwnCommissions: boolean;
   canListUsers: boolean;
   canViewPayroll: boolean;
   canReadFinanceExpenses: boolean;
@@ -725,6 +737,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   }
 
   if (gate.roleKey === "cashier") {
+    // In a shop that only sells services the cashier has the till and their profile, nothing else.
+    if (gate.isServiceOnly) {
+      return SERVICE_CASHIER_ROUTES.includes(item.href);
+    }
     const allowed: string[] = [
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
@@ -762,12 +778,19 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
-  if (item.href === APP_ROUTES.servicesSell || item.href === APP_ROUTES.servicesFloor)
+  if (
+    item.href === APP_ROUTES.servicesSell ||
+    item.href === APP_ROUTES.servicesFloor ||
+    item.href === APP_ROUTES.servicesAppointments ||
+    item.href === APP_ROUTES.servicesCalendar
+  )
     return gate.isServiceBusiness && gate.canSell;
   if (item.href === APP_ROUTES.services)
     return gate.isServiceBusiness && (gate.canManageServices || gate.canSell);
   if (item.href === APP_ROUTES.commissions)
     return gate.isServiceBusiness && gate.canReadCommissions;
+  if (item.href === APP_ROUTES.myEarnings)
+    return gate.isServiceBusiness && gate.canReadOwnCommissions;
   if (item.href === APP_ROUTES.overview) return true;
   if (item.href === APP_ROUTES.business) return true;
   if (
@@ -1226,15 +1249,20 @@ export function AppShell({ children }: AppShellProps) {
     canViewSuppliers &&
     (canWriteSuppliersDelegated || canLinkSupplierProductsDelegated);
 
+  // Service screens are off on the desktop app, so its sidebar stays the full one.
+  const serviceOnlyShop = isServiceOnlyBusiness(business) && !IS_DESKTOP;
+
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
       featureFlags: mergedFeatureFlags,
       // Desktop sync does not carry tips, performers or staff earnings yet, so the service
       // screens stay off on the desktop app rather than lose that data on the way to the cloud.
       isServiceBusiness: isServiceBusiness(business) && !IS_DESKTOP,
+      isServiceOnly: serviceOnlyShop,
       canManageServices: hasPermission(me?.permissions, Permission.ServicesCatalogManage),
       canSell: hasPermission(me?.permissions, Permission.SalesSell),
       canReadCommissions: hasPermission(me?.permissions, Permission.CommissionsRead),
+      canReadOwnCommissions: hasPermission(me?.permissions, Permission.CommissionsReadOwn),
       canListUsers,
       canViewPayroll,
       canReadFinanceExpenses,
@@ -1285,7 +1313,7 @@ export function AppShell({ children }: AppShellProps) {
       canWriteSuppliers: canWriteSuppliersDelegated,
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
-    return NAV_SECTIONS.map((section) => {
+    const permitted = NAV_SECTIONS.map((section) => {
       let items = section.items.filter((item) =>
         isNavItemVisible(item, gate),
       );
@@ -1306,7 +1334,10 @@ export function AppShell({ children }: AppShellProps) {
         entryHref: preferredEntry,
       };
     }).filter((s) => s.items.length > 0);
+    // A shop that only sells services has no shelves: leave the shelf pages out of its menu.
+    return trimNavForServiceOnly(permitted, serviceOnlyShop);
   }, [
+    serviceOnlyShop,
     business,
     me?.permissions,
     mergedFeatureFlags,
@@ -1664,7 +1695,24 @@ export function AppShell({ children }: AppShellProps) {
 
     // Owners / admins / managers: Sell drawer when they can sell;
     // otherwise land on Shifts (clock the floor) before prices.
-    return BOTTOM_TABS.map((tab) => {
+    // A service-only shop has a floor and a bookings book where a product shop has shelves.
+    const tabs: readonly BottomTab[] =
+      serviceOnlyShop && canQuickSale
+        ? BOTTOM_TABS.map((tab) =>
+            tab.id === "catalog"
+              ? { id: "floor", label: "Floor", icon: Scissors, href: APP_ROUTES.servicesFloor, matchSectionIds: ["services"] }
+              : tab.id === "inventory"
+                ? {
+                    id: "bookings",
+                    label: "Bookings",
+                    icon: CalendarDays,
+                    href: APP_ROUTES.servicesAppointments,
+                    matchSectionIds: ["services"],
+                  }
+                : tab,
+          )
+        : BOTTOM_TABS;
+    return tabs.map((tab) => {
       if (tab.id !== "ops") return tab;
       if (canQuickSale) {
         return {
@@ -1715,6 +1763,7 @@ export function AppShell({ children }: AppShellProps) {
     canQuickSale,
     canViewShifts,
     canViewPricing,
+    serviceOnlyShop,
   ]);
 
   // Which bottom tab is currently "active"
@@ -1817,6 +1866,14 @@ export function AppShell({ children }: AppShellProps) {
       return;
     }
 
+    if (isServiceCashier(roleKey, serviceOnlyShop)) {
+      // The till and their profile only; any other address goes back to the till.
+      if (!serviceCashierMayOpen(pathname)) {
+        router.replace(APP_ROUTES.cashier);
+      }
+      return;
+    }
+
     if (roleKey === "cashier") {
       const allowed: string[] = [
         APP_ROUTES.shifts,
@@ -1883,6 +1940,7 @@ export function AppShell({ children }: AppShellProps) {
     stockManagerStoreRoom,
     canViewOrderPad,
     canViewStoreRoom,
+    serviceOnlyShop,
   ]);
 
   return (
@@ -1897,6 +1955,7 @@ export function AppShell({ children }: AppShellProps) {
       <ChromeSlot slot="desktop">
         <div className={cn("shrink-0", desktopChromeVisible)}>
           <DesktopNavRail
+            leadSectionIds={serviceOnlyShop ? SERVICE_LEAD_SECTIONS : undefined}
             pathname={pathname}
             homeHref={homeHref}
             tenantTitle={tenantTitle}

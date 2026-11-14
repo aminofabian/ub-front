@@ -25,6 +25,7 @@ import {
 import { FormDrawer } from "@/components/form-drawer";
 import { showConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ import {
   addMyDomain,
   deleteMyDomain,
   fetchMyDomains,
+  setMyDomainRedirect,
   setMyPrimaryDomain,
   verifyMyDomain,
   type DomainRecord,
@@ -118,6 +120,7 @@ function DomainDetailDrawer({
   onMakePrimary,
   onVerify,
   onDelete,
+  onRedirect,
   docked = false,
   dockRoot = null,
 }: {
@@ -128,6 +131,7 @@ function DomainDetailDrawer({
   onMakePrimary: (row: DomainRecord) => void;
   onVerify: (row: DomainRecord) => void;
   onDelete: (row: DomainRecord) => void;
+  onRedirect: (row: DomainRecord, enabled: boolean) => void;
   docked?: boolean;
   dockRoot?: HTMLElement | null;
 }) {
@@ -228,11 +232,31 @@ function DomainDetailDrawer({
           </DomainChip>
         </div>
 
-        {isPlatform ? (
+        {isPlatform && row.primary ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            This free address always works. It stays the main address, including
-            where staff sign in, until you choose a different one.
+            This is the address people should use, including where staff sign
+            in. An older address can send visitors here.
           </p>
+        ) : null}
+        {row.active && !row.primary ? (
+          <div className="flex items-start justify-between gap-4 rounded-none border border-border/60 px-3 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                Send visitors to the main address
+              </p>
+              <p className={cn(dashboardHintClass(), "mt-1")}>
+                People who open this address are sent to your current main
+                address, including the page they asked for. Turn this off to
+                keep this address open on its own.
+              </p>
+            </div>
+            <Switch
+              checked={row.redirectToPrimary === true}
+              disabled={busy}
+              onCheckedChange={(checked) => onRedirect(row, checked)}
+              aria-label="Send visitors to the main address"
+            />
+          </div>
         ) : null}
         {isPurchase && !row.active ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -373,6 +397,26 @@ export default function DomainsPage() {
       );
     } catch (e) {
       toast.error(messageFor(e, "Could not promote domain."));
+    } finally {
+      setBusy({ kind: "idle" });
+    }
+  };
+
+  const handleRedirect = async (row: DomainRecord, enabled: boolean) => {
+    setBusy({ kind: "row", id: row.id, action: "redirect" });
+    try {
+      const updated = await setMyDomainRedirect(row.id, enabled);
+      setRows((previous) =>
+        previous.map((r) => (r.id === updated.id ? updated : r)),
+      );
+      setDetailRow(updated);
+      toast.success(
+        enabled
+          ? `${updated.domain} now sends visitors to the main address.`
+          : `${updated.domain} stays open on its own.`,
+      );
+    } catch (e) {
+      toast.error(messageFor(e, "Could not update that redirect."));
     } finally {
       setBusy({ kind: "idle" });
     }
@@ -521,6 +565,7 @@ export default function DomainsPage() {
         onMakePrimary={(r) => void handleMakePrimary(r)}
         onVerify={(r) => void handleVerify(r)}
         onDelete={askDelete}
+        onRedirect={(row, enabled) => void handleRedirect(row, enabled)}
         docked={isLg}
         dockRoot={dockRoot}
       />

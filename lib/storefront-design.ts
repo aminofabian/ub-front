@@ -438,6 +438,40 @@ export type StorefrontDesignBrandKit = {
 };
 
 /**
+ * Words on the service landing page (the home of a shop that takes bookings). Every key is
+ * optional; an unset one shows the page's own default wording.
+ */
+export const STOREFRONT_BOOKING_TEXT_KEYS = [
+  "headline",
+  "line",
+  "pricesTitle",
+  "pricesLede",
+  "teamTitle",
+  "teamLede",
+  "bookTitle",
+  "bookLede",
+  "visitTitle",
+] as const;
+export type StorefrontBookingTextKey = (typeof STOREFRONT_BOOKING_TEXT_KEYS)[number];
+export type StorefrontDesignBookingText = Partial<Record<StorefrontBookingTextKey, string>>;
+
+/** Headings stay short; the lines under them may run to a sentence or two. */
+export function storefrontBookingTextMax(key: StorefrontBookingTextKey): number {
+  return key === "line" || key.endsWith("Lede") ? 160 : 60;
+}
+
+function parseBookingText(raw: unknown): StorefrontDesignBookingText | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  const out: StorefrontDesignBookingText = {};
+  for (const key of STOREFRONT_BOOKING_TEXT_KEYS) {
+    const value = pickString(o[key], storefrontBookingTextMax(key));
+    if (value) out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
  * v1 design document. Forward-compatible: unknown keys are dropped on parse,
  * and later versions keep the same shape plus additive keys.
  */
@@ -451,6 +485,8 @@ export type StorefrontDesign = {
   business?: StorefrontDesignBusiness | null;
   /** Merchant sections in render order (see {@link StorefrontSectionConfig}). */
   sections?: StorefrontSectionConfig[] | null;
+  /** Words on the service landing page (shops that take bookings). */
+  booking?: StorefrontDesignBookingText | null;
   /** Typography voice — a font pairing that overrides the theme's lettering. */
   fontPairing?: StorefrontFontPairingId | null;
   /** Per-theme personality dials, keyed by theme id (see theme-options). */
@@ -751,7 +787,13 @@ export function parseStorefrontDesignJson(
     design.theme = theme;
   }
 
+  const booking = parseBookingText(o.booking);
+  if (booking) {
+    design.booking = booking;
+  }
+
   if (
+    !design.booking &&
     !design.brandKit &&
     !design.photos &&
     !design.business &&
@@ -790,7 +832,13 @@ export function serializeStorefrontDesign(
   if (design.theme && Object.keys(design.theme).length > 0) {
     clean.theme = design.theme;
   }
+  // Through the parser, so only known keys of a sane length are ever stored.
+  const booking = parseBookingText(design.booking);
+  if (booking) {
+    clean.booking = booking;
+  }
   if (
+    !clean.booking &&
     !clean.brandKit &&
     !clean.photos &&
     !clean.business &&

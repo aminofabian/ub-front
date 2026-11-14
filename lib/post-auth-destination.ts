@@ -6,6 +6,7 @@ import {
   isCustomerTabPath,
 } from "@/lib/buyer-role";
 import type { BusinessRecord } from "@/lib/api";
+import { onboardingAnswersAreDraft } from "@/lib/onboarding-draft";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   isButcheryOnlyBusiness,
@@ -167,6 +168,10 @@ function dedicatedRoleHome(
   if (roleKey === "butcher_cashier") {
     return APP_ROUTES.butcher;
   }
+  if (roleKey === "service_staff") {
+    // A barber or stylist signs in to see what they earned; they have no till.
+    return APP_ROUTES.myEarnings;
+  }
   if (roleKey === "cashier") {
     // Clock the shift first; Sell is one tap from the header.
     return APP_ROUTES.shifts;
@@ -206,6 +211,11 @@ export function isOnboardingIncomplete(
     status !== "dismissed"
   ) {
     return false;
+  }
+  // Half-answered questionnaire: the saved answers — and the shop type the API
+  // copies onto the profile from them — are a draft, not a set-up shop.
+  if (onboardingAnswersAreDraft(status, business?.onboarding?.step)) {
+    return true;
   }
   const types =
     business?.profile?.storeTypes?.filter((t) => t.trim().length > 0) ?? [];

@@ -20,6 +20,7 @@ import type { SetupProgressStepRecord } from "@/lib/api";
 import {
   resolveSetupProgressActionUrl,
 } from "@/lib/first-sale-activate";
+import { resolveSetupGuide } from "@/lib/setup-progress-guides";
 import { cn } from "@/lib/utils";
 
 type SetupProgressBannerProps = {
@@ -46,6 +47,10 @@ export function SetupProgressBanner({
   const actionUrl = resolveSetupProgressActionUrl(
     data.currentStepKey,
     current?.actionUrl,
+  );
+  // Picture guides exist for the product steps only; a step without one has no "How?" to open.
+  const hasGuide = Boolean(
+    data.currentStepKey && resolveSetupGuide(data.currentStepKey, current?.recommendedSubKey),
   );
   const isPhoneStep = data.currentStepKey === "phone_verified";
   const isFirstSaleStep = data.currentStepKey === "first_sale";
@@ -126,13 +131,15 @@ export function SetupProgressBanner({
             </button>
 
             <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                className="px-2 text-xs font-medium text-[#0f766e] hover:underline"
-                onClick={() => setGuideOpen(true)}
-              >
-                How?
-              </button>
+              {hasGuide ? (
+                <button
+                  type="button"
+                  className="px-2 text-xs font-medium text-[#0f766e] hover:underline"
+                  onClick={() => setGuideOpen(true)}
+                >
+                  How?
+                </button>
+              ) : null}
               {isPhoneStep ? (
                 <button
                   type="button"

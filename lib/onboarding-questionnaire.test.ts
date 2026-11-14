@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 
+import { FIRST_STEP_AFTER_SETUP_APPLIED } from "@/lib/onboarding-draft";
 import {
   looksLikeOwnerPhone,
   normalizeOwnerPhone,
@@ -10,6 +11,11 @@ import {
   activateOnboardingQuestionnaire,
   markOnboardingQuestionnairePending,
   markOnboardingAwaitingStock,
+  markEmailJustVerified,
+  shopAwaitsFirstWalkthrough,
+  shopLooksAlreadyConfigured,
+  QUESTIONNAIRE_RECEIVE_STEP,
+  continueSignupAfterVerification,
   clearOnboardingQuestionnaireSessionSkip,
   getOnboardingQuestionnaireState,
   wasOnboardingQuestionnaireSkippedThisSession,
@@ -47,6 +53,80 @@ function installMemoryStorage() {
     value: memory,
   });
 }
+
+describe("shopLooksAlreadyConfigured", () => {
+  const draftAnswers = { storeTypes: ["barbershop"], displayName: "Demo" };
+
+  it("does not treat a half-answered questionnaire as a set-up shop", () => {
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "active",
+        onboardingStep: 3,
+        onboardingAnswers: draftAnswers,
+      }),
+    ).toBe(false);
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "active",
+        onboardingStep: 7,
+        onboardingAnswers: draftAnswers,
+      }),
+    ).toBe(false);
+  });
+
+  it("treats answers as proof once setup has been applied", () => {
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "active",
+        onboardingStep: QUESTIONNAIRE_RECEIVE_STEP,
+        onboardingAnswers: draftAnswers,
+      }),
+    ).toBe(true);
+  });
+
+  it("still heals a shop wrongly reset to pending that kept its answers", () => {
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "pending",
+        onboardingStep: 1,
+        onboardingAnswers: draftAnswers,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not trust the profile shop type mid-questionnaire (the API copies it from the draft)", () => {
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "active",
+        onboardingStep: 3,
+        storeTypes: ["mini-mart"],
+        onboardingAnswers: { storeTypes: ["mini-mart"] },
+      }),
+    ).toBe(false);
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "pending",
+        onboardingStep: 1,
+        storeTypes: ["mini-mart"],
+      }),
+    ).toBe(true);
+  });
+
+  it("trusts real stock and a finished status over the questionnaire step", () => {
+    expect(
+      shopLooksAlreadyConfigured({
+        onboardingStatus: "active",
+        onboardingStep: 3,
+        catalogueCount: 4,
+      }),
+    ).toBe(true);
+    expect(shopLooksAlreadyConfigured({ onboardingStatus: "completed" })).toBe(true);
+  });
+
+  it("pins the applied-setup step to the receive step", () => {
+    expect(FIRST_STEP_AFTER_SETUP_APPLIED).toBe(QUESTIONNAIRE_RECEIVE_STEP);
+  });
+});
 
 describe("looksLikeOwnerPhone", () => {
   it("accepts Kenyan 07 and 254 mobiles", () => {
@@ -117,6 +197,60 @@ describe("soft skip + resume", () => {
     );
     expect(getOnboardingQuestionnaireState().status).toBe("pending");
     expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+  });
+
+  it("picks the signup back up after email verification on another host or tab", () => {
+    markOnboardingQuestionnairePending();
+    // The shop host / new tab never saw the signup tab's fresh-signup flag.
+    window.sessionStorage.removeItem(
+      "palmart.onboardingQuestionnaire.freshSignup.v1",
+    );
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+    markEmailJustVerified();
+    continueSignupAfterVerification(true);
+    expect(shouldStartOnboardingQuestionnaire()).toBe(true);
+  });
+
+  it("never opens shop setup for staff or shoppers who verify an email", () => {
+    markOnboardingQuestionnairePending();
+    window.sessionStorage.removeItem(
+      "palmart.onboardingQuestionnaire.freshSignup.v1",
+    );
+    markEmailJustVerified();
+    continueSignupAfterVerification(false);
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+    // The marker is spent: a later owner check in the same tab does not reuse it.
+    continueSignupAfterVerification(true);
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+  });
+
+  it("does not open setup for an owner who did not just verify", () => {
+    markOnboardingQuestionnairePending();
+    window.sessionStorage.removeItem(
+      "palmart.onboardingQuestionnaire.freshSignup.v1",
+    );
+    continueSignupAfterVerification(true);
+    expect(shouldStartOnboardingQuestionnaire()).toBe(false);
+  });
+
+  it("opens the first walkthrough from the shop's own pending status", () => {
+    // No signup or verification marker in this browser at all (another device).
+    expect(shopAwaitsFirstWalkthrough("pending", true)).toBe(true);
+    expect(shopAwaitsFirstWalkthrough(" Pending ", true)).toBe(true);
+  });
+
+  it("does not open the walkthrough once the shop has moved past pending", () => {
+    expect(shopAwaitsFirstWalkthrough("active", true)).toBe(false);
+    expect(shopAwaitsFirstWalkthrough("completed", true)).toBe(false);
+    expect(shopAwaitsFirstWalkthrough("dismissed", true)).toBe(false);
+    expect(shopAwaitsFirstWalkthrough("idle", true)).toBe(false);
+    expect(shopAwaitsFirstWalkthrough(undefined, true)).toBe(false);
+  });
+
+  it("keeps staff out of a pending shop's walkthrough, and respects Skip", () => {
+    expect(shopAwaitsFirstWalkthrough("pending", false)).toBe(false);
+    softSkipOnboardingQuestionnaire();
+    expect(shopAwaitsFirstWalkthrough("pending", true)).toBe(false);
   });
 
   it("needs resume for dismissed and completed not", () => {

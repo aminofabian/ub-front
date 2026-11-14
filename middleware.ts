@@ -28,16 +28,25 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   let mutated = false;
 
-  if (
+  const isProxiedApi =
     pathname.startsWith("/api/") ||
     pathname.startsWith("/webhooks/") ||
-    pathname.startsWith("/actuator/")
-  ) {
+    pathname.startsWith("/actuator/");
+
+  if (isProxiedApi) {
     const host = request.headers.get("host");
     if (host && !requestHeaders.get("X-Tenant-Host")) {
       requestHeaders.set("X-Tenant-Host", host);
       mutated = true;
     }
+  } else {
+    // The root layout reads this to send an old shop address to the current
+    // one. Taken from the real URL, not from a header the browser sent.
+    requestHeaders.set(
+      "x-kiosk-request-path",
+      `${pathname}${request.nextUrl.search}`,
+    );
+    mutated = true;
   }
 
   const previewTheme = searchParams.get(STOREFRONT_PREVIEW_THEME_PARAM)?.trim();

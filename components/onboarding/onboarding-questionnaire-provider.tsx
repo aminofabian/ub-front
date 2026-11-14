@@ -50,6 +50,7 @@ import {
   DEFAULT_STORE_THEME_ID,
 } from "@/lib/storefront-templates";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { isOwnerOrAdminRole } from "@/lib/post-auth-destination";
 import {
   applyOnboardingQuestionnaire,
   formatApplyFailureMessage,
@@ -67,12 +68,14 @@ import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-
 import {
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
+  continueSignupAfterVerification,
   getOnboardingQuestionnaireState,
   hydrateOnboardingQuestionnaireFromServer,
   looksLikeOwnerPhone,
   markOnboardingAwaitingStock,
   resumeOnboardingQuestionnaire,
   saveQuestionnaireProgress,
+  shopAwaitsFirstWalkthrough,
   shopLooksAlreadyConfigured,
   shouldStartOnboardingQuestionnaire,
   softSkipOnboardingQuestionnaire,
@@ -279,6 +282,9 @@ export function OnboardingQuestionnaireProvider({
     };
   }, [step, canGlobalCatalog, catalogEligible, answers.storeTypes]);
 
+  /** Primitive so a refreshed `me` object does not re-run the start check. */
+  const meRoleKey = me?.role?.key ?? "";
+
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
     activateOnboardingQuestionnaire();
@@ -309,13 +315,14 @@ export function OnboardingQuestionnaireProvider({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await hydrateOnboardingQuestionnaireFromServer();
+      const hydrated = await hydrateOnboardingQuestionnaireFromServer();
       if (cancelled) {
         return;
       }
 
       const configured = shopLooksAlreadyConfigured({
         onboardingStatus: business?.onboarding?.status,
+        onboardingStep: business?.onboarding?.step ?? null,
         onboardingAnswers: business?.onboarding?.answers ?? null,
         storeTypes: business?.profile?.storeTypes ?? null,
         storeType: business?.profile?.storeType ?? null,
@@ -358,8 +365,24 @@ export function OnboardingQuestionnaireProvider({
         return;
       }
 
-      // Fresh signup only — never reopen on password/Google login for a stuck pending shop.
-      if (shouldStartOnboardingQuestionnaire()) {
+      const isOwnerAdmin =
+        meRoleKey.length > 0 &&
+        isOwnerOrAdminRole({ role: { key: meRoleKey } });
+
+      // Email verification lands on the shop host (or a new tab), which never
+      // saw the signup tab's fresh-signup flag. Pick the signup back up here.
+      if (meRoleKey) {
+        continueSignupAfterVerification(isOwnerAdmin);
+      }
+
+      // The shop's own record is the durable signal: `pending` means the
+      // walkthrough has never opened for this business, whichever device or
+      // tab the owner is on. Opening it moves the shop to `active`, so this
+      // fires once per shop; after that the hub's Resume banner takes over.
+      if (
+        shopAwaitsFirstWalkthrough(hydrated?.status, isOwnerAdmin) ||
+        shouldStartOnboardingQuestionnaire()
+      ) {
         startQuestionnaire();
       }
     })();
@@ -368,7 +391,9 @@ export function OnboardingQuestionnaireProvider({
     };
   }, [
     startQuestionnaire,
+    meRoleKey,
     business?.onboarding?.status,
+    business?.onboarding?.step,
     business?.onboarding?.answers,
     business?.profile?.storeTypes,
     business?.profile?.storeType,
@@ -675,7 +700,7 @@ export function OnboardingQuestionnaireProvider({
   const layer =
     active && mounted
       ? createPortal(
-          <div className="fixed inset-0 z-[600] overflow-hidden bg-[#FBF9F5]">
+          <div className="fixed inset-0 z-[600] overflow-hidden bg-[#F4F1EA]">
             <OnboardingQuestionnaire
               step={step}
               initialAnswers={answers}

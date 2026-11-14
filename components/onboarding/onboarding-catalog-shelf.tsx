@@ -40,17 +40,19 @@ function ParentButton({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border px-1",
-        "text-center text-[10px] font-semibold leading-tight transition touch-manipulation",
+        "flex min-h-11 w-full shrink-0 items-center rounded-[2px] px-3 py-2 text-left text-[13px] leading-snug touch-manipulation",
+        "transition-[background-color,color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-1 focus-visible:ring-offset-[#EFEBE2]",
         active
-          ? "border-[#0D9488] bg-[#0D9488] text-white"
-          : "border-[#E5E7EB] bg-[#FAFAF8] text-[#1F2937] hover:border-[#D1D5DB] hover:bg-white",
+          ? "bg-[#1D4B3B] font-semibold text-[#F4F1EA]"
+          : "font-medium text-[#2A332E] hover:bg-[#E6E1D6] hover:text-[#121A16]",
       )}
       title={hint ?? label}
     >
-      <span className="line-clamp-3">{label}</span>
+      <span className="line-clamp-2">{label}</span>
     </button>
   );
 }
@@ -85,24 +87,23 @@ function ProductTile({
       }}
       style={{ animationDelay: `${Math.min(index, 24) * 18}ms` }}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-[#ffffff] text-left sm:rounded-none",
-        "transition-[border-color,background-color,box-shadow,transform] duration-150",
+        "group relative flex h-full flex-col overflow-hidden rounded-[2px] border text-left sm:rounded-none",
+        "transition-[border-color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1",
-        "hover:z-[1] hover:border-[#CBD5E1] hover:bg-white hover:shadow-[2px_2px_0_0_rgba(15,23,42,0.08)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
-        "active:scale-[0.97] touch-manipulation",
+        "focus-visible:z-[2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B]",
+        "motion-safe:active:scale-[0.97] touch-manipulation",
         selected
-          ? "border-[#0D9488] bg-[#F0FDFA] shadow-[inset_0_0_0_1px_#0D9488]"
-          : "border-[#E8E4DC]",
+          ? "z-[1] border-[#1D4B3B] bg-[#E3EBE5] shadow-[inset_0_0_0_1px_#1D4B3B]"
+          : "border-[rgba(18,26,22,0.12)] bg-[#FCFAF5] hover:z-[1] hover:border-[rgba(18,26,22,0.4)]",
         product.alreadyImported && "opacity-50",
       )}
     >
       {selected ? (
-        <span className="absolute right-1.5 top-1.5 z-[2] flex size-5 items-center justify-center rounded-full bg-[#0D9488] text-white">
-          <Check className="size-3" aria-hidden />
+        <span className="absolute right-1.5 top-1.5 z-[2] flex size-5 items-center justify-center rounded-[2px] bg-[#1D4B3B] text-[#F4F1EA]">
+          <Check className="size-3" strokeWidth={3} aria-hidden />
         </span>
       ) : null}
-      <div className="relative aspect-square w-full bg-[#F3F0EA]">
+      <div className="relative aspect-square w-full bg-[#EFEBE2]">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -118,15 +119,15 @@ function ProductTile({
         )}
       </div>
       <div className="flex flex-1 flex-col gap-0.5 p-2">
-        <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#1F2937]">
+        <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-[#121A16]">
           {product.name}
         </p>
-        <p className="text-[10px] tabular-nums text-[#6B7280]">
+        <p className="font-mono text-[11px] tabular-nums text-[#2A332E]">
           {price ?? "—"}
           {product.alreadyImported ? " · In shop" : ""}
         </p>
         {product.barcode ? (
-          <p className="truncate font-mono text-[9px] text-[#9CA3AF]">
+          <p className="truncate font-mono text-[10px] text-[#626D66]">
             {product.barcode}
           </p>
         ) : null}
@@ -216,10 +217,10 @@ export function OnboardingCatalogShelf({
 
   const parentRail = (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-center bg-[#0D9488] px-1.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+      <p className="shrink-0 border-b border-[rgba(18,26,22,0.1)] px-4 py-3 text-[13px] font-semibold text-[#121A16]">
         Parent
-      </div>
-      <div className="flex flex-col gap-1.5 overflow-y-auto p-1.5">
+      </p>
+      <div className="flex flex-col gap-0.5 overflow-y-auto p-2">
         {packFilter ? (
           <ParentButton
             active={parentFilter.kind === "pack"}
@@ -261,8 +262,8 @@ export function OnboardingCatalogShelf({
 
   const manifestBody = (
     <>
-      <div className="border-b border-[#E8E4DC] px-4 py-3">
-        <p className="text-sm font-semibold text-[#1F2937]">
+      <div className="border-b border-[rgba(18,26,22,0.1)] px-4 py-4">
+        <p className="text-balance font-serif text-[1.3rem] font-medium leading-[1.15] text-[#121A16]">
           {selectedCount === 0
             ? "Nothing selected yet"
             : storefrontVisible
@@ -273,22 +274,22 @@ export function OnboardingCatalogShelf({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {selectedCount === 0 ? (
-          <div className="flex h-full min-h-[10rem] items-center justify-center rounded-none border border-dashed border-[#D6D3CB] bg-[#ffffff] px-4 py-6 text-center text-xs leading-relaxed text-[#6B7280]">
+          <div className="flex h-full min-h-[10rem] items-center justify-center border border-dashed border-[rgba(18,26,22,0.22)] px-5 py-6 text-center text-[13px] leading-relaxed text-[#556159]">
             Tap shelf products to build your starter catalogue. Drafts stay until
             you import.
           </div>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="divide-y divide-dashed divide-[rgba(18,26,22,0.2)]">
             {selectedList.map((product) => (
               <li
                 key={product.id}
-                className="flex items-start gap-2 rounded-lg border border-[#E8E4DC] bg-white px-2.5 py-2"
+                className="flex items-center gap-2 py-1 pl-1"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-xs font-medium text-[#1F2937]">
+                  <p className="line-clamp-2 text-[13px] font-medium leading-snug text-[#121A16]">
                     {product.name}
                   </p>
-                  <p className="mt-0.5 text-[10px] tabular-nums text-[#6B7280]">
+                  <p className="mt-0.5 font-mono text-[11px] tabular-nums text-[#556159]">
                     {product.recommendedSellingPrice != null
                       ? formatMoney(product.recommendedSellingPrice, currency)
                       : "—"}
@@ -297,7 +298,7 @@ export function OnboardingCatalogShelf({
                 <button
                   type="button"
                   onClick={() => onRemoveSelected(product.id)}
-                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[#9CA3AF] active:bg-[#F3F4F6] active:text-[#374151]"
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] text-[#626D66] transition-colors hover:text-[#121A16] active:bg-[#EFEBE2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B]"
                   aria-label={`Remove ${product.name}`}
                 >
                   <X className="size-4" aria-hidden />
@@ -308,9 +309,9 @@ export function OnboardingCatalogShelf({
         )}
       </div>
 
-      <div className="space-y-3 border-t border-[#E8E4DC] px-4 py-3">
+      <div className="space-y-3 border-t border-[rgba(18,26,22,0.1)] px-4 py-4">
         <label className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-[#374151]">
+          <span className="text-[13px] font-medium text-[#2A332E]">
             Show on online store
           </span>
           <Switch
@@ -320,17 +321,17 @@ export function OnboardingCatalogShelf({
           />
         </label>
         {errorMessage ? (
-          <p className="text-xs text-red-600" role="alert">
+          <p className="text-[13px] leading-relaxed text-[#8F3F2F]" role="alert">
             {errorMessage}
           </p>
         ) : null}
         {importNotice ? (
-          <p className="text-xs text-amber-700" role="status">
+          <p className="text-[13px] leading-relaxed text-[#8F3F2F]" role="status">
             {importNotice}
           </p>
         ) : null}
         {importing && importProgress ? (
-          <p className="text-xs tabular-nums text-[#0F766E]" role="status">
+          <p className="font-mono text-[12px] tabular-nums text-[#1D4B3B]" role="status">
             {importPercent}% · {importProgress.processed.toLocaleString()} /{" "}
             {importProgress.total.toLocaleString()} products
           </p>
@@ -340,10 +341,11 @@ export function OnboardingCatalogShelf({
           disabled={!canAdopt || selectedCount === 0 || importing}
           onClick={onImport}
           className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition",
+            "flex h-12 w-full items-center justify-center gap-2 rounded-[2px] text-[15px] font-semibold tracking-[-0.01em] transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FCFAF5]",
             canAdopt && selectedCount > 0 && !importing
-              ? "bg-[#0D9488] text-white hover:bg-[#0F766E]"
-              : "cursor-not-allowed bg-[#E5E7EB] text-white",
+              ? "bg-[#1D4B3B] text-[#F4F1EA] hover:bg-[#163B2E] motion-safe:active:scale-[0.985]"
+              : "cursor-not-allowed bg-[#E4DFD3] text-[#626D66]",
           )}
         >
           {importing
@@ -358,7 +360,7 @@ export function OnboardingCatalogShelf({
           <button
             type="button"
             onClick={onClearSelected}
-            className="w-full text-center text-xs text-[#6B7280] hover:underline"
+            className="min-h-9 w-full text-center text-[13px] text-[#556159] underline-offset-4 hover:text-[#121A16] hover:underline"
           >
             Clear selection
           </button>
@@ -369,40 +371,40 @@ export function OnboardingCatalogShelf({
 
   const chipClass = (active: boolean) =>
     cn(
-      "shrink-0 rounded-full px-3.5 py-2.5 text-xs font-medium touch-manipulation active:scale-[0.97]",
+      "shrink-0 rounded-[2px] border px-3.5 py-2.5 text-[13px] font-medium touch-manipulation transition-colors duration-200 motion-safe:active:scale-[0.97]",
       active
-        ? "bg-[#0D9488] text-white"
-        : "bg-white text-[#374151] ring-1 ring-[#E5E7EB]",
+        ? "border-[#1D4B3B] bg-[#1D4B3B] text-[#F4F1EA]"
+        : "border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#2A332E]",
     );
 
   return (
-    <div className="flex h-dvh max-h-dvh min-h-0 flex-col bg-[#F7F4EE] text-[#1F2937]">
-      <header className="shrink-0 border-b border-[#E8E4DC] bg-white/95 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-[max(0.65rem,env(safe-area-inset-top))] sm:px-4">
+    <div className="kiosk-setup flex h-dvh max-h-dvh min-h-0 flex-col bg-[#F4F1EA] text-[#121A16]">
+      <header className="shrink-0 border-b border-[rgba(18,26,22,0.1)] bg-[#F4F1EA]">
+        <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-[max(0.65rem,env(safe-area-inset-top))] sm:px-5 lg:py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={importing}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#374151] active:scale-95 disabled:opacity-50 lg:hidden"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#121A16] motion-safe:active:scale-95 disabled:opacity-50 lg:hidden"
             aria-label="Close catalogue"
           >
             <ChevronLeft className="size-5" aria-hidden />
           </button>
           <div className="min-w-0 flex-1 lg:pl-0">
-            <h2 className="truncate text-base font-semibold tracking-tight">
+            <h2 className="truncate font-serif text-[1.45rem] font-medium leading-tight text-[#121A16] lg:text-[1.75rem]">
               {importing && importProgress
                 ? `Importing ${importProgress.processed.toLocaleString()} of ${importProgress.total.toLocaleString()}`
                 : "Stock your shelves"}
             </h2>
             {importing ? null : (
-              <p className="truncate text-[12px] text-[#6B7280]">
+              <p className="truncate text-[13px] text-[#556159]">
                 Tap products to add them to your shop
               </p>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {importing && importProgress ? (
-              <span className="tabular-nums text-sm font-semibold text-[#0D9488]">
+              <span className="font-mono text-sm font-semibold tabular-nums text-[#1D4B3B]">
                 {importPercent}%
               </span>
             ) : null}
@@ -411,16 +413,16 @@ export function OnboardingCatalogShelf({
               type="button"
               onClick={onClose}
               disabled={importing}
-              className="hidden h-10 rounded-xl border border-[#E5E7EB] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50 lg:inline-flex lg:items-center"
+              className="hidden h-10 rounded-[2px] border border-[rgba(18,26,22,0.16)] bg-[#FCFAF5] px-4 text-[13px] font-semibold text-[#121A16] transition-colors hover:border-[rgba(18,26,22,0.4)] disabled:opacity-50 lg:inline-flex lg:items-center"
             >
               Close
             </button>
           </div>
         </div>
         {importing && importProgress ? (
-          <div className="space-y-1.5 px-3 pb-3 sm:px-4">
+          <div className="space-y-1.5 px-3 pb-3 sm:px-5">
             <div
-              className="h-1.5 overflow-hidden rounded-full bg-[#E8E4DC]"
+              className="h-[3px] overflow-hidden bg-[rgba(18,26,22,0.12)]"
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
@@ -428,12 +430,12 @@ export function OnboardingCatalogShelf({
               aria-label="Catalogue import progress"
             >
               <div
-                className="h-full rounded-full bg-[#0D9488] transition-[width] duration-300 ease-out"
+                className="h-full bg-[#1D4B3B] transition-[width] duration-300 ease-out"
                 style={{ width: `${importPercent}%` }}
               />
             </div>
             {importDetail ? (
-              <p className="truncate text-[11px] text-[#0F766E]" role="status">
+              <p className="truncate text-[12px] text-[#1D4B3B]" role="status">
                 {importDetail}
               </p>
             ) : null}
@@ -442,12 +444,12 @@ export function OnboardingCatalogShelf({
       </header>
 
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col lg:flex-row">
-        <aside className="hidden w-[6.75rem] shrink-0 flex-col border-r border-[#E8E4DC] bg-[#F3F0EA] xl:w-[7.5rem] lg:flex">
+        <aside className="hidden w-[11rem] shrink-0 flex-col border-r border-[rgba(18,26,22,0.1)] bg-[#EFEBE2] xl:w-[12.5rem] lg:flex">
           {parentRail}
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="-mx-0 flex gap-1.5 overflow-x-auto overscroll-x-contain border-b border-[#E8E4DC] bg-[#F3F0EA] px-2 py-2.5 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-0 flex gap-1.5 overflow-x-auto overscroll-x-contain border-b border-[rgba(18,26,22,0.1)] bg-[#EFEBE2] px-2 py-2.5 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
             {packFilter ? (
               <button
                 type="button"
@@ -490,10 +492,10 @@ export function OnboardingCatalogShelf({
             ))}
           </div>
 
-          <div className="space-y-2 border-b border-[#E8E4DC] bg-white px-3 py-2.5 sm:px-4">
+          <div className="space-y-2.5 border-b border-[rgba(18,26,22,0.1)] bg-[#F4F1EA] px-3 py-3 sm:px-4">
             <label className="relative block">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#626D66]"
                 aria-hidden
               />
               <input
@@ -501,14 +503,14 @@ export function OnboardingCatalogShelf({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search products or type a barcode…"
-                className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#ffffff] pl-10 pr-3 text-base outline-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/15 sm:h-10 sm:rounded-xl sm:text-sm"
+                className="h-12 w-full rounded-[2px] border border-[rgba(18,26,22,0.18)] bg-[#FCFAF5] pl-10 pr-3 text-base text-[#121A16] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[#626D66] focus:border-[#1D4B3B] focus:ring-2 focus:ring-[#1D4B3B]/15 sm:h-11 sm:text-sm"
                 enterKeyHint="search"
                 autoCapitalize="off"
                 autoCorrect="off"
               />
             </label>
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs text-[#6B7280]">
-              <h3 className="font-semibold text-[#1F2937]">{shelfCountLabel}</h3>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[13px] text-[#556159]">
+              <h3 className="font-semibold text-[#121A16]">{shelfCountLabel}</h3>
               <div className="flex items-center gap-3">
                 {loading || loadingLabel ? (
                   <span>{loadingLabel ?? "Loading…"}</span>
@@ -522,7 +524,7 @@ export function OnboardingCatalogShelf({
                           ? onClearShelfSelection
                           : onSelectAllOnShelf
                       }
-                      className="min-h-8 font-medium text-[#0D9488] active:opacity-70"
+                      className="min-h-9 font-semibold text-[#1D4B3B] underline-offset-4 hover:underline active:opacity-70"
                     >
                       {allShelfSelected
                         ? "Deselect all"
@@ -530,13 +532,13 @@ export function OnboardingCatalogShelf({
                     </button>
                     {selectedCount > 0 ? (
                       <>
-                        <span className="text-[#D1D5DB]" aria-hidden>
+                        <span className="text-[#C9C3B5]" aria-hidden>
                           ·
                         </span>
                         <button
                           type="button"
                           onClick={onClearSelected}
-                          className="min-h-8 text-[#6B7280] active:opacity-70"
+                          className="min-h-9 text-[#556159] underline-offset-4 hover:text-[#121A16] hover:underline active:opacity-70"
                         >
                           Clear selection
                         </button>
@@ -550,11 +552,11 @@ export function OnboardingCatalogShelf({
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2 pb-24 sm:p-3 lg:pb-3">
             {products.length === 0 && !loading ? (
-              <div className="flex h-48 items-center justify-center text-sm text-[#6B7280]">
+              <div className="flex h-48 items-center justify-center text-[15px] text-[#556159]">
                 No products in this view.
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 sm:gap-px sm:bg-[#E8E4DC]">
+              <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 sm:gap-0 sm:[&>*]:-mb-px sm:[&>*]:-mr-px">
                 {products.map((product, index) => (
                   <ProductTile
                     key={product.id}
@@ -570,12 +572,12 @@ export function OnboardingCatalogShelf({
           </div>
         </div>
 
-        <aside className="hidden w-[min(100%,20rem)] shrink-0 flex-col border-l border-[#E8E4DC] bg-white xl:w-[22rem] lg:flex">
+        <aside className="hidden w-[min(100%,20rem)] shrink-0 flex-col border-l border-[rgba(18,26,22,0.1)] bg-[#FCFAF5] xl:w-[22rem] lg:flex">
           {manifestBody}
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[#E8E4DC] bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[rgba(18,26,22,0.1)] bg-[#FCFAF5] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
         <button
           type="button"
           onClick={() => {
@@ -586,17 +588,17 @@ export function OnboardingCatalogShelf({
             onMobileManifestOpenChange(true);
           }}
           className={cn(
-            "flex h-12 w-full items-center justify-between rounded-2xl px-4 text-sm font-semibold transition touch-manipulation active:scale-[0.99]",
+            "flex h-12 w-full items-center justify-between rounded-[2px] px-4 text-[15px] font-semibold transition-[background-color,transform] duration-200 touch-manipulation motion-safe:active:scale-[0.99]",
             selectedCount > 0
-              ? "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)]"
-              : "border border-[#E5E7EB] bg-white text-[#6B7280]",
+              ? "bg-[#1D4B3B] text-[#F4F1EA]"
+              : "border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#556159]",
           )}
         >
           <span>
             {selectedCount > 0 ? "Review selection" : "Tap products to add them"}
           </span>
           {selectedCount > 0 ? (
-            <span className="tabular-nums">{selectedCount} selected</span>
+            <span className="font-mono text-[13px] tabular-nums">{selectedCount} selected</span>
           ) : null}
         </button>
       </div>
@@ -605,24 +607,24 @@ export function OnboardingCatalogShelf({
         <div className="fixed inset-0 z-20 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/35"
+            className="absolute inset-0 bg-[#0D1713]/45"
             aria-label="Close selection"
             onClick={() => onMobileManifestOpenChange(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 flex max-h-[min(92dvh,40rem)] flex-col rounded-t-[1.5rem] bg-white shadow-[0_-16px_48px_-20px_rgba(0,0,0,0.18)] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-250">
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[min(92dvh,40rem)] flex-col rounded-t-[2px] bg-[#FCFAF5] shadow-[0_-18px_44px_-22px_rgba(13,23,19,0.35)] motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-250">
             <div className="flex shrink-0 flex-col items-center pt-2">
-              <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" aria-hidden />
+              <span className="h-1 w-10 rounded-full bg-[#C9C3B5]" aria-hidden />
             </div>
             <div className="flex items-center justify-between px-4 pb-2 pt-1">
               <button
                 type="button"
                 onClick={() => onMobileManifestOpenChange(false)}
-                className="inline-flex size-11 items-center justify-center rounded-2xl border border-[#E5E7EB] text-[#374151] active:scale-95"
+                className="inline-flex size-11 items-center justify-center rounded-[2px] border border-[rgba(18,26,22,0.14)] text-[#121A16] motion-safe:active:scale-95"
                 aria-label="Back to shelf"
               >
                 <ChevronLeft className="size-5" aria-hidden />
               </button>
-              <p className="text-sm font-semibold">Your selection</p>
+              <p className="text-[15px] font-semibold text-[#121A16]">Your selection</p>
               <span className="size-11" aria-hidden />
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">

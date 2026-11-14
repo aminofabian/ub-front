@@ -1,5 +1,6 @@
 "use client";
 
+import { accountEmailLabel, accountHandle } from "@/lib/team-accounts";
 import { useMemo, useState } from "react";
 import {
   ChevronRight,
@@ -281,7 +282,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) => {
-      const hay = `${u.name} ${u.email} ${u.role?.name ?? ""}`.toLowerCase();
+      const hay = `${u.name} ${accountEmailLabel(u.email)} ${u.role?.name ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [users, query]);
@@ -593,7 +594,7 @@ export function UsersTheatre(props: UsersTheatreProps) {
         title={selectedUser?.name ?? "Person"}
         description={
           selectedUser
-            ? [selectedUser.email, selectedUser.role?.name ?? null]
+            ? [accountEmailLabel(selectedUser.email), selectedUser.role?.name ?? null]
                 .filter(Boolean)
                 .join(" · ")
             : undefined
@@ -821,7 +822,7 @@ function UserFocus({
           {user.name}
         </h3>
         <p className="mt-2 truncate text-[12px] text-muted-foreground">
-          {user.email}
+          {accountEmailLabel(user.email)}
         </p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
           <span
@@ -857,7 +858,7 @@ function UserFocus({
             </p>
             <ReactivateUserButton
               busy={reactivating}
-              label={`Reactivate ${user.email}`}
+              label={`Reactivate ${accountHandle(user)}`}
               onClick={onReactivate}
             />
           </div>
@@ -976,7 +977,7 @@ function UserInspectPanel({
           {user.name}
         </h3>
         <p className="mt-1.5 truncate text-[11px] text-muted-foreground">
-          {user.email}
+          {accountEmailLabel(user.email)}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span
@@ -998,7 +999,7 @@ function UserInspectPanel({
             <ReactivateUserButton
               busy={reactivatingId === user.id}
               disabled={deletingId === user.id}
-              label={`Reactivate ${user.email}`}
+              label={`Reactivate ${accountHandle(user)}`}
               onClick={() => onReactivate(user.id)}
             />
           </div>
@@ -1172,7 +1173,7 @@ function UserInspectPanel({
               className="size-4 accent-[var(--pos-primary,#0f766e)]"
               checked={payrollInclude[user.id] !== false}
               disabled={payrollSavingId === user.id}
-              aria-label={`Include ${user.email} in payroll`}
+              aria-label={`Include ${accountHandle(user)} in payroll`}
               onChange={(e) => onTogglePayroll(user.id, e.target.checked)}
             />
           </label>
@@ -1365,7 +1366,7 @@ function UserInspectPanel({
             {canReadStaffProfile ? (
               <ActionIconButton
                 icon={IdCard}
-                label={`Staff profile for ${user.email}`}
+                label={`Staff profile for ${accountHandle(user)}`}
                 onClick={() => onOpenProfile(user)}
               />
             ) : null}
@@ -1373,20 +1374,20 @@ function UserInspectPanel({
               <>
                 <ActionIconButton
                   icon={KeyRound}
-                  label={`Set password for ${user.email}`}
+                  label={`Set password for ${accountHandle(user)}`}
                   disabled={credentialsBusy}
                   onClick={() => onBeginPasswordEdit(user.id)}
                 />
                 <ActionIconButton
                   icon={Hash}
-                  label={`Set PIN for ${user.email}`}
+                  label={`Set PIN for ${accountHandle(user)}`}
                   disabled={credentialsBusy}
                   onClick={() => onBeginPinEdit(user.id)}
                 />
                 {user.hasPin ? (
                   <ActionIconButton
                     icon={Eye}
-                    label={`View PIN for ${user.email}`}
+                    label={`View PIN for ${accountHandle(user)}`}
                     disabled={credentialsBusy}
                     onClick={() => onViewPin(user.id)}
                   />
@@ -1394,10 +1395,10 @@ function UserInspectPanel({
                 {user.id !== currentUserId ? (
                   <ActionIconButton
                     icon={signingOutId === user.id ? Loader2 : LogOut}
-                    label={`Sign ${user.email} out of all devices`}
+                    label={`Sign ${accountHandle(user)} out of all devices`}
                     spinning={signingOutId === user.id}
                     disabled={credentialsBusy || signingOutId === user.id}
-                    onClick={() => onForceLogout(user.id, user.email)}
+                    onClick={() => onForceLogout(user.id, accountHandle(user))}
                   />
                 ) : null}
               </>
@@ -1405,7 +1406,7 @@ function UserInspectPanel({
             {canDeactivate && !isSuspendedStatus(user.status) ? (
               <ActionIconButton
                 icon={deactivatingId === user.id ? Loader2 : UserX}
-                label={`Deactivate ${user.email}`}
+                label={`Deactivate ${accountHandle(user)}`}
                 tone="danger"
                 spinning={deactivatingId === user.id}
                 disabled={deactivatingId === user.id || deletingId === user.id}
@@ -1417,7 +1418,7 @@ function UserInspectPanel({
             !isProtectedFromDelete(user.role?.key) ? (
               <ActionIconButton
                 icon={deletingId === user.id ? Loader2 : Trash2}
-                label={`Delete ${user.email}`}
+                label={`Delete ${accountHandle(user)}`}
                 tone="danger"
                 spinning={deletingId === user.id}
                 disabled={
@@ -1425,7 +1426,7 @@ function UserInspectPanel({
                   deactivatingId === user.id ||
                   reactivatingId === user.id
                 }
-                onClick={() => onDelete(user.id, user.email)}
+                onClick={() => onDelete(user.id, accountHandle(user))}
               />
             ) : null}
           </div>

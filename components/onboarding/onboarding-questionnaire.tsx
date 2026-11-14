@@ -4,9 +4,11 @@ import { SERVICE_STORE_TYPES } from "@/lib/business-store-type";
 import { IS_DESKTOP } from "@/lib/runtime";
 
 import {
+  ArrowRight,
   Check,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
   Drumstick,
   LayoutGrid,
   Leaf,
@@ -28,6 +30,20 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { OnboardingReceiveMpesaStep } from "@/components/onboarding/onboarding-receive-mpesa-step";
+import { SetupSlip, type SetupSlipLine } from "@/components/onboarding/setup-slip";
+import {
+  EASE,
+  FIELD_CLASS,
+  FIELD_LABEL,
+  FIELD_SHELL,
+  FOCUS_RING,
+  KEY_BASE,
+  KEY_OFF,
+  KEY_ON,
+  NOTE,
+  QUIET_BUTTON,
+  SETUP_GRID,
+} from "@/components/onboarding/setup-ui";
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
 import { OnboardingBrandingPreviewModal } from "@/components/onboarding/onboarding-branding-preview-modal";
 import { useLogoObjectUrl } from "@/components/onboarding/onboarding-branding-preview";
@@ -118,9 +134,6 @@ const SHOWN_STORE_TYPE_OPTIONS = IS_DESKTOP
     )
   : STORE_TYPE_OPTIONS;
 
-const FIELD_CLASS =
-  "h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-base text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 sm:rounded-xl sm:text-[15px]";
-
 function useKeyboardInset() {
   const [inset, setInset] = useState(0);
   useEffect(() => {
@@ -202,19 +215,21 @@ function QuestionnaireProgress({ step }: { step: number }) {
   const clamped = Math.min(step, answerSteps);
   const isFinal = step >= QUESTIONNAIRE_STEP_COUNT;
   const percent = isFinal ? 100 : Math.round((clamped / answerSteps) * 100);
-  const stepLabel = isFinal ? "Stock" : (STEP_LABELS[clamped - 1] ?? "");
+  const stepLabel = isFinal ? "Shelves" : (STEP_LABELS[clamped - 1] ?? "");
 
   return (
-    <div className="w-full space-y-1.5">
-      {/* Mobile: named steps + dots — position at a glance, no duplicate bar. */}
-      <div className="flex items-center justify-between gap-3 text-[11px] sm:hidden">
-        <span className="font-semibold text-[#374151]">
-          {isFinal ? "Last step" : `Step ${clamped} of ${answerSteps}`}
+    <div className="w-full">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="truncate text-[13px] font-medium text-[#121A16]">
+          {stepLabel}
         </span>
-        <span className="truncate text-[#9CA3AF]">{stepLabel}</span>
+        <span className="shrink-0 font-mono text-[11px] tabular-nums text-[#556159]">
+          {isFinal ? "Last step" : `${clamped} of ${answerSteps}`}
+        </span>
       </div>
+      {/* One tick per question: the ledger line fills as the shop takes shape. */}
       <div
-        className="flex gap-1 sm:hidden"
+        className="mt-2 flex gap-1"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
@@ -224,74 +239,139 @@ function QuestionnaireProgress({ step }: { step: number }) {
         {Array.from({ length: answerSteps }, (_, i) => (
           <span
             key={i}
-            className={cn(
-              "h-1 flex-1 rounded-full transition-colors duration-300",
-              i < clamped ? "bg-[#0D9488]" : "bg-[#E5E7EB]",
-            )}
-          />
+            className="relative h-[3px] flex-1 overflow-hidden bg-[rgba(18,26,22,0.12)]"
+          >
+            <span
+              className={cn(
+                "absolute inset-0 origin-left bg-[#1D4B3B] transition-transform duration-500",
+                EASE,
+                isFinal || i < clamped ? "scale-x-100" : "scale-x-0",
+              )}
+            />
+          </span>
         ))}
       </div>
-      {/* Desktop: percent bar. */}
-      <div className="hidden space-y-1.5 sm:block">
-        <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="font-medium text-[#374151]">
-            {isFinal
-              ? "Last step — stock your shelves"
-              : `${percent}% done`}
-          </span>
-          <span className="tabular-nums text-[#9CA3AF]">
-            {isFinal ? "Final" : `${step} / ${answerSteps}`}
-          </span>
-        </div>
-        <div
-          className="h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]"
-          role="progressbar"
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`Setup progress: ${percent} percent`}
-        >
-          <div
-            className="h-full rounded-full bg-[#0D9488] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      </div>
     </div>
+  );
+}
+
+function StoreTypeButton({
+  label,
+  hint,
+  icon: Icon,
+  clay,
+  selected,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  icon: typeof Store;
+  /** The one terracotta stamp on this step. Every other key stays forest. */
+  clay?: boolean;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={() => {
+        hapticTap(8);
+        onClick();
+      }}
+      className={cn(
+        "relative flex min-h-11 items-center gap-2 rounded-[2px] border py-1.5 pl-2 pr-6 text-left sm:min-h-12 sm:gap-2.5 sm:py-2 sm:pl-2.5 sm:pr-7",
+        "transition-[background-color,border-color,color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F4F1EA]",
+        "motion-safe:active:scale-[0.985]",
+        selected
+          ? "border-[#1D4B3B] bg-[#1D4B3B] text-[#F4F1EA] hover:bg-[#163B2E]"
+          : "border-[rgba(18,26,22,0.12)] bg-[#FCFAF5] text-[#121A16] hover:border-[rgba(18,26,22,0.22)] hover:bg-[#F4F1EA]",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-[2px] sm:size-8",
+          selected
+            ? "bg-[#F4F1EA] text-[#1D4B3B]"
+            : clay
+              ? "bg-[#F6E7E1] text-[#8F3F2F]"
+              : "bg-[#EFEBE2] text-[#1D4B3B]",
+        )}
+      >
+        <Icon className="size-3.5 sm:size-4" strokeWidth={1.75} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 text-[13px] font-semibold leading-tight tracking-[-0.015em]">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 line-clamp-1 text-[11px] leading-snug",
+            selected ? "text-[#D7E6DE]" : "text-[#556159]",
+          )}
+        >
+          {hint}
+        </span>
+      </span>
+      <Check
+        className={cn(
+          "absolute right-1.5 top-1/2 size-3.5 -translate-y-1/2 transition-opacity duration-200 sm:right-2",
+          selected ? "text-[#F4F1EA] opacity-100" : "opacity-0",
+        )}
+        strokeWidth={2.5}
+        aria-hidden
+      />
+    </button>
   );
 }
 
 function OptionButton({
   selected,
   onClick,
-  children,
-  compact,
+  title,
+  hint,
 }: {
   selected: boolean;
   onClick: () => void;
-  children: ReactNode;
-  compact?: boolean;
+  title: ReactNode;
+  hint?: ReactNode;
 }) {
   return (
     <button
       type="button"
+      aria-pressed={selected}
       onClick={() => {
         hapticTap(8);
         onClick();
       }}
       className={cn(
-        "w-full rounded-2xl border text-left transition-[border-color,background-color,transform,box-shadow] sm:rounded-xl",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/40",
-        "active:scale-[0.985] touch-manipulation",
-        compact
-          ? "min-h-14 px-3 py-3 text-[14px] sm:min-h-[3.25rem] sm:px-4 sm:text-[15px]"
-          : "min-h-[3.25rem] px-4 py-3.5 text-[15px]",
-        selected
-          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A] shadow-[0_8px_20px_-16px_rgba(13,148,136,0.7)]"
-          : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB] hover:bg-[#FAFAFA]",
+        KEY_BASE,
+        "relative flex min-h-14 w-full flex-col justify-center gap-0.5 py-3 pl-4 pr-11",
+        selected ? KEY_ON : KEY_OFF,
       )}
     >
-      {children}
+      <span className="text-[15px] font-semibold leading-snug tracking-[-0.01em]">
+        {title}
+      </span>
+      {hint ? (
+        <span
+          className={cn(
+            "text-[13px] leading-snug",
+            selected ? "text-[#D7E6DE]" : "text-[#556159]",
+          )}
+        >
+          {hint}
+        </span>
+      ) : null}
+      <Check
+        className={cn(
+          "absolute right-4 top-1/2 size-4 -translate-y-1/2 transition-opacity duration-200",
+          selected ? "opacity-100" : "opacity-0",
+        )}
+        strokeWidth={2.5}
+        aria-hidden
+      />
     </button>
   );
 }
@@ -305,43 +385,43 @@ function ShopLinePreview({
 }) {
   const who = shopName.trim() || "the shop";
   return (
-    <div className="mx-auto w-full max-w-[240px] sm:max-w-[280px]">
-      <div className="overflow-hidden rounded-[1.75rem] border border-[#1F2937] bg-[#111827] shadow-[0_24px_48px_-28px_rgba(17,24,39,0.85)] sm:rounded-[2rem]">
-        <div className="flex items-center justify-center pt-2">
-          <span className="h-1.5 w-16 rounded-full bg-[#374151]" />
+    <div className="mx-auto w-full max-w-[240px] sm:mx-0 sm:max-w-[264px]">
+      <div className="overflow-hidden rounded-[1.75rem] bg-[#0D1713] shadow-[0_28px_44px_-30px_rgba(13,23,19,0.75)]">
+        <div className="flex items-center justify-center pt-2.5">
+          <span className="h-1.5 w-14 rounded-full bg-[#2A3A32]" />
         </div>
         <div className="space-y-2 px-3 pb-4 pt-3">
-          <p className="text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#9CA3AF]">
-            Tomorrow morning
+          <p className="text-center font-mono text-[10px] text-[#A9B8AE]">
+            Tomorrow, 7:42
           </p>
-          <div className="space-y-1.5 rounded-2xl bg-[#1F2937] px-3 py-2.5">
+          <div className="rounded-xl bg-[#1A2620] px-3 py-2.5">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#B9D0C0] text-[#0D1713]">
                 <MessageCircle className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-white">{who}</p>
-                <p className="truncate text-[11px] text-[#D1D5DB]">
+                <p className="text-[11px] font-semibold text-[#F2EDE1]">{who}</p>
+                <p className="truncate text-[11px] text-[#C9D3CC]">
                   Hi — do you still have chicken?
                 </p>
               </div>
             </div>
           </div>
-          <div className="space-y-1.5 rounded-2xl bg-[#1F2937] px-3 py-2.5">
+          <div className="rounded-xl bg-[#1A2620] px-3 py-2.5">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-white">
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#B9D0C0] text-[#0D1713]">
                 <Smartphone className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-white">Kiosk</p>
-                <p className="text-[11px] text-[#D1D5DB]">
+                <p className="text-[11px] font-semibold text-[#F2EDE1]">Kiosk</p>
+                <p className="text-[11px] text-[#C9D3CC]">
                   3 items below reorder at {who}
                 </p>
               </div>
             </div>
           </div>
           {phoneLabel ? (
-            <p className="pt-1 text-center text-[11px] tabular-nums text-[#99F6E4]">
+            <p className="pt-1 text-center font-mono text-[11px] tabular-nums text-[#B9D0C0]">
               {phoneLabel}
             </p>
           ) : null}
@@ -363,18 +443,24 @@ function DepartmentChip({
   return (
     <button
       type="button"
+      aria-pressed={selected}
       onClick={() => {
         hapticTap(6);
         onToggle();
       }}
       className={cn(
-        "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-[border-color,background-color,transform] touch-manipulation active:scale-[0.97]",
+        KEY_BASE,
+        "inline-flex min-h-11 items-center gap-1.5 px-3.5 py-2 text-sm font-medium",
+        // Many of these are on at once: a tinted tag, not a solid key, so a
+        // full shelf of sections does not turn the page into a green wall.
         selected
-          ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
-          : "border-[#E5E7EB] bg-white text-[#4B5563] hover:border-[#D1D5DB]",
+          ? "border-[#1D4B3B] bg-[#E3EBE5] text-[#163B2E] hover:bg-[#D8E3DC]"
+          : cn(KEY_OFF, "text-[#2A332E]"),
       )}
     >
-      {selected ? <Check className="size-3.5 shrink-0" aria-hidden /> : null}
+      {selected ? (
+        <Check className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
+      ) : null}
       {label}
     </button>
   );
@@ -388,11 +474,11 @@ function StepHeading({
   description: ReactNode;
 }) {
   return (
-    <div className="space-y-1.5 text-left sm:space-y-2">
-      <h1 className="text-[1.5rem] font-semibold leading-[1.15] tracking-tight text-[#1F2937] sm:text-center sm:text-2xl">
+    <div className="space-y-2.5">
+      <h1 className="text-balance font-serif text-[2rem] font-medium leading-[1.05] tracking-[-0.01em] text-[#121A16] sm:text-[2.6rem]">
         {title}
       </h1>
-      <p className="max-w-[36ch] text-[15px] leading-relaxed text-[#6B7280] sm:mx-auto sm:text-center sm:text-sm">
+      <p className="max-w-[54ch] text-pretty text-[15px] leading-relaxed text-[#556159]">
         {description}
       </p>
     </div>
@@ -977,7 +1063,21 @@ export function OnboardingQuestionnaire({
   }, [step, selectedThemeId]);
 
   const primaryCtaClass = cn(
-    "flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition touch-manipulation active:scale-[0.985] sm:rounded-xl",
+    "group flex h-12 w-full items-center justify-center gap-2 rounded-[2px] px-6 text-[15px] font-semibold tracking-[-0.01em] touch-manipulation sm:w-auto sm:min-w-[13.5rem]",
+    "transition-[background-color,color,transform] duration-200 motion-safe:active:scale-[0.985]",
+    EASE,
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FCFAF5]",
+  );
+  const primaryOnClass = "bg-[#1D4B3B] text-[#F4F1EA] hover:bg-[#163B2E]";
+  const primaryOffClass = "cursor-not-allowed bg-[#E4DFD3] text-[#626D66]";
+  const ctaArrow = (
+    <ArrowRight
+      className={cn(
+        "size-4 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5",
+        EASE,
+      )}
+      aria-hidden
+    />
   );
 
   const shellStyle =
@@ -988,76 +1088,172 @@ export function OnboardingQuestionnaire({
         }
       : undefined;
 
+  // Beside the receipt (lg+) every step fills the same cell, so the header,
+  // content and footer never shift width between steps.
+  const columnWidth =
+    step === 2 ? "max-w-2xl lg:max-w-none" : "max-w-xl lg:max-w-none";
+
+  const filledLocalities = branchLocalities
+    .map((loc) => loc.trim())
+    .filter(Boolean);
+  // A service-only shop (kinyozi, salon) goes straight from shop type to the
+  // shop line, so the retail questions never get asked: say so on the slip
+  // instead of printing defaults the owner did not choose.
+  const retailSkipped =
+    step > 2 &&
+    storeTypes.length > 0 &&
+    storeTypes.every((type) =>
+      (SERVICE_STORE_TYPES as readonly string[]).includes(type),
+    );
+  const receiptLines: SetupSlipLine[] = [
+    {
+      label: "Locations",
+      value: !branchCount
+        ? null
+        : filledLocalities.length > 0
+          ? filledLocalities.join(", ")
+          : branchCount === "5plus"
+            ? "5 or more"
+            : branchCount,
+    },
+    {
+      label: "Shop",
+      value: step >= 2 && storeTypes.length > 0 ? storeTypesLabel : null,
+    },
+    {
+      label: "Sections",
+      value:
+        !retailSkipped && step >= 3 && selectedDepartments.length > 0
+          ? String(selectedDepartments.length)
+          : null,
+      skipped: retailSkipped || (step > 3 && selectedDepartments.length === 0),
+    },
+    {
+      label: "Online shop",
+      value:
+        !retailSkipped && step >= 4 && onlineStore
+          ? onlineStore === "yes"
+            ? "Yes"
+            : "In-store only"
+          : null,
+      skipped: retailSkipped,
+    },
+    {
+      label: "Look",
+      value: !retailSkipped && step >= 5 ? selectedThemeMeta.name : null,
+      skipped: retailSkipped,
+    },
+    {
+      label: "Colours",
+      skipped: retailSkipped,
+      value:
+        !retailSkipped && step >= 6 ? (
+          <span className="inline-flex items-center gap-1 align-middle">
+            <span
+              className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
+              style={{ backgroundColor: primaryColor }}
+            />
+            <span
+              className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
+              style={{ backgroundColor: accentColor }}
+            />
+            <span className="sr-only">
+              {primaryColor} and {accentColor}
+            </span>
+          </span>
+        ) : null,
+    },
+    {
+      label: "Shop line",
+      value:
+        step >= QUESTIONNAIRE_PHONE_STEP && ownerPhone.trim()
+          ? ownerPhone.trim()
+          : null,
+    },
+  ];
+  const receiptMeta = [
+    countryCode?.toUpperCase(),
+    currency?.toUpperCase(),
+    "Setup slip",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <div
-      className="relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#FBF9F5] text-[#1F2937]"
+      className="kiosk-setup premium-portal relative flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#F4F1EA] text-[#121A16]"
       style={shellStyle}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      {/* Paper, not a gradient: the same grain as the landing ground. */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="pointer-events-none absolute inset-0 bg-[url('/textures/paper-grain.png')] opacity-[0.05] mix-blend-multiply"
         aria-hidden
-      >
-        <div className="absolute -left-24 top-0 size-72 rounded-full bg-[#99F6E4]/25 blur-3xl" />
-        <div className="absolute -right-16 top-40 size-64 rounded-full bg-[#FED7AA]/35 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white/80 to-transparent" />
-      </div>
+      />
 
-      <header className="relative z-20 shrink-0 border-b border-[#E8E4DC]/80 bg-[#FBF9F5]/92 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6">
-        <div className="mx-auto w-full max-w-lg space-y-2.5">
-          <div className="flex items-center gap-2 sm:justify-between">
-            {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={submitting}
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#374151] shadow-sm transition active:scale-95 disabled:opacity-50 sm:hidden"
-                aria-label="Back"
-              >
-                <ChevronLeft className="size-5" aria-hidden />
-              </button>
-            ) : (
-              <span className="size-11 shrink-0 sm:hidden" aria-hidden />
-            )}
-            <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-between">
-              <KioskLogoMark size={32} variant="auth" className="sm:hidden" />
-              <KioskLogoMark size={40} variant="auth" className="hidden sm:block" />
-              {countryCode || currency ? (
-                <p className="hidden rounded-full border border-[#E5E7EB] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[#6B7280] sm:inline-flex">
-                  {[countryCode?.toUpperCase(), currency?.toUpperCase()]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              ) : null}
+      <header className="relative z-20 shrink-0 border-b border-[rgba(18,26,22,0.1)] bg-[#F4F1EA] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8 sm:pb-4 sm:pt-5">
+        <div className={SETUP_GRID}>
+          <div className={cn("w-full space-y-3", columnWidth)}>
+            <div className="flex items-center gap-2">
+              {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  disabled={submitting}
+                  className={cn(
+                    "inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#121A16] transition-transform motion-safe:active:scale-95 disabled:opacity-50 sm:hidden",
+                    FOCUS_RING,
+                  )}
+                  aria-label="Back"
+                >
+                  <ChevronLeft className="size-5" aria-hidden />
+                </button>
+              ) : (
+                <span className="size-11 shrink-0 sm:hidden" aria-hidden />
+              )}
+              <div className="flex min-w-0 flex-1 items-center justify-center gap-3 sm:justify-between">
+                <KioskLogoMark size={32} variant="auth" className="sm:hidden" />
+                <KioskLogoMark size={36} variant="auth" className="hidden sm:block" />
+                {countryCode || currency ? (
+                  <p className="hidden font-mono text-[11px] text-[#556159] sm:block lg:hidden">
+                    {[countryCode?.toUpperCase(), currency?.toUpperCase()]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                ) : null}
+              </div>
+              {step === QUESTIONNAIRE_PHONE_STEP ||
+              step === QUESTIONNAIRE_RECEIVE_STEP ||
+              // The last step carries its own "Skip for now" beside the action.
+              step === QUESTIONNAIRE_STEP_COUNT ? (
+                <span className="inline-flex size-11 shrink-0 sm:hidden" aria-hidden />
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  disabled={submitting}
+                  className={cn(QUIET_BUTTON, "shrink-0 justify-center px-2 sm:hidden")}
+                >
+                  Skip
+                </button>
+              )}
             </div>
-            {step === QUESTIONNAIRE_PHONE_STEP ||
-            step === QUESTIONNAIRE_RECEIVE_STEP ? (
-              <span className="inline-flex size-11 shrink-0 sm:hidden" aria-hidden />
-            ) : (
-              <button
-                type="button"
-                onClick={step === QUESTIONNAIRE_STEP_COUNT ? onFinishLater : onSkip}
-                disabled={submitting}
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-2 text-xs font-medium text-[#6B7280] transition active:scale-95 disabled:opacity-40 sm:hidden"
-              >
-                Skip
-              </button>
-            )}
+            <QuestionnaireProgress step={step} />
           </div>
-          <QuestionnaireProgress step={step} />
         </div>
       </header>
 
       <main
         ref={scrollRef}
-        className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6 sm:py-8"
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-6 sm:px-8 sm:py-10 lg:py-12"
       >
-        <div className="mx-auto w-full max-w-lg">
+        <div className={SETUP_GRID}>
+          <div className={cn("w-full", columnWidth)}>
           <div
             key={step}
             className={cn(
-              "space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 sm:space-y-6",
+              "space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 sm:space-y-7",
               stepDirection === "back"
                 ? "motion-safe:slide-in-from-left-2"
                 : "motion-safe:slide-in-from-right-2",
@@ -1069,31 +1265,37 @@ export function OnboardingQuestionnaire({
                   title="Your shop locations"
                   description="Each location gets its own stock and sales. You can rename them anytime."
                 />
-                <div className="grid grid-cols-5 gap-1.5 sm:hidden">
+                <div
+                  className="grid grid-cols-5 gap-1.5 sm:gap-2"
+                  role="group"
+                  aria-label="How many locations"
+                >
                   {BRANCH_COUNT_OPTIONS.map((opt) => {
-                    const countLabel =
-                      opt.value === "5plus" ? "5+" : opt.value;
+                    const countLabel = opt.value === "5plus" ? "5+" : opt.value;
+                    const selected = branchCount === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setBranchCount(opt.value)}
+                        aria-pressed={selected}
+                        aria-label={opt.label}
+                        onClick={() => {
+                          hapticTap(8);
+                          setBranchCount(opt.value);
+                        }}
                         className={cn(
-                          "flex h-16 flex-col items-center justify-center rounded-2xl border transition touch-manipulation active:scale-[0.97]",
-                          branchCount === opt.value
-                            ? "border-[#0D9488] bg-[#0D9488] text-white shadow-[0_8px_18px_-12px_rgba(13,148,136,0.8)]"
-                            : "border-[#E5E7EB] bg-white text-[#4B5563]",
+                          KEY_BASE,
+                          "flex h-[4.5rem] flex-col items-center justify-center sm:h-24",
+                          selected ? KEY_ON : KEY_OFF,
                         )}
                       >
-                        <span className="text-lg font-semibold tabular-nums leading-none">
+                        <span className="font-serif text-[1.75rem] font-medium tabular-nums leading-none sm:text-[2.25rem]">
                           {countLabel}
                         </span>
                         <span
                           className={cn(
-                            "mt-1 text-[10px]",
-                            branchCount === opt.value
-                              ? "text-white/80"
-                              : "text-[#9CA3AF]",
+                            "mt-1.5 text-[11px] sm:text-xs",
+                            selected ? "text-[#D7E6DE]" : "text-[#556159]",
                           )}
                         >
                           {opt.value === "1" ? "shop" : "shops"}
@@ -1102,21 +1304,9 @@ export function OnboardingQuestionnaire({
                     );
                   })}
                 </div>
-                <div className="hidden grid-cols-1 gap-2.5 sm:grid">
-                  {BRANCH_COUNT_OPTIONS.map((opt) => (
-                    <OptionButton
-                      key={opt.value}
-                      compact
-                      selected={branchCount === opt.value}
-                      onClick={() => setBranchCount(opt.value)}
-                    >
-                      <span className="block font-medium">{opt.label}</span>
-                    </OptionButton>
-                  ))}
-                </div>
                 {branchSlots > 0 ? (
-                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/80 p-3.5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-2">
-                    <p className="text-xs font-medium text-[#6B7280]">
+                  <div className="space-y-4 border-t border-[rgba(18,26,22,0.1)] pt-5">
+                    <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#121A16]">
                       {branchSlots === 1
                         ? "Which area is your shop in?"
                         : "Name each branch (area or suburb)"}
@@ -1135,15 +1325,20 @@ export function OnboardingQuestionnaire({
                       );
                       return (
                         <label key={index} className="block">
-                          <span className="mb-1.5 flex items-baseline justify-between gap-2 text-xs font-medium text-[#6B7280]">
+                          <span className="mb-1.5 flex items-baseline justify-between gap-2 text-[13px] font-medium text-[#2A332E]">
                             <span>
                               {branchSlots === 1 ? "Area" : `Branch ${index + 1}`}
                             </span>
-                            <span className="truncate font-normal text-[#9CA3AF]">
+                            <span className="truncate font-normal text-[#556159]">
                               {preview}
                             </span>
                           </span>
-                          <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
+                          <div
+                            className={cn(
+                              FIELD_SHELL,
+                              "flex h-12 items-center overflow-hidden focus-within:border-[#1D4B3B] focus-within:ring-2 focus-within:ring-[#1D4B3B]/15",
+                            )}
+                          >
                             <input
                               type="text"
                               value={locality}
@@ -1155,7 +1350,7 @@ export function OnboardingQuestionnaire({
                                   return next;
                                 });
                               }}
-                              className="min-w-0 flex-1 bg-transparent px-4 text-base text-[#1F2937] outline-none sm:text-[15px]"
+                              className="h-full min-w-0 flex-1 bg-transparent px-4 text-base text-[#121A16] outline-none placeholder:text-[#626D66] sm:text-[15px]"
                               placeholder={branchLocalityPlaceholder(
                                 index,
                                 countryCode,
@@ -1165,7 +1360,7 @@ export function OnboardingQuestionnaire({
                               enterKeyHint="next"
                               list="onboarding-locality-suggestions"
                             />
-                            <span className="hidden shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280] sm:inline">
+                            <span className="hidden h-full shrink-0 items-center border-l border-[rgba(18,26,22,0.12)] bg-[#EFEBE2] px-3 text-sm text-[#556159] sm:flex">
                               branch
                             </span>
                           </div>
@@ -1173,7 +1368,7 @@ export function OnboardingQuestionnaire({
                       );
                     })}
                     {branchCount === "5plus" ? (
-                      <p className="text-xs text-[#9CA3AF]">
+                      <p className={NOTE}>
                         We&apos;ll set up your first five branches now. Add more
                         later from Branches.
                       </p>
@@ -1195,80 +1390,26 @@ export function OnboardingQuestionnaire({
                     </>
                   }
                 />
-                <div className="grid grid-cols-2 gap-2.5 sm:hidden">
-                  {SHOWN_STORE_TYPE_OPTIONS.map((opt) => {
-                    const Icon = STORE_TYPE_ICONS[opt.value];
-                    const selected = storeTypes.includes(opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          hapticTap(8);
-                          toggleStoreType(opt.value);
-                        }}
-                        className={cn(
-                          "flex min-h-[5.5rem] flex-col items-start gap-2 rounded-2xl border p-3 text-left transition touch-manipulation active:scale-[0.98]",
-                          selected
-                            ? "border-[#0D9488] bg-[#F0FDFA] text-[#134E4A]"
-                            : "border-[#E5E7EB] bg-white text-[#4B5563]",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "flex size-9 items-center justify-center rounded-xl",
-                            selected
-                              ? "bg-[#0D9488] text-white"
-                              : "bg-[#F3F4F6] text-[#0D9488]",
-                          )}
-                        >
-                          <Icon className="size-4" aria-hidden />
-                        </span>
-                        <span className="text-sm font-semibold leading-tight">
-                          {opt.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="hidden space-y-2.5 sm:block">
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
                   {SHOWN_STORE_TYPE_OPTIONS.map((opt) => (
-                    <OptionButton
+                    <StoreTypeButton
                       key={opt.value}
+                      label={opt.label}
+                      hint={opt.hint}
+                      icon={STORE_TYPE_ICONS[opt.value]}
+                      clay={opt.value === "butchery"}
                       selected={storeTypes.includes(opt.value)}
                       onClick={() => toggleStoreType(opt.value)}
-                    >
-                      <span className="flex items-start justify-between gap-3">
-                        <span className="min-w-0">
-                          <span className="block font-medium">{opt.label}</span>
-                          <span className="mt-0.5 block text-xs leading-snug text-[#9CA3AF]">
-                            {opt.hint}
-                          </span>
-                        </span>
-                        <span
-                          className={cn(
-                            "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition",
-                            storeTypes.includes(opt.value)
-                              ? "border-[#0D9488] bg-[#0D9488] text-white"
-                              : "border-[#D1D5DB] bg-white",
-                          )}
-                          aria-hidden
-                        >
-                          {storeTypes.includes(opt.value) ? (
-                            <Check className="size-3" />
-                          ) : null}
-                        </span>
-                      </span>
-                    </OptionButton>
+                    />
                   ))}
                 </div>
-                <p className="text-xs text-[#9CA3AF]">
+                <p className={NOTE}>
                   {storeTypes.length === 0
                     ? "Select at least one shop type to continue."
                     : `${storeTypes.length} selected`}
                 </p>
                 {departmentsResetNote ? (
-                  <p className="text-xs font-medium text-[#0D9488]">
+                  <p className="text-[13px] font-medium text-[#1D4B3B]" role="status">
                     Departments reset to match your new shop type.
                   </p>
                 ) : null}
@@ -1295,43 +1436,51 @@ export function OnboardingQuestionnaire({
                     )
                   }
                 />
-                {availableDepartments.length > 0 ? (
-                  <div className="flex items-center gap-3 text-sm">
-                    <button
-                      type="button"
-                      onClick={selectAllDepartments}
-                      className="min-h-10 font-medium text-[#0D9488] active:opacity-70"
-                    >
-                      Select all
-                    </button>
-                    <span className="text-[#D1D5DB]">·</span>
-                    <button
-                      type="button"
-                      onClick={clearDepartments}
-                      className="min-h-10 text-[#6B7280] active:opacity-70"
-                    >
-                      Clear
-                    </button>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 border-b border-[rgba(18,26,22,0.1)] pb-2">
+                    <p className="font-mono text-[12px] tabular-nums text-[#556159]">
+                      {selectedDepartments.length === 0
+                        ? "None selected"
+                        : `${selectedDepartments.length} selected`}
+                    </p>
+                    {availableDepartments.length > 0 ? (
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={selectAllDepartments}
+                          className={cn(QUIET_BUTTON, "font-medium text-[#1D4B3B]")}
+                        >
+                          Select all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearDepartments}
+                          className={QUIET_BUTTON}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  {visibleDepartments.map((dept) => (
-                    <DepartmentChip
-                      key={dept}
-                      label={dept}
-                      selected={isDepartmentSelected(dept)}
-                      onToggle={() => toggleDepartment(dept)}
-                    />
-                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    {visibleDepartments.map((dept) => (
+                      <DepartmentChip
+                        key={dept}
+                        label={dept}
+                        selected={isDepartmentSelected(dept)}
+                        onToggle={() => toggleDepartment(dept)}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label
                     htmlFor="onboarding-custom-department"
-                    className="block text-xs font-medium text-[#6B7280]"
+                    className={FIELD_LABEL}
                   >
                     Add custom section
                   </label>
-                  <div className="mt-1.5 flex gap-2">
+                  <div className="flex gap-2">
                     <input
                       id="onboarding-custom-department"
                       type="text"
@@ -1352,17 +1501,22 @@ export function OnboardingQuestionnaire({
                     <button
                       type="button"
                       onClick={addCustomDepartment}
-                      className="h-12 shrink-0 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-12 sm:rounded-xl"
+                      className={cn(
+                        KEY_BASE,
+                        KEY_OFF,
+                        "h-12 shrink-0 px-5 text-sm font-semibold",
+                      )}
                     >
                       Add
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-[#9CA3AF]">
-                  {selectedDepartments.length === 0
-                    ? "No sections selected yet. You can continue and add them later."
-                    : `${selectedDepartments.length} selected`}
-                </p>
+                {selectedDepartments.length === 0 ? (
+                  <p className={NOTE}>
+                    No sections selected yet. You can continue and add them
+                    later.
+                  </p>
+                ) : null}
               </>
             ) : null}
 
@@ -1372,7 +1526,7 @@ export function OnboardingQuestionnaire({
                   title="Would you like to sell online?"
                   description="Turn on a web shop so customers can browse and order from your website. You can change this later in Settings."
                 />
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {ONLINE_STORE_OPTIONS.map((opt) => (
                     <OptionButton
                       key={opt.value}
@@ -1383,16 +1537,15 @@ export function OnboardingQuestionnaire({
                           scheduleAutoAdvance(opt.value);
                         }
                       }}
-                    >
-                      <span className="block font-medium">{opt.label}</span>
-                      <span className="mt-0.5 block text-xs leading-snug text-[#9CA3AF]">
-                        {opt.value === "yes"
+                      title={opt.label}
+                      hint={
+                        opt.value === "yes"
                           ? businessSlug
                             ? `Customers can shop at your storefront (/${businessSlug}).`
                             : "Customers can browse and order from your web shop."
-                          : "Stay in-store only for now — turn online selling on anytime."}
-                      </span>
-                    </OptionButton>
+                          : "Stay in-store only for now — turn online selling on anytime."
+                      }
+                    />
                   ))}
                 </div>
               </>
@@ -1412,28 +1565,13 @@ export function OnboardingQuestionnaire({
                       : "Pick a public page for your shop link. You can change it later."
                   }
                 />
-                <div className="mx-auto hidden w-40 sm:block">
-                  <ThemeTryOnPhone
-                    item={selectedThemeMeta}
-                    kind={themeKind}
-                    storeName={displayName || businessName || "Your shop"}
-                    logoUrl={logoPreviewUrl}
-                    logoDarkUrl={logoDarkPreviewUrl}
-                    brandPrimary={primaryColor}
-                    size="sm"
-                    frame="card"
-                  />
-                </div>
-                <p className="hidden text-center text-sm font-semibold text-[#1F2937] sm:block">
-                  {selectedThemeMeta.name}
-                </p>
                 <div
                   ref={themeStripRef}
                   data-no-swipe-back
                   className={cn(
                     "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
                     "sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0",
-                    seeAllThemes ? "sm:grid-cols-2" : "sm:grid-cols-3",
+                    "sm:grid-cols-3",
                   )}
                 >
                   {onboardingVisibleThemes.map((item) => {
@@ -1442,6 +1580,7 @@ export function OnboardingQuestionnaire({
                       <button
                         key={item.id}
                         type="button"
+                        aria-pressed={selected}
                         data-theme-id={item.id}
                         onClick={() => {
                           hapticTap(8);
@@ -1455,10 +1594,13 @@ export function OnboardingQuestionnaire({
                           }
                         }}
                         className={cn(
-                          "w-[42vw] max-w-[11.5rem] shrink-0 snap-center overflow-hidden rounded-2xl border text-left transition sm:w-auto sm:max-w-none sm:rounded-xl",
+                          "w-[42vw] max-w-[11.5rem] shrink-0 snap-center overflow-hidden rounded-[2px] border bg-[#FCFAF5] text-left sm:w-auto sm:max-w-none",
+                          "transition-[border-color,box-shadow,transform] duration-200 motion-safe:active:scale-[0.985]",
+                          EASE,
+                          FOCUS_RING,
                           selected
-                            ? "border-[#0D9488] ring-2 ring-[#0D9488]/30 sm:border-[#1F2937] sm:ring-1 sm:ring-[#1F2937]"
-                            : "border-[#E5E7EB] hover:border-[#9CA3AF]",
+                            ? "border-[#1D4B3B] shadow-[0_0_0_1px_#1D4B3B,0_18px_28px_-22px_rgba(18,26,22,0.5)]"
+                            : "border-[rgba(18,26,22,0.14)] hover:border-[rgba(18,26,22,0.32)]",
                         )}
                       >
                         <ThemeTryOnPhone
@@ -1471,26 +1613,34 @@ export function OnboardingQuestionnaire({
                           size="sm"
                           frame="card"
                         />
-                        <span className="flex items-center justify-between gap-1 px-2 py-2">
-                          <span className="truncate text-[12px] font-semibold text-[#1F2937] sm:text-[11px]">
+                        <span
+                          className={cn(
+                            "flex items-center justify-between gap-1 border-t px-2.5 py-2 transition-colors duration-200",
+                            selected
+                              ? "border-[#1D4B3B] bg-[#1D4B3B] text-[#F4F1EA]"
+                              : "border-[rgba(18,26,22,0.1)] text-[#121A16]",
+                          )}
+                        >
+                          <span className="truncate text-[13px] font-semibold">
                             {item.name}
                           </span>
                           {selected ? (
-                            <Check className="size-3.5 shrink-0 text-[#0D9488] sm:size-3" aria-hidden />
+                            <Check
+                              className="size-3.5 shrink-0"
+                              strokeWidth={2.5}
+                              aria-hidden
+                            />
                           ) : null}
                         </span>
                       </button>
                     );
                   })}
                 </div>
-                <p className="text-center text-sm font-semibold text-[#1F2937] sm:hidden">
-                  {selectedThemeMeta.name}
-                </p>
                 {!seeAllThemes ? (
                   <button
                     type="button"
                     onClick={() => setSeeAllThemes(true)}
-                    className="min-h-11 text-sm font-medium text-[#1F2937] underline underline-offset-2"
+                    className={cn(QUIET_BUTTON, "font-medium text-[#1D4B3B]")}
                   >
                     See all {onboardingThemeItems.length} looks
                   </button>
@@ -1511,11 +1661,9 @@ export function OnboardingQuestionnaire({
                   title="Brand your shop"
                   description="Set your display name and colours. Logo is optional — you can add one later in settings."
                 />
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
-                      Display name
-                    </span>
+                    <span className={FIELD_LABEL}>Display name</span>
                     <input
                       type="text"
                       value={displayName}
@@ -1530,25 +1678,25 @@ export function OnboardingQuestionnaire({
                       <button
                         type="button"
                         onClick={() => setDisplayName(suggestedDisplayName)}
-                        className="mt-2 min-h-10 text-left text-xs text-[#0D9488] active:opacity-70"
+                        className={cn(QUIET_BUTTON, "mt-1 text-[13px] text-[#1D4B3B]")}
                       >
                         Use suggested:{" "}
-                        <span className="font-medium">
+                        <span className="font-semibold">
                           {suggestedDisplayName}
                         </span>
                       </button>
                     ) : suggestedDisplayName ? (
-                      <p className="mt-2 text-xs text-[#9CA3AF]">
+                      <p className={cn(NOTE, "mt-2")}>
                         Suggested from your business name
                       </p>
                     ) : null}
                   </label>
 
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-[#6B7280]">
+                    <p className={cn(FIELD_LABEL, "mb-0")}>
                       Colours &amp; preview
                     </p>
-                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <OnboardingBrandingColorPicker
                         layout="tile"
                         showContrastHint={false}
@@ -1566,25 +1714,29 @@ export function OnboardingQuestionnaire({
                       />
                     </div>
                     {!meetsBrandingContrast(primaryColor, accentColor) ? (
-                      <p className="text-xs text-amber-700" role="status">
+                      <p
+                        className="flex items-start gap-2 text-[13px] text-[#8F3F2F]"
+                        role="status"
+                      >
+                        <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                         Colours need more contrast — tap Pick colours to adjust.
                       </p>
                     ) : null}
                   </div>
 
-                  <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white/70 p-4 sm:rounded-xl">
-                    <p className="mb-1 text-xs font-medium text-[#6B7280]">
+                  <div className="border-t border-[rgba(18,26,22,0.1)] pt-5">
+                    <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#121A16]">
                       Logo{" "}
-                      <span className="font-normal text-[#9CA3AF]">
+                      <span className="font-normal text-[#556159]">
                         (optional)
                       </span>
                     </p>
-                    <p className="mb-3 text-xs text-[#9CA3AF]">
+                    <p className={cn(NOTE, "mb-4 mt-1 max-w-[54ch]")}>
                       Skip if you don&apos;t have one. We&apos;ll use a mark
                       from your shop name, or you can describe one for AI to
                       draw.
                     </p>
-                    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
                       <div className="relative">
                         <TenantLogo
                           brand={
@@ -1595,9 +1747,9 @@ export function OnboardingQuestionnaire({
                           variant="upload"
                         />
                         {logoGenerating ? (
-                          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70">
+                          <div className="absolute inset-0 flex items-center justify-center bg-[#FCFAF5]/75">
                             <Loader2
-                              className="size-6 animate-spin text-[#0D9488]"
+                              className="size-6 animate-spin text-[#1D4B3B]"
                               aria-hidden
                             />
                             <span className="sr-only">Generating logo</span>
@@ -1616,7 +1768,11 @@ export function OnboardingQuestionnaire({
                           type="button"
                           disabled={submitting || logoGenerating}
                           onClick={() => logoInputRef.current?.click()}
-                          className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition active:scale-[0.98] hover:bg-[#F9FAFB] sm:h-auto sm:rounded-xl sm:py-2"
+                          className={cn(
+                            KEY_BASE,
+                            KEY_OFF,
+                            "h-11 px-4 text-center text-sm font-semibold disabled:opacity-50",
+                          )}
                         >
                           {logoFile || logoDraftPair
                             ? "Replace logo"
@@ -1668,18 +1824,20 @@ export function OnboardingQuestionnaire({
                               setLogoError("");
                               setLogoGeneratorKey((key) => key + 1);
                             }}
-                            className="min-h-10 text-xs text-[#6B7280] active:opacity-70"
+                            className={cn(QUIET_BUTTON, "justify-center text-[13px] sm:justify-start")}
                           >
                             Use name mark instead
                           </button>
                         ) : (
-                          <p className="text-xs text-[#9CA3AF]">
+                          <p className={NOTE}>
                             Optional. A name mark is used until you upload or
                             generate one.
                           </p>
                         )}
                         {logoError ? (
-                          <p className="text-xs text-red-600">{logoError}</p>
+                          <p className="text-[13px] text-[#8F3F2F]" role="alert">
+                            {logoError}
+                          </p>
                         ) : null}
                       </div>
                     </div>
@@ -1694,45 +1852,48 @@ export function OnboardingQuestionnaire({
                   title="This number is the shop"
                   description="Customers WhatsApp it. We text it when stock is low. M-Pesa and till alerts land here. Not a personal line you never check — the one that sits next to the till."
                 />
-                <div className="flex flex-col gap-5">
-                  <label className="order-1 block sm:order-2">
-                    <span className="mb-1.5 block text-xs font-medium text-[#6B7280]">
-                      Shop line
-                    </span>
-                    <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white focus-within:border-[#0D9488] focus-within:ring-2 focus-within:ring-[#0D9488]/20 sm:rounded-xl">
-                      <span className="shrink-0 border-r border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm font-medium tabular-nums text-[#374151]">
-                        {dialCode}
-                      </span>
-                      <input
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel"
-                        value={ownerPhone}
-                        onChange={(e) => setOwnerPhone(e.target.value)}
-                        className="min-w-0 flex-1 bg-transparent px-4 text-base tabular-nums text-[#1F2937] outline-none sm:text-[15px]"
-                        placeholder={
-                          countryCode?.toUpperCase() === "KE"
-                            ? "07XX XXX XXX"
-                            : "Your mobile number"
-                        }
-                        aria-label="Shop phone number"
-                        enterKeyHint="done"
-                      />
-                    </div>
-                  </label>
-                  <div className="order-2 sm:order-1">
-                    <ShopLinePreview
-                      shopName={displayName || businessName || ""}
-                      phoneLabel={ownerPhone.trim()}
-                    />
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <label className="block">
+                      <span className={FIELD_LABEL}>Shop line</span>
+                      <div
+                        className={cn(
+                          FIELD_SHELL,
+                          "flex h-14 items-center overflow-hidden focus-within:border-[#1D4B3B] focus-within:ring-2 focus-within:ring-[#1D4B3B]/15",
+                        )}
+                      >
+                        <span className="flex h-full shrink-0 items-center border-r border-[rgba(18,26,22,0.12)] bg-[#EFEBE2] px-3.5 font-mono text-sm tabular-nums text-[#2A332E]">
+                          {dialCode}
+                        </span>
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          value={ownerPhone}
+                          onChange={(e) => setOwnerPhone(e.target.value)}
+                          className="h-full min-w-0 flex-1 bg-transparent px-4 text-lg tabular-nums tracking-[0.01em] text-[#121A16] outline-none placeholder:text-[#626D66]"
+                          placeholder={
+                            countryCode?.toUpperCase() === "KE"
+                              ? "07XX XXX XXX"
+                              : "Your mobile number"
+                          }
+                          aria-label="Shop phone number"
+                          enterKeyHint="done"
+                        />
+                      </div>
+                    </label>
+                    <p className={NOTE}>
+                      {looksLikeOwnerPhone(ownerPhone, countryCode)
+                        ? "We'll save this on your account and on the online shop's WhatsApp button."
+                        : countryCode?.toUpperCase() === "KE"
+                          ? "Use a Kenyan mobile — 07… or 2547…"
+                          : "Enter a mobile number we can actually reach."}
+                    </p>
                   </div>
-                  <p className="order-3 text-xs text-[#9CA3AF]">
-                    {looksLikeOwnerPhone(ownerPhone, countryCode)
-                      ? "We'll save this on your account and on the online shop's WhatsApp button."
-                      : countryCode?.toUpperCase() === "KE"
-                        ? "Use a Kenyan mobile — 07… or 2547…"
-                        : "Enter a mobile number we can actually reach."}
-                  </p>
+                  <ShopLinePreview
+                    shopName={displayName || businessName || ""}
+                    phoneLabel={ownerPhone.trim()}
+                  />
                 </div>
               </>
             ) : null}
@@ -1769,17 +1930,15 @@ export function OnboardingQuestionnaire({
                   }
                 />
                 {celebrate ? (
-                  <div
-                    className="flex items-center gap-2.5 rounded-2xl border border-[#99F6E4] bg-[#F0FDFA] px-3.5 py-2.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300"
+                  <p
+                    className="flex items-center gap-2.5 border-y border-[rgba(18,26,22,0.1)] py-3 text-[15px] font-medium text-[#121A16] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300"
                     role="status"
                   >
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-white">
-                      <Check className="size-3" aria-hidden />
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1D4B3B] text-[#F4F1EA]">
+                      <Check className="size-3" strokeWidth={3} aria-hidden />
                     </span>
-                    <p className="text-sm font-medium text-[#0F766E]">
-                      Your shop is set up — now fill the shelves.
-                    </p>
-                  </div>
+                    Your shop is set up — now fill the shelves.
+                  </p>
                 ) : null}
                 {!catalogShellEmpty ? (
                   <div className="space-y-2">
@@ -1802,71 +1961,63 @@ export function OnboardingQuestionnaire({
                           },
                         ] as const)
                       : PRODUCT_SOURCE_OPTIONS
-                    ).map((opt) => {
-                      const selected = productSource === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => {
-                            hapticTap(8);
-                            setProductSource(opt.value);
-                            onProductSourceChange?.(opt.value);
-                          }}
-                          className={cn(
-                            "flex w-full flex-col items-start gap-0.5 rounded-2xl border px-4 py-3.5 text-left transition touch-manipulation active:scale-[0.99] sm:rounded-xl sm:py-3",
-                            selected
-                              ? "border-[#0D9488] bg-[#F0FDFA]"
-                              : "border-[#E8E4DC] bg-white/90 hover:border-[#99F6E4]",
-                          )}
-                        >
-                          <span className="text-sm font-semibold text-[#134E4A]">
-                            {opt.label}
-                          </span>
-                          <span className="text-xs text-[#6B7280]">{opt.hint}</span>
-                        </button>
-                      );
-                    })}
+                    ).map((opt) => (
+                      <OptionButton
+                        key={opt.value}
+                        selected={productSource === opt.value}
+                        onClick={() => {
+                          setProductSource(opt.value);
+                          onProductSourceChange?.(opt.value);
+                        }}
+                        title={opt.label}
+                        hint={opt.hint}
+                      />
+                    ))}
                   </div>
                 ) : null}
                 {catalogShellEmpty ? (
-                  <div className="space-y-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#9CA3AF]">
-                      <Package className="size-6" aria-hidden />
-                    </div>
-                    <ul className="space-y-2.5 text-sm text-[#4B5563]">
-                      <li className="flex items-start gap-2.5">
-                        <Check
-                          className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                          aria-hidden
-                        />
-                        Add products from Products
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check
-                          className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                          aria-hidden
-                        />
-                        Check back when packs arrive for your region
-                      </li>
-                    </ul>
-                  </div>
+                  <ul className="divide-y divide-[rgba(18,26,22,0.1)] border-y border-[rgba(18,26,22,0.1)] text-[15px] text-[#121A16]">
+                    <li className="flex items-center gap-3 py-3">
+                      <Package
+                        className="size-4 shrink-0 text-[#1D4B3B]"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                      Add products from Products
+                    </li>
+                    <li className="flex items-center gap-3 py-3">
+                      <Check
+                        className="size-4 shrink-0 text-[#1D4B3B]"
+                        aria-hidden
+                      />
+                      Check back when packs arrive for your region
+                    </li>
+                  </ul>
                 ) : productSource === "spreadsheet" ||
                   productSource === "other_pos" ? (
-                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
-                      <Package className="size-6" aria-hidden />
-                    </div>
-                    <p className="text-sm text-[#6B7280]">
+                  <p className="flex items-start gap-3 border-y border-[rgba(18,26,22,0.1)] py-4 text-[15px] leading-relaxed text-[#2A332E]">
+                    <Package
+                      className="mt-1 size-4 shrink-0 text-[#1D4B3B]"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                    <span>
                       Import your list first. After that, use the Global catalog
                       only for gaps — and group sizes as families so stock stays
                       honest.
-                    </p>
-                  </div>
+                    </span>
+                  </p>
                 ) : packLoading ? (
-                  <div className="rounded-2xl border border-[#E5E7EB] bg-white/90 px-4 py-10 text-center text-sm text-[#6B7280] sm:rounded-xl">
+                  <p
+                    className="flex items-center gap-3 border-y border-[rgba(18,26,22,0.1)] py-6 text-[15px] text-[#556159]"
+                    role="status"
+                  >
+                    <Loader2
+                      className="size-4 shrink-0 animate-spin text-[#1D4B3B]"
+                      aria-hidden
+                    />
                     Finding a pack for your shop…
-                  </div>
+                  </p>
                 ) : suggestedPack ? (
                   <button
                     type="button"
@@ -1877,45 +2028,48 @@ export function OnboardingQuestionnaire({
                       }
                       onOpenCatalogDrawer?.();
                     }}
-                    className="block w-full overflow-hidden rounded-2xl border border-[#99F6E4]/80 bg-white text-left shadow-[0_12px_40px_-28px_rgba(13,148,136,0.45)] transition-[transform,box-shadow] touch-manipulation active:scale-[0.99] sm:rounded-xl"
+                    className={cn(
+                      "group block w-full overflow-hidden rounded-[2px] border border-[rgba(18,26,22,0.16)] bg-[#FCFAF5] text-left touch-manipulation",
+                      "transition-[border-color,transform] duration-200 hover:border-[#1D4B3B] motion-safe:active:scale-[0.99]",
+                      EASE,
+                      FOCUS_RING,
+                    )}
                   >
-                    <div className="bg-gradient-to-br from-[#F0FDFA] to-white px-4 pb-3 pt-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D9488] text-white shadow-sm">
-                          <Package className="size-5" aria-hidden />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-lg font-semibold tracking-tight text-[#134E4A]">
-                            {suggestedPack.name}
-                          </p>
-                          <p className="mt-0.5 text-xs text-[#0F766E]/90">
-                            {isPharmacyShop
-                              ? "Matched for chemists — medicines, OTC & supplies"
-                              : "Most shops start here — matched to your shop type"}
-                          </p>
-                        </div>
-                        <span className="shrink-0 rounded-full bg-[#CCFBF1] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[#0F766E]">
-                          {suggestedPack.productCount} items
-                        </span>
+                    <div className="flex items-start gap-3.5 px-4 pb-4 pt-4 sm:px-5">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-[2px] bg-[#1D4B3B] text-[#F4F1EA]">
+                        <Package className="size-5" strokeWidth={1.75} aria-hidden />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-serif text-[1.45rem] font-medium leading-[1.1] text-[#121A16]">
+                          {suggestedPack.name}
+                        </p>
+                        <p className="mt-1 text-[13px] text-[#556159]">
+                          {isPharmacyShop
+                            ? "Matched for chemists — medicines, OTC & supplies"
+                            : "Most shops start here — matched to your shop type"}
+                        </p>
                       </div>
+                      <span className="shrink-0 pt-1 font-mono text-[12px] tabular-nums text-[#2A332E]">
+                        {suggestedPack.productCount} items
+                      </span>
                     </div>
                     {suggestedPack.sampleNames.length > 0 ? (
-                      <div className="border-t border-[#E0F2F1] px-4 py-3">
-                        <p className="mb-2 text-[11px] font-medium text-[#6B7280]">
+                      <div className="border-t border-[rgba(18,26,22,0.1)] px-4 py-3.5 sm:px-5">
+                        <p className="mb-2 text-[13px] font-medium text-[#2A332E]">
                           Sample products inside
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {suggestedPack.sampleNames.slice(0, 4).map((name) => (
                             <span
                               key={name}
-                              className="max-w-full truncate rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#4B5563]"
+                              className="max-w-full truncate rounded-[2px] bg-[#EFEBE2] px-2 py-1 text-[12px] text-[#2A332E]"
                             >
                               {name}
                             </span>
                           ))}
                           {suggestedPack.productCount >
                           suggestedPack.sampleNames.length ? (
-                            <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] text-[#9CA3AF]">
+                            <span className="px-1 py-1 font-mono text-[12px] tabular-nums text-[#556159]">
                               +
                               {suggestedPack.productCount -
                                 Math.min(4, suggestedPack.sampleNames.length)}{" "}
@@ -1925,53 +2079,56 @@ export function OnboardingQuestionnaire({
                         </div>
                       </div>
                     ) : null}
-                    <div className="border-t border-[#E0F2F1] bg-[#F8FFFD] px-4 py-3">
-                      <ul className="space-y-1.5 text-xs text-[#4B5563]">
-                        <li className="flex items-center gap-2">
-                          <Check
-                            className="size-3.5 shrink-0 text-[#0D9488]"
-                            aria-hidden
-                          />
-                          {isPharmacyShop
-                            ? "Trade prices ready to adjust"
-                            : "Barcodes & names ready"}
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check
-                            className="size-3.5 shrink-0 text-[#0D9488]"
-                            aria-hidden
-                          />
-                          {isPharmacyShop
-                            ? "Expiry tracking on by default"
-                            : "Pick what to keep before importing"}
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check
-                            className="size-3.5 shrink-0 text-[#0D9488]"
-                            aria-hidden
-                          />
-                          {isPharmacyShop
-                            ? "Pick what you stock before importing"
-                            : "Shown on your online store by default"}
-                        </li>
-                      </ul>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-t border-[#E0F2F1] bg-white px-4 py-2.5 text-xs font-semibold text-[#0F766E]">
+                    <ul className="space-y-1.5 border-t border-[rgba(18,26,22,0.1)] px-4 py-3.5 text-[13px] text-[#2A332E] sm:px-5">
+                      <li className="flex items-center gap-2">
+                        <Check
+                          className="size-3.5 shrink-0 text-[#1D4B3B]"
+                          aria-hidden
+                        />
+                        {isPharmacyShop
+                          ? "Trade prices ready to adjust"
+                          : "Barcodes & names ready"}
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check
+                          className="size-3.5 shrink-0 text-[#1D4B3B]"
+                          aria-hidden
+                        />
+                        {isPharmacyShop
+                          ? "Expiry tracking on by default"
+                          : "Pick what to keep before importing"}
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check
+                          className="size-3.5 shrink-0 text-[#1D4B3B]"
+                          aria-hidden
+                        />
+                        {isPharmacyShop
+                          ? "Pick what you stock before importing"
+                          : "Shown on your online store by default"}
+                      </li>
+                    </ul>
+                    <div className="flex items-center justify-between gap-2 border-t border-[rgba(18,26,22,0.1)] bg-[#EFEBE2] px-4 py-3 text-[13px] font-semibold text-[#1D4B3B] sm:px-5">
                       <span>Tap to open and pick your products</span>
-                      <ChevronRight className="size-4 shrink-0" aria-hidden />
+                      <ChevronRight
+                        className="size-4 shrink-0 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
                     </div>
                   </button>
                 ) : productSource === "new" || !productSource ? (
-                  <div className="flex flex-col items-start gap-3 rounded-2xl border border-[#E8E4DC] bg-white/90 p-4 sm:rounded-xl">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[#F0FDFA] text-[#0D9488]">
-                      <Package className="size-6" aria-hidden />
-                    </div>
-                    <p className="text-sm text-[#6B7280]">
+                  <p className="flex items-start gap-3 border-y border-[rgba(18,26,22,0.1)] py-4 text-[15px] leading-relaxed text-[#2A332E]">
+                    <Package
+                      className="mt-1 size-4 shrink-0 text-[#1D4B3B]"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                    <span>
                       {isPharmacyShop
                         ? "Your pharmacy starter pack will appear here once the catalogue is ready. You can also add medicines from Products anytime."
                         : "Browse the catalogue and choose products to import."}
-                    </p>
-                  </div>
+                    </span>
+                  </p>
                 ) : null}
               </>
             ) : null}
@@ -1979,175 +2136,176 @@ export function OnboardingQuestionnaire({
 
           {errorMessage ? (
             <p
-              className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+              className="mt-5 flex items-start gap-2.5 border-y border-[#A55237]/35 py-3 text-[15px] leading-relaxed text-[#8F3F2F]"
               role="alert"
             >
-              {errorMessage}
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>{errorMessage}</span>
             </p>
           ) : null}
+          </div>
+
+          <SetupSlip
+            shopName={displayName.trim() || businessName?.trim() || "Your shop"}
+            meta={receiptMeta}
+            lines={receiptLines}
+            stamped={step >= QUESTIONNAIRE_RECEIVE_STEP}
+          />
         </div>
       </main>
 
-      <footer className="relative z-20 shrink-0 border-t border-[#E8E4DC]/80 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
-        <div className="mx-auto w-full max-w-lg space-y-2.5">
-          {step === QUESTIONNAIRE_STEP_COUNT ? (
-            <>
-              {!catalogShellEmpty &&
-              (productSource === "spreadsheet" ||
-                productSource === "other_pos") ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const source =
-                      productSource === "other_pos" ? "other_pos" : "spreadsheet";
-                    onProductSourceChange?.(source);
-                    onOpenImport?.();
-                  }}
-                  className={cn(
-                    primaryCtaClass,
-                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
-                  )}
-                >
-                  Import spreadsheet
-                </button>
-              ) : null}
-              {canBrowseGlobalCatalog &&
-              !catalogShellEmpty &&
-              productSource !== "spreadsheet" &&
-              productSource !== "other_pos" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!productSource) {
-                      onProductSourceChange?.("new");
-                    }
-                    onOpenCatalogDrawer?.();
-                  }}
-                  className={cn(
-                    primaryCtaClass,
-                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
-                  )}
-                >
-                  {suggestedPack
-                    ? `Open ${suggestedPack.name}`
-                    : "Open catalogue"}
-                </button>
-              ) : null}
-              {catalogShellEmpty ? (
-                <button
-                  type="button"
-                  onClick={onAddProductsManually}
-                  className={cn(
-                    primaryCtaClass,
-                    "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
-                  )}
-                >
-                  Add products manually
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!productSource && !catalogShellEmpty) {
-                    onProductSourceChange?.("new");
-                  }
-                  onFinishLater?.();
-                }}
-                className={cn(
-                  primaryCtaClass,
-                  canBrowseGlobalCatalog ||
-                    catalogShellEmpty ||
-                    productSource === "spreadsheet" ||
-                    productSource === "other_pos"
-                    ? "border border-transparent bg-transparent text-[#6B7280] hover:text-[#1F2937]"
-                    : "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]",
-                )}
-              >
-                {canBrowseGlobalCatalog ||
-                catalogShellEmpty ||
-                productSource === "spreadsheet" ||
-                productSource === "other_pos"
-                  ? "Skip for now"
-                  : "Continue to dashboard"}
-              </button>
-            </>
-          ) : step === QUESTIONNAIRE_RECEIVE_STEP ? (
-            <div className="hidden items-center justify-between text-sm sm:flex">
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={submitting}
-                className="min-h-10 text-[#6B7280] transition hover:text-[#1F2937] disabled:opacity-50"
-              >
-                Back
-              </button>
-              <span className="text-[11px] text-[#9CA3AF]">
-                Optional — skip anytime above
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              disabled={!canContinue || submitting || logoGenerating}
-              onClick={handleContinue}
-              className={cn(
-                primaryCtaClass,
-                canContinue && !submitting && !logoGenerating
-                  ? "bg-[#0D9488] text-white shadow-[0_8px_24px_-12px_rgba(13,148,136,0.7)] hover:bg-[#0F766E]"
-                  : "cursor-not-allowed bg-[#E5E7EB] text-white",
-              )}
-            >
-              {submitting
-                ? "Setting up your shop…"
-                : logoGenerating
-                  ? "Generating logo…"
-                  : step === QUESTIONNAIRE_PHONE_STEP
-                    ? "That’s my number"
-                    : step === 5
-                      ? "Use this look"
-                      : "Continue"}
-            </button>
-          )}
-
-          {step === QUESTIONNAIRE_STEP_COUNT ? (
-            <div className="hidden justify-end text-sm sm:flex">
-              <button
-                type="button"
-                onClick={onFinishLater}
-                disabled={submitting}
-                className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
-              >
-                Skip for now
-              </button>
-            </div>
-          ) : step === QUESTIONNAIRE_RECEIVE_STEP ? null : (
-            <div className="hidden items-center justify-between text-sm sm:flex">
-              {step > 1 ? (
+      <footer
+        className={cn(
+          "relative z-20 shrink-0 border-t border-[rgba(18,26,22,0.1)] bg-[#FCFAF5] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-4",
+          // On a phone this step's actions live in the step itself.
+          step === QUESTIONNAIRE_RECEIVE_STEP ? "hidden sm:block" : "",
+        )}
+      >
+        <div className={SETUP_GRID}>
+          <div
+            className={cn(
+              "flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+              columnWidth,
+            )}
+          >
+            <div className="hidden sm:block">
+              {step > 1 && step < QUESTIONNAIRE_STEP_COUNT ? (
                 <button
                   type="button"
                   onClick={onBack}
                   disabled={submitting}
-                  className="min-h-10 text-[#6B7280] transition hover:text-[#1F2937] disabled:opacity-50"
+                  className={QUIET_BUTTON}
                 >
+                  <ChevronLeft className="size-4" aria-hidden />
                   Back
                 </button>
-              ) : (
-                <span />
-              )}
-              {step === QUESTIONNAIRE_PHONE_STEP ? (
-                <span />
-              ) : (
+              ) : null}
+            </div>
+
+            {step === QUESTIONNAIRE_STEP_COUNT ? (
+              <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:gap-5">
+                {!catalogShellEmpty &&
+                (productSource === "spreadsheet" ||
+                  productSource === "other_pos") ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const source =
+                        productSource === "other_pos" ? "other_pos" : "spreadsheet";
+                      onProductSourceChange?.(source);
+                      onOpenImport?.();
+                    }}
+                    className={cn(primaryCtaClass, primaryOnClass)}
+                  >
+                    Import spreadsheet
+                    {ctaArrow}
+                  </button>
+                ) : null}
+                {canBrowseGlobalCatalog &&
+                !catalogShellEmpty &&
+                productSource !== "spreadsheet" &&
+                productSource !== "other_pos" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!productSource) {
+                        onProductSourceChange?.("new");
+                      }
+                      onOpenCatalogDrawer?.();
+                    }}
+                    className={cn(primaryCtaClass, primaryOnClass)}
+                  >
+                    {suggestedPack
+                      ? `Open ${suggestedPack.name}`
+                      : "Open catalogue"}
+                    {ctaArrow}
+                  </button>
+                ) : null}
+                {catalogShellEmpty ? (
+                  <button
+                    type="button"
+                    onClick={onAddProductsManually}
+                    className={cn(primaryCtaClass, primaryOnClass)}
+                  >
+                    Add products manually
+                    {ctaArrow}
+                  </button>
+                ) : null}
+                {canBrowseGlobalCatalog ||
+                catalogShellEmpty ||
+                productSource === "spreadsheet" ||
+                productSource === "other_pos" ? (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => {
+                      if (!productSource && !catalogShellEmpty) {
+                        onProductSourceChange?.("new");
+                      }
+                      onFinishLater?.();
+                    }}
+                    className={cn(QUIET_BUTTON, "justify-center")}
+                  >
+                    Skip for now
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!productSource && !catalogShellEmpty) {
+                        onProductSourceChange?.("new");
+                      }
+                      onFinishLater?.();
+                    }}
+                    className={cn(primaryCtaClass, primaryOnClass)}
+                  >
+                    Continue to dashboard
+                    {ctaArrow}
+                  </button>
+                )}
+              </div>
+            ) : step === QUESTIONNAIRE_RECEIVE_STEP ? (
+              <span className={NOTE}>Optional — skip anytime above</span>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:gap-5">
                 <button
                   type="button"
-                  onClick={onSkip}
-                  disabled={submitting}
-                  className="min-h-10 text-[#9CA3AF] transition hover:text-[#6B7280] disabled:opacity-50"
+                  disabled={!canContinue || submitting || logoGenerating}
+                  onClick={handleContinue}
+                  className={cn(
+                    primaryCtaClass,
+                    canContinue && !submitting && !logoGenerating
+                      ? primaryOnClass
+                      : primaryOffClass,
+                  )}
                 >
-                  Skip for now
+                  {submitting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : null}
+                  {submitting
+                    ? "Setting up your shop…"
+                    : logoGenerating
+                      ? "Generating logo…"
+                      : step === QUESTIONNAIRE_PHONE_STEP
+                        ? "That’s my number"
+                        : step === 5
+                          ? "Use this look"
+                          : "Continue"}
+                  {canContinue && !submitting && !logoGenerating ? ctaArrow : null}
                 </button>
-              )}
-            </div>
-          )}
+                {step === QUESTIONNAIRE_PHONE_STEP ? null : (
+                  <button
+                    type="button"
+                    onClick={onSkip}
+                    disabled={submitting}
+                    className={cn(QUIET_BUTTON, "hidden sm:inline-flex")}
+                  >
+                    Skip for now
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </footer>
     </div>

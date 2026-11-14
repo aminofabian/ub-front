@@ -7,6 +7,7 @@ import {
   resolveLandingPage,
   resolveStoreHome,
 } from "@/components/storefront/templates/registry";
+import { ShopServiceLanding } from "@/components/storefront/shop-service-landing";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
   resolveStorefrontSlug,
@@ -23,6 +24,7 @@ import {
   primaryStorefrontArea,
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
+import { fetchPublicBookingInfo } from "@/lib/public-booking";
 import { parseStorefrontPreview } from "@/lib/storefront-preview";
 import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
 import {
@@ -170,6 +172,50 @@ export async function StorefrontCatalogHome({
     ? parseStorefrontDesignJson(preview.designJson)
     : null;
   const design = designOverride ?? tenant?.design ?? null;
+  // A shop that takes bookings and has no products on show: its home is the service landing
+  // page (photograph, price list, team, booking calendar), not an empty shelf. Asked only when
+  // the shelf is empty, so shops with products pay nothing for it.
+  const shelfEmpty =
+    !q && !categoryId && !resolvedTypeId && (list?.items.length ?? 0) === 0;
+  const booking =
+    shelfEmpty && !preview.landingId && !preview.themeId
+      ? await fetchPublicBookingInfo(slug).catch(() => null)
+      : null;
+  if (booking && booking.services.length > 0) {
+    return (
+      <>
+        <StorefrontAnalyticsBeacon
+          surface="store"
+          slug={slug}
+          storeThemeId={themeId}
+          landingTemplateId={landingTemplateId}
+        />
+        <ShopServiceLanding
+          slug={slug}
+          info={booking}
+          storeName={storeName}
+          design={design}
+          ownHeroUrl={
+            tenant?.landingContent?.vitrineImageUrl?.trim() ||
+            design?.photos?.hero?.url?.trim() ||
+            heroBannerUrls?.[0]?.trim() ||
+            null
+          }
+          tagline={
+            design?.business?.tagline?.trim() ||
+            tenant?.landingContent?.subheadline?.trim() ||
+            null
+          }
+          phone={tenant?.landingContent?.phone ?? null}
+          whatsapp={tenant?.landingContent?.whatsapp ?? null}
+          address={tenant?.landingContent?.address ?? null}
+          mapUrl={design?.business?.location?.mapUrl ?? null}
+          primaryHex={primary}
+        />
+      </>
+    );
+  }
+
   const showLanding =
     Boolean(preview.landingId) ||
     (!preview.themeId && (tenant?.storefrontEnabled === false || !list));

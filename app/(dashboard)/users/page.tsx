@@ -1,5 +1,8 @@
 "use client";
 
+import { useTeamAccountSync } from "@/hooks/use-team-account-sync";
+import { isServiceBusiness } from "@/lib/business-store-type";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, UserPlus, Users as UsersIcon } from "lucide-react";
@@ -22,12 +25,14 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
   assignUserRole,
+  createStaffSalary,
   createUser,
   deactivateUser,
   deleteUser,
   reactivateUser,
   fetchBranches,
   fetchRoles,
+  fetchStaffProfile,
   fetchStaffProfiles,
   fetchUserPin,
   fetchUsers,
@@ -47,6 +52,10 @@ import { hasPermission, Permission } from "@/lib/permissions";
 
 import { UsersTheatre } from "./_components/users-theatre";
 import { AssignDepartmentsModal } from "./_components/assign-departments-modal";
+import { UserPayFields } from "./_components/user-pay-fields";
+import { nairobiToday, setCommissionPlan } from "@/lib/service-business-api";
+import { buildPayPlan, DEFAULT_PAY_PLAN, type PayPlan, type PayPlanDraft } from "@/lib/user-pay-plan";
+import { accountEmailLabel } from "@/lib/team-accounts";
 import {
   buildCreateUserPayload,
   DEFAULT_USER_DRAFT,
@@ -61,7 +70,7 @@ type Feedback = { kind: "success" | "error"; text: string } | null;
 export default function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { me, refreshSession, itemTypes } = useDashboard();
+  const { me, refreshSession, itemTypes, business } = useDashboard();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -175,6 +184,9 @@ export default function UsersPage() {
     void loadData();
   }, [loadData]);
 
+  // A service shop's team members added by name get their account here, so the list is everyone.
+  useTeamAccountSync(isServiceBusiness(business) && !IS_DESKTOP, () => void loadData());
+
   const loadPayrollFlags = useCallback(async () => {
     if (!canTogglePayroll) {
       setPayrollInclude({});
@@ -206,7 +218,7 @@ export default function UsersPage() {
     if (!profileId) return;
     const match = users.find((u) => u.id === profileId);
     setProfileUserId(profileId);
-    setProfileUserLabel(match ? `${match.name} · ${match.email}` : profileId);
+    setProfileUserLabel(match ? `${match.name} · ${accountEmailLabel(match.email)}` : profileId);
   }, [firstLoadDone, canReadStaffProfile, searchParams, users]);
 
   // For non-owner users, restrict branch filter to their assigned branch
@@ -251,12 +263,60 @@ export default function UsersPage() {
     setDeptAssignDraft(user.itemTypeIds ?? []);
   };
 
+  // A shop that sells services asks how the new person is paid: salary, commission, or both.
+  const serviceShop = isServiceBusiness(business) && !IS_DESKTOP;
+  const canSetSalary = hasPermission(me?.permissions, Permission.PayrollManage);
+  const canSetCommission = hasPermission(me?.permissions, Permission.CommissionsPlansManage);
+  const [pay, setPay] = useState<PayPlanDraft>(DEFAULT_PAY_PLAN);
+
+  /**
+   * Records how the new person is paid, after their account exists. Returns what could not be
+   * saved, in words for the owner: the person is already created, so a failure here is something
+   * to finish on Payroll or Commissions, not a reason to lose the account.
+   */
+  const applyPayPlan = async (userId: string, plan: PayPlan): Promise<string[]> => {
+    const unfinished: string[] = [];
+    if (plan.commission) {
+      try {
+        const profile = await fetchStaffProfile(userId);
+        if (!profile.id) throw new Error("no profile");
+        await setCommissionPlan(profile.id, plan.commission);
+        // On commission means they serve customers: let them be chosen at the till and booked.
+        await updateStaffProfile(userId, { bookable: true });
+      } catch {
+        unfinished.push("their commission (set it on the Commissions page)");
+      }
+    }
+    if (plan.salary != null) {
+      try {
+        await createStaffSalary(userId, { amount: plan.salary, effectiveFrom: nairobiToday() });
+      } catch {
+        unfinished.push("their salary (set it on Payroll)");
+      }
+    }
+    return unfinished;
+  };
+
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const built = buildCreateUserPayload(draft);
     if (!built.ok) {
       setFeedback({ kind: "error", text: built.error });
       return;
+    }
+    let plan: PayPlan | null = null;
+    if (serviceShop) {
+      // Only what this person is allowed to set is read; the rest is left for whoever may.
+      const checked = buildPayPlan({
+        ...pay,
+        salary: canSetSalary ? pay.salary : "",
+        mode: canSetCommission ? pay.mode : "salary",
+      });
+      if (!checked.ok) {
+        setFeedback({ kind: "error", text: checked.error });
+        return;
+      }
+      plan = checked.plan;
     }
     const createdEmail = draft.email.trim().toLowerCase();
     const createdRoleId = draft.roleId;
@@ -268,10 +328,22 @@ export default function UsersPage() {
       setDraft((previous) => ({ ...DEFAULT_USER_DRAFT, roleId: previous.roleId }));
       const nextUsers = await fetchUsers();
       setUsers(nextUsers);
+      let unfinished: string[] = [];
+      if (plan && (plan.commission || plan.salary != null)) {
+        const createdUser = nextUsers.find((u) => u.email.trim().toLowerCase() === createdEmail);
+        unfinished = createdUser
+          ? await applyPayPlan(createdUser.id, plan)
+          : ["how they are paid (set it on Payroll or Commissions)"];
+      }
+      setPay(DEFAULT_PAY_PLAN);
       await refreshSession();
       skipInviteDrawerResetAfterCreate.current = true;
       setInviteDrawerOpen(false);
-      setFeedback({ kind: "success", text: built.success });
+      setFeedback(
+        unfinished.length > 0
+          ? { kind: "error", text: `${built.success} But we could not save ${unfinished.join(" or ")}.` }
+          : { kind: "success", text: built.success },
+      );
       if (isDepartmentHeadRole(createdRole?.key)) {
         const created =
           nextUsers.find((u) => u.email.trim().toLowerCase() === createdEmail) ??
@@ -952,7 +1024,7 @@ export default function UsersPage() {
           deletingId={deletingId}
           onOpenProfile={(user) => {
             setProfileUserId(user.id);
-            setProfileUserLabel(`${user.name} · ${user.email}`);
+            setProfileUserLabel(`${user.name} · ${accountEmailLabel(user.email)}`);
           }}
           onForceLogout={onForceLogout}
           onDeactivate={onDeactivate}
@@ -1190,6 +1262,17 @@ export default function UsersPage() {
                     password. They can sign in once they&apos;ve set it.
                   </p>
                 ) : null}
+                {serviceShop ? (
+                  <UserPayFields
+                    pay={pay}
+                    onPayChange={setPay}
+                    joinPayMode={draft.joinPayMode}
+                    onJoinPayModeChange={(joinPayMode) => setDraft((previous) => ({ ...previous, joinPayMode }))}
+                    canSetSalary={canSetSalary}
+                    canSetCommission={canSetCommission}
+                    disabled={creating}
+                  />
+                ) : (
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
                   First month salary
                   <select
@@ -1214,6 +1297,7 @@ export default function UsersPage() {
                     25th — before that, the month shows zero for everyone.
                   </span>
                 </label>
+                )}
               </div>
             </FormDrawerFields>
           </form>

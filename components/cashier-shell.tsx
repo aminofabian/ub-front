@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import {
   BookOpen,
   Building2,
+  Armchair,
   Columns3,
   LayoutGrid,
   Lock,
@@ -20,6 +21,7 @@ import {
   ShoppingBag,
   Sparkles,
   Table2,
+  UserRound,
 } from "lucide-react";
 
 import { usePosTillLock } from "@/components/auth/pos-till-lock";
@@ -47,11 +49,14 @@ import { posAccentThemeStyle, posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import {
   CASHIER_TEMPLATES,
+  cashierTemplatesFor,
   type CashierTemplateId,
 } from "@/lib/cashier-templates";
+import { isServiceBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { useOnlineStatus } from "@/hooks/use-online-status";
-import { OPEN_REGISTER_TILL_EVENT } from "@/lib/pos-guidance";
+import { OPEN_REGISTER_TILL_EVENT, takeRegisterTillAfterSignIn } from "@/lib/pos-guidance";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { usePosTillAccent } from "@/lib/pos-till-accent";
@@ -147,6 +152,18 @@ export function CashierShell({ children }: CashierShellProps) {
     "disabled:opacity-50 dark:bg-card/80",
   );
 
+  // Their PIN was refused at sign-in because this computer is not a registered till, and they
+  // came in with a password instead: open "Register this till" now rather than leave it to a banner.
+  const signedInUserId = me?.id ?? "";
+  useEffect(() => {
+    if (!signedInUserId || !branchId || !takeRegisterTillAfterSignIn()) {
+      return;
+    }
+    // After the header control that owns the dialog has mounted and is listening.
+    const timer = window.setTimeout(() => window.dispatchEvent(new Event(OPEN_REGISTER_TILL_EVENT)), 400);
+    return () => window.clearTimeout(timer);
+  }, [signedInUserId, branchId]);
+
   // Grocery clerks cannot use the cashier — bounce them back to their
   // workspace so they can generate invoices instead.
   useEffect(() => {
@@ -218,11 +235,11 @@ export function CashierShell({ children }: CashierShellProps) {
   const templateMore = (
     <MoreSection label="Template">
       <div className="grid grid-cols-3 gap-1.5 px-2">
-        {CASHIER_TEMPLATES.map((t) => {
+        {cashierTemplatesFor(!IS_DESKTOP && isServiceBusiness(business)).map((t) => {
           const saved = preferred === t.id;
           const live = effective === t.id;
           const Icon =
-            t.id === "ledger" ? Table2 : t.id === "counter" ? Columns3 : LayoutGrid;
+            t.id === "ledger" ? Table2 : t.id === "counter" ? Columns3 : t.id === "floor" ? Armchair : LayoutGrid;
           return (
             <button
               key={t.id}
@@ -370,6 +387,9 @@ export function CashierShell({ children }: CashierShellProps) {
         </MoreSection>
       ) : null}
       <MoreSection label="Session">
+        <MoreRow icon={UserRound} href={APP_ROUTES.myProfile}>
+          My profile
+        </MoreRow>
         <MoreRow
           icon={LockKeyhole}
           disabled={tillLocked}
@@ -705,6 +725,17 @@ export function CashierShell({ children }: CashierShellProps) {
                   label="Push alerts"
                   className="hidden sm:block"
                 />
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={APP_ROUTES.myProfile}>
+                    <UserRound className="size-3.5" aria-hidden />
+                    My profile
+                  </Link>
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

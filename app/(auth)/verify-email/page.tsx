@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Mail } from "lucide-react";
+import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -28,13 +28,37 @@ import {
   verifyEmailAddress,
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
-import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
+import { markEmailJustVerified } from "@/lib/onboarding-questionnaire";
+import {
+  isOnboardingIncomplete,
+  isOwnerOrAdminRole,
+  resolvePostAuthDestination,
+} from "@/lib/post-auth-destination";
 import { completeAuthAndNavigate } from "@/lib/post-auth-navigation";
 import { useResendCooldown } from "@/lib/resend-cooldown";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
 const REDIRECT_SECONDS = 10;
 const RESEND_COOLDOWN_SECONDS = 45;
+/** How long the "let's set up your shop" moment holds before moving on by itself. */
+const SETUP_HANDOFF_MS = 4000;
+
+/** What the setup walkthrough covers, in the order it asks. */
+const SETUP_PREVIEW_STEPS: readonly { title: string; detail: string }[] = [
+  {
+    title: "Your shop",
+    detail: "Where you trade and what you sell",
+  },
+  {
+    title: "Your look",
+    detail: "Name, colours and whether you sell online",
+  },
+  {
+    title: "Your shelves",
+    detail: "Starter products, your own list, or your services",
+  },
+];
 
 /**
  * Fallback when verify-email cannot mint a session (older API, or a failed
@@ -110,6 +134,12 @@ function VerifyEmailContent() {
   );
   const [signedInAfterVerify, setSignedInAfterVerify] = useState(false);
   const [redirectSeconds, setRedirectSeconds] = useState(REDIRECT_SECONDS);
+  /** A new owner whose shop is not set up yet: show what comes next, then go. */
+  const [setupHandoff, setSetupHandoff] = useState<{ shopName: string } | null>(
+    null,
+  );
+  const [setupHandoffRunning, setSetupHandoffRunning] = useState(false);
+  const releaseSetupHandoff = useRef<(() => void) | null>(null);
 
   const shopName =
     tenant?.branding?.displayName?.trim() ||
@@ -140,6 +170,30 @@ function VerifyEmailContent() {
         // re-verifying an old link must not reset a completed/dismissed business.
         // Destination is onboarding-aware: owner/admin → /business, buyers → shop.
         const dest = resolvePostAuthDestination(me, null, business);
+        if (
+          !IS_DESKTOP &&
+          isOwnerOrAdminRole(me) &&
+          business &&
+          isOnboardingIncomplete(business)
+        ) {
+          // The dashboard opens the setup walkthrough by itself (see
+          // markEmailJustVerified). Say so first, so it does not appear from
+          // nowhere; the owner can also start it without waiting.
+          setSetupHandoff({
+            shopName:
+              business.branding?.displayName?.trim() ||
+              business.name?.trim() ||
+              shopName,
+          });
+          await new Promise<void>((resolve) => {
+            const timer = window.setTimeout(resolve, SETUP_HANDOFF_MS);
+            releaseSetupHandoff.current = () => {
+              window.clearTimeout(timer);
+              resolve();
+            };
+          });
+          releaseSetupHandoff.current = null;
+        }
         await completeAuthAndNavigate(dest, tenant?.slug);
         return;
       } catch {
@@ -153,6 +207,9 @@ function VerifyEmailContent() {
     setMessage("");
     setErrorMessage("");
     setSignedInAfterVerify(signedIn);
+    // Signed in or not, this tab is where the owner continues — let the
+    // dashboard know to pick the signup back up (owners and admins only).
+    markEmailJustVerified();
     setVerifyPhase("success");
     setRedirectSeconds(signedIn ? 0 : REDIRECT_SECONDS);
     if (signedIn) {
@@ -179,6 +236,18 @@ function VerifyEmailContent() {
     router,
     loginAfterVerifyHref,
   ]);
+
+  useEffect(() => {
+    if (!setupHandoff) {
+      return;
+    }
+    // Next frame, so the progress line animates from empty instead of
+    // rendering already full.
+    const frame = window.requestAnimationFrame(() =>
+      setSetupHandoffRunning(true),
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, [setupHandoff]);
 
   useEffect(() => {
     const token = tokenFromQuery.trim();
@@ -296,6 +365,7 @@ function VerifyEmailContent() {
   };
 
   const headerTitle = (() => {
+    if (setupHandoff) return `Let’s set up ${setupHandoff.shopName}`;
     if (verifyPhase === "success") return "Email verified";
     if (hasAutoToken && verifyPhase === "verifying") return "Verifying…";
     if (hasAutoToken && verifyPhase === "failed") return "Link expired";
@@ -303,6 +373,9 @@ function VerifyEmailContent() {
   })();
 
   const headerDescription = (() => {
+    if (setupHandoff) {
+      return "Your email is verified and you are signed in. A few questions, then your shop is ready to sell.";
+    }
     if (verifyPhase === "success") {
       return signedInAfterVerify
         ? "Taking you to your account…"
@@ -424,7 +497,69 @@ function VerifyEmailContent() {
 
       {verifyPhase === "success" ? (
         <div className="mt-5">
-          {signedInAfterVerify ? (
+          {setupHandoff ? (
+            <div>
+              <ol className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span
+                    className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent)] text-[var(--auth-accent-ink)]"
+                    aria-hidden
+                  >
+                    <Check className="size-3.5" strokeWidth={3} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground line-through decoration-muted-foreground/40">
+                      Create your account
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Email verified
+                    </p>
+                  </div>
+                </li>
+                {SETUP_PREVIEW_STEPS.map((item, index) => (
+                  <li key={item.title} className="flex items-start gap-3">
+                    <span
+                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-[var(--auth-accent)]/40 text-[11px] font-semibold tabular-nums text-foreground"
+                      aria-hidden
+                    >
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.detail}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                You can skip any part and pick it up later from your business
+                page.
+              </p>
+              <button
+                type="button"
+                className={cn(primaryCtaClass, "relative mt-4 overflow-hidden")}
+                onClick={() => releaseSetupHandoff.current?.()}
+              >
+                Start setup
+                <ArrowRight className="size-4" aria-hidden />
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-1 origin-left bg-[var(--auth-accent-ink)]/35 transition-transform ease-linear motion-reduce:hidden"
+                  style={{
+                    transform: setupHandoffRunning ? "scaleX(1)" : "scaleX(0)",
+                    transitionDuration: `${SETUP_HANDOFF_MS}ms`,
+                  }}
+                />
+              </button>
+              <p role="status" className="mt-2 text-center text-xs text-muted-foreground">
+                Starting by itself in a moment…
+              </p>
+            </div>
+          ) : signedInAfterVerify ? (
             <AuthAlert variant="success">
               Signed in. Taking you to your account…
             </AuthAlert>

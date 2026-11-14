@@ -24,7 +24,6 @@ import {
   SMS_INK,
   SMS_MUTED,
   SMS_RULE,
-  SMS_WARN_TEXT,
   errorText,
   formatNumber,
 } from "@/components/sms-hub/sms-hub-ui";
@@ -118,33 +117,18 @@ export function SmsHubWorkspace() {
     );
   }
 
-  const metered = Boolean(balance?.meteringEnabled);
-
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, "gap-3 px-3 pt-3 sm:px-4")}>
+    <div className={cn(DASHBOARD_MAX_WIDE, "gap-3 px-3 pb-28 pt-3 sm:px-4 xl:pb-6")}>
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <h1 className={cn("font-serif text-[1.75rem] font-semibold leading-none tracking-[-0.01em]", SMS_INK)}>
             SMS
           </h1>
-          <p className={cn("mt-1.5 text-[13.5px]", SMS_MUTED)}>
+          <p className={cn("mt-1.5 max-w-[42ch] text-[13.5px]", SMS_MUTED)}>
             Who you can text, what sends itself, and the offers you send to a group.
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {metered && balance ? (
-            <div className="text-right">
-              <p className={cn("text-[12px] leading-none", SMS_MUTED)}>Credits left</p>
-              <p
-                className={cn(
-                  "mt-1 font-mono text-[18px] font-medium leading-none tabular-nums",
-                  balance.lowBalance ? SMS_WARN_TEXT : SMS_INK,
-                )}
-              >
-                {formatNumber(balance.available)}
-              </p>
-            </div>
-          ) : null}
           {canManageCustomers ? (
             <Button
               type="button"

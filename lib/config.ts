@@ -107,6 +107,12 @@ export const APP_ROUTES = {
   servicesFloor: "/services/floor",
   /** First-time set-up for a service business: chairs, team, services, pay. */
   servicesSetup: "/services/setup",
+  /** Bookings: who is coming, when, and with whom. */
+  servicesAppointments: "/services/appointments",
+  /** The day and week calendar of people and places. */
+  servicesCalendar: "/services/calendar",
+  /** A staff member's own commission, tips, payouts and bookings. */
+  myEarnings: "/my-earnings",
   /** What each staff member earned, was paid and is owed. */
   commissions: "/commissions",
   /** Simple store-room register — not sellable catalog / inventory stock. */
@@ -226,6 +232,7 @@ export const APP_ROUTES = {
   shop: "/shop",
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",
+  shopBook: "/shop/book",
   /** Tenant-host shortcut that lands on that shop's install page. */
   shopApp: "/app",
   /** Per-shop ecommerce PWA — install, manifest, and generated icons. */
@@ -304,6 +311,11 @@ export const API_ROUTES = {
   serviceCategories: "/api/v1/service-categories",
   serviceStations: "/api/v1/service-stations",
   serviceTickets: "/api/v1/service-tickets",
+  serviceTeam: "/api/v1/service-team",
+  serviceResources: "/api/v1/service-resources",
+  serviceHelperRoles: "/api/v1/service-helper-roles",
+  servicePackages: "/api/v1/service-packages",
+  serviceBookingHours: "/api/v1/service-booking-hours",
   commissions: "/api/v1/commissions",
   storeItems: "/api/v1/store-items",
   /** Store room ↔ inventory connection choice + census. */

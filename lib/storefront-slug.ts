@@ -126,6 +126,7 @@ function localTenantFallback(hostname: string): TenantContext | null {
     resolvedAt: new Date().toISOString(),
     countryCode: null,
     branchLocalities: [],
+    canonicalHost: null,
   };
 }
 

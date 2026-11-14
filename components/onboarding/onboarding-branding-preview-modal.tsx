@@ -51,11 +51,11 @@ export function OnboardingBrandingPreviewModal({
         onClick={() => setOpen(true)}
         className={onboardingBrandingTileClass}
       >
-        <span className="flex size-10 items-center justify-center rounded-xl bg-[#0D9488]/15 text-[#0D9488] transition group-hover:bg-[#0D9488]/25">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-[#1D4B3B]/15 text-[#1D4B3B] transition group-hover:bg-[#1D4B3B]/25">
           <Eye className="size-5" aria-hidden />
         </span>
-        <span className="text-sm font-semibold text-[#134E4A]">Preview site</span>
-        <span className="px-1 text-[10px] leading-snug text-[#6B7280]">
+        <span className="text-sm font-semibold text-[#121A16]">Preview site</span>
+        <span className="px-1 text-[10px] leading-snug text-[#556159]">
           Header &amp; buttons
         </span>
       </button>
@@ -64,16 +64,16 @@ export function OnboardingBrandingPreviewModal({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "flex w-full items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-left transition sm:rounded-xl",
-          "hover:border-[#0D9488]/40 hover:bg-[#FAFAFA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]/30",
+          "flex w-full items-center gap-3 rounded-2xl border border-[#DDD8CC] bg-white px-3 py-3 text-left transition sm:rounded-xl",
+          "hover:border-[#1D4B3B]/40 hover:bg-[#FCFAF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B]/30",
         )}
       >
-        <Eye className="size-5 shrink-0 text-[#0D9488]" aria-hidden />
+        <Eye className="size-5 shrink-0 text-[#1D4B3B]" aria-hidden />
         <span>
-          <span className="block text-sm font-medium text-[#1F2937]">
+          <span className="block text-sm font-medium text-[#121A16]">
             This is how it will look on your site
           </span>
-          <span className="mt-0.5 block text-xs text-[#9CA3AF]">
+          <span className="mt-0.5 block text-xs text-[#626D66]">
             Preview your header, receipt, and shop buttons
           </span>
         </span>
@@ -94,12 +94,12 @@ export function OnboardingBrandingPreviewModal({
           )}
           overlayClassName={ONBOARDING_DIALOG_Z}
         >
-          <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[#D1D5DB] sm:hidden" aria-hidden />
-          <DialogHeader className="border-b border-[#F3F4F6] px-5 pb-4 pt-5">
-            <DialogTitle className="text-[#1F2937]">
+          <div className="mx-auto mb-1 mt-2 h-1 w-10 rounded-full bg-[#C9C3B5] sm:hidden" aria-hidden />
+          <DialogHeader className="border-b border-[#EFEBE2] px-5 pb-4 pt-5">
+            <DialogTitle className="text-[#121A16]">
               Site preview
             </DialogTitle>
-            <DialogDescription className="text-[#6B7280]">
+            <DialogDescription className="text-[#556159]">
               A rough idea of how {displayName.trim() || "your shop"} will
               appear online and on receipts with your current branding.
             </DialogDescription>
@@ -115,10 +115,10 @@ export function OnboardingBrandingPreviewModal({
             />
           </div>
 
-          <DialogFooter className="border-t border-[#F3F4F6] px-5 py-4 sm:justify-stretch">
+          <DialogFooter className="border-t border-[#EFEBE2] px-5 py-4 sm:justify-stretch">
             <Button
               type="button"
-              className="h-11 w-full rounded-xl bg-[#0D9488] text-white hover:bg-[#0F766E]"
+              className="h-11 w-full rounded-xl bg-[#1D4B3B] text-white hover:bg-[#163B2E]"
               onClick={() => setOpen(false)}
             >
               Done

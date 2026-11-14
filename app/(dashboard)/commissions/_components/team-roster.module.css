@@ -1,0 +1,44 @@
+.forms {
+  display: grid;
+  gap: 1rem;
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.slot {
+  display: none;
+}
+
+.rate {
+  width: 100%;
+  max-width: 8rem;
+}
+
+.note {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 64rem) and (max-width: 89.999rem) {
+  .forms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .row {
+    grid-template-columns: 11rem 12.5rem 4.5rem max-content max-content;
+    justify-content: start;
+    column-gap: 0.5rem;
+    padding-block: 0.375rem;
+  }
+
+  .slot {
+    display: block;
+  }
+
+  .rate {
+    max-width: none;
+  }
+}

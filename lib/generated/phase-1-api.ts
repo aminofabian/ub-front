@@ -8736,6 +8736,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/businesses/me/domains/{domainId}/redirect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send visitors from this address to the main one, or leave it open */
+        post: operations["setMyDomainRedirect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/businesses/me/domains/{domainId}/verify": {
         parameters: {
             query?: never;
@@ -17058,6 +17075,728 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-tickets/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Moves a waiting ticket up the queue (above zero) or to the back (below zero). */
+        post: operations["setServiceTicketPriority"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/helpers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Names everyone who shared one service line with the person serving and what each gets: by a helper role the owner set beforehand (roleId; anyone at the till), by a typed amount (needs commissions.plans.manage or commissions.adjust unless it is the amount already agreed for that person), or by their own plan on a share in percent. No shares means an equal split; an empty list means they did it alone. */
+        post: operations["setServiceTicketLineHelpers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/staff/{staffProfileId}/floor-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Whether a staff member can take the next customer. Set by a person on the floor; not attendance. */
+        post: operations["setStaffFloorStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Bookings at a branch whose start falls in the window (at most two months), earliest first. */
+        get: operations["listServiceAppointments"];
+        put?: never;
+        /** @description Books a staff member for a customer at a time. A booking is a service ticket in stage BOOKED. The same clientTicketId again returns the same booking. 409 when the staff member is already booked for an overlapping time. */
+        post: operations["bookServiceAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Moves a booking to another time and optionally another staff member. 409 on an overlap or once the customer has arrived. */
+        post: operations["rescheduleServiceAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/arrive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The booked customer has come in; the booking joins the queue as a waiting ticket. */
+        post: operations["arriveServiceAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/no-show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The booked customer did not come. A held deposit is kept by the shop unless keepDepositAsCredit is true. */
+        post: operations["noShowServiceAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Money taken in advance against a ticket or booking (ADR 0015). One per ticket; the ticket must name a customer. Cash goes into the open shift drawer. */
+        post: operations["takeServiceTicketDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-booking-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description When customers may book online at a branch. */
+        get: operations["getServiceBookingHours"];
+        /** @description Sets the online booking hours of a branch; no days switches online booking off. Needs services.catalog.manage. */
+        put: operations["setServiceBookingHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-packages/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Services that offer a prepaid package. */
+        get: operations["listServicePackageOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-packages/offers/{serviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Sets the prepaid package offered for a service; a body with no sessions removes it. */
+        put: operations["setServicePackageOffer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-packages/sell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sells a package to a customer; the money is held as deferred service revenue until each session is used (ADR 0015). */
+        post: operations["sellServicePackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A customer's packages, newest first. */
+        get: operations["listCustomerServicePackages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/consumables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Products a service uses up each time, with what they cost for one visit at the latest delivery cost. Does not move stock. */
+        get: operations["getServiceConsumables"];
+        /** @description Replaces the list of products a service uses; an empty list clears it. */
+        put: operations["setServiceConsumables"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/reports/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Revenue, commission, products used and contribution per service and per staff member for a period (Africa/Nairobi days). */
+        get: operations["serviceContributionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/reports/chairs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What each chair, bed or room at a branch brought in over a period (Africa/Nairobi days): services done on it, visits and their value, from paid visits only. Every place is listed, idle ones included; work with no place recorded is returned apart. Needs commissions.read; the branch must belong to the business. */
+        get: operations["chairTakingsReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/staff/{staffProfileId}/earnings-sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Texts a staff member what they earned today and what they are owed, through the shop metered SMS. Needs commissions.payout. */
+        post: operations["sendStaffEarningsSms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public, no sign-in. What can be booked online at this shop. 404 when no branch has booking hours. */
+        get: operations["publicBookingInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/booking/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public. Free half-hour start times on a day for a service, for one staff member or anyone who does it. */
+        get: operations["publicBookingSlots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/booking/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public. A stretch of the calendar (at most 42 days) with the number of free start times on each day, for a service and one staff member or anyone who does it. Days in the past, beyond the booking horizon or on which the branch is closed are not open. */
+        get: operations["publicBookingDays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/booking/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Public. Books a free time. Limited per address, per phone number (3 upcoming) and per shop per day. 409 when the time is not available, 429 when limited. No reminder is texted to an unverified number. */
+        post: operations["publicBookAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds someone who serves customers. With an email and a PIN they get a login with the service_staff role (needs users.create as well as staff.hr.update); with neither they are a name with no login. */
+        post: operations["addServiceTeamMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/sync-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives an account to every current team member who was added by name only, so they appear in Users and Payroll. The account cannot sign in until it is given an email and PIN. Safe to call again. Needs staff.hr.update and users.create. Each account counts toward the plan's user limit; anyone the limit keeps out is named in `skipped`. */
+        post: operations["syncTeamAccounts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/{staffProfileId}/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a login to a team member who was added by name only. Their earnings history stays on the same profile. 409 if they can already sign in. */
+        post: operations["giveServiceTeamMemberLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in staff member own balance, today figures, last 30 days of entries and bookings still to come today. 404 when they do not serve customers. */
+        get: operations["myServiceEarnings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One visit as it stands, open or closed. */
+        get: operations["getServiceTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Says who does one service of a visit and optionally where, without starting it. */
+        post: operations["assignServiceTicketLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts one service. 409 when its person is in the middle of another service, or its resource is taken, being prepared or out of use. */
+        post: operations["startServiceTicketLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description One service is finished; its person and resource are free. The visit is ready to pay when every service is done. */
+        post: operations["finishServiceTicketLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Commission per person per service and the shop share if the visit were paid now. Needs commissions.read. */
+        get: operations["serviceTicketEarnings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/{staffProfileId}/send-sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Makes a team member's PIN and sends it to them by email and, with a mobile number, by text (ADR 0018 amendment). Their email is needed the first time. For someone who can already sign in it makes a new PIN and signs them out. Needs staff.hr.update and users.create. */
+        post: operations["sendServiceTeamSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commissions/pay-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the shop's service commission is worked out on (ADR 0019). Needs sales.sell, commissions.read or commissions.plans.manage. */
+        get: operations["getServicePayModel"];
+        /** @description Chooses the model. Needs commissions.plans.manage. Applies to services sold from then on. */
+        put: operations["setServicePayModel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-helper-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The usual helpers on a service and what each is paid (ADR 0016, amendment 4). Needs sales.sell, services.catalog.manage or commissions.plans.manage. */
+        get: operations["listServiceHelperRoles"];
+        put?: never;
+        /** @description Adds a helper role. Needs commissions.plans.manage. 409 when the name is taken. */
+        post: operations["createServiceHelperRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-helper-roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Changes a helper role. Needs commissions.plans.manage. Visits and sales that used it keep the pay worked out then. */
+        put: operations["updateServiceHelperRole"];
+        post?: never;
+        /** @description Removes a helper role. Needs commissions.plans.manage. */
+        delete: operations["deleteServiceHelperRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Chairs, beds, rooms and machines of a branch with what each is doing now. Creates Chair 1..N from the branch chair count on first read. */
+        get: operations["listServiceResources"];
+        put?: never;
+        /** @description Adds a resource. Needs services.catalog.manage. */
+        post: operations["createServiceResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-resources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames, retypes, switches off, sets a cleaning time or takes a resource out of use. 409 while it is in use. */
+        patch: operations["updateServiceResource"];
+        trace?: never;
+    };
+    "/api/v1/service-resources/requirements/{serviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Which kind of resource a service needs; blank for any. */
+        put: operations["setServiceResourceRequirement"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Everything on a branch calendar in a window of up to two weeks: bookings, services under way and done, staff time off and resources out of use, with the people and places to lay them out by. */
+        get: operations["serviceCalendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/{staffProfileId}/time-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A period when a staff member cannot be booked. Needs staff.hr.update. */
+        post: operations["addStaffTimeOff"];
+        /** @description Removes the period that starts at the given moment. */
+        delete: operations["removeStaffTimeOff"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a product the customer is buying on this visit, at the current shelf price. The same product again increases its quantity. Stock is taken when the visit is paid. */
+        post: operations["addServiceTicketProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/products/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Takes a product off a visit. */
+        delete: operations["removeServiceTicketProduct"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Everyone working on one service in one go: the first member leads, the rest help and share it equally unless shares are given. An amount is what that person is paid for this service instead of their commission plan; together the amounts cannot exceed the price. Sending any amount needs commissions.plans.manage or commissions.adjust. */
+        post: operations["setServiceTicketLineTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -20279,11 +21018,16 @@ export interface components {
         AddDomainRequest: {
             domain: string;
         };
+        SetDomainRedirectRequest: {
+            enabled: boolean;
+        };
         DomainResponse: {
             id?: string;
             businessId?: string;
             domain?: string;
             primary?: boolean;
+            /** @description When true, this host sends visitors to the shop's main address. */
+            redirectToPrimary?: boolean;
             active?: boolean;
             status?: string;
             source?: string;
@@ -20609,6 +21353,14 @@ export interface components {
             airtime?: boolean;
             serviceId?: string;
             performerStaffProfileId?: string;
+            /** @description SERVICE lines only. A second staff member who shared the work. */
+            assistantStaffProfileId?: string;
+            /** @description Their share of the line, 1 to 99; half when left out. */
+            assistantSharePercent?: number;
+            /** @description SERVICE lines only. Everyone who shared the work with the performer. */
+            helpers?: components["schemas"]["LineHelper"][];
+            /** @description SERVICE lines only. What the performer is paid for this service instead of their plan; needs permission to set commission. */
+            performerAmount?: number;
         };
         PostSalePaymentRequest: {
             method: string;
@@ -21135,6 +21887,8 @@ export interface components {
             branchLocalities?: string[];
             metaPixel?: components["schemas"]["MetaPixelPublicConfig"];
             publicCatalogReady?: boolean;
+            /** @description When set, the resolved host should send the browser here. Path and query stay. */
+            canonicalHost?: string;
         };
         TenantAuthConfigDto: {
             methods?: string[];
@@ -30333,6 +31087,8 @@ export interface components {
             /** @enum {string} */
             commissionType?: "PERCENT" | "FIXED";
             commissionValue?: number;
+            /** @description What the product for one service costs the shop, in whole shillings. Taken off before commission when the shop pays commission after product cost (ADR 0019). Null or 0 for none. */
+            productCost?: number;
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
@@ -30350,6 +31106,8 @@ export interface components {
             priceIsVariable?: boolean;
             commissionType?: string;
             commissionValue?: number;
+            /** @description What the product for one service costs the shop, in whole shillings. Taken off before commission when the shop pays commission after product cost (ADR 0019). Null or 0 for none. */
+            productCost?: number;
             /** Format: int32 */
             sortOrder?: number;
             staffProfileIds?: string[];
@@ -30366,6 +31124,8 @@ export interface components {
             priceIsVariable?: boolean;
             commissionType?: string;
             commissionValue?: number;
+            /** @description What the product for one service costs the shop, in whole shillings. Taken off before commission when the shop pays commission after product cost (ADR 0019). Null or 0 for none. */
+            productCost?: number;
             clearCommission?: boolean;
             /** Format: int32 */
             sortOrder?: number;
@@ -30494,6 +31254,8 @@ export interface components {
             customerId?: string;
             requestedStaffProfileId?: string;
             lines: components["schemas"]["TicketLineInput"][];
+            /** @description For a free redo, the sale being put right. The ticket is then never charged. */
+            redoOfSaleId?: string;
         };
         StartTicketRequest: {
             performerStaffProfileId: string;
@@ -30505,11 +31267,13 @@ export interface components {
             abandoned?: boolean;
         };
         PayTicketRequest: {
-            payments: components["schemas"]["PostSalePaymentRequest"][];
+            payments?: components["schemas"]["PostSalePaymentRequest"][];
             tips?: components["schemas"]["PostSaleTipRequest"][];
             cashReceived?: number;
             /** Format: date-time */
             clientSoldAt?: string;
+            /** @description Use one session of this prepaid package toward the ticket. */
+            packageId?: string;
         };
         TicketLineResponse: {
             id?: string;
@@ -30517,6 +31281,21 @@ export interface components {
             name?: string;
             unitPrice?: number;
             lineTotal?: number;
+            helpers?: components["schemas"]["LineHelper"][];
+            performerStaffProfileId?: string;
+            performerName?: string;
+            resourceId?: string;
+            resourceName?: string;
+            /** @enum {string} */
+            stage?: "WAITING" | "IN_SERVICE" | "DONE";
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int32 */
+            plannedMinutes?: number;
+            /** @description What the person leading it is paid for this service when set at the till. */
+            performerAmount?: number;
         };
         TicketResponse: {
             id?: string;
@@ -30524,7 +31303,7 @@ export interface components {
             /** Format: int64 */
             ticketNumber?: number;
             /** @enum {string} */
-            stage?: "WAITING" | "IN_SERVICE" | "READY_TO_PAY" | "ABANDONED";
+            stage?: "BOOKED" | "WAITING" | "IN_SERVICE" | "READY_TO_PAY" | "ABANDONED" | "NO_SHOW" | "REDO_DONE";
             status?: string;
             /** Format: int32 */
             stationNo?: number;
@@ -30542,16 +31321,531 @@ export interface components {
             /** Format: int64 */
             version?: number;
             lines?: components["schemas"]["TicketLineResponse"][];
+            /** Format: date-time */
+            scheduledStart?: string;
+            /** Format: date-time */
+            scheduledEnd?: string;
+            bookingName?: string;
+            bookingPhone?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: int32 */
+            estimatedWaitMinutes?: number;
+            depositAmount?: number;
+            /** @enum {string} */
+            depositState?: "HELD" | "APPLIED" | "CREDITED" | "FORFEITED";
+            redoOfSaleId?: string;
+            sendReminder?: boolean;
+            redeemedPackageId?: string;
+            products?: components["schemas"]["TicketProductResponse"][];
         };
         ServiceBoardResponse: {
             branchId?: string;
             /** Format: int32 */
             stationCount?: number;
             tickets?: components["schemas"]["TicketResponse"][];
+            staff?: components["schemas"]["FloorStaffResponse"][];
         };
         PaidTicketResponse: {
             ticket?: components["schemas"]["TicketResponse"];
             sale?: components["schemas"]["SaleResponse"];
+        };
+        SetPriorityRequest: {
+            /** Format: int32 */
+            priority: number;
+        };
+        SetFloorStatusRequest: {
+            /** @enum {string} */
+            status: "AVAILABLE" | "ON_BREAK" | "OFF";
+        };
+        FloorStaffResponse: {
+            staffProfileId?: string;
+            displayName?: string;
+            /** @enum {string} */
+            floorStatus?: "AVAILABLE" | "ON_BREAK" | "OFF";
+        };
+        CreateAppointmentRequest: {
+            branchId: string;
+            clientTicketId: string;
+            staffProfileId: string;
+            /** Format: date-time */
+            start: string;
+            lines: components["schemas"]["TicketLineInput"][];
+            customerId?: string;
+            name: string;
+            phone?: string;
+            sendReminder?: boolean;
+            /** @description The chair, bed or room to hold for the booking; optional. 409 when it is already booked then. */
+            resourceId?: string;
+        };
+        RescheduleRequest: {
+            /** Format: date-time */
+            start: string;
+            staffProfileId?: string;
+        };
+        NoShowRequest: {
+            keepDepositAsCredit?: boolean;
+        };
+        TakeDepositRequest: {
+            amount: number;
+            /** @enum {string} */
+            method: "cash" | "mpesa_manual";
+            reference?: string;
+        };
+        DayHours: {
+            /** @example 08:00 */
+            open: string;
+            /** @example 19:00 */
+            close: string;
+        };
+        SetBookingHoursRequest: {
+            branchId: string;
+            /** @description Keys mon tue wed thu fri sat sun; a day left out is closed. */
+            days?: {
+                [key: string]: components["schemas"]["DayHours"];
+            };
+        };
+        BookingHoursResponse: {
+            branchId?: string;
+            online?: boolean;
+            days?: {
+                [key: string]: components["schemas"]["DayHours"];
+            };
+        };
+        SetPackageOfferRequest: {
+            /** Format: int32 */
+            sessions?: number;
+            price?: number;
+            /** Format: int32 */
+            validDays?: number;
+        };
+        PackageOfferResponse: {
+            serviceId?: string;
+            serviceName?: string;
+            singlePrice?: number;
+            /** Format: int32 */
+            sessions?: number;
+            price?: number;
+            /** Format: int32 */
+            validDays?: number;
+        };
+        SellPackageRequest: {
+            branchId: string;
+            customerId: string;
+            serviceId: string;
+            /** @enum {string} */
+            method: "cash" | "mpesa_manual";
+            reference?: string;
+        };
+        CustomerPackageResponse: {
+            id?: string;
+            customerId?: string;
+            serviceId?: string;
+            serviceName?: string;
+            /** Format: int32 */
+            sessionsTotal?: number;
+            /** Format: int32 */
+            sessionsRemaining?: number;
+            pricePaid?: number;
+            valueRemaining?: number;
+            /** Format: date-time */
+            expiresAt?: string;
+            expired?: boolean;
+            /** Format: date-time */
+            soldAt?: string;
+        };
+        ConsumableInput: {
+            itemId: string;
+            quantity: number;
+        };
+        SetConsumablesRequest: {
+            items: components["schemas"]["ConsumableInput"][];
+        };
+        ConsumableResponse: {
+            itemId?: string;
+            itemName?: string;
+            quantity?: number;
+            unitCost?: number;
+            cost?: number;
+        };
+        ServiceConsumablesResponse: {
+            serviceId?: string;
+            items?: components["schemas"]["ConsumableResponse"][];
+            costPerVisit?: number;
+        };
+        ServiceReportRow: {
+            serviceId?: string;
+            name?: string;
+            /** Format: int64 */
+            timesDone?: number;
+            revenue?: number;
+            commission?: number;
+            productCost?: number;
+            contribution?: number;
+            /** Format: int64 */
+            minutes?: number;
+        };
+        StaffReportRow: {
+            staffProfileId?: string;
+            displayName?: string;
+            /** Format: int64 */
+            servicesDone?: number;
+            revenue?: number;
+            commission?: number;
+            tips?: number;
+            /** Format: int64 */
+            minutes?: number;
+            /** Format: int64 */
+            redos?: number;
+        };
+        ChairReportResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            branchId?: string;
+            chairs?: components["schemas"]["ChairReportRow"][];
+            revenue?: number;
+            /** @description Paid services with no chair, bed or room recorded. */
+            unplacedRevenue?: number;
+            /** Format: int64 */
+            unplacedServices?: number;
+        };
+        ChairReportRow: {
+            resourceId?: string;
+            name?: string;
+            resourceType?: string;
+            active?: boolean;
+            /** Format: int64 */
+            servicesDone?: number;
+            /** Format: int64 */
+            customers?: number;
+            revenue?: number;
+            /** Format: int64 */
+            minutes?: number;
+        };
+        ServiceReportResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            branchId?: string;
+            services?: components["schemas"]["ServiceReportRow"][];
+            staff?: components["schemas"]["StaffReportRow"][];
+            revenue?: number;
+            commission?: number;
+            productCost?: number;
+            contribution?: number;
+        };
+        EarningsSmsResponse: {
+            sent?: boolean;
+            phoneMasked?: string;
+            message?: string;
+        };
+        PublicBranch: {
+            id?: string;
+            name?: string;
+            address?: string;
+            /** @description When customers may book here, by weekday key (mon..sun); a day left out is closed. */
+            hours?: {
+                [key: string]: components["schemas"]["DayHours"];
+            };
+        };
+        PublicService: {
+            id?: string;
+            name?: string;
+            description?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            price?: number;
+            priceIsVariable?: boolean;
+            staffIds?: string[];
+        };
+        PublicStaff: {
+            id?: string;
+            /** @description First name only. */
+            name?: string;
+        };
+        PublicBookingInfo: {
+            businessName?: string;
+            timezone?: string;
+            currency?: string;
+            branches?: components["schemas"]["PublicBranch"][];
+            services?: components["schemas"]["PublicService"][];
+            staff?: components["schemas"]["PublicStaff"][];
+        };
+        PublicSlots: {
+            /** Format: date */
+            date?: string;
+            timezone?: string;
+            starts?: string[];
+        };
+        PublicDay: {
+            /** Format: date */
+            date?: string;
+            open?: boolean;
+            /** Format: int32 */
+            free?: number;
+        };
+        PublicDays: {
+            timezone?: string;
+            days?: components["schemas"]["PublicDay"][];
+        };
+        PublicBookingRequest: {
+            branchId: string;
+            serviceId: string;
+            staffId?: string;
+            /** Format: date-time */
+            start: string;
+            name: string;
+            phone: string;
+            requestId: string;
+        };
+        PublicBookingConfirmation: {
+            reference?: string;
+            serviceName?: string;
+            staffName?: string;
+            /** Format: date-time */
+            start?: string;
+            /** Format: date-time */
+            end?: string;
+            branchName?: string;
+        };
+        LineHelper: {
+            staffProfileId: string;
+            /** @description Their share of the line in percent; an equal split when left out. */
+            sharePercent?: number;
+            /** @description What they are paid for this service, in whole shillings; null means by their plan. */
+            amount?: number;
+            /** @description A helper role set beforehand. When given, the share and the amount come from the role and anything sent for them is ignored. Never returned. */
+            roleId?: string;
+        };
+        SendSignInRequest: {
+            email?: string;
+            phone?: string;
+            branchId?: string;
+        };
+        SentSignIn: {
+            staffProfileId?: string;
+            displayName?: string;
+            email?: string;
+            /** @description Returned this once so it can be read out if neither message arrives. */
+            pin?: string;
+            emailSent?: boolean;
+            smsSent?: boolean;
+            /** @description The number the text went to, masked; null when they have no usable number. */
+            phoneMasked?: string;
+        };
+        PayModel: {
+            /**
+             * @description GROSS, commission on the whole price. NET_OF_PRODUCT, on the price after the service's product cost.
+             * @enum {string}
+             */
+            model: "GROSS" | "NET_OF_PRODUCT";
+        };
+        HelperRoleResponse: {
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            payKind?: "PERCENT" | "AMOUNT";
+            payValue?: number;
+        };
+        HelperRoleListResponse: {
+            roles?: components["schemas"]["HelperRoleResponse"][];
+        };
+        SaveHelperRoleRequest: {
+            name: string;
+            /**
+             * @description PERCENT of what the person leading the service earns on it, or a set AMOUNT in whole shillings. Either is paid out of the lead's commission, not the shop's part.
+             * @enum {string}
+             */
+            payKind: "PERCENT" | "AMOUNT";
+            /** @description 1 to 99 for a percentage; whole shillings for an amount. */
+            payValue: number;
+        };
+        SetHelpersRequest: {
+            helpers: components["schemas"]["LineHelper"][];
+        };
+        AddTeamMemberRequest: {
+            displayName: string;
+            email?: string;
+            /** @description 4 to 6 digits. Required with email. */
+            pin?: string;
+            phone?: string;
+            branchId?: string;
+        };
+        GiveLoginRequest: {
+            email: string;
+            pin: string;
+            branchId?: string;
+        };
+        SyncAccountsResponse: {
+            /** Format: int32 */
+            created?: number;
+            skipped?: string[];
+        };
+        TeamMemberResponse: {
+            staffProfileId?: string;
+            displayName?: string;
+            userId?: string;
+            email?: string;
+            canSignIn?: boolean;
+        };
+        MyBooking: {
+            ticketId?: string;
+            /** Format: date-time */
+            start?: string;
+            /** Format: date-time */
+            end?: string;
+            /** @description First name only. */
+            customerName?: string;
+            services?: string;
+        };
+        MyEarningsResponse: {
+            staffProfileId?: string;
+            displayName?: string;
+            commissionType?: string;
+            commissionRate?: number;
+            owed?: number;
+            /** Format: int64 */
+            servicesToday?: number;
+            commissionToday?: number;
+            tipsToday?: number;
+            paidToday?: number;
+            entries?: components["schemas"]["LedgerEntryResponse"][];
+            bookingsToday?: components["schemas"]["MyBooking"][];
+        };
+        LineAssignmentRequest: {
+            performerStaffProfileId?: string;
+            /** @description Null leaves the resource as it is; blank clears it. */
+            resourceId?: string;
+        };
+        EarningsShare: {
+            staffProfileId?: string;
+            staffName?: string;
+            commission?: number;
+            rule?: string;
+        };
+        EarningsLine: {
+            lineId?: string;
+            name?: string;
+            price?: number;
+            shares?: components["schemas"]["EarningsShare"][];
+            shopShare?: number;
+        };
+        StaffEarning: {
+            staffProfileId?: string;
+            staffName?: string;
+            commission?: number;
+        };
+        VisitEarningsResponse: {
+            ticketId?: string;
+            serviceTotal?: number;
+            commissionTotal?: number;
+            shopShare?: number;
+            lines?: components["schemas"]["EarningsLine"][];
+            staff?: components["schemas"]["StaffEarning"][];
+        };
+        CreateResourceRequest: {
+            branchId: string;
+            name: string;
+            /** @enum {string} */
+            resourceType: "CHAIR" | "STATION" | "BED" | "ROOM" | "EQUIPMENT";
+            /** Format: int32 */
+            cleanupMinutes?: number;
+        };
+        UpdateResourceRequest: {
+            name?: string;
+            resourceType?: string;
+            active?: boolean;
+            /** Format: int32 */
+            cleanupMinutes?: number;
+            /** Format: date-time */
+            blockedUntil?: string;
+            blockedReason?: string;
+            clearBlock?: boolean;
+        };
+        ResourceResponse: {
+            id?: string;
+            branchId?: string;
+            name?: string;
+            resourceType?: string;
+            /** Format: int32 */
+            stationNo?: number;
+            active?: boolean;
+            /** Format: int32 */
+            cleanupMinutes?: number;
+            /** Format: date-time */
+            blockedUntil?: string;
+            blockedReason?: string;
+            busyTicketId?: string;
+            /** Format: date-time */
+            freeAt?: string;
+        };
+        ResourceListResponse: {
+            branchId?: string;
+            resources?: components["schemas"]["ResourceResponse"][];
+        };
+        SetServiceResourceTypeRequest: {
+            resourceType?: string;
+        };
+        CalendarEntry: {
+            /** @enum {string} */
+            kind?: "BOOKED" | "IN_SERVICE" | "DONE" | "NO_SHOW" | "TIME_OFF" | "BLOCKED";
+            ticketId?: string;
+            /** Format: int64 */
+            ticketNumber?: number;
+            title?: string;
+            customerName?: string;
+            staffProfileId?: string;
+            resourceId?: string;
+            /** Format: date-time */
+            start?: string;
+            /** Format: date-time */
+            end?: string;
+        };
+        CalendarColumn: {
+            id?: string;
+            name?: string;
+        };
+        CalendarResponse: {
+            branchId?: string;
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            staff?: components["schemas"]["CalendarColumn"][];
+            resources?: components["schemas"]["CalendarColumn"][];
+            entries?: components["schemas"]["CalendarEntry"][];
+        };
+        TimeOffRequest: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            reason?: string;
+        };
+        TimeOffPeriod: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            reason?: string;
+        };
+        AddProductRequest: {
+            itemId: string;
+            quantity: number;
+        };
+        TicketProductResponse: {
+            id?: string;
+            itemId?: string;
+            name?: string;
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+        };
+        SetTeamRequest: {
+            members: components["schemas"]["LineHelper"][];
         };
     };
     responses: never;
@@ -46157,6 +47451,32 @@ export interface operations {
             };
         };
     };
+    setMyDomainRedirect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetDomainRedirectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DomainResponse"];
+                };
+            };
+        };
+    };
     verifyMyDomain: {
         parameters: {
             query?: never;
@@ -59689,6 +61009,1211 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PaidTicketResponse"];
+                };
+            };
+        };
+    };
+    setServiceTicketPriority: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPriorityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    setServiceTicketLineHelpers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetHelpersRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    setStaffFloorStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFloorStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FloorStaffResponse"];
+                };
+            };
+        };
+    };
+    listServiceAppointments: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"][];
+                };
+            };
+        };
+    };
+    bookServiceAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAppointmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    rescheduleServiceAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    arriveServiceAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    noShowServiceAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoShowRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    takeServiceTicketDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TakeDepositRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    getServiceBookingHours: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingHoursResponse"];
+                };
+            };
+        };
+    };
+    setServiceBookingHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBookingHoursRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingHoursResponse"];
+                };
+            };
+        };
+    };
+    listServicePackageOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PackageOfferResponse"][];
+                };
+            };
+        };
+    };
+    setServicePackageOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPackageOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PackageOfferResponse"];
+                };
+            };
+        };
+    };
+    sellServicePackage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SellPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerPackageResponse"];
+                };
+            };
+        };
+    };
+    listCustomerServicePackages: {
+        parameters: {
+            query: {
+                customerId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerPackageResponse"][];
+                };
+            };
+        };
+    };
+    getServiceConsumables: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceConsumablesResponse"];
+                };
+            };
+        };
+    };
+    setServiceConsumables: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetConsumablesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceConsumablesResponse"];
+                };
+            };
+        };
+    };
+    serviceContributionReport: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+        };
+    };
+    chairTakingsReport: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChairReportResponse"];
+                };
+            };
+        };
+    };
+    sendStaffEarningsSms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EarningsSmsResponse"];
+                };
+            };
+        };
+    };
+    publicBookingInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicBookingInfo"];
+                };
+            };
+        };
+    };
+    publicBookingSlots: {
+        parameters: {
+            query: {
+                branchId: string;
+                serviceId: string;
+                staffId?: string;
+                date: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicSlots"];
+                };
+            };
+        };
+    };
+    publicBookingDays: {
+        parameters: {
+            query: {
+                branchId: string;
+                serviceId: string;
+                staffId?: string;
+                from: string;
+                days?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicDays"];
+                };
+            };
+        };
+    };
+    publicBookAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicBookingConfirmation"];
+                };
+            };
+        };
+    };
+    addServiceTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddTeamMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamMemberResponse"];
+                };
+            };
+        };
+    };
+    syncTeamAccounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SyncAccountsResponse"];
+                };
+            };
+        };
+    };
+    giveServiceTeamMemberLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiveLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamMemberResponse"];
+                };
+            };
+        };
+    };
+    myServiceEarnings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyEarningsResponse"];
+                };
+            };
+        };
+    };
+    getServiceTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    assignServiceTicketLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LineAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    startServiceTicketLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LineAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    finishServiceTicketLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    serviceTicketEarnings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VisitEarningsResponse"];
+                };
+            };
+        };
+    };
+    sendServiceTeamSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SentSignIn"];
+                };
+            };
+        };
+    };
+    getServicePayModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PayModel"];
+                };
+            };
+        };
+    };
+    setServicePayModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayModel"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PayModel"];
+                };
+            };
+        };
+    };
+    listServiceHelperRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HelperRoleListResponse"];
+                };
+            };
+        };
+    };
+    createServiceHelperRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveHelperRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HelperRoleResponse"];
+                };
+            };
+        };
+    };
+    updateServiceHelperRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveHelperRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HelperRoleResponse"];
+                };
+            };
+        };
+    };
+    deleteServiceHelperRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listServiceResources: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResourceListResponse"];
+                };
+            };
+        };
+    };
+    createServiceResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateResourceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResourceResponse"];
+                };
+            };
+        };
+    };
+    updateServiceResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateResourceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResourceResponse"];
+                };
+            };
+        };
+    };
+    setServiceResourceRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetServiceResourceTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    serviceCalendar: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CalendarResponse"];
+                };
+            };
+        };
+    };
+    addStaffTimeOff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeOffRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TimeOffPeriod"][];
+                };
+            };
+        };
+    };
+    removeStaffTimeOff: {
+        parameters: {
+            query: {
+                from: string;
+            };
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TimeOffPeriod"][];
+                };
+            };
+        };
+    };
+    addServiceTicketProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddProductRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    removeServiceTicketProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    setServiceTicketLineTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetTeamRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
                 };
             };
         };

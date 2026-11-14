@@ -62,6 +62,7 @@ export function ServiceFormDialog({
   const [commissionValue, setCommissionValue] = useState(
     service?.commissionValue != null ? String(service.commissionValue) : "",
   );
+  const [productCost, setProductCost] = useState(service?.productCost ? String(Math.round(service.productCost)) : "");
   const [staffIds, setStaffIds] = useState<string[]>(service?.staffProfileIds ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -85,6 +86,9 @@ export function ServiceFormDialog({
     if (commissionType === "PERCENT" && commission != null && commission > 100) {
       return setError("A commission percent cannot be more than 100");
     }
+    if (!variable && priceValue != null && Number(productCost) > priceValue) {
+      return setError("The product cost cannot be more than the price");
+    }
     if (categoryId === NEW_CATEGORY && !newCategory.trim()) {
       return setError("Name the new category");
     }
@@ -101,6 +105,8 @@ export function ServiceFormDialog({
         durationMinutes,
         price: priceValue ?? 0,
         priceIsVariable: variable,
+        // 0 clears it: the service uses no shop product.
+        productCost: Number(productCost) || 0,
       };
       let saved: ServiceRecord;
       if (service) {
@@ -248,6 +254,21 @@ export function ServiceFormDialog({
               </label>
             ) : null}
           </div>
+
+          <label className="grid gap-1">
+            <span className={dashboardLabelClass()}>Product cost (KSh, optional)</span>
+            <input
+              className={dashboardInputClass(false, "font-mono")}
+              inputMode="numeric"
+              placeholder="0"
+              value={productCost}
+              onChange={(e) => setProductCost(e.target.value.replace(/[^0-9]/g, ""))}
+            />
+            <span className={dashboardHintClass()}>
+              What the gel, dye or relaxer for one of these costs the shop. It is taken off before commission only if the
+              shop pays commission after product cost (set under Commissions).
+            </span>
+          </label>
 
           {staff.length > 0 ? (
             <fieldset className="grid gap-1">

@@ -51,6 +51,7 @@ import {
   storefrontSectionDefaultSettings,
   type StorefrontAboutSectionSettings,
   type StorefrontAnnouncementSectionSettings,
+  type StorefrontBookingTextKey,
   type StorefrontContactSectionSettings,
   type StorefrontDesign,
   type StorefrontDesignDayHours,
@@ -192,6 +193,8 @@ type StaffEditContextValue = {
     value: string,
     themeId?: StoreThemeId,
   ) => Promise<void>;
+  /** Stage one piece of wording on the service landing page; blank puts the default back. */
+  patchBookingText: (key: StorefrontBookingTextKey, value: string) => Promise<void>;
   openQuickEdit: (field: StorefrontQuickEditField) => void;
   openHeroPhoto: () => void;
   openSectionsPanel: () => void;
@@ -857,6 +860,31 @@ export function StorefrontStaffEditProvider({
     [handleQuickSave],
   );
 
+  const patchBookingText = useCallback(
+    async (key: StorefrontBookingTextKey, value: string) => {
+      let base = design;
+      if (!base) {
+        base = await ensureDesignLoaded();
+      }
+      const words = { ...(base?.booking ?? {}) };
+      const text = value.replace(/\s+/g, " ").trim();
+      if (text) {
+        words[key] = text;
+      } else {
+        delete words[key];
+      }
+      applyDraft(
+        {
+          ...(base ?? { version: 1 }),
+          version: 1,
+          booking: Object.keys(words).length > 0 ? words : null,
+        },
+        { field: `booking.${key}` },
+      );
+    },
+    [design, ensureDesignLoaded, applyDraft],
+  );
+
   const patchThemeOption = useCallback(
     async (key: string, value: string, themeIdArg?: StoreThemeId) => {
       const optionKey = key.trim();
@@ -1018,6 +1046,7 @@ export function StorefrontStaffEditProvider({
       uploadLogo,
       commitInlineField,
       patchThemeOption,
+      patchBookingText,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,
@@ -1047,6 +1076,7 @@ export function StorefrontStaffEditProvider({
       uploadLogo,
       commitInlineField,
       patchThemeOption,
+      patchBookingText,
       openQuickEdit,
       openHeroPhoto,
       openSectionsPanel,

@@ -1,5 +1,8 @@
 "use client";
 
+import { useOptionalDashboard } from "@/components/dashboard-provider";
+import { isServiceBusiness } from "@/lib/business-store-type";
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   useCallback,
   useEffect,
@@ -22,7 +25,7 @@ import { toast } from "sonner";
 import { FormDrawer } from "@/components/form-drawer";
 import type { BranchRecord } from "@/lib/api";
 import {
-  CASHIER_TEMPLATES,
+  cashierTemplatesFor,
   parseCashierTemplateId,
   readLocalCashierTemplate,
   writeLocalCashierTemplate,
@@ -508,6 +511,12 @@ function PendingTillRow({
   );
 }
 
+/** Whether this shop sells services, so the floor till can be offered. Off on the desktop build. */
+function useSellsServices(): boolean {
+  const dashboard = useOptionalDashboard();
+  return !IS_DESKTOP && isServiceBusiness(dashboard?.business ?? null);
+}
+
 function DeviceTillRow({
   device,
   localDeviceKey,
@@ -523,6 +532,7 @@ function DeviceTillRow({
   onToggle: () => void;
   onTemplateChange?: (next: CashierTemplateId) => void;
 }) {
+  const sellsServices = useSellsServices();
   const isThis = localDeviceKey && device.deviceKey === localDeviceKey;
   return (
     <li className="flex flex-col gap-2.5 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -553,7 +563,7 @@ function DeviceTillRow({
               onTemplateChange(parseCashierTemplateId(e.target.value))
             }
           >
-            {CASHIER_TEMPLATES.map((t) => (
+            {cashierTemplatesFor(sellsServices).map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>

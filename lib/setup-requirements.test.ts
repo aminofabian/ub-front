@@ -23,6 +23,7 @@ import {
   setupGapFromShiftProbe,
   setupRequiredFromError,
   subscribeSetup,
+  withSetup,
   type SetupRequirement,
 } from "@/lib/setup-requirements";
 
@@ -531,5 +532,90 @@ describe("pauseForSetup", () => {
     await settled();
 
     expect(steps).toEqual([["till"], ["till", "shift"]]);
+  });
+});
+
+describe("withSetup", () => {
+  const refused = (requirement: SetupRequirement) =>
+    Object.assign(new Error(`Set up the ${requirement} first`), {
+      payload: { code: SETUP_REQUIRED_CODE, requirement },
+    });
+
+  it("opens the dialog for what is missing, then runs the call again", async () => {
+    registerSetupHost();
+    let calls = 0;
+    const result = withSetup(async () => {
+      calls += 1;
+      if (calls === 1) throw refused("shift");
+      return "paid";
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(currentSetupRequest()?.requirement).toBe("shift");
+    completeSetup("shift", true);
+    expect(await result).toBe("paid");
+    expect(calls).toBe(2);
+  });
+
+  it("walks through two things in a row: the till, then the shift", async () => {
+    registerSetupHost();
+    const order: SetupRequirement[] = ["till", "shift"];
+    let calls = 0;
+    const result = withSetup(async () => {
+      const missing = order[calls];
+      calls += 1;
+      if (missing) throw refused(missing);
+      return "paid";
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    completeSetup("till", true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(currentSetupRequest()?.requirement).toBe("shift");
+    completeSetup("shift", true);
+    expect(await result).toBe("paid");
+    expect(calls).toBe(3);
+  });
+
+  it("gives the server's error back when the dialog is put away, and raises the till banner", async () => {
+    registerSetupHost();
+    const raised: string[] = [];
+    const onGuidance = (event: Event) => raised.push((event as CustomEvent<{ kind: string }>).detail.kind);
+    window.addEventListener(POS_GUIDANCE_EVENT, onGuidance);
+    const result = withSetup(async () => {
+      throw refused("shift");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    completeSetup("shift", false);
+    await expect(result).rejects.toThrow("Set up the shift first");
+    expect(raised).toEqual(["open-shift"]);
+    window.removeEventListener(POS_GUIDANCE_EVENT, onGuidance);
+  });
+
+  it("does not ask twice for the same thing, and leaves other errors alone", async () => {
+    registerSetupHost();
+    let calls = 0;
+    const stuck = withSetup(async () => {
+      calls += 1;
+      throw refused("shift");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    completeSetup("shift", true);
+    await expect(stuck).rejects.toThrow("Set up the shift first");
+    expect(calls).toBe(2);
+    expect(currentSetupRequest()).toBeNull();
+
+    await expect(
+      withSetup(async () => {
+        throw new Error("That time is not available");
+      }),
+    ).rejects.toThrow("That time is not available");
+    expect(currentSetupRequest()).toBeNull();
+  });
+
+  it("with nothing mounted to show a dialog, the error comes straight back", async () => {
+    await expect(
+      withSetup(async () => {
+        throw refused("till");
+      }),
+    ).rejects.toThrow("Set up the till first");
   });
 });
