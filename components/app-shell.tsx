@@ -2046,6 +2046,7 @@ export function AppShell({ children }: AppShellProps) {
             logoUrl={business?.branding?.logoUrl}
             faviconUrl={business?.branding?.faviconUrl}
             primaryColor={business?.branding?.primaryColor}
+            storeTypes={business?.profile?.storeTypes}
             sections={visibleSections}
             flat={isCashier || isButcherCashier || isGroceryClerk}
             badgeByHref={navBadgeByHref}
@@ -2227,6 +2228,7 @@ export function AppShell({ children }: AppShellProps) {
               logoUrl={business?.branding?.logoUrl}
               faviconUrl={business?.branding?.faviconUrl}
               primaryColor={business?.branding?.primaryColor}
+              storeTypes={business?.profile?.storeTypes}
               pageTitle={
                 pathname === APP_ROUTES.inventoryStock &&
                 searchParams.get("view") === "levels"
@@ -2325,6 +2327,7 @@ export function AppShell({ children }: AppShellProps) {
             faviconUrl={business?.branding?.faviconUrl}
             userInitial={userInitial}
             primaryColor={business?.branding?.primaryColor}
+            storeTypes={business?.profile?.storeTypes}
             sections={visibleSections}
             pathname={pathname}
             branchName={currentBranch?.name}

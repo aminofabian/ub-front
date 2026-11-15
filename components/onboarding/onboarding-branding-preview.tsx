@@ -10,6 +10,7 @@ type Props = {
   primaryColor: string;
   accentColor: string;
   logoPreviewUrl?: string | null;
+  storeTypes?: readonly string[] | null;
   showHeading?: boolean;
 };
 
@@ -18,6 +19,7 @@ export function OnboardingBrandingPreview({
   primaryColor,
   accentColor,
   logoPreviewUrl,
+  storeTypes,
   showHeading = true,
 }: Props) {
   const brand = displayName.trim() || "Your shop";
@@ -73,6 +75,7 @@ export function OnboardingBrandingPreview({
               <TenantMonogramLockup
                 brand={brand}
                 primaryColor={primary}
+                storeTypes={storeTypes}
                 size="sm"
                 tone={headerTone}
                 showTagline={false}

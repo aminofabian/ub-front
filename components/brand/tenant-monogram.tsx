@@ -1,10 +1,13 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useMemo } from "react";
 import type { CSSProperties } from "react";
 
 import { pickReadableTextColor } from "@/lib/branding-color-presets";
+import { resolveShopMark, shopMarkColors } from "@/lib/shop-mark";
 import { cn } from "@/lib/utils";
+
+import { ShopTradeMark } from "./shop-trade-mark";
 
 const MONOGRAM_SIZES = {
   xs: { px: 42, word: "text-base", tag: "text-[10px]", tracking: "tracking-[0.06em]" },
@@ -165,80 +168,11 @@ function markPalette(primaryColor?: string | null): MarkPalette {
   };
 }
 
-const LOGO_FONT =
-  "var(--font-cormorant), 'Cormorant Garamond', Georgia, 'Times New Roman', serif";
-
-/** Minimal shopping-bag silhouette — reads as online shop / ecommerce. */
-function ShoppingBagBackdrop({
-  bodyFill,
-  handleStroke,
-}: {
-  bodyFill: string;
-  handleStroke: string;
-}) {
-  return (
-    <g aria-hidden>
-      <path
-        d="M22 18 C22 12.5 42 12.5 42 18"
-        fill="none"
-        stroke={handleStroke}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
-      <path
-        d="M16 22 H48 L45 49 C44.5 52.5 40.5 54 32 54 C23.5 54 19.5 52.5 19 49 Z"
-        fill={bodyFill}
-      />
-    </g>
-  );
-}
-
-/** Price-tag corner — common ecommerce storefront cue. */
-function PriceTagCorner({ fill }: { fill: string }) {
-  return (
-    <path
-      d="M64 0 H46 L64 18 Z"
-      fill={fill}
-      opacity="0.9"
-      aria-hidden
-    />
-  );
-}
-
-function LogoLetter({
-  x,
-  y,
-  fill,
-  fontSize,
-  children,
-}: {
-  x: number;
-  y: number;
-  fill: string;
-  fontSize: number;
-  children: string;
-}) {
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fill={fill}
-      fontSize={fontSize}
-      fontWeight="700"
-      fontFamily={LOGO_FONT}
-      letterSpacing={children.length > 1 ? "-0.08em" : "-0.03em"}
-    >
-      {children}
-    </text>
-  );
-}
-
 export type TenantMonogramMarkProps = {
   brand: string;
   primaryColor?: string | null;
+  /** Shop formats from setup. The first one chooses the emblem. */
+  storeTypes?: readonly string[] | null;
   size?: TenantMonogramSize;
   /** `on-brand` = mark sits on a coloured header; `on-light` = white UI surfaces. */
   surface?: "on-light" | "on-brand";
@@ -246,131 +180,37 @@ export type TenantMonogramMarkProps = {
   style?: CSSProperties;
 };
 
-/** Generated ecommerce store logo — app icon + bag + initials. */
+/** Shop emblem from the business type, with the name worked into the mark. */
 export function TenantMonogramMark({
   brand,
   primaryColor,
+  storeTypes,
   size = "md",
   surface = "on-light",
   className,
   style,
 }: TenantMonogramMarkProps) {
-  const uid = useId().replace(/:/g, "");
   const display = brand.trim() || "Shop";
   const initials = monogramInitials(display);
-  const dualMark = initials.length === 2 && size !== "xs";
-  const glyph = dualMark ? initials : monogramLetter(display);
-  const colors = useMemo(() => markPalette(primaryColor), [primaryColor]);
+  const glyph =
+    initials.length === 2 && size !== "xs" ? initials : monogramLetter(display);
+  const palette = useMemo(() => markPalette(primaryColor), [primaryColor]);
+  const mark = resolveShopMark(storeTypes);
+  const colors = shopMarkColors(
+    palette.primary,
+    palette.primaryDeep,
+    surface === "on-brand",
+  );
   const { px } = MONOGRAM_SIZES[size];
-  const onBrand = surface === "on-brand";
-
-  const gradId = `store-grad-${uid}`;
-  const fontSize =
-    glyph.length > 1
-      ? size === "xl"
-        ? 22
-        : size === "lg"
-          ? 20
-          : 18
-      : size === "xl"
-        ? 30
-        : size === "lg"
-          ? 26
-          : 24;
-
-  const tileFill = onBrand ? "#FFFFFF" : colors.primary;
-  const tileGradEnd = onBrand ? "#F1F5F9" : colors.primaryDeep;
-  const letterFill = onBrand ? colors.primary : "#FFFFFF";
-  const bagFill = onBrand ? colors.primary : "#FFFFFF";
-  const bagOpacity = onBrand ? 0.1 : 0.22;
-  const handleStroke = onBrand ? colors.primary : "#FFFFFF";
-  const tagFill = onBrand ? colors.primaryLight : "#FFFFFF";
-  const tileBorder = onBrand
-    ? mixHex(colors.primary, "#FFFFFF", 0.5)
-    : mixHex(colors.primary, "#000000", 0.12);
 
   return (
     <span
       className={cn("tenant-monogram-shell inline-flex shrink-0", className)}
       style={{ width: `${px}px`, height: `${px}px`, ...style }}
       role="img"
-      aria-label={`${display} logo`}
+      aria-label={`${display} ${mark.label.toLowerCase()} logo`}
     >
-      <svg
-        viewBox="0 0 64 64"
-        width={px}
-        height={px}
-        className="tenant-monogram-svg block h-full w-full"
-        aria-hidden
-      >
-        <defs>
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={tileFill} />
-            <stop offset="100%" stopColor={tileGradEnd} />
-          </linearGradient>
-        </defs>
-
-        <rect
-          x="1"
-          y="1"
-          width="62"
-          height="62"
-          rx="16"
-          fill={`url(#${gradId})`}
-        />
-        <rect
-          x="1"
-          y="1"
-          width="62"
-          height="62"
-          rx="16"
-          fill="none"
-          stroke={tileBorder}
-          strokeWidth="1.25"
-          opacity={onBrand ? 0.35 : 0.2}
-        />
-
-        <PriceTagCorner fill={tagFill} />
-
-        <g opacity={bagOpacity}>
-          <ShoppingBagBackdrop
-            bodyFill={bagFill}
-            handleStroke={handleStroke}
-          />
-        </g>
-
-        {dualMark ? (
-          <>
-            <LogoLetter x={27} y={35} fill={letterFill} fontSize={fontSize}>
-              {glyph[0]}
-            </LogoLetter>
-            <LogoLetter x={37} y={35} fill={letterFill} fontSize={fontSize}>
-              {glyph[1]}
-            </LogoLetter>
-          </>
-        ) : (
-          <LogoLetter x={32} y={35} fill={letterFill} fontSize={fontSize}>
-            {glyph}
-          </LogoLetter>
-        )}
-
-        {/* Cart dot — subtle “open for orders” cue */}
-        <circle
-          cx="49"
-          cy="49"
-          r="5"
-          fill={onBrand ? colors.primary : "#FFFFFF"}
-          opacity={onBrand ? 1 : 0.95}
-        />
-        <circle
-          cx="49"
-          cy="49"
-          r="5"
-          fill="none"
-          stroke={onBrand ? mixHex(colors.primary, "#FFFFFF", 0.4) : colors.primary}
-          strokeWidth="1.5"
-        />
-      </svg>
+      <ShopTradeMark kind={mark.kind} initials={glyph} colors={colors} />
     </span>
   );
 }
@@ -380,6 +220,7 @@ export type TenantMonogramTone = "light" | "dark";
 export type TenantMonogramLockupProps = {
   brand: string;
   primaryColor?: string | null;
+  storeTypes?: readonly string[] | null;
   size?: TenantMonogramSize;
   tagline?: string;
   showTagline?: boolean;
@@ -394,6 +235,7 @@ export type TenantMonogramLockupProps = {
 export function TenantMonogramLockup({
   brand,
   primaryColor,
+  storeTypes,
   size = "md",
   tagline,
   showTagline,
@@ -421,6 +263,7 @@ export function TenantMonogramLockup({
       <TenantMonogramMark
         brand={display}
         primaryColor={primaryColor}
+        storeTypes={storeTypes}
         size={size}
         surface={onDark ? "on-brand" : "on-light"}
       />

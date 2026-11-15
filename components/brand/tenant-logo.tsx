@@ -6,6 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { storefrontLogoImageStyle } from "@/lib/branding-logo-scale";
+import { shopMarkCaption } from "@/lib/shop-mark";
 
 import { KioskLogo } from "./kiosk-logo";
 import {
@@ -52,6 +53,8 @@ export type TenantLogoProps = {
   logoUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
+  /** Shop formats from setup. The first one chooses the generated emblem. */
+  storeTypes?: readonly string[] | null;
   variant?: TenantLogoVariant;
   size?: keyof typeof SIZES;
   tagline?: string;
@@ -179,6 +182,7 @@ function TenantLockup({
 function MonogramFallback({
   brand,
   primaryColor,
+  storeTypes,
   size,
   tagline,
   showTagline,
@@ -187,6 +191,7 @@ function MonogramFallback({
 }: {
   brand: string;
   primaryColor?: string | null;
+  storeTypes?: readonly string[] | null;
   size: TenantMonogramSize;
   tagline?: string;
   showTagline?: boolean;
@@ -197,6 +202,7 @@ function MonogramFallback({
     <TenantMonogramLockup
       brand={brand}
       primaryColor={primaryColor ?? undefined}
+      storeTypes={storeTypes}
       size={size}
       tagline={tagline}
       showTagline={showTagline}
@@ -212,6 +218,7 @@ export function TenantLogo({
   logoUrl,
   faviconUrl,
   primaryColor,
+  storeTypes,
   variant = "auth-badge",
   size = "md",
   tagline,
@@ -243,6 +250,7 @@ export function TenantLogo({
       <TenantMonogramMark
         brand={brand}
         primaryColor={primary}
+        storeTypes={storeTypes}
         size="xl"
         className={cn(
           "pointer-events-none absolute -right-8 top-16 rotate-[-12deg] select-none opacity-[0.07] blur-[0.5px] dark:opacity-[0.09]",
@@ -269,6 +277,7 @@ export function TenantLogo({
       <TenantMonogramMark
         brand={brand}
         primaryColor={primary}
+        storeTypes={storeTypes}
         size="xl"
         className={cn(
           "pointer-events-none absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 opacity-[0.14]",
@@ -291,6 +300,7 @@ export function TenantLogo({
       <TenantMonogramMark
         brand={brand}
         primaryColor={primary}
+        storeTypes={storeTypes}
         size="sm"
       />
     );
@@ -327,6 +337,7 @@ export function TenantLogo({
       <MonogramFallback
         brand={brand}
         primaryColor={primaryColor}
+        storeTypes={storeTypes}
         size={SIZES[s].monogram}
         showWordmark
         showTagline={false}
@@ -349,6 +360,7 @@ export function TenantLogo({
       <MonogramFallback
         brand={brand}
         primaryColor={primaryColor}
+        storeTypes={storeTypes}
         size={SIZES[s].monogram}
         showWordmark
         showTagline={false}
@@ -381,6 +393,7 @@ export function TenantLogo({
       <TenantMonogramMark
         brand={brand}
         primaryColor={primary}
+        storeTypes={storeTypes}
         size="lg"
         className={className}
       />
@@ -412,6 +425,7 @@ export function TenantLogo({
           <MonogramFallback
             brand={display}
             primaryColor={primary}
+            storeTypes={storeTypes}
             size="sm"
             tagline={tagline ?? "Header as shoppers see it"}
             showTagline={showTagline !== false}
@@ -449,9 +463,17 @@ export function TenantLogo({
     }
     return (
       <div className={cn("flex flex-col items-center gap-3", className)}>
-        <TenantMonogramMark brand={brand || "Your shop"} primaryColor={primary} size="lg" />
-        <p className="text-center text-xs text-muted-foreground">
-          Auto-generated from your shop name — upload anytime to replace
+        <TenantMonogramMark
+          brand={brand || "Your shop"}
+          primaryColor={primary}
+          storeTypes={storeTypes}
+          size="xl"
+        />
+        <p className="max-w-[11rem] truncate text-center font-heading text-[13px] font-semibold uppercase tracking-[0.12em]">
+          {(brand || "Your shop").trim()}
+        </p>
+        <p className="max-w-[14rem] text-center text-xs text-muted-foreground">
+          {shopMarkCaption(storeTypes)}
         </p>
       </div>
     );
@@ -487,6 +509,7 @@ export function TenantLogo({
       <MonogramFallback
         brand={brand}
         primaryColor={primaryColor}
+        storeTypes={storeTypes}
         size={SIZES[size].monogram}
         tagline={tagline}
         showTagline={showTagline}

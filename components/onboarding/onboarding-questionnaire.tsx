@@ -2401,6 +2401,7 @@ export function OnboardingQuestionnaire({
                           primaryColor={primaryColor}
                           accentColor={accentColor}
                           logoPreviewUrl={logoPreviewUrl}
+                          storeTypes={storeTypes}
                         />
                       )}
                     </div>
@@ -2435,6 +2436,7 @@ export function OnboardingQuestionnaire({
                           }
                           logoUrl={logoPreviewUrl}
                           primaryColor={primaryColor}
+                          storeTypes={storeTypes}
                           variant="upload"
                         />
                         {logoGenerating ? (

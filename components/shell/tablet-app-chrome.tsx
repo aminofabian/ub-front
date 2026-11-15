@@ -167,6 +167,7 @@ type TabletAppHeaderProps = {
   logoUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
+  storeTypes?: readonly string[] | null;
   pageTitle?: string;
   branchName?: string | null;
   departmentName?: string | null;
@@ -184,6 +185,7 @@ export function TabletAppHeader({
   logoUrl,
   faviconUrl,
   primaryColor,
+  storeTypes,
   pageTitle,
   branchName,
   departmentName,
@@ -222,6 +224,7 @@ export function TabletAppHeader({
               logoUrl={logoUrl}
               faviconUrl={faviconUrl}
               primaryColor={primaryColor}
+              storeTypes={storeTypes}
               variant="sidebar-mark"
             />
           </div>
@@ -274,6 +277,7 @@ export function TabletAppHeader({
                 logoUrl={logoUrl}
                 faviconUrl={faviconUrl}
                 primaryColor={primaryColor}
+                storeTypes={storeTypes}
                 variant="sidebar-mark"
               />
               <span
@@ -580,6 +584,7 @@ type TabletMoreSheetProps = {
   faviconUrl?: string | null;
   userInitial: string;
   primaryColor?: string | null;
+  storeTypes?: readonly string[] | null;
   sections: readonly TabletNavSection[];
   pathname: string;
   branchName?: string | null;
@@ -876,6 +881,7 @@ export function TabletMoreSheet({
   faviconUrl,
   userInitial,
   primaryColor,
+  storeTypes,
   sections,
   pathname,
   branchName,
@@ -1056,6 +1062,7 @@ export function TabletMoreSheet({
                   logoUrl={logoUrl}
                   faviconUrl={faviconUrl}
                   primaryColor={primaryColor}
+                  storeTypes={storeTypes}
                   variant="sidebar-mark"
                 />
               </span>

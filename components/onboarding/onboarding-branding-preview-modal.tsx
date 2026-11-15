@@ -23,6 +23,7 @@ type Props = {
   primaryColor: string;
   accentColor: string;
   logoPreviewUrl?: string | null;
+  storeTypes?: readonly string[] | null;
   layout?: "full" | "tile";
 };
 
@@ -31,6 +32,7 @@ export function OnboardingBrandingPreviewModal({
   primaryColor,
   accentColor,
   logoPreviewUrl,
+  storeTypes,
   layout = "full",
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -111,6 +113,7 @@ export function OnboardingBrandingPreviewModal({
               primaryColor={primaryColor}
               accentColor={accentColor}
               logoPreviewUrl={logoPreviewUrl}
+              storeTypes={storeTypes}
               showHeading={false}
             />
           </div>

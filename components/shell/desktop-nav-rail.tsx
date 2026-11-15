@@ -641,6 +641,7 @@ type DesktopNavRailProps = {
   logoUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
+  storeTypes?: readonly string[] | null;
   sections: readonly DesktopNavSection[];
   /** Restricted roles: one icon per allowed page (no section grouping). */
   flat?: boolean;
@@ -659,6 +660,7 @@ export function DesktopNavRail({
   logoUrl,
   faviconUrl,
   primaryColor,
+  storeTypes,
   sections,
   flat = false,
   badgeByHref,
@@ -731,12 +733,14 @@ export function DesktopNavRail({
                 logoUrl={logoUrl}
                 faviconUrl={faviconUrl}
                 primaryColor={primaryColor}
+                storeTypes={storeTypes}
                 variant="sidebar-mark"
               />
             ) : (
               <TenantLogo
                 brand={tenantTitle}
                 primaryColor={primaryColor}
+                storeTypes={storeTypes}
                 variant="sidebar-mark"
               />
             )}
