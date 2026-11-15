@@ -17,7 +17,10 @@ import type {
 } from "@/lib/public-storefront";
 import type { LandingContent } from "@/lib/storefront-templates";
 
-const HERO_WORD_CAP = 20;
+const HERO_WORD_CAP = 60;
+const SERVICE_CAP = 16;
+const SERVICE_WORD_CAP = 24;
+const MINUTES_IN_HOUR = 60;
 const HERO_CELL_CAP = 4;
 const TEASER_CAP = 8;
 const MARQUEE_CAP = 10;
@@ -25,6 +28,7 @@ const PROMISE_CAP = 4;
 
 export type ComingSoonChipKind =
   | "products"
+  | "services"
   | "place"
   | "hours"
   | "pay"
@@ -61,6 +65,40 @@ export type ComingSoonStat = {
   label: string;
 };
 
+export type ComingSoonShelfItem = {
+  id: string;
+  name: string;
+  price: string;
+  imageUrl: string | null;
+  imageAlt: string;
+};
+
+export type ComingSoonServiceInput = {
+  id: string;
+  name: string;
+  description?: string | null;
+  durationMinutes?: number | null;
+  price?: number | null;
+  priceIsVariable?: boolean;
+  imageUrl?: string | null;
+};
+
+export type ComingSoonService = {
+  id: string;
+  name: string;
+  description: string | null;
+  duration: string | null;
+  price: string;
+  imageUrl: string | null;
+  imageAlt: string;
+};
+
+export type ComingSoonPhotos = {
+  hero: string | null;
+  story: string | null;
+  visit: string | null;
+};
+
 export type ComingSoonEditorialInput = {
   storeName: string;
   landingContent?: LandingContent | null;
@@ -75,6 +113,7 @@ export type ComingSoonEditorialInput = {
   deliveryAreaNames?: readonly string[] | null;
   countryCode?: string | null;
   heroFallbackUrl?: string | null;
+  services?: readonly ComingSoonServiceInput[] | null;
 };
 
 export type ComingSoonEditorialContent = {
@@ -82,10 +121,21 @@ export type ComingSoonEditorialContent = {
   firstWord: string;
   eyebrow: string;
   headline: {
-    mode: "editorial" | "custom";
+    mode: "shop" | "custom";
     lines: readonly string[];
     accentIndex: number;
   };
+  shelf: ComingSoonShelfItem[];
+  services: ComingSoonService[];
+  photos: ComingSoonPhotos;
+  collectionNames: string[];
+  storyTitle: string | null;
+  storyBody: string | null;
+  storyQuote: string | null;
+  address: string | null;
+  hours: string | null;
+  visitTitle: string | null;
+  ctaLabel: string | null;
   description: string;
   chips: ComingSoonChip[];
   heroCells: ComingSoonHeroCell[];
@@ -129,19 +179,22 @@ export function buildComingSoonEditorial(
     HERO_WORD_CAP,
   );
 
-  const heroCells = items.slice(0, HERO_CELL_CAP).map((item) => {
-    const name = shelfName(item.name);
-    return {
-      name,
-      price: formatShelfPrice(currency, item.price),
-      imageUrl: item.imageUrl?.trim() || null,
-      imageAlt: name,
-    };
-  });
+  const shelf = items
+    .map((item) => toShelfItem(item, currency))
+    .filter((item) => item.name);
+  const heroCells = shelf.slice(0, HERO_CELL_CAP).map((item) => ({
+    name: item.name,
+    price: item.price,
+    imageUrl: item.imageUrl,
+    imageAlt: item.imageAlt,
+  }));
+  const services = mapServices(input.services, currency);
+  const landing = input.landingContent;
 
   const teasers = buildTeasers(categories, items.slice(HERO_CELL_CAP), currency);
   const chips = buildChips({
     productCount,
+    serviceCount: services.length,
     place,
     hours,
     currency,
@@ -161,10 +214,25 @@ export function buildComingSoonEditorial(
     displayName,
     firstWord,
     eyebrow: displayName,
-    headline: resolveHeadline(displayName, input.landingContent?.headline),
+    headline: resolveHeadline(displayName, landing?.headline),
     description,
     chips,
     heroCells,
+    shelf,
+    services,
+    photos: {
+      hero: input.heroFallbackUrl?.trim() || null,
+      story: landing?.storyImageUrl?.trim() || null,
+      visit: landing?.visitImageUrl?.trim() || null,
+    },
+    collectionNames: categories.map((cat) => cat.name.trim()).filter(Boolean),
+    storyTitle: landing?.storyTitle?.trim() || null,
+    storyBody: landing?.storyBody?.trim() || null,
+    storyQuote: landing?.storyQuote?.trim() || null,
+    address: landing?.address?.trim() || null,
+    hours,
+    visitTitle: landing?.visitTitle?.trim() || null,
+    ctaLabel: landing?.ctaLabel?.trim() || null,
     heroFallbackUrl: input.heroFallbackUrl?.trim() || null,
     floatingTag: buildFloatingTag({ productCount, place, hours, items }),
     marquee: buildMarquee(displayName, items, categories, types),
@@ -198,9 +266,9 @@ function resolveHeadline(
     return { mode: "custom", lines, accentIndex: Math.min(1, lines.length - 1) };
   }
   return {
-    mode: "editorial",
-    lines: ["Something", "worth", "waiting for."],
-    accentIndex: 1,
+    mode: "shop",
+    lines: [storeName],
+    accentIndex: 0,
   };
 }
 
@@ -228,7 +296,7 @@ function resolveDescription(opts: {
   if (productNames.length > 0) {
     return `${opts.displayName} is opening with ${listPhrase(productNames)}.`;
   }
-  return `${opts.displayName} is opening online. Be first to shop.`;
+  return `${opts.displayName} is opening online.`;
 }
 
 function pickShelfItems(
@@ -314,6 +382,7 @@ function firstPlace(
 
 function buildChips(opts: {
   productCount: number;
+  serviceCount: number;
   place: string | null;
   hours: string | null;
   currency: string | null;
@@ -325,6 +394,11 @@ function buildChips(opts: {
     chips.push({
       kind: "products",
       label: `${formatCount(opts.productCount)} ${opts.productCount === 1 ? "product" : "products"}`,
+    });
+  } else if (opts.serviceCount > 0) {
+    chips.push({
+      kind: "services",
+      label: `${formatCount(opts.serviceCount)} ${opts.serviceCount === 1 ? "service" : "services"}`,
     });
   }
   if (opts.place) {
@@ -536,6 +610,55 @@ function formatShelfPrice(
 ): string {
   if (amount == null || !Number.isFinite(amount)) return "";
   return formatMoney(amount, resolveCurrencyCode(currency));
+}
+
+function toShelfItem(
+  item: PublicCatalogItemCard,
+  currency: string | null,
+): ComingSoonShelfItem {
+  const name = shelfName(item.name);
+  return {
+    id: item.id,
+    name,
+    price: formatShelfPrice(currency, item.price),
+    imageUrl: item.imageUrl?.trim() || null,
+    imageAlt: name,
+  };
+}
+
+function mapServices(
+  services: readonly ComingSoonServiceInput[] | null | undefined,
+  currency: string | null,
+): ComingSoonService[] {
+  const out: ComingSoonService[] = [];
+  for (const service of services ?? []) {
+    if (out.length >= SERVICE_CAP) break;
+    const name = service.name?.trim() ?? "";
+    if (!name) continue;
+    const price = formatShelfPrice(currency, service.price);
+    out.push({
+      id: service.id,
+      name,
+      description: service.description?.trim()
+        ? clipWords(service.description, SERVICE_WORD_CAP)
+        : null,
+      duration: formatDuration(service.durationMinutes),
+      price: price && service.priceIsVariable ? `from ${price}` : price,
+      imageUrl: service.imageUrl?.trim() || null,
+      imageAlt: name,
+    });
+  }
+  return out;
+}
+
+function formatDuration(minutes: number | null | undefined): string | null {
+  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
+  const whole = Math.round(minutes);
+  if (whole < MINUTES_IN_HOUR) return `${whole} min`;
+  const hours = Math.floor(whole / MINUTES_IN_HOUR);
+  const rest = whole % MINUTES_IN_HOUR;
+  if (rest === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+  return `${hours} hr ${rest} min`;
 }
 
 function showsMpesa(

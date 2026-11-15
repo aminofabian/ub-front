@@ -24,7 +24,7 @@ import {
   primaryStorefrontArea,
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
-import { fetchPublicBookingInfo } from "@/lib/public-booking";
+import { fetchPublicShopInfo } from "@/lib/public-booking";
 import { parseStorefrontPreview } from "@/lib/storefront-preview";
 import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
 import {
@@ -179,7 +179,7 @@ export async function StorefrontCatalogHome({
     !q && !categoryId && !resolvedTypeId && (list?.items.length ?? 0) === 0;
   const booking =
     shelfEmpty && !preview.landingId && !preview.themeId
-      ? await fetchPublicBookingInfo(slug).catch(() => null)
+      ? await fetchPublicShopInfo(slug).catch(() => null)
       : null;
   if (booking && booking.services.length > 0) {
     return (
@@ -221,6 +221,8 @@ export async function StorefrontCatalogHome({
     (!preview.themeId && (tenant?.storefrontEnabled === false || !list));
 
   if (showLanding) {
+    const shopInfo =
+      booking ?? (await fetchPublicShopInfo(slug).catch(() => null));
     const Landing = resolveLandingPage(landingTemplateId);
     return (
       <>
@@ -258,6 +260,7 @@ export async function StorefrontCatalogHome({
             featured[0]?.imageUrl?.trim() ||
             null
           }
+          services={shopInfo?.services ?? []}
         />
         <WhatsAppLandingCta slug={slug} storeName={storeName} />
       </>

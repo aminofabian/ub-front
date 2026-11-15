@@ -6,6 +6,7 @@ import type {
   PublicDepartment,
   PublicStorefrontPayload,
 } from "@/lib/public-storefront";
+import type { ComingSoonServiceInput } from "@/lib/coming-soon-editorial";
 import type { LandingContent, StoreThemeId } from "@/lib/storefront-templates";
 import type { StorefrontDesign } from "@/lib/storefront-design";
 
@@ -65,4 +66,5 @@ export type LandingTemplateProps = {
   deliveryAreaNames?: string[];
   countryCode?: string | null;
   heroFallbackUrl?: string | null;
+  services?: readonly ComingSoonServiceInput[] | null;
 };

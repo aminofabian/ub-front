@@ -17,6 +17,7 @@ export function ComingSoonEditorialLanding(props: LandingTemplateProps) {
     deliveryAreaNames: props.deliveryAreaNames,
     countryCode: props.countryCode,
     heroFallbackUrl: props.heroFallbackUrl,
+    services: props.services,
   });
 
   return (
@@ -27,6 +28,7 @@ export function ComingSoonEditorialLanding(props: LandingTemplateProps) {
         primaryHex={props.primaryHex}
         accentHex={props.accentHex}
         content={content}
+        landingContent={props.landingContent ?? null}
       />
     </div>
   );

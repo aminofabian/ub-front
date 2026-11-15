@@ -1,49 +1,41 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
-import {
-  ArrowRight,
-  Clock,
-  CreditCard,
-  MapPin,
-  Package,
-  Truck,
-} from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRef, useState, type ReactNode } from "react";
 
-import { TenantMonogramLockup } from "@/components/brand/tenant-monogram";
-import { cormorant } from "@/app/fonts/cormorant";
-import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
 import { LandingAccountAction } from "@/components/storefront/templates/landing/shared";
-import { buildComingSoonTheme, type ComingSoonTheme } from "@/lib/coming-soon-theme";
-import type {
-  ComingSoonChip,
-  ComingSoonEditorialContent,
-  ComingSoonHeroCell,
-  ComingSoonTeaser,
-} from "@/lib/coming-soon-editorial";
-import { APP_ROUTES } from "@/lib/config";
-import { hasAccessSession } from "@/lib/auth";
-import { fetchMe } from "@/lib/api";
+import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
+import { pickReadableTextColor } from "@/lib/branding-color-presets";
+import { useComingSoonStaff } from "@/hooks/use-coming-soon-staff";
+import {
+  openStorefrontFromLanding,
+  saveComingSoonPhoto,
+} from "@/lib/coming-soon-landing-edit";
+import type { ComingSoonEditorialContent } from "@/lib/coming-soon-editorial";
+import { buildComingSoonTheme } from "@/lib/coming-soon-theme";
+import {
+  COMING_SOON_PHOTO_FIELDS,
+  comingSoonPhotoKey,
+  type ComingSoonPhotoSlot,
+} from "@/lib/coming-soon-photos";
+import {
+  STOREFRONT_PREVIEW_DESIGN_PARAM,
+  STOREFRONT_PREVIEW_LANDING_PARAM,
+  STOREFRONT_PREVIEW_THEME_PARAM,
+} from "@/lib/storefront-preview";
+import type { LandingContent } from "@/lib/storefront-templates";
 import { cn } from "@/lib/utils";
 
-const CHIP_ICON = {
-  products: Package,
-  place: MapPin,
-  hours: Clock,
-  pay: CreditCard,
-  delivery: Truck,
-} as const;
+const SHELF_ID = "shelf";
+const SERVICES_ID = "services";
+const STORY_ID = "story";
+const VISIT_ID = "visit";
+
+const PHOTO_NOUN: Record<ComingSoonPhotoSlot, string> = {
+  cover: "cover photo",
+  story: "story photo",
+  shop: "shop photo",
+};
 
 export type ShopStorefrontComingSoonProps = {
   storeName: string;
@@ -51,979 +43,564 @@ export type ShopStorefrontComingSoonProps = {
   primaryHex?: string | null;
   accentHex?: string | null;
   content: ComingSoonEditorialContent;
+  landingContent?: LandingContent | null;
 };
 
 export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
-  return (
-    <Suspense
-      fallback={
-        <ComingSoonPage
-          {...props}
-          ownerState="unknown"
-          ownerHubHref={APP_ROUTES.business}
-          loginHref={APP_ROUTES.staffLogin}
-        />
-      }
-    >
-      <ShopStorefrontComingSoonInner {...props} />
-    </Suspense>
-  );
-}
-
-function ShopStorefrontComingSoonInner({
-  storeName,
-  logoUrl,
-  primaryHex,
-  accentHex,
-  content,
-}: ShopStorefrontComingSoonProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [ownerState, setOwnerState] = useState<
-    "unknown" | "guest" | "owner" | "other"
-  >("unknown");
-
-  const ownerHubHref = APP_ROUTES.business;
-  const loginHref = `${APP_ROUTES.staffLogin}?mode=office&next=${encodeURIComponent(ownerHubHref)}`;
-
-  const resolveOwner = useCallback(async () => {
-    if (!hasAccessSession()) {
-      setOwnerState("guest");
-      return false;
-    }
-    try {
-      const me = await fetchMe();
-      const isOwner = (me.role?.key ?? "").trim().toLowerCase() === "owner";
-      setOwnerState(isOwner ? "owner" : "other");
-      return isOwner;
-    } catch {
-      setOwnerState("guest");
-      return false;
-    }
-  }, []);
-
-  useEffect(() => {
-    void (async () => {
-      const isOwner = await resolveOwner();
-      if (isOwner && searchParams.get("setup") === "storefront") {
-        router.replace(ownerHubHref);
-      }
-    })();
-  }, [resolveOwner, searchParams, router, ownerHubHref]);
-
-  return (
-    <ComingSoonPage
-      storeName={storeName}
-      logoUrl={logoUrl}
-      primaryHex={primaryHex}
-      accentHex={accentHex}
-      content={content}
-      ownerState={ownerState}
-      ownerHubHref={ownerHubHref}
-      loginHref={loginHref}
-    />
-  );
-}
-
-function ComingSoonPage({
-  logoUrl,
-  primaryHex,
-  accentHex,
-  content,
-  ownerState,
-  ownerHubHref,
-  loginHref,
-}: ShopStorefrontComingSoonProps & {
-  ownerState: "unknown" | "guest" | "owner" | "other";
-  ownerHubHref: string;
-  loginHref: string;
-}) {
-  const theme = useMemo(
-    () => buildComingSoonTheme(primaryHex, accentHex),
-    [primaryHex, accentHex],
+  const staff = useComingSoonStaff();
+  const theme = buildComingSoonTheme(props.primaryHex, props.accentHex);
+  const [photos, setPhotos] = useState(props.content.photos);
+  const [landing, setLanding] = useState<LandingContent | null>(
+    props.landingContent ?? null,
   );
 
-  return (
-    <ComingSoonPageBody
-      logoUrl={logoUrl}
-      theme={theme}
-      content={content}
-      ownerState={ownerState}
-      ownerHubHref={ownerHubHref}
-      loginHref={loginHref}
-    />
-  );
-}
-
-function ComingSoonPageBody({
-  logoUrl,
-  theme,
-  content,
-  ownerState,
-  ownerHubHref,
-  loginHref,
-}: {
-  logoUrl?: string | null;
-  theme: ComingSoonTheme;
-  content: ComingSoonEditorialContent;
-  ownerState: "unknown" | "guest" | "owner" | "other";
-  ownerHubHref: string;
-  loginHref: string;
-}) {
-  const promiseRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const { displayName } = content;
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add(styles.promiseCardVisible);
-          }
-        });
-      },
-      { threshold: 0.12 },
-    );
-    promiseRefs.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [content.promises]);
-
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const onPhoto = (slot: ComingSoonPhotoSlot, next: LandingContent) => {
+    const url = next[COMING_SOON_PHOTO_FIELDS[slot]]?.trim() || null;
+    setLanding(next);
+    setPhotos((current) => ({ ...current, [comingSoonPhotoKey(slot)]: url }));
   };
 
-  return (
-    <div
-      className={cn(cormorant.variable, styles.page)}
-      style={theme.cssVars as CSSProperties}
-    >
-      <nav
-        className={cn(
-          styles.nav,
-          "fixed inset-x-0 top-0 z-[100] flex items-center justify-between gap-2 border-b border-[var(--cs-border)] bg-[color-mix(in_srgb,var(--cs-warm-white)_88%,transparent)] px-4 py-5 backdrop-blur-[20px] sm:gap-3 sm:px-12",
-        )}
-      >
-        <a
-          href="#"
-          className={cn(
-            styles.serif,
-            "text-[20px] font-medium tracking-[0.04em] text-[var(--cs-charcoal)] no-underline sm:text-[22px]",
-          )}
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        >
-          {logoUrl?.trim() ? (
-            <Image
-              src={logoUrl}
-              alt={displayName}
-              width={120}
-              height={40}
-              className="max-h-8 w-auto object-contain"
-              unoptimized
-            />
-          ) : (
-            <TenantMonogramLockup
-              brand={displayName}
-              primaryColor={theme.primary}
-              size="sm"
-              showTagline={false}
-            />
-          )}
-        </a>
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <LandingAccountAction className="whitespace-nowrap rounded-full border border-[var(--cs-border-subtle)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--cs-charcoal)] no-underline transition-colors hover:bg-[var(--cs-cream)] sm:px-3.5 sm:text-[11px] sm:tracking-[0.14em]" />
-          <span
-            className="hidden whitespace-nowrap rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] min-[380px]:inline-flex"
-            style={{
-              borderColor: `color-mix(in srgb, ${theme.primary} 28%, transparent)`,
-              backgroundColor: theme.accentPale,
-              color: theme.primaryDeep,
-            }}
-          >
-            Opening Soon
-          </span>
-        </div>
-      </nav>
-
-      <MarqueeRibbon items={content.marquee} theme={theme} />
-
-      <section className="relative grid min-h-[100dvh] grid-cols-1 overflow-hidden lg:grid-cols-2">
-        <div
-          className={cn(
-            styles.heroPanel,
-            styles.heroGlow,
-            "relative flex flex-col justify-center px-6 pb-16 pt-24 sm:px-12 lg:px-12 lg:pb-20 lg:pl-12 xl:pl-12",
-          )}
-        >
-          <div className={cn(styles.heroEyebrow, "mb-8 flex items-center gap-3")}>
-            <div
-              className="h-px w-8 shrink-0"
-              style={{ backgroundColor: theme.primary }}
-            />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--cs-warm-gray)]">
-              {content.eyebrow}
-            </span>
-          </div>
-
-          <h1
-            className={cn(
-              styles.serif,
-              styles.heroTitle,
-              "mb-6 text-[clamp(44px,5.6vw,84px)] font-light leading-[1.05] tracking-[-0.02em] text-[var(--cs-charcoal)]",
-            )}
-          >
-            {content.headline.lines.map((line, i) => (
-              <span key={`${line}-${i}`}>
-                {i > 0 ? <br /> : null}
-                {i === content.headline.accentIndex ? (
-                  <em
-                    className="font-light italic leading-[1.1]"
-                    style={{ color: theme.primary }}
-                  >
-                    {line}
-                  </em>
-                ) : (
-                  line
-                )}
-              </span>
-            ))}
-          </h1>
-
-          <p
-            className={cn(
-              styles.heroDesc,
-              "mb-8 max-w-[42ch] text-[15px] font-light leading-[1.75] text-[var(--cs-warm-gray)]",
-            )}
-          >
-            {content.description}
-          </p>
-
-          {content.chips.length > 0 ? (
-            <HeroChips chips={content.chips} theme={theme} />
-          ) : null}
-
-          <div
-            className={cn(
-              styles.heroActions,
-              "mt-10 flex flex-wrap items-center gap-4",
-            )}
-          >
-            {ownerState === "owner" ? (
-              <Link
-                href={ownerHubHref}
-                className={cn(
-                  styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
-                )}
-              >
-                <span className="relative z-[1]">Finish shop setup</span>
-                <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
-              </Link>
-            ) : ownerState === "guest" ? (
-              <Link
-                href={loginHref}
-                className={cn(
-                  styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
-                )}
-              >
-                <span className="relative z-[1]">Owner sign in</span>
-                <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
-              </Link>
-            ) : ownerState === "other" ? (
-              // Signed-in shopper: no catalogue to sell from yet, but their
-              // account may already hold orders, credit or a tab.
-              <Link
-                href={APP_ROUTES.shopAccount}
-                className={cn(
-                  styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
-                )}
-              >
-                <span className="relative z-[1]">See your orders</span>
-                <ArrowRight className="relative z-[1] size-3.5" aria-hidden />
-              </Link>
-            ) : null}
-            {content.promises.length > 0 || content.teasers.length > 0 ? (
-              <button
-                type="button"
-                className={cn(
-                  styles.btnGhost,
-                  "inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[13px] font-normal tracking-[0.06em] transition-colors",
-                )}
-                onClick={() => scrollTo("discover")}
-              >
-                A look inside
-                <ArrowRight className="size-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          {ownerState === "owner" ? (
-            <p className="mt-4 text-xs text-[var(--cs-warm-gray)]">
-              You&apos;re signed in as the owner. Finish setup in your business hub.
-            </p>
-          ) : null}
-
-          {content.stats.length > 0 ? (
-            <div className={cn(styles.heroCountdown, "mt-14")}>
-              <LaunchStats stats={content.stats} theme={theme} />
-            </div>
-          ) : null}
-        </div>
-
-        <HeroVisualPanel
-          theme={theme}
-          cells={content.heroCells}
-          fallbackUrl={content.heroFallbackUrl}
-          storeName={displayName}
-          logoUrl={logoUrl}
-          tag={content.floatingTag}
-        />
-      </section>
-
-      {content.promises.length > 0 ? (
-        <>
-          <div className={cn(styles.sectionRule, "mx-6 sm:mx-12")} aria-hidden />
-          <section id="discover" className="mx-auto max-w-[1200px] px-6 py-20 sm:px-12">
-            <div className="mb-10 max-w-[36rem]">
-              <h2
-                className={cn(
-                  styles.serif,
-                  "text-[clamp(32px,4vw,44px)] font-light leading-tight text-[var(--cs-charcoal)]",
-                )}
-              >
-                {content.shelfHeading}
-              </h2>
-            </div>
-            <div
-              className={cn(
-                styles.promiseGrid,
-                "grid grid-cols-1 sm:grid-cols-2",
-                content.promises.length > 2 ? "lg:grid-cols-4" : "lg:grid-cols-2",
-              )}
-            >
-              {content.promises.map((p, i) => (
-                <div
-                  key={p.key}
-                  ref={(el) => {
-                    promiseRefs.current[i] = el;
-                  }}
-                  className={cn(styles.promiseCard, "p-7 sm:p-8")}
-                  style={{ transitionDelay: `${i * 0.1}s` }}
-                >
-                  <div className="mb-5 flex items-start justify-between gap-3">
-                    {p.imageUrl ? (
-                      <span className="relative size-12 overflow-hidden rounded-xl">
-                        <Image
-                          src={p.imageUrl}
-                          alt=""
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          styles.promiseIcon,
-                          "inline-flex size-10 items-center justify-center rounded-xl",
-                        )}
-                      >
-                        <Package className="size-[18px]" strokeWidth={1.75} aria-hidden />
-                      </span>
-                    )}
-                    <span
-                      className={cn(
-                        styles.serif,
-                        "text-[12px] font-light tracking-[0.12em]",
-                      )}
-                      style={{ color: theme.primary }}
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <h3
-                    className={cn(
-                      styles.serif,
-                      "mb-2.5 text-[22px] font-normal leading-tight text-[var(--cs-charcoal)]",
-                    )}
-                  >
-                    {p.title}
-                  </h3>
-                  <p className="text-[13px] font-light leading-[1.65] text-[var(--cs-warm-gray)]">
-                    {p.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      ) : (
-        <div id="discover" />
-      )}
-
-      {content.teasers.length > 0 ? (
-        <>
-          <div className={cn(styles.sectionRule, "mx-6 sm:mx-12")} aria-hidden />
-          <CategoriesTeaser teasers={content.teasers} theme={theme} />
-        </>
-      ) : null}
-
-      <section
-        id="notify"
-        className={cn(styles.notifySection, "relative overflow-hidden px-6 py-20 sm:px-12")}
-      >
-        <div className={cn(styles.notifyGlow, "pointer-events-none absolute inset-0")} aria-hidden />
-        <p
-          className={cn(
-            styles.serif,
-            styles.notifyWatermark,
-            "pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-[clamp(80px,14vw,180px)] font-light tracking-[-0.04em]",
-          )}
-          aria-hidden
-        >
-          {content.firstWord}
-        </p>
-        <div className="relative z-[1] mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          <div>
-            <h2
-              className={cn(
-                styles.serif,
-                "mb-4 text-[42px] font-light leading-[1.1] text-[var(--cs-on-dark)]",
-              )}
-            >
-              {ownerState === "owner" ? (
-                <>
-                  Go live
-                  <br />
-                  <em
-                    className="font-normal italic leading-[1.1]"
-                    style={{ color: theme.accentLight }}
-                  >
-                    today.
-                  </em>
-                </>
-              ) : (
-                <>
-                  Be first
-                  <br />
-                  <em
-                    className="font-normal italic leading-[1.1]"
-                    style={{ color: theme.accentLight }}
-                  >
-                    in line.
-                  </em>
-                </>
-              )}
-            </h2>
-            <p className="text-sm font-light leading-[1.7] text-[var(--cs-on-dark-muted)]">
-              {ownerState === "owner"
-                ? "Choose your branch location and enable your public catalog. Shoppers will see stock and prices from that branch."
-                : `${displayName} is still setting up. Once the catalogue is published, stock and prices appear right here.`}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {ownerState === "owner" ? (
-              <Link
-                href={ownerHubHref}
-                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.onPrimary,
-                }}
-              >
-                Continue setup
-              </Link>
-            ) : ownerState === "guest" ? (
-              <Link
-                href={loginHref}
-                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.onPrimary,
-                }}
-              >
-                Owner sign in to set up
-              </Link>
-            ) : ownerState === "other" ? (
-              <Link
-                href={APP_ROUTES.shopAccount}
-                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
-                style={{
-                  backgroundColor: theme.primary,
-                  color: theme.onPrimary,
-                }}
-              >
-                See your orders
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <footer
-        className={cn(
-          styles.notifySection,
-          "flex flex-col items-center justify-between gap-6 border-t border-[color-mix(in_srgb,var(--cs-on-dark)_8%,transparent)] px-6 py-12 sm:flex-row sm:px-12",
-        )}
-      >
-        <div
-          className={cn(
-            styles.serif,
-            "text-2xl font-light tracking-[0.04em] text-[var(--cs-on-dark)]",
-          )}
-        >
-          {displayName}
-        </div>
-        <div className="flex flex-wrap justify-center gap-8">
-          {content.contactHref && content.contactLabel ? (
-            <a
-              href={content.contactHref}
-              className="text-xs uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--cs-on-dark)_62%,transparent)] no-underline hover:text-[var(--cs-on-dark)]"
-            >
-              {content.contactLabel}
-            </a>
-          ) : null}
-        </div>
-        <p className="text-[11px] tracking-[0.04em] text-[color-mix(in_srgb,var(--cs-on-dark)_22%,transparent)]">
-          {content.footerPlace
-            ? `${new Date().getFullYear()} ${displayName}. ${content.footerPlace}.`
-            : `${new Date().getFullYear()} ${displayName}.`}
-        </p>
-      </footer>
-    </div>
+  const manager = staff === "manager";
+  const plateGrounds = [theme.darkBg, theme.darkBgMid, theme.primaryDeep, theme.primary];
+  const showStory = Boolean(
+    photos.story || props.content.storyTitle || props.content.storyBody || props.content.storyQuote,
   );
-}
-
-function HeroVisualPanel({
-  theme,
-  cells,
-  fallbackUrl,
-  storeName,
-  logoUrl,
-  tag,
-}: {
-  theme: ComingSoonTheme;
-  cells: ComingSoonHeroCell[];
-  fallbackUrl: string | null;
-  storeName: string;
-  logoUrl?: string | null;
-  tag: { title: string; subtitle: string } | null;
-}) {
-  const count = cells.length;
-  const gridClass =
-    count <= 1
-      ? "grid-cols-1 grid-rows-1"
-      : count === 2
-        ? "grid-cols-2 grid-rows-1"
-        : "grid-cols-2 grid-rows-2";
+  const showVisit = Boolean(
+    photos.visit ||
+      props.content.address ||
+      props.content.hours ||
+      props.content.visitTitle ||
+      props.content.contactHref,
+  );
 
   return (
-    <div
-      className={cn(styles.heroVisual, "relative min-h-[min(420px,50vh)] lg:min-h-full")}
-    >
-      <HeroDecoCircles />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-90"
-        style={{
-          background: `radial-gradient(ellipse 90% 70% at 80% 20%, color-mix(in srgb, ${theme.primary} 28%, transparent), transparent 55%)`,
-        }}
-        aria-hidden
+    <div id="top" className={styles.page} style={theme.cssVars}>
+      <header className={styles.header}>
+        <div className={styles.nav}>
+          <Wordmark name={props.content.displayName} logoUrl={props.logoUrl} />
+          <SectionLinks
+            shelf={props.content.shelf.length > 0}
+            services={props.content.services.length > 0}
+            story={showStory}
+            visit={showVisit}
+          />
+          <LandingAccountAction className={styles.account} />
+        </div>
+        {manager ? (
+          <ManagerBar
+            photos={photos}
+            landing={landing}
+            onPhoto={onPhoto}
+          />
+        ) : null}
+      </header>
+      <Hero
+        content={props.content}
+        photos={photos}
+        manager={manager}
+        landing={landing}
+        onPhoto={onPhoto}
       />
-      {count === 0 ? (
-        <BrandEmptyHero
-          theme={theme}
-          storeName={storeName}
-          logoUrl={logoUrl}
-          fallbackUrl={fallbackUrl}
-        />
-      ) : (
-        <div
-          className={cn(
-            styles.visualGrid,
-            "absolute inset-0 grid gap-px bg-black/25",
-            gridClass,
-          )}
-        >
-          {cells.map((cell, index) => (
-            <div
-              key={`${cell.name}-${index}`}
-              className={cn(
-                styles.heroCell,
-                "group relative overflow-hidden",
-                count === 3 && index === 0 ? "row-span-2" : "",
-              )}
-              style={{ background: theme.darkBgMid }}
-            >
-              {cell.imageUrl ? (
-                <Image
-                  src={cell.imageUrl}
-                  alt={cell.imageAlt}
-                  fill
-                  sizes="(max-width: 1024px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  priority={index < 2}
-                  unoptimized
-                />
-              ) : (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: `linear-gradient(160deg, color-mix(in srgb, ${theme.primary} ${18 + index * 6}%, ${theme.darkBgMid}), ${theme.darkBg})`,
-                  }}
-                />
-              )}
-              <div
-                className={cn(styles.heroCellOverlay, "absolute inset-0")}
-                aria-hidden
-              />
-              <HeroCellLabel cell={cell} />
-            </div>
-          ))}
-        </div>
-      )}
-      {tag ? (
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
-          <div
-            className={cn(
-              styles.floatingTag,
-              "pointer-events-auto relative left-0 flex w-fit max-w-[calc(100%-2rem)] items-center gap-3 bg-[var(--cs-warm-white)] px-6 py-4 shadow-[0_8px_40px_rgba(0,0,0,0.12)] sm:-left-6",
-            )}
-          >
-            <span
-              className="flex size-9 shrink-0 items-center justify-center rounded-full"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${theme.primary} 14%, white)`,
-                color: theme.primaryDeep,
-              }}
-            >
-              <Package className="size-4" strokeWidth={1.75} aria-hidden />
-            </span>
-            <span className="text-xs tracking-[0.02em] text-[var(--cs-charcoal)]">
-              <strong className="mb-0.5 block text-[13px] font-medium">
-                {tag.title}
-              </strong>
-              {tag.subtitle}
-            </span>
-          </div>
-        </div>
+      {props.content.shelf.length > 0 ? (
+        <Shelf content={props.content} grounds={plateGrounds} />
       ) : null}
+      {props.content.services.length > 0 ? (
+        <ServiceList services={props.content.services} />
+      ) : null}
+      {showStory ? (
+        <Story
+          content={props.content}
+          photo={photos.story}
+          manager={manager}
+          landing={landing}
+          onPhoto={onPhoto}
+        />
+      ) : null}
+      {showVisit ? (
+        <Visit
+          content={props.content}
+          photo={photos.visit}
+          manager={manager}
+          landing={landing}
+          onPhoto={onPhoto}
+        />
+      ) : null}
+      <p className={styles.foot}>
+        {props.content.displayName}
+        {props.content.footerPlace ? ` · ${props.content.footerPlace}` : ""}
+      </p>
     </div>
   );
 }
 
-function BrandEmptyHero({
-  theme,
-  storeName,
-  logoUrl,
-  fallbackUrl,
-}: {
-  theme: ComingSoonTheme;
-  storeName: string;
-  logoUrl?: string | null;
-  fallbackUrl: string | null;
-}) {
-  if (fallbackUrl) {
+function Wordmark({ name, logoUrl }: { name: string; logoUrl?: string | null }) {
+  if (logoUrl?.trim()) {
     return (
-      <div className="absolute inset-0 overflow-hidden">
+      <a className={styles.wordmark} href="#top" aria-label={name}>
         <Image
-          src={fallbackUrl}
+          src={logoUrl}
           alt=""
-          fill
-          sizes="50vw"
-          className="object-cover"
-          priority
+          width={140}
+          height={40}
+          className={styles.logo}
           unoptimized
         />
-        <div
-          className={cn(styles.heroCellOverlay, "absolute inset-0")}
-          aria-hidden
-        />
-        <p
-          className={cn(
-            styles.serif,
-            "absolute inset-x-8 bottom-24 text-[clamp(28px,4vw,48px)] font-light text-[var(--cs-on-dark)]",
-          )}
-        >
-          {storeName}
-        </p>
-      </div>
+      </a>
     );
   }
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-8">
-      {logoUrl?.trim() ? (
-        <Image
-          src={logoUrl}
-          alt={storeName}
-          width={160}
-          height={64}
-          className="max-h-16 w-auto object-contain"
-          unoptimized
-        />
-      ) : (
-        <TenantMonogramLockup
-          brand={storeName}
-          primaryColor={theme.primary}
-          size="lg"
-          showTagline={false}
-          tone="dark"
-        />
-      )}
-      <p
-        className={cn(
-          styles.serif,
-          "text-center text-[clamp(28px,3vw,40px)] font-light text-[var(--cs-on-dark)]",
-        )}
-      >
-        {storeName}
-      </p>
-    </div>
+    <a className={styles.wordmark} href="#top">
+      {name}
+    </a>
   );
 }
 
-function HeroDecoCircles() {
-  return (
-    <>
-      <div
-        className={cn(
-          styles.decoRing,
-          "pointer-events-none absolute -right-24 -top-24 size-[400px] rounded-full border",
-        )}
-        aria-hidden
-      />
-      <div
-        className={cn(
-          styles.decoRing,
-          "pointer-events-none absolute bottom-20 left-8 size-[220px] rounded-full border",
-        )}
-        aria-hidden
-      />
-    </>
-  );
-}
-
-function HeroCellLabel({ cell }: { cell: ComingSoonHeroCell }) {
-  return (
-    <div className={cn(styles.heroCellLabel, "absolute inset-x-5 bottom-5")}>
-      <p
-        className={cn(
-          styles.heroCellLabelMuted,
-          "text-[11px] font-medium uppercase tracking-[0.1em]",
-        )}
-      >
-        {cell.name}
-      </p>
-      {cell.price ? (
-        <p
-          className={cn(
-            styles.serif,
-            styles.heroCellPrice,
-            "mt-0.5 text-xl font-light",
-          )}
-        >
-          {cell.price}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function MarqueeRibbon({
-  items,
-  theme,
-}: {
-  items: string[];
-  theme: ComingSoonTheme;
+function SectionLinks(props: {
+  shelf: boolean;
+  services: boolean;
+  story: boolean;
+  visit: boolean;
 }) {
-  const loop = items.length > 0 ? [...items, ...items, ...items, ...items] : [];
-  if (loop.length === 0) return null;
+  const links = [
+    props.shelf ? { href: `#${SHELF_ID}`, label: "Shop" } : null,
+    props.services ? { href: `#${SERVICES_ID}`, label: "Services" } : null,
+    props.story ? { href: `#${STORY_ID}`, label: "Story" } : null,
+    props.visit ? { href: `#${VISIT_ID}`, label: "Visit" } : null,
+  ].filter((link) => link !== null);
+  if (links.length === 0) return null;
   return (
-    <div
-      className="overflow-hidden border-b py-2.5"
-      style={{
-        borderColor: `color-mix(in srgb, ${theme.primary} 18%, transparent)`,
-        backgroundColor: `color-mix(in srgb, ${theme.primary} 6%, var(--cs-warm-white))`,
-      }}
-    >
-      <div className={cn(styles.marqueeTrack, "flex")}>
-        {loop.map((item, i) => (
-          <span
-            key={`${item}-${i}`}
-            className={cn(
-              styles.marqueeItem,
-              "shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--cs-warm-gray)]",
-            )}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function HeroChips({
-  chips,
-  theme,
-}: {
-  chips: ComingSoonChip[];
-  theme: ComingSoonTheme;
-}) {
-  return (
-    <div className={cn(styles.heroChips, "flex flex-wrap gap-2")}>
-      {chips.map(({ label, kind }) => {
-        const Icon = CHIP_ICON[kind];
-        return (
-          <span
-            key={`${kind}-${label}`}
-            className={cn(
-              styles.heroChip,
-              "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-medium tracking-[0.04em] text-[var(--cs-charcoal)]",
-            )}
-          >
-            <Icon
-              className="size-3.5 shrink-0"
-              style={{ color: theme.primary }}
-              strokeWidth={1.75}
-              aria-hidden
-            />
-            {label}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
-function LaunchStats({
-  stats,
-  theme,
-}: {
-  stats: ComingSoonEditorialContent["stats"];
-  theme: ComingSoonTheme;
-}) {
-  return (
-    <div className="flex flex-wrap gap-3">
-      {stats.map((s, i) => (
-        <div
-          key={`${s.label}-${s.value}`}
-          className={cn(
-            styles.countdownUnit,
-            "min-w-[4.5rem] max-w-[11rem] rounded-xl px-4 py-3 text-center",
-          )}
-          style={
-            i === stats.length - 1
-              ? {
-                  boxShadow: `0 0 0 1px color-mix(in srgb, ${theme.primary} 35%, transparent)`,
-                }
-              : undefined
-          }
-        >
-          <span
-            className={cn(
-              styles.serif,
-              styles.countdownValue,
-              "block truncate text-[28px] font-light leading-none sm:text-[32px]",
-            )}
-          >
-            {s.value}
-          </span>
-          <span className="mt-1 block truncate text-[10px] uppercase tracking-[0.14em] text-[var(--cs-warm-gray)]">
-            {s.label}
-          </span>
-        </div>
+    <nav className={styles.navLinks} aria-label="On this page">
+      {links.map((link) => (
+        <a key={link.href} href={link.href}>
+          {link.label}
+        </a>
       ))}
+    </nav>
+  );
+}
+
+function ManagerBar({
+  photos,
+  landing,
+  onPhoto,
+}: {
+  photos: ComingSoonEditorialContent["photos"];
+  landing: LandingContent | null;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const open = () => {
+    setBusy(true);
+    setMessage(null);
+    void openStorefrontFromLanding()
+      .then(showLiveShop)
+      .catch((reason: unknown) => {
+        setMessage(reason instanceof Error ? reason.message : "Could not open the storefront.");
+        setBusy(false);
+      });
+  };
+
+  return (
+    <div className={styles.manager} role="region" aria-label="Shop controls">
+      <p className={styles.managerNote}>
+        Customers see this page.
+        {message ? <span className={styles.managerError}>{message}</span> : null}
+      </p>
+      <div className={styles.managerActions}>
+        <MissingPhoto slot="cover" url={photos.hero} landing={landing} onPhoto={onPhoto} />
+        <MissingPhoto slot="story" url={photos.story} landing={landing} onPhoto={onPhoto} />
+        <MissingPhoto slot="shop" url={photos.visit} landing={landing} onPhoto={onPhoto} />
+        <button type="button" className={styles.managerOpen} disabled={busy} onClick={open}>
+          {busy ? "Opening" : "Open the storefront"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function CategoriesTeaser({
-  teasers,
-  theme,
-}: {
-  teasers: ComingSoonTeaser[];
-  theme: ComingSoonTheme;
+function MissingPhoto(props: {
+  slot: ComingSoonPhotoSlot;
+  url: string | null;
+  landing: LandingContent | null;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
 }) {
-  const strip = teasers.length >= 4 ? [...teasers, ...teasers] : teasers;
+  if (props.url) return null;
+  return <PhotoActions {...props} compact={false} />;
+}
+
+function showLiveShop() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(STOREFRONT_PREVIEW_THEME_PARAM);
+  url.searchParams.delete(STOREFRONT_PREVIEW_LANDING_PARAM);
+  url.searchParams.delete(STOREFRONT_PREVIEW_DESIGN_PARAM);
+  url.searchParams.delete("setup");
+  window.location.assign(`${url.pathname}${url.search}`);
+}
+
+function PhotoActions({
+  slot,
+  url,
+  landing,
+  compact,
+  onPhoto,
+}: {
+  slot: ComingSoonPhotoSlot;
+  url: string | null;
+  landing: LandingContent | null;
+  compact: boolean;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const noun = PHOTO_NOUN[slot];
+  const replaceLabel = url ? (compact ? "Replace" : `Replace ${noun}`) : `Add ${noun}`;
+
+  const save = (file: File | null) => {
+    setBusy(true);
+    setError(null);
+    void saveComingSoonPhoto(slot, file, landing)
+      .then((next) => onPhoto(slot, next))
+      .catch((reason: unknown) => {
+        const fallback = "Could not update the photo.";
+        setError(reason instanceof Error && reason.message ? reason.message : fallback);
+      })
+      .finally(() => setBusy(false));
+  };
+
   return (
-    <section className="overflow-hidden pb-20 pt-16">
-      <div className="mx-auto mb-10 max-w-[1200px] px-6 sm:px-12">
-        <h2
-          className={cn(
-            styles.serif,
-            "text-[clamp(28px,3.5vw,40px)] font-light text-[var(--cs-charcoal)]",
-          )}
-        >
-          Browse what&apos;s{" "}
-          <em className="italic leading-[1.1]" style={{ color: theme.primary }}>
-            coming
-          </em>
-        </h2>
-      </div>
-      <div
-        className={cn(
-          teasers.length >= 4 ? "overflow-hidden" : "overflow-x-auto",
-          "px-6 sm:px-12",
-        )}
+    <span className={compact ? styles.photoTools : styles.photoActions}>
+      <input
+        ref={inputRef}
+        className={styles.fileInput}
+        type="file"
+        accept="image/*"
+        aria-label={replaceLabel}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) save(file);
+          event.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        className={styles.photoBtn}
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
       >
-        <div
-          className={cn(
-            teasers.length >= 4 ? styles.categoriesStrip : "",
-            "flex gap-4",
-          )}
+        {busy ? "Uploading" : replaceLabel}
+      </button>
+      {url ? (
+        <button
+          type="button"
+          className={styles.photoBtn}
+          disabled={busy}
+          aria-label={`Remove ${noun}`}
+          onClick={() => save(null)}
         >
-          {strip.map((cat, i) => (
-            <div
-              key={`${cat.key}-${i}`}
-              className={cn(
-                styles.catCard,
-                "relative h-[240px] w-[210px] shrink-0 cursor-default overflow-hidden rounded-2xl border border-[var(--cs-border-subtle)]",
-              )}
-              style={
-                cat.imageUrl
-                  ? undefined
-                  : {
-                      background: `linear-gradient(165deg, color-mix(in srgb, ${theme.primary} 22%, ${theme.darkBgMid}), ${theme.darkBg})`,
-                    }
-              }
-            >
-              {cat.imageUrl ? (
-                <Image
-                  src={cat.imageUrl}
-                  alt={cat.name}
-                  fill
-                  sizes="210px"
-                  className={cn(styles.catCardImage, "object-cover")}
-                  unoptimized
-                />
-              ) : null}
-              <div
-                className={cn(styles.catCardOverlay, "absolute inset-0")}
-                aria-hidden
-              />
-              <div className="absolute inset-x-0 bottom-0 z-[2] p-5">
-                <span className="block text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
-                  {cat.name}
-                </span>
-                <span className="mt-1 block text-[11px] text-white/75">
-                  {cat.count}
-                </span>
-              </div>
-            </div>
-          ))}
+          Remove
+        </button>
+      ) : null}
+      {error ? <span className={styles.photoError}>{error}</span> : null}
+    </span>
+  );
+}
+
+function Hero({
+  content,
+  photos,
+  manager,
+  landing,
+  onPhoto,
+}: {
+  content: ComingSoonEditorialContent;
+  photos: ComingSoonEditorialContent["photos"];
+  manager: boolean;
+  landing: LandingContent | null;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
+}) {
+  const action = content.ctaLabel || content.contactLabel;
+  const shopNamed = content.headline.mode === "shop";
+  return (
+    <section aria-label={content.displayName}>
+      {photos.hero ? (
+        <PhotoFrame src={photos.hero} alt={content.displayName} className={styles.heroMedia} sizes="100vw">
+          {manager ? (
+            <PhotoActions slot="cover" url={photos.hero} landing={landing} compact onPhoto={onPhoto} />
+          ) : null}
+        </PhotoFrame>
+      ) : (
+        <div className={styles.heroSign}>
+          {shopNamed ? (
+            <h1 className={styles.heroSignWord}>{content.displayName}</h1>
+          ) : (
+            <p className={styles.heroSignWord}>{content.displayName}</p>
+          )}
         </div>
+      )}
+      <div className={styles.heroSheet}>
+        {photos.hero || !shopNamed ? (
+          <h1 className={styles.title}>{content.headline.lines.join(" ")}</h1>
+        ) : null}
+        <p className={styles.lede}>{content.description}</p>
+        {content.chips.length > 0 ? (
+          <p className={styles.facts}>
+            {content.chips.map((chip, index) => (
+              <span key={chip.kind} className={styles.fact}>
+                {index > 0 ? "· " : ""}
+                {chip.label}
+              </span>
+            ))}
+          </p>
+        ) : null}
+        {content.contactHref && action ? (
+          <ShopContact href={content.contactHref} label={action} />
+        ) : null}
       </div>
     </section>
+  );
+}
+
+function Shelf({
+  content,
+  grounds,
+}: {
+  content: ComingSoonEditorialContent;
+  grounds: readonly string[];
+}) {
+  const count = content.chips.find((chip) => chip.kind === "products")?.label;
+  return (
+    <section id={SHELF_ID} className={styles.block} aria-labelledby="shelf-heading">
+      <div className={styles.blockHead}>
+        <h2 id="shelf-heading">In the shop</h2>
+        {count ? <p className={styles.count}>{count}</p> : null}
+      </div>
+      <ul className={styles.film}>
+        {content.shelf.map((item) => (
+          <li key={item.id} className={styles.filmItem}>
+            <div className={styles.filmPhoto}>
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.imageAlt}
+                  fill
+                  sizes="220px"
+                  className={styles.cover}
+                  unoptimized
+                />
+              ) : (
+                <CatalogPlate name={item.name} id={item.id} grounds={grounds} />
+              )}
+            </div>
+            {item.imageUrl ? <p className={styles.filmName}>{item.name}</p> : null}
+            {item.price ? <p className={styles.filmPrice}>{item.price}</p> : null}
+          </li>
+        ))}
+      </ul>
+      {content.collectionNames.length > 0 ? (
+        <p className={styles.collections}>{content.collectionNames.join("  ·  ")}</p>
+      ) : null}
+    </section>
+  );
+}
+
+function ServiceList({ services }: { services: ComingSoonEditorialContent["services"] }) {
+  return (
+    <section id={SERVICES_ID} className={styles.block} aria-labelledby="services-heading">
+      <div className={styles.blockHead}>
+        <h2 id="services-heading">Services</h2>
+      </div>
+      <ul className={styles.services}>
+        {services.map((service) => (
+          <li key={service.id} className={styles.service}>
+            {service.imageUrl ? (
+              <div className={styles.serviceThumb}>
+                <Image
+                  src={service.imageUrl}
+                  alt=""
+                  fill
+                  sizes="56px"
+                  className={styles.cover}
+                  unoptimized
+                />
+              </div>
+            ) : null}
+            <div className={styles.serviceBody}>
+              <div className={styles.serviceLine}>
+                <span className={styles.serviceName}>{service.name}</span>
+                {service.duration ? (
+                  <span className={styles.serviceMeta}>{service.duration}</span>
+                ) : null}
+                <span className={styles.leader} aria-hidden />
+                {service.price ? (
+                  <span className={styles.servicePrice}>{service.price}</span>
+                ) : null}
+              </div>
+              {service.description ? (
+                <p className={styles.serviceDesc}>{service.description}</p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Story({
+  content,
+  photo,
+  manager,
+  landing,
+  onPhoto,
+}: {
+  content: ComingSoonEditorialContent;
+  photo: string | null;
+  manager: boolean;
+  landing: LandingContent | null;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
+}) {
+  const hasCopy = Boolean(content.storyTitle || content.storyBody || content.storyQuote);
+  return (
+    <section
+      id={STORY_ID}
+      className={cn(styles.story, photo && hasCopy && styles.storySplit)}
+      aria-labelledby={content.storyTitle ? "story-heading" : undefined}
+    >
+      {photo ? (
+        <PhotoFrame
+          src={photo}
+          alt={content.storyTitle || content.displayName}
+          className={styles.storyMedia}
+          sizes="(min-width: 960px) 50vw, 100vw"
+        >
+          {manager ? (
+            <PhotoActions slot="story" url={photo} landing={landing} compact onPhoto={onPhoto} />
+          ) : null}
+        </PhotoFrame>
+      ) : null}
+      {hasCopy ? (
+        <div className={styles.storyCopy}>
+          {content.storyTitle ? <h2 id="story-heading">{content.storyTitle}</h2> : null}
+          {content.storyQuote ? <blockquote className={styles.quote}>{content.storyQuote}</blockquote> : null}
+          {content.storyBody ? <p>{content.storyBody}</p> : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function Visit({
+  content,
+  photo,
+  manager,
+  landing,
+  onPhoto,
+}: {
+  content: ComingSoonEditorialContent;
+  photo: string | null;
+  manager: boolean;
+  landing: LandingContent | null;
+  onPhoto: (slot: ComingSoonPhotoSlot, next: LandingContent) => void;
+}) {
+  const heading = content.visitTitle || content.address || content.hours || content.displayName;
+  const action = content.ctaLabel || content.contactLabel;
+  return (
+    <section
+      id={VISIT_ID}
+      className={cn(styles.visit, photo && styles.visitSplit)}
+      aria-labelledby="visit-heading"
+    >
+      <div className={styles.visitCopy}>
+        <h2 id="visit-heading">{heading}</h2>
+        {content.address && content.address !== heading ? <p>{content.address}</p> : null}
+        {content.hours && content.hours !== heading ? <p>{content.hours}</p> : null}
+        {content.contactHref && action ? (
+          <ShopContact href={content.contactHref} label={action} onDark />
+        ) : null}
+      </div>
+      {photo ? (
+        <PhotoFrame
+          src={photo}
+          alt={content.address || content.displayName}
+          className={styles.visitMedia}
+          sizes="(min-width: 960px) 50vw, 100vw"
+        >
+          {manager ? (
+            <PhotoActions slot="shop" url={photo} landing={landing} compact onPhoto={onPhoto} />
+          ) : null}
+        </PhotoFrame>
+      ) : null}
+    </section>
+  );
+}
+
+function CatalogPlate({
+  name,
+  id,
+  grounds,
+}: {
+  name: string;
+  id: string;
+  grounds: readonly string[];
+}) {
+  const ground = grounds[plateIndex(id, grounds.length)] ?? grounds[0];
+  const ink = ground ? pickReadableTextColor(ground) : undefined;
+  return (
+    <span className={styles.plate} style={{ background: ground, color: ink }}>
+      <span className={styles.plateRule} />
+      <span className={styles.plateName}>{name}</span>
+    </span>
+  );
+}
+
+function plateIndex(id: string, count: number): number {
+  if (count <= 1) return 0;
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i) * (i + 1)) % 2147483647;
+  return hash % count;
+}
+
+function PhotoFrame({
+  src,
+  alt,
+  className,
+  sizes,
+  children,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+  sizes: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <Image src={src} alt={alt} fill sizes={sizes} className={styles.cover} unoptimized />
+      {children}
+    </div>
+  );
+}
+
+function ShopContact({
+  href,
+  label,
+  onDark = false,
+}: {
+  href: string;
+  label: string;
+  onDark?: boolean;
+}) {
+  const external = href.startsWith("http");
+  return (
+    <a
+      className={onDark ? styles.contactOnDark : styles.contact}
+      href={href}
+      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+    >
+      {label}
+    </a>
   );
 }

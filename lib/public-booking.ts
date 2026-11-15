@@ -25,8 +25,16 @@ export type PublicBookingInfo = {
     priceIsVariable: boolean;
     /** Who can be booked for it; empty means anyone on the staff list. */
     staffIds: string[];
+    /** The service's picture, if it has one. */
+    imageUrl?: string | null;
   }[];
   staff: { id: string; name: string }[];
+  /**
+   * False when the shop does not take bookings online. Its page still shows the price list,
+   * the team and where to find it; nothing can be booked. Absent from an older server, which
+   * only ever answered for shops that take bookings.
+   */
+  bookable?: boolean;
 };
 
 export type PublicBookingConfirmation = {
@@ -65,11 +73,20 @@ async function read<T>(res: Response): Promise<T> {
   throw new PublicBookingError(detail || "Something went wrong. Try again.", res.status);
 }
 
-/** Null when the shop does not take bookings online. */
-export async function fetchPublicBookingInfo(slug: string): Promise<PublicBookingInfo | null> {
+/**
+ * What a service shop shows on its own page: its services, team and branches, whether or not it
+ * takes bookings online (`bookable`). Null when the shop has no services to show.
+ */
+export async function fetchPublicShopInfo(slug: string): Promise<PublicBookingInfo | null> {
   const res = await fetch(base(slug), { headers: { Accept: "application/json" } });
   if (res.status === 404) return null;
   return read<PublicBookingInfo>(res);
+}
+
+/** Null when the shop does not take bookings online. Everything that books goes through this. */
+export async function fetchPublicBookingInfo(slug: string): Promise<PublicBookingInfo | null> {
+  const info = await fetchPublicShopInfo(slug);
+  return info && info.bookable !== false ? info : null;
 }
 
 export async function fetchPublicSlots(

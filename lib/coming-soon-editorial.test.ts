@@ -111,13 +111,14 @@ describe("buildComingSoonEditorial", () => {
     expect(content.headline.lines[0]).toBe("Posters that stop the street.");
   });
 
-  it("keeps the editorial headline when CMS headline is the store name", () => {
+  it("uses the shop name when the CMS headline is only the store name", () => {
     const content = buildComingSoonEditorial({
       storeName: "FLYWORKS",
       landingContent: { headline: "FLYWORKS" },
     });
-    expect(content.headline.mode).toBe("editorial");
-    expect(content.headline.lines).toEqual(["Something", "worth", "waiting for."]);
+    expect(content.headline.mode).toBe("shop");
+    expect(content.headline.lines).toEqual(["FLYWORKS"]);
+    expect(JSON.stringify(content.headline)).not.toMatch(/worth waiting/i);
   });
 
   it("only claims M-Pesa for Kenyan shops without other chips crowding it", () => {
@@ -140,5 +141,53 @@ describe("buildComingSoonEditorial", () => {
     expect(content.stats).toEqual([]);
     expect(content.footerPlace).toBeNull();
     expect(JSON.stringify(content)).not.toMatch(/Nairobi|Same-day|1,000\+|mini-mart/i);
+  });
+
+  it("puts the shop's services and photos on the page", () => {
+    const content = buildComingSoonEditorial({
+      storeName: "Sharp Fade",
+      currency: "KES",
+      heroFallbackUrl: "https://cdn.example/door.jpg",
+      landingContent: {
+        storyImageUrl: "https://cdn.example/story.jpg",
+        visitImageUrl: "https://cdn.example/shop.jpg",
+        storyTitle: "The chair by the window",
+        address: "Ngong Road",
+      },
+      services: [
+        {
+          id: "fade",
+          name: "Skin fade",
+          description: "A tight taper and a clean line-up.",
+          durationMinutes: 45,
+          price: 500,
+          priceIsVariable: false,
+          imageUrl: "https://cdn.example/fade.jpg",
+        },
+        {
+          id: "beard",
+          name: "Beard shape",
+          durationMinutes: 90,
+          price: 300,
+          priceIsVariable: true,
+        },
+      ],
+    });
+
+    expect(content.services.map((service) => service.name)).toEqual([
+      "Skin fade",
+      "Beard shape",
+    ]);
+    expect(content.services[0]?.duration).toBe("45 min");
+    expect(content.services[0]?.price).toMatch(/500/);
+    expect(content.services[1]?.duration).toBe("1 hr 30 min");
+    expect(content.services[1]?.price).toMatch(/^from /);
+    expect(content.photos).toEqual({
+      hero: "https://cdn.example/door.jpg",
+      story: "https://cdn.example/story.jpg",
+      visit: "https://cdn.example/shop.jpg",
+    });
+    expect(content.storyTitle).toBe("The chair by the window");
+    expect(content.chips.some((chip) => chip.kind === "services")).toBe(true);
   });
 });

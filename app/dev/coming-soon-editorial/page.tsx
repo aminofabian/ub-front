@@ -4,42 +4,10 @@ import { ComingSoonEditorialLanding } from "@/components/storefront/templates/la
 import type { PublicCatalogItemCard, PublicCategory } from "@/lib/public-storefront";
 
 const DEMO_ITEMS: PublicCatalogItemCard[] = [
-  {
-    id: "1",
-    sku: "NB-A5",
-    name: "Linen notebook",
-    variantName: null,
-    imageUrl:
-      "https://res.cloudinary.com/demo/image/upload/c_fill,w_400,h_400,g_center/sample.jpg",
-    price: 850,
-  },
-  {
-    id: "2",
-    sku: "PEN-01",
-    name: "Gel pen set",
-    variantName: null,
-    imageUrl:
-      "https://res.cloudinary.com/demo/image/upload/c_fill,w_400,h_400,g_center/balloons.jpg",
-    price: 420,
-  },
-  {
-    id: "3",
-    sku: "WRAP-12",
-    name: "Gift wrap roll",
-    variantName: null,
-    imageUrl:
-      "https://res.cloudinary.com/demo/image/upload/c_fill,w_400,h_400,g_center/sample.jpg",
-    price: 300,
-  },
-  {
-    id: "4",
-    sku: "CARD-08",
-    name: "Greeting cards",
-    variantName: null,
-    imageUrl:
-      "https://res.cloudinary.com/demo/image/upload/c_fill,w_400,h_400,g_center/balloons.jpg",
-    price: 250,
-  },
+  { id: "1", sku: "NB-A5", name: "Linen notebook", variantName: null, imageUrl: null, price: 850 },
+  { id: "2", sku: "PEN-01", name: "Gel pen set", variantName: null, imageUrl: null, price: 420 },
+  { id: "3", sku: "WRAP-12", name: "Gift wrap roll", variantName: null, imageUrl: null, price: 300 },
+  { id: "4", sku: "CARD-08", name: "Greeting cards", variantName: null, imageUrl: null, price: 250 },
 ];
 
 const DEMO_CATEGORIES: PublicCategory[] = [
@@ -60,7 +28,7 @@ export default function ComingSoonEditorialPreviewPage() {
       templateId="coming-soon-editorial"
       primaryHex="#0F766E"
       accentHex="#5EEAD4"
-      logoUrl="https://res.cloudinary.com/demo/image/upload/w_200,h_200,c_fit/sample.jpg"
+      logoUrl={null}
       currency="KES"
       countryCode="KE"
       totalCount={48}
@@ -77,10 +45,28 @@ export default function ComingSoonEditorialPreviewPage() {
         phone: "+254712000000",
         whatsapp: "254712000000",
         ctaLabel: "Message us",
-        vitrineImageUrl:
-          "https://res.cloudinary.com/demo/image/upload/c_fill,w_1200,h_800,g_center/sample.jpg",
+        storyTitle: "The counter",
+        storyBody:
+          "Notebooks, pens, and wrapping paper, set out the way they sit in the shop.",
       }}
-      heroFallbackUrl="https://res.cloudinary.com/demo/image/upload/c_fill,w_1200,h_800,g_center/sample.jpg"
+      services={[
+        {
+          id: "wrap",
+          name: "Gift wrapping",
+          description: "Paper, ribbon, and a card written at the counter.",
+          durationMinutes: 15,
+          price: 150,
+          priceIsVariable: false,
+        },
+        {
+          id: "desk",
+          name: "Desk setup",
+          description: "A notebook, a pen, and a lamp laid out together.",
+          durationMinutes: 45,
+          price: 800,
+          priceIsVariable: true,
+        },
+      ]}
     />
   );
 }
