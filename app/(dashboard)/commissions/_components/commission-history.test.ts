@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { StaffLedgerEntryRecord } from "@/lib/service-business-api";
 
-import { describeLedgerEntry, newestFirst, periodStart } from "./commission-history";
+import { canMoveEntry, describeLedgerEntry, newestFirst, periodStart } from "./commission-history";
 
 const entry = (patch: Partial<StaffLedgerEntryRecord>): StaffLedgerEntryRecord =>
   ({
@@ -78,5 +78,27 @@ describe("a line of earnings history", () => {
     expect(periodStart("week", "2026-11-14")).toBe("2026-11-08");
     expect(periodStart("week", "2026-11-03")).toBe("2026-10-28");
     expect(periodStart("month", "2026-11-14")).toBe("2026-11-01");
+  });
+});
+
+describe("moving a service to the person who did it", () => {
+  const led = entry({ id: "a", lead: true, saleId: "sale", saleItemId: "line" });
+
+  test("is offered on a service the person led", () => {
+    expect(canMoveEntry(led, [led])).toBe(true);
+  });
+
+  test("is not offered on a helper's share, a tip or a product", () => {
+    expect(canMoveEntry(entry({ id: "h", saleId: "sale", saleItemId: "line" }), [])).toBe(false);
+    expect(canMoveEntry(entry({ id: "t", kind: "TIP", saleId: "sale" }), [])).toBe(false);
+  });
+
+  test("is not offered once the line was taken back or moved", () => {
+    const back = entry({ id: "b", kind: "REVERSAL", amount: -100, reversesId: "a", source: "SERVICE_MOVED" });
+    expect(canMoveEntry(led, [led, back])).toBe(false);
+    expect(describeLedgerEntry({ ...back, reason: "Wrong name tapped" })).toEqual({
+      what: "Service moved to someone else",
+      detail: "Wrong name tapped",
+    });
   });
 });

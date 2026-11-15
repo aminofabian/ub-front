@@ -1,5 +1,3 @@
-import type { OnboardingAnswersRecord } from "@/lib/api";
-
 export type StoreTypeId =
   | "butchery"
   | "mini-mart"
@@ -14,7 +12,11 @@ export type StoreTypeId =
   | "salon"
   | "spa"
   | "nail-studio"
-  | "beauty-parlour";
+  | "beauty-parlour"
+  | "restaurant"
+  | "cafe"
+  | "fast-food"
+  | "bar";
 
 /**
  * Shop formats that sell services rather than (or as well as) goods. A store type only picks
@@ -27,6 +29,18 @@ export const SERVICE_STORE_TYPES: readonly StoreTypeId[] = [
   "nail-studio",
   "beauty-parlour",
 ];
+
+/**
+ * Shop formats that take orders and prepare food or drink (ADR 0020). As with service formats,
+ * a type only picks defaults and wording; branch on {@link isFoodBusiness}, never on one by name.
+ */
+export const FOOD_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", "cafe", "fast-food", "bar"];
+
+/**
+ * Food formats where customers sit and pay after eating: these work from the floor and are asked
+ * about tables. A café or a fast-food counter takes payment first and works from the counter.
+ */
+export const TABLE_SERVICE_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", "bar"];
 
 /** Shop formats that get a starter-product catalogue during onboarding. */
 export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
@@ -46,6 +60,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "pharmacy",
   "other",
   ...SERVICE_STORE_TYPES,
+  ...FOOD_STORE_TYPES,
 ];
 
 type StoreTypeSource = {
@@ -54,7 +69,11 @@ type StoreTypeSource = {
     storeTypes?: string[] | null;
   } | null;
   onboarding?: {
-    answers?: OnboardingAnswersRecord | null;
+    // Only the chosen formats are read; the questionnaire's full answer shape is not needed.
+    answers?: {
+      storeType?: string | null;
+      storeTypes?: string[] | null;
+    } | null;
   } | null;
 };
 
@@ -146,14 +165,73 @@ export function isServiceBusiness(
   );
 }
 
+/** True when any selected format is a food format (restaurant, café, fast food, bar). */
+export function isFoodBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return getBusinessStoreTypes(source).some((type) =>
+    (FOOD_STORE_TYPES as readonly string[]).includes(type),
+  );
+}
+
 /** True when every selected format is a service format: the shop sells no goods. */
 export function isServiceOnlyBusiness(
   source: StoreTypeSource | null | undefined,
 ): boolean {
-  const types = getBusinessStoreTypes(source);
+  return isServiceOnlyStoreTypes(getBusinessStoreTypes(source));
+}
+
+/** Store-type list form of {@link isServiceOnlyBusiness} — for answers before they are saved. */
+export function isServiceOnlyStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
   return (
-    types.length > 0 &&
-    types.every((type) => (SERVICE_STORE_TYPES as readonly string[]).includes(type))
+    Array.isArray(storeTypes) &&
+    storeTypes.length > 0 &&
+    storeTypes.every((type) => (SERVICE_STORE_TYPES as readonly string[]).includes(type))
+  );
+}
+
+/**
+ * True when every selected format is a food format: a restaurant, café, fast-food counter or bar.
+ * Its counter is its home, the way a butchery's is the butcher till and a kinyozi's the floor.
+ */
+export function isFoodOnlyBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return isFoodOnlyStoreTypes(getBusinessStoreTypes(source));
+}
+
+/**
+ * True for a food-only shop with at least one table-service format (a restaurant, a bar, or a
+ * café that is also one of those): its home is the floor, not the counter.
+ */
+export function isTableServiceStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
+  return (
+    isFoodOnlyStoreTypes(storeTypes) &&
+    (storeTypes ?? []).some((type) =>
+      (TABLE_SERVICE_STORE_TYPES as readonly string[]).includes(type),
+    )
+  );
+}
+
+/** Business form of {@link isTableServiceStoreTypes}. */
+export function isTableServiceBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return isTableServiceStoreTypes(getBusinessStoreTypes(source));
+}
+
+/** Store-type list form of {@link isFoodOnlyBusiness} — for answers before they are saved. */
+export function isFoodOnlyStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
+  return (
+    Array.isArray(storeTypes) &&
+    storeTypes.length > 0 &&
+    storeTypes.every((type) => (FOOD_STORE_TYPES as readonly string[]).includes(type))
   );
 }
 

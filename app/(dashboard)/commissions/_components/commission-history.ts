@@ -10,7 +10,7 @@ function ruleInWords(rule: string | null, base: number | null): string | null {
   const productCost = /\bafter ([0-9.]+) product cost\b/.exec(rule)?.[1];
   const [, type = "", value = "", origin = ""] = /^([A-Z_]+)\s*([0-9.]*)\s*(?:\(([^)]*)\))?/.exec(rule) ?? [];
   const from =
-    origin === "service" ? "the service's own rate" : origin === "staff" ? "their plan" : origin === "product" ? "products sold" : "";
+    origin === "own" ? "their own rate for this service" : origin === "service" ? "the service's own rate" : origin === "staff" ? "their plan" : origin === "product" ? "products sold" : "";
   let text: string;
   if (type === "SET") text = `set at ${whole(Number(value))} when the service was done`;
   else if (type === "PERCENT") {
@@ -49,6 +49,7 @@ export function describeLedgerEntry(entry: StaffLedgerEntryRecord): { what: stri
       };
     }
     case "REVERSAL":
+      if (entry.source === "SERVICE_MOVED") return { what: "Service moved to someone else", detail: entry.reason };
       return {
         what: entry.bucket === "TIPS" ? "Tip taken back" : "Commission taken back",
         detail: entry.reason,
@@ -58,6 +59,15 @@ export function describeLedgerEntry(entry: StaffLedgerEntryRecord): { what: stri
     default:
       return { what: "Entry", detail: entry.reason };
   }
+}
+
+/**
+ * Whether a history line is a service this person led that is still theirs, so it can be moved to
+ * whoever really did it. A line already taken back (voided, or moved before) is not offered.
+ */
+export function canMoveEntry(entry: StaffLedgerEntryRecord, entries: readonly StaffLedgerEntryRecord[]): boolean {
+  if (!entry.lead || !entry.saleId || !entry.saleItemId) return false;
+  return !entries.some((other) => other.reversesId === entry.id);
 }
 
 /** Newest first, the way a statement is read. */

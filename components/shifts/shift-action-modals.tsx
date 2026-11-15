@@ -52,6 +52,8 @@ import {
   saveCloseShiftDraft,
   saveOpenShiftDraft,
 } from "@/lib/shift-draft-storage";
+
+import { OpenOrdersAtClose } from "./open-orders-at-close";
 import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
 import { formatShiftOpenDuration } from "@/lib/pos-till-shift-gate";
 import { formatMoney, resolveCurrencyCode } from "@/lib/money";
@@ -1580,6 +1582,7 @@ export function CloseShiftModal({
         </div>
 
           <div className={SHIFT_MODAL_BODY}>
+            {open ? <OpenOrdersAtClose branchId={shift?.branchId} /> : null}
             <div className="space-y-2">
               {canSeeCashVarianceDetail ? (
                 <div className="space-y-2">

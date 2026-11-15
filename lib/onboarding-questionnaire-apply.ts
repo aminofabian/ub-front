@@ -19,16 +19,30 @@ import {
 } from "@/lib/api";
 import {
   branchCountToNumber,
+  cleanFoodStationNames,
+  foodTableNames,
   formatBranchDisplayName,
+  foodMenuDraftsToItems,
   normalizeOwnerPhone,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
 } from "@/lib/onboarding-questionnaire";
 import {
+  createMenuItem,
+  createStation,
+  createTable,
+  fetchMenu,
+  fetchTables,
+} from "@/lib/restaurant-api";
+import {
   buildPendingSectionCreates,
   labelToItemTypeKey,
 } from "@/lib/item-type-suggestions";
-import { isButcheryBusiness } from "@/lib/business-store-type";
+import {
+  isButcheryBusiness,
+  isFoodOnlyStoreTypes,
+  isTableServiceStoreTypes,
+} from "@/lib/business-store-type";
 import {
   DEFAULT_LANDING_TEMPLATE_ID,
   DEFAULT_STORE_THEME_ID,
@@ -40,6 +54,7 @@ export type OnboardingApplyPhaseId =
   | "branches"
   | "storefront"
   | "item-types"
+  | "restaurant"
   | "branding"
   | "logo"
   | "phone";
@@ -60,6 +75,11 @@ export type OnboardingApplyResult = {
   error: string | null;
   /** True when every phase AND the server `completed` patch succeeded. */
   completed: boolean;
+  /**
+   * Setup that was skipped rather than failing the whole flow — the food kitchen and dishes
+   * when the menu endpoints refused them. The owner is told, and can add them from Menu.
+   */
+  warnings: string[];
 };
 
 /** Human labels so the questionnaire can say exactly which step failed. */
@@ -70,6 +90,7 @@ export const ONBOARDING_APPLY_PHASE_LABELS: Record<
   branches: "Your shop locations",
   storefront: "Your online shop settings",
   "item-types": "Your product sections",
+  restaurant: "Your kitchen and first dishes",
   branding: "Your branding",
   logo: "Your logo",
   phone: "Your shop line",
@@ -137,6 +158,7 @@ export async function applyOnboardingQuestionnaire(
   opts: { business: BusinessRecord | null } & OnboardingQuestionnaireFinishExtras,
 ): Promise<OnboardingApplyResult> {
   let firstBranchId: string | null = null;
+  const warnings: string[] = [];
 
   const { phases, failedPhase, error } = await runPhasesUntilFailure([
     {
@@ -230,7 +252,7 @@ export async function applyOnboardingQuestionnaire(
           freshTypes.map((t) => t.label.trim().toLowerCase()),
         );
         const pendingSections = buildPendingSectionCreates({
-          pickedLabels: answers.selectedDepartments,
+          pickedLabels: answers.selectedDepartments ?? [],
           extraNames: [],
           existingKeys,
           existingLabels,
@@ -239,6 +261,113 @@ export async function applyOnboardingQuestionnaire(
           await createItemType({ key: row.key, label: row.label });
         }
         return { phase: "item-types", status: "done" };
+      },
+    },
+    {
+      id: "restaurant",
+      run: async () => {
+        // A food shop's kitchen and first dishes were typed during setup. A shop that skipped
+        // those questions, or that ended up as a retail shop (the types can change on another
+        // device), has nothing to do here.
+        if (!isFoodOnlyStoreTypes(answers.storeTypes)) {
+          return { phase: "restaurant", status: "skipped" };
+        }
+        const stations = cleanFoodStationNames(answers.foodStations);
+        const dishes = foodMenuDraftsToItems(answers.foodMenuItems);
+        // Tables belong to a location, so they need the first branch; a café or a fast-food
+        // counter is not asked about them and a stale count from another shop type is ignored.
+        const tables =
+          firstBranchId && isTableServiceStoreTypes(answers.storeTypes)
+            ? foodTableNames(answers.foodTableCount)
+            : [];
+        if (stations.length === 0 && dishes.length === 0 && tables.length === 0) {
+          return { phase: "restaurant", status: "skipped" };
+        }
+        let tablesRefused = false;
+        if (tables.length > 0 && firstBranchId) {
+          try {
+            // Re-read so a retry adds only the tables that are missing.
+            const existing = new Set(
+              (await fetchTables(firstBranchId)).map((table) =>
+                table.name.trim().toLowerCase(),
+              ),
+            );
+            for (const name of tables) {
+              if (existing.has(name.toLowerCase())) {
+                continue;
+              }
+              await createTable({ branchId: firstBranchId, name });
+            }
+          } catch (tablesError) {
+            // As with the menu below: a refused table must not strand a new shop mid-setup.
+            tablesRefused = true;
+            warnings.push(
+              `${
+                tablesError instanceof Error
+                  ? tablesError.message
+                  : "The tables could not be saved."
+              } Add your tables from Floor, under Tables.`,
+            );
+          }
+        }
+        if (stations.length === 0 && dishes.length === 0) {
+          return { phase: "restaurant", status: tablesRefused ? "skipped" : "done" };
+        }
+        try {
+          // Re-read so a retry after a partial failure does not duplicate a station or a dish.
+          const menu = await fetchMenu();
+          const stationIdByName = new Map(
+            menu.stations.map((station) => [
+              station.name.trim().toLowerCase(),
+              station.id,
+            ]),
+          );
+          for (const name of stations) {
+            const key = name.toLowerCase();
+            if (stationIdByName.has(key)) {
+              continue;
+            }
+            const created = await createStation(name);
+            stationIdByName.set(key, created.id);
+          }
+          // Every dish goes to the first station the owner named — never to whichever station
+          // the server lists first, which is alphabetical and differs on a retry.
+          const firstStationId =
+            (stations[0] ? stationIdByName.get(stations[0].toLowerCase()) : null) ??
+            menu.stations[0]?.id ??
+            null;
+          const dishNames = new Set(
+            menu.items.map((item) => item.name.trim().toLowerCase()),
+          );
+          for (const [index, dish] of dishes.entries()) {
+            const key = dish.name.toLowerCase();
+            if (dishNames.has(key)) {
+              continue;
+            }
+            await createMenuItem({
+              name: dish.name,
+              kind: "DISH",
+              price: dish.price,
+              stationId: firstStationId,
+              // Keep the order the owner typed them in on the counter's menu.
+              sortOrder: index,
+            });
+            dishNames.add(key);
+          }
+        } catch (restaurantError) {
+          // The menu endpoints can refuse (the restaurant flag off, the station cap reached).
+          // That must not leave a new shop stuck at the shop-line step: the kitchen and dishes
+          // can still be added from Menu, so say so and carry on.
+          warnings.push(
+            `${
+              restaurantError instanceof Error
+                ? restaurantError.message
+                : "The kitchen and first dishes could not be saved."
+            } Add the kitchen and dishes from Menu.`,
+          );
+          return { phase: "restaurant", status: "skipped" };
+        }
+        return { phase: "restaurant", status: "done" };
       },
     },
     {
@@ -338,7 +467,7 @@ export async function applyOnboardingQuestionnaire(
   ]);
 
   if (failedPhase) {
-    return { firstBranchId, phases, failedPhase, error, completed: false };
+    return { firstBranchId, phases, failedPhase, error, completed: false, warnings };
   }
 
   const storeThemeId = normalizeStoreThemeId(
@@ -380,8 +509,16 @@ export async function applyOnboardingQuestionnaire(
           ? finalizeError.message
           : "Could not finish setup.",
       completed: false,
+      warnings,
     };
   }
 
-  return { firstBranchId, phases, failedPhase: null, error: null, completed: true };
+  return {
+    firstBranchId,
+    phases,
+    failedPhase: null,
+    error: null,
+    completed: true,
+    warnings,
+  };
 }

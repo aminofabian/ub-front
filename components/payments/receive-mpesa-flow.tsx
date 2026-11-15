@@ -429,18 +429,27 @@ export function ReceiveMpesaFlow({
             bank anytime from Business once we switch it on.
           </p>
         </header>
-        <p
-          className={cn(
-            "border px-4 py-3 text-sm text-[#92400E]",
-            shell,
-            soft
-              ? "border-[#FDE68A] bg-[#FFFBEB]"
-              : "border-[#FDE68A] bg-[#FFFBEB]",
-          )}
-        >
-          {availability.message ||
-            "M-Pesa receive isn’t available for this shop yet."}
-        </p>
+        {mode === "onboarding" ? (
+          // A new owner cannot act on the platform's reason (it names internal settings), and
+          // does not need it to carry on: money paid to their own number can still be recorded.
+          <p className={descClass}>
+            Until then, customers can pay to your own M-Pesa number and you
+            record the payment when you take it.
+          </p>
+        ) : (
+          <p
+            className={cn(
+              "border px-4 py-3 text-sm text-[#92400E]",
+              shell,
+              soft
+                ? "border-[#FDE68A] bg-[#FFFBEB]"
+                : "border-[#FDE68A] bg-[#FFFBEB]",
+            )}
+          >
+            {availability.message ||
+              "M-Pesa receive isn’t available for this shop yet."}
+          </p>
+        )}
         {(onSkip || onCancel) && (
           <button
             type="button"

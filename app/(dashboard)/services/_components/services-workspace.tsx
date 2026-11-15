@@ -159,10 +159,18 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
                 {services.map((service) => (
                   <tr key={service.id} className="border-b last:border-b-0">
                     <td className="px-3 py-2">
+                      <div className="flex items-center gap-2.5">
+                        {service.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- a small thumbnail beside the service
+                          <img src={service.imageUrl} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-[2px] object-cover" />
+                        ) : null}
+                        <div className="min-w-0">
                       <div className="font-medium">{service.name}</div>
                       {service.categoryId && categoryName.get(service.categoryId) ? (
                         <div className={dashboardHintClass()}>{categoryName.get(service.categoryId)}</div>
                       ) : null}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-3 py-2 tabular-nums">{durationLabel(service.durationMinutes)}</td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums">

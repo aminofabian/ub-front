@@ -414,11 +414,12 @@ export function useProductMutations(d: Dependencies) {
       },
     ) => {
       e.preventDefault();
-      if (parentCreateSubmittingRef.current) return;
+      if (parentCreateSubmittingRef.current) return false;
       parentCreateSubmittingRef.current = true;
       setParentCreateBusy(true);
       setMessage("");
       const savedType = parentDraft.itemTypeId;
+      let createdOnServer = false;
 
       const parseNum = (
         raw: string,
@@ -667,6 +668,7 @@ export function useProductMutations(d: Dependencies) {
           }
 
           created = { id: line.itemId };
+          createdOnServer = true;
           adoptedFromSharedCatalog = true;
           openingStockHandledByAdopt = openingQty != null;
 
@@ -720,6 +722,7 @@ export function useProductMutations(d: Dependencies) {
           }
         } else {
           created = await createItem(payload);
+          createdOnServer = true;
         }
 
         // Supplier link — standalone only
@@ -744,7 +747,7 @@ export function useProductMutations(d: Dependencies) {
                 ? `Product created. Supplier link failed: ${linkErr.message}`
                 : "Product created but supplier link failed.",
             );
-            return;
+            return true;
           }
         }
         // Upload family / product photo
@@ -792,7 +795,7 @@ export function useProductMutations(d: Dependencies) {
               );
               await refreshFullCatalog();
               selectProduct(created.id);
-              return;
+              return true;
             }
             let bp = null;
             try {
@@ -803,7 +806,7 @@ export function useProductMutations(d: Dependencies) {
               );
               await refreshFullCatalog();
               selectProduct(created.id);
-              return;
+              return true;
             }
             let variant;
             try {
@@ -819,7 +822,7 @@ export function useProductMutations(d: Dependencies) {
               selectProduct(lastVid || created.id);
               setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
               setActiveDrawer(null);
-              return;
+              return true;
             }
             lastVid = variant.id;
             if (bp) {
@@ -883,7 +886,7 @@ export function useProductMutations(d: Dependencies) {
                 ? "Family created with 1 option."
                 : `Family created with ${n} options.`,
           );
-          return;
+          return true;
         }
 
         // Opening stock for standalone products (skip when adopt already applied it)
@@ -975,6 +978,7 @@ export function useProductMutations(d: Dependencies) {
         parentCreateSubmittingRef.current = false;
         setParentCreateBusy(false);
       }
+      return createdOnServer;
     },
     [
       parentDraft,

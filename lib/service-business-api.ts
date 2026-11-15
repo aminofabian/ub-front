@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiRequestError, apiRequest } from "@/lib/api";
+import { ApiRequestError, apiRequest, apiUploadFile } from "@/lib/api";
 import { API_ROUTES } from "@/lib/config";
 import { withSetup } from "@/lib/setup-requirements";
 
@@ -35,6 +35,8 @@ export type ServiceRecord = {
   version: number;
   /** What the product for one service costs the shop, in shillings; null when it uses none. */
   productCost?: number | null;
+  /** The service's picture, if it has one. */
+  imageUrl?: string | null;
 };
 
 export type ServicePayload = {
@@ -89,6 +91,15 @@ export async function updateService(id: string, body: ServicePatch): Promise<Ser
     method: "PATCH",
     body,
   });
+}
+
+/** Gives a service its one picture (JPEG, PNG or WebP), replacing any it had. */
+export async function setServicePicture(id: string, file: File): Promise<ServiceRecord> {
+  return apiUploadFile<ServiceRecord>(`${API_ROUTES.services}/${encodeURIComponent(id)}/picture`, file);
+}
+
+export async function removeServicePicture(id: string): Promise<ServiceRecord> {
+  return apiRequest<ServiceRecord>(`${API_ROUTES.services}/${encodeURIComponent(id)}/picture`, { method: "DELETE" });
 }
 
 export async function setServiceStaff(id: string, staffProfileIds: string[]): Promise<ServiceRecord> {
@@ -256,14 +267,70 @@ export type StaffLedgerEntryRecord = {
   amount: number;
   baseAmount: number | null;
   rule: string | null;
-  source: "SERVICE" | "PRODUCT" | null;
+  /** "SERVICE_MOVED" on a reversal: the service was moved to another person. */
+  source: "SERVICE" | "PRODUCT" | "SERVICE_MOVED" | null;
   saleId: string | null;
+  saleItemId?: string | null;
   reversesId: string | null;
   payoutMethod: PayoutMethod | null;
   reference: string | null;
   reason: string | null;
   occurredAt: string;
+  /** The commission of the person who led a service: the row that can be moved to someone else. */
+  lead?: boolean;
 };
+
+/**
+ * A paid service was rung under the wrong person: names the right one and moves the earnings.
+ * Safe to repeat; moving to the person who already has it changes nothing.
+ */
+export async function moveServicePerformer(
+  saleId: string,
+  saleItemId: string,
+  staffProfileId: string,
+  reason?: string,
+): Promise<void> {
+  await apiRequest<unknown>(
+    `/api/v1/sales/${encodeURIComponent(saleId)}/items/${encodeURIComponent(saleItemId)}/performer`,
+    { method: "POST", body: { staffProfileId, reason: reason?.trim() || undefined }, toast: false },
+  );
+}
+
+/** What one person earns on one service, where it differs from their plan and the service's own rate. */
+export type StaffServiceRate = { serviceId: string; type: CommissionType; value: number };
+
+export async function fetchStaffServiceRates(staffProfileId: string): Promise<StaffServiceRate[]> {
+  const found = await apiRequest<{ rates: StaffServiceRate[] | null }>(
+    `${API_ROUTES.serviceTeam}/${encodeURIComponent(staffProfileId)}/service-rates`,
+    { toast: false },
+  );
+  return found.rates ?? [];
+}
+
+/** Replaces the person's own rates. Applies to services sold from now on. */
+export async function setStaffServiceRates(staffProfileId: string, rates: StaffServiceRate[]): Promise<StaffServiceRate[]> {
+  const saved = await apiRequest<{ rates: StaffServiceRate[] | null }>(
+    `${API_ROUTES.serviceTeam}/${encodeURIComponent(staffProfileId)}/service-rates`,
+    { method: "PUT", body: { rates }, toast: false },
+  );
+  return saved.rates ?? [];
+}
+
+/** What is wrong with a rate being added, in words; null when it can be saved. */
+export function serviceRateDraftError(serviceId: string, type: CommissionType, value: string): string | null {
+  if (!serviceId) return "Choose the service";
+  const n = value.trim() === "" ? NaN : Number(value);
+  if (!Number.isFinite(n) || n < 0) return type === "PERCENT" ? "Enter the percent" : "Enter the amount";
+  if (type === "PERCENT" && n > 100) return "A percent cannot be more than 100";
+  return null;
+}
+
+/** "60% of each one" or "Ksh 150 for each one". */
+export function serviceRateInWords(rate: Pick<StaffServiceRate, "type" | "value">): string {
+  return rate.type === "PERCENT"
+    ? `${rate.value}% of each one`
+    : `Ksh ${Math.round(rate.value).toLocaleString("en-KE")} for each one`;
+}
 
 export async function fetchStaffLedgerEntries(
   staffProfileId: string,
@@ -323,7 +390,7 @@ export type ServiceTicketStage =
   | "REDO_DONE";
 
 export type FloorStatus = "AVAILABLE" | "ON_BREAK" | "OFF";
-export type DepositState = "HELD" | "APPLIED" | "CREDITED" | "FORFEITED";
+export type DepositState = "HELD" | "APPLIED" | "CREDITED" | "FORFEITED" | "REFUNDED";
 
 export type ServiceTicketRecord = {
   id: string;
@@ -472,7 +539,12 @@ export async function addServiceTicketLine(
 
 export async function cancelServiceTicket(
   id: string,
-  body: { reason?: string; abandoned?: boolean },
+  body: {
+    reason?: string;
+    abandoned?: boolean;
+    /** A held deposit stays as the customer's credit unless it is handed back now. */
+    depositBack?: "credit" | "cash" | "mpesa_manual";
+  },
 ): Promise<ServiceTicketRecord> {
   return apiRequest<ServiceTicketRecord>(ticketPath(id, "cancel"), { method: "POST", body, toast: false });
 }
@@ -790,6 +862,22 @@ export async function sellPackage(
 export async function fetchCustomerPackages(customerId: string): Promise<CustomerPackage[]> {
   const params = new URLSearchParams({ customerId });
   return apiRequest<CustomerPackage[]>(`${API_ROUTES.servicePackages}?${params.toString()}`, { toast: false });
+}
+
+/**
+ * Hands back the money for a package's unused visits and closes it. Asking again pays nothing
+ * more, so a retry is safe. Cash comes out of the open shift's drawer.
+ */
+export async function refundCustomerPackage(
+  packageId: string,
+  method: "cash" | "mpesa_manual",
+): Promise<{ refunded: number; sessionsRefunded: number; customerPackage: CustomerPackage }> {
+  return withSetup(() =>
+    apiRequest<{ refunded: number; sessionsRefunded: number; customerPackage: CustomerPackage }>(
+      `${API_ROUTES.servicePackages}/${encodeURIComponent(packageId)}/refund`,
+      { method: "POST", body: { method }, toast: false },
+    ),
+  );
 }
 
 /** What one session of a package is worth toward a visit, the way the server works it out. */

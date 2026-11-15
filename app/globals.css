@@ -8790,3 +8790,108 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     scrollbar-width: thin;
     scrollbar-color: rgba(18, 26, 22, 0.22) transparent;
 }
+
+/*
+ * The cashier page of a restaurant, bar, café or takeaway (components/restaurant/food-till.tsx).
+ * One set of colour variables, read by the counter's own parts, in two lights. Each house has
+ * its own ink for the buttons; the paper slips stay paper in any light.
+ */
+.food-till {
+    --op-bg: #f4f1ea;
+    --op-surface: #fcfaf5;
+    --op-paper: #fffefa;
+    --op-ink: #121a16;
+    --op-muted: #556159;
+    --order-ink: #121a16;
+    --kiosk-panel: #efebe2;
+    --kiosk-highlight: #a55237;
+    --pos-primary: #1d4b3b;
+    --pos-on-primary: #f4f1ea;
+    --primary: var(--pos-primary);
+    --primary-foreground: var(--pos-on-primary);
+    --ring: var(--pos-primary);
+    --till-rail: #121a16;
+    --till-rail-ink: #f4f1ea;
+    --till-rail-muted: #a9b5ad;
+    --till-mark: #d9b45a;
+    background: var(--op-bg);
+    color: var(--op-ink);
+}
+.food-till[data-house="bar"] {
+    --pos-primary: #5b3e12;
+    --kiosk-panel: #ede6d6;
+}
+.food-till[data-house="cafe"] {
+    --pos-primary: #6b3f25;
+    --kiosk-panel: #f1e8dc;
+    --till-mark: #e0a070;
+}
+.food-till[data-house="takeaway"] {
+    --pos-primary: #8a2c1c;
+    --kiosk-highlight: #1d4b3b;
+    --till-mark: #f08a6a;
+}
+
+/* Lights down: dark counter, light ink, one bright ink for what is pressed. */
+.food-till[data-lights="night"] {
+    --op-bg: #0d1411;
+    --op-surface: #151f1a;
+    --op-paper: #1b2721;
+    --op-ink: #efe9db;
+    --op-muted: #a3b0a8;
+    --order-ink: #efe9db;
+    --kiosk-panel: #0a100d;
+    --kiosk-highlight: #f0926b;
+    --pos-primary: #86c9a8;
+    --pos-on-primary: #0d1411;
+    --till-rail: #070b09;
+    --background: #0d1411;
+    --foreground: #efe9db;
+    --card: #151f1a;
+    --card-foreground: #efe9db;
+    --border: rgba(239, 233, 219, 0.16);
+    --input: rgba(239, 233, 219, 0.2);
+    --muted-foreground: #a3b0a8;
+    --accent: #1b2721;
+    --accent-foreground: #efe9db;
+}
+.food-till[data-lights="night"][data-house="bar"] {
+    --pos-primary: #e0b04a;
+}
+.food-till[data-lights="night"][data-house="cafe"] {
+    --pos-primary: #e3a777;
+}
+.food-till[data-lights="night"][data-house="takeaway"] {
+    --pos-primary: #f39a7e;
+    --kiosk-highlight: #86c9a8;
+}
+.food-till[data-lights="night"] .text-red-700 {
+    color: #ff9d8c;
+}
+/* A slip is paper whatever the lights are: dark ink on cream, and its own forest for controls. */
+.food-till[data-lights="night"] .food-paper {
+    --op-paper: #fffefa;
+    --op-surface: #fcfaf5;
+    --op-ink: #121a16;
+    --op-muted: #556159;
+    --order-ink: #121a16;
+    --pos-primary: #1d4b3b;
+    --pos-on-primary: #f4f1ea;
+    --kiosk-highlight: #a55237;
+    color: #121a16;
+}
+/* The ticket rail: the strip in a kitchen that order slips are pushed into. */
+.food-till-rail {
+    background: var(--till-rail);
+    color: var(--till-rail-ink);
+}
+.food-till-rail::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 6px;
+    background: radial-gradient(circle at 6px 0, var(--till-rail) 5px, transparent 5.5px) 0 0 / 12px 6px repeat-x;
+    pointer-events: none;
+}

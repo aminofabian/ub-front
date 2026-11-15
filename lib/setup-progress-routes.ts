@@ -10,6 +10,12 @@ export const SETUP_STEP_ROUTE_PREFIXES: Record<string, string[]> = {
   service_menu: ["/services"],
   service_team: ["/commissions"],
   online_booking: ["/services/appointments"],
+  // A shop that only sells food and drink (see SetupProgressService.buildForFoodShop).
+  food_menu: ["/restaurant/menu"],
+  food_tables: ["/restaurant/floor"],
+  food_staff: ["/users"],
+  first_order: ["/restaurant/counter", "/restaurant/floor", "/shifts"],
+  food_recipes: ["/restaurant/menu"],
 };
 
 export function setupStepMatchesPath(stepKey: string | null | undefined, pathname: string): boolean {

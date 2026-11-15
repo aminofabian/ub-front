@@ -24,6 +24,9 @@ import {
   Store,
   Tags,
   Scissors,
+  UtensilsCrossed,
+  LayoutGrid,
+  ChefHat,
   Truck,
   Users,
   UserRound,
@@ -97,8 +100,15 @@ import {
   type BranchRecord,
 } from "@/lib/api";
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
-import { isServiceBusiness, isServiceOnlyBusiness } from "@/lib/business-store-type";
+import {
+  isFoodBusiness,
+  isFoodOnlyBusiness,
+  isServiceBusiness,
+  isTableServiceBusiness,
+  isServiceOnlyBusiness,
+} from "@/lib/business-store-type";
 import { isServiceCashier, serviceCashierMayOpen, SERVICE_CASHIER_ROUTES, trimNavForServiceOnly } from "@/lib/service-nav";
+import { trimNavForFoodOnly } from "@/lib/food-nav";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -139,6 +149,8 @@ type NavSection = {
 
 /** In a service-only shop these two are the day's work, so they follow Business in the icon rail. */
 const SERVICE_LEAD_SECTIONS: readonly string[] = ["services", "customers"];
+/** A restaurant, café or bar works from its floor, counter and kitchen: that section leads its rail. */
+const FOOD_LEAD_SECTIONS: readonly string[] = ["restaurant"];
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -304,6 +316,22 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.services, label: "Services" },
       { href: APP_ROUTES.commissions, label: "Commissions" },
       { href: APP_ROUTES.myEarnings, label: "My earnings" },
+    ],
+  },
+  {
+    // Food businesses only (restaurant, café, fast food, bar) — see isNavItemVisible.
+    id: "restaurant",
+    title: "Restaurant",
+    shortLabel: "Restaurant",
+    blurb: "Orders, the kitchen and your menu",
+    icon: UtensilsCrossed,
+    entryHref: APP_ROUTES.restaurantCounter,
+    items: [
+      { href: APP_ROUTES.restaurantFloor, label: "Floor" },
+      { href: APP_ROUTES.restaurantCounter, label: "Counter" },
+      { href: APP_ROUTES.restaurantKitchen, label: "Kitchen" },
+      { href: APP_ROUTES.restaurantMenu, label: "Menu" },
+      { href: APP_ROUTES.restaurantReports, label: "Menu sales" },
     ],
   },
   {
@@ -595,6 +623,12 @@ type NavGate = {
   /** Every format of the business is a service format: it has no shelves. */
   isServiceOnly: boolean;
   canManageServices: boolean;
+  /** The business takes orders and prepares food or drink (restaurant, café, fast food, bar). */
+  isFoodBusiness: boolean;
+  canManageMenu: boolean;
+  canWorkKitchen: boolean;
+  canTakeOrders: boolean;
+  canReadSalesReports: boolean;
   canSell: boolean;
   canReadCommissions: boolean;
   /** Sees their own earnings page (a barber, or a cashier who also serves). */
@@ -787,6 +821,15 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.isServiceBusiness && gate.canSell;
   if (item.href === APP_ROUTES.services)
     return gate.isServiceBusiness && (gate.canManageServices || gate.canSell);
+  if (item.href === APP_ROUTES.restaurantFloor)
+    return gate.isFoodBusiness && (gate.canTakeOrders || gate.canSell);
+  if (item.href === APP_ROUTES.restaurantCounter) return gate.isFoodBusiness && gate.canSell;
+  if (item.href === APP_ROUTES.restaurantKitchen)
+    return gate.isFoodBusiness && (gate.canWorkKitchen || gate.canSell);
+  if (item.href === APP_ROUTES.restaurantMenu)
+    return gate.isFoodBusiness && (gate.canManageMenu || gate.canWorkKitchen || gate.canSell);
+  if (item.href === APP_ROUTES.restaurantReports)
+    return gate.isFoodBusiness && (gate.canManageMenu || gate.canReadSalesReports);
   if (item.href === APP_ROUTES.commissions)
     return gate.isServiceBusiness && gate.canReadCommissions;
   if (item.href === APP_ROUTES.myEarnings)
@@ -1251,6 +1294,13 @@ export function AppShell({ children }: AppShellProps) {
 
   // Service screens are off on the desktop app, so its sidebar stays the full one.
   const serviceOnlyShop = isServiceOnlyBusiness(business) && !IS_DESKTOP;
+  // A restaurant, café, fast-food counter or bar: its bottom bar leads to the floor, the kitchen
+  // and the counter, where a product shop's leads to shelves and the retail till.
+  const foodOnlyShop = isFoodOnlyBusiness(business) && !IS_DESKTOP;
+  // A restaurant or bar seats people, so its home is the floor; a café or counter pays first.
+  const foodTableService = foodOnlyShop && isTableServiceBusiness(business);
+  const canTakeRestaurantOrders = hasPermission(me?.permissions, Permission.RestaurantOrdersWrite);
+  const canWorkRestaurantKitchen = hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate);
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
@@ -1260,6 +1310,13 @@ export function AppShell({ children }: AppShellProps) {
       isServiceBusiness: isServiceBusiness(business) && !IS_DESKTOP,
       isServiceOnly: serviceOnlyShop,
       canManageServices: hasPermission(me?.permissions, Permission.ServicesCatalogManage),
+      // Desktop sync does not carry menus, orders or kitchen tickets either, so the restaurant
+      // screens stay off on the desktop app for the same reason.
+      isFoodBusiness: isFoodBusiness(business) && !IS_DESKTOP,
+      canManageMenu: hasPermission(me?.permissions, Permission.RestaurantMenuManage),
+      canWorkKitchen: hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate),
+      canTakeOrders: hasPermission(me?.permissions, Permission.RestaurantOrdersWrite),
+      canReadSalesReports: hasPermission(me?.permissions, Permission.SalesIntelligenceRead),
       canSell: hasPermission(me?.permissions, Permission.SalesSell),
       canReadCommissions: hasPermission(me?.permissions, Permission.CommissionsRead),
       canReadOwnCommissions: hasPermission(me?.permissions, Permission.CommissionsReadOwn),
@@ -1335,9 +1392,12 @@ export function AppShell({ children }: AppShellProps) {
       };
     }).filter((s) => s.items.length > 0);
     // A shop that only sells services has no shelves: leave the shelf pages out of its menu.
-    return trimNavForServiceOnly(permitted, serviceOnlyShop);
+    // A shop that only sells food and drink keeps buying and stock, and loses the shelf pages.
+    return trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodOnlyShop, foodTableService);
   }, [
     serviceOnlyShop,
+    foodOnlyShop,
+    foodTableService,
     business,
     me?.permissions,
     mergedFeatureFlags,
@@ -1536,11 +1596,12 @@ export function AppShell({ children }: AppShellProps) {
   const headerPosLinks = useMemo((): HeaderPosLink[] => {
     const links: HeaderPosLink[] = [];
     if (canQuickSale) {
-      links.push({
-        href: APP_ROUTES.cashier,
-        label: "Sell",
-        icon: ScanLine,
-      });
+      // A restaurant rings dishes at its counter; the retail till behind "Sell" only knows products.
+      links.push(
+        foodOnlyShop
+          ? { href: APP_ROUTES.restaurantCounter, label: "Counter", shortLabel: "Till", icon: UtensilsCrossed }
+          : { href: APP_ROUTES.cashier, label: "Sell", icon: ScanLine },
+      );
     }
     if (canAccessGrocery && !isButcherPosEnabled(mergedFeatureFlags)) {
       links.push({
@@ -1564,7 +1625,7 @@ export function AppShell({ children }: AppShellProps) {
       });
     }
     return links;
-  }, [canQuickSale, canAccessGrocery, canViewSuppliers, mergedFeatureFlags]);
+  }, [canQuickSale, canAccessGrocery, canViewSuppliers, mergedFeatureFlags, foodOnlyShop]);
 
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
@@ -1711,9 +1772,29 @@ export function AppShell({ children }: AppShellProps) {
                   }
                 : tab,
           )
-        : BOTTOM_TABS;
+        : foodOnlyShop
+          ? BOTTOM_TABS.map((tab) =>
+              tab.id === "catalog" && (canTakeRestaurantOrders || canQuickSale)
+                ? { id: "floor", label: "Floor", icon: LayoutGrid, href: APP_ROUTES.restaurantFloor, matchSectionIds: ["restaurant"] }
+                : tab.id === "inventory" && (canWorkRestaurantKitchen || canQuickSale)
+                  ? { id: "kitchen", label: "Kitchen", icon: ChefHat, href: APP_ROUTES.restaurantKitchen, matchSectionIds: ["restaurant"] }
+                  : tab,
+            )
+          : BOTTOM_TABS;
     return tabs.map((tab) => {
       if (tab.id !== "ops") return tab;
+      if (canQuickSale && foodOnlyShop) {
+        // The restaurant counter rings dishes; the retail till behind "Sell" only knows products.
+        return {
+          ...tab,
+          label: "Counter",
+          icon: UtensilsCrossed,
+          href: APP_ROUTES.restaurantCounter,
+          workspace: undefined,
+          matchSectionIds: ["restaurant"],
+          primary: true,
+        };
+      }
       if (canQuickSale) {
         return {
           ...tab,
@@ -1764,6 +1845,9 @@ export function AppShell({ children }: AppShellProps) {
     canViewShifts,
     canViewPricing,
     serviceOnlyShop,
+    foodOnlyShop,
+    canTakeRestaurantOrders,
+    canWorkRestaurantKitchen,
   ]);
 
   // Which bottom tab is currently "active"
@@ -1955,7 +2039,7 @@ export function AppShell({ children }: AppShellProps) {
       <ChromeSlot slot="desktop">
         <div className={cn("shrink-0", desktopChromeVisible)}>
           <DesktopNavRail
-            leadSectionIds={serviceOnlyShop ? SERVICE_LEAD_SECTIONS : undefined}
+            leadSectionIds={serviceOnlyShop ? SERVICE_LEAD_SECTIONS : foodOnlyShop ? FOOD_LEAD_SECTIONS : undefined}
             pathname={pathname}
             homeHref={homeHref}
             tenantTitle={tenantTitle}

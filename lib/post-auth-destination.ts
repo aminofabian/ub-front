@@ -10,7 +10,9 @@ import { onboardingAnswersAreDraft } from "@/lib/onboarding-draft";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   isButcheryOnlyBusiness,
+  isFoodOnlyBusiness,
   isGroceryOperationsBusiness,
+  isTableServiceBusiness,
   type StoreTypeId,
   getBusinessStoreTypes,
 } from "@/lib/business-store-type";
@@ -172,6 +174,14 @@ function dedicatedRoleHome(
     // A barber or stylist signs in to see what they earned; they have no till.
     return APP_ROUTES.myEarnings;
   }
+  if (roleKey === "waiter") {
+    // A waiter signs in to the floor: their tables and what is ready to carry.
+    return APP_ROUTES.restaurantFloor;
+  }
+  if (roleKey === "kitchen_staff") {
+    // A cook signs in to see what to make; they have no till and see no money.
+    return APP_ROUTES.restaurantKitchen;
+  }
   if (roleKey === "cashier") {
     // Clock the shift first; Sell is one tap from the header.
     return APP_ROUTES.shifts;
@@ -303,6 +313,18 @@ export function resolvePostAuthDestination(
 
   const roleHome = dedicatedRoleHome(me, business);
   if (roleHome) {
+    // An owner or admin of a food-only shop works from the counter — or from the floor when
+    // the shop serves tables (a restaurant, a bar); the business hub stays in the nav. A cook, waiter or cashier keeps their own home (kitchen, floor, shifts). The
+    // desktop app does not carry the restaurant screens, so it keeps the dashboard.
+    if (
+      !IS_DESKTOP &&
+      isFoodOnlyBusiness(business) &&
+      (roleKeyOf(me) === "owner" || roleKeyOf(me) === "admin")
+    ) {
+      return isTableServiceBusiness(business)
+        ? APP_ROUTES.restaurantFloor
+        : APP_ROUTES.restaurantCounter;
+    }
     return roleHome;
   }
 
@@ -359,6 +381,15 @@ export function roleLandingRedirect(
   ) {
     return null;
   }
+  // The overview is an admin destination too. A configured owner of a food-only shop signs in
+  // to the counter, but opening Overview from the nav must not bounce them back out.
+  if (
+    pathname === APP_ROUTES.overview &&
+    (roleKey === "owner" || roleKey === "admin") &&
+    home !== APP_ROUTES.business
+  ) {
+    return null;
+  }
   // Storefront is the fallback only when the account's role is unknown.
   if (isStorefrontHome(home) || isCustomerTabPath(home)) {
     return null;
@@ -384,6 +415,10 @@ export function formatBusinessStoreTypesLabel(
     spa: "Spa",
     "nail-studio": "Nail studio",
     "beauty-parlour": "Beauty parlour",
+    restaurant: "Restaurant",
+    cafe: "Café",
+    "fast-food": "Fast food / takeaway",
+    bar: "Bar",
   };
   const types = getBusinessStoreTypes(business);
   if (types.length === 0) {

@@ -51,6 +51,71 @@ export async function removeStaffTimeOff(staffProfileId: string, fromIso: string
   });
 }
 
+export const WORK_DAYS = [
+  { key: "mon", label: "Monday" },
+  { key: "tue", label: "Tuesday" },
+  { key: "wed", label: "Wednesday" },
+  { key: "thu", label: "Thursday" },
+  { key: "fri", label: "Friday" },
+  { key: "sat", label: "Saturday" },
+  { key: "sun", label: "Sunday" },
+] as const;
+
+export type WorkDayKey = (typeof WORK_DAYS)[number]["key"];
+
+/** The days a person works. A day left out is a day off; no days at all means they follow the shop. */
+export type WorkingHours = Partial<Record<WorkDayKey, { open: string; close: string }>>;
+
+export async function fetchStaffWorkingHours(staffProfileId: string): Promise<WorkingHours> {
+  const found = await apiRequest<{ days: WorkingHours | null }>(
+    `${API_ROUTES.serviceTeam}/${encodeURIComponent(staffProfileId)}/working-hours`,
+    { toast: false },
+  );
+  return found.days ?? {};
+}
+
+export async function setStaffWorkingHours(staffProfileId: string, days: WorkingHours): Promise<WorkingHours> {
+  const saved = await apiRequest<{ days: WorkingHours | null }>(
+    `${API_ROUTES.serviceTeam}/${encodeURIComponent(staffProfileId)}/working-hours`,
+    { method: "PUT", body: { days }, toast: false },
+  );
+  return saved.days ?? {};
+}
+
+/** The first thing wrong with a week of hours, in words; null when it can be saved. */
+export function workingHoursError(days: WorkingHours): string | null {
+  for (const { key, label } of WORK_DAYS) {
+    const day = days[key];
+    if (!day) continue;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(day.open) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(day.close)) {
+      return `Enter both times for ${label}`;
+    }
+    if (day.close <= day.open) return `${label} must end after it starts`;
+  }
+  return null;
+}
+
+/** "Mon to Fri 08:00 to 17:00, Sat 09:00 to 13:00", or that they follow the shop. */
+export function workingHoursSummary(days: WorkingHours): string {
+  const short = (label: string) => label.slice(0, 3);
+  const runs: { from: string; to: string; hours: string }[] = [];
+  for (const { key, label } of WORK_DAYS) {
+    const day = days[key];
+    if (!day) {
+      runs.push({ from: "", to: "", hours: "" });
+      continue;
+    }
+    const hours = `${day.open} to ${day.close}`;
+    const last = runs[runs.length - 1];
+    if (last && last.hours === hours) last.to = short(label);
+    else runs.push({ from: short(label), to: short(label), hours });
+  }
+  const parts = runs
+    .filter((r) => r.hours)
+    .map((r) => `${r.from === r.to ? r.from : `${r.from} to ${r.to}`} ${r.hours}`);
+  return parts.length > 0 ? parts.join(", ") : "Works whenever the shop is open";
+}
+
 export type CalendarGroup = "people" | "places";
 
 /** The column an entry belongs to in a grouping; null when it has none (a walk-in with no place). */

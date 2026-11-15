@@ -10,9 +10,11 @@ import { CashierWebOrdersPanel } from "@/components/cashier/cashier-web-orders-p
 import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
 import { GroceryNotificationListener } from "@/components/grocery/grocery-notification-listener";
 import { CashierShell } from "@/components/cashier-shell";
-import { DashboardProvider } from "@/components/dashboard-provider";
+import { DashboardProvider, useDashboard } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { FoodTill } from "@/components/restaurant/food-till";
+import { isFoodOnlyBusiness } from "@/lib/business-store-type";
 
 type CashierLayoutProps = {
   children: ReactNode;
@@ -32,15 +34,35 @@ function CashierLayoutInner({ children }: CashierLayoutProps) {
     <DashboardProvider defaultAllDepartments>
       <PosTillLockProvider>
         <RealtimeProvider>
-          <CashierOrderAlerts />
-          <CashierWebOrdersPanel />
-          <CashierTillPrintListener />
-          <GroceryNotificationListener />
-          <CashierShell>{children}</CashierShell>
+          <CashierForThisShop>{children}</CashierForThisShop>
           <DashboardToaster />
         </RealtimeProvider>
       </PosTillLockProvider>
     </DashboardProvider>
+  );
+}
+
+/**
+ * A shop with shelves gets the barcode till and its listeners. A house that only cooks or pours
+ * (restaurant, bar, café, takeaway) gets its own till: the counter, in its own shell. Until the
+ * business is known neither is drawn, so a restaurant never sees the barcode till flash by.
+ */
+function CashierForThisShop({ children }: CashierLayoutProps) {
+  const { business } = useDashboard();
+  if (!business) {
+    return null;
+  }
+  if (isFoodOnlyBusiness(business)) {
+    return <FoodTill />;
+  }
+  return (
+    <>
+      <CashierOrderAlerts />
+      <CashierWebOrdersPanel />
+      <CashierTillPrintListener />
+      <GroceryNotificationListener />
+      <CashierShell>{children}</CashierShell>
+    </>
   );
 }
 

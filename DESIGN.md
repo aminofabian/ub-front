@@ -415,3 +415,54 @@ family.
 - **Verification:** `tsc --noEmit` exits 0 and ESLint is clean on the
   changed files; not yet eyeballed in `next dev` — check the directory at
   `lg`/`xl` and the drawer delete on a phone width when next in there.
+
+## Restaurant counter and sidebar
+
+- **Counter** (`/restaurant/counter`) reads as three things from the kitchen's world: the **pass** (a rail of
+  numbered order tickets across the top; a ready one takes the terracotta, the view's single accent), the **board**
+  (the menu as paper tiles under underlined headings, a tile showing how many of it are on the order), and the
+  **docket** (the order written on the torn-edge slip the setup flow uses, with dotted leaders and a mono total).
+  Payment sits under the docket on the ground, not on the paper. The paid screen is the same slip with the order
+  number at display size and the terracotta "Paid" stamp, the view's one authored moment.
+- Cash offers the exact amount and the next round figures as tiles; change is shown as soon as an amount is in.
+- On a phone the docket follows the board and a forest bar with the running total stays in thumb reach.
+- **Sidebar for a food-only shop** (`lib/food-nav.ts`): Restaurant comes second, split into "Service" (Floor,
+  Counter, Kitchen) and "Your menu" (Menu, Ingredients, Menu sales). Products, the store-room register and
+  goods-on-credit sections are left out, as are shelf prices, discounts, airtime, the product quick sale and the
+  shopping app. Buying and Stock stay: a kitchen buys and counts. The header's Sell becomes Counter.
+
+### Restaurant pages as sheets of columns
+
+The counter, kitchen, floor and Menu sales pages follow the menu page: one paper sheet per page, divided into
+ruled columns, each headed by an italic Cormorant title over a short forest rule, with a mono count at the right.
+The column on the right, where the thing being worked on sits, takes the panel tone. Columns read left to right in
+the order the work happens; on a phone they stack in that order.
+
+- **Counter:** On the pass (orders being made, ready first) · The board (the menu) · This order (the docket and
+  payment). Under 1280 wide the pass lies down as a rail across the top.
+- **Kitchen:** Stop making (cancelled tickets, only when there are some; the one place red is used) · To make
+  (nothing ready yet) · Part ready (some plates out). Oldest on top in each lane.
+- **Floor:** The room (tables by area under a tally of seated, needing someone, booked and free) · Off the floor
+  (takeaway, delivery and bookings, and where a new one is started). A table waiting on staff says so in terracotta.
+- **Menu sales:** What sold (the table) · Takings, What people chose, Kitchen time (the summary).
+- Menu tiles fill the column they sit in (`repeat(auto-fill, minmax(8.75rem, 1fr))`) instead of a fixed count.
+
+### Restaurant web page and pictures
+
+- The restaurant's public home (`ShopRestaurantLanding`) is a printed menu, not a shop shelf: serif italic title,
+  double-ruled headings in small capitals, dishes in two columns with dotted leaders and mono prices. It takes the
+  storefront theme's colours and corners where a theme is present and falls back to paper, ink and 2px corners.
+- No stock photography. The top of the page uses the restaurant's own photograph, else its best dish picture with
+  the dish and price as caption, else a slip of real dishes and prices.
+- Pictures are optional everywhere. A list where some rows have pictures and some do not is fine in reading
+  layouts (menu, price list); on the till's tile board every tile gets a picture panel once any dish has one,
+  with the dish's initial standing in, so tiles keep one height.
+
+### Printed menu
+
+- A printed menu is paper, not screen: black ink on white, one accent ink the owner picks, no tinted panels that
+  a cheap printer turns grey. Type is the app's own (Cormorant, TT Norms, Geist Mono), sized in `em` from the
+  sheet so A5 is the same design drawn smaller.
+- Anything to be printed at a size other than the 80 mm receipt is drawn in its own frame document
+  (`restaurant/menu/print/_components/paper-frame.tsx`); the global print rules would otherwise hide it.
+

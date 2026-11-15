@@ -111,6 +111,16 @@ export const APP_ROUTES = {
   servicesAppointments: "/services/appointments",
   /** The day and week calendar of people and places. */
   servicesCalendar: "/services/calendar",
+  /** Restaurant counter: ring dishes from the menu, take payment, call orders by number. */
+  restaurantCounter: "/restaurant/counter",
+  /** Tables, open orders and bills: orders paid after they are eaten. */
+  restaurantFloor: "/restaurant/floor",
+  /** What each kitchen station has to make now. */
+  restaurantKitchen: "/restaurant/kitchen",
+  /** Dishes, modifiers, headings and kitchen stations. */
+  restaurantMenu: "/restaurant/menu",
+  /** What sold from the menu and how long the kitchen took. */
+  restaurantReports: "/restaurant/reports",
   /** A staff member's own commission, tips, payouts and bookings. */
   myEarnings: "/my-earnings",
   /** What each staff member earned, was paid and is owed. */
@@ -317,6 +327,7 @@ export const API_ROUTES = {
   servicePackages: "/api/v1/service-packages",
   serviceBookingHours: "/api/v1/service-booking-hours",
   commissions: "/api/v1/commissions",
+  restaurant: "/api/v1/restaurant",
   storeItems: "/api/v1/store-items",
   /** Store room ↔ inventory connection choice + census. */
   storeRoomSettings: "/api/v1/store-items/settings",

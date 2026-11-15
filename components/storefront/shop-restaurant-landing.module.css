@@ -1,0 +1,579 @@
+/*
+ * The storefront home of a restaurant: the place, its menu as it would be printed, and how to
+ * find it. Colours, fonts and corners come from the storefront theme, with a plain fallback for
+ * each so the page also stands on its own (a shop with no online store has no theme around it).
+ * Every color-mix() has a plain value before it for iPadOS 15 / Safari 15.
+ */
+.page {
+  --rl-brand: var(--storefront-brand, var(--primary, #1d4b3b));
+  --rl-on-brand: var(--primary-foreground, #ffffff);
+  --rl-paper: var(--sf-paper-elevated, #fcfaf5);
+  --rl-ink: var(--sf-ink, #17201b);
+  --rl-muted: var(--sf-muted, #5b665f);
+  --rl-line: var(--sf-line, rgba(23, 32, 27, 0.16));
+  --rl-tint: rgba(29, 75, 59, 0.07);
+  --rl-tint: color-mix(in srgb, var(--rl-brand) 7%, var(--rl-paper));
+  --rl-radius: var(--sf-card-radius, 2px);
+  --rl-button-radius: var(--sf-button-radius, 2px);
+  --rl-display: var(--sf-font-display, var(--font-serif, Georgia, "Times New Roman", serif));
+  /* What the page itself sits on, so the bars that stick to the top match it. */
+  --rl-ground: var(--sf-paper, var(--background, #ffffff));
+  --rl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+  color: var(--rl-ink);
+  font-family: var(--sf-font-body, inherit);
+  line-height: 1.55;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 40rem) {
+  .page {
+    padding: 0 1.5rem 6rem;
+  }
+}
+.page ::selection {
+  background: var(--rl-brand);
+  color: var(--rl-on-brand);
+}
+.page button {
+  cursor: pointer;
+  font-family: inherit;
+}
+.page a {
+  color: inherit;
+  text-decoration: none;
+}
+.page :focus-visible {
+  outline: 2px solid var(--rl-brand);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ nav */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  margin: 0 -1rem;
+  padding: 0.375rem 1rem;
+  border-bottom: 1px solid var(--rl-line);
+  background: var(--rl-ground);
+}
+@media (min-width: 40rem) {
+  .nav {
+    margin: 0 -1.5rem;
+    padding: 0.375rem 1.5rem;
+  }
+}
+.navName {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--rl-display);
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navLinks {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.125rem;
+}
+.navLink {
+  min-height: 2.75rem;
+  padding: 0 0.625rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.navLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+.navCall {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  margin-left: 0.375rem;
+  padding: 0 0.875rem;
+  border-radius: var(--rl-button-radius);
+  background: var(--rl-brand);
+  color: var(--rl-on-brand) !important;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: transform 160ms var(--rl-ease);
+}
+.navCall:active {
+  transform: scale(0.97);
+}
+
+/* ------------------------------------------------------------------ hero */
+.hero {
+  position: relative;
+  display: grid;
+  gap: 1.75rem;
+  padding: 2.25rem 0 2rem;
+}
+@media (min-width: 56rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: end;
+    gap: 3rem;
+    padding: 4rem 0 3rem;
+  }
+  .heroPlain {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+.kicker {
+  margin-bottom: 0.875rem;
+  color: var(--rl-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.heroTitle {
+  font-family: var(--rl-display);
+  font-size: clamp(3.25rem, 10vw, 6.5rem);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  overflow-wrap: break-word;
+}
+.heroLine {
+  max-width: 34rem;
+  margin-top: 1.125rem;
+  color: var(--rl-muted);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1.75rem;
+}
+.cta,
+.ctaGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border-radius: var(--rl-button-radius);
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    transform 160ms var(--rl-ease),
+    background-color 220ms var(--rl-ease);
+}
+.cta {
+  border: 1px solid var(--rl-brand);
+  background: var(--rl-brand);
+  color: var(--rl-on-brand);
+}
+.ctaGhost {
+  border: 1px solid var(--rl-ink);
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+.ctaGhost:hover {
+  background: var(--rl-tint);
+}
+.cta:active,
+.ctaGhost:active {
+  transform: scale(0.97);
+}
+.heroFigure {
+  position: relative;
+  margin: 0;
+}
+.heroPhoto {
+  display: block;
+  width: 100%;
+  height: 16rem;
+  border-radius: var(--rl-radius);
+  object-fit: cover;
+}
+@media (min-width: 56rem) {
+  .heroPhoto {
+    height: 27rem;
+  }
+}
+.heroCaption,
+.plateCaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-bottom: 1px solid var(--rl-line);
+  padding-bottom: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.captionPrice,
+.dishPrice {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.tool {
+  position: absolute;
+  top: 1rem;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--rl-ink);
+  border-radius: var(--rl-button-radius);
+  background: var(--rl-paper);
+  color: var(--rl-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* With no photograph: a slip of what is on, like the card in the window. */
+.card {
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid var(--rl-ink);
+  border-radius: var(--rl-radius);
+  background: var(--rl-paper);
+  box-shadow: 0.375rem 0.375rem 0 var(--rl-tint);
+}
+.cardHead {
+  padding-bottom: 0.625rem;
+  border-bottom: 3px double var(--rl-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cardList {
+  margin-top: 0.375rem;
+}
+.cardRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.cardMore {
+  margin-top: 0.375rem;
+  color: var(--rl-muted);
+  font-family: var(--rl-display);
+  font-size: 1.0625rem;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ strip */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  padding: 0.875rem 0;
+  border-top: 1px solid var(--rl-ink);
+  border-bottom: 1px solid var(--rl-line);
+  font-size: 0.9375rem;
+}
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ plates */
+.plates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+@media (min-width: 40rem) {
+  .plates {
+    gap: 1.5rem;
+  }
+}
+.plate {
+  margin: 0;
+}
+.platePhoto {
+  display: block;
+  width: 100%;
+  height: 11rem;
+  border-radius: var(--rl-radius);
+  object-fit: cover;
+}
+@media (min-width: 40rem) {
+  .platePhoto {
+    height: 17rem;
+  }
+}
+
+/* ------------------------------------------------------------------ menu */
+.menu {
+  padding-top: 3rem;
+  scroll-margin-top: 3.5rem;
+}
+.menuHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 2rem;
+}
+.h2 {
+  font-family: var(--rl-display);
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.lede {
+  color: var(--rl-muted);
+  font-size: 0.9375rem;
+}
+.tabs {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 4;
+  display: flex;
+  gap: 0.25rem;
+  margin: 1rem -1rem 0;
+  padding: 0 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rl-line);
+  background: var(--rl-ground);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  flex-shrink: 0;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--rl-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    color 200ms var(--rl-ease),
+    border-color 200ms var(--rl-ease);
+}
+.tab:hover {
+  border-bottom-color: var(--rl-brand);
+  color: var(--rl-ink);
+}
+.menuSoon {
+  max-width: 34rem;
+  padding: 2rem 0 0.5rem;
+  font-family: var(--rl-display);
+  font-size: 1.5rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+.section {
+  padding-top: 2.25rem;
+  /* Clear of the page nav and the headings bar when jumped to. */
+  scroll-margin-top: 6.25rem;
+}
+.h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px double var(--rl-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.count {
+  color: var(--rl-muted);
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.dishes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 52rem) {
+  .dishes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 3.5rem;
+  }
+}
+.dish {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--rl-line);
+}
+.dishPhoto {
+  flex-shrink: 0;
+  width: 5.25rem;
+  height: 5.25rem;
+  border-radius: var(--rl-radius);
+  object-fit: cover;
+}
+.dishBody {
+  min-width: 0;
+  flex: 1;
+}
+.dishTop {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+}
+.dishName {
+  min-width: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+/* The dotted leader of a printed menu. */
+.leader {
+  min-width: 1.25rem;
+  flex: 1;
+  border-bottom: 1.5px dotted var(--rl-line);
+  transform: translateY(-0.25rem);
+}
+.dishLine {
+  max-width: 34rem;
+  margin-top: 0.25rem;
+  color: var(--rl-muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.dishNote {
+  margin-top: 0.25rem;
+  color: var(--rl-muted);
+  font-family: var(--rl-display);
+  font-size: 1rem;
+  font-style: italic;
+}
+.dishOff .dishName,
+.dishOff .dishPrice {
+  color: var(--rl-muted);
+}
+.dishOff .dishPhoto {
+  opacity: 0.55;
+}
+
+/* ------------------------------------------------------------------ find us */
+.visit {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rl-ink);
+  scroll-margin-top: 3.5rem;
+}
+.visitGrid {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+@media (min-width: 48rem) {
+  .visitGrid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 3rem;
+  }
+}
+.visitWhere {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.visitHours {
+  margin-top: 0.5rem;
+  color: var(--rl-muted);
+}
+.branches {
+  display: grid;
+  gap: 0.875rem;
+}
+.branchName {
+  display: block;
+  font-weight: 600;
+}
+.branchWhere {
+  display: block;
+  color: var(--rl-muted);
+}
+.contact {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+.contactLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 1px solid var(--rl-ink);
+  border-radius: var(--rl-button-radius);
+  font-weight: 600;
+  transition: background-color 220ms var(--rl-ease);
+}
+.contactLink:hover {
+  background: var(--rl-tint);
+}
+
+/* ------------------------------------------------------------------ footer */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  margin-top: 4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rl-line);
+  color: var(--rl-muted);
+  font-size: 0.875rem;
+}
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  text-decoration: underline !important;
+  text-underline-offset: 0.25em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * {
+    transition: none !important;
+  }
+}

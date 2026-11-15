@@ -402,6 +402,20 @@
   text-align: left;
   transition: background-color 220ms var(--sl-ease);
 }
+/* A service with a photograph of the finished work: the picture sits to the left of both lines. */
+.priceRowPictured {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: center;
+}
+.pricePicture {
+  grid-row: 1 / span 2;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 2px;
+  object-fit: cover;
+}
 .priceRow:hover {
   background: var(--sl-tint);
 }

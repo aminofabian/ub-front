@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { commissionPlanDraftError } from "./commission-summary";
+import { OwnRates } from "./own-rates";
 import styles from "./team-roster.module.css";
 
 const FIELD = "h-11 rounded-[2px] shadow-none sm:h-8";
@@ -390,6 +391,7 @@ function PlanRow({
   const [productRate, setProductRate] = useState(plan.productRate != null ? String(plan.productRate) : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ownRatesOpen, setOwnRatesOpen] = useState(false);
 
   const dirty =
     type !== (plan.type ?? "") ||
@@ -478,6 +480,17 @@ function PlanRow({
           {error}
         </p>
       ) : null}
+      <div className={cn(styles.note, "grid gap-1.5")}>
+        <button
+          type="button"
+          aria-expanded={ownRatesOpen}
+          onClick={() => setOwnRatesOpen((open) => !open)}
+          className="w-fit rounded-[2px] text-[12px] font-medium text-[var(--op-muted)] underline decoration-[var(--op-rule)] underline-offset-2 hover:text-[var(--op-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]"
+        >
+          {ownRatesOpen ? "Hide their own rates" : "Different rate for a service?"}
+        </button>
+        {ownRatesOpen ? <OwnRates staffProfileId={plan.staffProfileId} name={plan.displayName} canEdit={canEdit} /> : null}
+      </div>
     </li>
   );
 }

@@ -9,6 +9,7 @@ import {
   dashboardLabelClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { NO_PICTURE_CHANGE, PictureField, type PictureChange } from "@/components/pictures/picture-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +23,8 @@ import { ApiRequestError } from "@/lib/api";
 import {
   createService,
   createServiceCategory,
+  removeServicePicture,
+  setServicePicture,
   setServiceStaff,
   updateService,
   type CommissionPlanRecord,
@@ -65,6 +68,7 @@ export function ServiceFormDialog({
   const [productCost, setProductCost] = useState(service?.productCost ? String(Math.round(service.productCost)) : "");
   const [staffIds, setStaffIds] = useState<string[]>(service?.staffProfileIds ?? []);
   const [error, setError] = useState<string | null>(null);
+  const [picture, setPicture] = useState<PictureChange>(NO_PICTURE_CHANGE);
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -132,7 +136,17 @@ export function ServiceFormDialog({
       if (before !== after) {
         await setServiceStaff(saved.id, staffIds);
       }
-      toast.success(service ? `${trimmedName} updated` : `${trimmedName} added`);
+      // The picture goes up after the service is saved, so a new one has somewhere to put it.
+      // If it fails the service is still saved, and the owner is told only the picture was not.
+      let pictureFailed: string | null = null;
+      try {
+        if (picture.file) await setServicePicture(saved.id, picture.file);
+        else if (picture.remove) await removeServicePicture(saved.id);
+      } catch (e) {
+        pictureFailed = e instanceof ApiRequestError && e.message ? e.message : "The picture could not be saved";
+      }
+      if (pictureFailed) toast.error(`Saved, but without the picture: ${pictureFailed}`);
+      else toast.success(service ? `${trimmedName} updated` : `${trimmedName} added`);
       await onSaved();
     } catch (err) {
       const status = err instanceof ApiRequestError ? err.status : 0;
@@ -201,6 +215,14 @@ export function ServiceFormDialog({
               <span className={`block ${dashboardHintClass()}`}>For work priced by the job, such as braids by length.</span>
             </span>
           </label>
+
+          <PictureField
+            currentUrl={service?.imageUrl}
+            change={picture}
+            onChange={setPicture}
+            disabled={saving}
+            hint="A photo of the finished work. Customers see it on your price list when they book."
+          />
 
           <label className="grid gap-1">
             <span className={dashboardLabelClass()}>Category (optional)</span>

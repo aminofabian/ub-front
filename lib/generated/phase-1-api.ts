@@ -3796,6 +3796,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/{saleId}/items/{saleItemId}/performer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a paid service to the person who really did it; their earnings follow */
+        post: operations["moveServicePerformer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/{saleId}/refund": {
         parameters: {
             query?: never;
@@ -16771,6 +16788,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a service its one picture, replacing any it had. JPEG, PNG or WebP only, checked by content and not by name; at most 8 MB. Needs services.catalog.manage. 404 for another business. */
+        post: operations["setServicePicture"];
+        /** @description Removes the picture from a service. Needs services.catalog.manage. */
+        delete: operations["removeServicePicture"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/{id}": {
         parameters: {
             query?: never;
@@ -17264,6 +17299,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-packages/{packageId}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Hands back the money for a package's unused sessions and closes it. Asking again pays nothing more. Needs sales.refund.create. */
+        post: operations["refundServicePackage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-packages/sell": {
         parameters: {
             query?: never;
@@ -17374,7 +17426,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public, no sign-in. What can be booked online at this shop. 404 when no branch has booking hours. */
+        /** @description Public, no sign-in. A service shop's services, team and branches, for its own page. bookable says whether bookings are taken online; when false the branches carry no hours and nothing can be booked. 404 when the shop has no priced services to show or no active branch. */
         get: operations["publicBookingInfo"];
         put?: never;
         post?: never;
@@ -17728,6 +17780,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-team/{staffProfileId}/working-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The days and hours a person works. No days means they work whenever the shop is open. */
+        get: operations["getStaffWorkingHours"];
+        /** @description Replaces the days and hours a person works; outside them they cannot be booked. Needs staff.hr.update. */
+        put: operations["setStaffWorkingHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-team/{staffProfileId}/service-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What a person earns on particular services, where it differs from their plan. */
+        get: operations["getStaffServiceRates"];
+        /** @description Replaces the person's own rates. Their own rate beats the service rate and their plan. Needs commissions.plans.manage. */
+        put: operations["setStaffServiceRates"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-team/{staffProfileId}/time-off": {
         parameters: {
             query?: never;
@@ -17797,10 +17885,1656 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurant/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole restaurant menu: headings, dishes and products, modifier groups and kitchen stations. With branchId, products carry their shelf price at that branch. Needs sales.sell, restaurant.menu.manage or restaurant.kitchen.update. */
+        get: operations["getRestaurantMenu"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a kitchen station. Needs restaurant.menu.manage. */
+        post: operations["createKitchenStation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/stations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Renames a kitchen station or switches it on or off. */
+        put: operations["updateKitchenStation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a menu heading. Needs restaurant.menu.manage. */
+        post: operations["createMenuCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Renames a heading or sets the station its dishes go to; a blank stationId clears it. */
+        put: operations["updateMenuCategory"];
+        post?: never;
+        /** @description Removes a heading; its dishes stay on the menu without one. */
+        delete: operations["deleteMenuCategory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a dish (own name and price) or a product from the catalogue (keeps its shelf price and stock). Needs restaurant.menu.manage. */
+        post: operations["createMenuItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/items/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a menu item its one picture, replacing any it had. JPEG, PNG or WebP only, checked by content and not by name; at most 8 MB. Needs restaurant.menu.manage. 404 for another business. */
+        post: operations["setMenuItemPicture"];
+        /** @description Removes the picture from a menu item. Needs restaurant.menu.manage. */
+        delete: operations["removeMenuItemPicture"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Removes a menu item. Sales already made keep their own snapshot. */
+        delete: operations["deleteMenuItem"];
+        options?: never;
+        head?: never;
+        /** @description Changes a menu item. A field left out is not changed; a blank categoryId, stationId or taxRateId clears it. kind cannot change. */
+        patch: operations["updateMenuItem"];
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/items/{id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description The kitchen has run out of a dish, or has it again. Needs restaurant.kitchen.update or restaurant.menu.manage. */
+        put: operations["setMenuItemAvailability"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/modifier-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a set of choices with its options. Needs restaurant.menu.manage. */
+        post: operations["createModifierGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/modifier-groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Replaces a group and its options. An option sent with its id is kept; one left out is removed from the menu. */
+        put: operations["updateModifierGroup"];
+        post?: never;
+        /** @description Removes a group and stops every dish offering it. */
+        delete: operations["deleteModifierGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/modifier-options/{id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description An option has run out, or is back. */
+        put: operations["setModifierOptionAvailability"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Kitchen tickets still being made at a branch, oldest first, and cancellations nobody has acknowledged. stationId is a station id, 'none' for tickets with no station, or absent for every station. At most 200 tickets. Needs restaurant.kitchen.update or sales.sell. */
+        get: operations["getKitchenBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/lines/{lineId}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Moves one line of a kitchen ticket to NEW, PREPARING, READY or SERVED: forward to any later stage or back one step. Idempotent. 409 for a cancelled line. Needs restaurant.kitchen.update. */
+        post: operations["setKitchenLineStage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/tickets/{ticketId}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Moves every line of a ticket forward to a stage; lines already there, and cancelled lines, are left alone. */
+        post: operations["setKitchenTicketStage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/tickets/{ticketId}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Someone in the kitchen has seen a cancellation ticket; it leaves the board. */
+        post: operations["acknowledgeVoidKitchenTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Orders paid for and not yet handed over at a branch, oldest first, each saying whether everything sent to the kitchen is ready. */
+        get: operations["listRestaurantOrdersInProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/orders/by-sale/{saleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The order a sale produced, with its order number. 404 when the sale sent nothing to a kitchen. Needs sales.sell. */
+        get: operations["getRestaurantOrderForSale"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/orders/{orderId}/handed-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The customer has collected the order. 409 while the kitchen is still making part of it. Needs sales.sell. */
+        post: operations["handOverRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/reports/menu-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Dishes sold and modifier choices for a period (Nairobi days, at most 92). Voided sales are left out; refunds are not subtracted. Dish cost is not tracked, so no margin. Needs restaurant.menu.manage or sales.intelligence.read. */
+        get: operations["getMenuSalesReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/reports/kitchen-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Time from sent to ready per station: number of tickets, the median and the slowest. */
+        get: operations["getKitchenTimesReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The tables of a branch (resources of type TABLE). */
+        get: operations["listRestaurantTables"];
+        put?: never;
+        /** @description Adds a table. Needs restaurant.menu.manage. */
+        post: operations["createRestaurantTable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/tables/{tableId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames a table, changes its seats or area, or takes it out of use. A field left out is not changed. */
+        patch: operations["updateRestaurantTable"];
+        trace?: never;
+    };
+    "/api/v1/restaurant/floor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every table of a branch with its open orders, and the open orders with no table (takeaway, delivery, bookings without a table). Needs restaurant.orders.write, sales.sell or restaurant.menu.manage. */
+        get: operations["getRestaurantFloor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Opens an order to be paid later: at a table, to take away or to deliver; or, with scheduledStart and scheduledEnd, books a table for later. Idempotent on clientOrderId. Two bookings cannot hold one table at overlapping times. Needs restaurant.orders.write. */
+        post: operations["openRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One order with its lines, their kitchen stage and its bills. */
+        get: operations["getRestaurantOpenOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes the guests, who serves it or the customer's details. A field left out is not changed; a blank clears it. */
+        patch: operations["updateRestaurantOrderDetails"];
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds lines from the menu, priced now, as DRAFT (not sent). A line whose clientLineId is already on the order is skipped. */
+        post: operations["addRestaurantOrderLines"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes the quantity, note or seat of a line that has not been sent; quantity 0 removes it. 409 once it has been sent. */
+        patch: operations["changeRestaurantOrderLine"];
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/lines/{lineId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Removes an unsent line, or cancels a sent one. Cancelling a sent line needs restaurant.orders.void_sent and a reason; the kitchen gets a VOID ticket if it was still making it. 409 if the line is on a bill. */
+        post: operations["cancelRestaurantOrderLine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends every unsent line: one kitchen ticket per station, in the next round. Sending again sends nothing. */
+        post: operations["sendRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Moves the order to another table of the same branch, or to none. */
+        post: operations["moveRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/bill-requested": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The customer has asked for the bill, or no longer wants it. */
+        post: operations["setRestaurantBillRequested"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/seat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A booking's guests have arrived: it becomes an ordinary open order. 409 if it has no table. */
+        post: operations["seatRestaurantBooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/served": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks every line the kitchen has finished as served. */
+        post: operations["markRestaurantOrderServed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cancels an order nothing was made for. 409 once anything has been sent and not cancelled, or it has a bill. */
+        post: operations["cancelRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Opens a bill for the lines named, for one seat, or — with neither — for everything not yet on a bill. 409 while anything on the order is unsent. Needs restaurant.orders.write or sales.sell. */
+        post: operations["createRestaurantBill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/bills/{billId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Tears up a bill nobody has paid; its lines can go on another. */
+        delete: operations["discardRestaurantBill"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/bills/{billId}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Takes payment for a bill: one ordinary sale with the bill id as its idempotency key, so paying twice rings one sale. Dishes are charged as they were ordered; a product whose shelf price moved is repriced and the call answers 409. The order completes when every line is on a closed bill. Needs sales.sell. */
+        post: operations["payRestaurantBill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/bills/{billId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Closes a bill with no sale: COMP (on the house) or UNPAID (left without paying), with a reason. Needs restaurant.bills.comp. */
+        post: operations["closeRestaurantBillWithoutSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/items/{id}/recipe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What a dish is made of, with its cost at today's buying prices. Needs restaurant.menu.manage. */
+        get: operations["getDishRecipe"];
+        /** @description Replaces a dish's recipe; an empty list removes it. Each ingredient is a stocked product. */
+        put: operations["setDishRecipe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/modifier-options/{id}/recipe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What a modifier option adds to a dish's ingredients. */
+        get: operations["getModifierOptionRecipe"];
+        /** @description Replaces a modifier option's recipe. */
+        put: operations["setModifierOptionRecipe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description How the restaurant runs: service charge, pooled tips, packaging and delivery charges, when its day starts, QR ordering. A business that has saved none gets blanks. */
+        get: operations["getRestaurantSettings"];
+        /** @description Null leaves a field as it is; zero switches a charge off. Needs restaurant.menu.manage. */
+        put: operations["updateRestaurantSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Everyone who can be named as serving an order: staff marked as serving customers. */
+        get: operations["listRestaurantServers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/tables/{tableId}/qr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a table a new QR code (any old one stops working), or takes its code away. Needs restaurant.menu.manage. */
+        post: operations["setRestaurantTableQr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Joins this order into another open order at the same branch: its lines and kitchen tickets move across and it is closed. 409 if it has a bill. */
+        post: operations["mergeRestaurantOrders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A delivery order's fee, rider, and whether it has left or arrived. 409 for an order that is not a delivery. */
+        post: operations["setRestaurantOrderDelivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/prep/{itemId}/recipe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What one unit of a prepared item is made of. */
+        get: operations["getPrepBatchRecipe"];
+        /** @description Replaces the recipe of a prepared item. Needs restaurant.menu.manage. */
+        put: operations["setPrepBatchRecipe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/prep/{itemId}/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Makes a batch of a prepared item: its ingredients leave the stock count and the batch joins it at what they cost. Needs restaurant.kitchen.update or restaurant.menu.manage. */
+        post: operations["makePrepBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/requisitions/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stocked, active products the kitchen can ask the store for, by name, brand, barcode or SKU. The answer has no prices: a cook is not shown money. Needs restaurant.kitchen.update, inventory.write or restaurant.menu.manage. */
+        get: operations["searchRequisitionProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/requisitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the kitchen has asked the store for at a branch: those waiting on a decision and the recent ones. A record only; no stock moves. Needs restaurant.kitchen.update, inventory.write or restaurant.menu.manage. */
+        get: operations["listKitchenRequisitions"];
+        put?: never;
+        /** @description The kitchen asks the store for stocked products. Idempotent on clientKey. Needs restaurant.kitchen.update, inventory.write or restaurant.menu.manage. */
+        post: operations["askKitchenRequisition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/requisitions/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives out what was asked for, in full unless a line says otherwise. Issuing one already issued changes nothing. 409 once refused or withdrawn. Needs inventory.write or restaurant.menu.manage. */
+        post: operations["issueKitchenRequisition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/requisitions/{id}/refuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Refuses a waiting request, with a reason. Needs inventory.write or restaurant.menu.manage. */
+        post: operations["refuseKitchenRequisition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/requisitions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraws a waiting request: whoever asked, or someone who could decide it. */
+        post: operations["cancelKitchenRequisition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public, no sign-in. The menu for a restaurant's web page: headings in menu order and the priced dishes under them, with description and picture. Read-only; nothing about stock or cost. Shown by default; 404 once an owner switches menuOnline off, and for a business with no active branch. Rate-limited. */
+        get: operations["getPublicMenu"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/table-orders/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public, no sign-in. What a customer sees after scanning a table's QR code: the shop, the table and what can be ordered now. 404 for any code that does not work (wrong shop, replaced, or QR ordering switched off). Rate-limited per address. */
+        get: operations["getPublicTableMenu"];
+        put?: never;
+        /** @description Public, no sign-in. Adds the customer's lines, unsent, to the open order at the table (opening one if there is none). Nothing reaches the kitchen until staff send it. Idempotent on requestId. At most 20 lines of at most 20 each; every price is the server's. */
+        post: operations["placePublicTableOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RestaurantSettings: {
+            /** @description Added to every bill of a table order; null means none. */
+            serviceChargePercent?: number;
+            /** @description True: a tip is shared equally among everyone marked as serving customers. */
+            tipsPooled?: boolean;
+            /** @description Added once to a takeaway or delivery order. */
+            packagingCharge?: number;
+            /** @description The usual delivery fee. */
+            deliveryFee?: number;
+            /** @description Minutes after midnight, Nairobi time, at which a report day starts. */
+            dayStartsAtMinute?: number;
+            /** @description Whether a customer may add to a table order from its QR code. */
+            qrOrdering?: boolean;
+            /**
+             * @description BUSINESS: the service charge is the restaurant's income, a line on the sale. STAFF: it is collected for whoever serves and shared exactly as a tip is. The customer pays the same either way.
+             * @enum {string}
+             */
+            serviceChargeTo?: "BUSINESS" | "STAFF";
+            /** @description Whether the menu is shown on the restaurant's public web page. On unless an owner switches it off. */
+            menuOnline?: boolean;
+        };
+        RestaurantSettingsRequest: {
+            /** @description Added to every bill of a table order; null means none. */
+            serviceChargePercent?: number;
+            /** @description True: a tip is shared equally among everyone marked as serving customers. */
+            tipsPooled?: boolean;
+            /** @description Added once to a takeaway or delivery order. */
+            packagingCharge?: number;
+            /** @description The usual delivery fee. */
+            deliveryFee?: number;
+            /** @description Minutes after midnight, Nairobi time, at which a report day starts. */
+            dayStartsAtMinute?: number;
+            /** @description Whether a customer may add to a table order from its QR code. */
+            qrOrdering?: boolean;
+            /**
+             * @description BUSINESS: the service charge is the restaurant's income, a line on the sale. STAFF: it is collected for whoever serves and shared exactly as a tip is. The customer pays the same either way.
+             * @enum {string}
+             */
+            serviceChargeTo?: "BUSINESS" | "STAFF";
+            /** @description Whether the menu is shown on the restaurant's public web page. On unless an owner switches it off. */
+            menuOnline?: boolean;
+        };
+        RestaurantRequisitionLineRequest: {
+            itemId: string;
+            quantity: number;
+        };
+        RestaurantRequisitionRequest: {
+            branchId: string;
+            stationId?: string;
+            note?: string;
+            /** @description Made once by the device asking; sending the request again returns the one already made. */
+            clientKey: string;
+            lines: components["schemas"]["RestaurantRequisitionLineRequest"][];
+        };
+        RestaurantRequisitionIssueRequest: {
+            /** @description What was actually given, line by line; a line left out was given in full. */
+            lines?: {
+                lineId: string;
+                quantity: number;
+            }[];
+            note?: string;
+        };
+        RestaurantRequisitionRefuseRequest: {
+            reason: string;
+        };
+        RestaurantRequisitionLine: {
+            id?: string;
+            itemId?: string;
+            name?: string;
+            unit?: string;
+            quantityRequested?: number;
+            /** @description Null until issued; zero when this product was not given. */
+            quantityIssued?: number;
+            /** @description The product's stock count now. */
+            onHand?: number;
+        };
+        RestaurantRequisition: {
+            id?: string;
+            /** Format: int64 */
+            number?: number;
+            branchId?: string;
+            stationId?: string;
+            stationName?: string;
+            /** @enum {string} */
+            status?: "REQUESTED" | "ISSUED" | "REFUSED" | "CANCELLED";
+            note?: string;
+            requestedByName?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            decidedByName?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decisionNote?: string;
+            lines?: components["schemas"]["RestaurantRequisitionLine"][];
+        };
+        RestaurantRequisitionProduct: {
+            id?: string;
+            name?: string;
+            /** @description Each, kilogram, litre — how the store counts it. */
+            unit?: string;
+        };
+        RestaurantRequisitionList: {
+            branchId?: string;
+            /** @description Not yet decided, oldest first. */
+            waiting?: components["schemas"]["RestaurantRequisition"][];
+            /** @description Decided or withdrawn in the last seven days, newest first, at most 50. */
+            recent?: components["schemas"]["RestaurantRequisition"][];
+        };
+        RestaurantServer: {
+            staffProfileId?: string;
+            name?: string;
+        };
+        RestaurantTableQrRequest: {
+            enabled: boolean;
+        };
+        MergeRestaurantOrderRequest: {
+            intoOrderId: string;
+        };
+        RestaurantDeliveryRequest: {
+            deliveryFee?: number;
+            riderName?: string;
+            dispatched?: boolean;
+            delivered?: boolean;
+        };
+        PrepBatchRequest: {
+            branchId: string;
+            quantity: number;
+        };
+        PrepBatchResponse: {
+            itemId?: string;
+            quantity?: number;
+            cost?: number;
+        };
+        PublicTableOption: {
+            id?: string;
+            name?: string;
+            priceDelta?: number;
+        };
+        PublicTableGroup: {
+            id?: string;
+            name?: string;
+            minSelect?: number;
+            maxSelect?: number;
+            options?: components["schemas"]["PublicTableOption"][];
+        };
+        PublicTableDish: {
+            id?: string;
+            heading?: string;
+            name?: string;
+            price?: number;
+            groups?: components["schemas"]["PublicTableGroup"][];
+            description?: string;
+            /** @description The dish's picture, if it has one. */
+            imageUrl?: string;
+        };
+        PublicMenu: {
+            shopName?: string;
+            currency?: string;
+            /** @description Menu headings in the menu's own order; only those with a dish under them. */
+            headings?: string[];
+            dishes?: components["schemas"]["PublicMenuDish"][];
+            branches?: {
+                name?: string;
+                address?: string;
+            }[];
+        };
+        PublicMenuDish: {
+            id?: string;
+            heading?: string;
+            name?: string;
+            description?: string;
+            price?: number;
+            imageUrl?: string;
+            /** @description False when it is off for now: sold out, or outside the hours it is served. */
+            servedNow?: boolean;
+        };
+        PublicTableMenu: {
+            shopName?: string;
+            tableName?: string;
+            currency?: string;
+            dishes?: components["schemas"]["PublicTableDish"][];
+        };
+        PublicTableOrderLine: {
+            menuItemId: string;
+            modifierOptionIds?: string[];
+            /** @description 1 to 20. */
+            quantity: number;
+            note?: string;
+        };
+        PublicTableOrderRequest: {
+            /** @description Made once by the phone; 8 to 40 letters, digits or hyphens. */
+            requestId: string;
+            lines: components["schemas"]["PublicTableOrderLine"][];
+        };
+        PublicTableOrderConfirmation: {
+            orderNumber?: number;
+            tableName?: string;
+            added?: number;
+            total?: number;
+        };
+        RestaurantTable: {
+            id?: string;
+            name?: string;
+            capacity?: number;
+            area?: string;
+            active?: boolean;
+            sortOrder?: number;
+            /** @description The secret in the table QR code; null when customers cannot order from it. */
+            qrToken?: string;
+        };
+        RestaurantTableRequest: {
+            /** @description Required on create. */
+            branchId?: string;
+            name?: string;
+            capacity?: number;
+            area?: string;
+            active?: boolean;
+        };
+        RestaurantOrderCard: {
+            orderId?: string;
+            orderNumber?: number;
+            /** @description DINE_IN, TAKEAWAY or DELIVERY. */
+            channel?: string;
+            tableId?: string;
+            guestCount?: number;
+            servedByStaffProfileId?: string;
+            servedByName?: string;
+            customerName?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            total?: number;
+            unsent?: number;
+            inKitchen?: number;
+            ready?: number;
+            /** Format: date-time */
+            billRequestedAt?: string;
+            booked?: boolean;
+            /** Format: date-time */
+            scheduledStart?: string;
+            /** Format: date-time */
+            scheduledEnd?: string;
+            /** @description Paid or otherwise closed. Only a delivery not yet delivered is listed in this state, for 24 hours after it closed. */
+            settled?: boolean;
+            /**
+             * Format: date-time
+             * @description A delivery: when it left with the rider.
+             */
+            dispatchedAt?: string;
+            /** @description What of the total is on no paid or closed bill yet — the money still owed at close. */
+            unsettled?: number;
+        };
+        RestaurantFloorTable: {
+            table?: components["schemas"]["RestaurantTable"];
+            orders?: components["schemas"]["RestaurantOrderCard"][];
+        };
+        RestaurantFloor: {
+            branchId?: string;
+            /** Format: date-time */
+            asOf?: string;
+            tables?: components["schemas"]["RestaurantFloorTable"][];
+            otherOrders?: components["schemas"]["RestaurantOrderCard"][];
+        };
+        OpenRestaurantOrderRequest: {
+            branchId: string;
+            /** @description DINE_IN, TAKEAWAY or DELIVERY. */
+            channel: string;
+            tableId?: string;
+            guestCount?: number;
+            servedByStaffProfileId?: string;
+            customerId?: string;
+            customerName?: string;
+            customerPhone?: string;
+            /** @description Required for DELIVERY. */
+            deliveryAddress?: string;
+            /** @description Made once by the device; repeating the request returns the same order. */
+            clientOrderId: string;
+            /** Format: date-time */
+            scheduledStart?: string;
+            /** Format: date-time */
+            scheduledEnd?: string;
+            /** @description A delivery order own fee; left out, the usual fee applies. */
+            deliveryFee?: number;
+        };
+        NewRestaurantOrderLine: {
+            clientLineId: string;
+            menuItemId: string;
+            modifierOptionIds?: string[];
+            quantity: number;
+            note?: string;
+            seatNo?: number;
+        };
+        AddRestaurantOrderLinesRequest: {
+            lines: components["schemas"]["NewRestaurantOrderLine"][];
+        };
+        ChangeRestaurantOrderLineRequest: {
+            /** @description 0 removes the line. */
+            quantity?: number;
+            note?: string;
+            seatNo?: number;
+        };
+        CancelRestaurantOrderLineRequest: {
+            /** @description Required for a line that has been sent. */
+            reason?: string;
+        };
+        MoveRestaurantOrderRequest: {
+            tableId?: string;
+        };
+        RestaurantOrderDetailsRequest: {
+            guestCount?: number;
+            servedByStaffProfileId?: string;
+            customerId?: string;
+            customerName?: string;
+            customerPhone?: string;
+            deliveryAddress?: string;
+        };
+        RestaurantBillRequestedRequest: {
+            requested: boolean;
+        };
+        CancelRestaurantOrderRequest: {
+            reason?: string;
+        };
+        RestaurantOrderLine: {
+            id?: string;
+            /** @description DISH or ITEM. */
+            kind?: string;
+            menuItemId?: string;
+            itemId?: string;
+            name?: string;
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+            modifiers?: components["schemas"]["ChosenModifier"][];
+            note?: string;
+            seatNo?: number;
+            /** @description DRAFT (not sent), NEW, PREPARING, READY, SERVED or VOIDED. */
+            stage?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @description On a bill that is open or settled. */
+            billedQuantity?: number;
+            /** @description On a bill that is paid or otherwise closed. */
+            settledQuantity?: number;
+            voidReason?: string;
+            /** @description The customer added this line from the table's QR code; unconfirmed by staff until it is sent. */
+            fromCustomer?: boolean;
+        };
+        RestaurantBillLine: {
+            orderLineId?: string;
+            name?: string;
+            quantity?: number;
+            amount?: number;
+        };
+        RestaurantBill: {
+            id?: string;
+            billNo?: number;
+            /** @description OPEN, PAID, COMP, UNPAID or VOIDED. */
+            status?: string;
+            total?: number;
+            saleId?: string;
+            receiptNo?: number;
+            reason?: string;
+            lines?: components["schemas"]["RestaurantBillLine"][];
+            serviceCharge?: number;
+            packagingCharge?: number;
+            deliveryFee?: number;
+            /** @description The lines plus the service charge, packaging charge and delivery fee. */
+            toPay?: number;
+        };
+        RestaurantOpenOrder: {
+            id?: string;
+            orderNumber?: number;
+            branchId?: string;
+            channel?: string;
+            /** @description pending, completed or cancelled. */
+            status?: string;
+            booked?: boolean;
+            tableId?: string;
+            tableName?: string;
+            guestCount?: number;
+            servedByStaffProfileId?: string;
+            servedByName?: string;
+            customerId?: string;
+            customerName?: string;
+            customerPhone?: string;
+            deliveryAddress?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            /** Format: date-time */
+            billRequestedAt?: string;
+            /** Format: date-time */
+            scheduledStart?: string;
+            /** Format: date-time */
+            scheduledEnd?: string;
+            version?: number;
+            total?: number;
+            settled?: number;
+            unbilled?: number;
+            lines?: components["schemas"]["RestaurantOrderLine"][];
+            bills?: components["schemas"]["RestaurantBill"][];
+            deliveryFee?: number;
+            riderName?: string;
+            /** Format: date-time */
+            dispatchedAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            /** @description STAFF, or QR when a customer started it from a table QR code. */
+            source?: string;
+        };
+        RestaurantBillLineRequest: {
+            orderLineId: string;
+            quantity: number;
+        };
+        CreateRestaurantBillRequest: {
+            lines?: components["schemas"]["RestaurantBillLineRequest"][];
+            seatNo?: number;
+        };
+        PayRestaurantBillRequest: {
+            payments: components["schemas"]["PostSalePaymentRequest"][];
+            /** @description For whoever served the order; not part of the bill and never revenue. */
+            tip?: number;
+            cashReceived?: number;
+            /** Format: date-time */
+            clientSoldAt?: string;
+        };
+        CloseRestaurantBillRequest: {
+            /** @description COMP or UNPAID. */
+            outcome: string;
+            reason: string;
+        };
+        RestaurantRecipeIngredientRequest: {
+            itemId: string;
+            /** @description What ends up on the plate, in the ingredient stock unit. */
+            quantity: number;
+            /** @description 1 to 100; how much of what is taken from stock survives. */
+            yieldPercent?: number;
+            /** @description A different stocked product used instead, in the same quantity, when this one cannot cover the amount and the stand-in can. */
+            substituteItemId?: string;
+        };
+        RestaurantRecipeRequest: {
+            ingredients: components["schemas"]["RestaurantRecipeIngredientRequest"][];
+        };
+        RestaurantRecipeIngredient: {
+            itemId?: string;
+            name?: string;
+            unit?: string;
+            quantity?: number;
+            yieldPercent?: number;
+            takenFromStock?: number;
+            unitCost?: number;
+            cost?: number;
+            onHand?: number;
+            substituteItemId?: string;
+            substituteName?: string;
+            substituteOnHand?: number;
+        };
+        RestaurantRecipe: {
+            ingredients?: components["schemas"]["RestaurantRecipeIngredient"][];
+            estimatedCost?: number;
+            costKnown?: boolean;
+        };
+        KitchenStationResponse: {
+            id?: string;
+            name?: string;
+            sortOrder?: number;
+            active?: boolean;
+        };
+        KitchenStationRequest: {
+            name: string;
+            sortOrder?: number;
+            active?: boolean;
+        };
+        MenuCategoryResponse: {
+            id?: string;
+            name?: string;
+            stationId?: string;
+            sortOrder?: number;
+            active?: boolean;
+        };
+        MenuCategoryRequest: {
+            name: string;
+            /** @description Blank clears it. */
+            stationId?: string;
+            sortOrder?: number;
+            active?: boolean;
+        };
+        ModifierOptionResponse: {
+            id?: string;
+            name?: string;
+            priceDelta?: number;
+            /** @description Chosen for the customer unless they say otherwise. */
+            preselected?: boolean;
+            available?: boolean;
+            sortOrder?: number;
+        };
+        ModifierGroupResponse: {
+            id?: string;
+            name?: string;
+            minSelect?: number;
+            maxSelect?: number;
+            sortOrder?: number;
+            options?: components["schemas"]["ModifierOptionResponse"][];
+        };
+        ModifierOptionRequest: {
+            /** @description Set to keep an existing option; left out for a new one. */
+            id?: string;
+            name: string;
+            /** @description Zero or more. */
+            priceDelta?: number;
+            preselected?: boolean;
+            sortOrder?: number;
+        };
+        ModifierGroupRequest: {
+            name: string;
+            /** @description 0 to 20. */
+            minSelect: number;
+            /** @description 1 to 20, not below minSelect. */
+            maxSelect: number;
+            sortOrder?: number;
+            options: components["schemas"]["ModifierOptionRequest"][];
+        };
+        MenuItemResponse: {
+            id?: string;
+            categoryId?: string;
+            name?: string;
+            /** @description DISH or ITEM. */
+            kind?: string;
+            /** @description The product sold, when kind is ITEM. */
+            itemId?: string;
+            /** @description A dish price before modifiers; a product shelf price at the branch asked for, null without a branch. */
+            price?: number;
+            taxRateId?: string;
+            stationId?: string;
+            /** @description False while the kitchen has run out. */
+            available?: boolean;
+            active?: boolean;
+            /** @description False when the product behind a menu item was removed or can no longer be sold. */
+            sellable?: boolean;
+            sortOrder?: number;
+            modifierGroupIds?: string[];
+            /** @description A dish ordinary price; price is what it costs right now. */
+            regularPrice?: number;
+            happyNow?: boolean;
+            servedNow?: boolean;
+            /** @description Serving hours, minutes after midnight Nairobi time. */
+            serveFromMinute?: number;
+            serveToMinute?: number;
+            /** @description A dish price during happy hour. */
+            happyPrice?: number;
+            happyFromMinute?: number;
+            happyToMinute?: number;
+            /** @description Days as digits 1 (Monday) to 7 (Sunday); empty means every day. */
+            happyDays?: string;
+            /** @description A line about the dish, shown to customers under its name. */
+            description?: string;
+            /** @description The dish's picture, if it has one. Set with POST .../picture. */
+            imageUrl?: string;
+        };
+        MenuItemRequest: {
+            categoryId?: string;
+            name?: string;
+            /** @description DISH or ITEM; required on create, fixed afterwards. */
+            kind?: string;
+            itemId?: string;
+            /** @description Dish only; at least 0.01. */
+            price?: number;
+            taxRateId?: string;
+            stationId?: string;
+            sortOrder?: number;
+            active?: boolean;
+            modifierGroupIds?: string[];
+            /** @description Serving hours, minutes after midnight Nairobi time. */
+            serveFromMinute?: number;
+            serveToMinute?: number;
+            /** @description A dish price during happy hour. */
+            happyPrice?: number;
+            happyFromMinute?: number;
+            happyToMinute?: number;
+            /** @description Days as digits 1 (Monday) to 7 (Sunday); empty means every day. */
+            happyDays?: string;
+            /** @description A line about the dish, shown to customers under its name. Blank clears it. */
+            description?: string;
+            clearServingHours?: boolean;
+            clearHappyHour?: boolean;
+        };
+        AvailabilityRequest: {
+            available: boolean;
+        };
+        RestaurantMenuResponse: {
+            categories?: components["schemas"]["MenuCategoryResponse"][];
+            items?: components["schemas"]["MenuItemResponse"][];
+            modifierGroups?: components["schemas"]["ModifierGroupResponse"][];
+            stations?: components["schemas"]["KitchenStationResponse"][];
+        };
+        /** @description A modifier option as it was when the line was sold. */
+        ChosenModifier: {
+            group?: string;
+            option?: string;
+            priceDelta?: number;
+            /** @description The option id, so its recipe can be found; absent on lines sold before recipes existed. */
+            optionId?: string;
+        };
+        KitchenLineResponse: {
+            id?: string;
+            orderLineId?: string;
+            name?: string;
+            quantity?: number;
+            modifiers?: components["schemas"]["ChosenModifier"][];
+            note?: string;
+            /** @description NEW, PREPARING, READY, SERVED or VOIDED. */
+            stage?: string;
+            /** Format: date-time */
+            readyAt?: string;
+        };
+        KitchenTicketResponse: {
+            id?: string;
+            orderId?: string;
+            orderNumber?: number;
+            /** @description Null is the one kitchen of a business with no stations. */
+            stationId?: string;
+            /** @description NEW or VOID. */
+            ticketType?: string;
+            /** @description OPEN, READY, SERVED or VOIDED. */
+            status?: string;
+            roundNo?: number;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: date-time */
+            readyAt?: string;
+            lines?: components["schemas"]["KitchenLineResponse"][];
+        };
+        KitchenBoardResponse: {
+            branchId?: string;
+            /** Format: date-time */
+            asOf?: string;
+            tickets?: components["schemas"]["KitchenTicketResponse"][];
+        };
+        KitchenStageRequest: {
+            /** @description NEW, PREPARING, READY or SERVED. */
+            stage: string;
+        };
+        RestaurantOrderSummary: {
+            orderId?: string;
+            orderNumber?: number;
+            saleId?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            ready?: boolean;
+            linesTotal?: number;
+            linesReady?: number;
+            lineNames?: string[];
+        };
+        RestaurantOrderListResponse: {
+            branchId?: string;
+            /** Format: date-time */
+            asOf?: string;
+            orders?: components["schemas"]["RestaurantOrderSummary"][];
+        };
+        MenuItemSalesRow: {
+            menuItemId?: string;
+            name?: string;
+            quantity?: number;
+            revenue?: number;
+            sharePercent?: number;
+            /** @description What the ingredients cost; null when the dish has no recipe. */
+            cost?: number;
+            margin?: number;
+            costPercent?: number;
+            /** @description STAR, PLOWHORSE, PUZZLE or DOG; null when the dish has no recipe. */
+            engineering?: string;
+        };
+        ModifierSalesRow: {
+            group?: string;
+            option?: string;
+            timesChosen?: number;
+            extraRevenue?: number;
+        };
+        MenuSalesReport: {
+            from?: string;
+            to?: string;
+            totalRevenue?: number;
+            /** @description True once the business has written any recipe. */
+            costTracked?: boolean;
+            /** @description Ingredient cost of the dishes that have a recipe. */
+            totalCost?: number;
+            items?: components["schemas"]["MenuItemSalesRow"][];
+            modifiers?: components["schemas"]["ModifierSalesRow"][];
+        };
+        StationTimesRow: {
+            stationId?: string;
+            stationName?: string;
+            tickets?: number;
+            medianSeconds?: number;
+            slowestSeconds?: number;
+        };
+        KitchenTimesReport: {
+            from?: string;
+            to?: string;
+            stations?: components["schemas"]["StationTimesRow"][];
+        };
         NotifyPurchaseOrderRequest: {
             notifyAdmin?: boolean;
             /**
@@ -19160,6 +20894,10 @@ export interface components {
             hasAccessToken?: boolean;
             consentRequired?: boolean;
         };
+        FoodMenuItemAnswerDto: {
+            name?: string;
+            price?: number;
+        };
         OnboardingAnswersDto: {
             branchCount?: string;
             branchLocalities?: string[];
@@ -19174,6 +20912,14 @@ export interface components {
             accentColor?: string;
             productSource?: string;
             ownerPhone?: string;
+            foodStations?: string[];
+            foodMenuItems?: components["schemas"]["FoodMenuItemAnswerDto"][];
+            sellsProducts?: boolean;
+            /**
+             * Format: int32
+             * @description Food shops with table service only: how many tables to set up at the first branch. Zero means none; absent means the question was not asked.
+             */
+            foodTableCount?: number;
         };
         OnboardingSettingsResponse: {
             status?: string;
@@ -21361,6 +23107,12 @@ export interface components {
             helpers?: components["schemas"]["LineHelper"][];
             /** @description SERVICE lines only. What the performer is paid for this service instead of their plan; needs permission to set commission. */
             performerAmount?: number;
+            /** @description The restaurant menu item the line was rung from. Required for kind DISH; on a product line it only tells the kitchen where the product is prepared. */
+            menuItemId?: string;
+            /** @description DISH lines only. The modifier options chosen. */
+            modifierOptionIds?: string[];
+            /** @description What the customer asked for on this line; shown to the kitchen. */
+            note?: string;
         };
         PostSalePaymentRequest: {
             method: string;
@@ -21401,6 +23153,10 @@ export interface components {
             performerName?: string;
             /** Format: int32 */
             serviceMinutes?: number;
+            /** @description DISH lines only. The restaurant menu item sold; what was chosen on it is in lineLabel. */
+            menuItemId?: string;
+            /** @description DISH lines only. What the customer asked for. */
+            lineNote?: string;
         };
         SalePaymentResponse: {
             method?: string;
@@ -31095,6 +32851,8 @@ export interface components {
             staffProfileIds?: string[];
             /** Format: int64 */
             version?: number;
+            /** @description The service's picture, if it has one. Set with POST /api/v1/services/{id}/picture. */
+            imageUrl?: string;
         };
         CreateServiceRequest: {
             name: string;
@@ -31217,6 +32975,12 @@ export interface components {
             reason?: string;
             /** Format: date-time */
             occurredAt?: string;
+            /** @description The commission of the person who led a service; it can be moved to someone else */
+            lead?: boolean;
+        };
+        MoveServicePerformerRequest: {
+            staffProfileId: string;
+            reason?: string;
         };
         AdjustmentRequest: {
             amount: number;
@@ -31265,6 +33029,8 @@ export interface components {
         CancelTicketRequest: {
             reason?: string;
             abandoned?: boolean;
+            /** @description What happens to a held deposit - credit (default, kept for the next visit), cash or mpesa_manual (handed back now; needs sales.refund.create) */
+            depositBack?: string;
         };
         PayTicketRequest: {
             payments?: components["schemas"]["PostSalePaymentRequest"][];
@@ -31437,6 +33203,16 @@ export interface components {
             method: "cash" | "mpesa_manual";
             reference?: string;
         };
+        RefundPackageRequest: {
+            /** @description cash or mpesa_manual */
+            method: string;
+        };
+        RefundedPackageResponse: {
+            refunded?: number;
+            /** Format: int32 */
+            sessionsRefunded?: number;
+            customerPackage?: components["schemas"]["CustomerPackageResponse"];
+        };
         CustomerPackageResponse: {
             id?: string;
             customerId?: string;
@@ -31560,6 +33336,8 @@ export interface components {
             price?: number;
             priceIsVariable?: boolean;
             staffIds?: string[];
+            /** @description The service's picture, if it has one. */
+            imageUrl?: string;
         };
         PublicStaff: {
             id?: string;
@@ -31573,6 +33351,8 @@ export interface components {
             branches?: components["schemas"]["PublicBranch"][];
             services?: components["schemas"]["PublicService"][];
             staff?: components["schemas"]["PublicStaff"][];
+            /** @description False when the shop does not take bookings online: the page shows prices, team and where to find it, and nothing can be booked. */
+            bookable?: boolean;
         };
         PublicSlots: {
             /** Format: date */
@@ -31817,6 +33597,23 @@ export interface components {
             staff?: components["schemas"]["CalendarColumn"][];
             resources?: components["schemas"]["CalendarColumn"][];
             entries?: components["schemas"]["CalendarEntry"][];
+        };
+        StaffWorkingHours: {
+            /** @description Keyed by mon..sun; a day left out is a day off */
+            days?: {
+                [key: string]: {
+                    open: string;
+                    close: string;
+                };
+            };
+        };
+        StaffServiceRates: {
+            rates?: {
+                serviceId: string;
+                /** @enum {string} */
+                type: "PERCENT" | "FIXED";
+                value: number;
+            }[];
         };
         TimeOffRequest: {
             /** Format: date-time */
@@ -38855,6 +40652,33 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["PostVoidSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SaleResponse"];
+                };
+            };
+        };
+    };
+    moveServicePerformer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                saleId: string;
+                saleItemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveServicePerformerRequest"];
             };
         };
         responses: {
@@ -60461,6 +62285,57 @@ export interface operations {
             };
         };
     };
+    setServicePicture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
+    removeServicePicture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
+                };
+            };
+        };
+    };
     getService: {
         parameters: {
             query?: never;
@@ -61332,6 +63207,32 @@ export interface operations {
             };
         };
     };
+    refundServicePackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                packageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundedPackageResponse"];
+                };
+            };
+        };
+    };
     sellServicePackage: {
         parameters: {
             query?: never;
@@ -62092,6 +63993,102 @@ export interface operations {
             };
         };
     };
+    getStaffWorkingHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffWorkingHours"];
+                };
+            };
+        };
+    };
+    setStaffWorkingHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffWorkingHours"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffWorkingHours"];
+                };
+            };
+        };
+    };
+    getStaffServiceRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffServiceRates"];
+                };
+            };
+        };
+    };
+    setStaffServiceRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffServiceRates"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffServiceRates"];
+                };
+            };
+        };
+    };
     addStaffTimeOff: {
         parameters: {
             query?: never;
@@ -62214,6 +64211,1619 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
+    getRestaurantMenu: {
+        parameters: {
+            query?: {
+                branchId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantMenuResponse"];
+                };
+            };
+        };
+    };
+    createKitchenStation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenStationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenStationResponse"];
+                };
+            };
+        };
+    };
+    updateKitchenStation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenStationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenStationResponse"];
+                };
+            };
+        };
+    };
+    createMenuCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuCategoryResponse"];
+                };
+            };
+        };
+    };
+    updateMenuCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuCategoryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuCategoryResponse"];
+                };
+            };
+        };
+    };
+    deleteMenuCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuItemResponse"];
+                };
+            };
+        };
+    };
+    setMenuItemPicture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuItemResponse"];
+                };
+            };
+        };
+    };
+    removeMenuItemPicture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuItemResponse"];
+                };
+            };
+        };
+    };
+    deleteMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateMenuItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuItemResponse"];
+                };
+            };
+        };
+    };
+    setMenuItemAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuItemResponse"];
+                };
+            };
+        };
+    };
+    createModifierGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModifierGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModifierGroupResponse"];
+                };
+            };
+        };
+    };
+    updateModifierGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModifierGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModifierGroupResponse"];
+                };
+            };
+        };
+    };
+    deleteModifierGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setModifierOptionAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModifierOptionResponse"];
+                };
+            };
+        };
+    };
+    getKitchenBoard: {
+        parameters: {
+            query: {
+                branchId: string;
+                stationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenBoardResponse"];
+                };
+            };
+        };
+    };
+    setKitchenLineStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenStageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenTicketResponse"];
+                };
+            };
+        };
+    };
+    setKitchenTicketStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitchenStageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenTicketResponse"];
+                };
+            };
+        };
+    };
+    acknowledgeVoidKitchenTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listRestaurantOrdersInProgress: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOrderListResponse"];
+                };
+            };
+        };
+    };
+    getRestaurantOrderForSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                saleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOrderSummary"];
+                };
+            };
+        };
+    };
+    handOverRestaurantOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOrderSummary"];
+                };
+            };
+        };
+    };
+    getMenuSalesReport: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MenuSalesReport"];
+                };
+            };
+        };
+    };
+    getKitchenTimesReport: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenTimesReport"];
+                };
+            };
+        };
+    };
+    listRestaurantTables: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantTable"][];
+                };
+            };
+        };
+    };
+    createRestaurantTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantTableRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantTable"];
+                };
+            };
+        };
+    };
+    updateRestaurantTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tableId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantTableRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantTable"];
+                };
+            };
+        };
+    };
+    getRestaurantFloor: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantFloor"];
+                };
+            };
+        };
+    };
+    openRestaurantOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenRestaurantOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    getRestaurantOpenOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    updateRestaurantOrderDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantOrderDetailsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    addRestaurantOrderLines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRestaurantOrderLinesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    changeRestaurantOrderLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeRestaurantOrderLineRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    cancelRestaurantOrderLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelRestaurantOrderLineRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    sendRestaurantOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    moveRestaurantOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveRestaurantOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    setRestaurantBillRequested: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantBillRequestedRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    seatRestaurantBooking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    markRestaurantOrderServed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    cancelRestaurantOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelRestaurantOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    createRestaurantBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateRestaurantBillRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    discardRestaurantBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                billId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    payRestaurantBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                billId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayRestaurantBillRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    closeRestaurantBillWithoutSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                billId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseRestaurantBillRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    getDishRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    setDishRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRecipeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    getModifierOptionRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    setModifierOptionRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRecipeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    getRestaurantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantSettings"];
+                };
+            };
+        };
+    };
+    updateRestaurantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantSettings"];
+                };
+            };
+        };
+    };
+    listRestaurantServers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantServer"][];
+                };
+            };
+        };
+    };
+    setRestaurantTableQr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tableId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantTableQrRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantTable"];
+                };
+            };
+        };
+    };
+    mergeRestaurantOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeRestaurantOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    setRestaurantOrderDelivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantDeliveryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    getPrepBatchRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    setPrepBatchRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRecipeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRecipe"];
+                };
+            };
+        };
+    };
+    makePrepBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrepBatchResponse"];
+                };
+            };
+        };
+    };
+    searchRequisitionProducts: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisitionProduct"][];
+                };
+            };
+        };
+    };
+    listKitchenRequisitions: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisitionList"];
+                };
+            };
+        };
+    };
+    askKitchenRequisition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRequisitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisition"];
+                };
+            };
+        };
+    };
+    issueKitchenRequisition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRequisitionIssueRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisition"];
+                };
+            };
+        };
+    };
+    refuseKitchenRequisition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantRequisitionRefuseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisition"];
+                };
+            };
+        };
+    };
+    cancelKitchenRequisition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantRequisition"];
+                };
+            };
+        };
+    };
+    getPublicMenu: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicMenu"];
+                };
+            };
+        };
+    };
+    getPublicTableMenu: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicTableMenu"];
+                };
+            };
+        };
+    };
+    placePublicTableOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicTableOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicTableOrderConfirmation"];
                 };
             };
         };

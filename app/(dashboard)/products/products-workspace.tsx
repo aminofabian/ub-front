@@ -15,7 +15,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { itemListThumbnailUrl, type BulkPriceRequest } from "@/lib/api";
-import { type ProductDrawerId, emptyVariantDraft } from "./_types";
+import { EMPTY_PARENT, type ProductDrawerId, emptyVariantDraft } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
 import { useQuickEdit } from "./_hooks/useQuickEdit";
@@ -27,6 +27,7 @@ import { ProductAttentionBar } from "./_components/ProductHeroHeader";
 import { ProductHeaderActions } from "./_components/ProductHeaderActions";
 import { ProductsPageLayout } from "./_components/products-page-layout";
 import { ProductMobileChrome } from "./_components/ProductMobileChrome";
+import { CatalogCreateDraftBanner } from "./_components/CatalogCreateDraftBanner";
 import { ProductCreateModal } from "./_components/ProductCreateModal";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
@@ -718,6 +719,18 @@ export function ProductsWorkspace() {
         }
       >
         <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-[min(72dvh,40rem)]">
+          <CatalogCreateDraftBanner
+            businessId={business?.id ?? ""}
+            hidden={activeDrawer === "create-parent"}
+            onContinue={() => setActiveDrawer("create-parent")}
+            onDiscard={() =>
+              m.setParentDraft((prev) => ({
+                ...EMPTY_PARENT,
+                itemTypeId: prev.itemTypeId,
+                openingBranchId: prev.openingBranchId,
+              }))
+            }
+          />
           <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-0">
             {catalogEmpty ? null : (
               <ProductMobileChrome
@@ -918,9 +931,8 @@ export function ProductsWorkspace() {
         branches={branches}
         canGlobalCatalog={canGlobalCatalog}
         canCreateCategory={canCreateCategory}
-        onOpenExistingProduct={(itemId) => {
-          detail.selectProduct(itemId);
-          setMobileDetailOpen(true);
+        onCatalogRefresh={() => {
+          void catalog.refreshFullCatalog();
         }}
       />
 

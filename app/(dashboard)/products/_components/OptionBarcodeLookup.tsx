@@ -34,6 +34,8 @@ type Props = {
   rowTouched: boolean;
   /** 1-based number of another option using the same barcode. */
   sameBarcodeAs: number | null;
+  /** Bump after the existing product is edited or deleted so this line looks again. */
+  lookupRevision?: number;
   disabled?: boolean;
   /**
    * The row was filled in bulk from a shared-catalog family, which already says so:
@@ -69,6 +71,7 @@ export function OptionBarcodeLookup({
   appliedSharedId,
   rowTouched,
   sameBarcodeAs,
+  lookupRevision = 0,
   disabled,
   quiet = false,
   onUseShared,
@@ -115,7 +118,7 @@ export function OptionBarcodeLookup({
         });
     }, LOOKUP_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [code, valid, canGlobalCatalog, quiet, disabled]);
+  }, [code, valid, canGlobalCatalog, quiet, disabled, lookupRevision]);
 
   const current = result && result.code === code ? result : null;
 
@@ -168,7 +171,7 @@ export function OptionBarcodeLookup({
               className={styles.hintAction}
               onClick={() => onOpenExisting(existingId)}
             >
-              Open
+              View
             </button>
           ) : null}
         </span>,

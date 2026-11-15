@@ -2490,6 +2490,13 @@ async function request<T>(
 /** Authenticated JSON API helper (for focused client modules). */
 export const apiRequest = request;
 
+/** POSTs one file as the `file` part of a multipart form and reads the JSON that comes back. */
+export async function apiUploadFile<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  return requestMultipartJson<T>(path, form);
+}
+
 async function requestMultipartJson<T>(
   path: string,
   form: FormData,
@@ -3947,6 +3954,14 @@ export type OnboardingAnswersRecord = {
   /** new | spreadsheet | other_pos */
   productSource?: string;
   ownerPhone?: string;
+  /** Food shops only: where food and drink is made (kitchen station names). */
+  foodStations?: string[];
+  /** Food shops only: the first dishes, with the price as a number on the wire. */
+  foodMenuItems?: { name: string; price: number }[];
+  /** Food shops only: the shop also sells packaged products off the shelf. */
+  sellsProducts?: boolean;
+  /** Restaurants and bars only: how many tables to set up. Zero is "none"; absent is not asked. */
+  foodTableCount?: number;
 };
 
 export type OnboardingStateRecord = {
@@ -11745,13 +11760,22 @@ export type PostSaleLinePayload = {
   itemId?: string;
   quantity: number | string;
   unitPrice: number | string;
-  kind?: "ITEM" | "AIRTIME" | "SERVICE";
+  kind?: "ITEM" | "AIRTIME" | "SERVICE" | "DISH";
   label?: string;
   airtimePhone?: string;
   airtimeNetwork?: string;
   /** `SERVICE` lines: the service sold and the staff profile that performed it. */
   serviceId?: string;
   performerStaffProfileId?: string;
+  /**
+   * The restaurant menu item the line was rung from. Required for a `DISH` line; on a product
+   * line it only tells the kitchen where the product is prepared, if anywhere.
+   */
+  menuItemId?: string;
+  /** `DISH` lines: the modifier options chosen. */
+  modifierOptionIds?: string[];
+  /** What the customer asked for on this line ("no onions"); shown to the kitchen. */
+  note?: string;
 };
 
 /** A tip for a staff member who performed a service on the sale; not part of the sale total. */
@@ -11791,6 +11815,10 @@ export type SaleItemResponseRecord = {
   itemId?: string | null;
   batchId?: string | null;
   lineKind?: string | null;
+  /** `DISH` lines: the restaurant menu item sold; what was chosen on it is in `lineLabel`. */
+  menuItemId?: string | null;
+  /** `DISH` lines: what the customer asked for. */
+  lineNote?: string | null;
   lineLabel?: string | null;
   /** Canonical product title frozen on the sale line at checkout. */
   displayName?: string | null;
@@ -11903,6 +11931,15 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
       }
       if (l.performerStaffProfileId?.trim()) {
         row.performerStaffProfileId = l.performerStaffProfileId.trim();
+      }
+      if (l.menuItemId?.trim()) {
+        row.menuItemId = l.menuItemId.trim();
+      }
+      if (l.modifierOptionIds && l.modifierOptionIds.length > 0) {
+        row.modifierOptionIds = l.modifierOptionIds;
+      }
+      if (l.note?.trim()) {
+        row.note = l.note.trim().slice(0, 255);
       }
       return row;
     }),

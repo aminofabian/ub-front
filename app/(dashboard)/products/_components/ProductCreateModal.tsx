@@ -50,6 +50,7 @@ import {
 import type { GenerateProductDescriptionResponse } from "@/lib/catalog-description-api";
 import { resolveGeneratedCatalogIds } from "@/lib/resolve-generated-catalog";
 
+import { useCatalogCreateDraft } from "../_hooks/useCatalogCreateDraft";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { ParentDraft } from "../_types";
@@ -62,6 +63,7 @@ import {
   readyGroupOptions,
   type GroupOptionRow,
 } from "./CreateGroupOptionsPad";
+import { ExistingBarcodeProductDialog } from "./ExistingBarcodeProductDialog";
 import { OptionBarcodeLookup } from "./OptionBarcodeLookup";
 import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
@@ -119,7 +121,8 @@ type Props = {
   currencyCode: string;
   branches: BranchRecord[];
   canGlobalCatalog?: boolean;
-  onOpenExistingProduct?: (itemId: string) => void;
+  /** Refresh the shelf after the duplicate-barcode product is edited or deleted. */
+  onCatalogRefresh?: () => void;
 };
 
 /** What a shared-catalog family put into the Family + options form. */
@@ -281,10 +284,10 @@ export function ProductCreateModal({
   branches,
   canGlobalCatalog = false,
   canCreateCategory = false,
-  onOpenExistingProduct,
+  onCatalogRefresh,
 }: Props) {
   const modeId = useId();
-  const { business } = useDashboard();
+  const { business, branchId } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const categorySelectRef = useRef<SearchableSelectHandle>(null);
@@ -321,10 +324,22 @@ export function ProductCreateModal({
   /** Set once a shared-catalog family has filled the options; "Clear" undoes it. */
   const [familyShared, setFamilyShared] = useState<FamilyFill | null>(null);
   const [familyFillBusy, setFamilyFillBusy] = useState(false);
+  const [conflictItemId, setConflictItemId] = useState<string | null>(null);
+  const [lookupRevision, setLookupRevision] = useState(0);
   const groupOptionsRef = useRef(groupOptions);
   useEffect(() => {
     groupOptionsRef.current = groupOptions;
   }, [groupOptions]);
+  const createDraft = useCatalogCreateDraft({
+    businessId: business?.id ?? "",
+    open,
+    parentDraft: m.parentDraft,
+    setParentDraft: m.setParentDraft,
+    groupOptions,
+    setGroupOptions,
+    pendingImage: m.pendingCreateImage,
+    setPendingImage: m.setPendingCreateImage,
+  });
   const categoryCreate = useInlineCategoryCreate(catalog.upsertCategory);
   const departmentCreate = useInlineItemTypeCreate(catalog.upsertItemType);
   const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
@@ -351,12 +366,7 @@ export function ProductCreateModal({
     setOptionScanKey(null);
     setFamilyShared(null);
     setFamilyFillBusy(false);
-    setGroupOptions((prev) => {
-      for (const row of prev) {
-        if (row.imagePreview) URL.revokeObjectURL(row.imagePreview);
-      }
-      return [newGroupOptionRow(), newGroupOptionRow()];
-    });
+    setConflictItemId(null);
     categoryCreate.clearError();
     departmentCreate.clearError();
     aisleCreate.clearError();
@@ -824,7 +834,7 @@ export function ProductCreateModal({
       const savedStocked = m.parentDraft.isStocked;
       const savedSellable = m.parentDraft.isSellable;
 
-      await m.onCreateParent(e, {
+      const saved = await m.onCreateParent(e, {
         keepOpen: creatingGroup ? false : keepOpen,
         groupOptions: creatingGroup
           ? readyOptions.map((o) => ({
@@ -837,8 +847,10 @@ export function ProductCreateModal({
             }))
           : undefined,
       });
+      if (saved) createDraft.forgetDraft();
 
       if (creatingGroup || !keepOpen) return;
+      createDraft.resumeSaving();
 
       m.setParentDraft({
         ...m.parentDraft,
@@ -879,14 +891,21 @@ export function ProductCreateModal({
       }, 0);
       window.setTimeout(() => setJustAdded(false), 560);
     },
-    [keepOpen, m, readyOptions],
+    [createDraft, keepOpen, m, readyOptions],
   );
+
+  const showExisting = (itemId: string) => setConflictItemId(itemId);
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) onClose();
+        if (next) return;
+        if (conflictItemId) {
+          setConflictItemId(null);
+          return;
+        }
+        onClose();
       }}
     >
       <DialogContent
@@ -928,6 +947,22 @@ export function ProductCreateModal({
                     ? "Added. Name the next one."
                     : "Name and selling price are enough to sell. Photo and barcode can wait."}
               </DialogDescription>
+              {createDraft.hasWork ? (
+                <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)]">
+                  <span>
+                    {createDraft.restored
+                      ? "Draft restored. Leave again and it stays here."
+                      : "Leave this page and it stays as a draft."}
+                  </span>
+                  <button
+                    type="button"
+                    className="font-medium text-[var(--catalog-primary,#0f766e)] underline-offset-2 hover:underline"
+                    onClick={createDraft.discardDraft}
+                  >
+                    Discard
+                  </button>
+                </p>
+              ) : null}
             </DialogHeader>
 
             <div
@@ -1237,10 +1272,8 @@ export function ProductCreateModal({
                   name={m.parentDraft.name}
                   barcode={m.parentDraft.barcode}
                   canGlobalCatalog={canGlobalCatalog}
-                  onOpenExisting={(itemId) => {
-                    onOpenExistingProduct?.(itemId);
-                    onClose();
-                  }}
+                  lookupRevision={lookupRevision}
+                  onOpenExisting={showExisting}
                   onUseGlobal={applyGlobalMatch}
                   onAutoGlobal={applyGlobalMatch}
                 />
@@ -1259,10 +1292,8 @@ export function ProductCreateModal({
                   <ProductNameSuggestions
                     name={m.parentDraft.name}
                     canGlobalCatalog={canGlobalCatalog}
-                    onOpenExisting={(itemId) => {
-                      onOpenExistingProduct?.(itemId);
-                      onClose();
-                    }}
+                    lookupRevision={lookupRevision}
+                    onOpenExisting={showExisting}
                     onUseGlobal={(product) => {
                       void applyGlobalFamily(product);
                     }}
@@ -1544,10 +1575,8 @@ export function ProductCreateModal({
                       onUseShared={(product) =>
                         applySharedToOption(row.key, product)
                       }
-                      onOpenExisting={(itemId) => {
-                        onOpenExistingProduct?.(itemId);
-                        onClose();
-                      }}
+                      lookupRevision={lookupRevision}
+                      onOpenExisting={showExisting}
                     />
                   )}
                 />
@@ -1929,7 +1958,7 @@ export function ProductCreateModal({
                 onClick={onClose}
                 disabled={m.parentCreateBusy}
               >
-                Cancel
+                {createDraft.hasWork ? "Save draft" : "Cancel"}
               </Button>
               <button
                 type="submit"
@@ -1984,6 +2013,16 @@ export function ProductCreateModal({
           />
         ) : null}
       </DialogContent>
+      <ExistingBarcodeProductDialog
+        itemId={conflictItemId}
+        branchId={branchId}
+        currency={currency}
+        onClose={() => setConflictItemId(null)}
+        onChanged={() => {
+          setLookupRevision((value) => value + 1);
+          onCatalogRefresh?.();
+        }}
+      />
     </Dialog>
   );
 }

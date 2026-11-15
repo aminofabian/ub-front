@@ -5,11 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  BookOpenText,
+  ChefHat,
   CircleDollarSign,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
   Globe,
+  LayoutGrid,
   MessageCircle,
   MonitorSmartphone,
   Package,
@@ -21,6 +24,7 @@ import {
   Store,
   Truck,
   Users,
+  UtensilsCrossed,
   Wallet,
 } from "lucide-react";
 
@@ -55,7 +59,12 @@ import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
-import { isServiceBusiness, isServiceOnlyBusiness } from "@/lib/business-store-type";
+import {
+  isFoodOnlyBusiness,
+  isTableServiceBusiness,
+  isServiceBusiness,
+  isServiceOnlyBusiness,
+} from "@/lib/business-store-type";
 import { ServiceFloorPanel } from "@/components/business-hub/service-floor-panel";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
@@ -260,7 +269,12 @@ export function BusinessHubWorkspace() {
     canViewSupplyBills && (canRecordSupplierPayment || canViewApAging);
   const canViewCreditTabs = canViewCustomers;
   const canOpenCreditPay = canViewCreditTabs && canReviewPaymentClaims;
-  const canShowWebOrders = canViewStorefrontOrders && shopEnabled;
+  // A restaurant, café or bar: this page speaks of orders, the floor and the menu, and leaves
+  // out what only a shop with shelves uses (web orders, airtime, the online store).
+  const foodOnly = isFoodOnlyBusiness(business);
+  const foodTables = foodOnly && isTableServiceBusiness(business);
+  const canManageMenu = hasPermission(me?.permissions, Permission.RestaurantMenuManage);
+  const canShowWebOrders = canViewStorefrontOrders && shopEnabled && !foodOnly;
 
   const [period, setPeriod] = useState<Period>("today");
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
@@ -806,7 +820,8 @@ export function BusinessHubWorkspace() {
         lowStockCount,
         batchDashboard,
         expiryPipeline,
-        storefrontEnabled: business?.storefront?.enabled,
+        // Undefined says nothing about an online store; a restaurant's web page is its menu.
+        storefrontEnabled: foodOnly ? undefined : business?.storefront?.enabled,
         openWebOrders: openWebOrders.length,
         payablesOpen,
         canViewShifts,
@@ -816,6 +831,7 @@ export function BusinessHubWorkspace() {
         canViewStorefrontOrders: canShowWebOrders,
       }),
     [
+      foodOnly,
       batchDashboard,
       business?.storefront?.enabled,
       canManageBusinessSettings,
@@ -840,7 +856,9 @@ export function BusinessHubWorkspace() {
 
   const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
-  const shopNotReady = catalogueCount === 0;
+  // A restaurant, café or bar sells from its menu, not a shelf: with no products it is still
+  // open, so it gets the ordinary hub and not "stock the shelves".
+  const shopNotReady = catalogueCount === 0 && !isFoodOnlyBusiness(business);
 
   // Configure-shop can finish with an empty shelf. When sellable items appear
   // (import, manual create, etc.), mark onboarding completed so setup progress
@@ -1084,6 +1102,21 @@ export function BusinessHubWorkspace() {
   ]);
 
   const jumpInLinks = useMemo(() => {
+    if (foodOnly) {
+      // The places a restaurant works from, then its menu and its numbers.
+      const food: JumpInLink[] = [];
+      if (foodTables) {
+        food.push({ href: APP_ROUTES.restaurantFloor, label: "Floor", hint: "Tables and open orders", icon: LayoutGrid, group: "Sell" });
+      }
+      food.push(
+        { href: APP_ROUTES.restaurantCounter, label: "Counter", hint: "Ring an order, take payment", icon: UtensilsCrossed, group: "Sell" },
+        { href: APP_ROUTES.restaurantKitchen, label: "Kitchen", hint: "What to make now", icon: ChefHat, group: "Sell" },
+        { href: APP_ROUTES.restaurantMenu, label: "Menu", hint: "Dishes, prices, pictures", icon: BookOpenText, group: "Menu" },
+        { href: APP_ROUTES.restaurantReports, label: "Menu sales", hint: "What sold, and how fast", icon: BarChart3, group: "Insight" },
+        { href: APP_ROUTES.sales, label: "Sales", hint: "Receipts and refunds", icon: ShoppingCart, group: "Sell" },
+      );
+      return food;
+    }
     // Board order = how often a busy shop reaches for it. The sheet regroups the
     // same links by the job they do, so order here never costs discoverability.
     const links: JumpInLink[] = [
@@ -1223,6 +1256,8 @@ export function BusinessHubWorkspace() {
     }
     return links;
   }, [
+    foodOnly,
+    foodTables,
     canApproveStockTake,
     canListUsers,
     canManageBusinessSettings,
@@ -1240,6 +1275,13 @@ export function BusinessHubWorkspace() {
     // Deliberately NOT the bottom-tab destinations (Sales / Products / Stock).
     // These are the jobs a shop reaches for between sales.
     const links: JumpInLink[] = [];
+    if (foodOnly) {
+      links.push({ href: APP_ROUTES.restaurantMenu, label: "Menu", hint: "Dishes and prices", icon: BookOpenText, group: "Menu" });
+      links.push({ href: `${APP_ROUTES.restaurantMenu}/print`, label: "Print the menu", hint: "Or save a PDF", icon: Receipt, group: "Menu" });
+      if (canManageMenu) {
+        links.push({ href: `${APP_ROUTES.restaurantMenu}/qr`, label: "QR codes", hint: "For tables and the door", icon: ScanLine, group: "Menu" });
+      }
+    }
     if (canWriteFinanceExpenses || canReadFinanceExpenses) {
       links.push({
         href: APP_ROUTES.expenses,
@@ -1249,7 +1291,7 @@ export function BusinessHubWorkspace() {
         group: "Money",
       });
     }
-    if (canApproveStockTake || canViewSupplyBatches) {
+    if (!foodOnly && (canApproveStockTake || canViewSupplyBatches)) {
       links.push({
         href: APP_ROUTES.inventoryStockTake,
         label: "Count stock",
@@ -1258,7 +1300,7 @@ export function BusinessHubWorkspace() {
         group: "Stock",
       });
     }
-    if (canViewSupplyBatches) {
+    if (!foodOnly && canViewSupplyBatches) {
       links.push({
         href: APP_ROUTES.inventoryRestock,
         label: "Reorder stock",
@@ -1287,6 +1329,8 @@ export function BusinessHubWorkspace() {
     }
     return links;
   }, [
+    foodOnly,
+    canManageMenu,
     canAddSupplier,
     canApproveStockTake,
     canReadFinanceExpenses,
@@ -1402,9 +1446,10 @@ export function BusinessHubWorkspace() {
     hasPermission(me?.permissions, Permission.PaymentsGatewaysRead) ||
     hasPermission(me?.permissions, Permission.PaymentsGatewaysWrite);
   const canShowAirtime =
-    hasPermission(me?.permissions, Permission.AirtimeRead) ||
-    hasPermission(me?.permissions, Permission.AirtimeManage) ||
-    hasPermission(me?.permissions, Permission.AirtimeSell);
+    !foodOnly &&
+    (hasPermission(me?.permissions, Permission.AirtimeRead) ||
+      hasPermission(me?.permissions, Permission.AirtimeManage) ||
+      hasPermission(me?.permissions, Permission.AirtimeSell));
   const showSetupPanel =
     canShowPaymentMethod || canShowAirtime || canManageBusinessSettings;
 
@@ -1659,10 +1704,12 @@ export function BusinessHubWorkspace() {
           {canManageBusinessSettings ? (
             <QuestionnaireResumeBanner
               businessOnboardingStatus={business?.onboarding?.status}
-              // A shop that only sells services has no shelves to stock.
+              // A shop that only sells services has no shelves to stock; a restaurant, café
+              // or bar sells dishes first and packaged products only if it wants to.
               catalogEmpty={
                 catalogueCount === 0 &&
-                !isServiceOnlyBusiness(business)
+                !isServiceOnlyBusiness(business) &&
+                !isFoodOnlyBusiness(business)
               }
             />
           ) : null}
@@ -1747,6 +1794,7 @@ export function BusinessHubWorkspace() {
                   showThemeLink={canManageBusinessSettings && shopEnabled}
                   showUsersLink={canListUsers}
                   storefrontEnabled={Boolean(business?.storefront?.enabled)}
+                  food={foodOnly ? { tables: foodTables, canManageMenu } : null}
                 />
               ) : null}
 

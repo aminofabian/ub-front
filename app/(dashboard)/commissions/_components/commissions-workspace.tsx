@@ -246,6 +246,7 @@ function CommissionBody({
           canAdjust={canAdjust}
           onPay={onPay}
           onAdjust={onAdjust}
+          onChanged={onReload}
         />
         <TeamPanel
           plans={plans}

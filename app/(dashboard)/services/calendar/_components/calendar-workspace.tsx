@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { BookingDialog, nairobiInstant } from "../../appointments/_components/appointments-workspace";
+import { WorkingHoursDialog } from "./working-hours-dialog";
 
 const HOUR_PX = 56;
 const REFRESH_MS = 30000;
@@ -96,6 +97,7 @@ export function CalendarWorkspace({ canManageTeam }: { canManageTeam: boolean })
   const [booking, setBooking] = useState<{ date: string; time?: string; staffProfileId?: string; resourceId?: string } | null>(null);
   const [opened, setOpened] = useState<CalendarEntry | null>(null);
   const [timeOff, setTimeOff] = useState(false);
+  const [workingHours, setWorkingHours] = useState(false);
   const [filter, setFilter] = useState("");
 
   const days = useMemo(() => (view === "week" ? weekOf(date) : [date]), [view, date]);
@@ -146,6 +148,11 @@ export function CalendarWorkspace({ canManageTeam }: { canManageTeam: boolean })
           {canManageTeam ? (
             <Button size="sm" variant="outline" onClick={() => setTimeOff(true)}>
               Time off
+            </Button>
+          ) : null}
+          {canManageTeam && calendar ? (
+            <Button size="sm" variant="outline" onClick={() => setWorkingHours(true)}>
+              Working hours
             </Button>
           ) : null}
           <Button size="sm" variant="outline" asChild>
@@ -305,6 +312,9 @@ export function CalendarWorkspace({ canManageTeam }: { canManageTeam: boolean })
       ) : null}
       {opened ? (
         <EntryDialog entry={opened} staffName={nameOfStaff(opened.staffProfileId)} placeName={nameOfPlace(opened.resourceId)} onClose={() => setOpened(null)} />
+      ) : null}
+      {workingHours && calendar ? (
+        <WorkingHoursDialog staff={calendar.staff} onClose={() => setWorkingHours(false)} />
       ) : null}
       {timeOff && calendar ? (
         <TimeOffDialog

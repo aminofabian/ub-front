@@ -39,9 +39,12 @@ export function EarningsTable({
   canAdjust,
   onPay,
   onAdjust,
+  onChanged,
 }: {
   rows: CommissionStatementRow[];
   reconciled: boolean;
+  /** Called after a service was moved from one person to another, to read the figures again. */
+  onChanged?: () => void | Promise<void>;
   /** The period on screen; a person's history is read for the same days. */
   from: string;
   to: string;
@@ -70,6 +73,7 @@ export function EarningsTable({
           canAdjust={canAdjust}
           onPay={onPay}
           onAdjust={onAdjust}
+          onChanged={onChanged}
         />
       )}
     </section>
@@ -96,9 +100,11 @@ function EarningsRows({
   canAdjust,
   onPay,
   onAdjust,
+  onChanged,
 }: {
   rows: CommissionStatementRow[];
   reconciled: boolean;
+  onChanged?: () => void | Promise<void>;
   from: string;
   to: string;
   canPay: boolean;
@@ -133,6 +139,8 @@ function EarningsRows({
               canAdjust={canAdjust}
               onPay={onPay}
               onAdjust={onAdjust}
+              people={canAdjust ? rows.filter((r) => r.current) : []}
+              onChanged={onChanged}
             />
           ))}
         </tbody>
@@ -150,9 +158,13 @@ function EarningsRow({
   canAdjust,
   onPay,
   onAdjust,
+  people,
+  onChanged,
 }: {
   row: CommissionStatementRow;
   reconciled: boolean;
+  people: readonly CommissionStatementRow[];
+  onChanged?: () => void | Promise<void>;
   from: string;
   to: string;
   canPay: boolean;
@@ -211,7 +223,14 @@ function EarningsRow({
       {open ? (
         <tr className="border-b border-[var(--op-rule)] bg-[var(--op-bg)] last:border-b-0">
           <td colSpan={8} className="p-0">
-            <StaffHistory staffProfileId={row.staffProfileId} name={row.displayName} from={from} to={to} />
+            <StaffHistory
+              staffProfileId={row.staffProfileId}
+              name={row.displayName}
+              from={from}
+              to={to}
+              people={people}
+              onMoved={canAdjust ? onChanged : undefined}
+            />
           </td>
         </tr>
       ) : null}

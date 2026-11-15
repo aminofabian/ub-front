@@ -1,6 +1,10 @@
 "use client";
 
-import { SERVICE_STORE_TYPES } from "@/lib/business-store-type";
+import {
+  FOOD_STORE_TYPES,
+  SERVICE_STORE_TYPES,
+  isTableServiceStoreTypes,
+} from "@/lib/business-store-type";
 import { IS_DESKTOP } from "@/lib/runtime";
 
 import {
@@ -23,9 +27,14 @@ import {
   Smartphone,
   Wine,
   Bath,
+  Beer,
+  Coffee,
   Hand,
   Heart,
+  Sandwich,
+  UtensilsCrossed,
   Scissors,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -61,13 +70,22 @@ import {
 } from "@/components/storefront/milk-run-whatsapp-dialog";
 import {
   BRANCH_COUNT_OPTIONS,
+  FOOD_MAX_DISHES,
+  FOOD_MAX_STATIONS,
+  FOOD_MAX_TABLES,
+  parseFoodTableCount,
+  FOOD_STATION_SUGGESTIONS,
   ONLINE_STORE_OPTIONS,
   PRODUCT_SOURCE_OPTIONS,
   QUESTIONNAIRE_STEP_COUNT,
   STORE_TYPE_OPTIONS,
+  blankFoodMenuDraft,
   branchCountToNumber,
   branchLocalityPlaceholder,
+  cleanFoodStationNames,
+  defaultFoodStations,
   formatBranchDisplayName,
+  foodMenuDraftError,
   localityPlaceholdersForCountry,
   looksLikeOwnerPhone,
   storeTypesSectionLabels,
@@ -77,6 +95,7 @@ import {
   QUESTIONNAIRE_RECEIVE_STEP,
   QUESTIONNAIRE_STOCK_STEP,
   type BranchCountChoice,
+  type FoodMenuDraft,
   type OnboardingQuestionnaireAnswers,
   type OnboardingQuestionnaireFinishExtras,
   type OnlineStoreChoice,
@@ -122,15 +141,39 @@ const STORE_TYPE_ICONS: Record<
   spa: Bath,
   "nail-studio": Hand,
   "beauty-parlour": Heart,
+  restaurant: UtensilsCrossed,
+  cafe: Coffee,
+  "fast-food": Sandwich,
+  bar: Beer,
 };
 
 /**
  * Service shop types are not offered on the desktop app: its sync does not carry tips,
  * performers or staff earnings yet.
  */
+/** What the empty rows of the first-dishes step suggest, in the order of the rows. */
+const FOOD_MENU_EXAMPLES = ["e.g. Pilau", "e.g. Chai", "e.g. Chips masala"];
+
+/**
+ * The kinds of business under the three headings an owner looks for first. Anything not named
+ * under food or services is a shop with shelves.
+ */
+const STORE_TYPE_GROUPS: { title: string; includes: (value: string) => boolean }[] = [
+  { title: "Food and drink", includes: (v) => (FOOD_STORE_TYPES as readonly string[]).includes(v) },
+  {
+    title: "Shops",
+    includes: (v) =>
+      !(FOOD_STORE_TYPES as readonly string[]).includes(v) && !(SERVICE_STORE_TYPES as readonly string[]).includes(v),
+  },
+  { title: "Services", includes: (v) => (SERVICE_STORE_TYPES as readonly string[]).includes(v) },
+];
+
 const SHOWN_STORE_TYPE_OPTIONS = IS_DESKTOP
   ? STORE_TYPE_OPTIONS.filter(
-      (opt) => !(SERVICE_STORE_TYPES as readonly string[]).includes(opt.value),
+      (opt) =>
+        !(SERVICE_STORE_TYPES as readonly string[]).includes(opt.value) &&
+        // Nor are food types: desktop sync does not carry menus, orders or kitchen tickets.
+        !(FOOD_STORE_TYPES as readonly string[]).includes(opt.value),
     )
   : STORE_TYPE_OPTIONS;
 
@@ -173,6 +216,19 @@ type Props = {
   ) => void;
   onBack: () => void;
   onSkip: () => void;
+  /**
+   * A restaurant, café or bar leaving the questions early: set the shop up with what has been
+   * answered so far (the place, the kitchen, the tables, the dishes) instead of parking it.
+   */
+  onFinishEarly?: (
+    answers: Partial<OnboardingQuestionnaireAnswers>,
+    extras?: OnboardingQuestionnaireFinishExtras,
+  ) => void;
+  /** The phone step passed without a number; it stays on the shop's setup list for later. */
+  onContinueWithoutPhone?: (
+    answers: Partial<OnboardingQuestionnaireAnswers>,
+    extras?: OnboardingQuestionnaireFinishExtras,
+  ) => void;
   canBrowseGlobalCatalog?: boolean;
   /** Opens the in-flow starter catalogue drawer (final stock step). */
   onOpenCatalogDrawer?: () => void;
@@ -200,8 +256,8 @@ type Props = {
 };
 
 const STEP_LABELS = [
-  "Locations",
   "Shop type",
+  "Locations",
   "Sections",
   "Selling online",
   "Look",
@@ -210,12 +266,21 @@ const STEP_LABELS = [
   "Receive M-Pesa",
 ] as const;
 
-function QuestionnaireProgress({ step }: { step: number }) {
+/** What steps 3–5 are called for a restaurant, café or bar, which answers different questions there. */
+const FOOD_STEP_LABELS: Record<number, string> = {
+  3: "Kitchen",
+  4: "Menu",
+  5: "Packaged products",
+};
+
+function QuestionnaireProgress({ step, food = false }: { step: number; food?: boolean }) {
   const answerSteps = QUESTIONNAIRE_STEP_COUNT - 1;
   const clamped = Math.min(step, answerSteps);
   const isFinal = step >= QUESTIONNAIRE_STEP_COUNT;
   const percent = isFinal ? 100 : Math.round((clamped / answerSteps) * 100);
-  const stepLabel = isFinal ? "Shelves" : (STEP_LABELS[clamped - 1] ?? "");
+  const stepLabel = isFinal
+    ? "Shelves"
+    : ((food ? FOOD_STEP_LABELS[clamped] : undefined) ?? STEP_LABELS[clamped - 1] ?? "");
 
   return (
     <div className="w-full">
@@ -223,7 +288,9 @@ function QuestionnaireProgress({ step }: { step: number }) {
         <span className="truncate text-[13px] font-medium text-[#121A16]">
           {stepLabel}
         </span>
-        <span className="shrink-0 font-mono text-[11px] tabular-nums text-[#556159]">
+        {/* Beside the slip (lg and up) the slip's own "lines written" is the count; two
+            different totals side by side read as a mistake. */}
+        <span className={cn("shrink-0 font-mono text-[11px] tabular-nums text-[#556159]", !isFinal && "lg:hidden")}>
           {isFinal ? "Last step" : `${clamped} of ${answerSteps}`}
         </span>
       </div>
@@ -307,7 +374,7 @@ function StoreTypeButton({
         </span>
         <span
           className={cn(
-            "mt-0.5 line-clamp-1 text-[11px] leading-snug",
+            "mt-0.5 line-clamp-2 text-[11px] leading-snug",
             selected ? "text-[#D7E6DE]" : "text-[#556159]",
           )}
         >
@@ -379,9 +446,15 @@ function OptionButton({
 function ShopLinePreview({
   shopName,
   phoneLabel,
+  food = false,
+  service = false,
 }: {
   shopName: string;
   phoneLabel: string;
+  /** A restaurant's customers ask about tables, and it has no shelf to run low. */
+  food?: boolean;
+  /** A service shop's customers ask for a time. */
+  service?: boolean;
 }) {
   const who = shopName.trim() || "the shop";
   return (
@@ -402,7 +475,7 @@ function ShopLinePreview({
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-[#F2EDE1]">{who}</p>
                 <p className="truncate text-[11px] text-[#C9D3CC]">
-                  Hi — do you still have chicken?
+                  {food ? "Hi — are you open? Table for four at 7?" : service ? "Hi — can I come in at 4 today?" : "Hi — do you still have chicken?"}
                 </p>
               </div>
             </div>
@@ -415,7 +488,7 @@ function ShopLinePreview({
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-[#F2EDE1]">Kiosk</p>
                 <p className="text-[11px] text-[#C9D3CC]">
-                  3 items below reorder at {who}
+                  {food || service ? `A till alert for ${who}` : `3 items below reorder at ${who}`}
                 </p>
               </div>
             </div>
@@ -496,6 +569,8 @@ export function OnboardingQuestionnaire({
   onContinue,
   onBack,
   onSkip,
+  onFinishEarly,
+  onContinueWithoutPhone,
   canBrowseGlobalCatalog = false,
   onOpenCatalogDrawer,
   onAddProductsManually,
@@ -545,6 +620,7 @@ export function OnboardingQuestionnaire({
   const [ownerPhone, setOwnerPhone] = useState(
     initialAnswers.ownerPhone ?? accountPhone ?? "",
   );
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const { countries } = useSelfServeCountries();
   const shopDial = findSelfServeCountry(countries, countryCode ?? "KE");
   const dialCode = shopDial?.dialCode ?? "+254";
@@ -585,7 +661,51 @@ export function OnboardingQuestionnaire({
   const [productSource, setProductSource] = useState<ProductSourceChoice | "">(
     initialAnswers.productSource ?? "",
   );
+  const [foodStations, setFoodStations] = useState<string[]>(() =>
+    // A saved empty list is a choice (the owner cleared the only station), not "not asked".
+    initialAnswers.foodStations
+      ? [...initialAnswers.foodStations]
+      : defaultFoodStations(initialAnswers.storeTypes ?? []),
+  );
+  const [foodMenuItems, setFoodMenuItems] = useState<FoodMenuDraft[]>(() =>
+    initialAnswers.foodMenuItems?.length
+      ? initialAnswers.foodMenuItems.map((item) => ({ ...item }))
+      : [blankFoodMenuDraft(), blankFoodMenuDraft(), blankFoodMenuDraft()],
+  );
+  /** Dish rows show their error once the owner has left them, not mid-typing. */
+  const [foodDraftTouched, setFoodDraftTouched] = useState<Record<number, boolean>>(
+    {},
+  );
+  const [sellsProducts, setSellsProducts] = useState<"yes" | "no" | "">(
+    initialAnswers.sellsProducts === true
+      ? "yes"
+      : initialAnswers.sellsProducts === false
+        ? "no"
+        : "",
+  );
+  /** Kept as typed, so a blank stays "not answered" and a typo is shown, not corrected. */
+  const [foodTableCountText, setFoodTableCountText] = useState(
+    initialAnswers.foodTableCount == null ? "" : String(initialAnswers.foodTableCount),
+  );
+  /** Once the owner names a station themselves, a change of shop type leaves it alone. */
+  const foodStationsTouchedRef = useRef(
+    Array.isArray(initialAnswers.foodStations),
+  );
+  const foodStationInputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const foodDishInputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  /** The row "Add another…" just created, focused once it renders. */
+  const focusFoodStationRef = useRef<number | null>(null);
+  const focusFoodDishRef = useRef<number | null>(null);
   const isPharmacyShop = storeTypes.includes("pharmacy");
+  /** A restaurant, café, fast-food counter or bar: steps 3–5 ask about the kitchen, not shelves. */
+  const isFoodOnlyShop =
+    storeTypes.length > 0 &&
+    storeTypes.every((type) =>
+      (FOOD_STORE_TYPES as readonly string[]).includes(type),
+    );
+  /** A restaurant or bar seats people at tables; a café or fast-food counter is not asked. */
+  const asksAboutTables = isTableServiceStoreTypes(storeTypes);
+  const foodTableCount = parseFoodTableCount(foodTableCountText);
   const logoInputRef = useRef<HTMLInputElement>(null);
   /** When true, skip auto-select-all so Clear stays empty. */
   const departmentsClearedRef = useRef(false);
@@ -721,6 +841,33 @@ export function OnboardingQuestionnaire({
     });
   }, [step, storeTypes.length, availableDepartments]);
 
+  // A food shop gets its kitchen named for it (the bar for a bar); the owner can edit it.
+  useEffect(() => {
+    if (foodStationsTouchedRef.current) {
+      return;
+    }
+    const types = storeTypesKey.split("|").filter(Boolean);
+    setFoodStations(defaultFoodStations(types));
+  }, [storeTypesKey]);
+
+  useEffect(() => {
+    const index = focusFoodStationRef.current;
+    if (index === null) {
+      return;
+    }
+    focusFoodStationRef.current = null;
+    foodStationInputsRef.current[index]?.focus();
+  }, [foodStations]);
+
+  useEffect(() => {
+    const index = focusFoodDishRef.current;
+    if (index === null) {
+      return;
+    }
+    focusFoodDishRef.current = null;
+    foodDishInputsRef.current[index]?.focus();
+  }, [foodMenuItems]);
+
   const toggleStoreType = (value: StoreTypeChoice) => {
     setStoreTypes((prev) =>
       prev.includes(value)
@@ -731,19 +878,30 @@ export function OnboardingQuestionnaire({
 
   const canContinue = useMemo(() => {
     switch (step) {
+      // The kind of shop comes first: every later question, starting with the next one, is
+      // worded for it.
       case 1:
+        return storeTypes.length > 0;
+      case 2:
         return (
           Boolean(branchCount) &&
           branchLocalities.length === branchSlots &&
           branchLocalities.every((loc) => loc.trim().length > 0)
         );
-      case 2:
-        return storeTypes.length > 0;
       case 3:
-        return true;
+        // Tables are optional, but a count that cannot be read must be fixed or cleared.
+        return !(isFoodOnlyShop && asksAboutTables && foodTableCount === null);
       case 4:
+        if (isFoodOnlyShop) {
+          return foodMenuItems.every((item) => foodMenuDraftError(item) === null);
+        }
         return Boolean(onlineStore);
       case 5:
+        if (isFoodOnlyShop) {
+          // A shop that does not know yet can move on: no answer is recorded, and packaged
+          // products can be added from Products at any time.
+          return true;
+        }
         return onlineStore === "yes"
           ? Boolean(storeThemeId)
           : Boolean(landingTemplateId);
@@ -773,6 +931,10 @@ export function OnboardingQuestionnaire({
     accentColor,
     ownerPhone,
     countryCode,
+    isFoodOnlyShop,
+    foodMenuItems,
+    asksAboutTables,
+    foodTableCount,
   ]);
 
   const isDepartmentSelected = (label: string) =>
@@ -845,6 +1007,22 @@ export function OnboardingQuestionnaire({
     setLogoDraftPair(null);
   };
 
+  /** Removes a dish row and keeps the "touched" marks on the rows that stay. */
+  const removeFoodMenuItem = (index: number) => {
+    setFoodMenuItems((prev) => prev.filter((_, i) => i !== index));
+    setFoodDraftTouched((prev) => {
+      const next: Record<number, boolean> = {};
+      for (const [key, touched] of Object.entries(prev)) {
+        const row = Number(key);
+        if (row === index) {
+          continue;
+        }
+        next[row > index ? row - 1 : row] = touched;
+      }
+      return next;
+    });
+  };
+
   const handleContinue = () => {
     if (logoGenerating) {
       return;
@@ -852,20 +1030,33 @@ export function OnboardingQuestionnaire({
     clearAutoAdvance();
     switch (step) {
       case 1:
-        if (!branchCount) return;
-        onContinue({
-          branchCount,
-          branchLocalities: branchLocalities.map((loc) => loc.trim()),
-        });
-        break;
-      case 2:
         if (storeTypes.length === 0) return;
         onContinue({
           storeTypes: [...storeTypes],
           selectedDepartments: [],
         });
         break;
+      case 2:
+        if (!branchCount) return;
+        onContinue({
+          branchCount,
+          branchLocalities: branchLocalities.map((loc) => loc.trim()),
+          // Sent again with the place, where the path for this kind of shop is chosen.
+          storeTypes: [...storeTypes],
+        });
+        break;
       case 3:
+        if (isFoodOnlyShop) {
+          onContinue({
+            foodStations: cleanFoodStationNames(foodStations),
+            // Blank records nothing; a café that was once a restaurant drops its old count.
+            foodTableCount:
+              asksAboutTables && typeof foodTableCount === "number"
+                ? foodTableCount
+                : undefined,
+          });
+          break;
+        }
         onContinue({
           selectedDepartments: selectedDepartments
             .map((dept) => dept.trim())
@@ -873,10 +1064,23 @@ export function OnboardingQuestionnaire({
         });
         break;
       case 4:
+        if (isFoodOnlyShop) {
+          onContinue({
+            foodMenuItems: foodMenuItems.map((item) => ({
+              name: item.name.trim(),
+              price: item.price.trim(),
+            })),
+          });
+          break;
+        }
         if (!onlineStore) return;
         onContinue({ onlineStore });
         break;
       case 5:
+        if (isFoodOnlyShop) {
+          onContinue({ sellsProducts: sellsProducts === "yes" });
+          break;
+        }
         if (onlineStore === "yes") {
           if (!storeThemeId) return;
           onContinue({
@@ -928,6 +1132,67 @@ export function OnboardingQuestionnaire({
         break;
     }
   };
+
+  const brandFiles = (): OnboardingQuestionnaireFinishExtras => ({
+    logoFile: logoFile ?? logoDraftPair?.light ?? null,
+    logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+    faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
+    ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
+    appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
+  });
+
+  /**
+   * What a food shop has typed on the step it is looking at, when it can be kept. Leaving early
+   * must not throw away the kitchen or the dishes just typed; anything that cannot be read is
+   * left out rather than guessed.
+   */
+  const foodStepAnswers = (): Partial<OnboardingQuestionnaireAnswers> => {
+    if (!isFoodOnlyShop) return {};
+    if (step === 3) {
+      return {
+        foodStations: cleanFoodStationNames(foodStations),
+        foodTableCount:
+          asksAboutTables && typeof foodTableCount === "number" ? foodTableCount : undefined,
+      };
+    }
+    if (step === 4) {
+      return {
+        foodMenuItems: foodMenuItems
+          .filter((item) => foodMenuDraftError(item) === null)
+          .map((item) => ({ name: item.name.trim(), price: item.price.trim() })),
+      };
+    }
+    if (step === 5) {
+      return sellsProducts ? { sellsProducts: sellsProducts === "yes" } : {};
+    }
+    if (step === 6) {
+      const colours =
+        primaryColor.trim() && accentColor.trim() && meetsBrandingContrast(primaryColor, accentColor)
+          ? { primaryColor: primaryColor.trim(), accentColor: accentColor.trim() }
+          : {};
+      return { ...(displayName.trim() ? { displayName: displayName.trim() } : {}), ...colours };
+    }
+    return {};
+  };
+
+  /** A food shop past the "what kind of shop" step finishes with what it has; others park the questions. */
+  const leavesSetUp = Boolean(onFinishEarly) && isFoodOnlyShop && step >= 3 && step < QUESTIONNAIRE_PHONE_STEP;
+  const handleSkip = () => {
+    if (leavesSetUp && onFinishEarly) {
+      clearAutoAdvance();
+      onFinishEarly(foodStepAnswers(), brandFiles());
+      return;
+    }
+    onSkip();
+  };
+  // A shop that only does services (a kinyozi, a salon) answers three questions; the phone is
+  // the last, and it too can wait on the shop's setup list.
+  const serviceOnlyShop =
+    storeTypes.length > 0 &&
+    storeTypes.every((type) => (SERVICE_STORE_TYPES as readonly string[]).includes(type));
+  const phoneLater = Boolean(onContinueWithoutPhone) && (isFoodOnlyShop || serviceOnlyShop);
+  const phoneLooksWrong =
+    phoneTouched && ownerPhone.trim().length > 0 && !looksLikeOwnerPhone(ownerPhone, countryCode);
 
   const storeTypesLabel = formatStoreTypesLabel(storeTypes);
 
@@ -1091,7 +1356,7 @@ export function OnboardingQuestionnaire({
   // Beside the receipt (lg+) every step fills the same cell, so the header,
   // content and footer never shift width between steps.
   const columnWidth =
-    step === 2 ? "max-w-2xl lg:max-w-none" : "max-w-xl lg:max-w-none";
+    step === 1 ? "max-w-2xl lg:max-w-none" : "max-w-xl lg:max-w-none";
 
   const filledLocalities = branchLocalities
     .map((loc) => loc.trim())
@@ -1100,12 +1365,19 @@ export function OnboardingQuestionnaire({
   // shop line, so the retail questions never get asked: say so on the slip
   // instead of printing defaults the owner did not choose.
   const retailSkipped =
-    step > 2 &&
     storeTypes.length > 0 &&
     storeTypes.every((type) =>
       (SERVICE_STORE_TYPES as readonly string[]).includes(type),
     );
+  const slipFoodStations = cleanFoodStationNames(foodStations);
+  const slipFoodDishCount = foodMenuItems.filter(
+    (item) => foodMenuDraftError(item) === null && item.name.trim().length > 0,
+  ).length;
   const receiptLines: SetupSlipLine[] = [
+    {
+      label: "Shop",
+      value: storeTypes.length > 0 ? storeTypesLabel : null,
+    },
     {
       label: "Locations",
       value: !branchCount
@@ -1116,53 +1388,111 @@ export function OnboardingQuestionnaire({
             ? "5 or more"
             : branchCount,
     },
+    ...(isFoodOnlyShop
+      ? [
+          {
+            label: "Kitchen",
+            value:
+              step >= 3 && slipFoodStations.length > 0
+                ? slipFoodStations.join(", ")
+                : null,
+            skipped: step > 3 && slipFoodStations.length === 0,
+          },
+          ...(asksAboutTables
+            ? [
+                {
+                  label: "Tables",
+                  value:
+                    step >= 3 && typeof foodTableCount === "number"
+                      ? foodTableCount === 0
+                        ? "None"
+                        : String(foodTableCount)
+                      : null,
+                  skipped: step > 3 && typeof foodTableCount !== "number",
+                },
+              ]
+            : []),
+          {
+            label: "Menu",
+            value:
+              step >= 4 && slipFoodDishCount > 0
+                ? `${slipFoodDishCount} ${
+                    slipFoodDishCount === 1 ? "dish" : "dishes"
+                  }`
+                : null,
+            skipped: step > 4 && slipFoodDishCount === 0,
+          },
+          {
+            label: "Packaged products",
+            value:
+              step >= 5 && sellsProducts
+                ? sellsProducts === "yes"
+                  ? "Yes"
+                  : "No"
+                : null,
+            skipped: step > 5 && !sellsProducts,
+          },
+        ]
+      : []),
+    // A question this kind of shop is never asked is left off the slip, so "lines written"
+    // counts only what the owner is actually asked.
+    ...(retailSkipped || isFoodOnlyShop
+      ? []
+      : [
     {
-      label: "Shop",
-      value: step >= 2 && storeTypes.length > 0 ? storeTypesLabel : null,
-    },
+          label: "Sections",
+          value:
+            !retailSkipped && !isFoodOnlyShop && step >= 3 && selectedDepartments.length > 0
+              ? String(selectedDepartments.length)
+              : null,
+          skipped:
+            retailSkipped ||
+            isFoodOnlyShop ||
+            (step > 3 && selectedDepartments.length === 0),
+        },
+        {
+          label: "Online shop",
+          value:
+            !retailSkipped && !isFoodOnlyShop && step >= 4 && onlineStore
+              ? onlineStore === "yes"
+                ? "Yes"
+                : "In-store only"
+              : null,
+          skipped: retailSkipped || isFoodOnlyShop,
+        },
+        {
+          label: "Look",
+          value:
+            !retailSkipped && !isFoodOnlyShop && step >= 5
+              ? selectedThemeMeta.name
+              : null,
+          skipped: retailSkipped || isFoodOnlyShop,
+        },
+        ]),
+    ...(retailSkipped
+      ? []
+      : [
     {
-      label: "Sections",
-      value:
-        !retailSkipped && step >= 3 && selectedDepartments.length > 0
-          ? String(selectedDepartments.length)
-          : null,
-      skipped: retailSkipped || (step > 3 && selectedDepartments.length === 0),
-    },
-    {
-      label: "Online shop",
-      value:
-        !retailSkipped && step >= 4 && onlineStore
-          ? onlineStore === "yes"
-            ? "Yes"
-            : "In-store only"
-          : null,
-      skipped: retailSkipped,
-    },
-    {
-      label: "Look",
-      value: !retailSkipped && step >= 5 ? selectedThemeMeta.name : null,
-      skipped: retailSkipped,
-    },
-    {
-      label: "Colours",
-      skipped: retailSkipped,
-      value:
-        !retailSkipped && step >= 6 ? (
-          <span className="inline-flex items-center gap-1 align-middle">
-            <span
-              className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
-              style={{ backgroundColor: primaryColor }}
-            />
-            <span
-              className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
-              style={{ backgroundColor: accentColor }}
-            />
-            <span className="sr-only">
-              {primaryColor} and {accentColor}
-            </span>
-          </span>
-        ) : null,
-    },
+          label: "Colours",
+          skipped: retailSkipped,
+          value:
+            !retailSkipped && step >= 6 ? (
+              <span className="inline-flex items-center gap-1 align-middle">
+                <span
+                  className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
+                  style={{ backgroundColor: primaryColor }}
+                />
+                <span
+                  className="size-3 rounded-[1px] ring-1 ring-[rgba(18,26,22,0.2)]"
+                  style={{ backgroundColor: accentColor }}
+                />
+                <span className="sr-only">
+                  {primaryColor} and {accentColor}
+                </span>
+              </span>
+            ) : null,
+        },
+        ]),
     {
       label: "Shop line",
       value:
@@ -1231,15 +1561,15 @@ export function OnboardingQuestionnaire({
               ) : (
                 <button
                   type="button"
-                  onClick={onSkip}
+                  onClick={handleSkip}
                   disabled={submitting}
                   className={cn(QUIET_BUTTON, "shrink-0 justify-center px-2 sm:hidden")}
                 >
-                  Skip
+                  {leavesSetUp ? "Finish" : "Skip"}
                 </button>
               )}
             </div>
-            <QuestionnaireProgress step={step} />
+            <QuestionnaireProgress step={step} food={isFoodOnlyShop} />
           </div>
         </div>
       </header>
@@ -1259,11 +1589,17 @@ export function OnboardingQuestionnaire({
                 : "motion-safe:slide-in-from-right-2",
             )}
           >
-            {step === 1 ? (
+            {step === 2 ? (
               <>
                 <StepHeading
-                  title="Your shop locations"
-                  description="Each location gets its own stock and sales. You can rename them anytime."
+                  title={isFoodOnlyShop ? "Where do you serve from?" : "Your shop locations"}
+                  description={
+                    isFoodOnlyShop
+                      ? "Each place has its own tables, orders and takings. Most start with one; you can add and rename them anytime."
+                      : retailSkipped
+                        ? "Each location has its own team, bookings and takings. You can rename them anytime."
+                        : "Each location gets its own stock and sales. You can rename them anytime."
+                  }
                 />
                 <div
                   className="grid grid-cols-5 gap-1.5 sm:gap-2"
@@ -1298,7 +1634,9 @@ export function OnboardingQuestionnaire({
                             selected ? "text-[#D7E6DE]" : "text-[#556159]",
                           )}
                         >
-                          {opt.value === "1" ? "shop" : "shops"}
+                          {isFoodOnlyShop
+                            ? opt.value === "1" ? "place" : "places"
+                            : opt.value === "1" ? "shop" : "shops"}
                         </span>
                       </button>
                     );
@@ -1308,7 +1646,9 @@ export function OnboardingQuestionnaire({
                   <div className="space-y-4 border-t border-[rgba(18,26,22,0.1)] pt-5">
                     <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#121A16]">
                       {branchSlots === 1
-                        ? "Which area is your shop in?"
+                        ? isFoodOnlyShop
+                          ? "Which area is it in?"
+                          : "Which area is your shop in?"
                         : "Name each branch (area or suburb)"}
                     </p>
                     <datalist id="onboarding-locality-suggestions">
@@ -1378,37 +1718,57 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 2 ? (
+            {step === 1 ? (
               <>
                 <StepHeading
-                  title="What kind of shop is this?"
+                  title="What kind of business is this?"
                   description={
                     <>
-                      Select all that apply — a mini mart can also include a
-                      butchery. Mini mart, mixed shop, and pharmacy can import
-                      starter products at the end.
+                      Pick yours and every question after this one is asked
+                      for it. Select all that apply — a mini mart can also
+                      include a butchery.
                     </>
                   }
                 />
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
-                  {SHOWN_STORE_TYPE_OPTIONS.map((opt) => (
-                    <StoreTypeButton
-                      key={opt.value}
-                      label={opt.label}
-                      hint={opt.hint}
-                      icon={STORE_TYPE_ICONS[opt.value]}
-                      clay={opt.value === "butchery"}
-                      selected={storeTypes.includes(opt.value)}
-                      onClick={() => toggleStoreType(opt.value)}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  {STORE_TYPE_GROUPS.map((group) => {
+                    const options = SHOWN_STORE_TYPE_OPTIONS.filter((opt) => group.includes(opt.value));
+                    if (options.length === 0) return null;
+                    return (
+                      <section key={group.title} aria-label={group.title}>
+                        <h3 className="mb-1.5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#556159]">
+                          {group.title}
+                          <span className="h-px flex-1 bg-[rgba(18,26,22,0.12)]" aria-hidden />
+                        </h3>
+                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                          {options.map((opt) => (
+                            <StoreTypeButton
+                              key={opt.value}
+                              label={opt.label}
+                              hint={opt.hint}
+                              icon={STORE_TYPE_ICONS[opt.value]}
+                              clay={opt.value === "butchery"}
+                              selected={storeTypes.includes(opt.value)}
+                              onClick={() => toggleStoreType(opt.value)}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
                 </div>
                 <p className={NOTE}>
                   {storeTypes.length === 0
                     ? "Select at least one shop type to continue."
                     : `${storeTypes.length} selected`}
                 </p>
-                {departmentsResetNote ? (
+                {isFoodOnlyShop ? (
+                  <p className={NOTE}>
+                    Next: where you are, then your kitchen and a few dishes
+                    with your prices.
+                  </p>
+                ) : null}
+                {departmentsResetNote && !isFoodOnlyShop ? (
                   <p className="text-[13px] font-medium text-[#1D4B3B]" role="status">
                     Departments reset to match your new shop type.
                   </p>
@@ -1416,7 +1776,328 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 3 ? (
+            {step === 3 && isFoodOnlyShop ? (
+              <>
+                <StepHeading
+                  title="Where is food and drink made?"
+                  description="Dishes are sent here the moment an order is placed. Most places have one — add a second if the bar or the grill works separately."
+                />
+                <div className="space-y-3">
+                  {foodStations.map((station, index) => (
+                    <div key={index} className="flex items-end gap-2">
+                      <label className="min-w-0 flex-1">
+                        <span className={cn(FIELD_LABEL, "mb-1.5")}>
+                          {foodStations.length === 1
+                            ? "Station"
+                            : `Station ${index + 1}`}
+                        </span>
+                        <input
+                          type="text"
+                          value={station}
+                          onChange={(event) => {
+                            foodStationsTouchedRef.current = true;
+                            const value = event.target.value;
+                            setFoodStations((prev) => {
+                              const next = [...prev];
+                              next[index] = value;
+                              return next;
+                            });
+                          }}
+                          ref={(element) => {
+                            foodStationInputsRef.current[index] = element;
+                          }}
+                          maxLength={80}
+                          enterKeyHint="done"
+                          className={FIELD_CLASS}
+                          placeholder="e.g. Kitchen"
+                          aria-label={`Station ${index + 1} name`}
+                        />
+                      </label>
+                      {foodStations.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            foodStationsTouchedRef.current = true;
+                            setFoodStations((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                          }}
+                          className={cn(
+                            "flex size-12 shrink-0 items-center justify-center rounded-[2px] border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#556159] transition-colors hover:border-[#8F3F2F] hover:text-[#8F3F2F]",
+                            FOCUS_RING,
+                          )}
+                          aria-label={`Remove station ${index + 1}`}
+                        >
+                          <X className="size-4" aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <button
+                    type="button"
+                    disabled={foodStations.length >= FOOD_MAX_STATIONS}
+                    onClick={() => {
+                      foodStationsTouchedRef.current = true;
+                      focusFoodStationRef.current = foodStations.length;
+                      setFoodStations((prev) => [...prev, ""]);
+                    }}
+                    className={cn(
+                      QUIET_BUTTON,
+                      "font-medium text-[#1D4B3B] disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
+                  >
+                    Add another station
+                  </button>
+                  {FOOD_STATION_SUGGESTIONS.filter(
+                    (suggestion) =>
+                      !foodStations.some(
+                        (station) =>
+                          station.trim().toLowerCase() ===
+                          suggestion.toLowerCase(),
+                      ),
+                  ).map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => {
+                        foodStationsTouchedRef.current = true;
+                        setFoodStations((prev) => {
+                          const blank = prev.findIndex(
+                            (station) => !station.trim(),
+                          );
+                          if (blank >= 0) {
+                            const next = [...prev];
+                            next[blank] = suggestion;
+                            return next;
+                          }
+                          return prev.length >= FOOD_MAX_STATIONS
+                            ? prev
+                            : [...prev, suggestion];
+                        });
+                      }}
+                      className={cn(
+                        "rounded-[2px] border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] px-2.5 py-1 text-[13px] text-[#2A332E] transition-colors hover:border-[#1D4B3B]",
+                        FOCUS_RING,
+                      )}
+                    >
+                      + {suggestion}
+                    </button>
+                  ))}
+                </div>
+                <p className={NOTE}>
+                  Your first dishes are sent to the first station. You can give a
+                  dish its own station later in Menu.
+                </p>
+                {asksAboutTables ? (
+                  <div className="space-y-1.5">
+                    <label className="block">
+                      <span className={cn(FIELD_LABEL, "mb-1.5")}>
+                        How many tables do you have? (optional)
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={foodTableCountText}
+                        onChange={(event) =>
+                          setFoodTableCountText(
+                            event.target.value.replace(/[^\d]/g, "").slice(0, 3),
+                          )
+                        }
+                        enterKeyHint="done"
+                        className={cn(FIELD_CLASS, "max-w-[9rem]")}
+                        placeholder="e.g. 12"
+                        aria-invalid={foodTableCount === null}
+                        aria-describedby="food-table-count-note"
+                      />
+                    </label>
+                    {foodTableCount === null ? (
+                      <p id="food-table-count-note" role="alert" className="text-[13px] text-[#8F3F2F]">
+                        Type a number up to {FOOD_MAX_TABLES}, or leave it empty. You can add
+                        more from Floor.
+                      </p>
+                    ) : (
+                      <p id="food-table-count-note" className={NOTE}>
+                        They are set up as Table 1, Table 2 and so on at your first
+                        location. Rename them, set seats or add more from Floor.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+
+            {step === 4 && isFoodOnlyShop ? (
+              <>
+                <StepHeading
+                  title="What's on the menu?"
+                  description="A few dishes or drinks with your prices — they become your menu, so the counter can ring them today. Add the rest later."
+                />
+                <div className="space-y-3">
+                  {foodMenuItems.map((item, index) => {
+                    const error = foodDraftTouched[index]
+                      ? foodMenuDraftError(item)
+                      : null;
+                    const errorId = `food-dish-${index}-error`;
+                    const markTouched = () =>
+                      setFoodDraftTouched((prev) =>
+                        prev[index] ? prev : { ...prev, [index]: true },
+                      );
+                    return (
+                      <div key={index} className="space-y-1.5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setFoodMenuItems((prev) => {
+                                const next = [...prev];
+                                next[index] = { ...next[index]!, name: value };
+                                return next;
+                              });
+                            }}
+                            ref={(element) => {
+                              foodDishInputsRef.current[index] = element;
+                            }}
+                            maxLength={191}
+                            enterKeyHint="next"
+                            onBlur={markTouched}
+                            aria-invalid={error ? true : undefined}
+                            aria-describedby={error ? errorId : undefined}
+                            className={cn(
+                              FIELD_CLASS,
+                              "w-full min-w-0 sm:flex-1",
+                            )}
+                            placeholder={FOOD_MENU_EXAMPLES[index] ?? "Dish or drink"}
+                            aria-label={`Dish ${index + 1} name`}
+                          />
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                FIELD_SHELL,
+                                "flex h-12 w-full min-w-0 flex-1 items-center overflow-hidden focus-within:border-[#1D4B3B] focus-within:ring-2 focus-within:ring-[#1D4B3B]/15 sm:w-[8.5rem] sm:flex-none",
+                              )}
+                            >
+                              <span className="pl-3 font-mono text-[12px] text-[#556159]">
+                                KSh
+                              </span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={item.price}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setFoodMenuItems((prev) => {
+                                    const next = [...prev];
+                                    next[index] = {
+                                      ...next[index]!,
+                                      price: value,
+                                    };
+                                    return next;
+                                  });
+                                }}
+                                className="h-full min-w-0 flex-1 bg-transparent px-2 text-base tabular-nums text-[#121A16] outline-none placeholder:text-[#626D66]"
+                                placeholder="0"
+                                aria-label={`Dish ${index + 1} price`}
+                                onBlur={markTouched}
+                                aria-invalid={error ? true : undefined}
+                                aria-describedby={error ? errorId : undefined}
+                                enterKeyHint="done"
+                              />
+                            </div>
+                            {foodMenuItems.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => removeFoodMenuItem(index)}
+                                className={cn(
+                                  "flex size-12 shrink-0 items-center justify-center rounded-[2px] border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#556159] transition-colors hover:border-[#8F3F2F] hover:text-[#8F3F2F]",
+                                  FOCUS_RING,
+                                )}
+                                aria-label={`Remove dish ${index + 1}`}
+                              >
+                                <X className="size-4" aria-hidden />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                        {error ? (
+                          <p
+                            id={errorId}
+                            className="text-[13px] text-[#8F3F2F]"
+                            role="alert"
+                          >
+                            {error}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+                {foodMenuItems.some(
+                  (item) => foodMenuDraftError(item) !== null,
+                ) ? (
+                  <p className={NOTE}>
+                    Fill the price for each dish you named, or clear the row.
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <button
+                    type="button"
+                    disabled={foodMenuItems.length >= FOOD_MAX_DISHES}
+                    onClick={() => {
+                      focusFoodDishRef.current = foodMenuItems.length;
+                      setFoodMenuItems((prev) => [...prev, blankFoodMenuDraft()]);
+                    }}
+                    className={cn(
+                      QUIET_BUTTON,
+                      "font-medium text-[#1D4B3B] disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
+                  >
+                    Add another dish
+                  </button>
+                </div>
+                <p className={NOTE}>
+                  Blank rows are skipped. Prices are yours — nothing is filled in
+                  for you, and you can change them in Menu. Headings such as
+                  Mains and Drinks, a line about each dish and pictures are
+                  added there too, when you have a minute.
+                </p>
+              </>
+            ) : null}
+
+            {step === 5 && isFoodOnlyShop ? (
+              <>
+                <StepHeading
+                  title="Do you also sell products off the shelf?"
+                  description="Bottled drinks, packets, snacks — anything you hand over without cooking it."
+                />
+                <div className="space-y-2">
+                  <OptionButton
+                    selected={sellsProducts === "yes"}
+                    onClick={() => {
+                      hapticTap(8);
+                      setSellsProducts("yes");
+                    }}
+                    title="Yes — drinks and snacks too"
+                    hint="They stay on the shelf and can also go on the menu."
+                  />
+                  <OptionButton
+                    selected={sellsProducts === "no"}
+                    onClick={() => {
+                      hapticTap(8);
+                      setSellsProducts("no");
+                    }}
+                    title="No — only what we cook and pour"
+                    hint="Fine. You can add products later if that changes."
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {step === 3 && !isFoodOnlyShop ? (
               <>
                 <StepHeading
                   title="Choose your product sections"
@@ -1520,7 +2201,7 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 4 ? (
+            {step === 4 && !isFoodOnlyShop ? (
               <>
                 <StepHeading
                   title="Would you like to sell online?"
@@ -1551,7 +2232,7 @@ export function OnboardingQuestionnaire({
               </>
             ) : null}
 
-            {step === 5 ? (
+            {step === 5 && !isFoodOnlyShop ? (
               <>
                 <StepHeading
                   title={
@@ -1658,12 +2339,18 @@ export function OnboardingQuestionnaire({
             {step === 6 ? (
               <>
                 <StepHeading
-                  title="Brand your shop"
-                  description="Set your display name and colours. Logo is optional — you can add one later in settings."
+                  title={isFoodOnlyShop ? "Your name and colours" : "Brand your shop"}
+                  description={
+                    isFoodOnlyShop
+                      ? "They go on your receipts, your menu page, the printed menu and the QR cards. A logo is optional; add one later in settings."
+                      : "Set your display name and colours. Logo is optional — you can add one later in settings."
+                  }
                 />
                 <div className="space-y-6">
                   <label className="block">
-                    <span className={FIELD_LABEL}>Display name</span>
+                    <span className={FIELD_LABEL}>
+                      {isFoodOnlyShop ? "Name customers see" : "Display name"}
+                    </span>
                     <input
                       type="text"
                       value={displayName}
@@ -1694,9 +2381,9 @@ export function OnboardingQuestionnaire({
 
                   <div className="space-y-2">
                     <p className={cn(FIELD_LABEL, "mb-0")}>
-                      Colours &amp; preview
+                      {isFoodOnlyShop ? "Colours" : <>Colours &amp; preview</>}
                     </p>
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className={cn("grid gap-2 sm:gap-3", isFoodOnlyShop ? "grid-cols-1" : "grid-cols-2")}>
                       <OnboardingBrandingColorPicker
                         layout="tile"
                         showContrastHint={false}
@@ -1705,13 +2392,17 @@ export function OnboardingQuestionnaire({
                         onPrimaryChange={setPrimaryColor}
                         onAccentChange={setAccentColor}
                       />
-                      <OnboardingBrandingPreviewModal
-                        layout="tile"
-                        displayName={displayName}
-                        primaryColor={primaryColor}
-                        accentColor={accentColor}
-                        logoPreviewUrl={logoPreviewUrl}
-                      />
+                      {/* The preview is of an online shop's header, which a restaurant is not
+                          setting up here. */}
+                      {isFoodOnlyShop ? null : (
+                        <OnboardingBrandingPreviewModal
+                          layout="tile"
+                          displayName={displayName}
+                          primaryColor={primaryColor}
+                          accentColor={accentColor}
+                          logoPreviewUrl={logoPreviewUrl}
+                        />
+                      )}
                     </div>
                     {!meetsBrandingContrast(primaryColor, accentColor) ? (
                       <p
@@ -1850,7 +2541,13 @@ export function OnboardingQuestionnaire({
               <>
                 <StepHeading
                   title="This number is the shop"
-                  description="Customers WhatsApp it. We text it when stock is low. M-Pesa and till alerts land here. Not a personal line you never check — the one that sits next to the till."
+                  description={
+                    isFoodOnlyShop
+                      ? "Customers call and WhatsApp it, and M-Pesa and till alerts land here. Use the phone that stays at the counter, not a personal line you never check. No phone to hand? Add it later."
+                      : serviceOnlyShop
+                        ? "Customers call and WhatsApp it to ask for a time, and M-Pesa and till alerts land here. Use the phone that stays in the shop, not a personal line you never check. No phone to hand? Add it later."
+                        : "Customers WhatsApp it. We text it when stock is low. M-Pesa and till alerts land here. Not a personal line you never check — the one that sits next to the till."
+                  }
                 />
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
                   <div className="min-w-0 flex-1 space-y-2">
@@ -1871,6 +2568,8 @@ export function OnboardingQuestionnaire({
                           autoComplete="tel"
                           value={ownerPhone}
                           onChange={(e) => setOwnerPhone(e.target.value)}
+                          onBlur={() => setPhoneTouched(true)}
+                          aria-invalid={phoneLooksWrong || undefined}
                           className="h-full min-w-0 flex-1 bg-transparent px-4 text-lg tabular-nums tracking-[0.01em] text-[#121A16] outline-none placeholder:text-[#626D66]"
                           placeholder={
                             countryCode?.toUpperCase() === "KE"
@@ -1882,17 +2581,29 @@ export function OnboardingQuestionnaire({
                         />
                       </div>
                     </label>
-                    <p className={NOTE}>
-                      {looksLikeOwnerPhone(ownerPhone, countryCode)
-                        ? "We'll save this on your account and on the online shop's WhatsApp button."
-                        : countryCode?.toUpperCase() === "KE"
-                          ? "Use a Kenyan mobile — 07… or 2547…"
-                          : "Enter a mobile number we can actually reach."}
-                    </p>
+                    {phoneLooksWrong ? (
+                      <p role="alert" className="text-sm leading-snug text-[#8f3f2f]">
+                        {countryCode?.toUpperCase() === "KE"
+                          ? "That is not a full Kenyan mobile number. Type all ten digits, starting 07 or 01 (or 2547…)."
+                          : "That number looks too short. Type the whole mobile number."}
+                      </p>
+                    ) : (
+                      <p className={NOTE}>
+                        {looksLikeOwnerPhone(ownerPhone, countryCode)
+                          ? isFoodOnlyShop || serviceOnlyShop
+                            ? "We'll save this on your account and on your page's call and WhatsApp buttons."
+                            : "We'll save this on your account and on the online shop's WhatsApp button."
+                          : countryCode?.toUpperCase() === "KE"
+                            ? "Use a Kenyan mobile — 07… or 2547…"
+                            : "Enter a mobile number we can actually reach."}
+                      </p>
+                    )}
                   </div>
                   <ShopLinePreview
                     shopName={displayName || businessName || ""}
                     phoneLabel={ownerPhone.trim()}
+                    food={isFoodOnlyShop}
+                    service={serviceOnlyShop}
                   />
                 </div>
               </>
@@ -1911,14 +2622,18 @@ export function OnboardingQuestionnaire({
               <>
                 <StepHeading
                   title={
-                    catalogShellEmpty
-                      ? "Add products when you’re ready"
-                      : isPharmacyShop
-                        ? "Stock your pharmacy"
-                        : "Stock your shelves"
+                    isFoodOnlyShop
+                      ? "Add the products you sell off the shelf"
+                      : catalogShellEmpty
+                        ? "Add products when you’re ready"
+                        : isPharmacyShop
+                          ? "Stock your pharmacy"
+                          : "Stock your shelves"
                   }
                   description={
-                    catalogShellEmpty ? (
+                    isFoodOnlyShop ? (
+                      "Drinks, packets and snacks you hand over without cooking. Add them from Products — you can put them on the menu too."
+                    ) : catalogShellEmpty ? (
                       catalogLabel
                         ? `${catalogLabel} has no starter pack yet. You can add products yourself anytime.`
                         : "No starter pack for your country yet. You can add products yourself anytime."
@@ -1937,10 +2652,12 @@ export function OnboardingQuestionnaire({
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1D4B3B] text-[#F4F1EA]">
                       <Check className="size-3" strokeWidth={3} aria-hidden />
                     </span>
-                    Your shop is set up — now fill the shelves.
+                    {isFoodOnlyShop
+                      ? "Your shop is set up — take your first order."
+                      : "Your shop is set up — now fill the shelves."}
                   </p>
                 ) : null}
-                {!catalogShellEmpty ? (
+                {!catalogShellEmpty && !isFoodOnlyShop ? (
                   <div className="space-y-2">
                     {(isPharmacyShop
                       ? ([
@@ -1975,7 +2692,27 @@ export function OnboardingQuestionnaire({
                     ))}
                   </div>
                 ) : null}
-                {catalogShellEmpty ? (
+                {isFoodOnlyShop ? (
+                  <ul className="divide-y divide-[rgba(18,26,22,0.1)] border-y border-[rgba(18,26,22,0.1)] text-[15px] text-[#121A16]">
+                    <li className="flex items-center gap-3 py-3">
+                      <Package
+                        className="size-4 shrink-0 text-[#1D4B3B]"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                      {slipFoodDishCount > 0
+                        ? "Your dishes are already on the menu"
+                        : "Add your dishes from Menu when you are ready"}
+                    </li>
+                    <li className="flex items-center gap-3 py-3">
+                      <Check
+                        className="size-4 shrink-0 text-[#1D4B3B]"
+                        aria-hidden
+                      />
+                      Add packaged products from Products when you are ready
+                    </li>
+                  </ul>
+                ) : catalogShellEmpty ? (
                   <ul className="divide-y divide-[rgba(18,26,22,0.1)] border-y border-[rgba(18,26,22,0.1)] text-[15px] text-[#121A16]">
                     <li className="flex items-center gap-3 py-3">
                       <Package
@@ -2249,19 +2986,34 @@ export function OnboardingQuestionnaire({
                     Skip for now
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!productSource && !catalogShellEmpty) {
-                        onProductSourceChange?.("new");
-                      }
-                      onFinishLater?.();
-                    }}
-                    className={cn(primaryCtaClass, primaryOnClass)}
-                  >
-                    Continue to dashboard
-                    {ctaArrow}
-                  </button>
+                  <>
+                    {isFoodOnlyShop ? (
+                      <button
+                        type="button"
+                        onClick={onAddProductsManually}
+                        className={cn(QUIET_BUTTON, "justify-center")}
+                      >
+                        Add packaged products
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!productSource && !catalogShellEmpty) {
+                          onProductSourceChange?.("new");
+                        }
+                        onFinishLater?.();
+                      }}
+                      className={cn(primaryCtaClass, primaryOnClass)}
+                    >
+                      {isFoodOnlyShop
+                        ? asksAboutTables
+                          ? "Go to the floor"
+                          : "Go to the counter"
+                        : "Continue to dashboard"}
+                      {ctaArrow}
+                    </button>
+                  </>
                 )}
               </div>
             ) : step === QUESTIONNAIRE_RECEIVE_STEP ? (
@@ -2288,19 +3040,35 @@ export function OnboardingQuestionnaire({
                       ? "Generating logo…"
                       : step === QUESTIONNAIRE_PHONE_STEP
                         ? "That’s my number"
-                        : step === 5
+                        : step === 5 && !isFoodOnlyShop
                           ? "Use this look"
                           : "Continue"}
                   {canContinue && !submitting && !logoGenerating ? ctaArrow : null}
                 </button>
-                {step === QUESTIONNAIRE_PHONE_STEP ? null : (
+                {step === QUESTIONNAIRE_PHONE_STEP ? (
+                  phoneLater ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Nothing half typed is kept as the shop's line, on the slip or the account.
+                        setOwnerPhone("");
+                        onContinueWithoutPhone?.({}, brandFiles());
+                      }}
+                      disabled={submitting}
+                      className={cn(QUIET_BUTTON, "justify-center")}
+                    >
+                      Add it later
+                    </button>
+                  ) : null
+                ) : (
                   <button
                     type="button"
-                    onClick={onSkip}
+                    onClick={handleSkip}
                     disabled={submitting}
                     className={cn(QUIET_BUTTON, "hidden sm:inline-flex")}
+                    title={leavesSetUp ? "Your place, kitchen, tables and dishes so far are kept" : undefined}
                   >
-                    Skip for now
+                    {leavesSetUp ? "Finish later" : "Skip for now"}
                   </button>
                 )}
               </div>

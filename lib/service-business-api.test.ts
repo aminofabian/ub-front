@@ -213,3 +213,17 @@ describe("sending a team member their sign-in", () => {
     }
   });
 });
+
+import { serviceRateDraftError, serviceRateInWords } from "./service-business-api";
+
+describe("a person's own rate for a service", () => {
+  test("needs a service and a sensible number", () => {
+    expect(serviceRateDraftError("", "PERCENT", "60")).toBe("Choose the service");
+    expect(serviceRateDraftError("s", "PERCENT", "")).toBe("Enter the percent");
+    expect(serviceRateDraftError("s", "PERCENT", "160")).toBe("A percent cannot be more than 100");
+    expect(serviceRateDraftError("s", "FIXED", "")).toBe("Enter the amount");
+    expect(serviceRateDraftError("s", "FIXED", "150")).toBeNull();
+    expect(serviceRateInWords({ type: "PERCENT", value: 60 })).toBe("60% of each one");
+    expect(serviceRateInWords({ type: "FIXED", value: 1500 })).toBe("Ksh 1,500 for each one");
+  });
+});

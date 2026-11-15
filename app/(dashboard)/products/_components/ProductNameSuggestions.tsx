@@ -23,6 +23,8 @@ type Props = {
   barcode?: string;
   enabled?: boolean;
   canGlobalCatalog: boolean;
+  /** Bump after the existing product is edited or deleted so the list looks again. */
+  lookupRevision?: number;
   onOpenExisting: (itemId: string) => void;
   onUseGlobal: (product: GlobalProductRecord) => void;
   /**
@@ -58,6 +60,7 @@ export function ProductNameSuggestions({
   barcode = "",
   enabled = true,
   canGlobalCatalog,
+  lookupRevision = 0,
   onOpenExisting,
   onUseGlobal,
   onAutoGlobal,
@@ -171,7 +174,7 @@ export function ProductNameSuggestions({
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [name, barcode, canGlobalCatalog, enabled, onAutoGlobal]);
+  }, [name, barcode, canGlobalCatalog, enabled, onAutoGlobal, lookupRevision]);
 
   if (!enabled) return null;
 
@@ -240,7 +243,7 @@ export function ProductNameSuggestions({
                       </span>
                     </span>
                     <span className="shrink-0 text-[10px] font-medium text-primary">
-                      Open
+                      View
                     </span>
                   </button>
                 </li>

@@ -42,6 +42,8 @@ import { isServiceOnlyBusiness, serviceStationLabel } from "@/lib/business-store
 import { isServiceCashier } from "@/lib/service-nav";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
+
+import { PackageRefundDialog } from "./package-refund-dialog";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { formatMoney } from "@/lib/money";
 import {
@@ -639,7 +641,14 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
           }}
         />
       ) : null}
-      {selling ? <SellPackageDialog branchId={branchId} offers={offers} onClose={() => setSelling(false)} /> : null}
+      {selling ? (
+        <SellPackageDialog
+          branchId={branchId}
+          offers={offers}
+          canRefund={hasPermission(me?.permissions, Permission.SalesRefundCreate)}
+          onClose={() => setSelling(false)}
+        />
+      ) : null}
       {starting ? (
         <StartDialog
           ticket={starting}
@@ -1600,12 +1609,16 @@ export async function findOrCreateCustomer(phone: string, name: string): Promise
 function SellPackageDialog({
   branchId,
   offers,
+  canRefund,
   onClose,
 }: {
   branchId: string;
   offers: PackageOffer[];
+  /** Whether this person may hand money back; shows the way to give a package back. */
+  canRefund: boolean;
   onClose: () => void;
 }) {
+  const [refunding, setRefunding] = useState(false);
   const [serviceId, setServiceId] = useState(offers.length === 1 ? offers[0]!.serviceId : "");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -1642,6 +1655,8 @@ function SellPackageDialog({
       setSaving(false);
     }
   }
+
+  if (refunding) return <PackageRefundDialog onClose={onClose} />;
 
   return (
     <Dialog open onOpenChange={(open) => (!open && !saving ? onClose() : undefined)}>
@@ -1712,6 +1727,16 @@ function SellPackageDialog({
               <p role="alert" className="text-sm text-red-700">
                 {error}
               </p>
+            ) : null}
+            {canRefund ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setRefunding(true)}
+                className="w-fit rounded-[2px] text-[13px] text-[var(--op-muted)] underline decoration-[var(--op-rule)] underline-offset-2 hover:text-[var(--op-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]"
+              >
+                Giving a package back instead?
+              </button>
             ) : null}
           </div>
         )}

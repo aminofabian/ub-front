@@ -41,7 +41,11 @@ import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import {
   isButcheryOnlyBusiness,
   isCatalogEligibleStoreTypes,
+  isFoodOnlyBusiness,
+  isFoodOnlyStoreTypes,
   isServiceBusiness,
+  isTableServiceBusiness,
+  isTableServiceStoreTypes,
   SERVICE_STORE_TYPES,
 } from "@/lib/business-store-type";
 import { getContrastSafeBrandingPresets } from "@/lib/branding-color-presets";
@@ -118,9 +122,23 @@ function isServiceOnlyStoreTypes(storeTypes: readonly string[] | null | undefine
   );
 }
 
+/**
+ * Where to pick setup up again. The kind of shop is now the first question; progress saved
+ * when it was the second can sit past it with no kind chosen, and every later step needs one.
+ */
+function resumeStep(
+  step: number | null | undefined,
+  answers: Partial<OnboardingQuestionnaireAnswers> | null | undefined,
+): number {
+  const saved = step || 1;
+  return saved > 1 && !answers?.storeTypes?.length ? 1 : saved;
+}
+
 function isCompleteAnswers(
   answers: Partial<OnboardingQuestionnaireAnswers>,
   countryCode?: string | null,
+  /** A food shop may add its phone number later; it stays on the shop's setup list. */
+  phoneOptional = false,
 ): answers is OnboardingQuestionnaireAnswers {
   const hasTemplate =
     answers.onlineStore === "yes"
@@ -139,7 +157,8 @@ function isCompleteAnswers(
     Boolean(answers.displayName?.trim()) &&
     Boolean(answers.primaryColor?.trim()) &&
     Boolean(answers.accentColor?.trim()) &&
-    looksLikeOwnerPhone(answers.ownerPhone ?? "", countryCode)
+    (looksLikeOwnerPhone(answers.ownerPhone ?? "", countryCode) ||
+      (phoneOptional && !(answers.ownerPhone ?? "").trim()))
   );
 }
 
@@ -288,7 +307,7 @@ export function OnboardingQuestionnaireProvider({
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
     activateOnboardingQuestionnaire();
-    setStep(stored.step || 1);
+    setStep(resumeStep(stored.step, stored.answers));
     setAnswers(stored.answers);
     setActive(true);
     setErrorMessage("");
@@ -305,7 +324,7 @@ export function OnboardingQuestionnaireProvider({
       markOnboardingAwaitingStock(before.answers);
     }
     const stored = getOnboardingQuestionnaireState();
-    setStep(stored.step || 1);
+    setStep(resumeStep(stored.step, stored.answers));
     setAnswers(stored.answers);
     setActive(true);
     setErrorMessage("");
@@ -399,13 +418,50 @@ export function OnboardingQuestionnaireProvider({
     business?.profile?.storeType,
   ]);
 
+  /**
+   * Whether the shop being set up is a food-only shop *now*. The answers are the current truth
+   * while the questionnaire is open; the business profile is the fallback for a device that
+   * never loaded them.
+   */
+  const isFoodShopNow = useCallback(
+    () =>
+      answers.storeTypes?.length
+        ? isFoodOnlyStoreTypes(answers.storeTypes)
+        : isFoodOnlyBusiness(business),
+    [answers.storeTypes, business],
+  );
+
+  /** Where a food shop works from: the floor when it serves tables, else the counter. */
+  const foodHome = useCallback(
+    () =>
+      (
+        answers.storeTypes?.length
+          ? isTableServiceStoreTypes(answers.storeTypes)
+          : isTableServiceBusiness(business)
+      )
+        ? APP_ROUTES.restaurantFloor
+        : APP_ROUTES.restaurantCounter,
+    [answers.storeTypes, business],
+  );
+
   const finish = useCallback(() => {
     setActive(false);
     setCelebrate(false);
+    if (isFoodShopNow()) {
+      // A restaurant, café or bar works from its floor or counter; the hub is one tap away.
+      // Leaving at the last step finishes setup: the kitchen and dishes were written with the
+      // rest of setup, and packaged products are optional. An empty local state (a device that
+      // never loaded the answers) must not overwrite the shop's saved answers with nothing.
+      if (answers.storeTypes?.length) {
+        completeOnboardingQuestionnaire(answers);
+      }
+      router.replace(foodHome());
+      return;
+    }
     router.replace(
       isButcheryOnlyBusiness(business) ? APP_ROUTES.butcher : APP_ROUTES.business,
     );
-  }, [router, business]);
+  }, [router, business, answers, isFoodShopNow, foodHome]);
 
   const handleOpenCatalogDrawer = useCallback(() => {
     setCatalogManifestOpen(false);
@@ -419,9 +475,15 @@ export function OnboardingQuestionnaireProvider({
   }, [router]);
 
   const handleFinishLater = useCallback(() => {
+    if (isFoodShopNow()) {
+      // finish() marks a food shop set up; a soft skip first would race that patch back to
+      // `active` and revive the setup banner.
+      finish();
+      return;
+    }
     softSkipOnboardingQuestionnaire();
     finish();
-  }, [finish]);
+  }, [finish, isFoodShopNow]);
 
   const handleProductSourceChange = useCallback(
     (source: ProductSourceChoice) => {
@@ -480,10 +542,113 @@ export function OnboardingQuestionnaireProvider({
     setErrorMessage("");
   }, [answers.storeTypes]);
 
+  /**
+   * Writes the answers to the shop: branches, kitchen, tables, dishes, look and (when given) the
+   * phone number. True when the shop is set up; a message is shown when it is not, or when a
+   * part of it could not be saved.
+   */
+  const applyAnswers = useCallback(
+    async (
+      merged: OnboardingQuestionnaireAnswers,
+      extras?: OnboardingQuestionnaireFinishExtras,
+    ): Promise<boolean> => {
+      const result = await applyOnboardingQuestionnaire(merged, {
+        business,
+        logoFile: extras?.logoFile ?? null,
+        logoDarkFile: extras?.logoDarkFile ?? null,
+        faviconFile: extras?.faviconFile ?? null,
+        ogImageFile: extras?.ogImageFile ?? null,
+        appIconFile: extras?.appIconFile ?? null,
+      });
+      await Promise.all([refreshBranches(), refreshItemTypes(), refreshSession()]);
+      if (result.firstBranchId) {
+        setBranchId(result.firstBranchId);
+      }
+      if (!result.completed) {
+        setErrorMessage(formatApplyFailureMessage(result));
+        return false;
+      }
+      if (result.warnings.length > 0) {
+        // Setup carries on: a refused menu endpoint must not block a new shop, but the
+        // owner must know the kitchen and dishes still need adding.
+        setErrorMessage(
+          `Your shop is set up, but something could not be saved: ${result.warnings.join(" ")}`,
+        );
+      }
+      return true;
+    },
+    [business, refreshBranches, refreshItemTypes, refreshSession, setBranchId],
+  );
+
+  /**
+   * A restaurant, café or bar leaving the questions before the end. The shop is set up with
+   * what has been answered (the place, the kitchen, the tables, the dishes), with the usual
+   * name and colours where none were chosen, and the owner goes to work. What is left (the
+   * phone number, staff) is on the shop's setup list. Any other kind of shop parks the
+   * questions as before.
+   */
+  const handleFinishEarly = useCallback(
+    async (
+      patch: Partial<OnboardingQuestionnaireAnswers>,
+      extras?: OnboardingQuestionnaireFinishExtras,
+    ) => {
+      const typed = { ...answers, ...patch };
+      if (!isFoodOnlyStoreTypes(typed.storeTypes)) {
+        handleSkip();
+        return;
+      }
+      const preset = getContrastSafeBrandingPresets()[0];
+      const merged = {
+        ...typed,
+        selectedDepartments: typed.selectedDepartments ?? [],
+        onlineStore: typed.onlineStore || ("no" as const),
+        landingTemplateId: typed.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+        storeThemeId: typed.storeThemeId || DEFAULT_STORE_THEME_ID,
+        displayName:
+          typed.displayName?.trim() ||
+          business?.branding?.displayName?.trim() ||
+          business?.name?.trim() ||
+          "My restaurant",
+        primaryColor:
+          typed.primaryColor?.trim() || business?.branding?.primaryColor?.trim() || preset?.primary || "#0D9488",
+        accentColor:
+          typed.accentColor?.trim() || business?.branding?.accentColor?.trim() || preset?.accent || "#5EEAD4",
+        // A number half typed on the way out is not saved as the shop's line.
+        ownerPhone: looksLikeOwnerPhone(typed.ownerPhone ?? "", business?.countryCode) ? typed.ownerPhone : "",
+      };
+      setAnswers(merged);
+      setErrorMessage("");
+      if (!isCompleteAnswers(merged, business?.countryCode, true)) {
+        // The place or the kind of shop is missing; nothing sensible can be set up yet.
+        handleSkip();
+        return;
+      }
+      setSubmitting(true);
+      try {
+        if (!(await applyAnswers(merged, extras))) {
+          return;
+        }
+        completeOnboardingQuestionnaire(merged);
+        setActive(false);
+        setCelebrate(false);
+        router.replace(
+          isTableServiceStoreTypes(merged.storeTypes) ? APP_ROUTES.restaurantFloor : APP_ROUTES.restaurantCounter,
+        );
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Could not finish setup. Try again.");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [answers, business, handleSkip, applyAnswers, router],
+  );
+
   const handleContinue = useCallback(
     async (
       patch: Partial<OnboardingQuestionnaireAnswers>,
       extras?: OnboardingQuestionnaireFinishExtras,
+      /** The phone step passed without a number (food shops and service-only shops). */
+      withoutPhone = false,
     ) => {
       const merged = { ...answers, ...patch };
       setAnswers(merged);
@@ -523,6 +688,38 @@ export function OnboardingQuestionnaireProvider({
       }
 
       if (step < QUESTIONNAIRE_PHONE_STEP) {
+        if (step === 2 && !isFoodOnlyStoreTypes(merged.storeTypes)) {
+          // Leaving the food types behind drops any kitchen or dishes typed for them, so a
+          // mini mart never gets a restaurant menu it did not ask for.
+          const cleared = {
+            ...merged,
+            foodStations: undefined,
+            foodMenuItems: undefined,
+            sellsProducts: undefined,
+            foodTableCount: undefined,
+          };
+          saveQuestionnaireProgress(step + 1, cleared);
+          setAnswers(cleared);
+          setStep(step + 1);
+          return;
+        }
+        // A food shop is not asked about product sections, an online shop or a storefront look
+        // yet. It names its kitchen and types its first dishes instead, so the
+        // profile-only questions are filled with the same defaults the service path uses.
+        if (step === 2 && isFoodOnlyStoreTypes(merged.storeTypes)) {
+          const prepared = {
+            ...merged,
+            selectedDepartments: [],
+            onlineStore: merged.onlineStore || ("no" as const),
+            landingTemplateId:
+              merged.landingTemplateId || DEFAULT_LANDING_TEMPLATE_ID,
+            storeThemeId: merged.storeThemeId || DEFAULT_STORE_THEME_ID,
+          };
+          setAnswers(prepared);
+          saveQuestionnaireProgress(3, prepared);
+          setStep(3);
+          return;
+        }
         const nextStep = step + 1;
         saveQuestionnaireProgress(nextStep, merged);
         setStep(nextStep);
@@ -530,31 +727,20 @@ export function OnboardingQuestionnaireProvider({
       }
 
       if (step === QUESTIONNAIRE_PHONE_STEP) {
-        if (!isCompleteAnswers(merged, business?.countryCode)) {
+        const phoneOptional =
+          withoutPhone &&
+          (isFoodOnlyStoreTypes(merged.storeTypes) || isServiceOnlyStoreTypes(merged.storeTypes));
+        if (phoneOptional) {
+          merged.ownerPhone = "";
+        }
+        if (!isCompleteAnswers(merged, business?.countryCode, phoneOptional)) {
           setErrorMessage("Add a working phone number so we can reach the shop.");
           return;
         }
 
         setSubmitting(true);
         try {
-          const result = await applyOnboardingQuestionnaire(merged, {
-            business,
-            logoFile: extras?.logoFile ?? null,
-            logoDarkFile: extras?.logoDarkFile ?? null,
-            faviconFile: extras?.faviconFile ?? null,
-            ogImageFile: extras?.ogImageFile ?? null,
-            appIconFile: extras?.appIconFile ?? null,
-          });
-          await Promise.all([
-            refreshBranches(),
-            refreshItemTypes(),
-            refreshSession(),
-          ]);
-          if (result.firstBranchId) {
-            setBranchId(result.firstBranchId);
-          }
-          if (!result.completed) {
-            setErrorMessage(formatApplyFailureMessage(result));
+          if (!(await applyAnswers(merged, extras))) {
             return;
           }
           // Entities applied — optional M-Pesa receive next, then stock.
@@ -574,22 +760,29 @@ export function OnboardingQuestionnaireProvider({
         return;
       }
     },
-    [
-      answers,
-      step,
-      business,
-      refreshBranches,
-      refreshItemTypes,
-      refreshSession,
-      setBranchId,
-      router,
-    ],
+    [answers, step, business, applyAnswers],
   );
 
   const advanceAfterReceive = useCallback(() => {
     const merged = answers;
     setStep(QUESTIONNAIRE_STOCK_STEP);
-    saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
+    if (isFoodOnlyStoreTypes(merged.storeTypes)) {
+      // The kitchen and first dishes are on the menu; packaged products are added from
+      // Products, so the shop is set up whether it sells any or not. Completing here writes
+      // status and step together — saving progress first raced this patch and could leave the
+      // shop back on `active`.
+      completeOnboardingQuestionnaire(merged);
+      if (merged.sellsProducts) {
+        return;
+      }
+      setActive(false);
+      router.replace(
+        isTableServiceStoreTypes(merged.storeTypes)
+          ? APP_ROUTES.restaurantFloor
+          : APP_ROUTES.restaurantCounter,
+      );
+      return;
+    }
     if (
       !isCatalogEligibleStoreTypes(merged.storeTypes) &&
       isServiceBusiness({ profile: { storeTypes: merged.storeTypes } })
@@ -601,6 +794,7 @@ export function OnboardingQuestionnaireProvider({
       router.replace(APP_ROUTES.servicesSetup);
       return;
     }
+    saveQuestionnaireProgress(QUESTIONNAIRE_STOCK_STEP, merged);
     if (!isCatalogEligibleStoreTypes(merged.storeTypes)) {
       softSkipOnboardingQuestionnaire();
       setActive(false);
@@ -722,6 +916,8 @@ export function OnboardingQuestionnaireProvider({
               }}
               onBack={handleBack}
               onSkip={handleSkip}
+              onFinishEarly={(patch, extras) => void handleFinishEarly(patch, extras)}
+              onContinueWithoutPhone={(patch, extras) => void handleContinue(patch, extras, true)}
               canBrowseGlobalCatalog={canGlobalCatalog && catalogEligible}
               onOpenCatalogDrawer={handleOpenCatalogDrawer}
               onAddProductsManually={handleAddProductsManually}

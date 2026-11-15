@@ -7,6 +7,7 @@ import {
   resolveLandingPage,
   resolveStoreHome,
 } from "@/components/storefront/templates/registry";
+import { ShopRestaurantLanding } from "@/components/storefront/shop-restaurant-landing";
 import { ShopServiceLanding } from "@/components/storefront/shop-service-landing";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
@@ -25,6 +26,7 @@ import {
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
 import { fetchPublicShopInfo } from "@/lib/public-booking";
+import { fetchPublicMenu } from "@/lib/public-menu";
 import { parseStorefrontPreview } from "@/lib/storefront-preview";
 import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
 import {
@@ -177,6 +179,47 @@ export async function StorefrontCatalogHome({
   // the shelf is empty, so shops with products pay nothing for it.
   const shelfEmpty =
     !q && !categoryId && !resolvedTypeId && (list?.items.length ?? 0) === 0;
+  // A restaurant that has put its menu on its web page: its home is the menu, the way it would
+  // be printed. Asked only when the shelf is empty, as with bookings below.
+  const menu =
+    shelfEmpty && !preview.landingId && !preview.themeId
+      ? await fetchPublicMenu(slug).catch(() => null)
+      : null;
+  if (menu && menu.dishes.length > 0) {
+    return (
+      <>
+        <StorefrontAnalyticsBeacon
+          surface="store"
+          slug={slug}
+          storeThemeId={themeId}
+          landingTemplateId={landingTemplateId}
+        />
+        <ShopRestaurantLanding
+          menu={menu}
+          storeName={storeName}
+          design={design}
+          ownHeroUrl={
+            tenant?.landingContent?.vitrineImageUrl?.trim() ||
+            design?.photos?.hero?.url?.trim() ||
+            heroBannerUrls?.[0]?.trim() ||
+            null
+          }
+          tagline={
+            design?.business?.tagline?.trim() ||
+            tenant?.landingContent?.subheadline?.trim() ||
+            null
+          }
+          phone={tenant?.landingContent?.phone ?? null}
+          whatsapp={tenant?.landingContent?.whatsapp ?? null}
+          address={tenant?.landingContent?.address ?? null}
+          hours={tenant?.landingContent?.hours ?? null}
+          mapUrl={design?.business?.location?.mapUrl ?? null}
+          primaryHex={primary}
+        />
+      </>
+    );
+  }
+
   const booking =
     shelfEmpty && !preview.landingId && !preview.themeId
       ? await fetchPublicShopInfo(slug).catch(() => null)

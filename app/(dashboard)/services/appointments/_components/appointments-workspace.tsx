@@ -116,6 +116,7 @@ export function AppointmentsWorkspace() {
   const [booking, setBooking] = useState(false);
   const [moving, setMoving] = useState<ServiceTicketRecord | null>(null);
   const [depositFor, setDepositFor] = useState<ServiceTicketRecord | null>(null);
+  const [cancelling, setCancelling] = useState<ServiceTicketRecord | null>(null);
   const [hoursOpen, setHoursOpen] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -277,6 +278,8 @@ export function AppointmentsWorkspace() {
                         variant="ghost"
                         disabled={busy === row.id}
                         onClick={() => {
+                          // A deposit has to go somewhere: ask where before cancelling.
+                          if (row.depositState === "HELD" && row.depositAmount) return setCancelling(row);
                           if (!window.confirm(`Cancel the booking for ${row.bookingName ?? "this customer"}?`)) return;
                           void run(
                             row.id,
@@ -340,6 +343,16 @@ export function AppointmentsWorkspace() {
           onClose={() => setMoving(null)}
           onDone={async () => {
             setMoving(null);
+            await refresh();
+          }}
+        />
+      ) : null}
+      {cancelling ? (
+        <CancelWithDepositDialog
+          row={cancelling}
+          onClose={() => setCancelling(null)}
+          onDone={async () => {
+            setCancelling(null);
             await refresh();
           }}
         />
@@ -701,6 +714,85 @@ function DepositDialog({
           </Button>
           <Button disabled={saving} onClick={() => void save()}>
             {saving ? "Recording…" : value != null && value > 0 ? `Take ${kes(value)}` : "Take deposit"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const DEPOSIT_BACK = [
+  { id: "credit", label: "Keep as credit", hint: "It stays in their name and comes off their next visit." },
+  { id: "cash", label: "Give back cash", hint: "The cash comes out of the drawer of the open shift." },
+  { id: "mpesa_manual", label: "Send back by M-Pesa", hint: "Send it from your phone first, then confirm here." },
+] as const;
+
+/** Cancelling a booking that has a deposit: the money either stays as credit or goes back now. */
+function CancelWithDepositDialog({
+  row,
+  onClose,
+  onDone,
+}: {
+  row: ServiceTicketRecord;
+  onClose: () => void;
+  onDone: () => Promise<void> | void;
+}) {
+  const [back, setBack] = useState<(typeof DEPOSIT_BACK)[number]["id"]>("credit");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const held = row.depositAmount ?? 0;
+  const choice = DEPOSIT_BACK.find((c) => c.id === back) ?? DEPOSIT_BACK[0];
+
+  async function save() {
+    setError(null);
+    setSaving(true);
+    try {
+      await cancelServiceTicket(row.id, { reason: "Booking cancelled", depositBack: back });
+      await onDone();
+    } catch (err) {
+      setError(message(err, "The booking was not cancelled. Try again."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => (!open && !saving ? onClose() : undefined)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cancel this booking</DialogTitle>
+          <DialogDescription>
+            {row.bookingName ?? "The customer"} paid a deposit of {kes(held)}. Choose what happens to it.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2" role="group" aria-label="What happens to the deposit">
+          {DEPOSIT_BACK.map((c) => (
+            <Button
+              key={c.id}
+              variant={back === c.id ? "default" : "outline"}
+              aria-pressed={back === c.id}
+              disabled={saving}
+              onClick={() => {
+                setBack(c.id);
+                setError(null);
+              }}
+            >
+              {c.label}
+            </Button>
+          ))}
+          <p className={dashboardHintClass()}>{choice.hint}</p>
+          {error ? (
+            <p role="alert" className="text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={onClose}>
+            Keep the booking
+          </Button>
+          <Button disabled={saving} onClick={() => void save()}>
+            {saving ? "Cancelling…" : back === "credit" ? "Cancel booking" : `Cancel and give back ${kes(held)}`}
           </Button>
         </DialogFooter>
       </DialogContent>

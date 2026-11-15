@@ -64,6 +64,10 @@ export function ShopServiceLanding({
   const teamRef = useRef<HTMLElement | null>(null);
   const visitRef = useRef<HTMLElement | null>(null);
   const account = useStorefrontAccountLink();
+  // A shop that does not take bookings online still has a page: prices, team, where to find
+  // it. Everything that books is left off, and the buttons call or point to the shop instead.
+  const canBook = info.bookable !== false;
+  const telHref = phone?.trim() ? `tel:${phone.replace(/[^0-9+]/g, "")}` : null;
   const [pick, setPick] = useState<{ serviceId?: string; staffId?: string; nonce: number } | null>(null);
 
   // Colour: `chosen` repaints the page at once; it is saved to the shop's branding on Save.
@@ -151,9 +155,19 @@ export function ShopServiceLanding({
         </ul>
         <div className={styles.navActions}>
           <StorefrontAccountLink className={styles.navSignIn} signUpClassName={styles.navSignUp} signUpLabel="Create account" />
-          <button type="button" className={styles.navBook} onClick={() => go(bookRef)}>
-            Book a visit
-          </button>
+          {canBook ? (
+            <button type="button" className={styles.navBook} onClick={() => go(bookRef)}>
+              Book a visit
+            </button>
+          ) : telHref ? (
+            <a className={styles.navBook} href={telHref}>
+              Call us
+            </a>
+          ) : (
+            <button type="button" className={styles.navBook} onClick={() => go(visitRef)}>
+              Find us
+            </button>
+          )}
         </div>
       </nav>
 
@@ -267,20 +281,39 @@ export function ShopServiceLanding({
             </p>
           ) : null}
           <Words as="h1" k="headline" className={styles.heroTitle} fallback={storeName} {...words} />
-          <Words as="p" k="line" className={styles.heroLine} fallback={tagline?.trim() || "Book your visit online. Pay at the shop."} {...words} />
+          <Words as="p" k="line" className={styles.heroLine} fallback={tagline?.trim() || (canBook ? "Book your visit online. Pay at the shop." : "Walk in or call ahead. Pay at the shop.")} {...words} />
           <div className={styles.heroActions}>
-            <button type="button" className={styles.cta} onClick={() => go(bookRef)}>
-              <CalendarDays className="size-5" aria-hidden /> Book a visit
-            </button>
-            <button type="button" className={styles.ctaGhost} onClick={() => go(pricesRef)}>
-              See the price list
-            </button>
+            {canBook ? (
+              <>
+                <button type="button" className={styles.cta} onClick={() => go(bookRef)}>
+                  <CalendarDays className="size-5" aria-hidden /> Book a visit
+                </button>
+                <button type="button" className={styles.ctaGhost} onClick={() => go(pricesRef)}>
+                  See the price list
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className={styles.cta} onClick={() => go(pricesRef)}>
+                  See the price list
+                </button>
+                {telHref ? (
+                  <a className={styles.ctaGhost} href={telHref}>
+                    <Phone className="size-5" aria-hidden /> Call {phone!.trim()}
+                  </a>
+                ) : (
+                  <button type="button" className={styles.ctaGhost} onClick={() => go(visitRef)}>
+                    Find us
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <div className={styles.strip}>
-        {oneBranch && branch?.hours ? (
+        {canBook && oneBranch && branch?.hours ? (
           <span className={styles.fact}>
             <Clock className="size-4" aria-hidden />
             {todayHours ? `Open for bookings today, ${clockLabel(todayHours.open)} to ${clockLabel(todayHours.close)}` : "No bookings today"}
@@ -313,12 +346,22 @@ export function ShopServiceLanding({
           <div>
             <div className={styles.sectionHead}>
               <Words as="h2" id="sl-prices" k="pricesTitle" className={styles.h2} fallback="Price list" {...words} />
-              <Words as="p" k="pricesLede" className={styles.lede} fallback="Tap a service to pick a day and time for it." {...words} />
+              <Words as="p" k="pricesLede" className={styles.lede} fallback={canBook ? "Tap a service to pick a day and time for it." : "What we do, how long it takes and what it costs."} {...words} />
             </div>
             <ul className={styles.prices}>
               {info.services.map((service) => (
                 <li key={service.id}>
-                  <button type="button" className={styles.priceRow} onClick={() => bookWith({ serviceId: service.id })}>
+                  <button
+                    type="button"
+                    className={cn(styles.priceRow, service.imageUrl && styles.priceRowPictured)}
+                    // With nothing to book, a row is only read; it stays a button so it keeps its
+                    // look, and takes the reader to where the shop is.
+                    onClick={() => (canBook ? bookWith({ serviceId: service.id }) : go(visitRef))}
+                  >
+                    {service.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- the shop's own upload, sized by CSS
+                      <img src={service.imageUrl} alt="" loading="lazy" decoding="async" className={styles.pricePicture} />
+                    ) : null}
                     <span className={styles.priceTop}>
                       <span className={styles.priceName}>{service.name}</span>
                       <span className={styles.leader} aria-hidden />
@@ -332,9 +375,11 @@ export function ShopServiceLanding({
                         {service.durationMinutes} min
                         {service.description ? ` · ${service.description}` : ""}
                       </span>
-                      <span className={styles.priceBook}>
-                        Book <ArrowRight className="size-4" aria-hidden />
-                      </span>
+                      {canBook ? (
+                        <span className={styles.priceBook}>
+                          Book <ArrowRight className="size-4" aria-hidden />
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                 </li>
@@ -352,20 +397,24 @@ export function ShopServiceLanding({
               as="p"
               k="teamLede"
               className={styles.lede}
-              fallback="Have someone in mind? Book with them. Otherwise take whoever is free first."
+              fallback={canBook ? "Have someone in mind? Book with them. Otherwise take whoever is free first." : "The people who will look after you."}
               {...words}
             />
           </div>
           <ul className={styles.team}>
             {info.staff.map((person) => (
               <li key={person.id}>
-                <button type="button" className={cn(styles.member, "w-full")} onClick={() => bookWith({ staffId: person.id })}>
+                <button
+                  type="button"
+                  className={cn(styles.member, "w-full")}
+                  onClick={() => (canBook ? bookWith({ staffId: person.id }) : go(visitRef))}
+                >
                   <span className={styles.initial} aria-hidden>
                     {person.name.slice(0, 1).toUpperCase()}
                   </span>
                   <span>
                     <span className={styles.memberName}>{person.name}</span>
-                    <span className={styles.memberBook}>Book with {person.name}</span>
+                    {canBook ? <span className={styles.memberBook}>Book with {person.name}</span> : null}
                   </span>
                 </button>
               </li>
@@ -374,13 +423,15 @@ export function ShopServiceLanding({
         </section>
       ) : null}
 
-      <section ref={bookRef} className={styles.section} aria-labelledby="sl-book">
-        <div className={styles.sectionHead}>
-          <Words as="h2" id="sl-book" k="bookTitle" className={styles.h2} fallback="Pick your day" {...words} />
-          <Words as="p" k="bookLede" className={styles.lede} fallback="Days with dots have room. Nothing to pay now, and no account needed." {...words} />
-        </div>
-        <ShopBookingView slug={slug} initialInfo={info} embedded pick={pick} />
-      </section>
+      {canBook ? (
+        <section ref={bookRef} className={styles.section} aria-labelledby="sl-book">
+          <div className={styles.sectionHead}>
+            <Words as="h2" id="sl-book" k="bookTitle" className={styles.h2} fallback="Pick your day" {...words} />
+            <Words as="p" k="bookLede" className={styles.lede} fallback="Days with dots have room. Nothing to pay now, and no account needed." {...words} />
+          </div>
+          <ShopBookingView slug={slug} initialInfo={info} embedded pick={pick} />
+        </section>
+      ) : null}
 
       <section ref={visitRef} className={styles.section} aria-labelledby="sl-visit">
         <div className={styles.visit}>
@@ -396,7 +447,7 @@ export function ShopServiceLanding({
                 {where}
               </p>
             ) : null}
-            {oneBranch && branch?.hours ? (
+            {canBook && oneBranch && branch?.hours ? (
               <table className={styles.hours}>
                 <caption className="sr-only">Hours for booking</caption>
                 <tbody>
@@ -437,17 +488,19 @@ export function ShopServiceLanding({
         <div className={styles.footerTop}>
           <div className={styles.footerBrand}>
             <p className={styles.footerName}>{storeName}</p>
-            <p className={styles.footerLine}>{liveDesign?.booking?.line?.trim() || tagline?.trim() || "Book your visit online. Pay at the shop."}</p>
-            <button type="button" className={styles.footerBook} onClick={() => go(bookRef)}>
-              <CalendarDays className="size-5" aria-hidden /> Book a visit
-            </button>
+            <p className={styles.footerLine}>{liveDesign?.booking?.line?.trim() || tagline?.trim() || (canBook ? "Book your visit online. Pay at the shop." : "Walk in or call ahead. Pay at the shop.")}</p>
+            {canBook ? (
+              <button type="button" className={styles.footerBook} onClick={() => go(bookRef)}>
+                <CalendarDays className="size-5" aria-hidden /> Book a visit
+              </button>
+            ) : null}
           </div>
 
           <div>
             <h2 className={styles.footerHead}>Visit</h2>
             <ul className={styles.footerList}>
               {where ? <li>{where}</li> : null}
-              {oneBranch && branch?.hours ? (
+              {canBook && oneBranch && branch?.hours ? (
                 <li>{todayHours ? `Today ${clockLabel(todayHours.open)} to ${clockLabel(todayHours.close)}` : "No bookings today"}</li>
               ) : null}
               <li>

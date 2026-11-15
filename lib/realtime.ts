@@ -79,6 +79,8 @@ export type RealtimeEventType =
   | "grocery.invoice.cancelled"
   | "grocery.invoice.expired"
   | "grocery.invoice.stk"
+  | "kitchen.updated"
+  | "menu.updated"
   | "pos_draft.created"
   | "pos_draft.updated"
   | "pos_draft.cancelled"

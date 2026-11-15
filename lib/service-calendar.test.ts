@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import { columnOf, hoursToShow, placeEntries, timeAtFraction, weekOf, type CalendarEntry } from "./service-calendar";
+import {
+  columnOf,
+  hoursToShow,
+  placeEntries,
+  timeAtFraction,
+  weekOf,
+  workingHoursError,
+  workingHoursSummary,
+  type CalendarEntry,
+} from "./service-calendar";
 
 const DAY = new Date("2026-11-16T00:00:00+03:00").getTime();
 const at = (time: string) => new Date(`2026-11-16T${time}:00+03:00`).toISOString();
@@ -77,5 +86,23 @@ describe("calendar helpers", () => {
     expect(columnOf(e, "people")).toBe("mike");
     expect(columnOf(e, "places")).toBe("chair1");
     expect(columnOf({ ...e, resourceId: null }, "places")).toBeNull();
+  });
+});
+
+describe("a person's working hours", () => {
+  test("are summed up in a line an owner can read", () => {
+    const day = { open: "08:00", close: "17:00" };
+    expect(workingHoursSummary({ mon: day, tue: day, wed: day, thu: day, fri: day, sat: { open: "09:00", close: "13:00" } })).toBe(
+      "Mon to Fri 08:00 to 17:00, Sat 09:00 to 13:00",
+    );
+    expect(workingHoursSummary({ mon: day, wed: day })).toBe("Mon 08:00 to 17:00, Wed 08:00 to 17:00");
+    expect(workingHoursSummary({})).toBe("Works whenever the shop is open");
+  });
+
+  test("must end after they start, with both times filled in", () => {
+    expect(workingHoursError({ mon: { open: "08:00", close: "17:00" } })).toBeNull();
+    expect(workingHoursError({ tue: { open: "17:00", close: "08:00" } })).toBe("Tuesday must end after it starts");
+    expect(workingHoursError({ sat: { open: "", close: "13:00" } })).toBe("Enter both times for Saturday");
+    expect(workingHoursError({})).toBeNull();
   });
 });

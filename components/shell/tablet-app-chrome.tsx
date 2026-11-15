@@ -75,6 +75,8 @@ export type HeaderPosLink = {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Four letters at most, for the narrow tablet header; the label's first four are used without it. */
+  shortLabel?: string;
 };
 
 function headerPosLinkActive(pathname: string, href: string): boolean {
@@ -125,7 +127,7 @@ export function HeaderPosLinks({
 
   return (
     <div className="tablet-header-till flex items-stretch">
-      {links.map(({ href, label, icon: Icon }) => {
+      {links.map(({ href, label, shortLabel, icon: Icon }) => {
         const active = headerPosLinkActive(pathname, href);
         return (
           <Link
@@ -143,7 +145,7 @@ export function HeaderPosLinks({
           >
             <Icon className="size-4" strokeWidth={active ? 2.35 : 2} aria-hidden />
             <span className="font-mono text-[8px] font-bold uppercase tracking-[0.14em]">
-              {label.slice(0, 4)}
+              {shortLabel ?? label.slice(0, 4)}
             </span>
             <span
               className={cn(

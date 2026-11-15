@@ -3,6 +3,7 @@
 import {
   fetchOnboardingState,
   patchOnboardingState,
+  type OnboardingAnswersRecord,
   type OnboardingStateRecord,
 } from "@/lib/api";
 import { STORE_SECTION_STARTER_KITS } from "@/lib/item-type-suggestions";
@@ -32,11 +33,18 @@ export type StoreTypeChoice =
   | "salon"
   | "spa"
   | "nail-studio"
-  | "beauty-parlour";
+  | "beauty-parlour"
+  | "restaurant"
+  | "cafe"
+  | "fast-food"
+  | "bar";
 
 export type OnlineStoreChoice = "yes" | "no";
 
 export type ProductSourceChoice = "new" | "spreadsheet" | "other_pos";
+
+/** A dish typed during setup. `price` is kept as typed so a half-typed amount survives. */
+export type FoodMenuDraft = { name: string; price: string };
 
 export type OnboardingQuestionnaireAnswers = {
   branchCount: BranchCountChoice;
@@ -46,6 +54,20 @@ export type OnboardingQuestionnaireAnswers = {
   storeTypes: StoreTypeChoice[];
   /** Department labels the tenant chose (item types). */
   selectedDepartments: string[];
+  /**
+   * Food business only: where food and drink is made — kitchen station names. A shop with one
+   * station is the common case; the first one is where every dish goes.
+   */
+  foodStations?: string[];
+  /** Food business only: the first dishes, with prices typed by the owner (never pre-filled). */
+  foodMenuItems?: FoodMenuDraft[];
+  /** Food business only: the shop also sells packaged products off the shelf. */
+  sellsProducts?: boolean;
+  /**
+   * Restaurant or bar only: how many tables to set up at the first location, named "Table 1"
+   * onwards. Zero is an answer (no tables); undefined means the question was left blank.
+   */
+  foodTableCount?: number;
   onlineStore: OnlineStoreChoice;
   /** Live storefront layout package when onlineStore is yes. */
   storeThemeId: string;
@@ -214,6 +236,26 @@ export const STORE_TYPE_OPTIONS: readonly {
     hint: "Make-up, lashes, brows, and grooming",
   },
   {
+    value: "restaurant",
+    label: "Restaurant",
+    hint: "Meals made to order, with tickets for the kitchen",
+  },
+  {
+    value: "cafe",
+    label: "Café",
+    hint: "Coffee, tea, snacks, and light meals",
+  },
+  {
+    value: "fast-food",
+    label: "Fast food / takeaway",
+    hint: "Chips, chicken, burgers — pay, then collect by number",
+  },
+  {
+    value: "bar",
+    label: "Bar",
+    hint: "Drinks and bites, made at the bar or in the kitchen",
+  },
+  {
     value: "other",
     label: "Other",
     hint: "A different kind of shop — add your own product sections",
@@ -314,6 +356,163 @@ export function branchCountToNumber(count: BranchCountChoice): number {
     return 5;
   }
   return Number.parseInt(count, 10);
+}
+
+// ---------------------------------------------------------------- a food business's setup
+
+/** Station names offered as one-tap additions; the owner can always type their own. */
+export const FOOD_STATION_SUGGESTIONS = [
+  "Kitchen",
+  "Bar",
+  "Grill",
+  "Cold kitchen",
+] as const;
+
+export const FOOD_MAX_STATIONS = 8;
+export const FOOD_MAX_DISHES = 8;
+export const FOOD_MAX_DISH_PRICE = 999_999;
+export const FOOD_MAX_TABLES = 60;
+
+/**
+ * Reads a table count as typed. Blank is `undefined` (not answered); anything that is not a
+ * whole number from 0 to 60 is `null`, so a typo is shown and never guessed.
+ */
+export function parseFoodTableCount(raw: string): number | null | undefined {
+  const text = raw.trim();
+  if (!text) {
+    return undefined;
+  }
+  if (!/^\d{1,3}$/.test(text)) {
+    return null;
+  }
+  const count = Number(text);
+  return count > FOOD_MAX_TABLES ? null : count;
+}
+
+/** The names setup gives the tables: "Table 1" … "Table n". The owner renames them on the floor. */
+export function foodTableNames(count: number | null | undefined): string[] {
+  if (count == null || !Number.isInteger(count) || count <= 0) {
+    return [];
+  }
+  const total = Math.min(count, FOOD_MAX_TABLES);
+  return Array.from({ length: total }, (_, index) => `Table ${index + 1}`);
+}
+
+/**
+ * Where food and drink is made by default: the bar for a bar, the kitchen for everything else.
+ * A default is a name to edit, not a decision the owner has to make.
+ */
+export function defaultFoodStationName(storeTypes: readonly string[]): string {
+  // A bar is the only format whose default is not a kitchen; a café that also has a bar
+  // still cooks in the kitchen.
+  return storeTypes.length > 0 && storeTypes.every((type) => type === "bar")
+    ? "Bar"
+    : "Kitchen";
+}
+
+export function defaultFoodStations(storeTypes: readonly string[]): string[] {
+  return [defaultFoodStationName(storeTypes)];
+}
+
+export function blankFoodMenuDraft(): FoodMenuDraft {
+  return { name: "", price: "" };
+}
+
+/** Trimmed, de-duplicated station names, bounded for the schema (80 characters, 8 stations). */
+export function cleanFoodStationNames(
+  names: readonly string[] | null | undefined,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of names ?? []) {
+    const name = raw.trim().slice(0, 80);
+    if (!name) {
+      continue;
+    }
+    const key = name.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(name);
+    if (out.length >= FOOD_MAX_STATIONS) {
+      break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Reads a price as an owner types it: `250`, `1,250`, `KSh 1 250`, `1250.50`.
+ * Returns null for anything that is not a positive amount, so a bad row is shown, never guessed.
+ */
+export function parseFoodMenuPrice(raw: string): number | null {
+  if (/[-–—]/.test(raw)) {
+    return null;
+  }
+  const cleaned = raw.trim().replace(/,/g, "").replace(/[^\d.]/g, "");
+  if (!cleaned || !/\d/.test(cleaned)) {
+    return null;
+  }
+  if ((cleaned.match(/\./g) ?? []).length > 1) {
+    return null;
+  }
+  // Prices have at most two decimals. "1.250" is a typo, not one shilling twenty-five.
+  if ((cleaned.split(".")[1] ?? "").length > 2) {
+    return null;
+  }
+  const value = Number(cleaned);
+  if (!Number.isFinite(value) || value <= 0 || value > FOOD_MAX_DISH_PRICE) {
+    return null;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+/** A row with neither a name nor a price is simply unused — not an error. */
+export function foodMenuDraftError(draft: FoodMenuDraft): string | null {
+  const name = draft.name.trim();
+  const price = draft.price.trim();
+  if (!name && !price) {
+    return null;
+  }
+  if (!name) {
+    return "Add a name for this dish, or clear its price.";
+  }
+  if (name.length > 191) {
+    return "Use 191 characters or fewer for a dish name.";
+  }
+  if (!price) {
+    return "Type the price for this dish.";
+  }
+  if (parseFoodMenuPrice(price) == null) {
+    return "Type a price from 1 to 999,999 — for example 250.";
+  }
+  return null;
+}
+
+/** The dishes to create: valid, named rows, de-duplicated by name, in the order typed. */
+export function foodMenuDraftsToItems(
+  drafts: readonly FoodMenuDraft[] | null | undefined,
+): { name: string; price: number }[] {
+  const seen = new Set<string>();
+  const out: { name: string; price: number }[] = [];
+  for (const draft of drafts ?? []) {
+    if (foodMenuDraftError(draft) !== null) {
+      continue;
+    }
+    const name = draft.name.trim();
+    const price = parseFoodMenuPrice(draft.price);
+    const key = name.toLowerCase();
+    if (!name || price == null || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push({ name, price });
+    if (out.length >= FOOD_MAX_DISHES) {
+      break;
+    }
+  }
+  return out;
 }
 
 export function branchLocalityPlaceholder(
@@ -561,12 +760,71 @@ export async function hydrateOnboardingQuestionnaireFromServer(): Promise<Onboar
       clearOnboardingQuestionnaireLocal();
       return null;
     }
+    const typedHere = readState().answers;
     const local = mapServerOnboarding(remote);
-    writeState(local);
-    return local;
+    // Food setup travels in the answers now (foodStations, foodMenuItems, sellsProducts). An
+    // older backend that ignores those fields still gets the values typed on this device.
+    const hydrated: OnboardingQuestionnaireState = {
+      ...local,
+      answers: {
+        ...local.answers,
+        // The API drops empty lists, so a food or service shop that answered no sections comes
+        // back without this key; the flow (and the apply) expect an array.
+        selectedDepartments: local.answers.selectedDepartments ?? [],
+        ...(local.answers.foodStations !== undefined
+          ? { foodStations: local.answers.foodStations }
+          : typedHere.foodStations !== undefined
+            ? { foodStations: typedHere.foodStations }
+            : {}),
+        ...(local.answers.foodMenuItems !== undefined
+          ? { foodMenuItems: foodDraftsFromSaved(local.answers.foodMenuItems) }
+          : typedHere.foodMenuItems !== undefined
+            ? { foodMenuItems: typedHere.foodMenuItems }
+            : {}),
+        ...(local.answers.sellsProducts !== undefined
+          ? { sellsProducts: local.answers.sellsProducts }
+          : typedHere.sellsProducts !== undefined
+            ? { sellsProducts: typedHere.sellsProducts }
+            : {}),
+        ...(local.answers.foodTableCount !== undefined
+          ? { foodTableCount: local.answers.foodTableCount }
+          : typedHere.foodTableCount !== undefined
+            ? { foodTableCount: typedHere.foodTableCount }
+            : {}),
+      },
+    };
+    writeState(hydrated);
+    return hydrated;
   } catch {
     return null;
   }
+}
+
+/** A saved dish as the questionnaire input wants it: price back to the typed-string form. */
+function foodDraftsFromSaved(items: readonly FoodMenuDraft[]): FoodMenuDraft[] {
+  return items.map((item) => ({
+    name: item.name ?? "",
+    price: item.price == null ? "" : String(item.price),
+  }));
+}
+
+/**
+ * The answers as the API expects them: food dish prices are numbers on the wire, and a row the
+ * owner has not finished typing is left out of the patch (it stays in the local cache).
+ */
+export function onboardingAnswersForServer(
+  answers: Partial<OnboardingQuestionnaireAnswers>,
+): OnboardingAnswersRecord {
+  const { foodMenuItems, ...rest } = answers;
+  if (foodMenuItems === undefined) {
+    return rest as OnboardingAnswersRecord;
+  }
+  const items = foodMenuItems.flatMap((item) => {
+    const name = item.name.trim();
+    const price = parseFoodMenuPrice(item.price);
+    return name && price != null ? [{ name, price }] : [];
+  });
+  return { ...rest, foodMenuItems: items } as OnboardingAnswersRecord;
 }
 
 async function persistOnboardingQuestionnaireToServer(patch: {
@@ -575,7 +833,12 @@ async function persistOnboardingQuestionnaireToServer(patch: {
   answers?: Partial<OnboardingQuestionnaireAnswers>;
 }): Promise<void> {
   try {
-    await patchOnboardingState(patch);
+    await patchOnboardingState({
+      ...patch,
+      answers: patch.answers
+        ? onboardingAnswersForServer(patch.answers)
+        : undefined,
+    });
   } catch {
     // Offline or unauthenticated — local cache remains source of truth until next sync.
   }

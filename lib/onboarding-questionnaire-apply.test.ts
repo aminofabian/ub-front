@@ -14,6 +14,7 @@ function result(
     failedPhase: null,
     error: null,
     completed: true,
+    warnings: [],
     ...overrides,
   };
 }

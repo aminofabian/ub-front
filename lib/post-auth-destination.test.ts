@@ -98,6 +98,95 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.overview);
   });
 
+  it("sends the owner of a pay-first food shop to the counter", () => {
+    for (const storeTypes of [["cafe"], ["fast-food"], ["cafe", "fast-food"]]) {
+      expect(
+        resolvePostAuthDestination(
+          { role: { key: "owner" } },
+          null,
+          { profile: { storeTypes }, onboarding: { status: "completed" } },
+        ),
+      ).toBe(APP_ROUTES.restaurantCounter);
+    }
+  });
+
+  it("sends the owner of a restaurant or bar to the floor", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        {
+          profile: { storeTypes: ["restaurant"] },
+          onboarding: { status: "completed" },
+        },
+      ),
+    ).toBe(APP_ROUTES.restaurantFloor);
+    // One table-service format is enough: a café with a bar seats people too.
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "admin" } },
+        null,
+        {
+          profile: { storeTypes: ["cafe", "bar"] },
+          onboarding: { status: "completed" },
+        },
+      ),
+    ).toBe(APP_ROUTES.restaurantFloor);
+  });
+
+  it("does not send a shop that mixes a bar with retail to the floor", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        {
+          profile: { storeTypes: ["bar", "mini-mart"] },
+          onboarding: { status: "completed" },
+        },
+      ),
+    ).not.toBe(APP_ROUTES.restaurantFloor);
+  });
+
+  it("keeps the kitchen and the floor for the people who work them", () => {
+    const restaurant = { profile: { storeTypes: ["restaurant"] } };
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "kitchen_staff" } },
+        null,
+        restaurant,
+      ),
+    ).toBe(APP_ROUTES.restaurantKitchen);
+    expect(
+      resolvePostAuthDestination({ role: { key: "waiter" } }, null, restaurant),
+    ).toBe(APP_ROUTES.restaurantFloor);
+  });
+
+  it("keeps a manager of a food-only shop on the hub, never the till", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "manager" } },
+        null,
+        {
+          profile: { storeTypes: ["restaurant"] },
+          onboarding: { status: "completed" },
+        },
+      ),
+    ).toBe(APP_ROUTES.business);
+  });
+
+  it("keeps the dashboard for a café that also sells goods", () => {
+    expect(
+      resolvePostAuthDestination(
+        { role: { key: "owner" } },
+        null,
+        {
+          profile: { storeTypes: ["cafe", "mini-mart"] },
+          onboarding: { status: "completed" },
+        },
+      ),
+    ).toBe(APP_ROUTES.overview);
+  });
+
   it("sends dismissed onboarding owners to the business hub for Resume", () => {
     expect(
       resolvePostAuthDestination(
@@ -616,5 +705,26 @@ describe("roleLandingRedirect", () => {
         pendingOnboarding,
       ),
     ).toBe(APP_ROUTES.business);
+  });
+
+  it("lets a food-only owner open Overview and the hub without being sent back", () => {
+    const foodOnly = {
+      profile: { storeTypes: ["cafe"] },
+      onboarding: { status: "completed" },
+    };
+    expect(
+      roleLandingRedirect(
+        { role: { key: "owner" } },
+        APP_ROUTES.overview,
+        foodOnly,
+      ),
+    ).toBeNull();
+    expect(
+      roleLandingRedirect(
+        { role: { key: "owner" } },
+        APP_ROUTES.business,
+        foodOnly,
+      ),
+    ).toBeNull();
   });
 });

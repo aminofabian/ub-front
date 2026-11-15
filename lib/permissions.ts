@@ -52,6 +52,11 @@ export const Permission = {
   SalesSell: "sales.sell",
   /** Service businesses: manage services, categories and who performs each. */
   ServicesCatalogManage: "services.catalog.manage",
+  RestaurantMenuManage: "restaurant.menu.manage",
+  RestaurantKitchenUpdate: "restaurant.kitchen.update",
+  RestaurantOrdersWrite: "restaurant.orders.write",
+  RestaurantOrdersVoidSent: "restaurant.orders.void_sent",
+  RestaurantBillsComp: "restaurant.bills.comp",
   CommissionsPlansManage: "commissions.plans.manage",
   CommissionsRead: "commissions.read",
   CommissionsReadOwn: "commissions.read_own",

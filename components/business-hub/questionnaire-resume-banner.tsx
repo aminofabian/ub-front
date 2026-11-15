@@ -1,5 +1,6 @@
 "use client";
 
+import { isFoodOnlyStoreTypes } from "@/lib/business-store-type";
 import { useEffect, useState } from "react";
 import { ArrowRight, ClipboardList } from "lucide-react";
 
@@ -31,6 +32,7 @@ export function QuestionnaireResumeBanner({
   className,
 }: QuestionnaireResumeBannerProps) {
   const { active, reopen } = useOnboardingQuestionnaire();
+  const [food, setFood] = useState(false);
   const [visible, setVisible] = useState(false);
   const [stepLabel, setStepLabel] = useState("Finish setting up your shop");
 
@@ -45,6 +47,8 @@ export function QuestionnaireResumeBanner({
     setVisible(needs);
     if (needs) {
       const state = getOnboardingQuestionnaireState();
+      // The shop type is only in the saved answers until setup is applied.
+      setFood(isFoodOnlyStoreTypes(state.answers?.storeTypes));
       const step = Math.max(1, state.step || 1);
       const awaitingStock =
         step >= 8 ||
@@ -80,8 +84,9 @@ export function QuestionnaireResumeBanner({
           <div className="min-w-0">
             <p className="text-sm font-medium text-[#141414]">{stepLabel}</p>
             <p className={cn("mt-0.5 text-[12px] leading-snug", HUB_MUTED)}>
-              Branches, branding, and shelves — pick up where you left off. Takes
-              a minute.
+              {food
+                ? "Your place, kitchen, tables and first dishes — pick up where you left off. Takes a minute."
+                : "Branches, branding, and shelves — pick up where you left off. Takes a minute."}
             </p>
           </div>
         </div>
