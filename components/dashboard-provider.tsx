@@ -297,9 +297,21 @@ export function DashboardProvider({
     );
   }, [effectiveMe?.itemTypeIds]);
 
+  const canViewCatalogItems = hasPermission(
+    effectiveMe?.permissions,
+    Permission.CatalogItemsRead,
+  );
+
   const refreshItemTypes = useCallback(async () => {
-    setItemTypesLoading(true);
     setItemTypeSeeded(false);
+    // GET /item-types needs catalog.items.read. Staff roles without it would
+    // get a 403 (and an "Access Denied" toast) on every sign-in.
+    if (!canViewCatalogItems) {
+      setItemTypes([]);
+      setItemTypesLoading(false);
+      return;
+    }
+    setItemTypesLoading(true);
     try {
       const list = await fetchItemTypes();
       let visible = list.filter((t) => t.active);
@@ -318,12 +330,7 @@ export function DashboardProvider({
     } finally {
       setItemTypesLoading(false);
     }
-  }, [isGroceryClerk, assignedItemTypeIds]);
-
-  const canViewCatalogItems = hasPermission(
-    effectiveMe?.permissions,
-    Permission.CatalogItemsRead,
-  );
+  }, [isGroceryClerk, assignedItemTypeIds, canViewCatalogItems]);
 
   const refreshAisles = useCallback(async () => {
     setAislesLoading(true);

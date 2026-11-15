@@ -3,6 +3,8 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 
+import { useDashboard } from "@/components/dashboard-provider";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient } from "@/lib/realtime";
 import { fetchContactMessageUnreadCount } from "@/lib/api";
 import { shareInflight } from "@/lib/share-inflight";
@@ -54,23 +56,32 @@ export function SupportUnreadProvider({
   const wasInSupportRef = React.useRef(inSupportSection);
   const seenRef = React.useRef<Set<string>>(new Set());
 
+  // Storefront threads and contact messages both need messages.read. Asking
+  // without it is a guaranteed 403 every 15 s (and an "Access Denied" toast).
+  const { me } = useDashboard();
+  const canReadMessages = hasPermission(me?.permissions, Permission.MessagesRead);
+
   const refresh = React.useCallback(() => {
     // Coalesce overlapping refreshes (socket read frame landing on the 15 s
-    // tick, or a route change during the baseline read) into one pair of GETs.
-    void shareInflight("support/unread-counts", () =>
+    // tick, or a route change during the baseline read) into one set of GETs.
+    void shareInflight(`support/unread-counts:${canReadMessages}`, () =>
       Promise.all([
-        // Independent catches: a missing messages.read permission must not stop
-        // the support counts from reconciling.
+        // Independent catches: one failing count must not stop the others
+        // from reconciling.
         fetchSupportUnreadCount().catch(() => null),
-        fetchStorefrontBuyerUnreadCount().catch(() => null),
-        fetchContactMessageUnreadCount().catch(() => null),
+        canReadMessages
+          ? fetchStorefrontBuyerUnreadCount().catch(() => null)
+          : Promise.resolve(0),
+        canReadMessages
+          ? fetchContactMessageUnreadCount().catch(() => null)
+          : Promise.resolve(0),
       ]),
     ).then(([nextPlatform, nextStorefront, nextMessages]) => {
       if (nextPlatform != null) setPlatform(nextPlatform);
       if (nextStorefront != null) setStorefront(nextStorefront);
       if (nextMessages != null) setMessages(nextMessages);
     });
-  }, []);
+  }, [canReadMessages]);
 
   // One baseline read per app load — the pathname effect below must not repeat it.
   React.useEffect(() => {
