@@ -466,3 +466,14 @@ the order the work happens; on a phone they stack in that order.
 - Anything to be printed at a size other than the 80 mm receipt is drawn in its own frame document
   (`restaurant/menu/print/_components/paper-frame.tsx`); the global print rules would otherwise hide it.
 
+### Restaurant till (the cashier page of a food shop)
+
+- One screen, no dashboard around it: a dark ticket rail with a scalloped lower edge, then the counter's sheet
+  filling the rest. The rail is dark in both lights so the sheet below is what changes.
+- Colours come only from the `.food-till` variables in `globals.css`; a new part of the counter must read
+  `--op-*`, `--order-ink`, `--pos-primary`, `--pos-on-primary` and `--kiosk-highlight`, never a fixed hex, or it
+  will not follow the lights.
+- Paper stays paper: anything that stands for a slip of paper carries `food-paper` and keeps dark ink on cream at
+  night. Night's pressed ink is bright, so its lettering is dark.
+- Each house has one ink of its own (forest, brass, coffee, chilli). Do not add a second accent per house.
+

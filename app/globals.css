@@ -8854,6 +8854,16 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     --muted-foreground: #a3b0a8;
     --accent: #1b2721;
     --accent-foreground: #efe9db;
+    --primary: var(--pos-primary);
+    --primary-foreground: var(--pos-on-primary);
+    --primary-hover: color-mix(in srgb, var(--pos-primary) 86%, #ffffff);
+}
+/* What is pressed is a bright ink at night, so its lettering is dark. */
+.food-till[data-lights="night"] .bg-primary {
+    color: var(--pos-on-primary) !important;
+}
+.food-till[data-lights="night"] .food-paper .bg-primary {
+    color: var(--pos-on-primary) !important;
 }
 .food-till[data-lights="night"][data-house="bar"] {
     --pos-primary: #e0b04a;

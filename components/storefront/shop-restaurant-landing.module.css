@@ -17,13 +17,20 @@
   --rl-button-radius: var(--sf-button-radius, 2px);
   --rl-display: var(--sf-font-display, var(--font-serif, Georgia, "Times New Roman", serif));
   /* What the page itself sits on, so the bars that stick to the top match it. */
-  --rl-ground: var(--sf-paper, var(--background, #ffffff));
+  --rl-ground: var(--sf-paper, #f7f2e8);
+  /* The band that closes the page: the dark of a menu's back cover. */
+  --rl-band: #121a16;
+  --rl-on-band: #f4f1ea;
   --rl-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   width: 100%;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0 1rem 5rem;
+  padding: 0 1rem;
+  /* Paper from edge to edge of the window, though the menu itself keeps a reading width. */
+  background: var(--rl-ground);
+  box-shadow: 0 0 0 100vmax var(--rl-ground);
+  clip-path: inset(0 -100vmax);
   color: var(--rl-ink);
   font-family: var(--sf-font-body, inherit);
   line-height: 1.55;
@@ -31,7 +38,7 @@
 }
 @media (min-width: 40rem) {
   .page {
-    padding: 0 1.5rem 6rem;
+    padding: 0 1.5rem;
   }
 }
 .page ::selection {
@@ -139,12 +146,22 @@
   }
 }
 .kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   margin-bottom: 0.875rem;
   color: var(--rl-muted);
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.kicker::before {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  background: var(--rl-brand);
+  transform: rotate(45deg);
 }
 .heroTitle {
   font-family: var(--rl-display);
@@ -154,6 +171,14 @@
   line-height: 0.95;
   letter-spacing: -0.01em;
   overflow-wrap: break-word;
+}
+/* A printer's double rule under the name. */
+.heroTitle::after {
+  content: "";
+  display: block;
+  width: 5rem;
+  margin-top: 1.5rem;
+  border-top: 3px double var(--rl-ink);
 }
 .heroLine {
   max-width: 34rem;
@@ -261,6 +286,12 @@
   background: var(--rl-paper);
   box-shadow: 0.375rem 0.375rem 0 var(--rl-tint);
 }
+@media (min-width: 56rem) {
+  .card {
+    transform: rotate(-1.25deg);
+    transform-origin: 60% 40%;
+  }
+}
 .cardHead {
   padding-bottom: 0.625rem;
   border-bottom: 3px double var(--rl-ink);
@@ -335,15 +366,24 @@
 
 /* ------------------------------------------------------------------ menu */
 .menu {
-  padding-top: 3rem;
+  padding-top: 3.5rem;
+  padding-bottom: 4.5rem;
   scroll-margin-top: 3.5rem;
 }
 .menuHead {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 2rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.menuHead::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--rl-brand);
+  transform: rotate(45deg);
 }
 .h2 {
   font-family: var(--rl-display);
@@ -361,8 +401,9 @@
   top: 3.5rem;
   z-index: 4;
   display: flex;
+  justify-content: safe center;
   gap: 0.25rem;
-  margin: 1rem -1rem 0;
+  margin: 1.5rem -1rem 0;
   padding: 0 1rem;
   overflow-x: auto;
   border-bottom: 1px solid var(--rl-line);
@@ -381,8 +422,10 @@
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--rl-muted);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   white-space: nowrap;
   transition:
     color 200ms var(--rl-ease),
@@ -407,22 +450,30 @@
 }
 .h3 {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 3px double var(--rl-ink);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--rl-brand);
+  font-family: var(--rl-display);
+  font-size: 2rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.1;
+}
+/* The heading between two rules, as on a printed menu. */
+.h3::before,
+.h3::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--rl-line);
 }
 .count {
+  margin-left: -0.375rem;
   color: var(--rl-muted);
   font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  font-style: normal;
   font-weight: 500;
-  letter-spacing: 0;
+  transform: translateY(-0.5em);
 }
 .dishes {
   display: grid;
@@ -494,10 +545,15 @@
 
 /* ------------------------------------------------------------------ find us */
 .visit {
-  margin-top: 4rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--rl-ink);
+  padding: 3.5rem 0 3rem;
+  background: var(--rl-band);
+  box-shadow: 0 0 0 100vmax var(--rl-band);
+  clip-path: inset(0 -100vmax);
+  color: var(--rl-on-band);
   scroll-margin-top: 3.5rem;
+}
+.visit :focus-visible {
+  outline-color: var(--rl-on-band);
 }
 .visitGrid {
   display: grid;
@@ -511,13 +567,15 @@
   }
 }
 .visitWhere {
-  font-size: 1.25rem;
+  font-family: var(--rl-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-style: italic;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 .visitHours {
   margin-top: 0.5rem;
-  color: var(--rl-muted);
+  opacity: 0.72;
 }
 .branches {
   display: grid;
@@ -529,7 +587,7 @@
 }
 .branchWhere {
   display: block;
-  color: var(--rl-muted);
+  opacity: 0.72;
 }
 .contact {
   display: grid;
@@ -542,13 +600,16 @@
   gap: 0.625rem;
   min-height: 3rem;
   padding: 0 1rem;
-  border: 1px solid var(--rl-ink);
+  border: 1px solid rgba(244, 241, 234, 0.5);
   border-radius: var(--rl-button-radius);
   font-weight: 600;
-  transition: background-color 220ms var(--rl-ease);
+  transition:
+    background-color 220ms var(--rl-ease),
+    border-color 220ms var(--rl-ease);
 }
 .contactLink:hover {
-  background: var(--rl-tint);
+  border-color: var(--rl-on-band);
+  background: rgba(244, 241, 234, 0.08);
 }
 
 /* ------------------------------------------------------------------ footer */
@@ -558,10 +619,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem 1.5rem;
-  margin-top: 4rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--rl-line);
-  color: var(--rl-muted);
+  padding: 1.25rem 0 2rem;
+  border-top: 1px solid rgba(244, 241, 234, 0.16);
+  background: var(--rl-band);
+  box-shadow: 0 0 0 100vmax var(--rl-band);
+  clip-path: inset(0 -100vmax);
+  color: rgba(244, 241, 234, 0.7);
   font-size: 0.875rem;
 }
 .footerLink {
