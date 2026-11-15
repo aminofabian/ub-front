@@ -437,7 +437,14 @@ export function CounterScreen({
             is making (the pass), what can be rung (the board), what is being rung now (the docket).
             Narrower than a wide tablet the pass lies down as a rail above the other two.
           */}
-          <div className={cn(DASHBOARD_TABLE_SURFACE, "grid grid-cols-[minmax(0,1fr)] lg:grid-cols-12")}>
+          <div
+            className={cn(
+              DASHBOARD_TABLE_SURFACE,
+              "grid grid-cols-[minmax(0,1fr)] lg:grid-cols-12",
+              // On the till page the sheet is the whole screen under the rail.
+              bare && "xl:min-h-[calc(100dvh-7.5rem)]",
+            )}
+          >
             <section
               aria-label="Orders being made"
               className={cn("min-w-0 p-4 sm:p-5 lg:col-span-12 xl:col-span-3 xl:border-r", COLUMN_RULE)}
