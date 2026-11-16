@@ -210,3 +210,30 @@ export function cashSuggestions(total: number): number[] {
   }
   return [...out].sort((a, b) => a - b).slice(0, 4);
 }
+
+/**
+ * Splitting one bill among several payers. The bill stays one sale with its real dishes, stock
+ * and tax; only the money is divided, and each share is taken as its own tender. A dish is never
+ * cut into fractions (the till sells dishes whole), so this divides the amount, not the lines.
+ *
+ * `equalShares(total, n)` gives n shares that add up to the total exactly, to the cent; any cents
+ * that do not divide evenly go on the first shares, so no one is asked for a fraction of a cent.
+ */
+export function equalShares(total: number, parts: number): number[] {
+  const n = Math.max(1, Math.floor(parts));
+  const cents = Math.round(round2(total) * 100);
+  const base = Math.floor(cents / n);
+  const over = cents - base * n; // 0..n-1 cents to spread, one each onto the first `over` shares
+  return Array.from({ length: n }, (_, i) => round2((base + (i < over ? 1 : 0)) / 100));
+}
+
+/**
+ * What is still owed on a bill after some shares have been taken, and whether the shares now
+ * cover it. Shares are summed to the cent so rounding never leaves a stray cent owed or over.
+ */
+export function splitRemainder(total: number, shares: readonly number[]): { paid: number; left: number; settled: boolean } {
+  const totalCents = Math.round(round2(total) * 100);
+  const paidCents = shares.reduce((sum, s) => sum + Math.round(round2(s) * 100), 0);
+  const leftCents = totalCents - paidCents;
+  return { paid: round2(paidCents / 100), left: round2(leftCents / 100), settled: leftCents === 0 };
+}

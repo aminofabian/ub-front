@@ -44,7 +44,7 @@ import {
   type OrderLineRecord,
   type RestaurantTableRecord,
 } from "@/lib/restaurant-api";
-import { groupsFor, round2, tileState } from "@/lib/restaurant-cart";
+import { equalShares, groupsFor, round2, splitRemainder, tileState } from "@/lib/restaurant-cart";
 import { buildBillEscPos, printOnThisDevice } from "@/lib/restaurant-print";
 import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
@@ -1048,12 +1048,27 @@ function PayDialog({
   // True while a payment request is on the customer's phone: nothing here may change under it.
   const [phoneAsked, setPhoneAsked] = useState(false);
 
+  // Splitting one bill between several payers. The bill is still one sale with its real dishes,
+  // stock and tax; only the money is divided, and each share is recorded as its own tender. A
+  // share taken is a tender already collected; `shares` are the amounts still to collect.
+  const [split, setSplit] = useState(false);
+  const [ways, setWays] = useState(2);
+  const [custom, setCustom] = useState(false);
+  const [taken, setTaken] = useState<{ method: "cash" | "mpesa_manual"; amount: number; reference?: string }[]>([]);
+  const [shareText, setShareText] = useState("");
+
   const tip = order.servedByStaffProfileId ? (parseMoney(tipText) ?? 0) : 0;
   const toPay = round2(bill.toPay + tip);
-  const cashAmount = method === "cash" ? toPay : method === "both" ? (parseMoney(cashPart) ?? 0) : 0;
-  const mpesaAmount = round2(toPay - cashAmount);
+  // What is left to collect right now: the whole bill, or just this share while splitting.
+  const { left: splitLeft } = splitRemainder(toPay, taken.map((t) => t.amount));
+  const equalNext = equalShares(splitLeft, Math.max(1, ways - taken.length))[0] ?? splitLeft;
+  const shareAmount = split ? (custom ? (parseMoney(shareText) ?? 0) : round2(Math.min(equalNext, splitLeft))) : toPay;
+  const due = round2(split ? shareAmount : toPay);
+
+  const cashAmount = method === "cash" ? due : method === "both" ? (parseMoney(cashPart) ?? 0) : 0;
+  const mpesaAmount = round2(due - cashAmount);
   const received = parseMoney(cashReceived);
-  const change = method === "cash" && received != null && received >= toPay ? round2(received - toPay) : null;
+  const change = method === "cash" && received != null && received >= due ? round2(received - due) : null;
 
   /** M-Pesa has confirmed a request for {@code asked}: record the bill against its code. */
   function mpesaReceived(receipt: string, asked: number) {
@@ -1064,29 +1079,54 @@ function PayDialog({
     void pay(receipt);
   }
 
-  async function pay(confirmedReference?: string) {
-    setError(null);
-    if (method === "both" && (cashAmount <= 0 || mpesaAmount <= 0)) {
-      return setError(`Type the cash part: more than zero and less than ${kes(toPay)}`);
-    }
-    if (method === "cash" && received != null && received < toPay) return setError(`That is less than ${kes(toPay)}`);
+  /** The tender(s) for the amount being collected now (the whole bill, or one share). */
+  function tendersNow(confirmedReference?: string): { method: "cash" | "mpesa_manual"; amount: number; reference?: string }[] {
     const payments: { method: "cash" | "mpesa_manual"; amount: number; reference?: string }[] = [];
     if (cashAmount > 0) payments.push({ method: "cash", amount: round2(cashAmount) });
     if (mpesaAmount > 0) {
       const code = (confirmedReference ?? reference).trim().toUpperCase();
-      payments.push({
-        method: "mpesa_manual",
-        amount: mpesaAmount,
-        ...(code ? { reference: code } : {}),
-      });
+      payments.push({ method: "mpesa_manual", amount: mpesaAmount, ...(code ? { reference: code } : {}) });
     }
+    return payments;
+  }
+
+  async function pay(confirmedReference?: string) {
+    setError(null);
+    if (method === "both" && (cashAmount <= 0 || mpesaAmount <= 0)) {
+      return setError(`Type the cash part: more than zero and less than ${kes(due)}`);
+    }
+    if (method === "cash" && received != null && received < due) return setError(`That is less than ${kes(due)}`);
+
+    if (split) {
+      if (due <= 0) return setError("Type how much this person is paying");
+      if (due > round2(splitLeft + 0.001)) return setError(`Only ${kes(splitLeft)} is left on this bill`);
+      const share = tendersNow(confirmedReference);
+      const after = [...taken, ...share];
+      const { settled } = splitRemainder(toPay, after.map((t) => t.amount));
+      if (!settled) {
+        // Not the last share: remember it and reset for the next person.
+        setTaken(after);
+        setReference("");
+        setCashReceived("");
+        setShareText("");
+        setMethod("cash");
+        return;
+      }
+      // The last share covers the bill: ring one sale with every share as its own tender.
+      await submit(after);
+      return;
+    }
+    await submit(tendersNow(confirmedReference));
+  }
+
+  async function submit(payments: { method: "cash" | "mpesa_manual"; amount: number; reference?: string }[]) {
     setBusy(true);
     try {
       onPaid(
         await payBill(order.id, bill.id, {
           payments,
           ...(tip > 0 ? { tip } : {}),
-          ...(method === "cash" && received != null && received >= toPay ? { cashReceived: received } : {}),
+          ...(!split && method === "cash" && received != null && received >= toPay ? { cashReceived: received } : {}),
           clientSoldAt: new Date().toISOString(),
         }),
       );
@@ -1135,6 +1175,81 @@ function PayDialog({
             <span>To pay</span>
             <span className="font-mono tabular-nums">{kes(toPay)}</span>
           </div>
+
+          <label className="flex min-h-9 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={split}
+              disabled={phoneAsked || taken.length > 0}
+              onChange={(e) => {
+                setSplit(e.target.checked);
+                setCustom(false);
+                setShareText("");
+              }}
+            />
+            Split this bill between people
+          </label>
+
+          {split ? (
+            <div className="grid gap-2 rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] p-3">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How to split">
+                <button type="button" role="radio" aria-checked={!custom} disabled={phoneAsked} className={cn(TAB, !custom && TAB_ON)} onClick={() => setCustom(false)}>
+                  Equal shares
+                </button>
+                <button type="button" role="radio" aria-checked={custom} disabled={phoneAsked} className={cn(TAB, custom && TAB_ON)} onClick={() => setCustom(true)}>
+                  By agreed amount
+                </button>
+              </div>
+              {!custom ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span>Split</span>
+                  <Button type="button" variant="outline" className="h-9 w-9" aria-label="Fewer ways" disabled={phoneAsked || ways <= taken.length + 1} onClick={() => setWays((w) => Math.max(taken.length + 1, w - 1))}>
+                    −
+                  </Button>
+                  <span className="w-6 text-center font-mono tabular-nums">{ways}</span>
+                  <Button type="button" variant="outline" className="h-9 w-9" aria-label="More ways" disabled={phoneAsked || ways >= 20} onClick={() => setWays((w) => Math.min(20, w + 1))}>
+                    +
+                  </Button>
+                  <span className="text-[color-mix(in_srgb,var(--order-ink,#121A16)_68%,transparent)]">ways</span>
+                </div>
+              ) : (
+                <label className="grid gap-1">
+                  <span className={dashboardLabelClass()}>This person pays</span>
+                  <input
+                    className={dashboardInputClass(false, "w-36 font-mono")}
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={shareText}
+                    disabled={phoneAsked}
+                    onChange={(e) => setShareText(cleanMoneyText(e.target.value))}
+                  />
+                </label>
+              )}
+              {taken.length > 0 ? (
+                <ul className="grid gap-0.5 text-sm">
+                  {taken.map((t, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span>
+                        Share {i + 1} · {t.method === "cash" ? "cash" : "M-Pesa"}
+                        {t.reference ? ` ${t.reference}` : ""}
+                      </span>
+                      <span className="font-mono tabular-nums">{kes(t.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <div className="flex justify-between border-t border-dashed border-[color-mix(in_srgb,var(--order-ink,#121A16)_20%,transparent)] pt-1 text-sm font-semibold">
+                <span>{taken.length > 0 ? "Still owed" : custom ? "Bill total" : "Each pays"}</span>
+                <span className="font-mono tabular-nums">
+                  {kes(taken.length > 0 ? splitLeft : custom ? toPay : round2(toPay / Math.max(1, ways)))}
+                </span>
+              </div>
+              <p className={dashboardHintClass()}>
+                One receipt for the table; each share is recorded as its own payment. Charges and any tip are on the final share.
+              </p>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How they are paying">
             {(["cash", "mpesa_manual", "both"] as const).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={method === m} disabled={phoneAsked} className={cn(TAB, method === m && TAB_ON)} onClick={() => setMethod(m)}>
@@ -1142,6 +1257,12 @@ function PayDialog({
               </button>
             ))}
           </div>
+          {split ? (
+            <div className="flex justify-between text-sm">
+              <span>{custom ? "This share" : `Share ${taken.length + 1} of ${ways}`}</span>
+              <span className="font-mono tabular-nums">{kes(due)}</span>
+            </div>
+          ) : null}
           {method === "both" ? (
             <label className="grid gap-1">
               <span className={dashboardLabelClass()}>Cash part</span>
@@ -1209,7 +1330,13 @@ function PayDialog({
             Cancel
           </Button>
           <Button className="h-12 text-base" onClick={() => void pay()} disabled={busy || phoneAsked}>
-            {busy ? "Recording…" : `Take ${kes(toPay)}`}
+            {busy
+              ? "Recording…"
+              : split
+                ? round2(splitLeft - due) <= 0
+                  ? `Take last ${kes(due)}`
+                  : `Take share ${kes(due)}`
+                : `Take ${kes(toPay)}`}
           </Button>
         </DialogFooter>
       </DialogContent>
