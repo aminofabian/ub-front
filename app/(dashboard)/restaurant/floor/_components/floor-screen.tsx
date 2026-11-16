@@ -25,6 +25,7 @@ import {
   fetchFloor,
   openOrder,
   setTableQr,
+  takeBookingDeposit,
   updateTable,
   type FloorRecord,
   type OrderCardRecord,
@@ -440,6 +441,8 @@ function StartOrderDialog({
   const [tableId, setTableId] = useState(table?.id ?? "");
   const [when, setWhen] = useState("");
   const [hours, setHours] = useState("2");
+  const [deposit, setDeposit] = useState("");
+  const [depositMethod, setDepositMethod] = useState<"cash" | "mpesa_manual">("cash");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One id for this dialog: a second tap, or a retry after a dropped connection, opens nothing new.
@@ -455,6 +458,7 @@ function StartOrderDialog({
     if (mode === "DELIVERY" && !address.trim()) return setError("Where is it being delivered?");
     let scheduledStart: string | undefined;
     let scheduledEnd: string | undefined;
+    let depositAmount = 0;
     if (mode === "BOOKING") {
       if (!tableId) return setError("Choose the table");
       if (!name.trim()) return setError("Whose booking is it?");
@@ -465,6 +469,11 @@ function StartOrderDialog({
       if (!Number.isFinite(length) || length <= 0 || length > 12) return setError("How long is the table needed for?");
       scheduledStart = start.toISOString();
       scheduledEnd = new Date(start.getTime() + length * 3600000).toISOString();
+      if (deposit.trim()) {
+        depositAmount = Number(deposit);
+        if (!Number.isFinite(depositAmount) || depositAmount <= 0) return setError("Check the deposit amount");
+        if (!phone.trim()) return setError("A deposit needs the customer's phone number");
+      }
     }
     setBusy(true);
     try {
@@ -480,6 +489,11 @@ function StartOrderDialog({
         scheduledStart,
         scheduledEnd,
       });
+      // The booking is made; take the deposit if one was entered. If it fails, the booking stands —
+      // staff see the error and can take it again from the order rather than lose the table.
+      if (depositAmount > 0) {
+        await takeBookingDeposit(order.id, depositAmount, depositMethod);
+      }
       onOpened(order.id, mode === "BOOKING");
     } catch (e) {
       setError(e instanceof ApiRequestError && e.message ? e.message : "That did not go through. Try again.");
@@ -551,10 +565,35 @@ function StartOrderDialog({
                 <input className={dashboardInputClass(false)} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
               </label>
               <label className="grid gap-1">
-                <span className={dashboardLabelClass()}>Phone (optional)</span>
+                <span className={dashboardLabelClass()}>Phone{mode === "BOOKING" ? " (needed for a deposit)" : " (optional)"}</span>
                 <input className={dashboardInputClass(false, "font-mono")} inputMode="tel" value={phone} maxLength={32} onChange={(e) => setPhone(e.target.value)} />
               </label>
             </>
+          ) : null}
+          {mode === "BOOKING" ? (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+              <label className="grid gap-1">
+                <span className={dashboardLabelClass()}>Deposit (optional)</span>
+                <input
+                  className={dashboardInputClass(false, "font-mono")}
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={deposit}
+                  onChange={(e) => setDeposit(e.target.value.replace(/[^0-9.]/g, ""))}
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className={dashboardLabelClass()}>How paid</span>
+                <select
+                  className={dashboardSelectClass(false, "w-32")}
+                  value={depositMethod}
+                  onChange={(e) => setDepositMethod(e.target.value as "cash" | "mpesa_manual")}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="mpesa_manual">M-Pesa code</option>
+                </select>
+              </label>
+            </div>
           ) : null}
           {mode === "DELIVERY" ? (
             <label className="grid gap-1">

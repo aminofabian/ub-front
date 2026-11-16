@@ -559,6 +559,9 @@ export type OpenOrderRecord = {
   deliveredAt: string | null;
   /** `QR` when a customer started it from a table's QR code. */
   source: string | null;
+  /** A deposit held against a booking, and its state, or null when none. */
+  depositAmount: number | null;
+  depositState: "HELD" | "APPLIED" | "CREDITED" | "FORFEITED" | "REFUNDED" | null;
 };
 
 export async function fetchTables(branchId: string): Promise<RestaurantTableRecord[]> {
@@ -649,7 +652,20 @@ export const setBillRequested = (orderId: string, requested: boolean) =>
 export const seatBooking = (orderId: string) => post(order(orderId, "/seat"));
 /** Everything the kitchen has finished has been carried to the table. */
 export const markOrderServed = (orderId: string) => post(order(orderId, "/served"));
-export const cancelOrder = (orderId: string, reason?: string) => post(order(orderId, "/cancel"), { reason });
+/** Cancel an order. On a booking with a held deposit, hand it back (cash/M-Pesa) or let it fall to credit. */
+export const cancelOrder = (
+  orderId: string,
+  reason?: string,
+  deposit?: { refundsDeposit: boolean; depositBack?: "cash" | "mpesa_manual" },
+) => post(order(orderId, "/cancel"), { reason, ...(deposit ?? {}) });
+
+/** Take a deposit against a booking. Held in the customer's name (found or made from the booking's phone). */
+export const takeBookingDeposit = (orderId: string, amount: number, method: "cash" | "mpesa_manual") =>
+  post(order(orderId, "/deposit"), { amount, method });
+
+/** A booking whose guests never arrived. Its deposit is kept as income, or made the customer's credit. */
+export const markNoShow = (orderId: string, keepDepositAsCredit: boolean) =>
+  post(order(orderId, "/no-show"), { keepDepositAsCredit });
 
 /** A field left out is not changed; a blank clears it. */
 export async function updateOrderDetails(

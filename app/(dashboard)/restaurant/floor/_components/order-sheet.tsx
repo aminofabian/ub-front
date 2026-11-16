@@ -19,6 +19,7 @@ import {
   addOrderLines,
   cancelOrder,
   cancelOrderLine,
+  markNoShow,
   changeOrderLine,
   closeBillWithoutSale,
   createBill,
@@ -343,6 +344,9 @@ export function OrderSheet({
             Booked{order.customerName ? ` for ${order.customerName}` : ""}
             {order.customerPhone ? ` (${order.customerPhone})` : ""}
             {bookedFor(order.scheduledStart)}. Seat it when the guests arrive.
+            {order.depositState === "HELD" && order.depositAmount ? (
+              <span className="font-semibold"> Deposit held: {kes(order.depositAmount)}.</span>
+            ) : null}
           </p>
           {rights.canTakeOrders ? (
             <>
@@ -354,15 +358,32 @@ export function OrderSheet({
                 size="sm"
                 disabled={busy}
                 onClick={() => {
+                  const held = order.depositState === "HELD";
+                  // With a deposit held, decide up front where it goes; without one, just the reason.
+                  let depositArg: { refundsDeposit: boolean; depositBack?: "cash" | "mpesa_manual" } | undefined;
+                  if (held) {
+                    const hand = window.confirm(
+                      `Hand the ${kes(order.depositAmount ?? 0)} deposit back now? OK = give it back · Cancel = keep it as the customer's credit.`,
+                    );
+                    if (hand) {
+                      const byMpesa = window.confirm("How is it handed back? OK = M-Pesa · Cancel = cash.");
+                      depositArg = { refundsDeposit: true, depositBack: byMpesa ? "mpesa_manual" : "cash" };
+                    } else {
+                      depositArg = { refundsDeposit: false };
+                    }
+                  }
                   setAsking({
                     title: "Cancel this booking?",
-                    hint: "The table is freed for that time.",
+                    hint: held
+                      ? "The table is freed. The deposit goes where you just chose."
+                      : "The table is freed for that time.",
                     confirm: "Cancel the booking",
                     required: false,
                     run: (reason) =>
-                      void act(() => cancelOrder(orderId, reason || undefined), "Could not cancel the booking.").then(
-                        (ok) => ok && onBack(),
-                      ),
+                      void act(
+                        () => cancelOrder(orderId, reason || undefined, depositArg),
+                        "Could not cancel the booking.",
+                      ).then((ok) => ok && onBack()),
                   });
                 }}
               >
@@ -373,8 +394,15 @@ export function OrderSheet({
                 size="sm"
                 disabled={busy}
                 onClick={() => {
-                  if (!window.confirm("Mark this booking as a no-show? The table is freed.")) return;
-                  void act(() => cancelOrder(orderId, "No-show"), "Could not close the booking.").then((ok) => ok && onBack());
+                  const held = order.depositState === "HELD";
+                  const message = held
+                    ? `Mark this booking as a no-show? The table is freed. Keep the ${kes(order.depositAmount ?? 0)} deposit as the customer's credit? OK = credit them · Cancel = keep it as income.`
+                    : "Mark this booking as a no-show? The table is freed.";
+                  const answer = window.confirm(message);
+                  if (!held && !answer) return; // without a deposit, Cancel means "don't"
+                  void act(() => markNoShow(orderId, held && answer), "Could not close the booking.").then(
+                    (ok) => ok && onBack(),
+                  );
                 }}
               >
                 Did not come
