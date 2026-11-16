@@ -29,6 +29,7 @@ import {
 import { ServiceFormDialog } from "./service-form-dialog";
 import { PackageOfferDialog } from "./package-offer-dialog";
 import { ProductsUsedDialog } from "./products-used-dialog";
+import { ServiceOptionsDialog } from "./service-options-dialog";
 
 function durationLabel(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
@@ -45,6 +46,7 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
   const [editing, setEditing] = useState<ServiceRecord | "new" | null>(null);
   const [packaging, setPackaging] = useState<ServiceRecord | null>(null);
   const [productsFor, setProductsFor] = useState<ServiceRecord | null>(null);
+  const [optionsFor, setOptionsFor] = useState<ServiceRecord | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -178,7 +180,9 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
                         ? service.price > 0
                           ? `from ${formatMoney(service.price, "KES")}`
                           : "Set at the till"
-                        : formatMoney(service.price, "KES")}
+                        : (service.options ?? []).some((g) => g.options.some((o) => o.priceDelta > 0))
+                          ? `from ${formatMoney(service.price, "KES")}`
+                          : formatMoney(service.price, "KES")}
                     </td>
                     <td className="px-3 py-2">
                       {service.staffProfileIds.length === 0
@@ -220,6 +224,14 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
                             variant="outline"
                             size="sm"
                             disabled={busyId === service.id}
+                            onClick={() => setOptionsFor(service)}
+                          >
+                            {(service.options ?? []).length > 0 ? `Options (${(service.options ?? []).length})` : "Options"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busyId === service.id}
                             onClick={() => void toggleActive(service)}
                           >
                             {service.active ? "Switch off" : "Switch on"}
@@ -252,6 +264,16 @@ export function ServicesWorkspace({ canManage }: { canManage: boolean }) {
           onSaved={async () => {
             setEditing(null);
             await load();
+          }}
+        />
+      ) : null}
+      {optionsFor ? (
+        <ServiceOptionsDialog
+          service={optionsFor}
+          onClose={() => setOptionsFor(null)}
+          onSaved={(saved) => {
+            setOptionsFor(null);
+            setServices((prev) => (prev ?? []).map((s) => (s.id === saved.id ? saved : s)));
           }}
         />
       ) : null}

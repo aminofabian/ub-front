@@ -2,12 +2,22 @@
 
 import { ApiRequestError, apiRequest, apiUploadFile } from "@/lib/api";
 import { API_ROUTES } from "@/lib/config";
+import type { ChosenLineOption, OptionGroupPayload, ServiceOptionGroup } from "@/lib/service-options";
 import { withSetup } from "@/lib/setup-requirements";
 
 /**
  * Client for the service-business endpoints: the service catalogue, staff who have no login,
  * and staff commission, tips and payouts. Shapes mirror `docs/openapi/phase-1.yaml`.
  */
+
+/** The server's own words for a refusal ("They are off at that time"), or the fallback. */
+export function serviceApiMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiRequestError) {
+    const payload = err.payload as { detail?: unknown } | null;
+    if (payload && typeof payload.detail === "string" && payload.detail.trim()) return payload.detail;
+  }
+  return fallback;
+}
 
 export type ServiceCategoryRecord = {
   id: string;
@@ -37,6 +47,8 @@ export type ServiceRecord = {
   productCost?: number | null;
   /** The service's picture, if it has one. */
   imageUrl?: string | null;
+  /** What a customer can choose on it (length, extras); empty or missing for a plain service. */
+  options?: ServiceOptionGroup[];
 };
 
 export type ServicePayload = {
@@ -426,7 +438,10 @@ export type ServiceTicketRecord = {
     stage?: "WAITING" | "IN_SERVICE" | "DONE";
     startedAt?: string | null;
     finishedAt?: string | null;
+    /** The service's own time plus what the chosen options add. */
     plannedMinutes?: number;
+    /** What was chosen on it; the unit price already includes these. */
+    options?: ChosenLineOption[];
   }[];
   /** Bookings: when the customer is expected. Null for a walk-in. */
   scheduledStart?: string | null;
@@ -532,9 +547,22 @@ export async function reopenServiceTicket(id: string): Promise<ServiceTicketReco
 
 export async function addServiceTicketLine(
   id: string,
-  body: { serviceId: string; unitPrice?: number },
+  body: { serviceId: string; unitPrice?: number; optionIds?: string[] },
 ): Promise<ServiceTicketRecord> {
   return apiRequest<ServiceTicketRecord>(ticketPath(id, "lines"), { method: "POST", body, toast: false });
+}
+
+/** Replaces what the customer chose on one service of a visit; an empty list clears it. */
+export async function setServiceTicketLineOptions(
+  id: string,
+  lineId: string,
+  optionIds: string[],
+): Promise<ServiceTicketRecord> {
+  return apiRequest<ServiceTicketRecord>(`${ticketPath(id, "lines")}/${encodeURIComponent(lineId)}/options`, {
+    method: "PUT",
+    body: { optionIds },
+    toast: false,
+  });
 }
 
 export async function cancelServiceTicket(
@@ -1183,6 +1211,15 @@ export async function setServiceConsumables(
   items: { itemId: string; quantity: number }[],
 ): Promise<ServiceConsumables> {
   return apiRequest<ServiceConsumables>(consumablesPath(serviceId), { method: "PUT", body: { items }, toast: false });
+}
+
+/** Replaces what a customer can choose on a service; an empty list makes it a plain service. */
+export async function setServiceOptions(serviceId: string, groups: OptionGroupPayload[]): Promise<ServiceRecord> {
+  return apiRequest<ServiceRecord>(`${API_ROUTES.services}/${encodeURIComponent(serviceId)}/options`, {
+    method: "PUT",
+    body: { groups },
+    toast: false,
+  });
 }
 
 // ------------------------------------------------------------------ reports

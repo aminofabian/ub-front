@@ -52,6 +52,8 @@ import {
 import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { cn } from "@/lib/utils";
 
+import { VisitOptionsButton, visitLinesInWords } from "../../_components/visit-options";
+
 import { findOrCreateCustomer } from "../../floor/_components/floor-board";
 
 const kes = (n: number) => formatMoney(n, "KES");
@@ -233,7 +235,7 @@ export function AppointmentsWorkspace() {
                         {row.bookingName ?? "Customer"} · {row.staffName ?? "Staff"}
                       </p>
                       <p className={dashboardHintClass()}>
-                        {row.lines.map((l) => l.name).join(", ")} · {kes(row.total)}
+                        {visitLinesInWords(row)} · {kes(row.total)}
                         {row.bookingPhone ? ` · ${row.bookingPhone}` : ""}
                         {row.depositState === "HELD" && row.depositAmount ? ` · deposit ${kes(row.depositAmount)}` : ""}
                         {row.sendReminder ? " · reminder on" : ""}
@@ -250,6 +252,7 @@ export function AppointmentsWorkspace() {
                       <Button size="sm" variant="outline" disabled={busy === row.id} onClick={() => setMoving(row)}>
                         Move
                       </Button>
+                      <VisitOptionsButton ticket={row} services={services} disabled={busy === row.id} onChanged={refresh} />
                       {row.depositState == null && row.customerId ? (
                         <Button size="sm" variant="outline" disabled={busy === row.id} onClick={() => setDepositFor(row)}>
                           Deposit

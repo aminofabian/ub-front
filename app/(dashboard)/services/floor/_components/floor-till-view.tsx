@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, CalendarPlus, Check, DoorOpen, Plus, Users, UserX, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarPlus, Check, DoorOpen, Plus, SlidersHorizontal, Users, UserX, X } from "lucide-react";
 import Link from "next/link";
 
 import { dashboardHintClass } from "@/components/dashboard-page-ui";
@@ -13,7 +13,10 @@ import {
   type ServiceBoard,
   type ServiceTicketRecord,
 } from "@/lib/service-business-api";
+
 import { cn } from "@/lib/utils";
+
+import { chosenInWords, visitLinesInWords, type VisitOptionState } from "../../_components/visit-options";
 
 /** Whole shillings read as the till says them: "Ksh 300", not "Ksh 300.00". */
 const kes = (n: number) => formatMoney(n, "KES").replace(/\.00$/, "");
@@ -75,6 +78,8 @@ export function FloorTillView({
   onLeft,
   onDone,
   onShare,
+  onOptions,
+  optionState,
   onCancel,
   onPay,
   onReopen,
@@ -115,6 +120,8 @@ export function FloorTillView({
   onLeft: (ticket: ServiceTicketRecord) => void;
   onDone: (ticket: ServiceTicketRecord) => void;
   onShare: (ticket: ServiceTicketRecord) => void;
+  onOptions: (ticket: ServiceTicketRecord) => void;
+  optionState: (ticket: ServiceTicketRecord) => VisitOptionState;
   onCancel: (ticket: ServiceTicketRecord) => void;
   onPay: (ticket: ServiceTicketRecord) => void;
   onReopen: (ticket: ServiceTicketRecord) => void;
@@ -173,6 +180,8 @@ export function FloorTillView({
             onNewCustomer={onNewCustomer}
             onDone={onDone}
             onShare={onShare}
+            onOptions={onOptions}
+            optionState={optionState}
             onCancel={onCancel}
           />
           <Bench
@@ -196,6 +205,8 @@ export function FloorTillView({
             manyPerformers={manyPerformers}
             staffNames={staffNames}
             onShare={onShare}
+            onOptions={onOptions}
+            optionState={optionState}
             onPay={onPay}
             onReopen={onReopen}
             onCancel={onCancel}
@@ -378,6 +389,8 @@ function ChairFloor({
   onNewCustomer,
   onDone,
   onShare,
+  onOptions,
+  optionState,
   onCancel,
 }: {
   chairs: number[];
@@ -389,6 +402,8 @@ function ChairFloor({
   onNewCustomer: (chair?: number) => void;
   onDone: (ticket: ServiceTicketRecord) => void;
   onShare: (ticket: ServiceTicketRecord) => void;
+  onOptions: (ticket: ServiceTicketRecord) => void;
+  optionState: (ticket: ServiceTicketRecord) => VisitOptionState;
   onCancel: (ticket: ServiceTicketRecord) => void;
 }) {
   return (
@@ -406,6 +421,8 @@ function ChairFloor({
             onNewCustomer={onNewCustomer}
             onDone={onDone}
             onShare={onShare}
+            onOptions={onOptions}
+            optionState={optionState}
             onCancel={onCancel}
           />
         ))}
@@ -424,6 +441,8 @@ function ChairPlate({
   onNewCustomer,
   onDone,
   onShare,
+  onOptions,
+  optionState,
   onCancel,
 }: {
   number: number;
@@ -435,6 +454,8 @@ function ChairPlate({
   onNewCustomer: (chair?: number) => void;
   onDone: (ticket: ServiceTicketRecord) => void;
   onShare: (ticket: ServiceTicketRecord) => void;
+  onOptions: (ticket: ServiceTicketRecord) => void;
+  optionState: (ticket: ServiceTicketRecord) => VisitOptionState;
   onCancel: (ticket: ServiceTicketRecord) => void;
 }) {
   if (!ticket) {
@@ -471,6 +492,7 @@ function ChairPlate({
           <Check className="size-3.5" aria-hidden /> {ticket.redoOfSaleId ? "Done · free" : "Done"}
         </Button>
         {manyPerformers ? <ShareButton ticket={ticket} busy={busy} onShare={onShare} /> : null}
+                <OptionsButton ticket={ticket} busy={busy} state={optionState(ticket)} onOptions={onOptions} />
         <button
           type="button"
           className={ICON_BUTTON}
@@ -522,6 +544,33 @@ function ShareButton({
   );
 }
 
+/** Opens what the customer chose (length, extras); lit while something that must be chosen is missing. */
+function OptionsButton({
+  ticket,
+  busy,
+  state,
+  onOptions,
+}: {
+  ticket: ServiceTicketRecord;
+  busy: string | null;
+  state: VisitOptionState;
+  onOptions: (ticket: ServiceTicketRecord) => void;
+}) {
+  if (state === "none") return null;
+  return (
+    <button
+      type="button"
+      className={cn(ICON_BUTTON, state === "missing" && "text-[var(--op-accent)]")}
+      disabled={busy === ticket.id}
+      title={state === "missing" ? "Choose the options before payment" : "Change what they chose"}
+      aria-label={`Ticket ${ticket.ticketNumber}: ${state === "missing" ? "choose the options" : "change what they chose"}`}
+      onClick={() => onOptions(ticket)}
+    >
+      <SlidersHorizontal className="size-4" aria-hidden />
+    </button>
+  );
+}
+
 /** Who helped on the ticket and what each gets; nothing when the person serving did it alone. */
 function HelpedBy({ ticket, staffNames }: { ticket: ServiceTicketRecord; staffNames: ReadonlyMap<string, string> }) {
   const helped = helpersSummary(ticket, staffNames);
@@ -540,6 +589,8 @@ function PayingLane({
   manyPerformers,
   staffNames,
   onShare,
+  onOptions,
+  optionState,
   onPay,
   onReopen,
   onCancel,
@@ -550,6 +601,8 @@ function PayingLane({
   manyPerformers: boolean;
   staffNames: ReadonlyMap<string, string>;
   onShare: (ticket: ServiceTicketRecord) => void;
+  onOptions: (ticket: ServiceTicketRecord) => void;
+  optionState: (ticket: ServiceTicketRecord) => VisitOptionState;
   onPay: (ticket: ServiceTicketRecord) => void;
   onReopen: (ticket: ServiceTicketRecord) => void;
   onCancel: (ticket: ServiceTicketRecord) => void;
@@ -581,6 +634,7 @@ function PayingLane({
                   Not done
                 </Button>
                 {manyPerformers ? <ShareButton ticket={ticket} busy={busy} onShare={onShare} /> : null}
+                <OptionsButton ticket={ticket} busy={busy} state={optionState(ticket)} onOptions={onOptions} />
                 <button
                   type="button"
                   className={ICON_BUTTON}
@@ -743,7 +797,7 @@ function BookedToday({
                 {ticket.bookingName ?? "Customer"}
               </p>
               <p className={cn("truncate", dashboardHintClass())}>
-                {ticket.lines.map((l) => l.name).join(", ")}
+                {visitLinesInWords(ticket)}
                 {ticket.staffName ? ` · ${ticket.staffName.split(/\s+/)[0]}` : ""}
                 {late >= 10 ? ` · ${waitLabel(late)} late` : ""}
               </p>
@@ -800,7 +854,10 @@ function Elsewhere({ elsewhere, tillOnly }: { elsewhere: ServiceTicketRecord[]; 
 /** Ticket number, who, and what they are having, on one or two tight lines. */
 function TicketLines({ ticket, quiet = false }: { ticket: ServiceTicketRecord; quiet?: boolean }) {
   const counts = new Map<string, number>();
-  for (const line of ticket.lines) counts.set(line.name, (counts.get(line.name) ?? 0) + 1);
+  for (const line of ticket.lines) {
+    const label = (line.options ?? []).length > 0 ? `${line.name} (${chosenInWords(line)})` : line.name;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
   const what = [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
   return (
     <>

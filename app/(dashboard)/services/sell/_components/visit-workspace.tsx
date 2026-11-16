@@ -53,6 +53,8 @@ import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { allocateTip, tipLeftToAllocate, type TipMode, type TipPerson } from "@/lib/tip-allocation";
 import { cn } from "@/lib/utils";
 
+import { VisitOptionsButton, VisitOptionsDialog, chosenInWords } from "../../_components/visit-options";
+
 import { NewCustomerDialog } from "../../floor/_components/floor-board";
 import { ResourcesDialog } from "./resources-dialog";
 
@@ -671,6 +673,8 @@ function VisitSlip({
   onCancelled: () => void;
 }) {
   const [adding, setAdding] = useState(false);
+  // Set right after a service with a must-choose option is added, so the choice is asked at once.
+  const [choosing, setChoosing] = useState<{ ticket: ServiceTicketRecord; lineId: string } | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [otherReason, setOtherReason] = useState("");
   const started = visit.lines.some((l) => l.stage && l.stage !== "WAITING");
@@ -711,6 +715,7 @@ function VisitSlip({
             line={line}
             performers={performers}
             resources={resources}
+            services={services}
             shares={earnings?.lines.find((l) => l.lineId === line.id) ?? null}
             canSetAmounts={canSetAmounts}
             busyIds={busyIds}
@@ -732,13 +737,29 @@ function VisitSlip({
             busy={busy}
             onPick={(serviceId, unitPrice) =>
               void act(async () => {
-                await addServiceTicketLine(visit.id, { serviceId, ...(unitPrice != null ? { unitPrice } : {}) });
+                const before = new Set(visit.lines.map((l) => l.id));
+                const ticket = await addServiceTicketLine(visit.id, { serviceId, ...(unitPrice != null ? { unitPrice } : {}) });
                 setAdding(false);
+                const added = ticket.lines.find((l) => !before.has(l.id));
+                const groups = services.find((s) => s.id === serviceId)?.options ?? [];
+                if (added && groups.some((g) => g.required)) setChoosing({ ticket, lineId: added.id });
               }, "Could not add the service.")
             }
           />
         ) : null}
       </div>
+      {choosing ? (
+        <VisitOptionsDialog
+          ticket={choosing.ticket}
+          services={services}
+          lineId={choosing.lineId}
+          onClose={() => setChoosing(null)}
+          onSaved={() => {
+            setChoosing(null);
+            return act(async () => undefined, "");
+          }}
+        />
+      ) : null}
 
       <VisitProducts visit={visit} busy={busy} act={act} />
 
@@ -984,6 +1005,7 @@ function LineCard({
   line,
   performers,
   resources,
+  services,
   shares,
   canSetAmounts,
   busyIds,
@@ -995,6 +1017,7 @@ function LineCard({
   line: ServiceVisitLine;
   performers: ServicePerformerRecord[];
   resources: ServiceResourceRecord[];
+  services: ServiceRecord[];
   /** What each person on this service will get, when this user may see it. */
   shares: VisitEarnings["lines"][number] | null;
   canSetAmounts: boolean;
@@ -1046,6 +1069,7 @@ function LineCard({
         <span aria-hidden className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-[color-mix(in_srgb,var(--order-ink,#121A16)_30%,transparent)]" />
         <span className="font-mono text-base font-semibold tabular-nums">{kes(line.lineTotal)}</span>
       </div>
+      {(line.options ?? []).length > 0 ? <p className="text-sm">{chosenInWords(line)}</p> : null}
       <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className={dashboardHintClass()}>
@@ -1055,7 +1079,14 @@ function LineCard({
             {took != null ? ` · took ${took} min` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <VisitOptionsButton
+            ticket={visit}
+            services={services}
+            lineId={line.id}
+            disabled={busy}
+            onChanged={() => act(async () => undefined, "")}
+          />
           {stage === "WAITING" ? (
             <Button
               size="sm"

@@ -84,6 +84,12 @@ import { cn } from "@/lib/utils";
 
 import { BookingDialog } from "../../appointments/_components/appointments-workspace";
 import { FloorTillView } from "./floor-till-view";
+import {
+  VisitOptionsButton,
+  VisitOptionsDialog,
+  visitLinesInWords,
+  visitOptionState,
+} from "../../_components/visit-options";
 import { HelpersDialog } from "./helpers-dialog";
 
 const kes = (n: number) => formatMoney(n, "KES");
@@ -124,6 +130,7 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
   const [paying, setPaying] = useState<ServiceTicketRecord | null>(null);
   const [selling, setSelling] = useState(false);
   const [sharing, setSharing] = useState<ServiceTicketRecord | null>(null);
+  const [choosing, setChoosing] = useState<ServiceTicketRecord | null>(null);
   const [offers, setOffers] = useState<PackageOffer[]>([]);
   const [, setTick] = useState(0);
 
@@ -330,6 +337,8 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
           }}
           onDone={(ticket) => void run(ticket.id, () => finishServiceTicket(ticket.id), "Could not finish the ticket.")}
           onShare={setSharing}
+          onOptions={setChoosing}
+          optionState={(ticket) => visitOptionState(ticket, services)}
           onCancel={cancelTicket}
           onPay={setPaying}
           onReopen={(ticket) => void run(ticket.id, () => reopenServiceTicket(ticket.id), "Could not undo.")}
@@ -525,6 +534,13 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
                           {ticket.lines.some((l) => (l.helpers ?? []).length > 0) ? "Shared work" : "Others helped"}
                         </Button>
                       ) : null}
+                      <VisitOptionsButton
+                        ticket={ticket}
+                        services={services}
+                        className="mt-1"
+                        disabled={busy === ticket.id}
+                        onChanged={refresh}
+                      />
                       <CancelButton ticket={ticket} busy={busy === ticket.id} run={run} />
                     </>
                   ) : (
@@ -552,6 +568,7 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
                       <Button size="sm" disabled={busy === ticket.id} onClick={() => setPaying(ticket)}>
                         Take {kes(ticket.total)}
                       </Button>
+                      <VisitOptionsButton ticket={ticket} services={services} disabled={busy === ticket.id} onChanged={refresh} />
                       {performers.length > 1 ? (
                         <Button variant="ghost" size="sm" disabled={busy === ticket.id} onClick={() => setSharing(ticket)}>
                           {ticket.lines.some((l) => (l.helpers ?? []).length > 0) ? "Shared work" : "Others helped"}
@@ -623,6 +640,17 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
           onDone={async () => {
             setAdding(false);
             setAddingChair(null);
+            await refresh();
+          }}
+        />
+      ) : null}
+      {choosing ? (
+        <VisitOptionsDialog
+          ticket={choosing}
+          services={services}
+          onClose={() => setChoosing(null)}
+          onSaved={async () => {
+            setChoosing(null);
             await refresh();
           }}
         />
@@ -778,7 +806,7 @@ function TicketSummary({
         {position != null ? `${position}. ` : ""}Ticket {ticket.ticketNumber}
         {ticket.bookingName ? ` · ${ticket.bookingName}` : ""}
       </p>
-      <p className="text-sm">{ticket.lines.map((l) => l.name).join(", ")}</p>
+      <p className="text-sm">{visitLinesInWords(ticket)}</p>
       <p className={dashboardHintClass()}>
         <span className="font-mono tabular-nums">{minutesSince(sinceIso)} min</span> {sinceLabel}
         {position != null && ticket.staffName ? ` · asked for ${ticket.staffName}` : ""}
