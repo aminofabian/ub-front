@@ -4,7 +4,12 @@ import {
   printEscPosViaTillBridge,
   type TillBridgePrintTarget,
 } from "@/lib/till-print-bridge";
-import type { KitchenTicketRecord, OpenOrderRecord, OrderBillRecord } from "@/lib/restaurant-api";
+import type {
+  KitchenPrintJobRecord,
+  KitchenTicketRecord,
+  OpenOrderRecord,
+  OrderBillRecord,
+} from "@/lib/restaurant-api";
 
 /**
  * Kitchen tickets and bills on a thermal printer, through the same print bridge the till uses
@@ -62,10 +67,15 @@ function clock(iso: string | null | undefined): string {
 }
 
 /** What a station is told to make: order number large, each line with its choices and note, and no prices. */
-export function buildKitchenTicketEscPos(ticket: KitchenTicketRecord, stationName: string | null): Uint8Array {
+export function buildKitchenTicketEscPos(
+  ticket: KitchenTicketRecord,
+  stationName: string | null,
+  reprint = false,
+): Uint8Array {
   const bytes: number[] = [...INIT];
   const isVoid = ticket.ticketType === "VOID";
   if (isVoid) bytes.push(...BOLD_ON, ...BIG, ...line("** CANCELLED **"), ...NORMAL, ...BOLD_OFF);
+  if (reprint) bytes.push(...BOLD_ON, ...line("** REPRINT **"), ...BOLD_OFF);
   bytes.push(...BIG, ...line(`Order ${ticket.orderNumber}`), ...NORMAL);
   bytes.push(...line(`${stationName ?? "Kitchen"}  ${clock(ticket.sentAt)}${ticket.roundNo > 1 ? `  round ${ticket.roundNo}` : ""}`));
   bytes.push(...line("-".repeat(WIDTH)));
@@ -114,5 +124,27 @@ export async function printOnThisDevice(bytes: Uint8Array): Promise<void> {
   if (!target) {
     throw new Error("No printer is set up on this device. Set one up under the till's printer settings first.");
   }
+  await printEscPosViaTillBridge(new Blob([bytes as BlobPart]), target);
+}
+
+/** The printer a job should go to: the station's own, if it named one, else this device's. */
+export function jobPrinterTarget(job: KitchenPrintJobRecord): TillBridgePrintTarget | null {
+  if (job.printerHost) return { host: job.printerHost, port: job.printerPort ?? 9100 };
+  if (job.printerName) return { name: job.printerName };
+  return localPrinter();
+}
+
+/**
+ * Print one queued kitchen ticket. It goes to the station's own printer when the station named one,
+ * otherwise to this device's printer. Throws a message a person can act on when no printer is known.
+ */
+export async function printKitchenJob(job: KitchenPrintJobRecord): Promise<void> {
+  const target = jobPrinterTarget(job);
+  if (!target) {
+    throw new Error(
+      "No printer for this ticket. Give the station a printer in the menu, or set one up on this device.",
+    );
+  }
+  const bytes = buildKitchenTicketEscPos(job.ticket, job.stationName, job.reprint);
   await printEscPosViaTillBridge(new Blob([bytes as BlobPart]), target);
 }

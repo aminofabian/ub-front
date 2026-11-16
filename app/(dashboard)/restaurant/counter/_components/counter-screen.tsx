@@ -25,10 +25,13 @@ import {
   fetchMenu,
   fetchOrderForSale,
   fetchOrdersInProgress,
+  fetchUnprintedTickets,
   handOverOrder,
+  reprintKitchenTicket,
   type MenuItemRecord,
   type MenuRecord,
   type OrderSummaryRecord,
+  type UnprintedTicketRecord,
 } from "@/lib/restaurant-api";
 import {
   addToCart,
@@ -83,6 +86,8 @@ export function CounterScreen({
   const [choosing, setChoosing] = useState<MenuItemRecord | null>(null);
   const [orders, setOrders] = useState<OrderSummaryRecord[]>([]);
   const [ordersStale, setOrdersStale] = useState(false);
+  const [unprinted, setUnprinted] = useState<UnprintedTicketRecord[]>([]);
+  const [reprinting, setReprinting] = useState<string | null>(null);
   const [handingOver, setHandingOver] = useState<string | null>(null);
   const [outboxProblem, setOutboxProblem] = useState<string | null>(null);
   const [method, setMethod] = useState<"cash" | "mpesa_manual">("cash");
@@ -143,8 +148,28 @@ export function CounterScreen({
     } catch {
       setOrdersStale(true);
     }
+    // Kitchen tickets that have not printed anywhere, so the counter can warn and reprint. A
+    // failure here is quiet: it never blocks the order list, which is the screen's real job.
+    try {
+      setUnprinted(await fetchUnprintedTickets(branchId));
+    } catch {
+      // leave the last known list; the next poll tries again
+    }
     setNow(Date.now());
   }, [branchId]);
+
+  async function reprint(ticket: UnprintedTicketRecord) {
+    setReprinting(ticket.ticketId);
+    try {
+      await reprintKitchenTicket(ticket.ticketId);
+      // Drop it from the warning at once; if it still does not print, the next poll brings it back.
+      setUnprinted((prev) => prev.filter((t) => t.ticketId !== ticket.ticketId));
+    } catch {
+      // the button can be tapped again
+    } finally {
+      setReprinting(null);
+    }
+  }
 
   useEffect(() => {
     void loadMenu();
@@ -460,6 +485,33 @@ export function CounterScreen({
                 <p role="status" className="mt-2 text-xs text-red-700">
                   Not connected — this list may be out of date
                 </p>
+              ) : null}
+              {unprinted.length > 0 ? (
+                <div role="alert" className="mt-2 rounded-[2px] border border-red-700 bg-[color-mix(in_srgb,#b91c1c_6%,transparent)] p-2">
+                  <p className="text-xs font-semibold text-red-700">
+                    {unprinted.length === 1 ? "A kitchen ticket has not printed" : `${unprinted.length} kitchen tickets have not printed`}.
+                    Check the kitchen, or print again here.
+                  </p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {unprinted.map((t) => (
+                      <li key={t.jobId} className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold tabular-nums">
+                          Order {t.orderNumber}
+                          {t.ticketType === "VOID" ? " · cancelled" : ""}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9"
+                          disabled={reprinting === t.ticketId}
+                          onClick={() => void reprint(t)}
+                        >
+                          Print again
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
               {orders.length === 0 ? (
                 <p className={cn("mt-3", dashboardHintClass())}>

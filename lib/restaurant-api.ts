@@ -10,7 +10,24 @@ import { API_ROUTES } from "@/lib/config";
 
 export type MenuItemKind = "DISH" | "ITEM";
 
-export type KitchenStationRecord = { id: string; name: string; sortOrder: number; active: boolean };
+export type KitchenStationRecord = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  active: boolean;
+  /** The station's own printer: a CUPS/printer name, or a network printer's host and port. All null means none. */
+  printerName?: string | null;
+  printerHost?: string | null;
+  printerPort?: number | null;
+};
+
+/** A station's printer: a CUPS/printer name, or a network printer's host and port, not both; clear removes it. */
+export type StationPrinterPayload = {
+  printerName?: string;
+  printerHost?: string;
+  printerPort?: number;
+  clearPrinter?: boolean;
+};
 
 export type MenuCategoryRecord = {
   id: string;
@@ -198,7 +215,7 @@ export async function createStation(name: string): Promise<KitchenStationRecord>
 
 export async function updateStation(
   id: string,
-  body: { name: string; active?: boolean },
+  body: { name: string; active?: boolean } & StationPrinterPayload,
 ): Promise<KitchenStationRecord> {
   return apiRequest<KitchenStationRecord>(`${base}/stations/${id}`, { method: "PUT", body });
 }
@@ -262,6 +279,72 @@ export async function setKitchenTicketStage(ticketId: string, stage: KitchenStag
 
 export async function acknowledgeVoidTicket(ticketId: string): Promise<void> {
   await apiRequest<void>(`${base}/kitchen/tickets/${ticketId}/acknowledge`, { method: "POST", toast: false });
+}
+
+// ---------------------------------------------------------------- kitchen print queue
+
+/**
+ * A kitchen ticket waiting to be printed, addressed to a branch and a station. Any signed-in device
+ * at the branch may claim it (once) and print it, on the station's own printer if it named one, else
+ * on the printing device's. The ticket itself rides along so a claiming device prints without another
+ * read. `reprint` is true for a ticket the counter asked to print again.
+ */
+export type KitchenPrintJobRecord = {
+  id: string;
+  ticketId: string;
+  orderNumber: number;
+  stationId: string | null;
+  stationName: string | null;
+  printerName: string | null;
+  printerHost: string | null;
+  printerPort: number | null;
+  reprint: boolean;
+  ticket: KitchenTicketRecord;
+};
+
+/** A kitchen ticket the counter should warn has not printed. */
+export type UnprintedTicketRecord = {
+  jobId: string;
+  ticketId: string;
+  orderNumber: number;
+  stationId: string | null;
+  ticketType: "NEW" | "VOID";
+  sentAt: string;
+};
+
+/** Jobs this device should print now: its station's, and the implicit kitchen's. Oldest first. */
+export async function fetchKitchenPrintJobs(branchId: string, stationId?: string | null): Promise<KitchenPrintJobRecord[]> {
+  const params = new URLSearchParams({ branchId });
+  if (stationId) params.set("stationId", stationId);
+  const res = await apiRequest<{ jobs: KitchenPrintJobRecord[] }>(
+    `${base}/kitchen/print-jobs?${params.toString()}`,
+    { toast: false },
+  );
+  return res.jobs;
+}
+
+/** Claim one job for this device. Throws (404) when another device already took it. */
+export async function claimKitchenPrintJob(jobId: string): Promise<KitchenPrintJobRecord> {
+  return apiRequest<KitchenPrintJobRecord>(`${base}/kitchen/print-jobs/${jobId}/claim`, { method: "POST", toast: false });
+}
+
+/** Tell the server the ticket came out of the printer. Safe to repeat. */
+export async function markKitchenJobPrinted(jobId: string): Promise<void> {
+  await apiRequest<void>(`${base}/kitchen/print-jobs/${jobId}/printed`, { method: "POST", toast: false });
+}
+
+/** Reprint a ticket from the counter; the new slip is marked a reprint. */
+export async function reprintKitchenTicket(ticketId: string): Promise<KitchenPrintJobRecord> {
+  return apiRequest<KitchenPrintJobRecord>(`${base}/kitchen/tickets/${ticketId}/reprint`, { method: "POST", toast: false });
+}
+
+/** Tickets the counter should warn have not printed at the kitchen. */
+export async function fetchUnprintedTickets(branchId: string): Promise<UnprintedTicketRecord[]> {
+  const res = await apiRequest<{ tickets: UnprintedTicketRecord[] }>(
+    `${base}/kitchen/unprinted?${new URLSearchParams({ branchId }).toString()}`,
+    { toast: false },
+  );
+  return res.tickets;
 }
 
 export type OrderSummaryRecord = {

@@ -37,10 +37,12 @@ import {
   updateMenuCategory,
   updateMenuItem,
   updateStation,
+  type KitchenStationRecord,
   type MenuCategoryRecord,
   type MenuItemRecord,
   type MenuRecord,
   type ModifierGroupRecord,
+  type StationPrinterPayload,
 } from "@/lib/restaurant-api";
 
 import { MenuItemDialog } from "./menu-item-dialog";
@@ -236,6 +238,128 @@ function HeadingRow({
           onBlur={commitHours}
         />
         <span className={cn(dashboardHintClass(), "shrink-0")}>{from.trim() || to.trim() ? "" : "all day"}</span>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * One kitchen station in the editor: its name, switch on/off, and an optional printer of its own —
+ * a printer the till bridge knows by name, or a network printer's address and port. Give a station
+ * a printer and a new ticket for it can be printed by any device at the branch, not only the one
+ * that rang the sale. No printer means a kitchen screen prints its tickets on its own printer.
+ */
+function StationRow({
+  station,
+  busy,
+  onSave,
+}: {
+  station: KitchenStationRecord;
+  busy: boolean;
+  onSave: (body: { name: string; active?: boolean } & StationPrinterPayload) => void;
+}) {
+  type Mode = "none" | "name" | "network";
+  const savedMode: Mode = station.printerName ? "name" : station.printerHost ? "network" : "none";
+  const [mode, setMode] = useState<Mode>(savedMode);
+  const [name, setName] = useState(station.printerName ?? "");
+  const [host, setHost] = useState(station.printerHost ?? "");
+  const [port, setPort] = useState(station.printerPort != null ? String(station.printerPort) : "9100");
+
+  // Re-sync from the server once a save lands, so a stale in-field edit is not kept.
+  useEffect(() => {
+    setMode(station.printerName ? "name" : station.printerHost ? "network" : "none");
+    setName(station.printerName ?? "");
+    setHost(station.printerHost ?? "");
+    setPort(station.printerPort != null ? String(station.printerPort) : "9100");
+  }, [station.printerName, station.printerHost, station.printerPort]);
+
+  function commit() {
+    if (mode === "none") {
+      if (savedMode !== "none") onSave({ name: station.name, clearPrinter: true });
+      return;
+    }
+    if (mode === "name") {
+      const value = name.trim();
+      if (!value || value === (station.printerName ?? "")) return;
+      onSave({ name: station.name, printerName: value });
+      return;
+    }
+    const h = host.trim();
+    const p = Number(port);
+    if (!h || !Number.isInteger(p) || p < 1 || p > 65535) return;
+    if (h === (station.printerHost ?? "") && p === station.printerPort) return;
+    onSave({ name: station.name, printerHost: h, printerPort: p });
+  }
+
+  return (
+    <li className="py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn("min-w-0 flex-1 text-sm font-medium", !station.active && "line-through opacity-60")}>
+          {station.name}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => onSave({ name: station.name, active: !station.active })}
+        >
+          {station.active ? "Switch off" : "Switch on"}
+        </Button>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <span className={cn(dashboardHintClass(), "shrink-0")}>Printer</span>
+        <select
+          className={dashboardSelectClass(false, "w-36")}
+          aria-label={`Printer for ${station.name}`}
+          value={mode}
+          disabled={busy}
+          onChange={(e) => {
+            const next = e.target.value as Mode;
+            setMode(next);
+            if (next === "none" && savedMode !== "none") onSave({ name: station.name, clearPrinter: true });
+          }}
+        >
+          <option value="none">This screen&apos;s printer</option>
+          <option value="name">By name</option>
+          <option value="network">Network</option>
+        </select>
+        {mode === "name" ? (
+          <input
+            className={dashboardInputClass(false, "w-48")}
+            aria-label={`${station.name} printer name`}
+            placeholder="Printer name"
+            maxLength={191}
+            value={name}
+            disabled={busy}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commit}
+          />
+        ) : null}
+        {mode === "network" ? (
+          <>
+            <input
+              className={dashboardInputClass(false, "w-44")}
+              aria-label={`${station.name} printer address`}
+              placeholder="192.168.1.50"
+              inputMode="decimal"
+              maxLength={191}
+              value={host}
+              disabled={busy}
+              onChange={(e) => setHost(e.target.value)}
+              onBlur={commit}
+            />
+            <input
+              className={dashboardInputClass(false, "w-20")}
+              aria-label={`${station.name} printer port`}
+              placeholder="9100"
+              inputMode="numeric"
+              value={port}
+              disabled={busy}
+              onChange={(e) => setPort(e.target.value)}
+              onBlur={commit}
+            />
+          </>
+        ) : null}
       </div>
     </li>
   );
@@ -694,17 +818,12 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
             </p>
             <ul className="mt-1 divide-y">
               {menu.stations.map((s) => (
-                <li key={s.id} className="flex flex-wrap items-center gap-2 py-2">
-                  <span className={`min-w-0 flex-1 text-sm font-medium ${s.active ? "" : "line-through opacity-60"}`}>{s.name}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busyId === s.id}
-                    onClick={() => void run(s.id, () => updateStation(s.id, { name: s.name, active: !s.active }))}
-                  >
-                    {s.active ? "Switch off" : "Switch on"}
-                  </Button>
-                </li>
+                <StationRow
+                  key={s.id}
+                  station={s}
+                  busy={busyId === s.id}
+                  onSave={(body) => void run(s.id, () => updateStation(s.id, body))}
+                />
               ))}
             </ul>
             <form

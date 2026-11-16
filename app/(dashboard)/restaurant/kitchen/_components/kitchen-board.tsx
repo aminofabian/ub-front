@@ -16,8 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   acknowledgeVoidTicket,
+  claimKitchenPrintJob,
   fetchKitchenBoard,
+  fetchKitchenPrintJobs,
   fetchMenu,
+  markKitchenJobPrinted,
   setKitchenLineStage,
   setKitchenTicketStage,
   setMenuItemAvailable,
@@ -27,7 +30,7 @@ import {
   type MenuItemRecord,
 } from "@/lib/restaurant-api";
 import { elapsedLabel } from "@/lib/restaurant-cart";
-import { buildKitchenTicketEscPos, localPrinter, printOnThisDevice } from "@/lib/restaurant-print";
+import { buildKitchenTicketEscPos, jobPrinterTarget, localPrinter, printKitchenJob, printOnThisDevice } from "@/lib/restaurant-print";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
 import { NoBranch } from "../../_components/no-branch";
@@ -35,26 +38,7 @@ import { KitchenRequests } from "../../_components/kitchen-requests";
 
 const STATION_KEY = "kiosk:restaurant:kitchen-station:v1";
 const AUTO_PRINT_KEY = "kiosk:restaurant:kitchen-autoprint:v1";
-const PRINTED_KEY = "kiosk:restaurant:kitchen-printed:v1";
 
-/** Tickets this device has already printed, so a reload or a poll never prints one twice. Bounded. */
-function readPrinted(): string[] {
-  try {
-    const raw = window.localStorage.getItem(PRINTED_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function rememberPrinted(id: string): void {
-  try {
-    window.localStorage.setItem(PRINTED_KEY, JSON.stringify([...readPrinted().filter((x) => x !== id), id].slice(-400)));
-  } catch {
-    // not remembered: at worst a ticket prints again after a reload
-  }
-}
 const ALL = "";
 const NONE = "none";
 
@@ -153,7 +137,6 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   async function printTicket(ticket: KitchenTicketRecord): Promise<boolean> {
     try {
       await printOnThisDevice(buildKitchenTicketEscPos(ticket, stationLabel(ticket)));
-      rememberPrinted(ticket.id);
       setPrintProblem(null);
       return true;
     } catch (e) {
@@ -162,41 +145,54 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
     }
   }
 
-  // With "print new tickets" on, each ticket this device has not printed yet is printed once, oldest
-  // first. One at a time, and it stops at the first failure so a printer that is off does not
-  // swallow tickets: they print when it is back.
+  // With "print new tickets" on, this device prints the branch's queued kitchen tickets for its
+  // station. Each job is claimed on the server first, so exactly one device prints a ticket even
+  // when several screens are on — the one that wins the claim prints it; the rest leave it. A job
+  // goes to the station's own printer if it named one, otherwise this device's. It stops at the
+  // first printer failure so a printer that is off does not swallow tickets; the counter is warned
+  // about anything still unprinted. Claimed one at a time, oldest first.
   useEffect(() => {
-    if (!autoPrint || !tickets || printing.current) return;
-    const printed = new Set(readPrinted());
-    const waiting = tickets.filter((t) => !printed.has(t.id));
-    if (waiting.length === 0) return;
+    if (!autoPrint || !branchId || printing.current) return;
     printing.current = true;
     void (async () => {
-      for (const ticket of waiting) {
-        try {
-          await printOnThisDevice(buildKitchenTicketEscPos(ticket, stationLabel(ticket)));
-          rememberPrinted(ticket.id);
-          setPrintProblem(null);
-        } catch (e) {
-          setPrintProblem(
-            `${e instanceof Error && e.message ? e.message : "The printer did not answer."} New tickets are still on this screen.`,
-          );
-          break;
+      try {
+        const jobs = await fetchKitchenPrintJobs(branchId, stationRef.current || null);
+        for (const job of jobs) {
+          if (!jobPrinterTarget(job)) continue; // no printer this device can use for it; leave it to another
+          let claimed;
+          try {
+            claimed = await claimKitchenPrintJob(job.id);
+          } catch {
+            continue; // another device took it first
+          }
+          try {
+            await printKitchenJob(claimed);
+            await markKitchenJobPrinted(claimed.id);
+            setPrintProblem(null);
+          } catch (e) {
+            setPrintProblem(
+              `${e instanceof Error && e.message ? e.message : "The printer did not answer."} The counter is told this ticket did not print.`,
+            );
+            break; // claimed but unprinted: the counter's "not printed" warning covers it
+          }
         }
+      } catch {
+        // could not reach the queue; the next poll tries again
+      } finally {
+        printing.current = false;
       }
-      printing.current = false;
     })();
-  }, [autoPrint, tickets, stationLabel]);
+  }, [autoPrint, tickets, branchId]);
 
   function toggleAutoPrint() {
     const next = !autoPrint;
-    if (next && !localPrinter()) {
-      setPrintProblem("No printer is set up on this device. Set one up under the till's printer settings first.");
+    // A ticket can print on the station's own printer or this device's. Only block turning it on
+    // when neither could ever apply: no station has a printer and this device has none either.
+    if (next && !localPrinter() && !stations.some((s) => s.printerName || s.printerHost)) {
+      setPrintProblem(
+        "No printer for the kitchen. Give a station a printer in the menu, or set one up on this device.",
+      );
       return;
-    }
-    if (next && tickets) {
-      // Start from now: what is already on the board is not printed in a burst.
-      for (const t of tickets) rememberPrinted(t.id);
     }
     setAutoPrint(next);
     try {
