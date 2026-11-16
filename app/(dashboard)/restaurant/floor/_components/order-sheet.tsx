@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useDashboard } from "@/components/dashboard-provider";
+import { getBusinessStoreTypes } from "@/lib/business-store-type";
+import { COUNTER_VOICES, foodTillKind } from "@/lib/food-till";
+
 import {
   DASHBOARD_MAX_WIDE,
   DASHBOARD_SECTION_SURFACE,
@@ -106,6 +110,9 @@ export function OrderSheet({
   tables: RestaurantTableRecord[];
   onBack: () => void;
 }) {
+  const { business } = useDashboard();
+  // House wording: a bar sends a round to the bar; a kitchen gets food. Picked by resolved kind.
+  const voice = COUNTER_VOICES[foodTillKind(getBusinessStoreTypes(business))];
   const [order, setOrder] = useState<OpenOrderRecord | null>(null);
   const [menu, setMenu] = useState<MenuRecord | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -257,8 +264,19 @@ export function OrderSheet({
   const ready = live.filter((l) => l.stage === "READY");
   const seats = Math.min(order.guestCount ?? 0, 12);
   const usesSeats = live.some((l) => l.seatNo != null);
+  // Where a sent round goes, in the house's own words: a bar's drinks go to the bar, a kitchen's food
+  // to the kitchen. Derived from the voice, not from the store type by name.
+  const sendTo = voice.making === "pouring" ? "the bar" : "the kitchen";
+  // A dine-in order with no table and a name is a tab; show the name as its heading, not "No table".
+  const isTab = order.channel === "DINE_IN" && !order.tableName && !order.booked && Boolean(order.customerName);
   const where =
-    order.channel === "TAKEAWAY" ? "Takeaway" : order.channel === "DELIVERY" ? "Delivery" : (order.tableName ?? "No table");
+    order.channel === "TAKEAWAY"
+      ? "Takeaway"
+      : order.channel === "DELIVERY"
+        ? "Delivery"
+        : isTab
+          ? `${order.customerName}`
+          : (order.tableName ?? "No table");
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
@@ -271,9 +289,10 @@ export function OrderSheet({
         </h1>
         <span className={dashboardHintClass()}>
           {[
+            isTab ? "Tab" : "",
             order.guestCount ? `${order.guestCount} ${order.guestCount === 1 ? "guest" : "guests"}` : "",
             order.servedByName ? `served by ${order.servedByName}` : "",
-            order.customerName ?? "",
+            isTab ? "" : (order.customerName ?? ""),
           ]
             .filter(Boolean)
             .join(" · ")}
@@ -570,7 +589,7 @@ export function OrderSheet({
                 disabled={busy || unsent.length === 0}
                 onClick={() => void act(() => sendOrder(orderId), "The order was not sent. Try again.")}
               >
-                {unsent.length === 0 ? "Nothing to send" : `Send ${unsent.length} to the kitchen`}
+                {unsent.length === 0 ? "Nothing to send" : `Send ${unsent.length} to ${sendTo}`}
               </Button>
               {ready.length > 0 ? (
                 <Button

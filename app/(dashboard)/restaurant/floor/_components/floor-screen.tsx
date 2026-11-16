@@ -217,16 +217,30 @@ export function FloorScreen(rights: FloorRights) {
         <p className={DASHBOARD_SECTION_SURFACE}>The floor will appear when the connection is back.</p>
       ) : floor.tables.length === 0 && floor.otherOrders.length === 0 ? (
         <div className={DASHBOARD_SECTION_SURFACE}>
-          <p className="text-sm font-semibold">No tables yet</p>
+          <p className="text-sm font-semibold">Nothing on the go yet</p>
           <p className={dashboardHintClass()}>
-            Add your tables to seat customers at them. Takeaway and delivery orders need none.
+            Open a tab under a name to start serving — no table needed. Add tables when you want to seat people at them.
           </p>
-          {rights.canManage ? (
+          {rights.canTakeOrders ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => setStarting("TAB")}>
+                Open a tab
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setStarting("TAKEAWAY")}>
+                Takeaway
+              </Button>
+              {rights.canManage ? (
+                <Button variant="outline" size="sm" onClick={() => setManaging(true)}>
+                  Add tables
+                </Button>
+              ) : null}
+            </div>
+          ) : rights.canManage ? (
             <Button className="mt-3" size="sm" onClick={() => setManaging(true)}>
               Add tables
             </Button>
           ) : (
-            <p className={cn("mt-2", dashboardHintClass())}>Ask the owner or a manager to add the tables.</p>
+            <p className={cn("mt-2", dashboardHintClass())}>Ask the owner or a manager to set things up.</p>
           )}
         </div>
       ) : (
@@ -356,46 +370,74 @@ export function FloorScreen(rights: FloorRights) {
             ) : null}
             {floor.otherOrders.length === 0 ? (
               <p className={cn("mt-4", dashboardHintClass())}>
-                Tabs, takeaway and delivery orders wait here until they are settled; a delivery stays until it is
-                handed to the customer.
+                Open a tab under a name and it waits here until it is settled. Takeaway and delivery orders live here
+                too; a delivery stays until it reaches the customer.
               </p>
             ) : (
-              <ul className="mt-4 grid gap-2">
-                {floor.otherOrders.map((o) => (
-                  <li key={o.orderId}>
-                    <button
-                      type="button"
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-[2px] border bg-[#FFFEFA] px-3 py-2 text-left",
-                        "transition-colors duration-200 hover:border-[var(--pos-primary,#1D4B3B)]",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
-                        FLOOR_RULE,
-                      )}
-                      onClick={() => setOpenId(o.orderId)}
-                    >
-                      <span className="w-12 font-mono text-2xl font-semibold tabular-nums">{o.orderNumber}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium">
-                          {isTab(o)
-                            ? o.customerName || "Tab"
-                            : o.channel === "TAKEAWAY"
-                              ? "Takeaway"
-                              : o.channel === "DELIVERY"
-                                ? "Delivery"
-                                : "Table order"}
-                          {!isTab(o) && o.customerName ? ` · ${o.customerName}` : ""}
-                          {isTab(o) ? <span className={dashboardHintClass()}> · tab</span> : ""}
+              <div className="mt-4 grid gap-4">
+                {(() => {
+                  const tabs = floor.otherOrders.filter(isTab);
+                  const rest = floor.otherOrders.filter((o) => !isTab(o));
+                  const renderRow = (o: OrderCardRecord) => (
+                    <li key={o.orderId}>
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-[2px] border bg-[#FFFEFA] px-3 py-2.5 text-left",
+                          "transition-colors duration-200 hover:border-[var(--pos-primary,#1D4B3B)]",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
+                          needsSomeone(o) && "border-[#8f3f2f]",
+                          FLOOR_RULE,
+                        )}
+                        onClick={() => setOpenId(o.orderId)}
+                      >
+                        <span className="w-12 font-mono text-2xl font-semibold tabular-nums">{o.orderNumber}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {isTab(o)
+                              ? o.customerName || "Tab"
+                              : o.channel === "TAKEAWAY"
+                                ? "Takeaway"
+                                : o.channel === "DELIVERY"
+                                  ? "Delivery"
+                                  : "Table order"}
+                            {!isTab(o) && o.customerName ? ` · ${o.customerName}` : ""}
+                          </span>
+                          <span className={cn(dashboardHintClass(), needsSomeone(o) && "font-semibold text-[#8f3f2f]")}>
+                            {cardState(o)}
+                            {o.booked ? "" : ` · ${elapsedLabel(o.openedAt, now)}`}
+                          </span>
                         </span>
-                        <span className={cn(dashboardHintClass(), needsSomeone(o) && "font-semibold text-[#8f3f2f]")}>
-                          {cardState(o)}
-                          {o.booked ? "" : ` · ${elapsedLabel(o.openedAt, now)}`}
-                        </span>
-                      </span>
-                      <span className="font-mono text-sm tabular-nums">{kes(o.total)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                        <span className="font-mono text-sm tabular-nums">{kes(o.total)}</span>
+                      </button>
+                    </li>
+                  );
+                  return (
+                    <>
+                      {tabs.length > 0 ? (
+                        <div>
+                          {rest.length > 0 ? (
+                            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]">
+                              Tabs
+                            </p>
+                          ) : null}
+                          <ul className="grid gap-2">{tabs.map(renderRow)}</ul>
+                        </div>
+                      ) : null}
+                      {rest.length > 0 ? (
+                        <div>
+                          {tabs.length > 0 ? (
+                            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]">
+                              Takeaway &amp; delivery
+                            </p>
+                          ) : null}
+                          <ul className="grid gap-2">{rest.map(renderRow)}</ul>
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </div>
             )}
           </aside>
         </div>

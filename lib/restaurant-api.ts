@@ -209,11 +209,11 @@ export async function deleteModifierGroup(id: string): Promise<void> {
   await apiRequest<void>(`${base}/menu/modifier-groups/${id}`, { method: "DELETE" });
 }
 
-/** One pour off a bottle: a tot, single, double or glass. */
+/** One pour off a bottle: a tot, single, double or glass. `price` is the whole price a customer pays. */
 export type MeasurePourPayload = {
   label: string;
   pourMl: number;
-  priceDelta?: number;
+  price: number;
   preselected?: boolean;
 };
 
@@ -234,7 +234,7 @@ export type MeasuresRecord = {
   groupId: string;
   bottleItemId: string;
   bottleMl: number;
-  pours: { optionId: string; label: string; quantity: number; priceDelta: number | null }[];
+  pours: { optionId: string; label: string; quantity: number; price: number }[];
 };
 
 export async function generateMeasures(body: MeasuresPayload): Promise<MeasuresRecord> {

@@ -208,6 +208,7 @@ export const APP_ROUTES = {
   inventoryStockTakeDailyAuditReview: "/inventory/stock-take/daily-audit/review",
   inventoryStockTakeInvestigations: "/inventory/stock-take/investigations",
   inventoryStockTakeReconciliation: "/inventory/stock-take/reconciliation",
+  inventoryStockTakeBarUsage: "/inventory/stock-take/bar-usage",
   inventoryStockTakeRestock: "/inventory/stock-take/restock",
   inventoryStockTakeRestockOrders: "/inventory/stock-take/restock/orders",
   inventoryOrderPad: "/inventory/order-pad",

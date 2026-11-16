@@ -23,6 +23,7 @@ import {
   ClipboardCheck,
   Clock,
   Trash2,
+  Wine,
 } from "lucide-react";
 
 import {
@@ -637,6 +638,12 @@ export default function StockTakePage() {
         label: "Valuation",
         desc: "Value on hand",
         icon: BarChart3,
+      },
+      {
+        href: APP_ROUTES.inventoryStockTakeBarUsage,
+        label: "Pour check",
+        desc: "Bar: poured vs left",
+        icon: Wine,
       },
       {
         href: APP_ROUTES.inventoryTransfers,
