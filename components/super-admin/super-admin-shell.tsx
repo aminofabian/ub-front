@@ -103,6 +103,9 @@ function crumbsFor(pathname: string): Crumb[] {
   if (pathname === APP_ROUTES.superAdminPlatformMediaStorage) {
     return [{ label: "Platform" }, { label: "Media storage" }];
   }
+  if (pathname === APP_ROUTES.superAdminPlatformBranding) {
+    return [{ label: "Platform" }, { label: "Branding" }];
+  }
   if (pathname === APP_ROUTES.superAdminPlatformSignup) {
     return [{ label: "Platform" }, { label: "Signup" }];
   }
@@ -382,6 +385,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavItem href={APP_ROUTES.superAdminPlatformEasyTax} label="EasyTax (eTIMS)" />
               <NavItem href={APP_ROUTES.superAdminPlatformWhatsApp} label="WhatsApp numbers" />
               <NavItem href={APP_ROUTES.superAdminPlatformMediaStorage} label="Media storage" />
+              <NavItem href={APP_ROUTES.superAdminPlatformBranding} label="Branding" />
               <NavItem href={APP_ROUTES.superAdminPlatformSmsCredits} label="SMS credits & limits" />
               <NavItem href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />
               <NavGroupLabel>Ops</NavGroupLabel>

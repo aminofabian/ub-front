@@ -1778,6 +1778,33 @@ export async function updatePlatformAuthSettings(
   });
 }
 
+export type PlatformBrandingSettingsRecord = {
+  emailLogoUrl: string | null;
+  updatedAt: string | null;
+};
+
+export async function fetchPlatformBranding(): Promise<PlatformBrandingSettingsRecord> {
+  return saRequest<PlatformBrandingSettingsRecord>(API_ROUTES.superAdminPlatformBranding);
+}
+
+export async function uploadPlatformEmailLogo(
+  file: File,
+): Promise<PlatformBrandingSettingsRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  return saRequest<PlatformBrandingSettingsRecord>(
+    `${API_ROUTES.superAdminPlatformBranding}/email-logo`,
+    { method: "POST", body: form },
+  );
+}
+
+export async function clearPlatformEmailLogo(): Promise<PlatformBrandingSettingsRecord> {
+  return saRequest<PlatformBrandingSettingsRecord>(
+    `${API_ROUTES.superAdminPlatformBranding}/email-logo`,
+    { method: "DELETE" },
+  );
+}
+
 export type SokoMindSettingsRecord = {
   sokomindEnabled: boolean;
   guideEnabled: boolean;

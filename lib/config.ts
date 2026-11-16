@@ -44,6 +44,7 @@ export const APP_ROUTES = {
   superAdminPlatformWhatsApp: "/super-admin/platform/whatsapp",
   superAdminPlatformSignup: "/super-admin/platform/signup",
   superAdminPlatformMediaStorage: "/super-admin/platform/media-storage",
+  superAdminPlatformBranding: "/super-admin/platform/branding",
   superAdminPlatformSmsCredits: "/super-admin/platform/sms-credits",
   superAdminPlatformSubscription: "/super-admin/platform/subscription",
   superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
@@ -389,6 +390,7 @@ export const API_ROUTES = {
   superAdminPlatformEasyTax: "/api/v1/super-admin/integrations/easytax",
   superAdminPlatformMediaStorage: "/api/v1/super-admin/platform/media-storage",
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",
+  superAdminPlatformBranding: "/api/v1/super-admin/platform/branding",
   superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
   superAdminPlatformDomainsCoolifyDiagnose:
