@@ -18,6 +18,9 @@ export type MenuCategoryRecord = {
   stationId: string | null;
   sortOrder: number;
   active: boolean;
+  /** A named-menu serving window (Breakfast, Lunch), minutes after midnight Nairobi; null means all day. */
+  serveFromMinute?: number | null;
+  serveToMinute?: number | null;
 };
 
 export type ModifierOptionRecord = {
@@ -145,7 +148,16 @@ export async function setMenuItemAvailable(id: string, available: boolean): Prom
   });
 }
 
-export type CategoryPayload = { name: string; stationId?: string | null; sortOrder?: number; active?: boolean };
+export type CategoryPayload = {
+  name: string;
+  stationId?: string | null;
+  sortOrder?: number;
+  active?: boolean;
+  serveFromMinute?: number;
+  serveToMinute?: number;
+  /** True clears the serving window, leaving the heading served all day. */
+  clearServingHours?: boolean;
+};
 
 export async function createMenuCategory(body: CategoryPayload): Promise<MenuCategoryRecord> {
   return apiRequest<MenuCategoryRecord>(`${base}/menu/categories`, { method: "POST", body });

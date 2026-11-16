@@ -18804,7 +18804,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public, no sign-in. The menu for a restaurant's web page: headings in menu order and the priced dishes under them, with description and picture. Read-only; nothing about stock or cost. Shown by default; 404 once an owner switches menuOnline off, and for a business with no active branch. Rate-limited. */
+        /** @description Public, no sign-in. The menu for a restaurant's web page: headings in menu order and the priced dishes under them, with description and picture. Read-only; nothing about stock or cost. Shown by default; 404 once an owner switches menuOnline off, and for a business with no active branch or no priced menu item (so a business that is not a restaurant has no menu page). Rate-limited. */
         get: operations["getPublicMenu"];
         put?: never;
         post?: never;
@@ -19313,6 +19313,9 @@ export interface components {
             stationId?: string;
             sortOrder?: number;
             active?: boolean;
+            /** @description A named menu's serving window (Breakfast, Lunch), minutes after midnight Nairobi time; null on both means all day. */
+            serveFromMinute?: number;
+            serveToMinute?: number;
         };
         MenuCategoryRequest: {
             name: string;
@@ -19320,6 +19323,10 @@ export interface components {
             stationId?: string;
             sortOrder?: number;
             active?: boolean;
+            /** @description A named menu's serving window, minutes after midnight Nairobi time; set both. Outside it every dish under the heading is off. clearServingHours removes it. */
+            serveFromMinute?: number;
+            serveToMinute?: number;
+            clearServingHours?: boolean;
         };
         ModifierOptionResponse: {
             id?: string;

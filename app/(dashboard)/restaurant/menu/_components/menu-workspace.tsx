@@ -37,6 +37,7 @@ import {
   updateMenuCategory,
   updateMenuItem,
   updateStation,
+  type MenuCategoryRecord,
   type MenuItemRecord,
   type MenuRecord,
   type ModifierGroupRecord,
@@ -124,6 +125,121 @@ const STATUS_WORD = {
   out: "text-[#8f3f2f]",
   off: "text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]",
 } as const;
+
+function hhmm(minute: number): string {
+  return `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
+}
+
+function toMinute(value: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const minute = Number(m[1]) * 60 + Number(m[2]);
+  return minute >= 0 && minute < 1440 ? minute : null;
+}
+
+/**
+ * One heading in the editor: name, its station, and an optional named-menu window (Breakfast,
+ * Lunch). Outside that window every dish under the heading is off, even dishes with no hours of
+ * their own. Leaving both times empty serves the heading all day.
+ */
+function HeadingRow({
+  category,
+  stations,
+  busy,
+  onSave,
+  onRemove,
+}: {
+  category: MenuCategoryRecord;
+  stations: MenuRecord["stations"];
+  busy: boolean;
+  onSave: (body: Parameters<typeof updateMenuCategory>[1]) => void;
+  onRemove: () => void;
+}) {
+  const [from, setFrom] = useState(category.serveFromMinute != null ? hhmm(category.serveFromMinute) : "");
+  const [to, setTo] = useState(category.serveToMinute != null ? hhmm(category.serveToMinute) : "");
+
+  // The window the server last confirmed, so we only save when the editor actually changed it.
+  const savedFrom = category.serveFromMinute != null ? hhmm(category.serveFromMinute) : "";
+  const savedTo = category.serveToMinute != null ? hhmm(category.serveToMinute) : "";
+
+  // When the saved window changes under us (our own save landed, or another device changed it),
+  // pull the fields back to it, so a stale in-field edit from an unrelated reload is not kept.
+  useEffect(() => {
+    setFrom(savedFrom);
+    setTo(savedTo);
+  }, [savedFrom, savedTo]);
+
+  function commitHours() {
+    if (from === savedFrom && to === savedTo) return;
+    const fromMin = toMinute(from);
+    const toMin = toMinute(to);
+    // Both blank clears the window; both set applies it. A half-filled pair is ignored until the
+    // other field is filled in, so the input is never saved mid-edit.
+    if (!from.trim() && !to.trim()) {
+      if (savedFrom || savedTo) onSave({ name: category.name, stationId: category.stationId, clearServingHours: true });
+      return;
+    }
+    if (fromMin == null || toMin == null) return;
+    onSave({ name: category.name, stationId: category.stationId, serveFromMinute: fromMin, serveToMinute: toMin });
+  }
+
+  return (
+    <li className="py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1 text-sm font-medium">{category.name}</span>
+        {stations.length > 0 ? (
+          <select
+            className={dashboardSelectClass(false, "w-36")}
+            aria-label={`Station for ${category.name}`}
+            value={category.stationId ?? ""}
+            disabled={busy}
+            onChange={(e) => onSave({ name: category.name, stationId: e.target.value })}
+          >
+            <option value="">Kitchen</option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`Remove the heading ${category.name}? Its dishes stay on the menu.`)) onRemove();
+          }}
+        >
+          Remove
+        </Button>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <span className={cn(dashboardHintClass(), "shrink-0")}>Served</span>
+        <input
+          type="time"
+          className={dashboardInputClass(false, "w-28")}
+          aria-label={`${category.name} served from`}
+          value={from}
+          disabled={busy}
+          onChange={(e) => setFrom(e.target.value)}
+          onBlur={commitHours}
+        />
+        <span className={cn(dashboardHintClass(), "shrink-0")}>to</span>
+        <input
+          type="time"
+          className={dashboardInputClass(false, "w-28")}
+          aria-label={`${category.name} served to`}
+          value={to}
+          disabled={busy}
+          onChange={(e) => setTo(e.target.value)}
+          onBlur={commitHours}
+        />
+        <span className={cn(dashboardHintClass(), "shrink-0")}>{from.trim() || to.trim() ? "" : "all day"}</span>
+      </div>
+    </li>
+  );
+}
 
 function pairSpans(a: MenuColumn, b: MenuColumn): [Span, Span] {
   if (a.items.length >= b.items.length * 1.6) return [7, 5];
@@ -530,42 +646,20 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
 
           <section className={cn("border-t p-4 sm:p-5 md:col-span-3 md:border-t-0 md:border-l", RULE)} aria-label="Headings">
             <h2 className={SHEET_TITLE}>Headings</h2>
-            <p className={dashboardHintClass()}>Mains, Drinks, Snacks. A heading can send everything under it to one station.</p>
+            <p className={dashboardHintClass()}>
+              Mains, Drinks, Snacks. A heading can send everything under it to one station, and run as a
+              named menu — set hours and its dishes are off outside them (Breakfast 07:00–11:00).
+            </p>
             <ul className="mt-1 divide-y">
               {menu.categories.map((c) => (
-                <li key={c.id} className="flex flex-wrap items-center gap-2 py-2">
-                  <span className="min-w-0 flex-1 text-sm font-medium">{c.name}</span>
-                  {menu.stations.length > 0 ? (
-                    <select
-                      className={dashboardSelectClass(false, "w-36")}
-                      aria-label={`Station for ${c.name}`}
-                      value={c.stationId ?? ""}
-                      disabled={busyId === c.id}
-                      onChange={(e) =>
-                        void run(c.id, () => updateMenuCategory(c.id, { name: c.name, stationId: e.target.value }))
-                      }
-                    >
-                      <option value="">Kitchen</option>
-                      {menu.stations.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busyId === c.id}
-                    onClick={() => {
-                      if (window.confirm(`Remove the heading ${c.name}? Its dishes stay on the menu.`)) {
-                        void run(c.id, () => deleteMenuCategory(c.id));
-                      }
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </li>
+                <HeadingRow
+                  key={c.id}
+                  category={c}
+                  stations={menu.stations}
+                  busy={busyId === c.id}
+                  onSave={(body) => void run(c.id, () => updateMenuCategory(c.id, body))}
+                  onRemove={() => void run(c.id, () => deleteMenuCategory(c.id))}
+                />
               ))}
             </ul>
             <form
