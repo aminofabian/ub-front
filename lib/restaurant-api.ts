@@ -209,6 +209,38 @@ export async function deleteModifierGroup(id: string): Promise<void> {
   await apiRequest<void>(`${base}/menu/modifier-groups/${id}`, { method: "DELETE" });
 }
 
+/** One pour off a bottle: a tot, single, double or glass. */
+export type MeasurePourPayload = {
+  label: string;
+  pourMl: number;
+  priceDelta?: number;
+  preselected?: boolean;
+};
+
+/**
+ * Sets up a bottle's pour measures. The server builds a "choose one" modifier group whose options
+ * each take their fraction of the bottle off the stock count when sold, so the owner never computes
+ * 30/750. Re-running with the same group name replaces the pours.
+ */
+export type MeasuresPayload = {
+  bottleItemId: string;
+  bottleMl: number;
+  groupName?: string;
+  dishMenuItemId?: string;
+  pours: MeasurePourPayload[];
+};
+
+export type MeasuresRecord = {
+  groupId: string;
+  bottleItemId: string;
+  bottleMl: number;
+  pours: { optionId: string; label: string; quantity: number; priceDelta: number | null }[];
+};
+
+export async function generateMeasures(body: MeasuresPayload): Promise<MeasuresRecord> {
+  return apiRequest<MeasuresRecord>(`${base}/menu/measures`, { method: "POST", body });
+}
+
 export async function createStation(name: string): Promise<KitchenStationRecord> {
   return apiRequest<KitchenStationRecord>(`${base}/stations`, { method: "POST", body: { name } });
 }

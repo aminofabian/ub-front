@@ -46,6 +46,7 @@ import {
 } from "@/lib/restaurant-api";
 
 import { MenuItemDialog } from "./menu-item-dialog";
+import { MeasuresDialog } from "./measures-dialog";
 import { ModifierGroupDialog } from "./modifier-group-dialog";
 import { KitchenRequests } from "../../_components/kitchen-requests";
 
@@ -433,6 +434,7 @@ function DishRow({
   canMarkRunOut,
   onToggleAvailable,
   onRecipe,
+  onMeasures,
   onEdit,
   onToggleActive,
   onRemove,
@@ -445,13 +447,14 @@ function DishRow({
   canMarkRunOut: boolean;
   onToggleAvailable: () => void;
   onRecipe: () => void;
+  onMeasures: () => void;
   onEdit: () => void;
   onToggleActive: () => void;
   onRemove: () => void;
 }) {
   const status = dishStatus(item);
   const price = item.price != null ? kes(item.price) : item.kind === "ITEM" ? "Shelf price" : "—";
-  const actions = dishActions({ item, canManage, canMarkRunOut, onToggleAvailable, onRecipe, onEdit, onToggleActive, onRemove });
+  const actions = dishActions({ item, canManage, canMarkRunOut, onToggleAvailable, onRecipe, onMeasures, onEdit, onToggleActive, onRemove });
   return (
     <li className="mb-3.5 break-inside-avoid">
       {item.imageUrl ? (
@@ -499,16 +502,20 @@ function dishActions(input: {
   canMarkRunOut: boolean;
   onToggleAvailable: () => void;
   onRecipe: () => void;
+  onMeasures: () => void;
   onEdit: () => void;
   onToggleActive: () => void;
   onRemove: () => void;
 }): { label: string; onClick: () => void; tone?: "danger" }[] {
-  const { item, canManage, canMarkRunOut, onToggleAvailable, onRecipe, onEdit, onToggleActive, onRemove } = input;
+  const { item, canManage, canMarkRunOut, onToggleAvailable, onRecipe, onMeasures, onEdit, onToggleActive, onRemove } = input;
   const actions: { label: string; onClick: () => void; tone?: "danger" }[] = [];
   if (item.kind === "DISH" && canMarkRunOut) {
     actions.push({ label: item.available ? "Run out" : "Back on", onClick: onToggleAvailable });
   }
-  if (canManage && item.kind === "DISH") actions.push({ label: "Recipe", onClick: onRecipe });
+  if (canManage && item.kind === "DISH") {
+    actions.push({ label: "Recipe", onClick: onRecipe });
+    actions.push({ label: "Measures", onClick: onMeasures });
+  }
   if (canManage) {
     actions.push({ label: "Edit", onClick: onEdit });
     actions.push({ label: item.active ? "Take off" : "Put back", onClick: onToggleActive });
@@ -527,6 +534,7 @@ function MenuSheet({
   run,
   onEdit,
   onRecipe,
+  onMeasures,
 }: {
   menu: MenuRecord;
   stationName: Map<string, string>;
@@ -537,6 +545,7 @@ function MenuSheet({
   run: (id: string, action: () => Promise<unknown>, done?: string) => Promise<void>;
   onEdit: (item: MenuItemRecord) => void;
   onRecipe: (item: MenuItemRecord) => void;
+  onMeasures: (item: MenuItemRecord) => void;
 }) {
   const columns = boardColumns(menu);
   const seats = columnSeats(spreadSpans(columns));
@@ -599,6 +608,7 @@ function MenuSheet({
                     canMarkRunOut={canMarkRunOut}
                     onToggleAvailable={() => void run(item.id, () => setMenuItemAvailable(item.id, !item.available))}
                     onRecipe={() => onRecipe(item)}
+                    onMeasures={() => onMeasures(item)}
                     onEdit={() => onEdit(item)}
                     onToggleActive={() => void run(item.id, () => updateMenuItem(item.id, { active: !item.active }))}
                     onRemove={() => {
@@ -627,6 +637,7 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
   const [recipeFor, setRecipeFor] = useState<
     { kind: "dish"; id: string; name: string } | { kind: "option"; id: string; name: string } | null
   >(null);
+  const [measuresFor, setMeasuresFor] = useState<{ id: string; name: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newHeading, setNewHeading] = useState("");
   const [newStation, setNewStation] = useState("");
@@ -709,7 +720,7 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
           ) : null}
         </div>
       ) : (
-        <MenuSheet menu={menu} stationName={stationName} groupName={groupName} busyId={busyId} canManage={canManage} canMarkRunOut={canMarkRunOut} run={run} onEdit={(item) => setEditingItem(item)} onRecipe={(item) => setRecipeFor({ kind: "dish", id: item.id, name: item.name })} />
+        <MenuSheet menu={menu} stationName={stationName} groupName={groupName} busyId={busyId} canManage={canManage} canMarkRunOut={canMarkRunOut} run={run} onEdit={(item) => setEditingItem(item)} onRecipe={(item) => setRecipeFor({ kind: "dish", id: item.id, name: item.name })} onMeasures={(item) => setMeasuresFor({ id: item.id, name: item.name })} />
       )}
 
       {canManage ? (
@@ -892,6 +903,14 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
             recipeFor.kind === "dish" ? saveDishRecipe(recipeFor.id, ingredients) : saveOptionRecipe(recipeFor.id, ingredients)
           }
           onClose={() => setRecipeFor(null)}
+        />
+      ) : null}
+      {measuresFor ? (
+        <MeasuresDialog
+          dishId={measuresFor.id}
+          dishName={measuresFor.name}
+          onClose={() => setMeasuresFor(null)}
+          onSaved={() => void load()}
         />
       ) : null}
       {editingGroup ? (

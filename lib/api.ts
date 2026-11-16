@@ -10095,6 +10095,43 @@ export async function fetchStockTakeReconciliation(
   );
 }
 
+/** One bottle on the bar usage report (ADR 0024): where its stock went and the count variance. */
+export type BarUsageLineRecord = {
+  itemId: string;
+  name: string;
+  sku: string | null;
+  openingOnHand: number;
+  poured: number;
+  directSold: number;
+  wasted: number;
+  otherMoved: number;
+  systemOnHand: number;
+  counted: number | null;
+  variance: number | null;
+};
+
+export type BarUsageResponseRecord = {
+  branchId: string;
+  from: string;
+  to: string;
+  bottleCount: number;
+  withVariance: number;
+  lines: BarUsageLineRecord[];
+};
+
+/** Where each bottle's stock went over a day at a branch — pours, whole sales, waste. */
+export async function fetchBarUsage(
+  branchId: string,
+  date?: string,
+): Promise<BarUsageResponseRecord> {
+  const params = new URLSearchParams();
+  params.set("branchId", branchId);
+  if (date?.trim()) params.set("date", date.trim());
+  return request<BarUsageResponseRecord>(
+    `/api/v1/inventory/stock-take/bar-usage?${params.toString()}`,
+  );
+}
+
 export async function postApproveStockAdjustment(
   sessionId: string,
   adjustmentRequestId: string,

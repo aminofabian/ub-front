@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, CalendarClock, LayoutGrid, ShoppingBag } from "lucide-react";
+import { Bike, CalendarClock, LayoutGrid, NotebookPen, ShoppingBag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -16,6 +16,8 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
+import { getBusinessStoreTypes } from "@/lib/business-store-type";
+import { COUNTER_VOICES, foodTillKind } from "@/lib/food-till";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ApiRequestError } from "@/lib/api";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
@@ -85,18 +87,27 @@ function cardState(card: OrderCardRecord): string {
   return "Eating";
 }
 
+/** A tab: a dine-in order run under a name with no table (a bar runs these). Not a booking. */
+function isTab(card: OrderCardRecord): boolean {
+  return card.channel === "DINE_IN" && !card.tableId && !card.booked;
+}
+
 /**
  * The restaurant floor: every table and what is happening at it, plus orders with no table
- * (takeaway, delivery). Tapping a free table seats it; tapping a busy one opens its order.
+ * (tabs, takeaway, delivery). Tapping a free table seats it; tapping a busy one opens its order.
  * It polls, and says so when it cannot reach the server.
  */
 export function FloorScreen(rights: FloorRights) {
-  const { branchId } = useDashboard();
+  const { branchId, business } = useDashboard();
+  // Wording follows the house (a bar pours; a kitchen cooks), picked by resolved kind, never by
+  // branching on a store type by name.
+  const voice = COUNTER_VOICES[foodTillKind(getBusinessStoreTypes(business))];
+  const sendHint = `Nothing is ${voice.making} until you send it.`;
   const [floor, setFloor] = useState<FloorRecord | null>(null);
   const [stale, setStale] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [seating, setSeating] = useState<RestaurantTableRecord | null>(null);
-  const [starting, setStarting] = useState<"TAKEAWAY" | "DELIVERY" | "BOOKING" | null>(null);
+  const [starting, setStarting] = useState<"TAB" | "TAKEAWAY" | "DELIVERY" | "BOOKING" | null>(null);
   const [managing, setManaging] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -170,6 +181,9 @@ export function FloorScreen(rights: FloorRights) {
       <DashboardPageHero icon={LayoutGrid} title="Floor" description="Tap a table to seat it or to open its order.">
         {rights.canTakeOrders ? (
           <span className="flex flex-wrap gap-2 lg:hidden">
+            <Button variant="outline" size="sm" onClick={() => setStarting("TAB")}>
+              Tab
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setStarting("TAKEAWAY")}>
               Takeaway
             </Button>
@@ -326,6 +340,9 @@ export function FloorScreen(rights: FloorRights) {
             </header>
             {rights.canTakeOrders ? (
               <div className="mt-3 hidden gap-2 lg:grid">
+                <Button variant="outline" className="h-11 justify-start bg-[#FFFEFA]" onClick={() => setStarting("TAB")}>
+                  <NotebookPen className="size-4" aria-hidden /> Open a tab
+                </Button>
                 <Button variant="outline" className="h-11 justify-start bg-[#FFFEFA]" onClick={() => setStarting("TAKEAWAY")}>
                   <ShoppingBag className="size-4" aria-hidden /> New takeaway
                 </Button>
@@ -339,7 +356,8 @@ export function FloorScreen(rights: FloorRights) {
             ) : null}
             {floor.otherOrders.length === 0 ? (
               <p className={cn("mt-4", dashboardHintClass())}>
-                Takeaway and delivery orders wait here until they are paid and, for a delivery, handed to the customer.
+                Tabs, takeaway and delivery orders wait here until they are settled; a delivery stays until it is
+                handed to the customer.
               </p>
             ) : (
               <ul className="mt-4 grid gap-2">
@@ -358,8 +376,15 @@ export function FloorScreen(rights: FloorRights) {
                       <span className="w-12 font-mono text-2xl font-semibold tabular-nums">{o.orderNumber}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium">
-                          {o.channel === "TAKEAWAY" ? "Takeaway" : o.channel === "DELIVERY" ? "Delivery" : "Table order"}
-                          {o.customerName ? ` · ${o.customerName}` : ""}
+                          {isTab(o)
+                            ? o.customerName || "Tab"
+                            : o.channel === "TAKEAWAY"
+                              ? "Takeaway"
+                              : o.channel === "DELIVERY"
+                                ? "Delivery"
+                                : "Table order"}
+                          {!isTab(o) && o.customerName ? ` · ${o.customerName}` : ""}
+                          {isTab(o) ? <span className={dashboardHintClass()}> · tab</span> : ""}
                         </span>
                         <span className={cn(dashboardHintClass(), needsSomeone(o) && "font-semibold text-[#8f3f2f]")}>
                           {cardState(o)}
@@ -380,6 +405,7 @@ export function FloorScreen(rights: FloorRights) {
         <StartOrderDialog
           branchId={branchId}
           mode="DINE_IN"
+          sendHint={sendHint}
           table={seating}
           tables={[]}
           onClose={() => setSeating(null)}
@@ -393,6 +419,7 @@ export function FloorScreen(rights: FloorRights) {
         <StartOrderDialog
           branchId={branchId}
           mode={starting}
+          sendHint={sendHint}
           table={null}
           tables={(floor?.tables ?? []).map((t) => t.table).filter((t) => t.active)}
           onClose={() => setStarting(null)}
@@ -422,13 +449,16 @@ export function FloorScreen(rights: FloorRights) {
 function StartOrderDialog({
   branchId,
   mode,
+  sendHint,
   table,
   tables,
   onClose,
   onOpened,
 }: {
   branchId: string;
-  mode: "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "BOOKING";
+  mode: "DINE_IN" | "TAB" | "TAKEAWAY" | "DELIVERY" | "BOOKING";
+  /** How this house talks about sending: a kitchen gets food, a bar gets the round. */
+  sendHint: string;
   table: RestaurantTableRecord | null;
   tables: RestaurantTableRecord[];
   onClose: () => void;
@@ -449,13 +479,22 @@ function StartOrderDialog({
   const [clientOrderId] = useState(() => nextIdempotencyKey());
 
   const title =
-    mode === "DINE_IN" ? `Seat ${table?.name ?? "table"}` : mode === "TAKEAWAY" ? "Takeaway order" : mode === "DELIVERY" ? "Delivery order" : "Book a table";
+    mode === "DINE_IN"
+      ? `Seat ${table?.name ?? "table"}`
+      : mode === "TAB"
+        ? "Open a tab"
+        : mode === "TAKEAWAY"
+          ? "Takeaway order"
+          : mode === "DELIVERY"
+            ? "Delivery order"
+            : "Book a table";
 
   async function start() {
     setError(null);
     const guestCount = guests.trim() === "" ? undefined : Number(guests);
     if (guestCount != null && (!Number.isInteger(guestCount) || guestCount < 1)) return setError("Check the number of guests");
     if (mode === "DELIVERY" && !address.trim()) return setError("Where is it being delivered?");
+    if (mode === "TAB" && !name.trim()) return setError("Name the tab");
     let scheduledStart: string | undefined;
     let scheduledEnd: string | undefined;
     let depositAmount = 0;
@@ -479,7 +518,8 @@ function StartOrderDialog({
     try {
       const order = await openOrder({
         branchId,
-        channel: mode === "BOOKING" ? "DINE_IN" : mode,
+        // A tab is a dine-in order with no table, run under a name.
+        channel: mode === "BOOKING" || mode === "TAB" ? "DINE_IN" : mode,
         tableId: mode === "DINE_IN" || mode === "BOOKING" ? tableId : undefined,
         guestCount,
         customerName: name.trim() || undefined,
@@ -511,8 +551,10 @@ function StartOrderDialog({
             {mode === "BOOKING"
               ? "The table is held for that time. Seat the booking when the guests arrive."
               : mode === "DINE_IN"
-                ? "Opens an order for this table. Nothing goes to the kitchen until you send it."
-                : "Opens an order with no table."}
+                ? `Opens an order for this table. ${sendHint}`
+                : mode === "TAB"
+                  ? "Opens a tab under a name, with no table. Add to it over the night and settle it once."
+                  : "Opens an order with no table."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -561,8 +603,16 @@ function StartOrderDialog({
           {mode !== "DINE_IN" ? (
             <>
               <label className="grid gap-1">
-                <span className={dashboardLabelClass()}>{mode === "BOOKING" ? "Name" : "Name (optional)"}</span>
-                <input className={dashboardInputClass(false)} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+                <span className={dashboardLabelClass()}>
+                  {mode === "BOOKING" ? "Name" : mode === "TAB" ? "Tab name" : "Name (optional)"}
+                </span>
+                <input
+                  className={dashboardInputClass(false)}
+                  value={name}
+                  maxLength={120}
+                  placeholder={mode === "TAB" ? "e.g. the back corner, or a customer's name" : undefined}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </label>
               <label className="grid gap-1">
                 <span className={dashboardLabelClass()}>Phone{mode === "BOOKING" ? " (needed for a deposit)" : " (optional)"}</span>
@@ -612,7 +662,15 @@ function StartOrderDialog({
             Cancel
           </Button>
           <Button onClick={() => void start()} disabled={busy}>
-            {busy ? "Opening…" : mode === "BOOKING" ? "Book" : mode === "DINE_IN" ? "Seat" : "Start order"}
+            {busy
+              ? "Opening…"
+              : mode === "BOOKING"
+                ? "Book"
+                : mode === "DINE_IN"
+                  ? "Seat"
+                  : mode === "TAB"
+                    ? "Open tab"
+                    : "Start order"}
           </Button>
         </DialogFooter>
       </DialogContent>
