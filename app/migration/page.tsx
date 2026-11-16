@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { MigrationPage } from "@/components/migration/migration-page";
 import { APP_BASE_URL, PLATFORM_DOMAIN } from "@/lib/config";
+import { jsonForScript } from "@/lib/html-safe-json";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 const TITLE = `We moved to ${PLATFORM_DOMAIN} — the Kiosk domain migration`;
@@ -115,7 +116,7 @@ export default async function MigrationRoute() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(migrationJsonLd(canonical)) }}
+        dangerouslySetInnerHTML={{ __html: jsonForScript(migrationJsonLd(canonical)) }}
       />
       <MigrationPage />
     </>

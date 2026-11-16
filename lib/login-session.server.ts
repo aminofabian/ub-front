@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
 import { isBuyerAccount } from "@/lib/buyer-role";
 import { claimsFromAccessToken } from "@/lib/auth-session-claims";
+import { jsonForScript } from "@/lib/html-safe-json";
 import {
   applyShopperTabHint,
   resolvePostAuthDestination,
@@ -99,51 +100,55 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
   // `ub.access` was set on this response; the next page restores into memory.
   // Non-secret claims stay in sessionStorage so the first paint looks signed in.
   void refreshToken;
+  // Every value embedded into the inline <script> below MUST go through
+  // jsonForScript, not a bare JSON.stringify: a string containing "</script>"
+  // (e.g. a crafted ?next= path) would otherwise close the element and inject
+  // markup (XSS). jsonForScript escapes <, >, & and U+2028/U+2029.
   const scriptLines = [
-    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.explicitSignOut)});`,
-    `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
-    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
-    `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
-    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
+    `sessionStorage.removeItem(${jsonForScript(STORAGE_KEYS.explicitSignOut)});`,
+    `localStorage.removeItem(${jsonForScript(STORAGE_KEYS.accessToken)});`,
+    `sessionStorage.removeItem(${jsonForScript(STORAGE_KEYS.accessToken)});`,
+    `localStorage.removeItem(${jsonForScript(STORAGE_KEYS.refreshToken)});`,
+    `sessionStorage.removeItem(${jsonForScript(STORAGE_KEYS.refreshToken)});`,
   ];
   const claims = claimsFromAccessToken(accessToken);
   if (claims) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.sessionClaims)}, ${JSON.stringify(JSON.stringify(claims))});`,
+      `sessionStorage.setItem(${jsonForScript(STORAGE_KEYS.sessionClaims)}, ${jsonForScript(JSON.stringify(claims))});`,
     );
   }
 
   if (tenantId) {
     scriptLines.push(
-      `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
-      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
+      `localStorage.setItem(${jsonForScript(STORAGE_KEYS.tenantId)}, ${jsonForScript(tenantId)});`,
+      `sessionStorage.setItem(${jsonForScript(STORAGE_KEYS.tenantId)}, ${jsonForScript(tenantId)});`,
     );
   }
 
   if (tenantHost) {
     scriptLines.push(
-      `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)}, ${JSON.stringify(tenantHost)});`,
-      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)}, ${JSON.stringify(tenantHost)});`,
+      `localStorage.setItem(${jsonForScript(STORAGE_KEYS.tenantHost)}, ${jsonForScript(tenantHost)});`,
+      `sessionStorage.setItem(${jsonForScript(STORAGE_KEYS.tenantHost)}, ${jsonForScript(tenantHost)});`,
     );
   }
 
   if (bootstrap?.me) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.me)}, ${JSON.stringify(bootstrap.me)});`,
+      `sessionStorage.setItem(${jsonForScript(SESSION_BOOTSTRAP_KEYS.me)}, ${jsonForScript(bootstrap.me)});`,
     );
   }
   if (bootstrap?.business) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.business)}, ${JSON.stringify(bootstrap.business)});`,
+      `sessionStorage.setItem(${jsonForScript(SESSION_BOOTSTRAP_KEYS.business)}, ${jsonForScript(bootstrap.business)});`,
     );
   }
   if (bootstrap?.branches) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.branches)}, ${JSON.stringify(bootstrap.branches)});`,
+      `sessionStorage.setItem(${jsonForScript(SESSION_BOOTSTRAP_KEYS.branches)}, ${jsonForScript(bootstrap.branches)});`,
     );
   }
 
-  scriptLines.push(`window.location.replace(${JSON.stringify(nextPath)});`);
+  scriptLines.push(`window.location.replace(${jsonForScript(nextPath)});`);
 
   return `<!DOCTYPE html>
 <html lang="en">

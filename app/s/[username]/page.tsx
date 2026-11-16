@@ -9,6 +9,7 @@ import {
   PLATFORM_DOMAIN,
 } from "@/lib/config";
 import { resolveGlobalSupplierStorefront } from "@/lib/global-supplier-hub";
+import { jsonForScript } from "@/lib/html-safe-json";
 import { parseStorefrontHex } from "@/lib/storefront-theme";
 import {
   getRequestHostname,
@@ -70,7 +71,7 @@ function SupplierPassportJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonForScript(data) }}
     />
   );
 }

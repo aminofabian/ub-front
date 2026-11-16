@@ -9,6 +9,7 @@ import {
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
 import { APP_ROUTES, isPlatformApexHost, PLATFORM_DOMAIN } from "@/lib/config";
+import { jsonForScript } from "@/lib/html-safe-json";
 import { loginHrefForDestination } from "@/lib/login-audience";
 import {
   buildSessionFinalizeHtml,
@@ -63,7 +64,7 @@ function handoffBridge(
   applyCookies: (response: NextResponse) => void,
 ): NextResponse {
   const target = dest.toString();
-  const scriptTarget = JSON.stringify(target).replace(/</g, "\\u003c");
+  const scriptTarget = jsonForScript(target);
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>

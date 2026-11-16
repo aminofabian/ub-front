@@ -3,6 +3,7 @@ import type {
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
 import { APP_BASE_URL } from "@/lib/config";
+import { jsonForScript } from "@/lib/html-safe-json";
 import {
   marketplaceProductPath,
   marketplaceSupplierPath,
@@ -30,7 +31,7 @@ export function MarketplaceSupplierJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonForScript(data) }}
     />
   );
 }
@@ -80,7 +81,7 @@ export function MarketplaceProductJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonForScript(data) }}
     />
   );
 }
@@ -127,7 +128,7 @@ export function SupplierBreadcrumbJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonForScript(data) }}
     />
   );
 }

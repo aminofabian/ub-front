@@ -1,11 +1,12 @@
 import type { BlogArticle } from "@/lib/blog";
+import { jsonForScript } from "@/lib/html-safe-json";
 import { PLATFORM_SITE_NAME } from "@/lib/platform-seo";
 
 function JsonLd({ data }: { data: Record<string, unknown> | unknown[] }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonForScript(data) }}
     />
   );
 }

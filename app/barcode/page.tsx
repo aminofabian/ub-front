@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { BarcodePlatformPage } from "@/components/storefront/barcode-platform-page";
 import { APP_BASE_URL } from "@/lib/config";
+import { jsonForScript } from "@/lib/html-safe-json";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 // ── SEO constants ──────────────────────────────────────────────────────────
@@ -170,13 +171,13 @@ export default async function BarcodePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(barcodeJsonLd(canonical)),
+          __html: jsonForScript(barcodeJsonLd(canonical)),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(barcodeFaqJsonLd(canonical)),
+          __html: jsonForScript(barcodeFaqJsonLd(canonical)),
         }}
       />
       <BarcodePlatformPage />
