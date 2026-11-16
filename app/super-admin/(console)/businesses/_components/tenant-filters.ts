@@ -5,7 +5,13 @@ import type {
 
 /** Who is on the app right now. `support` means online and in the support chat. */
 export type PresenceFilter = "all" | "online" | "support" | "offline";
-export type StatusFilter = "all" | "active" | "inactive" | "stuck" | "new";
+export type StatusFilter =
+  | "all"
+  | "active"
+  | "inactive"
+  | "suspended"
+  | "stuck"
+  | "new";
 export type SortKey = "newest" | "online" | "seen" | "name";
 
 export type TenantFilters = {
@@ -182,6 +188,15 @@ export function isNewTenant(row: SaBusinessRow, now: number): boolean {
   return now - created < NEW_TENANT_DAYS * 86_400_000;
 }
 
+/**
+ * True when the shop is on the public "temporarily suspended" gate.
+ * That gate is the billing hold, which leaves the manual active flag on.
+ */
+export function isSuspendedTenant(row: SaBusinessRow): boolean {
+  if (row.tenantStatus === "SUSPENDED") return true;
+  return row.active && row.subscriptionBillingStatus === "SUSPENDED";
+}
+
 export function filterTenants(
   rows: readonly SaBusinessRow[],
   filters: TenantFilters,
@@ -198,6 +213,7 @@ export function filterTenants(
 
     if (filters.status === "active" && !row.active) return false;
     if (filters.status === "inactive" && row.active) return false;
+    if (filters.status === "suspended" && !isSuspendedTenant(row)) return false;
     if (filters.status === "stuck" && !ctx.stuckIds.has(row.id)) return false;
     if (filters.status === "new" && !isNewTenant(row, ctx.now)) return false;
 
@@ -256,6 +272,7 @@ export type SegmentCounts = {
   all: number;
   active: number;
   inactive: number;
+  suspended: number;
   stuck: number;
   fresh: number;
   online: number;
@@ -273,6 +290,7 @@ export function segmentCounts(
     all: 0,
     active: 0,
     inactive: 0,
+    suspended: 0,
     stuck: 0,
     fresh: 0,
     online: 0,
@@ -284,6 +302,7 @@ export function segmentCounts(
     counts.all += 1;
     if (row.active) counts.active += 1;
     else counts.inactive += 1;
+    if (isSuspendedTenant(row)) counts.suspended += 1;
     if (ctx.stuckIds.has(row.id)) counts.stuck += 1;
     if (isNewTenant(row, ctx.now)) counts.fresh += 1;
 
@@ -316,7 +335,10 @@ export function filtersFromSearch(search: string): TenantFilters {
         ? live
         : "all",
     status:
-      state === "active" || state === "stuck" || state === "new"
+      state === "active" ||
+      state === "stuck" ||
+      state === "new" ||
+      state === "suspended"
         ? state
         : state === "off"
           ? "inactive"

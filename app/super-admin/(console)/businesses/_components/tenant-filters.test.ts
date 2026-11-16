@@ -17,6 +17,7 @@ import {
   formatAgo,
   initialsOf,
   isNewTenant,
+  isSuspendedTenant,
   liveModeOf,
   matchesQuery,
   presenceOf,
@@ -189,6 +190,24 @@ describe("filterTenants", () => {
     ).toEqual(["d"]);
   });
 
+  it("lists billing-suspended shops and leaves switched-off shops out", () => {
+    const held = [
+      row("paid", { tenantStatus: "ACTIVE", subscriptionBillingStatus: "ACTIVE" }),
+      row("held", {
+        tenantStatus: "SUSPENDED",
+        subscriptionBillingStatus: "SUSPENDED",
+      }),
+      row("off", { active: false, tenantStatus: "INACTIVE" }),
+    ];
+    expect(isSuspendedTenant(held[1])).toBe(true);
+    expect(isSuspendedTenant(held[2])).toBe(false);
+    expect(
+      ids(
+        filterTenants(held, { ...DEFAULT_FILTERS, status: "suspended" }, ctx),
+      ),
+    ).toEqual(["held"]);
+  });
+
   it("finds a phone number however it is typed", () => {
     const owner = row("p", { ownerPhone: "+254712345678" });
     expect(matchesQuery(owner, "0712 345 678")).toBe(true);
@@ -239,16 +258,26 @@ describe("sortTenants", () => {
 
 describe("counts", () => {
   it("counts each segment once", () => {
-    const list = [row("a"), row("b", { active: false }), row("c"), row("d")];
+    const list = [
+      row("a"),
+      row("b", { active: false }),
+      row("c"),
+      row("d"),
+      row("e", {
+        tenantStatus: "SUSPENDED",
+        subscriptionBillingStatus: "SUSPENDED",
+      }),
+    ];
     expect(segmentCounts(list, ctx)).toEqual({
-      all: 4,
-      active: 3,
+      all: 5,
+      active: 4,
       inactive: 1,
+      suspended: 1,
       stuck: 1,
       fresh: 0,
       online: 2,
       support: 1,
-      offline: 2,
+      offline: 3,
       sessions: 3,
     });
   });
@@ -275,6 +304,12 @@ describe("address bar state", () => {
       "q=palmart&live=online&state=off&plan=growth&sort=seen",
     );
     expect(filtersFromSearch(`?${query}`)).toEqual(filters);
+  });
+
+  it("keeps a suspended view in the address bar", () => {
+    const filters = { ...DEFAULT_FILTERS, status: "suspended" as const };
+    expect(filtersToSearch(filters)).toBe("state=suspended");
+    expect(filtersFromSearch("?state=suspended")).toEqual(filters);
   });
 
   it("ignores values it does not know", () => {

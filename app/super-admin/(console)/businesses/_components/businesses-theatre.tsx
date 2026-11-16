@@ -42,6 +42,7 @@ import {
   formatAgo,
   initialsOf,
   isNewTenant,
+  isSuspendedTenant,
   liveModeOf,
   presenceOf,
   whatsappHref,
@@ -67,9 +68,9 @@ const ICON_BUTTON =
  */
 const ICON_SLOT = "hidden size-7 shrink-0 @4xl:block";
 
-/** Checkbox | tenant | owner | plan | live | joined | actions (4 icons) */
+/** Checkbox | tenant | owner | plan | live | joined | actions */
 const WIDE_COLUMNS =
-  "@4xl:grid-cols-[1.5rem_minmax(0,1.7fr)_minmax(0,1.35fr)_4.5rem_minmax(0,1.3fr)_4.5rem_7.5rem]";
+  "@4xl:grid-cols-[1.5rem_minmax(0,1.7fr)_minmax(0,1.35fr)_4.5rem_minmax(0,1.3fr)_4.5rem_auto]";
 
 function panelEquals(a: BusinessesPanel | null, b: BusinessesPanel) {
   if (!a) return false;
@@ -592,9 +593,11 @@ function TenantRow({
   checked,
   arrived,
   watched,
+  activating,
   onOpen,
   onToggleChecked,
   onToggleWatch,
+  onActivate,
 }: {
   row: SaBusinessRow;
   live: TenantPresence;
@@ -605,9 +608,11 @@ function TenantRow({
   checked: boolean;
   arrived: boolean;
   watched: boolean;
+  activating: boolean;
   onOpen: () => void;
   onToggleChecked: (checked: boolean) => void;
   onToggleWatch: () => void;
+  onActivate: () => void;
 }) {
   const whatsapp = whatsappHref(row.ownerPhone);
   const shopUrl = slugDerivedShopUrl(row.slug);
@@ -619,6 +624,7 @@ function TenantRow({
   const ownerSubEmail = ownerName ? ownerEmail : "";
   const created = Date.parse(row.createdAt);
   const fresh = isNewTenant(row, now);
+  const suspended = isSuspendedTenant(row);
 
   return (
     <li>
@@ -682,6 +688,7 @@ function TenantRow({
                 {row.slug}
               </span>
               {!row.active ? <StateTag>Inactive</StateTag> : null}
+              {suspended ? <StateTag attention>Suspended</StateTag> : null}
               {stuck ? <StateTag attention>Stuck</StateTag> : null}
               {fresh ? <StateTag>New</StateTag> : null}
             </p>
@@ -749,6 +756,16 @@ function TenantRow({
         </div>
 
         <div className="col-start-2 flex items-center gap-0.5 @2xl:col-start-3 @2xl:row-start-2 @2xl:justify-end @2xl:self-center @4xl:col-auto @4xl:row-auto">
+          {suspended ? (
+            <button
+              type="button"
+              disabled={activating}
+              onClick={onActivate}
+              className="mr-1 inline-flex h-9 shrink-0 items-center rounded-[2px] bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-[#163B2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60 @4xl:h-7 @4xl:px-2 @4xl:text-[11px]"
+            >
+              {activating ? "Activating…" : "Activate"}
+            </button>
+          ) : null}
           {whatsapp ? (
             <a
               href={whatsapp}
@@ -838,6 +855,9 @@ export type BusinessesTheatreProps = {
   arrivedIds: ReadonlySet<string>;
   watchedIds: ReadonlySet<string>;
   onToggleWatch: (row: SaBusinessRow) => void;
+  /** Tenant whose Activate request is in flight, if any. */
+  activatingId: string | null;
+  onActivate: (row: SaBusinessRow) => void;
   /** ms epoch used for every "ago" label so the table stays consistent. */
   now: number;
   filters: TenantFilters;
@@ -877,6 +897,8 @@ export function BusinessesTheatre({
   arrivedIds,
   watchedIds,
   onToggleWatch,
+  activatingId,
+  onActivate,
   now,
   filters,
   onFiltersChange,
@@ -948,7 +970,13 @@ export function BusinessesTheatre({
     selected?.kind === "create"
       ? "Name and slug are required. Defaults use Nairobi / KES."
       : selectedBusiness
-        ? `${selectedBusiness.slug} · ${selectedBusiness.active ? "active" : "inactive"}`
+        ? `${selectedBusiness.slug} · ${
+            isSuspendedTenant(selectedBusiness)
+              ? "suspended"
+              : selectedBusiness.active
+                ? "active"
+                : "inactive"
+          }`
         : "Tenant details";
 
   return (
@@ -1095,6 +1123,14 @@ export function BusinessesTheatre({
               <ChipCount value={count(counts.inactive)} />
             </FilterChip>
             <FilterChip
+              active={filters.status === "suspended"}
+              onClick={() => toggleStatus("suspended")}
+              title="Shops whose sign-in and storefront are paused for unpaid billing"
+            >
+              Suspended
+              <ChipCount value={count(counts.suspended)} />
+            </FilterChip>
+            <FilterChip
               active={filters.status === "stuck"}
               onClick={() => toggleStatus("stuck")}
               title="Signed up but not set up yet"
@@ -1181,11 +1217,13 @@ export function BusinessesTheatre({
                 checked={selectedIds.includes(row.id)}
                 arrived={arrivedIds.has(row.id)}
                 watched={watchedIds.has(row.id)}
+                activating={activatingId === row.id}
                 onOpen={() => selectPanel({ kind: "business", id: row.id })}
                 onToggleChecked={(checked) =>
                   onToggleSelected(row.id, checked)
                 }
                 onToggleWatch={() => onToggleWatch(row)}
+                onActivate={() => onActivate(row)}
               />
             ))}
           </ul>

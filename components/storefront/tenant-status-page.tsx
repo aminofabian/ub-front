@@ -1,11 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
-import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/lib/config";
 import type { TenantContext } from "@/lib/public-storefront";
 
 type Status = Exclude<TenantContext["status"], "ACTIVE">;
@@ -44,11 +40,6 @@ export function TenantStatusPage({ status }: { status: Status }) {
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">{heading}</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
-        <div className="mt-8 flex justify-center">
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href={APP_ROUTES.superAdminLogin}>Super-admin sign-in</Link>
-          </Button>
-        </div>
       </div>
     </main>
   );

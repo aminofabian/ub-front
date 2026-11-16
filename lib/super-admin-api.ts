@@ -58,6 +58,13 @@ export type SaBusinessRow = {
   ownerName?: string | null;
   /** Oldest owner user email when linked. */
   ownerEmail?: string | null;
+  /**
+   * Storefront access gate. SUSPENDED is the billing hold that pauses
+   * sign-in and the shop. Missing on an API that predates this field.
+   */
+  tenantStatus?: "ACTIVE" | "SUSPENDED" | "INACTIVE" | null;
+  /** Billing lifecycle that drives a SUSPENDED tenant. */
+  subscriptionBillingStatus?: "ACTIVE" | "GRACE" | "SUSPENDED" | null;
   /** Storefront branding when the API includes it on GET business. */
   branding?: {
     displayName?: string | null;

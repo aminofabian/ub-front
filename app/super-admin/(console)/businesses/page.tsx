@@ -42,6 +42,7 @@ import {
   fetchAllSaBusinesses,
   fetchSaEmailRecipients,
   fetchSaSupportPresence,
+  reactivateSaBusinessSubscription,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,7 @@ import {
   filtersFromSearch,
   filtersToSearch,
   formatAgo,
+  isSuspendedTenant,
   presenceOf,
   segmentCounts,
   sortTenants,
@@ -145,6 +147,7 @@ export default function SuperAdminBusinessesPage() {
   const [arrivals, setArrivals] = useState<{ id: string; at: number }[]>([]);
   const [watchedIds, setWatchedIds] = useState<Set<string>>(() => new Set());
   const [chatBusyId, setChatBusyId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const router = useRouter();
@@ -437,6 +440,44 @@ export default function SuperAdminBusinessesPage() {
     }
   };
 
+  const performActivate = async (b: SaBusinessRow) => {
+    if (activatingId) return;
+    setActivatingId(b.id);
+    try {
+      await reactivateSaBusinessSubscription(b.id);
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === b.id
+            ? {
+                ...row,
+                tenantStatus: "ACTIVE",
+                subscriptionBillingStatus: "ACTIVE",
+              }
+            : row,
+        ),
+      );
+      showThemedSuccessToast(`${b.name} is active again.`);
+    } catch (err) {
+      showThemedErrorToast(
+        err instanceof Error ? err.message : "Could not activate this tenant.",
+      );
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
+  const onActivateTenant = (b: SaBusinessRow) => {
+    showThemedConfirmToast({
+      id: `activate-sa-business-${b.id}`,
+      title: `Activate “${b.name}”?`,
+      description:
+        "Sign-in and the storefront come back on. If the paid period has already ended, this starts a new 30-day period.",
+      confirmLabel: "Activate",
+      confirmVariant: "default",
+      onConfirm: () => performActivate(b),
+    });
+  };
+
   const onDeleteTenant = (b: SaBusinessRow) => {
     showThemedConfirmToast({
       id: `delete-sa-business-${b.id}`,
@@ -632,7 +673,13 @@ export default function SuperAdminBusinessesPage() {
             [
               [
                 "Status",
-                `${selectedBusiness.active ? "Active" : "Inactive"}${stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}`,
+                `${
+                  isSuspendedTenant(selectedBusiness)
+                    ? "Suspended"
+                    : selectedBusiness.active
+                      ? "Active"
+                      : "Inactive"
+                }${stuckIds.has(selectedBusiness.id) ? " · stuck" : ""}`,
               ],
               ["Live", selectedLiveText],
               ["Tier", selectedBusiness.subscriptionTier],
@@ -689,6 +736,18 @@ export default function SuperAdminBusinessesPage() {
         </dl>
 
         <div className="flex flex-wrap gap-2 pt-1">
+          {isSuspendedTenant(selectedBusiness) ? (
+            <Button
+              type="button"
+              className={PRIMARY_BTN}
+              disabled={activatingId !== null}
+              onClick={() => onActivateTenant(selectedBusiness)}
+            >
+              {activatingId === selectedBusiness.id
+                ? "Activating…"
+                : "Activate"}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -918,6 +977,8 @@ export default function SuperAdminBusinessesPage() {
         arrivedIds={arrivedIds}
         watchedIds={watchedIds}
         onToggleWatch={toggleWatch}
+        activatingId={activatingId}
+        onActivate={onActivateTenant}
         now={now}
         filters={filters}
         onFiltersChange={updateFilters}

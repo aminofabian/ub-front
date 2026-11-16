@@ -20822,6 +20822,10 @@ export interface components {
             ownerPhone?: string;
             ownerName?: string;
             ownerEmail?: string;
+            /** @description Storefront access gate. SUSPENDED pauses sign-in and the shop. */
+            tenantStatus?: "ACTIVE" | "SUSPENDED" | "INACTIVE";
+            /** @description Subscription billing lifecycle that drives a SUSPENDED tenant. */
+            subscriptionBillingStatus?: "ACTIVE" | "GRACE" | "SUSPENDED";
         };
         CashierDrawoutAccessResponse: {
             scope?: string;
