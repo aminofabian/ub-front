@@ -61,7 +61,7 @@ function NavItem({
 }: {
   href: string;
   label: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   match?: "exact" | "prefix";
   badge?: number;
 }) {
