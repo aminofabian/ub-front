@@ -43,6 +43,7 @@ import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
 
 import { OrderSheet } from "./order-sheet";
+import { TableSeats } from "./table-seats";
 import { NoBranch } from "../../_components/no-branch";
 import { OpenForTheDay } from "../../_components/open-for-the-day";
 
@@ -328,9 +329,22 @@ export function FloorScreen(rights: FloorRights) {
                         )}
                         onClick={() => (first ? setOpenId(first.orderId) : setSeating(table))}
                       >
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="text-base font-semibold">{table.name}</span>
-                          {table.capacity ? <span className={dashboardHintClass()}>seats {table.capacity}</span> : null}
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="min-w-0">
+                            <span className="block text-base font-semibold leading-tight">{table.name}</span>
+                            {table.capacity ? (
+                              <span className={cn("block", dashboardHintClass())}>seats {table.capacity}</span>
+                            ) : null}
+                          </span>
+                          {table.capacity ? (
+                            <TableSeats
+                              size="sm"
+                              capacity={table.capacity}
+                              taken={first && !first.booked ? (first.guestCount ?? busy.length) : 0}
+                              booked={Boolean(first?.booked) && busy.length === 0}
+                              attention={first ? needsSomeone(first) : false}
+                            />
+                          ) : null}
                         </span>
                         {table.waiterName && (!first || first.booked) ? (
                           <span className={dashboardHintClass()}>{table.waiterName}&rsquo;s table</span>

@@ -419,6 +419,7 @@ export function formatBusinessStoreTypesLabel(
     cafe: "Café",
     "fast-food": "Fast food / takeaway",
     bar: "Bar",
+    lodging: "Guest house",
   };
   const types = getBusinessStoreTypes(business);
   if (types.length === 0) {

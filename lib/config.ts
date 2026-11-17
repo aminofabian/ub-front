@@ -124,6 +124,8 @@ export const APP_ROUTES = {
   restaurantReports: "/restaurant/reports",
   /** What the stock can make, what to buy, what was lost. */
   restaurantPantry: "/restaurant/pantry",
+  /** The front desk of a guest house: rooms, stays, who's in, arriving and leaving. */
+  rooms: "/rooms",
   /** A staff member's own commission, tips, payouts and bookings. */
   myEarnings: "/my-earnings",
   /** What each staff member earned, was paid and is owed. */
@@ -332,6 +334,7 @@ export const API_ROUTES = {
   serviceBookingHours: "/api/v1/service-booking-hours",
   commissions: "/api/v1/commissions",
   restaurant: "/api/v1/restaurant",
+  rooms: "/api/v1/rooms",
   storeItems: "/api/v1/store-items",
   /** Store room ↔ inventory connection choice + census. */
   storeRoomSettings: "/api/v1/store-items/settings",

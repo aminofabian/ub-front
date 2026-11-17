@@ -19,7 +19,8 @@ export type ShopMarkKind =
   | "restaurant"
   | "cafe"
   | "fast-food"
-  | "bar";
+  | "bar"
+  | "lodging";
 
 export type ShopMarkColors = {
   plate: string;
@@ -55,6 +56,7 @@ const SHOP_MARKS: Record<string, ShopMark> = {
   cafe: { kind: "cafe", label: "Café" },
   "fast-food": { kind: "fast-food", label: "Takeaway" },
   bar: { kind: "bar", label: "Bar" },
+  lodging: { kind: "lodging", label: "Guest house" },
   other: LETTERMARK,
 };
 

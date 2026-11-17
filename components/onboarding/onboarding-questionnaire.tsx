@@ -27,6 +27,7 @@ import {
   Smartphone,
   Wine,
   Bath,
+  Bed,
   Beer,
   Coffee,
   Hand,
@@ -145,6 +146,7 @@ const STORE_TYPE_ICONS: Record<
   cafe: Coffee,
   "fast-food": Sandwich,
   bar: Beer,
+  lodging: Bed,
 };
 
 /**

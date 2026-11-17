@@ -61,6 +61,7 @@ import { MpesaRequest, mpesaRequestAmount } from "../../_components/mpesa-reques
 
 import { ReasonDialog, type ReasonRequest } from "../../_components/reason-dialog";
 import type { FloorRights } from "./floor-screen";
+import { TableSeats } from "./table-seats";
 
 const kes = (n: number) => formatMoney(n, "KES");
 
@@ -104,12 +105,44 @@ export function OrderSheet({
   rights,
   tables,
   onBack,
+  variant = "floor",
 }: {
   orderId: string;
   rights: FloorRights;
   tables: RestaurantTableRecord[];
   onBack: () => void;
+  /** "lodging" reads a stay's folio in a guest house's words — check in, room, not seat, table. */
+  variant?: "floor" | "lodging";
 }) {
+  const lodging = variant === "lodging";
+  // The few words that differ between a table's order and a room's stay. Everything else is shared.
+  const L = lodging
+    ? {
+        back: "Back to the front desk",
+        bookedTail: "Check them in when they arrive.",
+        checkIn: "Check in",
+        cancelTitle: "Cancel this booking?",
+        freedWithDeposit: "The room is freed. The deposit goes where you just chose.",
+        freed: "The room is freed for those nights.",
+        noShowWithDeposit: (amount: string) =>
+          `Mark this booking as a no-show? The room is freed. Keep the ${amount} deposit as the guest's credit? OK = credit them · Cancel = keep it as income.`,
+        noShow: "Mark this booking as a no-show? The room is freed.",
+        couldNotCheckIn: "Could not check the guest in.",
+        unit: "stay",
+      }
+    : {
+        back: "Back to the floor",
+        bookedTail: "Seat it when the guests arrive.",
+        checkIn: "Guests have arrived",
+        cancelTitle: "Cancel this booking?",
+        freedWithDeposit: "The table is freed. The deposit goes where you just chose.",
+        freed: "The table is freed for that time.",
+        noShowWithDeposit: (amount: string) =>
+          `Mark this booking as a no-show? The table is freed. Keep the ${amount} deposit as the customer's credit? OK = credit them · Cancel = keep it as income.`,
+        noShow: "Mark this booking as a no-show? The table is freed.",
+        couldNotCheckIn: "Could not seat the booking.",
+        unit: "order",
+      };
   const { business } = useDashboard();
   // House wording: a bar sends a round to the bar; a kitchen gets food. Picked by resolved kind.
   const voice = COUNTER_VOICES[foodTillKind(getBusinessStoreTypes(business))];
@@ -241,7 +274,7 @@ export function OrderSheet({
       <div className={DASHBOARD_MAX_WIDE}>
         <DashboardLoadError title="Order" message={loadError} onRetry={() => void load()} />
         <Button variant="outline" className="mt-2" onClick={onBack}>
-          Back to the floor
+          {L.back}
         </Button>
       </div>
     );
@@ -282,10 +315,10 @@ export function OrderSheet({
     <div className={DASHBOARD_MAX_WIDE}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={onBack}>
-          Back to the floor
+          {L.back}
         </Button>
         <h1 className="text-lg font-semibold">
-          {where} · order <span className="font-mono tabular-nums">{order.orderNumber}</span>
+          {where} · {L.unit} <span className="font-mono tabular-nums">{order.orderNumber}</span>
         </h1>
         <span className={dashboardHintClass()}>
           {[
@@ -362,15 +395,15 @@ export function OrderSheet({
           <p className="text-sm">
             Booked{order.customerName ? ` for ${order.customerName}` : ""}
             {order.customerPhone ? ` (${order.customerPhone})` : ""}
-            {bookedFor(order.scheduledStart)}. Seat it when the guests arrive.
+            {bookedFor(order.scheduledStart)}. {L.bookedTail}
             {order.depositState === "HELD" && order.depositAmount ? (
               <span className="font-semibold"> Deposit held: {kes(order.depositAmount)}.</span>
             ) : null}
           </p>
           {rights.canTakeOrders ? (
             <>
-              <Button size="sm" disabled={busy} onClick={() => void act(() => seatBooking(orderId), "Could not seat the booking.")}>
-                Guests have arrived
+              <Button size="sm" disabled={busy} onClick={() => void act(() => seatBooking(orderId), L.couldNotCheckIn)}>
+                {L.checkIn}
               </Button>
               <Button
                 variant="outline"
@@ -392,10 +425,8 @@ export function OrderSheet({
                     }
                   }
                   setAsking({
-                    title: "Cancel this booking?",
-                    hint: held
-                      ? "The table is freed. The deposit goes where you just chose."
-                      : "The table is freed for that time.",
+                    title: L.cancelTitle,
+                    hint: held ? L.freedWithDeposit : L.freed,
                     confirm: "Cancel the booking",
                     required: false,
                     run: (reason) =>
@@ -414,9 +445,7 @@ export function OrderSheet({
                 disabled={busy}
                 onClick={() => {
                   const held = order.depositState === "HELD";
-                  const message = held
-                    ? `Mark this booking as a no-show? The table is freed. Keep the ${kes(order.depositAmount ?? 0)} deposit as the customer's credit? OK = credit them · Cancel = keep it as income.`
-                    : "Mark this booking as a no-show? The table is freed.";
+                  const message = held ? L.noShowWithDeposit(kes(order.depositAmount ?? 0)) : L.noShow;
                   const answer = window.confirm(message);
                   if (!held && !answer) return; // without a deposit, Cancel means "don't"
                   void act(() => markNoShow(orderId, held && answer), "Could not close the booking.").then(
@@ -445,26 +474,21 @@ export function OrderSheet({
         <div className="grid content-start gap-2">
           {canAdd ? (
             <section className={DASHBOARD_SECTION_SURFACE} aria-label="Menu">
-              {seats > 1 ? (
-                <div className="mb-2 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Who is this for">
-                  <span className={dashboardLabelClass()}>For</span>
-                  {[0, ...Array.from({ length: seats }, (_, i) => i + 1)].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      role="radio"
-                      aria-checked={seat === n}
-                      className={cn(
-                        "min-h-9 rounded-[2px] border px-3 text-sm font-semibold",
-                        "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]",
-                        seat === n &&
-                          "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,transparent)]",
-                      )}
-                      onClick={() => setSeat(n)}
-                    >
-                      {n === 0 ? "The table" : `Seat ${n}`}
-                    </button>
-                  ))}
+              {!lodging && seats > 1 ? (
+                <div className="mb-2 flex items-center gap-3">
+                  <TableSeats
+                    capacity={seats}
+                    selected={seat}
+                    onSelect={setSeat}
+                    attention={ready.length > 0}
+                  />
+                  <div className="min-w-0">
+                    <span className={dashboardLabelClass()}>This round is for</span>
+                    <p className="mt-0.5 text-sm font-semibold text-[var(--op-ink,#121A16)]">
+                      {seat === 0 ? "Everyone at the table" : `Seat ${seat}`}
+                    </p>
+                    <p className={cn("mt-0.5", dashboardHintClass())}>Tap a chair, or the table for everyone.</p>
+                  </div>
                 </div>
               ) : null}
               {menu == null ? (

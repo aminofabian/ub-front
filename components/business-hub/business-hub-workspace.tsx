@@ -12,6 +12,7 @@ import {
   ClipboardList,
   CreditCard,
   Globe,
+  BedDouble,
   LayoutGrid,
   MessageCircle,
   MonitorSmartphone,
@@ -64,7 +65,9 @@ import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnai
 import {
   getBusinessStoreTypes,
   isFoodOnlyBusiness,
-  isTableServiceBusiness,
+  isFoodOnlyStoreTypes,
+  isLodgingBusiness,
+  isTableServiceStoreTypes,
   isServiceBusiness,
   isServiceOnlyBusiness,
 } from "@/lib/business-store-type";
@@ -274,9 +277,12 @@ export function BusinessHubWorkspace() {
   const canViewCreditTabs = canViewCustomers;
   const canOpenCreditPay = canViewCreditTabs && canReviewPaymentClaims;
   // A restaurant, café or bar: this page speaks of orders, the floor and the menu, and leaves
-  // out what only a shop with shelves uses (web orders, airtime, the online store).
-  const foodOnly = isFoodOnlyBusiness(business);
-  const foodTables = foodOnly && isTableServiceBusiness(business);
+  // out what only a shop with shelves uses (web orders, airtime, the online store). A food shop
+  // that also lets rooms (a bar with a guest house above it) is still food-led here: lodging is an
+  // add-on, so it must not drop the food tools. We judge "food-only" ignoring any lodging format.
+  const storeTypesForFood = getBusinessStoreTypes(business).filter((t) => t !== "lodging");
+  const foodOnly = isFoodOnlyStoreTypes(storeTypesForFood);
+  const foodTables = foodOnly && isTableServiceStoreTypes(storeTypesForFood);
   const canManageMenu = hasPermission(me?.permissions, Permission.RestaurantMenuManage);
   const canShowWebOrders = canViewStorefrontOrders && shopEnabled && !foodOnly;
 
@@ -1106,6 +1112,11 @@ export function BusinessHubWorkspace() {
   ]);
 
   const jumpInLinks = useMemo(() => {
+    // A guest house, or a bar with rooms above it, gets a front desk. Shown first so it is the
+    // obvious place to start a shift; the food/retail links follow.
+    const lodgingLink: JumpInLink | null = isLodgingBusiness(business)
+      ? { href: APP_ROUTES.rooms, label: "Front desk", hint: "Who's in, arriving, leaving", icon: BedDouble, group: "Sell" }
+      : null;
     if (foodOnly) {
       // The places a restaurant works from, then its menu and its numbers.
       const isBar = foodTillKind(getBusinessStoreTypes(business)) === "bar";
@@ -1131,7 +1142,7 @@ export function BusinessHubWorkspace() {
         { href: APP_ROUTES.restaurantReports, label: "Menu sales", hint: "What sold, and how fast", icon: BarChart3, group: "Insight" },
         { href: APP_ROUTES.sales, label: "Sales", hint: "Receipts and refunds", icon: ShoppingCart, group: "Sell" },
       );
-      return food;
+      return lodgingLink ? [lodgingLink, ...food] : food;
     }
     // Board order = how often a busy shop reaches for it. The sheet regroups the
     // same links by the job they do, so order here never costs discoverability.

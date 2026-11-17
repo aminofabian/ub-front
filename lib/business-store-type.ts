@@ -16,7 +16,8 @@ export type StoreTypeId =
   | "restaurant"
   | "cafe"
   | "fast-food"
-  | "bar";
+  | "bar"
+  | "lodging";
 
 /**
  * Shop formats that sell services rather than (or as well as) goods. A store type only picks
@@ -42,6 +43,13 @@ export const FOOD_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", "cafe", "
  */
 export const TABLE_SERVICE_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", "bar"];
 
+/**
+ * Shop formats that let rooms for the night (ADR 0028): a guest house, or a bar with rooms above it.
+ * An add-on capability, not an exclusive format — a tenant is usually a bar <em>and</em> lodging.
+ * A store type only picks defaults and wording; branch on {@link isLodgingBusiness}, never by name.
+ */
+export const LODGING_STORE_TYPES: readonly StoreTypeId[] = ["lodging"];
+
 /** Shop formats that get a starter-product catalogue during onboarding. */
 export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
   "mini-mart",
@@ -61,6 +69,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "other",
   ...SERVICE_STORE_TYPES,
   ...FOOD_STORE_TYPES,
+  ...LODGING_STORE_TYPES,
 ];
 
 type StoreTypeSource = {
@@ -171,6 +180,15 @@ export function isFoodBusiness(
 ): boolean {
   return getBusinessStoreTypes(source).some((type) =>
     (FOOD_STORE_TYPES as readonly string[]).includes(type),
+  );
+}
+
+/** True when any selected format lets rooms: the business has a front desk. */
+export function isLodgingBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return getBusinessStoreTypes(source).some((type) =>
+    (LODGING_STORE_TYPES as readonly string[]).includes(type),
   );
 }
 

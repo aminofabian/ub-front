@@ -37,7 +37,8 @@ export type StoreTypeChoice =
   | "restaurant"
   | "cafe"
   | "fast-food"
-  | "bar";
+  | "bar"
+  | "lodging";
 
 export type OnlineStoreChoice = "yes" | "no";
 
@@ -254,6 +255,11 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "bar",
     label: "Bar",
     hint: "Drinks and bites, made at the bar or in the kitchen",
+  },
+  {
+    value: "lodging",
+    label: "Guest house / rooms",
+    hint: "A few rooms to let — on their own, or above a bar",
   },
   {
     value: "other",

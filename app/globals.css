@@ -755,6 +755,57 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     }
 }
 
+/* A chair settling in when it is chosen or filled: a small overshoot, then rest. */
+@keyframes seat-pop {
+    0% {
+        transform: scale(0.72);
+    }
+    55% {
+        transform: scale(1.22);
+    }
+    100% {
+        transform: scale(1.12);
+    }
+}
+
+/* A quiet terracotta dot breathing on a table that needs someone (a bill, a ready plate). */
+@keyframes seat-attention {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* A pickup order flipping to ready: the number card gives one calm lift, like it stepped forward. */
+@keyframes order-ready-arrive {
+    0% {
+        transform: translateY(2px) scale(0.985);
+    }
+    60% {
+        transform: translateY(-1px) scale(1.012);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* The drawn table still fills its chairs and colours its top; it just does so without the
+       tween, the chair pop, or the breathing attention dot. Same for the room token and the
+       pickup-ready lift. */
+    .seat-token *,
+    .seat-token,
+    .order-ready-arrive {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 .tablet-more-sheet {
     animation: tablet-sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

@@ -379,6 +379,8 @@ const EMBLEMS: Record<ShopMarkKind, (props: EmblemProps) => ReactNode> = {
   cafe: CafeMark,
   "fast-food": TakeawayMark,
   bar: BarMark,
+  // A guest house has no bespoke emblem yet; its monogram stands in (Slice 3 may draw one).
+  lodging: Lettermark,
 };
 
 export function ShopTradeMark({

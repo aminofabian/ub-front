@@ -530,7 +530,7 @@ export function CounterScreen({
                         className={cn(
                           "flex w-[11.5rem] shrink-0 flex-col rounded-[2px] border bg-[var(--op-paper,#FFFEFA)] p-3 xl:w-auto",
                           order.ready
-                            ? "border-[var(--kiosk-highlight,#A55237)]"
+                            ? "border-[var(--kiosk-highlight,#A55237)] motion-safe:[animation:order-ready-arrive_360ms_cubic-bezier(0.22,1,0.36,1)_1]"
                             : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]",
                         )}
                       >
@@ -560,9 +560,12 @@ export function CounterScreen({
                             Handed over
                           </Button>
                         ) : (
-                          <p className="mt-2 flex h-10 items-center text-xs text-[var(--op-muted,#556159)] xl:h-auto">
-                            {order.linesReady} of {order.linesTotal} ready
-                          </p>
+                          <div className="mt-2 flex h-10 flex-col justify-center gap-1 xl:h-auto">
+                            <PrepDots ready={order.linesReady} total={order.linesTotal} />
+                            <span className="text-[11px] text-[var(--op-muted,#556159)]">
+                              {order.linesReady} of {order.linesTotal} ready
+                            </span>
+                          </div>
                         )}
                       </li>
                     ))}
@@ -813,3 +816,32 @@ const STEP =
   "flex size-10 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_14%,transparent)] " +
   "bg-[var(--op-paper,#FFFEFA)] text-[var(--op-ink,#121A16)] transition-colors duration-200 hover:border-[var(--pos-primary,#1D4B3B)] " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]";
+
+/**
+ * A kitchen-prep meter for a pickup order: one small plate per line, filling forest as the kitchen
+ * finishes them. A calm progress read, not a spinner. Caps the drawn plates so a huge order stays
+ * tidy; the "N of M" label beneath carries the exact figure.
+ */
+function PrepDots({ ready, total }: { ready: number; total: number }) {
+  const max = 8;
+  const shown = Math.min(Math.max(total, 1), max);
+  const filled = total > max ? Math.round((ready / Math.max(total, 1)) * shown) : ready;
+  return (
+    <span className="flex items-center gap-1" role="img" aria-label={`${ready} of ${total} ready`}>
+      {Array.from({ length: shown }, (_, i) => {
+        const lit = i < filled;
+        return (
+          <span
+            key={i}
+            className={cn(
+              "size-2 rounded-full border transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              lit
+                ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)]"
+                : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_20%,transparent)] bg-transparent",
+            )}
+          />
+        );
+      })}
+    </span>
+  );
+}

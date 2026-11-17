@@ -519,7 +519,7 @@ export type RestaurantTableRecord = {
   waiterName?: string | null;
 };
 
-export type OrderChannel = "COUNTER" | "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+export type OrderChannel = "COUNTER" | "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "LODGING";
 
 /** An open order as the floor shows it. */
 export type OrderCardRecord = {
