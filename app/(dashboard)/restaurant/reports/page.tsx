@@ -22,10 +22,14 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import {
   fetchKitchenTimesReport,
   fetchMenuSalesReport,
+  fetchTableTakings,
   type KitchenTimesReport,
   type MenuSalesReport,
+  type TableTakingsReport,
 } from "@/lib/restaurant-api";
 import { cn } from "@/lib/utils";
+
+import { TableTakings } from "../_components/table-takings";
 
 const kes = (n: number) => formatMoney(n, "KES");
 const HEAD =
@@ -61,12 +65,14 @@ export default function RestaurantReportsPage() {
   const [to, setTo] = useState(nairobiToday);
   const [sales, setSales] = useState<MenuSalesReport | null>(null);
   const [times, setTimes] = useState<KitchenTimesReport | null>(null);
+  const [tables, setTables] = useState<TableTakingsReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!allowed || !branchId || !from || !to) return;
     setError(null);
     setSales(null);
+    setTables(null);
     try {
       const [s, t] = await Promise.all([
         fetchMenuSalesReport(branchId, from, to),
@@ -74,6 +80,8 @@ export default function RestaurantReportsPage() {
       ]);
       setSales(s);
       setTimes(t);
+      // The tables are their own question: if they cannot be read the rest of the page still stands.
+      setTables(await fetchTableTakings(branchId, from, to).catch(() => null));
     } catch {
       setError("Could not load the report. Check the dates (at most 92 days) and your connection.");
     }
@@ -96,7 +104,7 @@ export default function RestaurantReportsPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <DashboardPageHero icon={ChartColumn} title="Menu sales" description="What sold from the menu and how long the kitchen took." />
+      <DashboardPageHero icon={ChartColumn} title="Menu sales" description="What sold from the menu, how long the kitchen took, and what each table took." />
 
       <div className={`${DASHBOARD_SECTION_SURFACE} flex flex-wrap items-end gap-3`}>
         <label className="grid gap-1">
@@ -264,6 +272,12 @@ export default function RestaurantReportsPage() {
           </aside>
         </div>
       )}
+
+      {tables && branchId && !error ? (
+        <div className={cn(DASHBOARD_SECTION_SURFACE, "mt-2")}>
+          <TableTakings report={tables} />
+        </div>
+      ) : null}
     </div>
   );
 }

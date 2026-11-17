@@ -1,6 +1,7 @@
 "use client";
 
 import { Bike, CalendarClock, LayoutGrid, NotebookPen, ShoppingBag } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -20,11 +21,14 @@ import { getBusinessStoreTypes } from "@/lib/business-store-type";
 import { COUNTER_VOICES, foodTillKind } from "@/lib/food-till";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ApiRequestError } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { formatMoney } from "@/lib/money";
 import {
   createTable,
   fetchFloor,
+  fetchServers,
+  fetchTableTakings,
   openOrder,
   setTableQr,
   takeBookingDeposit,
@@ -32,6 +36,7 @@ import {
   type FloorRecord,
   type OrderCardRecord,
   type RestaurantTableRecord,
+  type TableTakingsReport,
 } from "@/lib/restaurant-api";
 import { elapsedLabel } from "@/lib/restaurant-cart";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
@@ -49,6 +54,8 @@ export type FloorRights = {
   canCancelSent: boolean;
   canComp: boolean;
   canManage: boolean;
+  /** May see what each table has taken today. */
+  canSeeTakings?: boolean;
 };
 
 function timeOfDay(iso: string): string {
@@ -127,6 +134,33 @@ export function FloorScreen(rights: FloorRights) {
     void load();
   }, [load]);
   useRestaurantLive(() => void load(), 6000, Boolean(branchId) && openId == null);
+
+  // What each table has taken today, for those who may see it. Read when the floor opens and
+  // each time an order is closed again, not on every poll: it only moves when a bill is paid.
+  const [takings, setTakings] = useState<TableTakingsReport | null>(null);
+  const canSeeTakings = Boolean(rights.canSeeTakings);
+  useEffect(() => {
+    if (!canSeeTakings || !branchId || openId != null) return;
+    let stale = false;
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(new Date());
+    fetchTableTakings(branchId, today, today)
+      .then((report) => {
+        if (!stale) setTakings(report);
+      })
+      .catch(() => {
+        if (!stale) setTakings(null);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [canSeeTakings, branchId, openId]);
+  const takenByTable = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of takings?.tables ?? []) {
+      if (row.tableId) map.set(row.tableId, row.taken);
+    }
+    return map;
+  }, [takings]);
 
   const areas = useMemo(() => {
     const groups = new Map<string, FloorRecord["tables"]>();
@@ -252,6 +286,14 @@ export function FloorScreen(rights: FloorRights) {
             {tally.attention > 0 ? <span className="text-[#8f3f2f]">{tally.attention} need someone</span> : null}
             {tally.booked > 0 ? <span>{tally.booked} booked</span> : null}
             <span className="text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">{tally.free} free</span>
+            {takings ? (
+              <Link
+                href={APP_ROUTES.restaurantReports}
+                className="ml-auto font-medium text-[var(--op-ink,#121A16)] underline-offset-4 hover:underline"
+              >
+                <span className="font-mono tabular-nums">{kes(takings.taken)}</span> taken today · by table
+              </Link>
+            ) : null}
           </div>
           {areas.map(([area, entries], areaIndex) => (
             <section
@@ -290,6 +332,9 @@ export function FloorScreen(rights: FloorRights) {
                           <span className="text-base font-semibold">{table.name}</span>
                           {table.capacity ? <span className={dashboardHintClass()}>seats {table.capacity}</span> : null}
                         </span>
+                        {table.waiterName && (!first || first.booked) ? (
+                          <span className={dashboardHintClass()}>{table.waiterName}&rsquo;s table</span>
+                        ) : null}
                         {first ? (
                           <>
                             <span className={cn("text-sm", needsSomeone(first) && "font-semibold text-[#8f3f2f]")}>
@@ -307,6 +352,11 @@ export function FloorScreen(rights: FloorRights) {
                         ) : (
                           <span className={dashboardHintClass()}>Free</span>
                         )}
+                        {(takenByTable.get(table.id) ?? 0) > 0 ? (
+                          <span className="mt-auto pt-1 font-mono text-[12px] tabular-nums text-[color-mix(in_srgb,var(--op-ink,#121A16)_68%,transparent)]">
+                            {kes(takenByTable.get(table.id) ?? 0)} today
+                          </span>
+                        ) : null}
                       </button>
                       {orders.length > 1 ? (
                         <ul className="mt-1 grid gap-1">
@@ -733,6 +783,27 @@ function TablesDialog({
   onChanged: () => void;
 }) {
   const [rows, setRows] = useState(tables);
+  const [servers, setServers] = useState<{ staffProfileId: string; name: string }[]>([]);
+  useEffect(() => {
+    // The list is a convenience: without it the tables can still be added and changed.
+    void fetchServers()
+      .then(setServers)
+      .catch(() => setServers([]));
+  }, []);
+
+  async function assign(table: RestaurantTableRecord, staffProfileId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateTable(table.id, { waiterStaffProfileId: staffProfileId });
+      setRows((prev) => prev.map((t) => (t.id === table.id ? updated : t)));
+      onChanged();
+    } catch (e) {
+      setError(e instanceof ApiRequestError && e.message ? e.message : "Could not change the table's waiter. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const [name, setName] = useState("");
   const [seats, setSeats] = useState("");
   const [area, setArea] = useState("");
@@ -808,8 +879,9 @@ function TablesDialog({
         <DialogHeader>
           <DialogTitle>Tables</DialogTitle>
           <DialogDescription>
-            The tables at this branch. Give a table a QR code here, then print the codes as table cards under Menu,
-            QR codes. A code only works while ordering from tables is switched on under Menu.
+            The tables at this branch. Give a table its waiter and every new order there is theirs. Give it a QR code
+            here, then print the codes as table cards under Menu, QR codes; a code only works while ordering from
+            tables is switched on under Menu.
           </DialogDescription>
         </DialogHeader>
         <ul className="divide-y">
@@ -822,6 +894,26 @@ function TablesDialog({
                   {t.area ? ` · ${t.area}` : ""}
                 </span>
               </span>
+              {servers.length > 0 || t.waiterStaffProfileId ? (
+                <select
+                  className={dashboardSelectClass(false, "h-9 w-36 text-sm")}
+                  aria-label={`Waiter for ${t.name}`}
+                  value={t.waiterStaffProfileId ?? ""}
+                  disabled={busy}
+                  onChange={(e) => void assign(t, e.target.value)}
+                >
+                  <option value="">No waiter</option>
+                  {/* Someone assigned earlier may no longer be in the list of people who serve. */}
+                  {t.waiterStaffProfileId && !servers.some((p) => p.staffProfileId === t.waiterStaffProfileId) ? (
+                    <option value={t.waiterStaffProfileId}>{t.waiterName ?? "Staff"}</option>
+                  ) : null}
+                  {servers.map((p) => (
+                    <option key={p.staffProfileId} value={p.staffProfileId}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <Button variant="outline" size="sm" disabled={busy} onClick={() => void qr(t, !t.qrToken)}>
                 {t.qrToken ? "Remove QR code" : "QR code"}
               </Button>

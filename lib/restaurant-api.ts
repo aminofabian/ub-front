@@ -468,6 +468,41 @@ export async function fetchKitchenTimesReport(branchId: string, from: string, to
   return apiRequest<KitchenTimesReport>(`${base}/reports/kitchen-times?${params.toString()}`, { toast: false });
 }
 
+export type TableTakingsRow = {
+  /** Null for a row that is not a table: tabs, takeaway, delivery. */
+  tableId: string | null;
+  name: string;
+  area: string | null;
+  /** The waiter assigned to the table now. */
+  waiter: string | null;
+  orders: number;
+  guests: number;
+  bills: number;
+  /** What the paid bills came to, service charge included, tips not. */
+  taken: number;
+  tips: number;
+  perOrder: number;
+};
+
+export type WaiterTakingsRow = { staffProfileId: string; name: string; orders: number; taken: number; tips: number };
+
+export type TableTakingsReport = {
+  from: string;
+  to: string;
+  taken: number;
+  tips: number;
+  orders: number;
+  tables: TableTakingsRow[];
+  offTheFloor: TableTakingsRow[];
+  waiters: WaiterTakingsRow[];
+};
+
+/** What each table and each waiter took over a period, from the bills paid. */
+export async function fetchTableTakings(branchId: string, from: string, to: string): Promise<TableTakingsReport> {
+  const params = new URLSearchParams({ branchId, from, to });
+  return apiRequest<TableTakingsReport>(`${base}/reports/tables?${params.toString()}`, { toast: false });
+}
+
 // ---------------------------------------------------------------- tables, the floor, open orders
 
 export type RestaurantTableRecord = {
@@ -479,6 +514,9 @@ export type RestaurantTableRecord = {
   sortOrder: number;
   /** The secret in the table's QR code; null when customers cannot order from it. */
   qrToken?: string | null;
+  /** The waiter who looks after the table: a new order there is theirs unless another is named. */
+  waiterStaffProfileId?: string | null;
+  waiterName?: string | null;
 };
 
 export type OrderChannel = "COUNTER" | "DINE_IN" | "TAKEAWAY" | "DELIVERY";
@@ -621,7 +659,14 @@ export async function createTable(body: {
 /** A field left out is not changed; a blank area clears it. */
 export async function updateTable(
   id: string,
-  body: { name?: string; capacity?: number; area?: string; active?: boolean },
+  body: {
+    name?: string;
+    capacity?: number;
+    area?: string;
+    active?: boolean;
+    /** The table's waiter; an empty string takes them off it. */
+    waiterStaffProfileId?: string;
+  },
 ): Promise<RestaurantTableRecord> {
   return apiRequest<RestaurantTableRecord>(`${base}/tables/${id}`, { method: "PATCH", body });
 }

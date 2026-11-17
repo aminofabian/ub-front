@@ -28,6 +28,10 @@ export default function RestaurantFloorPage() {
       canCancelSent={hasPermission(me?.permissions, Permission.RestaurantOrdersVoidSent)}
       canComp={hasPermission(me?.permissions, Permission.RestaurantBillsComp)}
       canManage={hasPermission(me?.permissions, Permission.RestaurantMenuManage)}
+      canSeeTakings={
+        hasPermission(me?.permissions, Permission.RestaurantMenuManage) ||
+        hasPermission(me?.permissions, Permission.SalesIntelligenceRead)
+      }
     />
   );
 }
