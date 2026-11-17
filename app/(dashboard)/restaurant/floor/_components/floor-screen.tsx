@@ -49,6 +49,17 @@ import { OpenForTheDay } from "../../_components/open-for-the-day";
 
 const kes = (n: number) => formatMoney(n, "KES");
 
+/**
+ * A compact money read for a dense tile: 4,750 → "4.8k", 1,500 → "1.5k", under 1,000 stays whole.
+ * The full figure lives on the order's own screen; the tile only needs the scale at a glance.
+ */
+function kesShort(n: number): string {
+  if (n < 1000) return String(Math.round(n));
+  const k = n / 1000;
+  const label = k >= 100 ? Math.round(k).toString() : k.toFixed(1).replace(/\.0$/, "");
+  return `${label}k`;
+}
+
 export type FloorRights = {
   canTakeOrders: boolean;
   canTakeMoney: boolean;
@@ -311,83 +322,96 @@ export function FloorScreen(rights: FloorRights) {
                 </div>
                 <span aria-hidden className="mt-2.5 block h-px w-7 bg-[#1D4B3B]" />
               </header>
-              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <ul className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {entries.map(({ table, orders }) => {
                   const busy = orders.filter((o) => !o.booked);
                   const first = busy[0] ?? orders[0];
+                  const attn = first ? needsSomeone(first) : false;
+                  const booked = Boolean(first?.booked) && busy.length === 0;
+                  const takenToday = takenByTable.get(table.id) ?? 0;
                   return (
                     <li key={table.id}>
                       <button
                         type="button"
                         disabled={!first && !rights.canTakeOrders}
                         className={cn(
-                          "grid min-h-[6.5rem] w-full content-start gap-0.5 rounded-[2px] border px-3 py-2 text-left",
+                          "group relative flex w-full flex-col gap-1 overflow-hidden rounded-[2px] border p-2 text-left",
+                          "transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
                           "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)]",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
-                          busy.length > 0 &&
-                            "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,transparent)]",
+                          "motion-safe:active:scale-[0.985]",
+                          // Busy, booked and attention each tint the whole card so the floor reads by colour.
+                          !attn && busy.length > 0 &&
+                            "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_7%,var(--op-surface,#FCFAF5))]",
+                          booked &&
+                            "border-dashed border-[#8f3f2f] bg-[color-mix(in_srgb,#8f3f2f_5%,var(--op-surface,#FCFAF5))]",
+                          attn &&
+                            "border-[#8f3f2f] bg-[color-mix(in_srgb,#8f3f2f_8%,var(--op-surface,#FCFAF5))]",
                         )}
                         onClick={() => (first ? setOpenId(first.orderId) : setSeating(table))}
                       >
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="min-w-0">
-                            <span className="block text-base font-semibold leading-tight">{table.name}</span>
-                            {table.capacity ? (
-                              <span className={cn("block", dashboardHintClass())}>seats {table.capacity}</span>
-                            ) : null}
+                        {/* Attention gets a terracotta spine down the left: the floor's first read. */}
+                        {attn ? (
+                          <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-[#8f3f2f]" />
+                        ) : null}
+
+                        <span className="flex items-center justify-between gap-1.5">
+                          <span className="min-w-0 truncate text-sm font-semibold leading-none text-[var(--op-ink,#121A16)]">
+                            {table.name}
                           </span>
                           {table.capacity ? (
                             <TableSeats
                               size="sm"
                               capacity={table.capacity}
                               taken={first && !first.booked ? (first.guestCount ?? busy.length) : 0}
-                              booked={Boolean(first?.booked) && busy.length === 0}
-                              attention={first ? needsSomeone(first) : false}
+                              booked={booked}
+                              attention={attn}
+                              className="h-7 w-11 shrink-0"
                             />
                           ) : null}
                         </span>
-                        {table.waiterName && (!first || first.booked) ? (
-                          <span className={dashboardHintClass()}>{table.waiterName}&rsquo;s table</span>
-                        ) : null}
+
                         {first ? (
                           <>
-                            <span className={cn("text-sm", needsSomeone(first) && "font-semibold text-[#8f3f2f]")}>
-                              {cardState(first)}
+                            <span className="flex items-baseline justify-between gap-1.5">
+                              <span
+                                className={cn(
+                                  "min-w-0 truncate text-[12px] leading-tight",
+                                  attn ? "font-semibold text-[#8f3f2f]" : "text-[color-mix(in_srgb,var(--op-ink,#121A16)_72%,transparent)]",
+                                )}
+                              >
+                                {cardState(first)}
+                              </span>
+                              {!first.booked ? (
+                                <span className="shrink-0 font-mono text-[13px] font-semibold tabular-nums leading-none text-[var(--op-ink,#121A16)]">
+                                  {kesShort(first.total)}
+                                </span>
+                              ) : null}
                             </span>
-                            <span className="font-mono text-sm tabular-nums">
-                              {first.booked ? (first.customerName ?? "") : kes(first.total)}
-                            </span>
-                            <span className={dashboardHintClass()}>
-                              {first.booked ? "" : `${elapsedLabel(first.openedAt, now)}`}
-                              {first.servedByName && !first.booked ? ` · ${first.servedByName}` : ""}
-                              {orders.length > 1 ? ` · +${orders.length - 1} more` : ""}
+                            <span className="flex items-center justify-between gap-1 text-[10.5px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]">
+                              <span className="min-w-0 truncate">
+                                {first.booked
+                                  ? (first.customerName ?? "")
+                                  : `${elapsedLabel(first.openedAt, now)}${first.servedByName ? ` · ${first.servedByName}` : ""}`}
+                              </span>
+                              {orders.length > 1 ? (
+                                <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_14%,transparent)] px-1 font-mono tabular-nums text-[var(--pos-primary,#1D4B3B)]">
+                                  +{orders.length - 1}
+                                </span>
+                              ) : null}
                             </span>
                           </>
                         ) : (
-                          <span className={dashboardHintClass()}>Free</span>
-                        )}
-                        {(takenByTable.get(table.id) ?? 0) > 0 ? (
-                          <span className="mt-auto pt-1 font-mono text-[12px] tabular-nums text-[color-mix(in_srgb,var(--op-ink,#121A16)_68%,transparent)]">
-                            {kes(takenByTable.get(table.id) ?? 0)} today
+                          <span className="flex items-center justify-between text-[11px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_45%,transparent)]">
+                            <span>Free</span>
+                            {takenToday > 0 ? (
+                              <span className="font-mono tabular-nums">{kesShort(takenToday)}</span>
+                            ) : table.capacity ? (
+                              <span className="tabular-nums">{table.capacity}</span>
+                            ) : null}
                           </span>
-                        ) : null}
+                        )}
                       </button>
-                      {orders.length > 1 ? (
-                        <ul className="mt-1 grid gap-1">
-                          {orders.slice(1).map((o) => (
-                            <li key={o.orderId}>
-                              <button type="button" className="text-sm underline" onClick={() => setOpenId(o.orderId)}>
-                                Order {o.orderNumber}: {cardState(o)}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {first && !first.booked && rights.canTakeOrders ? (
-                        <button type="button" className="mt-1 text-sm underline" onClick={() => setSeating(table)}>
-                          Another order here
-                        </button>
-                      ) : null}
                     </li>
                   );
                 })}
