@@ -13,9 +13,12 @@ import { cn } from "@/lib/utils";
 
 import styles from "./shop-restaurant-landing.module.css";
 
+/** Below this, a heading stays one column. Two columns with two or three dishes leaves a blank half. */
+const DISHES_BEFORE_TWO_COLUMNS = 4;
+
 /**
- * The storefront home of a restaurant that has put its menu on its web page: the place, the menu
- * as it would be printed (headings, dishes, prices, pictures where the restaurant has taken any)
+ * The storefront home of a restaurant or bar that has put its menu on its web page: the place, the
+ * menu as it would be printed (headings, dishes, prices, pictures where the house has taken any)
  * and how to find or call it. Nothing is ordered here; it is the card in the window.
  */
 export function ShopRestaurantLanding({
@@ -78,7 +81,7 @@ export function ShopRestaurantLanding({
 
   return (
     <div className={styles.page} style={pageStyle} data-restaurant-landing>
-      <nav className={styles.nav} aria-label="On this page">
+      <nav className={styles.nav} aria-label={storeName}>
         <p className={styles.navName}>{storeName}</p>
         <div className={styles.navLinks}>
           <button type="button" className={styles.navLink} onClick={() => go(menuRef.current)}>
@@ -87,6 +90,9 @@ export function ShopRestaurantLanding({
           <button type="button" className={styles.navLink} onClick={() => go(visitRef.current)}>
             Find us
           </button>
+          <a className={styles.navStaff} href={buildStorefrontSignInHref({ path: "/", door: "staff" })}>
+            Staff
+          </a>
           {telHref ? (
             <a className={styles.navCall} href={telHref}>
               <Phone className="size-4" aria-hidden /> Call
@@ -97,7 +103,6 @@ export function ShopRestaurantLanding({
 
       <header className={cn(styles.hero, !heroUrl && !lead && styles.heroPlain)}>
         <div className={styles.heroText}>
-          <p className={styles.kicker}>{where ? where : "Menu"}</p>
           <h1 className={styles.heroTitle}>{storeName}</h1>
           <p className={styles.heroLine}>{tagline?.trim() || (menu.dishes.length > 0 ? "Cooked to order. Have a look at what is on today." : "Cooked to order. Our menu will be here shortly.")}</p>
           <div className={styles.heroActions}>
@@ -212,35 +217,43 @@ export function ShopRestaurantLanding({
           <p className={styles.menuSoon}>The menu is being written. Call us, or come by, to hear what is on today.</p>
         ) : null}
 
-        {sections.map((section) => (
-          <section key={section.id} id={section.id} className={styles.section} aria-label={section.title ?? "Menu"}>
-            {section.title ? (
-              <h3 className={styles.h3}>
-                <span>{section.title}</span>
-                <span className={styles.count}>{section.dishes.length}</span>
-              </h3>
-            ) : null}
-            <ul className={styles.dishes}>
-              {section.dishes.map((dish) => (
-                <li key={dish.id} className={cn(styles.dish, !dish.servedNow && styles.dishOff)}>
-                  {dish.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- the restaurant's own picture of the dish
-                    <img src={dish.imageUrl} alt="" loading="lazy" decoding="async" className={styles.dishPhoto} />
-                  ) : null}
-                  <div className={styles.dishBody}>
-                    <p className={styles.dishTop}>
-                      <span className={styles.dishName}>{dish.name}</span>
-                      <span className={styles.leader} aria-hidden />
-                      <span className={styles.dishPrice}>{money(dish.price)}</span>
-                    </p>
-                    {dish.description ? <p className={styles.dishLine}>{dish.description}</p> : null}
-                    {!dish.servedNow ? <p className={styles.dishNote}>Not being served right now</p> : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {sections.map((section) => {
+          const oneColumn = section.dishes.length < DISHES_BEFORE_TWO_COLUMNS;
+          return (
+            <section
+              key={section.id}
+              id={section.id}
+              className={cn(styles.section, oneColumn && styles.sectionNarrow)}
+              aria-label={section.title ?? "Menu"}
+            >
+              {section.title ? (
+                <h3 className={styles.h3}>
+                  <span>{section.title}</span>
+                  <span className={styles.count}>{section.dishes.length}</span>
+                </h3>
+              ) : null}
+              <ul className={cn(styles.dishes, oneColumn && styles.dishesStack)}>
+                {section.dishes.map((dish) => (
+                  <li key={dish.id} className={cn(styles.dish, !dish.servedNow && styles.dishOff)}>
+                    {dish.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- the restaurant's own picture of the dish
+                      <img src={dish.imageUrl} alt="" loading="lazy" decoding="async" className={styles.dishPhoto} />
+                    ) : null}
+                    <div className={styles.dishBody}>
+                      <p className={styles.dishTop}>
+                        <span className={styles.dishName}>{dish.name}</span>
+                        <span className={styles.leader} aria-hidden />
+                        <span className={styles.dishPrice}>{money(dish.price)}</span>
+                      </p>
+                      {dish.description ? <p className={styles.dishLine}>{dish.description}</p> : null}
+                      {!dish.servedNow ? <p className={styles.dishNote}>Not being served right now</p> : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
       </section>
 
       <section ref={visitRef} className={styles.visit} aria-labelledby="rl-visit">
@@ -288,9 +301,6 @@ export function ShopRestaurantLanding({
         <p>
           © {new Date().getFullYear()} {storeName}
         </p>
-        <a className={styles.footerLink} href={buildStorefrontSignInHref({ path: "/", door: "staff" })}>
-          Staff sign in
-        </a>
       </footer>
     </div>
   );

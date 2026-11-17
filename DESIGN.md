@@ -450,8 +450,11 @@ the order the work happens; on a phone they stack in that order.
 ### Restaurant web page and pictures
 
 - The restaurant's public home (`ShopRestaurantLanding`) is a printed menu, not a shop shelf: serif italic title,
-  double-ruled headings in small capitals, dishes in two columns with dotted leaders and mono prices. It takes the
-  storefront theme's colours and corners where a theme is present and falls back to paper, ink and 2px corners.
+  double-ruled headings, dishes with dotted leaders and mono prices. A heading with four or more dishes splits
+  into two columns; a shorter one stays a single column under the title. It takes the storefront theme's colours
+  and corners where a theme is present and falls back to paper, ink and 2px corners.
+- Staff is a nav link, the same size as Menu and Find us, labeled Staff. That door signs in staff, buyers and
+  the rest of the shop. It does not live in the footer.
 - No stock photography. The top of the page uses the restaurant's own photograph, else its best dish picture with
   the dish and price as caption, else a slip of real dishes and prices.
 - Pictures are optional everywhere. A list where some rows have pictures and some do not is fine in reading
