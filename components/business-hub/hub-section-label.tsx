@@ -30,7 +30,9 @@ export function HubSectionLabel({
       {meta || action ? (
         <div className="flex shrink-0 items-center gap-2">
           {meta ? (
-            <p className="text-[12px] tabular-nums text-[#98a2b3]">{meta}</p>
+            <p className="text-[13px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+              {meta}
+            </p>
           ) : null}
           {action}
         </div>

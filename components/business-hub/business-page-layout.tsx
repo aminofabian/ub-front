@@ -7,19 +7,20 @@ import { OnlineStoreHeaderSwitch } from "@/components/business-hub/online-store-
 import { cn } from "@/lib/utils";
 
 export const BUSINESS_HUB_VARS = {
-  ["--hub-ink" as string]: "#121A16",
-  ["--hub-paper" as string]: "#FCFAF5",
-  ["--hub-bg" as string]: "#F4F1EA",
-  ["--hub-accent" as string]: "#1D4B3B",
-  ["--hub-accent-deep" as string]: "#163B2E",
-  ["--hub-slip" as string]: "#FCFAF5",
-  ["--hub-rule" as string]: "color-mix(in srgb, #121A16 10%, transparent)",
-  ["--order-ink" as string]: "#121A16",
-  ["--pos-primary" as string]: "#1D4B3B",
-  ["--font-sans" as string]: "var(--font-manrope), system-ui, sans-serif",
-  ["--font-heading" as string]: "var(--font-manrope), system-ui, sans-serif",
-  ["--font-serif" as string]: "var(--font-cormorant), Georgia, serif",
-  fontFamily: "var(--font-manrope), system-ui, sans-serif",
+  ["--hub-ink" as string]: "#14211C",
+  ["--hub-paper" as string]: "#FFFFFF",
+  ["--hub-bg" as string]: "#F4F2EC",
+  ["--hub-accent" as string]: "#0F4A38",
+  ["--hub-accent-deep" as string]: "#0D3B2E",
+  ["--hub-slip" as string]: "#FCFBF8",
+  ["--hub-rule" as string]: "#E7E3D8",
+  ["--hub-muted" as string]: "#5E6B65",
+  ["--order-ink" as string]: "#14211C",
+  ["--pos-primary" as string]: "#0F4A38",
+  ["--font-sans" as string]: "var(--font-inter), system-ui, sans-serif",
+  ["--font-heading" as string]: "var(--font-inter), system-ui, sans-serif",
+  ["--font-serif" as string]: "var(--font-instrument-serif), Georgia, serif",
+  fontFamily: "var(--font-inter), system-ui, sans-serif",
 } as const;
 
 const HUB_RULE_8 = "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]";
@@ -156,11 +157,11 @@ export function BusinessPageLayout({
               <h1
                 className="text-[var(--hub-ink)]"
                 style={{
-                  fontFamily: "var(--font-cormorant), Georgia, serif",
-                  fontSize: "clamp(1.65rem, 2.4vw, 2.05rem)",
+                  fontFamily: "var(--font-instrument-serif), Georgia, serif",
+                  fontSize: "clamp(1.9rem, 3vw, 2.75rem)",
                   fontWeight: 400,
-                  lineHeight: 1.05,
-                  letterSpacing: "-0.02em",
+                  lineHeight: 1,
+                  letterSpacing: "-0.01em",
                 }}
               >
                 {heading}

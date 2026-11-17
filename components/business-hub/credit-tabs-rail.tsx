@@ -16,8 +16,8 @@ function toNum(n: number | string | null | undefined): number {
   return Number.isFinite(v) ? v : 0;
 }
 
-/** Viewport height for ~2 compact rows. */
-const CREDIT_VIEWPORT_CLASS = "max-h-[5.5rem]";
+/** Viewport height for ~3 rows. */
+const CREDIT_VIEWPORT_CLASS = "max-h-[13.5rem]";
 
 export function CreditTabsRail({
   tabs,
@@ -63,40 +63,36 @@ export function CreditTabsRail({
       )}
       aria-label="Open credit tabs"
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <p className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#141414]">
-              Credit tape
+      <header className="flex shrink-0 items-start justify-between gap-2.5 px-[18px] pb-3 pt-4">
+        <div className="min-w-0">
+          <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+            Credit tape
+          </p>
+          {!empty ? (
+            <p className="mt-0.5 truncate text-[13px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+              {tabs.length} open · {fmtMoney(totalOwed, currency)}
             </p>
-            {!empty ? (
-              <p className="truncate text-[10px] text-[#8A8A8A]">
-                {tabs.length} open · {fmtMoney(totalOwed, currency)}
-              </p>
-            ) : null}
-          </div>
+          ) : null}
           {collections != null ? (
             <p
-              className="truncate text-[10px] font-medium tabular-nums text-emerald-800"
+              className="mt-0.5 truncate text-[13px] font-medium tabular-nums text-[#0B6B43]"
               title={`Credit payments collected ${paidPeriodLabel}`}
             >
               Paid {paidPeriodLabel} · {collections}
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href={APP_ROUTES.creditsOnTab}
-            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
-          >
-            All
-          </Link>
-        </div>
+        <Link
+          href={APP_ROUTES.creditsOnTab}
+          className="flex min-h-9 shrink-0 items-center rounded-[10px] bg-[#F0EDE4] px-3 text-[13px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+        >
+          All
+        </Link>
       </header>
 
       {empty ? (
-        <div className="px-3 py-2.5">
-          <p className="text-[11px] text-[#8A8A8A]">
+        <div className="px-[18px] pb-4 pt-1">
+          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
             {paid != null && paid > 0.009
               ? `No open tabs · ${fmtMoney(paid, currency)} collected ${paidPeriodLabel}.`
               : "No open credit tabs."}
@@ -109,7 +105,7 @@ export function CreditTabsRail({
             CREDIT_VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
+          <ol className="flex flex-col">
             {tabs.map((tab, i) => {
               const newest = i === 0 && justUpdated;
               const owed = toNum(tab.balanceOwed);
@@ -119,8 +115,8 @@ export function CreditTabsRail({
                 <li
                   key={tab.customerId}
                   className={cn(
-                    "flex items-center gap-2 px-2.5 py-1.5 transition-colors",
-                    newest && "bg-[#ffffff] hub-figure-pop",
+                    "flex items-center gap-3 border-t border-[#EFEBE0] px-[18px] py-3 transition-colors",
+                    newest && "bg-[#FCFBF8] hub-figure-pop",
                   )}
                 >
                   <div className="min-w-0 flex-1">
@@ -129,9 +125,9 @@ export function CreditTabsRail({
                       onClick={() => onInspect?.(tab)}
                       aria-label={`Open credit history for ${name}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
-                          "underline decoration-[#C47A5A]/45 underline-offset-2 hover:decoration-[#C47A5A]",
+                          "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
                     >
                       {name}
@@ -140,10 +136,10 @@ export function CreditTabsRail({
                       <>
                         <p
                           className={cn(
-                            "truncate font-mono text-[10px] tabular-nums",
+                            "mt-0.5 truncate text-[12px] tabular-nums",
                             storedCustomerPhoneIssue(tab.primaryPhone)
                               ? "font-semibold text-red-700"
-                              : "text-[#8A8A8A]",
+                              : "text-[var(--hub-muted,#5E6B65)]",
                           )}
                         >
                           {tab.primaryPhone.trim()}
@@ -151,33 +147,31 @@ export function CreditTabsRail({
                         <CustomerPhoneFlag
                           phone={tab.primaryPhone}
                           compact
-                          className="mt-0.5 text-[10px] text-red-700"
+                          className="mt-0.5 text-[11px] text-red-700"
                         />
                       </>
                     ) : null}
                   </div>
-                  {payEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => onPayTab?.(tab)}
-                      className={cn(
-                        "shrink-0 rounded-none border border-[#0f766e] bg-white px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-[#0f766e]",
-                        "transition-colors hover:bg-white",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
-                      )}
-                      title={`Record credit payment for ${name}`}
-                      aria-label={`Pay credit tab for ${name}`}
-                    >
-                      Pay
-                    </button>
-                  ) : (
-                    <span className="shrink-0 text-[9px] font-semibold tracking-[-0.02em] text-[#0f766e]">
-                      Owed
-                    </span>
-                  )}
-                  <p className="shrink-0 max-w-[6.5rem] truncate font-mono text-[11px] font-semibold tabular-nums text-right text-[#141414]">
-                    {fmtMoney(owed, currency)}
-                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <p className="max-w-[7rem] truncate text-right text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                      {fmtMoney(owed, currency)}
+                    </p>
+                    {payEnabled ? (
+                      <button
+                        type="button"
+                        onClick={() => onPayTab?.(tab)}
+                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[12px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
+                        title={`Record credit payment for ${name}`}
+                        aria-label={`Pay credit tab for ${name}`}
+                      >
+                        Pay
+                      </button>
+                    ) : (
+                      <span className="rounded-full bg-[#FBEBD2] px-2.5 py-[3px] text-[12px] font-semibold text-[#8A4B00]">
+                        Owed
+                      </span>
+                    )}
+                  </div>
                 </li>
               );
             })}

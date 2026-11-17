@@ -6,9 +6,9 @@ import { useFormatMoney } from "@/hooks/use-format-money";
 import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
 import { cn } from "@/lib/utils";
 
-const BAR_MUTED = "#cfeee3";
-const BAR_PICKED = "#7ecbb8";
-const BAR_TODAY = "#0f766e";
+const BAR_MUTED = "rgba(255,255,255,0.28)";
+const BAR_PICKED = "rgba(255,255,255,0.5)";
+const BAR_TODAY = "#86E8B8";
 
 function dayOfMonth(isoDay: string): string {
   const day = isoDay.slice(8, 10);
@@ -55,23 +55,19 @@ export function RevenueBarChart({
     <div role="group" aria-label={ariaLabel}>
       {selected ? (
         <div className="flex items-baseline justify-between gap-2 px-1">
-          <span className="text-[11px] text-[#667085]">
+          <span className="text-[12px] text-[rgba(244,242,236,0.72)]">
             {selected.label}
             {isTodaySelected ? " · Today" : ""}
           </span>
-          <span className="text-[12px] font-semibold tabular-nums text-[#101828]">
+          <span className="text-[13px] font-semibold tabular-nums text-[#F4F2EC]">
             {formatMoneyCompact(selected.value)}
           </span>
         </div>
       ) : null}
 
-      <div className="relative mt-2.5">
-        <span
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#e6eaec]"
-          aria-hidden
-        />
+      <div className="relative mt-3">
         <div
-          className="grid h-16 items-stretch gap-1 sm:h-28"
+          className="grid h-24 items-stretch gap-2.5 sm:h-[168px]"
           style={columns}
         >
           {points.map((point) => {
@@ -90,7 +86,7 @@ export function RevenueBarChart({
                 className="flex min-w-0 flex-col justify-end"
               >
                 <span
-                  className="w-full rounded-t-[4px] transition-[height,background-color] duration-200"
+                  className="w-full rounded-[8px_8px_3px_3px] transition-[height,background-color] duration-200"
                   style={{
                     height: `${pct}%`,
                     backgroundColor: isToday
@@ -106,7 +102,7 @@ export function RevenueBarChart({
         </div>
       </div>
 
-      <div className="mt-1.5 grid gap-1" style={columns}>
+      <div className="mt-2 grid gap-2.5" style={columns}>
         {points.map((point) => {
           const isToday = point.day === todayDay;
           const weekday = weekdayNarrow(point.day);
@@ -114,8 +110,10 @@ export function RevenueBarChart({
             <span
               key={point.day}
               className={cn(
-                "truncate text-center text-[11px] font-medium leading-none tabular-nums sm:text-[12px]",
-                isToday ? "text-[#0f766e]" : "text-[#667085]",
+                "truncate text-center text-[12px] leading-[1.2] tabular-nums",
+                isToday
+                  ? "font-bold text-[#86E8B8]"
+                  : "text-[rgba(244,242,236,0.72)]",
               )}
             >
               {showWeekday ? (

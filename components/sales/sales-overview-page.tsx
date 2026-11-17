@@ -13,12 +13,13 @@ import { useSearchParams } from "next/navigation";
 import {
   Ban,
   BadgeCheck,
+  ChevronDown,
   Clock,
   Download,
   List,
   Pencil,
+  Plus,
   Receipt,
-  RefreshCw,
   Search,
 } from "lucide-react";
 
@@ -31,14 +32,17 @@ import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
-  dashboardHintClass,
   dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import {
+  ALL_SHELF_ZONES_LABEL,
+  useSessionAisle,
+  useSessionBranch,
+  useSessionItemType,
+  useSyncBranchFilter,
+} from "@/hooks/use-session-scope";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
 import { VoidSaleDialog } from "@/components/sales/void-sale-dialog";
 import {
@@ -47,19 +51,6 @@ import {
   type SalesDatePreset,
   type StatusFilter,
 } from "@/components/sales/sales-feed-filters";
-import {
-  salesHair,
-  salesHairDivide,
-  salesInk,
-  salesMute,
-  salesPaper,
-  salesSurface,
-  SalesHeroMetric,
-  SalesMetricTile,
-  SalesPeriodChip,
-  SalesStage,
-  salesToolBtnClass,
-} from "@/components/sales/sales-surface";
 import { cn } from "@/lib/utils";
 import { textMatchesQuery } from "@/lib/text-search";
 import {
@@ -75,7 +66,6 @@ import {
 } from "@/lib/api";
 import { fetchMergedSalesActivity } from "@/lib/sales-activity";
 import {
-  formatChannelLabel,
   matchesChannelFilter,
   matchesStatusWithChannel,
   normalizeSaleChannel,
@@ -97,6 +87,27 @@ import {
 } from "@/lib/sales-activity-pdf";
 
 const POLL_MS = 8_000;
+const LEDGER = "#0D3B2E";
+const LEDGER_INK = "#F4F2EC";
+const LEDGER_MUTED = "rgba(244,242,236,0.72)";
+const PEAK = "#86E8B8";
+const INK = "#121A16";
+const MUTED = "#5C675F";
+const HOUR_BAR_MAX_PX = 120;
+const HOUR_CHART_PX = 152;
+const NEAR_PEAK_SHARE = 0.85;
+const PAPER_CARD =
+  "rounded-[20px] bg-[#FFFEFB] shadow-[0_1px_2px_rgba(18,26,22,0.05)]";
+
+const PAYMENT_TINTS: Record<string, string> = {
+  mpesa: "#2C8A5E",
+  cash: "#9FE0C0",
+  split: "#3E6D8C",
+  credit: "#E9A15A",
+  wallet: "#7A6AAB",
+  loyalty: "#C46B8A",
+  other: "#8A938C",
+};
 
 /** The single payment bucket a sale is attributed to in the payment-mix card. */
 function primaryPaymentKey(
@@ -116,14 +127,96 @@ function toNum(n: number | string | null | undefined): number {
   return typeof n === "number" ? n : Number(n);
 }
 
-function fmtKes(n: number | string | null | undefined): string {
-  const v = toNum(n);
+function fmtAmount(n: number | string | null | undefined): string {
   return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(v);
+  }).format(Math.round(toNum(n)));
+}
+
+function fmtKes(n: number | string | null | undefined): string {
+  return `Ksh ${fmtAmount(n)}`;
+}
+
+function takenCaption(preset: SalesDatePreset): string {
+  switch (preset) {
+    case "today":
+      return "Taken today";
+    case "yesterday":
+      return "Taken yesterday";
+    case "last3":
+      return "Taken, last 3 days";
+    case "last7":
+      return "Taken, last 7 days";
+    case "last30":
+      return "Taken, last 30 days";
+    case "thisMonth":
+      return "Taken this month";
+    default:
+      return "Taken";
+  }
+}
+
+function axisTick(label: string, hourly: boolean): string {
+  if (hourly) return label.slice(0, 2);
+  return label.slice(-2);
+}
+
+function peakWhenLabel(label: string, hourly: boolean): string {
+  if (hourly) return label;
+  const [month, day] = label.split("-");
+  const monthNum = Number(month);
+  const dayNum = Number(day);
+  if (!monthNum || !dayNum) return label;
+  return new Date(2000, monthNum - 1, dayNum).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function barHeightPx(value: number, max: number): number {
+  if (value <= 0 || max <= 0) return 0;
+  return Math.max(4, Math.round((value / max) * HOUR_BAR_MAX_PX));
+}
+
+function barColor(value: number, max: number, peak: boolean): string {
+  if (peak) return PEAK;
+  if (max > 0 && value / max >= NEAR_PEAK_SHARE) return "rgba(255,255,255,0.5)";
+  return "rgba(255,255,255,0.28)";
+}
+
+function clockLabel(nowMs: number): string {
+  return new Date(nowMs).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function todayHeading(nowMs: number): string {
+  return new Date(nowMs).toLocaleDateString("en-KE", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function SalesScopeLine({ nowMs }: { nowMs: number }) {
+  const { branchName } = useSessionBranch();
+  const { itemTypeLabel } = useSessionItemType();
+  const { aisleLabel } = useSessionAisle();
+  const parts: string[] = [];
+  if (branchName) parts.push(branchName);
+  if (itemTypeLabel) parts.push(itemTypeLabel);
+  if (aisleLabel && aisleLabel !== ALL_SHELF_ZONES_LABEL) parts.push(aisleLabel);
+  const iso = new Date(nowMs).toISOString().slice(0, 10);
+
+  return (
+    <p className="mt-1.5 text-[13.5px]" style={{ color: MUTED }}>
+      {parts.length > 0 ? <span>{parts.join(" · ")} · </span> : null}
+      <time dateTime={iso}>{todayHeading(nowMs)}</time>
+    </p>
+  );
 }
 
 function formatQty(q: number | string): string {
@@ -176,102 +269,203 @@ function canVoidSale(tx: SaleTransaction): boolean {
   return isMutableSale(tx) && !tx.lines.some((line) => isRefunded(line.status));
 }
 
-function RevenueBars({
-  values,
-  labels,
+function LedgerBar({
+  value,
+  max,
+  tick,
+  title,
+  peak,
+  showTick,
 }: {
-  values: number[];
-  labels: string[];
+  value: number;
+  max: number;
+  tick: string;
+  title: string;
+  peak: boolean;
+  showTick: boolean;
 }) {
-  if (values.length < 2) return null;
-  const max = Math.max(...values, 1);
-  const peakIdx = values.reduce((best, v, i) => (v > values[best] ? i : best), 0);
-  const peakHasRevenue = values[peakIdx] > 0;
   return (
-    <figure className="mt-3 pb-1">
-      {peakHasRevenue ? (
-        <figcaption
-          className={cn(
-            "mb-1.5 flex items-center gap-1.5 text-[11px]",
-            salesMute,
-          )}
-        >
-          <span className="size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
-          Peak{" "}
-          <span className="font-semibold text-foreground">{labels[peakIdx]}</span>
-          <span className="tabular-nums">· {fmtKes(values[peakIdx])}</span>
-        </figcaption>
-      ) : null}
+    <div
+      title={title}
+      className="flex h-full min-w-0 flex-1 flex-col justify-end gap-2"
+    >
       <div
-        className={cn("flex h-16 items-end gap-[3px] border-b", salesHair)}
-        role="img"
-        aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}, peak ${labels[peakIdx]}`}
-      >
-        {values.map((v, i) => {
-          const isPeak = i === peakIdx && peakHasRevenue;
-          return (
-            <div
-              key={`${labels[i]}-${i}`}
-              className={cn(
-                "group/bar relative min-w-0 flex-1 rounded-t-[3px] bg-[var(--pos-primary,#0f766e)] transition-[opacity,height] duration-200",
-                isPeak && "!opacity-100 ring-1 ring-inset ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)]",
-              )}
-              style={{
-                height: `${Math.max(6, (v / max) * 100)}%`,
-                opacity: isPeak ? 1 : v > 0 ? 0.28 + (v / max) * 0.55 : 0.1,
-              }}
-              title={`${labels[i]} ${fmtKes(v)}`}
-            >
-              {/* Hover tooltip so any hour is readable, not just the peak. */}
-              <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background opacity-0 shadow-sm transition-opacity group-hover/bar:opacity-100">
-                {labels[i]} · {fmtKes(v)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <figcaption
+        className="rounded-t-[6px] rounded-b-[2px] motion-reduce:transition-none"
+        style={{
+          height: barHeightPx(value, max),
+          background: barColor(value, max, peak),
+          transition: "height 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      />
+      <span
         className={cn(
-          "mt-1.5 flex justify-between font-mono text-[10.5px] tabular-nums",
-          salesMute,
+          "text-center text-[12px] tabular-nums leading-none",
+          peak ? "font-bold" : "font-medium",
+          !showTick && "invisible",
         )}
+        style={{ color: peak ? PEAK : LEDGER_MUTED }}
       >
-        <span>{labels[0]}</span>
-        <span>{labels[labels.length - 1]}</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-function MetricsSkeleton() {
-  return (
-    <div className="space-y-3 p-4 sm:p-5">
-      <div className="h-24 animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]" />
-      <div className="grid grid-cols-2 gap-2">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-[4.75rem] animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]"
-          />
-        ))}
-      </div>
+        {tick}
+      </span>
     </div>
   );
 }
 
-/** Per-method accent for the payment-mix bars — distinct but calm. */
-const PAYMENT_TINTS: Record<string, string> = {
-  mpesa: "#1d9d5e",
-  cash: "#0f766e",
-  split: "#3b5bdb",
-  credit: "#b8690f",
-  wallet: "#7c5cbf",
-  loyalty: "#b8328f",
-  other: "#6b7a72",
-};
+function LedgerBars({
+  values,
+  labels,
+  hourly,
+}: {
+  values: number[];
+  labels: string[];
+  hourly: boolean;
+}) {
+  const max = Math.max(...values, 1);
+  const peakIdx = values.reduce(
+    (best, v, i) => (v > (values[best] ?? 0) ? i : best),
+    0,
+  );
+  const peakValue = values[peakIdx] ?? 0;
+  if (peakValue <= 0 || values.length < 2) return null;
+  const from = hourly ? labels[0] : peakWhenLabel(labels[0] ?? "", false);
+  const to = hourly
+    ? labels[labels.length - 1]
+    : peakWhenLabel(labels[labels.length - 1] ?? "", false);
+  const when = peakWhenLabel(labels[peakIdx] ?? "", hourly);
+  const dense = labels.length > 16;
 
-/** Horizontal revenue-share bars, one per payment method used this period. */
-function PaymentMixCard({
+  return (
+    <div
+      role="img"
+      aria-label={`Sales ${hourly ? "by hour" : "by day"} from ${from} to ${to}. Peak at ${when} with ${fmtKes(peakValue)}.`}
+      className="flex items-end gap-2"
+      style={{ height: HOUR_CHART_PX }}
+    >
+      {values.map((value, i) => {
+        const label = labels[i] ?? "";
+        const peak = value > 0 && value === peakValue;
+        return (
+          <LedgerBar
+            key={`${label}-${i}`}
+            value={value}
+            max={max}
+            tick={axisTick(label, hourly)}
+            title={`${hourly ? label : peakWhenLabel(label, false)} · ${fmtKes(value)}${peak ? " (peak)" : ""}`}
+            peak={peak}
+            showTick={!dense || peak || i === 0 || i === values.length - 1}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function LedgerHero({
+  caption,
+  amount,
+  peak,
+  chart,
+  note,
+}: {
+  caption: string;
+  amount: number;
+  peak: { caption: string; when: string; amount: number } | null;
+  chart: ReactNode;
+  note?: string | null;
+}) {
+  return (
+    <section
+      className="flex flex-col gap-7 rounded-[24px] p-5 sm:p-7"
+      style={{ background: LEDGER, color: LEDGER_INK }}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="text-[14px] font-medium" style={{ color: LEDGER_MUTED }}>
+            {caption}
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-2.5 tabular-nums">
+            <span className="text-[28px] font-medium" style={{ color: LEDGER_MUTED }}>
+              Ksh
+            </span>
+            <span className="text-[3.25rem] font-semibold leading-none tracking-[-0.03em] sm:text-[4.5rem]">
+              {fmtAmount(amount)}
+            </span>
+          </div>
+        </div>
+        {peak ? (
+          <div
+            className="flex items-center gap-3.5 rounded-[16px] px-[18px] py-3"
+            style={{ background: "rgba(255,255,255,0.08)" }}
+          >
+            <span className="text-[13px]" style={{ color: LEDGER_MUTED }}>
+              {peak.caption}
+            </span>
+            <span
+              className="text-[20px] font-semibold tabular-nums"
+              style={{ color: PEAK }}
+            >
+              {peak.when}
+            </span>
+            <span
+              className="text-[14px] tabular-nums"
+              style={{ color: "rgba(244,242,236,0.9)" }}
+            >
+              {fmtKes(peak.amount)}
+            </span>
+          </div>
+        ) : null}
+      </div>
+      {chart}
+      {note ? (
+        <p className="text-[14px]" style={{ color: LEDGER_MUTED }}>
+          {note}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  warn,
+  textual,
+  className,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  warn?: boolean;
+  textual?: boolean;
+  className?: string;
+}) {
+  return (
+    <article className={cn(PAPER_CARD, "flex flex-col px-5 py-4", className)}>
+      <p className="text-[13px] font-medium" style={{ color: MUTED }}>
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-2 font-semibold tracking-[-0.03em]",
+          textual
+            ? "line-clamp-2 text-[1.35rem] leading-tight"
+            : "text-[2rem] leading-none tabular-nums",
+        )}
+        style={{ color: warn ? "#9a2e16" : INK }}
+      >
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-2 text-[13px]" style={{ color: MUTED }}>
+          {hint}
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
+function PaymentMix({
   mix,
   total,
 }: {
@@ -280,103 +474,93 @@ function PaymentMixCard({
 }) {
   if (mix.length === 0 || total <= 0) return null;
   return (
-    <div className="px-4 py-4 sm:px-5">
-      <p className={cn("text-[11px] font-semibold", salesMute)}>Payment mix</p>
-      <ul className="mt-3 space-y-2.5">
+    <section className={cn(PAPER_CARD, "px-5 py-5")}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold" style={{ color: INK }}>
+          Payment mix
+        </h2>
+        <p className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+          {fmtKes(total)} total
+        </p>
+      </div>
+      <div
+        className="mt-4 flex h-2.5 overflow-hidden rounded-full"
+        style={{ background: "#EFEBE3" }}
+      >
+        {mix.map(({ method, amount }) => (
+          <div
+            key={method}
+            title={`${formatPaymentMethodLabel(method)} ${fmtKes(amount)}`}
+            style={{
+              flexGrow: amount,
+              flexBasis: 0,
+              background: PAYMENT_TINTS[method] ?? PAYMENT_TINTS.other,
+            }}
+          />
+        ))}
+      </div>
+      <ul className="mt-4 space-y-2.5">
         {mix.map(({ method, amount }) => {
           const pct = Math.round((amount / total) * 100);
-          const tint = PAYMENT_TINTS[method] ?? PAYMENT_TINTS.other;
           return (
-            <li key={method}>
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
-                  <span
-                    aria-hidden
-                    className="size-2 rounded-full"
-                    style={{ backgroundColor: tint }}
-                  />
-                  {formatPaymentMethodLabel(method)}
-                </span>
-                <span className={cn("text-[11px] tabular-nums", salesMute)}>
-                  {fmtKes(amount)} · {pct}%
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
-                <div
-                  className="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
-                  style={{
-                    width: `${Math.max(3, pct)}%`,
-                    backgroundColor: tint,
-                  }}
-                />
-              </div>
+            <li key={method} className="flex items-center gap-2.5 text-[14px]">
+              <span
+                aria-hidden
+                className="size-2.5 shrink-0 rounded-[3px]"
+                style={{
+                  background: PAYMENT_TINTS[method] ?? PAYMENT_TINTS.other,
+                }}
+              />
+              <span className="font-medium" style={{ color: INK }}>
+                {formatPaymentMethodLabel(method)}
+              </span>
+              <span className="ml-auto tabular-nums" style={{ color: INK }}>
+                {fmtKes(amount)}
+              </span>
+              <span
+                className="w-10 text-right tabular-nums"
+                style={{ color: MUTED }}
+              >
+                {pct}%
+              </span>
             </li>
           );
         })}
       </ul>
-    </div>
+    </section>
   );
 }
 
-/** Walk-in vs Online revenue, shown as a single split bar. */
-function ChannelSplitCard({
-  walkIn,
-  online,
-}: {
-  walkIn: number;
-  online: number;
-}) {
-  const total = walkIn + online;
-  if (total <= 0) return null;
-  const walkPct = Math.round((walkIn / total) * 100);
-  const onlinePct = 100 - walkPct;
-  return (
-    <div className={cn("border-t px-4 py-4 sm:px-5", salesHair)}>
-      <p className={cn("text-[11px] font-semibold", salesMute)}>Channel</p>
-      <div className="mt-3 flex h-2.5 overflow-hidden rounded-full">
-        <div
-          className="h-full bg-[var(--pos-primary,#0f766e)]"
-          style={{ width: `${Math.max(online > 0 ? 2 : 0, walkPct)}%` }}
-          title={`Walk-in ${walkPct}%`}
-        />
-        <div
-          className="h-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_38%,transparent)]"
-          style={{ width: `${Math.max(walkIn > 0 ? 2 : 0, onlinePct)}%` }}
-          title={`Online ${onlinePct}%`}
-        />
-      </div>
-      <div className="mt-2.5 flex items-center justify-between text-[11px]">
-        <span className="flex items-center gap-1.5 text-foreground">
-          <span className="size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
-          Walk-in <span className={cn("tabular-nums", salesMute)}>{fmtKes(walkIn)}</span>
-        </span>
-        <span className="flex items-center gap-1.5 text-foreground">
-          <span
-            className="size-2 rounded-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_38%,transparent)]"
-            aria-hidden
-          />
-          Online <span className={cn("tabular-nums", salesMute)}>{fmtKes(online)}</span>
-        </span>
-      </div>
-    </div>
+function peakFromTrend(
+  trend: { values: number[]; labels: string[] },
+  hourly: boolean,
+): { caption: string; when: string; amount: number } | null {
+  if (trend.values.length === 0) return null;
+  const peakIdx = trend.values.reduce(
+    (best, v, i) => (v > (trend.values[best] ?? 0) ? i : best),
+    0,
   );
+  const amount = trend.values[peakIdx] ?? 0;
+  if (amount <= 0) return null;
+  return {
+    caption: hourly ? "Peak hour" : "Peak day",
+    when: peakWhenLabel(trend.labels[peakIdx] ?? "", hourly),
+    amount,
+  };
 }
 
-function SalesTillMetrics({
+function SalesLedger({
   datePreset,
-  onDatePresetChange,
-  isLivePeriod,
-  dateRange,
+  hourly,
+  needsDates,
   error,
   loading,
   summary,
-  statusLine,
-  trendChart,
+  trend,
 }: {
   datePreset: SalesDatePreset;
-  onDatePresetChange: (id: SalesDatePreset) => void;
-  isLivePeriod: boolean;
-  dateRange: { from: string; to: string } | null;
+  hourly: boolean;
+  needsDates: boolean;
   error: string | null;
   loading: boolean;
   summary: {
@@ -389,86 +573,62 @@ function SalesTillMetrics({
     avgTicket: number;
     topItem: string;
     paymentMix: { method: string; amount: number }[];
-    walkInRevenue: number;
-    onlineRevenue: number;
   };
-  statusLine: string;
-  trendChart: ReactNode;
+  trend: { values: number[]; labels: string[] };
 }) {
-  const takenHint =
-    trendChart && dateRange
-      ? `${statusLine || "Sold this period."} · ${
-          datePreset === "today" || datePreset === "yesterday" ? "by hour" : "by day"
-        }`
-      : statusLine || "Sold this period.";
-
-  return (
-    <div className={cn(salesSurface, "flex min-h-0 flex-col overflow-hidden")}>
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-2 border-b px-3 py-2.5 sm:px-3.5",
-          salesHair,
-        )}
-      >
+  if (loading && !needsDates && !error) {
+    return (
+      <div className="flex flex-col gap-4" aria-hidden>
         <div
-          role="group"
-          aria-label="Period"
-          className="flex flex-wrap items-center gap-1.5"
-        >
-          {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-            <SalesPeriodChip
-              key={id}
-              active={datePreset === id}
-              onClick={() => onDatePresetChange(id)}
-            >
-              {label}
-            </SalesPeriodChip>
+          className="h-64 animate-pulse rounded-[24px]"
+          style={{ background: LEDGER }}
+        />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={cn(PAPER_CARD, "h-28 animate-pulse")} />
           ))}
         </div>
-        {isLivePeriod ? (
-          <span
-            className={cn(
-              "ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium",
-              salesMute,
-            )}
-          >
-            <span
-              className="size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)] motion-safe:animate-pulse"
-              aria-hidden
-            />
-            Live
-          </span>
-        ) : null}
       </div>
+    );
+  }
 
-      {!dateRange || error ? (
-        <p className={cn(dashboardHintClass(), "px-4 py-10 text-center sm:px-5")}>
-          Pick a period to see what the till took.
-        </p>
-      ) : loading ? (
-        <MetricsSkeleton />
-      ) : (
+  const quietFailure =
+    Boolean(error) && summary.revenue <= 0 && summary.transactions === 0;
+  const peak = needsDates || quietFailure ? null : peakFromTrend(trend, hourly);
+  const chart =
+    needsDates || quietFailure || trend.values.filter((v) => v > 0).length < 2 ? null : (
+      <LedgerBars values={trend.values} labels={trend.labels} hourly={hourly} />
+    );
+  const note = needsDates
+    ? "Pick a start and end date."
+    : error || chart || summary.revenue > 0
+      ? null
+      : "Nothing sold in this period.";
+  const refunds = summary.refundLines > 0;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <LedgerHero
+        caption={takenCaption(datePreset)}
+        amount={needsDates || quietFailure ? 0 : summary.revenue}
+        peak={peak}
+        chart={chart}
+        note={note}
+      />
+      {needsDates || quietFailure ? null : (
         <>
-          <SalesHeroMetric
-            label="Taken"
-            value={fmtKes(summary.revenue)}
-            hint={takenHint}
-          />
-          {trendChart ? (
-            <div className="px-4 pb-1 sm:px-5">{trendChart}</div>
-          ) : null}
-          <div className={cn("grid grid-cols-2 border-t", salesHair, salesHairDivide)}>
-            <SalesMetricTile
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.25fr]">
+            <StatCard
               label="Tickets"
               value={summary.transactions.toLocaleString("en-KE")}
               hint={
                 summary.transactions > 0
-                  ? `${fmtKes(summary.avgTicket)} average`
+                  ? `${fmtKes(summary.avgTicket)} average ticket`
                   : "No tickets yet"
               }
             />
-            <SalesMetricTile
-              label="Units"
+            <StatCard
+              label="Units sold"
               value={summary.units.toLocaleString("en-KE", {
                 maximumFractionDigits: 1,
               })}
@@ -478,35 +638,24 @@ function SalesTillMetrics({
                   : undefined
               }
             />
-            <SalesMetricTile
-              className="col-span-2 border-t"
-              label={summary.refundLines > 0 ? "Refunds" : "Top product"}
-              value={
-                summary.refundLines > 0
-                  ? fmtKes(summary.refundTotal)
-                  : summary.topItem || "—"
-              }
+            <StatCard
+              className="sm:col-span-2 xl:col-span-1"
+              textual={!refunds}
+              label={refunds ? "Refunds" : "Top product"}
+              value={refunds ? fmtKes(summary.refundTotal) : summary.topItem || "—"}
               hint={
-                summary.refundLines > 0
+                refunds
                   ? `${summary.refundLines} refunded line${summary.refundLines === 1 ? "" : "s"}`
                   : summary.topItem
-                    ? "Highest revenue"
+                    ? datePreset === "today"
+                      ? "Highest revenue today"
+                      : "Highest revenue"
                     : "Nothing sold yet"
               }
-              warn={summary.refundLines > 0}
+              warn={refunds}
             />
           </div>
-          {summary.revenue > 0 ? (
-            <div className={cn("border-t", salesHair)}>
-              <PaymentMixCard mix={summary.paymentMix} total={summary.revenue} />
-              {summary.onlineRevenue > 0 ? (
-                <ChannelSplitCard
-                  walkIn={summary.walkInRevenue}
-                  online={summary.onlineRevenue}
-                />
-              ) : null}
-            </div>
-          ) : null}
+          <PaymentMix mix={summary.paymentMix} total={summary.revenue} />
         </>
       )}
     </div>
@@ -572,7 +721,7 @@ function buildRevenueTrend(
 
 function FeedSkeleton() {
   return (
-    <div className={cn("divide-y", salesHairDivide)} aria-hidden>
+    <div className="divide-y divide-black/[0.06]" aria-hidden>
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="space-y-2.5 px-4 py-3.5">
           <div className="flex justify-between gap-4">
@@ -620,36 +769,22 @@ function saleMetaParts(tx: SaleTransaction): string[] {
   return parts;
 }
 
-type ChipTone = "ok" | "refund" | "online" | "verified" | "warn";
+const TICKET_ACTION =
+  "h-8 gap-1.5 rounded-full border border-black/[0.1] bg-[#FFFEFB] px-3 text-[12.5px] font-medium text-[#121A16] shadow-none hover:bg-[#F6F3EC]";
 
-const CHIP_TONES: Record<ChipTone, string> = {
-  ok: "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_9%,white)] text-[var(--pos-primary,#0f766e)]",
-  verified:
-    "bg-white text-[var(--pos-primary,#0f766e)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_35%,transparent)]",
-  refund: "bg-[#9a2e16]/[0.08] text-[#9a2e16]",
-  online:
-    "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,white)] text-[var(--order-ink,#15231f)]",
-  warn: "bg-amber-500/10 text-amber-900",
-};
-
-function SaleChip({
-  tone,
-  title,
-  children,
+function TicketStatus({
+  refunded,
+  online,
 }: {
-  tone: ChipTone;
-  title?: string;
-  children: ReactNode;
+  refunded: boolean;
+  online: boolean;
 }) {
+  const color = refunded ? "#9a2e16" : online ? MUTED : "#2C8A5E";
+  const label = refunded ? "Refunded" : online ? "Online" : "Completed";
   return (
-    <span
-      title={title}
-      className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-full px-2 text-[10.5px] font-semibold leading-none tracking-[0.01em]",
-        CHIP_TONES[tone],
-      )}
-    >
-      {children}
+    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium" style={{ color }}>
+      <span aria-hidden className="size-1.5 rounded-full" style={{ background: color }} />
+      {label}
     </span>
   );
 }
@@ -659,8 +794,10 @@ function SaleGroup({
   nowMs,
   showRelativeTime,
   isNew,
+  open,
   canAdjust,
   canVoid,
+  onToggle,
   onAdjust,
   onVoid,
 }: {
@@ -668,172 +805,127 @@ function SaleGroup({
   nowMs: number;
   showRelativeTime: boolean;
   isNew?: boolean;
+  open: boolean;
   canAdjust: boolean;
   canVoid: boolean;
+  onToggle: () => void;
   onAdjust: () => void;
   onVoid: () => void;
 }) {
   const refunded = isRefunded(tx.status);
   const isOnline = tx.channel === "online_store";
-  const meta = saleMetaParts(tx);
   const receipt = txDisplayNo(tx);
   const showReceiptActions = !isOnline;
   const hasActions = showReceiptActions || canAdjust || canVoid;
+  const detail = [
+    ...saleMetaParts(tx),
+    formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime }),
+    `${tx.lineCount} item${tx.lineCount === 1 ? "" : "s"}`,
+  ];
 
   return (
     <article
       className={cn(
-        "relative border-b transition-colors duration-200 last:border-0",
-        salesHair,
-        "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2.5%,white)]",
-        refunded && "bg-[#9a2e16]/[0.025]",
-        isNew &&
-          "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,white)]",
+        "border-b border-black/[0.06] px-4 py-3.5 last:border-0 sm:px-5",
+        refunded && "bg-[#9a2e16]/[0.03]",
+        isNew && "bg-[#86E8B8]/25",
       )}
     >
-      <div className="flex items-start justify-between gap-3 px-3.5 pb-2 pt-3 sm:px-4">
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className={cn(
-                "font-mono text-[12.5px] font-semibold tabular-nums tracking-tight",
-                salesInk,
-              )}
-            >
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[14px] font-semibold tabular-nums" style={{ color: INK }}>
               #{receipt}
             </span>
-            {isOnline ? (
-              <SaleChip tone="online">{formatChannelLabel(tx.channel)}</SaleChip>
-            ) : refunded ? (
-              <SaleChip tone="refund">Refunded</SaleChip>
-            ) : (
-              <SaleChip tone="ok">
-                <span
-                  className="size-1.5 rounded-full bg-current"
-                  aria-hidden
-                />
-                Completed
-              </SaleChip>
-            )}
+            <TicketStatus refunded={refunded} online={isOnline} />
             {tx.mpesaVerified && !refunded ? (
-              <SaleChip
-                tone="verified"
-                title="M-Pesa confirmed by KopoKopo webhook"
-              >
-                <BadgeCheck className="size-3" aria-hidden />
+              <span title="M-Pesa confirmed" className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2C8A5E]">
+                <BadgeCheck className="size-3.5" aria-hidden />
                 Verified
-              </SaleChip>
-            ) : null}
-            {tx.customerId &&
-            !tx.customerPhoneVerified &&
-            tx.customerMaskedHint ? (
-              <SaleChip
-                tone="warn"
-                title="M-Pesa number is still masked until the customer fills the missing digits"
-              >
-                Unverified number
-              </SaleChip>
+              </span>
             ) : null}
           </div>
-          {meta.length > 0 ? (
-            <p className={cn("truncate text-[12.5px] font-medium", salesInk)}>
-              {tx.customerId ? (
-                <Link
-                  href={APP_ROUTES.customer(tx.customerId)}
-                  className="text-[var(--pos-primary,#0f766e)] underline-offset-2 hover:underline"
-                >
-                  {meta.join(" · ")}
-                </Link>
-              ) : (
-                <span className="opacity-80">{meta.join(" · ")}</span>
-              )}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="shrink-0 text-right">
-          <p
-            className={cn(
-              "text-[17px] font-semibold tabular-nums leading-none tracking-[-0.02em]",
-              refunded ? "text-[#9a2e16]" : salesInk,
+          <p className="mt-1 truncate text-[13px]" style={{ color: MUTED }}>
+            {tx.customerId ? (
+              <Link
+                href={APP_ROUTES.customer(tx.customerId)}
+                className="underline-offset-2 hover:underline"
+                style={{ color: LEDGER }}
+              >
+                {detail.join(" · ")}
+              </Link>
+            ) : (
+              detail.join(" · ")
             )}
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            {refunded && tx.total > 0 ? "−" : ""}
-            {fmtKes(Math.abs(tx.total))}
-          </p>
-          <p className={cn("mt-1.5 text-[11px] tabular-nums", salesMute)}>
-            {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"}
-            <span className="mx-1 opacity-50">·</span>
-            {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
+            {tx.customerId && !tx.customerPhoneVerified && tx.customerMaskedHint
+              ? " · Unverified number"
+              : null}
           </p>
         </div>
+        <p
+          className="shrink-0 text-[17px] font-semibold tabular-nums leading-none tracking-[-0.02em]"
+          style={{ color: refunded ? "#9a2e16" : INK }}
+        >
+          {refunded && tx.total > 0 ? "−" : ""}
+          {fmtKes(Math.abs(tx.total))}
+        </p>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={open ? `Hide sale ${receipt}` : `Show sale ${receipt}`}
+          className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[#5C675F] hover:bg-black/[0.04]"
+        >
+          <ChevronDown
+            className={cn("size-4 transition-transform duration-200", open && "rotate-180")}
+            aria-hidden
+          />
+        </button>
       </div>
 
-      <ul
-        className={cn(
-          "mx-3.5 mb-2.5 space-y-1 border-l pl-3 sm:mx-4",
-          salesHair,
-        )}
-      >
-        {tx.lines.map((line, i) => {
-          const lineRefunded = isRefunded(line.status);
-          return (
-            <li
-              key={`${line.itemId}-${i}`}
-              className="flex items-baseline justify-between gap-3 text-[12px] leading-snug"
-            >
-              <span className="min-w-0 truncate">
-                <span
-                  className={cn("font-mono text-[11px] tabular-nums", salesMute)}
-                >
-                  {formatQty(line.quantity)}×
-                </span>
-                <span
-                  className={cn(
-                    "ml-1.5",
-                    salesInk,
-                    lineRefunded && "line-through opacity-60",
-                  )}
-                >
-                  {line.itemName}
-                </span>
-                <span
-                  className={cn("ml-1.5 font-mono text-[11px] tabular-nums", salesMute)}
-                >
-                  @ {fmtKes(line.unitPrice)}
-                </span>
-              </span>
-              <span
-                className={cn(
-                  "shrink-0 font-mono text-[11.5px] tabular-nums",
-                  lineRefunded ? "text-[#9a2e16]" : salesMute,
-                )}
+      {open ? (
+        <ul className="mt-3 space-y-1.5 border-l border-black/[0.08] pl-3">
+          {tx.lines.map((line, i) => {
+            const lineRefunded = isRefunded(line.status);
+            return (
+              <li
+                key={`${line.itemId}-${i}`}
+                className="flex items-baseline justify-between gap-3 text-[13px] leading-snug"
               >
-                {lineRefunded ? "−" : ""}
-                {fmtKes(line.lineTotal)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+                <span className="min-w-0 truncate">
+                  <span className="tabular-nums" style={{ color: MUTED }}>
+                    {formatQty(line.quantity)}×
+                  </span>
+                  <span
+                    className={cn("ml-1.5", lineRefunded && "line-through opacity-60")}
+                    style={{ color: INK }}
+                  >
+                    {line.itemName}
+                  </span>
+                  <span className="ml-1.5 tabular-nums" style={{ color: MUTED }}>
+                    @ {fmtKes(line.unitPrice)}
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 tabular-nums"
+                  style={{ color: lineRefunded ? "#9a2e16" : MUTED }}
+                >
+                  {lineRefunded ? "−" : ""}
+                  {fmtKes(line.lineTotal)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
 
-      {hasActions ? (
-        <div
-          className={cn(
-            "flex flex-wrap items-center justify-end gap-1 border-t px-2 py-1.5 sm:px-2.5",
-            salesHair,
-          )}
-        >
+      {open && hasActions ? (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {showReceiptActions ? (
             <SaleReceiptActions
               saleId={tx.saleId}
               receiptLabel={receipt}
-              buttonClassName={cn(
-                "h-9 gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold sm:h-8",
-                salesMute,
-                "hover:text-[var(--order-ink,#15231f)]",
-              )}
+              buttonClassName={TICKET_ACTION}
             />
           ) : null}
           {canAdjust ? (
@@ -841,11 +933,7 @@ function SaleGroup({
               type="button"
               variant="ghost"
               size="sm"
-              className={cn(
-                "h-9 gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold sm:h-8",
-                salesMute,
-                "hover:text-[var(--order-ink,#15231f)]",
-              )}
+              className={TICKET_ACTION}
               onClick={onAdjust}
               aria-label={`Adjust payment for sale ${receipt}`}
             >
@@ -858,7 +946,7 @@ function SaleGroup({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-9 gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[#9a2e16] hover:bg-[#9a2e16]/[0.08] hover:text-[#7a2412] focus-visible:border-[#9a2e16]/40 focus-visible:ring-[#9a2e16]/20 sm:h-8"
+              className="h-8 gap-1.5 rounded-full border border-[#9a2e16]/35 bg-[#FFFEFB] px-3 text-[12.5px] font-medium text-[#9a2e16] shadow-none hover:bg-[#9a2e16]/[0.06]"
               onClick={onVoid}
               aria-label={`Void sale ${receipt}`}
             >
@@ -935,11 +1023,12 @@ export function SalesOverviewPage() {
   const searchParams = useSearchParams();
   // `?q=1563` lets the activity diary jump straight to a receipt.
   const [search, setSearch] = useState(() => searchParams.get("q")?.trim() ?? "");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [openSaleId, setOpenSaleId] = useState<string | null>(null);
+  const [trackedListKey, setTrackedListKey] = useState("");
   const [lines, setLines] = useState<RecentSaleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [newSaleIds, setNewSaleIds] = useState<Set<string>>(new Set());
 
@@ -979,13 +1068,11 @@ export function SalesOverviewPage() {
       if (!allowed || !headerScopeReady || !branchesReady) return;
       const silent = opts?.silent ?? false;
       if (!silent) setLoading(true);
-      else setRefreshing(true);
       setError(null);
 
       if (!dateRange) {
         setLines([]);
         setLoading(false);
-        setRefreshing(false);
         return;
       }
 
@@ -1015,13 +1102,11 @@ export function SalesOverviewPage() {
 
         knownKeysRef.current = incomingKeys;
         setLines(rows);
-        setLastUpdated(new Date());
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load sales.");
         if (!silent) setLines([]);
       } finally {
         setLoading(false);
-        setRefreshing(false);
       }
     },
     [
@@ -1254,89 +1339,71 @@ export function SalesOverviewPage() {
     );
   }
 
-  const statusLine = [
-    periodLabel || (datePreset === "custom" ? "Choose dates below" : null),
-    lastUpdated
-      ? `Updated ${lastUpdated.toLocaleTimeString("en-KE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`
-      : null,
-    isLivePeriod ? "Live" : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const listKey = [
+    datePreset,
+    branchId,
+    search,
+    statusFilter,
+    paymentFilter,
+    channelFilter,
+  ].join("|");
+  if (trackedListKey !== listKey) {
+    setTrackedListKey(listKey);
+    setOpenSaleId(null);
+  }
+  const expandedSaleId =
+    openSaleId === "" ? null : (openSaleId ?? transactions[0]?.saleId ?? null);
+  const hourlyTrend = datePreset === "today" || datePreset === "yesterday";
 
-  const trendChart =
-    revenueTrend.values.some((v) => v > 0) ? (
-      <RevenueBars
-        values={revenueTrend.values}
-        labels={revenueTrend.labels}
-      />
-    ) : null;
+  const ticketCountLabel = loading
+    ? "Loading…"
+    : feedFiltered
+      ? `${transactions.length.toLocaleString("en-KE")} of ${summary.transactions.toLocaleString("en-KE")} tickets`
+      : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`;
 
-  const tillMetrics = (
-    <SalesTillMetrics
-      datePreset={datePreset}
-      onDatePresetChange={setDatePreset}
-      isLivePeriod={isLivePeriod}
-      dateRange={dateRange}
-      error={error}
-      loading={loading}
-      summary={summary}
-      statusLine={statusLine}
-      trendChart={trendChart}
-    />
-  );
-
-  const feedHint =
-    loading
-      ? "Loading…"
-      : feedFiltered
-        ? `Showing ${transactions.length.toLocaleString("en-KE")} of period`
-        : `${transactions.length.toLocaleString("en-KE")} ticket${transactions.length === 1 ? "" : "s"}`;
+  const focusTicketSearch = () => {
+    searchRef.current?.focus();
+    searchRef.current?.scrollIntoView({ block: "center" });
+  };
 
   const feed = (
-    <SalesStage
-      title="Tickets"
-      hint={feedHint}
-      className="h-full min-h-0"
-      bodyClassName="flex min-h-0 flex-1 flex-col p-0"
+    <section
+      className={cn(
+        PAPER_CARD,
+        "flex min-h-[28rem] flex-col max-lg:max-h-[80dvh] lg:sticky lg:top-3 lg:h-[calc(100dvh-7.5rem)] lg:max-h-[calc(100dvh-7.5rem)]",
+      )}
     >
-        <div className="flex flex-col gap-1.5 px-3 py-2 sm:flex-row sm:items-center sm:px-3.5">
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Receipt, M-Pesa code, product…"
-              className={cn(dashboardInputClass(), "h-8 py-1.5 pl-8 text-sm")}
-              aria-label="Search sales"
-            />
-          </div>
-          <select
-            value={branchId}
-            onChange={(e) => onChangeBranch(e.target.value)}
-            className={cn(dashboardSelectClass(), "h-8 py-1 sm:w-40")}
-            aria-label="Branch"
-            disabled={branchLocked}
-          >
-            <option value="">All branches</option>
-            {branches
-              .filter((b) => !branchLocked || b.id === me?.branchId)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-          </select>
+      <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
+        <h2 className="text-[16px] font-semibold tracking-[-0.02em]" style={{ color: INK }}>
+          Tickets
+        </h2>
+        <span
+          className="rounded-full bg-[#F4F1EA] px-2.5 py-0.5 text-[13px] tabular-nums"
+          style={{ color: MUTED }}
+        >
+          {loading ? "…" : summary.transactions.toLocaleString("en-KE")}
+        </span>
+      </div>
+      <div className="px-4 sm:px-5">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#7A847D]"
+            aria-hidden
+          />
+          <input
+            ref={searchRef}
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Receipt no. or M-Pesa code"
+            aria-label="Search tickets"
+            className="h-11 w-full rounded-full border border-black/[0.08] bg-[#FBF9F4] pl-10 pr-4 text-[14px] text-[#121A16] outline-none placeholder:text-[#8A938C] focus-visible:border-[#0D3B2E] focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/20"
+          />
         </div>
+      </div>
+      <div className="px-4 py-3.5 sm:px-5">
         <SalesFeedFilters
-          compact
+          board
           hidePeriod
           datePreset={datePreset}
           onDatePresetChange={setDatePreset}
@@ -1352,7 +1419,8 @@ export function SalesOverviewPage() {
           onChannelFilterChange={setChannelFilter}
           showChannelFilter={canViewWebOrders}
         />
-      <div className={cn("min-h-0 flex-1 overflow-y-auto border-t", salesHair)}>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-black/[0.06] [scrollbar-color:#c9cfc8_transparent]">
         {receiptLookup.receiptNo != null ? (
           <ReceiptLookupBanner
             receiptNo={receiptLookup.receiptNo}
@@ -1373,22 +1441,17 @@ export function SalesOverviewPage() {
           <FeedSkeleton />
         ) : transactions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <span
-              className={cn(
-                "flex size-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]",
-                salesMute,
-              )}
-            >
+            <span className="flex size-10 items-center justify-center rounded-full bg-[#F4F1EA] text-[#5C675F]">
               <Receipt className="size-4" aria-hidden />
             </span>
-            <p className={cn("text-sm font-medium", salesInk)}>
+            <p className="text-sm font-medium" style={{ color: INK }}>
               {!dateRange
                 ? "Pick a from and to date"
                 : feedFiltered
                   ? "No sales match your filters"
                   : "No sales in this period"}
             </p>
-            <p className={cn("max-w-[16rem] text-xs", salesMute)}>
+            <p className="max-w-[16rem] text-[13px]" style={{ color: MUTED }}>
               {!dateRange
                 ? "Choose a start and end date under Custom."
                 : feedFiltered
@@ -1404,8 +1467,12 @@ export function SalesOverviewPage() {
               nowMs={nowMs}
               showRelativeTime={isLivePeriod}
               isNew={newSaleIds.has(tx.saleId)}
+              open={expandedSaleId === tx.saleId}
               canAdjust={canAdjustPayment && isMutableSale(tx)}
               canVoid={canVoid && canVoidSale(tx)}
+              onToggle={() =>
+                setOpenSaleId(expandedSaleId === tx.saleId ? "" : tx.saleId)
+              }
               onAdjust={() => {
                 setAdjustSaleId(tx.saleId);
                 setAdjustReceiptLabel(txDisplayNo(tx));
@@ -1418,71 +1485,187 @@ export function SalesOverviewPage() {
           ))
         )}
       </div>
-    </SalesStage>
+      <div
+        className="flex items-center justify-between border-t border-black/[0.06] px-4 py-2.5 text-[12.5px] sm:px-5"
+        style={{ color: MUTED }}
+      >
+        <span>{ticketCountLabel}</span>
+      </div>
+    </section>
   );
 
+  const toolBtn =
+    "inline-flex h-9 items-center gap-1.5 rounded-full bg-[#FFFEFB] px-3.5 text-[13px] font-medium text-[#121A16] shadow-[0_1px_2px_rgba(18,26,22,0.04)] ring-1 ring-black/[0.06] transition-colors hover:bg-[#F6F3EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/35 disabled:opacity-40";
+
   return (
-    <div className={cn(DASHBOARD_MAX_WIDE, salesPaper)}>
-      <DashboardPageHero
-        icon={Receipt}
-        title="Sales"
-        description={statusLine || "What the till took."}
-        showActiveScope
-      >
-        {hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ? (
-          <Link href={APP_ROUTES.salesByHour} className={salesToolBtnClass()}>
-            <Clock className="size-3.5" aria-hidden />
-            By the hour
+    <div
+      className={cn(
+        DASHBOARD_MAX_WIDE,
+        "gap-5 selection:bg-[#86E8B8]/80 selection:text-[#0D3B2E] [&_input]:caret-[#0D3B2E]",
+      )}
+    >
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px]"
+            style={{ background: LEDGER, color: LEDGER_INK }}
+          >
+            <Receipt className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h1
+              className="text-[1.7rem] font-semibold leading-none tracking-[-0.03em]"
+              style={{ color: INK }}
+            >
+              Sales
+            </h1>
+            <SalesScopeLine nowMs={nowMs} />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ? (
+            <Link href={APP_ROUTES.salesByHour} className={toolBtn}>
+              <Clock className="size-3.5" aria-hidden />
+              By the hour
+            </Link>
+          ) : null}
+          <Link href={APP_ROUTES.salesTransactions} className={toolBtn}>
+            <List className="size-3.5" aria-hidden />
+            Transactions
           </Link>
-        ) : null}
-        <Link href={APP_ROUTES.salesTransactions} className={salesToolBtnClass()}>
-          <List className="size-3.5" aria-hidden />
-          Transactions
-        </Link>
-        <button
-          type="button"
-          className={salesToolBtnClass()}
-          onClick={() => void load({ silent: true })}
-          disabled={loading}
+          <button
+            type="button"
+            className="inline-flex size-9 items-center justify-center rounded-full bg-[#FFFEFB] text-[#121A16] shadow-[0_1px_2px_rgba(18,26,22,0.04)] ring-1 ring-black/[0.06] hover:bg-[#F6F3EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/35"
+            onClick={focusTicketSearch}
+            aria-label="Search tickets"
+          >
+            <Search className="size-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={toolBtn}
+            onClick={downloadPdf}
+            disabled={loading || !dateRange || pdfLoading}
+          >
+            <Download className="size-3.5" aria-hidden />
+            {pdfLoading ? "PDF…" : "PDF"}
+          </button>
+          <Link
+            href={APP_ROUTES.salesQuick}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-[#F4F2EC] transition-colors hover:bg-[#0A3025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/40"
+            style={{ background: LEDGER }}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Record sale
+          </Link>
+        </div>
+      </header>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          role="group"
+          aria-label="Period"
+          className="inline-flex flex-wrap items-center gap-0.5 rounded-full bg-[#FFFEFB] p-1 shadow-[0_1px_2px_rgba(18,26,22,0.04)] ring-1 ring-black/[0.05]"
         >
-          <RefreshCw
-            className={cn("size-3.5", refreshing && "animate-spin")}
-            aria-hidden
-          />
-          Refresh
-        </button>
-        <button
-          type="button"
-          className={salesToolBtnClass()}
-          onClick={downloadPdf}
-          disabled={loading || !dateRange || pdfLoading}
-        >
-          <Download className="size-3.5" aria-hidden />
-          {pdfLoading ? "PDF…" : "PDF"}
-        </button>
-        <Link href={APP_ROUTES.salesQuick} className={salesToolBtnClass(true)}>
-          <Receipt className="size-3.5" aria-hidden />
-          Record sale
-        </Link>
-      </DashboardPageHero>
+          {DATE_FILTER_OPTIONS.map(({ id, label }) => {
+            const active = datePreset === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setDatePreset(id)}
+                className={cn(
+                  "inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/30",
+                  active ? "bg-[#1A211E] text-[#F4F2EC]" : "text-[#121A16] hover:bg-[#F4F1EA]",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
+            Branch
+            <span className="relative">
+              <select
+                value={branchId}
+                onChange={(e) => onChangeBranch(e.target.value)}
+                aria-label="Branch"
+                disabled={branchLocked}
+                className="h-9 cursor-pointer appearance-none rounded-full bg-[#FFFEFB] py-0 pl-3 pr-8 text-[13px] font-medium text-[#121A16] ring-1 ring-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">All branches</option>
+                {branches
+                  .filter((b) => !branchLocked || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#5C675F]"
+                aria-hidden
+              />
+            </span>
+          </label>
+          {isLivePeriod ? (
+            <button
+              type="button"
+              onClick={() => void load({ silent: true })}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium disabled:opacity-50"
+              style={{ color: INK }}
+              title="Refresh sales"
+            >
+              <span className="size-2 rounded-full bg-[#2C8A5E] motion-safe:animate-pulse" aria-hidden />
+              Live · {clockLabel(nowMs)}
+            </button>
+          ) : periodLabel ? (
+            <span className="text-[13px]" style={{ color: MUTED }}>
+              {periodLabel}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {datePreset === "custom" ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
+            From
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className={cn(dashboardInputClass(), "h-9 w-auto rounded-full px-3 text-[13px]")}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
+            To
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className={cn(dashboardInputClass(), "h-9 w-auto rounded-full px-3 text-[13px]")}
+            />
+          </label>
+        </div>
+      ) : null}
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      <div className="flex min-h-0 flex-col gap-2">
-        <div
-          className={cn(
-            "hidden h-[min(80dvh,52rem)] gap-2 lg:grid",
-            "lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]",
-          )}
-        >
-          <div className="min-h-0 overflow-hidden">{feed}</div>
-          <div className="min-h-0 overflow-hidden">{tillMetrics}</div>
-        </div>
-
-        <div className="flex min-h-0 flex-col gap-2 lg:hidden">
-          {tillMetrics}
-          {feed}
-        </div>
+      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.32fr)_minmax(21.5rem,0.9fr)]">
+        <SalesLedger
+          datePreset={datePreset}
+          hourly={hourlyTrend}
+          needsDates={!dateRange}
+          error={error}
+          loading={loading}
+          summary={summary}
+          trend={revenueTrend}
+        />
+        {feed}
       </div>
 
       <AdjustSalePaymentDialog

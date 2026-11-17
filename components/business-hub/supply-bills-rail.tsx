@@ -32,8 +32,8 @@ function paymentLabel(status: string, unpaid: boolean): string {
   return "Unpaid";
 }
 
-/** Viewport height for ~2 compact rows. */
-const SUPPLY_VIEWPORT_CLASS = "max-h-[5.5rem]";
+/** Viewport height for ~3 rows. */
+const SUPPLY_VIEWPORT_CLASS = "max-h-[13.5rem]";
 
 export function SupplyBillsRail({
   bills,
@@ -64,30 +64,30 @@ export function SupplyBillsRail({
       )}
       aria-label="Today's supply bills"
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#141414]">
+      <header className="flex shrink-0 items-start justify-between gap-2.5 px-[18px] pb-3 pt-4">
+        <div className="min-w-0">
+          <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Supply tape
           </p>
           {!empty ? (
-            <p className="truncate text-[10px] text-[#8A8A8A]">
+            <p className="mt-0.5 truncate text-[13px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {summary.count} · {fmtMoney(summary.totalInvoiced, currency)}
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href={`${APP_ROUTES.purchasingAddSupplies}?filter=today`}
-            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
-          >
-            All
-          </Link>
-        </div>
+        <Link
+          href={`${APP_ROUTES.purchasingAddSupplies}?filter=today`}
+          className="flex min-h-9 shrink-0 items-center rounded-[10px] bg-[#F0EDE4] px-3 text-[13px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+        >
+          All
+        </Link>
       </header>
 
       {empty ? (
-        <div className="px-3 py-2.5">
-          <p className="text-[11px] text-[#8A8A8A]">No supplies yet today.</p>
+        <div className="px-[18px] pb-4 pt-1">
+          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
+            No supplies yet today.
+          </p>
         </div>
       ) : (
         <div
@@ -96,7 +96,7 @@ export function SupplyBillsRail({
             SUPPLY_VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
+          <ol className="flex flex-col">
             {bills.map((bill, i) => {
               const newest = i === 0 && justUpdated;
               const unpaid = isSupplyRowUnpaid(bill);
@@ -111,26 +111,19 @@ export function SupplyBillsRail({
                 <li
                   key={bill.supplierInvoiceId}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 transition-colors",
-                    newest && "bg-[#ffffff] hub-figure-pop",
+                    "flex items-center gap-3 border-t border-[#EFEBE0] px-[18px] py-3 transition-colors",
+                    newest && "bg-[#FCFBF8] hub-figure-pop",
                   )}
                 >
-                  <time
-                    dateTime={bill.createdAt}
-                    className="shrink-0 font-mono text-[10px] tabular-nums text-[#8A8A8A]"
-                    title={new Date(bill.createdAt).toLocaleString()}
-                  >
-                    {formatClock(bill.createdAt)}
-                  </time>
                   <div className="min-w-0 flex-1">
                     <button
                       type="button"
                       onClick={() => onInspect?.(bill)}
                       aria-label={`Open supply history for ${supplierLabel}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
-                          "underline decoration-[#0f766e]/40 underline-offset-2 hover:decoration-[#0f766e]",
+                          "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
                     >
                       <SupplierDisplayName
@@ -138,48 +131,34 @@ export function SupplyBillsRail({
                         className="truncate"
                       />
                     </button>
+                    <time
+                      dateTime={bill.createdAt}
+                      className="mt-0.5 block text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]"
+                      title={new Date(bill.createdAt).toLocaleString()}
+                    >
+                      {formatClock(bill.createdAt)}
+                    </time>
                   </div>
-                  {payEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => onPayBill?.(bill)}
-                      className={cn(
-                        "shrink-0 rounded-none px-1.5 py-0.5 text-[9px] font-semibold tracking-[-0.02em] transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/45",
-                        unpaid
-                          ? "border border-[#0f766e] bg-white text-[#0f766e] hover:bg-white"
-                          : "text-emerald-800 hover:bg-emerald-50",
-                      )}
-                      title={
-                        unpaid
-                          ? `Pay ${supplierLabel}`
-                          : `Payment details · ${supplierLabel}`
-                      }
-                      aria-label={
-                        unpaid
-                          ? `Pay bill for ${supplierLabel} (${label})`
-                          : `View payment details for ${supplierLabel}`
-                      }
-                    >
-                      {unpaid
-                        ? label === "Partial"
-                          ? "Pay · Partial"
-                          : "Pay"
-                        : label}
-                    </button>
-                  ) : (
-                    <span
-                      className={cn(
-                        "shrink-0 text-[9px] font-semibold tracking-[-0.02em]",
-                        unpaid ? "text-[#0f766e]" : "text-emerald-800",
-                      )}
-                    >
-                      {label}
-                    </span>
-                  )}
-                  <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
-                    {fmtMoney(total, currency)}
-                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <p className="text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                      {fmtMoney(total, currency)}
+                    </p>
+                    {payEnabled && unpaid ? (
+                      <button
+                        type="button"
+                        onClick={() => onPayBill?.(bill)}
+                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[12px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
+                        title={`Pay ${supplierLabel}`}
+                        aria-label={`Pay bill for ${supplierLabel} (${label})`}
+                      >
+                        {label === "Partial" ? "Pay · Partial" : "Pay"}
+                      </button>
+                    ) : (
+                      <span className="rounded-full bg-[#E3F3EA] px-2.5 py-[3px] text-[12px] font-semibold text-[#0B6B43]">
+                        {label}
+                      </span>
+                    )}
+                  </div>
                 </li>
               );
             })}

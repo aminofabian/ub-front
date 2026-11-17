@@ -48,6 +48,49 @@ const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
   { id: "refunded", label: "Refund" },
 ];
 
+/** Order on the sales ledger: Done, then Any, then Refund. */
+const BOARD_STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
+  { id: "completed", label: "Done" },
+  { id: "all", label: "Any" },
+  { id: "refunded", label: "Refund" },
+];
+
+const BOARD_LABEL =
+  "text-[11px] font-semibold uppercase tracking-[0.06em] text-[#7A847D]";
+
+function BoardChip({
+  active,
+  onClick,
+  children,
+  title,
+  owed = false,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title?: string;
+  owed?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D3B2E]/30",
+        active
+          ? owed
+            ? "bg-[#9a2e16] text-white"
+            : "bg-[#1A211E] text-[#F4F2EC]"
+          : "border border-black/[0.08] bg-[#FFFEFB] text-[#121A16] hover:bg-[#F6F3EC]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 const PAYMENT_ICONS: Record<
   Exclude<PaymentFilter, "all" | "other">,
   LucideIcon
@@ -133,6 +176,7 @@ export function SalesFeedFilters({
   showChannelFilter = true,
   compact = false,
   hidePeriod = false,
+  board = false,
 }: {
   datePreset: SalesDatePreset;
   onDatePresetChange: (id: SalesDatePreset) => void;
@@ -149,6 +193,8 @@ export function SalesFeedFilters({
   showChannelFilter?: boolean;
   compact?: boolean;
   hidePeriod?: boolean;
+  /** Stacked CHANNEL / STATUS / PAYMENT METHOD groups on the sales ledger. */
+  board?: boolean;
 }) {
   const showTender = channelFilter === "all" || channelFilter === "walk_in";
 
@@ -162,6 +208,86 @@ export function SalesFeedFilters({
     onPaymentFilterChange("all");
     onChannelFilterChange("all");
   };
+
+  if (board) {
+    return (
+      <div className="flex flex-col gap-3.5">
+        {showChannelFilter ? (
+          <div>
+            <p className={BOARD_LABEL}>Channel</p>
+            <div role="group" aria-label="Channel" className="mt-2 flex flex-wrap gap-1.5">
+              {CHANNEL_FILTER_OPTIONS.map(({ id, label, short }) => (
+                <BoardChip
+                  key={id}
+                  active={channelFilter === id}
+                  onClick={() => onChannelFilterChange(id)}
+                  title={label}
+                >
+                  {short}
+                </BoardChip>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div>
+          <p className={BOARD_LABEL}>Status</p>
+          <div role="group" aria-label="Status" className="mt-2 flex flex-wrap gap-1.5">
+            {BOARD_STATUS_OPTIONS.map(({ id, label }) => (
+              <BoardChip
+                key={id}
+                active={statusFilter === id}
+                owed={id === "refunded"}
+                onClick={() => onStatusFilterChange(id)}
+              >
+                {label}
+              </BoardChip>
+            ))}
+          </div>
+        </div>
+
+        {showTender ? (
+          <div>
+            <p className={BOARD_LABEL}>Payment method</p>
+            <div role="group" aria-label="Payment method" className="mt-2 flex flex-wrap gap-1.5">
+              {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
+                const active = paymentFilter === id;
+                return (
+                  <BoardChip
+                    key={id}
+                    active={active}
+                    title={label}
+                    onClick={() => onPaymentFilterChange(active ? "all" : id)}
+                  >
+                    {short}
+                  </BoardChip>
+                );
+              })}
+              <BoardChip
+                active={paymentFilter === "other"}
+                title="Other"
+                onClick={() =>
+                  onPaymentFilterChange(paymentFilter === "other" ? "all" : "other")
+                }
+              >
+                Other
+              </BoardChip>
+            </div>
+          </div>
+        ) : null}
+
+        {hasExtraFilters ? (
+          <button
+            type="button"
+            onClick={clearExtra}
+            className="self-start text-[12px] font-medium text-[#5C675F] underline-offset-2 hover:underline"
+          >
+            Clear filters
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div

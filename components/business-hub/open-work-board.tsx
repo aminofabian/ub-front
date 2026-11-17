@@ -51,7 +51,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       {visible.length > 1 ? (
         <div
-          className="flex gap-0.5 rounded-full bg-[#eef1f0] p-0.5 sm:hidden"
+          className="flex gap-0.5 rounded-full bg-[#F0EDE4] p-0.5 sm:hidden"
           role="tablist"
           aria-label="Open work boards"
         >
@@ -68,8 +68,8 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
                   HUB_BTN,
                   "min-h-9 min-w-0 flex-1 rounded-full px-2 py-1.5 text-center transition-colors",
                   selected
-                    ? "bg-white text-[#101828] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
-                    : "text-[#667085] hover:text-[#101828]",
+                    ? "bg-white text-[var(--hub-ink,#14211C)] shadow-[0_1px_2px_rgba(16,24,40,0.10)]"
+                    : "text-[var(--hub-muted,#5E6B65)] hover:text-[var(--hub-ink,#14211C)]",
                 )}
               >
                 <span className="block truncate text-[12px] font-semibold leading-none tracking-[-0.015em]">
@@ -93,16 +93,12 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       <div className="sm:hidden">{active?.panel}</div>
 
-      <div
-        className={cn(
-          "hidden gap-3 sm:grid",
-          visible.length === 1 && "sm:grid-cols-1",
-          visible.length === 2 && "sm:grid-cols-2",
-          visible.length >= 3 && "sm:grid-cols-2",
-        )}
-      >
+      <div className="hidden flex-wrap items-start gap-3.5 sm:flex">
         {visible.map((column) => (
-          <div key={column.id} className={cn("min-w-0", column.className)}>
+          <div
+            key={column.id}
+            className={cn("min-w-0 flex-1 basis-[300px]", column.className)}
+          >
             {column.panel}
           </div>
         ))}

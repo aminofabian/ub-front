@@ -33,16 +33,17 @@ function fulfillmentLabel(status: string | null | undefined): string {
   return s.replace(/_/g, " ") || "Open";
 }
 
-function fulfillmentTone(status: string | null | undefined): string {
+/** Pill colours for the order's state, matching the hub badge palette. */
+function fulfillmentPill(status: string | null | undefined): string {
   const s = (status ?? "awaiting_confirmation").trim().toLowerCase();
-  if (s === "dispatched") return "text-emerald-800";
-  if (s === "confirmed") return "text-[#0f766e]";
-  if (s === "completed") return "text-[#8A8A8A]";
-  return "text-[#C47A5A]";
+  if (s === "dispatched") return "bg-[#E3F3EA] text-[#0B6B43]";
+  if (s === "confirmed") return "bg-[#E3EEE8] text-[var(--hub-accent,#0F4A38)]";
+  if (s === "completed") return "bg-[#F0EDE4] text-[var(--hub-muted,#5E6B65)]";
+  return "bg-[#FBEBD2] text-[#8A4B00]";
 }
 
-/** Viewport height for ~3 compact rows. */
-const VIEWPORT_CLASS = "max-h-[7.5rem]";
+/** Viewport height for ~4 rows. */
+const VIEWPORT_CLASS = "max-h-[18rem]";
 
 export function WebOrdersRail({
   orders,
@@ -69,30 +70,28 @@ export function WebOrdersRail({
       )}
       aria-label="Web pickup orders"
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,#141414_6%,transparent)] px-3.5 py-2">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-[12px] font-medium tracking-[-0.01em] text-[#141414]">
+      <header className="flex shrink-0 items-start justify-between gap-2.5 px-[18px] pb-3 pt-4">
+        <div className="min-w-0">
+          <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Web orders
           </p>
           {!empty ? (
-            <p className="truncate text-[10px] text-[#8A8A8A]">
+            <p className="mt-0.5 truncate text-[13px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {orders.length} open · {fmtMoney(total, currency)}
             </p>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href={APP_ROUTES.storefrontWebOrders}
-            className="text-[10px] font-medium text-[#0f766e] transition-colors hover:text-[#141414]"
-          >
-            All
-          </Link>
-        </div>
+        <Link
+          href={APP_ROUTES.storefrontWebOrders}
+          className="flex min-h-9 shrink-0 items-center rounded-[10px] bg-[#F0EDE4] px-3 text-[13px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+        >
+          All
+        </Link>
       </header>
 
       {empty ? (
-        <div className="px-3 py-2.5">
-          <p className="text-[11px] text-[#8A8A8A]">
+        <div className="px-[18px] pb-4 pt-1">
+          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
             No open web orders right now.
           </p>
         </div>
@@ -103,56 +102,63 @@ export function WebOrdersRail({
             VIEWPORT_CLASS,
           )}
         >
-          <ol className="divide-y divide-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
+          <ol className="flex flex-col">
             {orders.map((order, i) => {
               const newest = i === 0 && justUpdated;
               const fulfillment =
                 order.fulfillmentStatus ?? "awaiting_confirmation";
+              const isPaid = order.status?.toLowerCase() === "paid";
+              const statusLabel = isPaid
+                ? fulfillmentLabel(fulfillment)
+                : "Pending payment";
+              const statusPill = isPaid
+                ? fulfillmentPill(fulfillment)
+                : "bg-[#FBEBD2] text-[#8A4B00]";
               return (
                 <li
                   key={order.id}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-[#ffffff]",
-                    newest && "bg-[#ffffff] hub-figure-pop",
+                    "flex items-center gap-3 border-t border-[#EFEBE0] px-[18px] py-3 transition-colors",
+                    newest && "bg-[#FCFBF8] hub-figure-pop",
                   )}
                 >
-                  <Link
-                    href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
-                    className="shrink-0 font-mono text-[10px] tabular-nums text-[#8A8A8A] hover:text-[#141414]"
-                    title={new Date(order.createdAt).toLocaleString()}
-                  >
-                    <time dateTime={order.createdAt}>
-                      {formatClock(order.createdAt)}
-                    </time>
-                  </Link>
                   <div className="min-w-0 flex-1">
                     <button
                       type="button"
                       onClick={() => onInspect?.(order)}
                       aria-label={`Open purchase history for ${order.customerName?.trim() || "customer"}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[12px] font-medium text-[#141414]",
+                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
-                          "underline decoration-[#0f766e]/40 underline-offset-2 hover:decoration-[#0f766e]",
+                          "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
                     >
                       {order.customerName?.trim() || "Customer"}
                     </button>
+                    <Link
+                      href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
+                      className="mt-0.5 block text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)] hover:text-[var(--hub-ink,#14211C)]"
+                      title={new Date(order.createdAt).toLocaleString()}
+                    >
+                      <time dateTime={order.createdAt}>
+                        {formatClock(order.createdAt)}
+                      </time>
+                    </Link>
                   </div>
-                  <Link
-                    href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
-                    className={cn(
-                      "shrink-0 text-[9px] font-semibold tracking-[-0.02em]",
-                      fulfillmentTone(fulfillment),
-                    )}
-                  >
-                    {order.status?.toLowerCase() === "paid"
-                      ? fulfillmentLabel(fulfillment)
-                      : labelPayment(order.status)}
-                  </Link>
-                  <p className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-[#141414]">
-                    {fmtMoney(order.grandTotal, order.currency || currency)}
-                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <p className="text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                      {fmtMoney(order.grandTotal, order.currency || currency)}
+                    </p>
+                    <Link
+                      href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
+                      className={cn(
+                        "rounded-full px-2.5 py-[3px] text-[12px] font-semibold",
+                        statusPill,
+                      )}
+                    >
+                      {statusLabel}
+                    </Link>
+                  </div>
                 </li>
               );
             })}
@@ -161,12 +167,4 @@ export function WebOrdersRail({
       )}
     </section>
   );
-}
-
-function labelPayment(status: string | null | undefined): string {
-  const s = (status ?? "").trim().toLowerCase();
-  if (s === "paid") return "Paid";
-  if (s === "pending" || s === "awaiting_payment") return "Unpaid";
-  if (!s) return "Open";
-  return s.replace(/_/g, " ");
 }
