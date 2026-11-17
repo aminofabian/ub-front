@@ -1364,6 +1364,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/support/conversation/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactToPlatformMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/conversation/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deletePlatformMessage"];
+        options?: never;
+        head?: never;
+        patch: operations["editPlatformMessage"];
+        trace?: never;
+    };
+    "/api/v1/support/storefront/conversations/{id}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactToStorefrontMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/storefront/conversations/{id}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteStorefrontMessage"];
+        options?: never;
+        head?: never;
+        patch: operations["editStorefrontMessage"];
+        trace?: never;
+    };
     "/api/v1/suppliers": {
         parameters: {
             query?: never;
@@ -2002,6 +2066,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/support/conversations/{id}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactSa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admin/support/conversations/{id}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteSaMessage"];
+        options?: never;
+        head?: never;
+        patch: operations["editSaMessage"];
         trace?: never;
     };
     "/api/v1/super-admin/serving/tickets": {
@@ -4263,6 +4359,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/support/threads/{id}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactGuest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/support/threads/{id}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteGuestMessage"];
+        options?: never;
+        head?: never;
+        patch: operations["editGuestMessage"];
         trace?: never;
     };
     "/api/v1/public/support/threads/{id}/cloudinary-signature": {
@@ -14676,6 +14804,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/stock-take/bar-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The bar usage report (ADR 0024): where each bottle's stock went over a day at a branch — poured, sold whole, wasted — read from the stock-movement ledger, with what the books say is left and the variance against a count. Needs stocktake.read. */
+        get: operations["getBarUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory/stock-take/sessions/active": {
         parameters: {
             query?: never;
@@ -17030,6 +17175,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-tickets/{id}/lines/{lineId}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Replaces what the customer chose on one service of a visit (ADR 0025). The line's price becomes the service's price plus what the options add. On a booking the planned end follows, and the change is refused (409) when the longer visit would run into the person's or the place's next booking. 400 when an id is not an option of that service or two are chosen where one is allowed. */
+        put: operations["setServiceTicketLineOptions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-tickets/{id}/start": {
         parameters: {
             query?: never;
@@ -17361,6 +17523,23 @@ export interface paths {
         get: operations["getServiceConsumables"];
         /** @description Replaces the list of products a service uses; an empty list clears it. */
         put: operations["setServiceConsumables"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Replaces what a customer can choose on a service (ADR 0025): up to 6 groups of up to 12 options. An option sent with its id keeps it; a new one is given an id. An empty list makes it a plain service. Needs services.catalog.manage. */
+        put: operations["setServiceOptions"];
         post?: never;
         delete?: never;
         options?: never;
@@ -18076,6 +18255,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurant/pantry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The pantry (ADR 0026): what each dish can still be made of at a branch, each ingredient in portions with its last delivery, what expires within three days, and the last seven days' losses. Needs restaurant.kitchen.update or restaurant.menu.manage. */
+        get: operations["restaurantPantry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/pantry/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description What a planned service needs bought: each ingredient's need added up across the dishes, less usable stock, priced at the last unit cost paid. A calculation; nothing is stored. */
+        post: operations["planPantryService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/pantry/losses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Writes off an ingredient that spoiled, broke or expired, through inventory's wastage path. Only an ingredient of a dish on the menu, and never more than is on the shelf. Not idempotent. */
+        post: operations["recordPantryLoss"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/menu/measures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sets up a bottle's pour measures (ADR 0024): builds a choose-one modifier group whose options each take their fraction of the bottle off the stock count when sold, so the owner never computes 30/750. Re-running with the same group name replaces the pours. Needs restaurant.menu.manage. */
+        post: operations["generateMeasures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurant/menu/modifier-options/{id}/availability": {
         parameters: {
             query?: never;
@@ -18161,6 +18408,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurant/kitchen/print-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Kitchen tickets a device should print now: its station's, and the implicit kitchen's, oldest first. Needs restaurant.kitchen.update or sales.sell. */
+        get: operations["kitchenPrintJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/print-jobs/{jobId}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Claim one print job for this device; exactly one device wins, the rest get 404. Needs restaurant.kitchen.update or sales.sell. */
+        post: operations["claimKitchenPrintJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/print-jobs/{jobId}/printed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A device confirms a job's ticket came out of the printer. Needs restaurant.kitchen.update or sales.sell. */
+        post: operations["markKitchenPrintJobPrinted"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/tickets/{ticketId}/reprint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reprint a ticket from the counter; the new slip is marked a reprint. Needs restaurant.kitchen.update or sales.sell. */
+        post: operations["reprintKitchenTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/kitchen/unprinted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Kitchen tickets the counter should warn have not printed. Needs sales.sell. */
+        get: operations["unprintedKitchenTickets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurant/orders": {
         parameters: {
             query?: never;
@@ -18221,6 +18553,23 @@ export interface paths {
         };
         /** @description Dishes sold and modifier choices for a period (Nairobi days, at most 92). Voided sales are left out; refunds are not subtracted. Dish cost is not tracked, so no margin. Needs restaurant.menu.manage or sales.intelligence.read. */
         get: operations["getMenuSalesReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/reports/tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What each table and each waiter took over a period of business days, from the bills paid (ADR 0027). Needs restaurant.menu.manage or sales.intelligence.read. */
+        get: operations["restaurantTableTakings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18478,8 +18827,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Cancels an order nothing was made for. 409 once anything has been sent and not cancelled, or it has a bill. */
+        /** @description Cancels an order nothing was made for. 409 once anything has been sent and not cancelled, or it has a bill. A held booking deposit is handed back or kept as credit per the body. */
         post: operations["cancelRestaurantOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Takes a deposit against a booking (cash into the drawer, or an M-Pesa code), held in the customer's name (found or made from the booking's phone). Needs sales.sell. */
+        post: operations["takeRestaurantBookingDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/no-show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A booking whose guests never arrived. A held deposit is kept as income, or made the customer's credit. 409 if the booking has a bill or has been seated. Needs restaurant.orders.write. */
+        post: operations["restaurantBookingNoShow"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19037,6 +19420,9 @@ export interface components {
             total?: number;
         };
         RestaurantTable: {
+            /** @description The waiter who looks after the table; a new order there is theirs unless another is named. */
+            waiterStaffProfileId?: string | null;
+            waiterName?: string | null;
             id?: string;
             name?: string;
             capacity?: number;
@@ -19053,6 +19439,8 @@ export interface components {
             capacity?: number;
             area?: string;
             active?: boolean;
+            /** @description The waiter who looks after the table (ADR 0027). Left out, unchanged; empty takes them off it. */
+            waiterStaffProfileId?: string;
         };
         RestaurantOrderCard: {
             orderId?: string;
@@ -19156,6 +19544,19 @@ export interface components {
         };
         CancelRestaurantOrderRequest: {
             reason?: string;
+            /** @description When the booking has a held deposit: hand it back (cash/mpesa_manual in depositBack), else it becomes the customer's credit. */
+            refundsDeposit?: boolean;
+            /** @description cash or mpesa_manual; how a refunded deposit is handed back. */
+            depositBack?: string;
+        };
+        RestaurantDepositRequest: {
+            amount: number;
+            /** @description cash or mpesa_manual. */
+            method: string;
+        };
+        RestaurantNoShowRequest: {
+            /** @description Keep a held deposit as the customer's wallet credit; false (default) keeps it as income. */
+            keepDepositAsCredit?: boolean;
         };
         RestaurantOrderLine: {
             id?: string;
@@ -19243,6 +19644,10 @@ export interface components {
             deliveredAt?: string;
             /** @description STAFF, or QR when a customer started it from a table QR code. */
             source?: string;
+            /** @description A deposit held against a booking, or null when none. */
+            depositAmount?: number;
+            /** @description HELD, APPLIED, CREDITED, FORFEITED or REFUNDED; null when there is no deposit. */
+            depositState?: string;
         };
         RestaurantBillLineRequest: {
             orderLineId: string;
@@ -19301,11 +19706,22 @@ export interface components {
             name?: string;
             sortOrder?: number;
             active?: boolean;
+            /** @description The station's own printer by name (a CUPS/printer name); null when it has none or uses a network printer. */
+            printerName?: string;
+            /** @description The station's network printer host; with printerPort. Null when it has none or uses a named printer. */
+            printerHost?: string;
+            printerPort?: number;
         };
         KitchenStationRequest: {
             name: string;
             sortOrder?: number;
             active?: boolean;
+            /** @description A printer name, or a host and port, not both. clearPrinter removes the printer. */
+            printerName?: string;
+            printerHost?: string;
+            /** @description 1..65535. */
+            printerPort?: number;
+            clearPrinter?: boolean;
         };
         MenuCategoryResponse: {
             id?: string;
@@ -19364,6 +19780,18 @@ export interface components {
             options: components["schemas"]["ModifierOptionRequest"][];
         };
         MenuItemResponse: {
+            /**
+             * Format: int64
+             * @description How many more the branch's usable stock can make, if only this were made (ADR 0026). Null without a branch, or when the dish has no recipe of counted ingredients.
+             */
+            canMake?: number | null;
+            /** @description The ingredient that runs out first. */
+            limitingIngredient?: string | null;
+            /**
+             * Format: int64
+             * @description How many of canMake depend on stock that expires today.
+             */
+            mustUseToday?: number | null;
             id?: string;
             categoryId?: string;
             name?: string;
@@ -19456,6 +19884,15 @@ export interface components {
             /** Format: date-time */
             readyAt?: string;
         };
+        KitchenPrintJobsResponse: {
+            [key: string]: unknown;
+        };
+        KitchenPrintJobResponse: {
+            [key: string]: unknown;
+        };
+        UnprintedTicketsResponse: {
+            [key: string]: unknown;
+        };
         KitchenTicketResponse: {
             id?: string;
             orderId?: string;
@@ -19536,6 +19973,43 @@ export interface components {
             tickets?: number;
             medianSeconds?: number;
             slowestSeconds?: number;
+        };
+        TableTakingsRow: {
+            /** @description Null for a row that is not a table: tabs, takeaway, delivery. */
+            tableId?: string | null;
+            name?: string;
+            area?: string | null;
+            /** @description The waiter assigned to the table now. */
+            waiter?: string | null;
+            /** Format: int64 */
+            orders?: number;
+            /** Format: int64 */
+            guests?: number;
+            /** Format: int64 */
+            bills?: number;
+            /** @description What the paid bills came to, service charge included, tips not. */
+            taken?: number;
+            tips?: number;
+            perOrder?: number;
+        };
+        WaiterTakingsRow: {
+            staffProfileId?: string;
+            name?: string;
+            /** Format: int64 */
+            orders?: number;
+            taken?: number;
+            tips?: number;
+        };
+        TableTakingsReport: {
+            from?: string;
+            to?: string;
+            taken?: number;
+            tips?: number;
+            /** Format: int64 */
+            orders?: number;
+            tables?: components["schemas"]["TableTakingsRow"][];
+            offTheFloor?: components["schemas"]["TableTakingsRow"][];
+            waiters?: components["schemas"]["WaiterTakingsRow"][];
         };
         KitchenTimesReport: {
             from?: string;
@@ -20822,9 +21296,15 @@ export interface components {
             ownerPhone?: string;
             ownerName?: string;
             ownerEmail?: string;
-            /** @description Storefront access gate. SUSPENDED pauses sign-in and the shop. */
+            /**
+             * @description Storefront access gate. SUSPENDED pauses sign-in and the shop.
+             * @enum {string}
+             */
             tenantStatus?: "ACTIVE" | "SUSPENDED" | "INACTIVE";
-            /** @description Subscription billing lifecycle that drives a SUSPENDED tenant. */
+            /**
+             * @description Subscription billing lifecycle that drives a SUSPENDED tenant.
+             * @enum {string}
+             */
             subscriptionBillingStatus?: "ACTIVE" | "GRACE" | "SUSPENDED";
         };
         CashierDrawoutAccessResponse: {
@@ -21285,10 +21765,33 @@ export interface components {
             welcomeCard?: components["schemas"]["SupportWelcomeCardDto"];
             attachment?: components["schemas"]["SupportAttachmentDto"];
             replyTo?: components["schemas"]["SupportMessageReplyDto"];
+            reactions?: components["schemas"]["SupportReactionDto"][];
+            /**
+             * Format: date-time
+             * @description Set when the body was edited after sending.
+             */
+            editedAt?: string;
+            /**
+             * Format: date-time
+             * @description Set when the message was unsent; body/attachment are blanked.
+             */
+            deletedAt?: string;
             /** Format: date-time */
             readAt?: string;
             /** Format: date-time */
             createdAt?: string;
+        };
+        SupportReactionDto: {
+            emoji?: string;
+            /** Format: int32 */
+            count?: number;
+            mine?: boolean;
+        };
+        ToggleReactionRequest: {
+            emoji: string;
+        };
+        EditMessageRequest: {
+            body: string;
         };
         SupportMessageReplyDto: {
             messageId?: string;
@@ -23120,7 +23623,7 @@ export interface components {
             performerAmount?: number;
             /** @description The restaurant menu item the line was rung from. Required for kind DISH; on a product line it only tells the kitchen where the product is prepared. */
             menuItemId?: string;
-            /** @description DISH lines only. The modifier options chosen. */
+            /** @description DISH lines: the modifier options chosen. SERVICE lines: the service options chosen (ADR 0025); the unit price of a fixed-price service must then be its price plus what they add. */
             modifierOptionIds?: string[];
             /** @description What the customer asked for on this line; shown to the kitchen. */
             note?: string;
@@ -31415,6 +31918,174 @@ export interface components {
             missingInEveningCount?: number;
             lines?: components["schemas"]["ReconciliationLine"][];
         };
+        /** @description One bottle on the bar usage report: where its stock went over the window and the variance against a count. Quantities are in the bottle's own stock unit. */
+        BarUsageLine: {
+            itemId?: string;
+            name?: string;
+            sku?: string | null;
+            openingOnHand?: number;
+            /** @description How much left as pour measures, net of voided pours. */
+            poured?: number;
+            /** @description How much sold as whole units, net of voids and refunds. */
+            directSold?: number;
+            /** @description How much written off as wastage (over-pour, spillage, breakage). */
+            wasted?: number;
+            /** @description Any other net movement (deliveries in, transfers, adjustments); signed. */
+            otherMoved?: number;
+            /** @description What the books say is left now (already reflects every pour). */
+            systemOnHand?: number;
+            /** @description The physical count, when one has been entered. */
+            counted?: number | null;
+            /** @description counted minus systemOnHand. Negative = short (over-pour / spillage). */
+            variance?: number | null;
+        };
+        /** @description The bar usage report (ADR 0024). */
+        BarUsageResponse: {
+            branchId?: string;
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            /** Format: int32 */
+            bottleCount?: number;
+            /** Format: int32 */
+            withVariance?: number;
+            lines?: components["schemas"]["BarUsageLine"][];
+        };
+        PantryDish: {
+            menuItemId?: string;
+            name?: string;
+            /**
+             * Format: int64
+             * @description Portions the usable stock allows, if only this dish were made.
+             */
+            canMake?: number;
+            limitingIngredient?: string;
+            /** Format: int64 */
+            mustUseToday?: number;
+            /** @description Average sold a day over the last fourteen days. */
+            soldPerDay?: number;
+            /** @description canMake at that rate; null when none sold. */
+            daysOfCover?: number | null;
+        };
+        PantryIngredient: {
+            itemId?: string;
+            name?: string;
+            unit?: string | null;
+            /** @description Unexpired stock at the branch. */
+            usable?: number;
+            /** @description Still on the shelf but past its date: it makes nothing and can be written off. */
+            expired?: number;
+            dishes?: string[];
+            /** @description The dish its stock is stated in: of those that use it, the one that sells most. */
+            servingsDish?: string | null;
+            perServing?: number | null;
+            /** Format: int64 */
+            servings?: number;
+            /** @description The part of usable whose batch expires within three days. */
+            expiringSoon?: number;
+            /** Format: date */
+            firstExpiry?: string | null;
+            /** Format: date-time */
+            lastBoughtAt?: string | null;
+            lastSupplier?: string | null;
+            lastUnitCost?: number | null;
+        };
+        PantryLoss: {
+            itemId?: string;
+            name?: string;
+            unit?: string | null;
+            reason?: string;
+            quantity?: number;
+            cost?: number;
+            servingsDish?: string | null;
+            /** Format: int64 */
+            servingsLost?: number;
+        };
+        PantryResponse: {
+            branchId?: string;
+            /** Format: date-time */
+            asOf?: string;
+            dishes?: components["schemas"]["PantryDish"][];
+            ingredients?: components["schemas"]["PantryIngredient"][];
+            losses?: components["schemas"]["PantryLoss"][];
+        };
+        PantryPlanRequest: {
+            branchId: string;
+            portions: {
+                menuItemId: string;
+                /** Format: int32 */
+                portions: number;
+            }[];
+        };
+        PantryPlanLine: {
+            itemId?: string;
+            name?: string;
+            unit?: string | null;
+            needed?: number;
+            usable?: number;
+            /** @description How much more must be bought; zero when there is enough. */
+            shortfall?: number;
+            unitCost?: number | null;
+            estimatedCost?: number | null;
+            lastSupplier?: string | null;
+        };
+        PantryPlanResponse: {
+            lines?: components["schemas"]["PantryPlanLine"][];
+            estimatedTotal?: number;
+            /** @description False when some shortfall has no known price, so the total is a floor. */
+            costKnown?: boolean;
+        };
+        PantryLossRequest: {
+            branchId: string;
+            itemId: string;
+            quantity: number;
+            /** @enum {string} */
+            reason: "SPOILAGE" | "BREAKAGE" | "EXPIRED" | "OTHER";
+            note?: string | null;
+        };
+        PantryLossResponse: {
+            itemId?: string;
+            name?: string;
+            quantity?: number;
+            cost?: number | null;
+            servingsDish?: string | null;
+            /** Format: int64 */
+            servingsLost?: number;
+        };
+        /** @description One pour off a bottle: a tot, single, double or glass. The price is the whole price a customer pays for the pour, not a surcharge. */
+        MeasurePour: {
+            label: string;
+            /** @description How much liquid this pour is, in the same unit as bottleMl. */
+            pourMl: number;
+            /** @description The whole price a customer pays for this pour. */
+            price: number;
+            preselected?: boolean | null;
+        };
+        /** @description Sets up a bottle's pour measures. Builds a choose-one modifier group whose options each take pourMl / bottleMl of the one stocked bottle. */
+        MeasuresRequest: {
+            bottleItemId: string;
+            bottleMl: number;
+            /** @description The modifier group's name; defaults to "Measure". */
+            groupName?: string | null;
+            /** @description A dish to attach the group to; omit to attach later. */
+            dishMenuItemId?: string | null;
+            pours: components["schemas"]["MeasurePour"][];
+        };
+        MeasurePourResult: {
+            optionId?: string;
+            label?: string;
+            /** @description The fraction of the bottle this pour's recipe takes. */
+            quantity?: number;
+            /** @description The whole price a customer pays for this pour. */
+            price?: number;
+        };
+        MeasuresResponse: {
+            groupId?: string;
+            bottleItemId?: string;
+            bottleMl?: number;
+            pours?: components["schemas"]["MeasurePourResult"][];
+        };
         ActiveSessionResponse: {
             session?: components["schemas"]["StockTakeSessionResponse"];
             hasStaleSession?: boolean;
@@ -32864,6 +33535,44 @@ export interface components {
             version?: number;
             /** @description The service's picture, if it has one. Set with POST /api/v1/services/{id}/picture. */
             imageUrl?: string;
+            /** @description What a customer can choose on it; empty for a plain service. Set with PUT /api/v1/services/{id}/options. */
+            options?: components["schemas"]["ServiceOptionGroup"][];
+        };
+        ServiceOptionGroup: {
+            id?: string;
+            name: string;
+            /** @description A visit cannot be paid until something in this group is chosen. */
+            required?: boolean;
+            /** @description Several options may be chosen (extras); otherwise one (a variant such as length). */
+            multiple?: boolean;
+            options: components["schemas"]["ServiceOption"][];
+        };
+        ServiceOption: {
+            /** @description Leave out for a new option; send back to keep an existing one. */
+            id?: string;
+            name: string;
+            /** @description Added to the service's price when chosen. */
+            priceDelta?: number;
+            /**
+             * Format: int32
+             * @description Added to the time the service takes when chosen.
+             */
+            extraMinutes?: number;
+        };
+        SetServiceOptionsRequest: {
+            groups: components["schemas"]["ServiceOptionGroup"][];
+        };
+        LineOptionsRequest: {
+            optionIds: string[];
+        };
+        /** @description One option as it was chosen on a visit line; names and amounts are copied, not looked up again. */
+        LineOption: {
+            optionId?: string;
+            group?: string;
+            name?: string;
+            priceDelta?: number;
+            /** Format: int32 */
+            extraMinutes?: number;
         };
         CreateServiceRequest: {
             name: string;
@@ -33022,6 +33731,8 @@ export interface components {
         TicketLineInput: {
             serviceId: string;
             unitPrice?: number;
+            /** @description What the customer chose on it; may be left for later with PUT .../lines/{lineId}/options. */
+            optionIds?: string[];
         };
         CreateServiceTicketRequest: {
             branchId: string;
@@ -33073,6 +33784,8 @@ export interface components {
             plannedMinutes?: number;
             /** @description What the person leading it is paid for this service when set at the till. */
             performerAmount?: number;
+            /** @description What was chosen on it; unitPrice and plannedMinutes already include these. */
+            options?: components["schemas"]["LineOption"][];
         };
         TicketResponse: {
             id?: string;
@@ -36485,6 +37198,161 @@ export interface operations {
             };
         };
     };
+    reactToPlatformMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleReactionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    deletePlatformMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    editPlatformMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    reactToStorefrontMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleReactionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    deleteStorefrontMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    editStorefrontMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query: {
@@ -37544,6 +38412,85 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    reactSa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleReactionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    deleteSaMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    editSaMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -41472,6 +42419,94 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    reactGuest: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Guest-Id": string;
+                "X-Guest-Token": string;
+            };
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleReactionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    deleteGuestMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Guest-Id": string;
+                "X-Guest-Token": string;
+            };
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupportMessageDto"];
+                };
+            };
+        };
+    };
+    editGuestMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Guest-Id": string;
+                "X-Guest-Token": string;
+            };
+            path: {
+                id: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -56076,6 +57111,8 @@ export interface operations {
                 itemTypeId?: string;
                 itemId?: string;
                 limit?: number;
+                /** @description When true, voided sale lines are included. Defaults to false so sold totals stay on completed and refunded sales. */
+                includeVoided?: boolean;
             };
             header?: never;
             path?: never;
@@ -59301,6 +60338,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+        };
+    };
+    getBarUsage: {
+        parameters: {
+            query: {
+                branchId: string;
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BarUsageResponse"];
                 };
             };
         };
@@ -62775,6 +63835,33 @@ export interface operations {
             };
         };
     };
+    setServiceTicketLineOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LineOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketResponse"];
+                };
+            };
+        };
+    };
     startServiceTicket: {
         parameters: {
             query?: never;
@@ -63336,6 +64423,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServiceConsumablesResponse"];
+                };
+            };
+        };
+    };
+    setServiceOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetServiceOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceResponse"];
                 };
             };
         };
@@ -64585,6 +65698,100 @@ export interface operations {
             };
         };
     };
+    restaurantPantry: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PantryResponse"];
+                };
+            };
+        };
+    };
+    planPantryService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PantryPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PantryPlanResponse"];
+                };
+            };
+        };
+    };
+    recordPantryLoss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PantryLossRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PantryLossResponse"];
+                };
+            };
+        };
+    };
+    generateMeasures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeasuresRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MeasuresResponse"];
+                };
+            };
+        };
+    };
     setModifierOptionAvailability: {
         parameters: {
             query?: never;
@@ -64706,6 +65913,115 @@ export interface operations {
             };
         };
     };
+    kitchenPrintJobs: {
+        parameters: {
+            query: {
+                branchId: string;
+                stationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenPrintJobsResponse"];
+                };
+            };
+        };
+    };
+    claimKitchenPrintJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenPrintJobResponse"];
+                };
+            };
+        };
+    };
+    markKitchenPrintJobPrinted: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reprintKitchenTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["KitchenPrintJobResponse"];
+                };
+            };
+        };
+    };
+    unprintedKitchenTickets: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UnprintedTicketsResponse"];
+                };
+            };
+        };
+    };
     listRestaurantOrdersInProgress: {
         parameters: {
             query: {
@@ -64792,6 +66108,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MenuSalesReport"];
+                };
+            };
+        };
+    };
+    restaurantTableTakings: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TableTakingsReport"];
                 };
             };
         };
@@ -65196,6 +66536,58 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["CancelRestaurantOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    takeRestaurantBookingDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantDepositRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestaurantOpenOrder"];
+                };
+            };
+        };
+    };
+    restaurantBookingNoShow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RestaurantNoShowRequest"];
             };
         };
         responses: {

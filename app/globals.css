@@ -496,11 +496,129 @@
     color: var(--conversation-muted, var(--muted-foreground));
 }
 
+/* Message entrance — one-shot on mount of a newly-arrived row only. Rows keep
+   a stable React key, so the node persists across re-renders and the animation
+   never replays on a tick-flip or reaction change. Mine rises from the send
+   side, theirs from the receive side; both ease-out, under 300ms. */
+@keyframes support-bubble-in-out {
+    from {
+        opacity: 0;
+        transform: translateY(8px) translateX(6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+    }
+}
+
+@keyframes support-bubble-in-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) translateX(-6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+    }
+}
+
+.support-bubble-enter--out {
+    animation: support-bubble-in-out 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.support-bubble-enter--in {
+    animation: support-bubble-in-in 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Delivery tick swap (Clock → ✓ → ✓✓): a quick cross-fade on the icon so the
+   state change is legible without a jump. The icons are swapped in the DOM, so
+   this animates each newly-mounted icon in. */
+@keyframes support-tick-in {
+    from {
+        opacity: 0;
+        transform: scale(0.72);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.support-tick {
+    display: inline-flex;
+    animation: support-tick-in 0.14s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Reaction chip + popover: a small pop so adding a reaction feels responsive. */
+@keyframes support-reaction-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    60% {
+        transform: scale(1.08);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.support-reaction-chip {
+    animation: support-reaction-pop 0.18s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.support-reaction-pop {
+    animation: support-reaction-pop 0.14s cubic-bezier(0.23, 1, 0.32, 1) both;
+    transform-origin: bottom center;
+}
+
+/* Jump-to-latest pill + new-messages divider: a small rise-and-fade on appear. */
+@keyframes support-rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.support-rise-in {
+    animation: support-rise-in 0.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Same rise, but for an element that is horizontally centred with a transform
+   (the jump-to-latest pill). Keeps translateX(-50%) across the whole animation
+   so it doesn't jump sideways. */
+@keyframes support-rise-in-centered {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.support-rise-in-centered {
+    animation: support-rise-in-centered 0.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .support-chat-theme .animate-in,
     .support-chat-theme .animate-ping,
     .support-chat-theme .support-typing-dot,
-    .support-chat-theme .support-message-highlight {
+    .support-chat-theme .support-message-highlight,
+    .support-chat-theme .support-bubble-enter--out,
+    .support-chat-theme .support-bubble-enter--in,
+    .support-chat-theme .support-tick,
+    .support-chat-theme .support-rise-in,
+    .support-chat-theme .support-rise-in-centered,
+    .support-chat-theme .support-reaction-chip,
+    .support-chat-theme .support-reaction-pop {
         animation: none !important;
     }
 
@@ -7666,52 +7784,112 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     border-radius: 2px;
 }
 
-/* Super-admin console — the platform desk, same paper and forest. */
+/* Super-admin console — gray canvas, white frame, Plus Jakarta Sans. */
 .sa-console {
-    --background: #f4f1ea;
-    --foreground: #121a16;
-    --card: #fcfaf5;
-    --card-foreground: #121a16;
-    --popover: #fcfaf5;
-    --popover-foreground: #121a16;
-    --primary: #1d4b3b;
-    --primary-foreground: #fcfaf5;
-    --secondary: #ece7dc;
-    --secondary-foreground: #121a16;
-    --muted: #ece7dc;
-    --muted-foreground: #556159;
-    --accent: #ece7dc;
-    --accent-foreground: #121a16;
-    --border: rgba(18, 26, 22, 0.1);
-    --input: rgba(18, 26, 22, 0.1);
-    --ring: #1d4b3b;
-    --sidebar: #fcfaf5;
-    --sidebar-foreground: #121a16;
-    --sidebar-primary: #1d4b3b;
-    --sidebar-primary-foreground: #fcfaf5;
-    --sidebar-accent: #ece7dc;
-    --sidebar-accent-foreground: #121a16;
-    --sidebar-border: rgba(18, 26, 22, 0.1);
-    --sidebar-ring: #1d4b3b;
-    background-color: var(--background);
+    --background: #ffffff;
+    --foreground: #1a1a1a;
+    --card: #ffffff;
+    --card-foreground: #1a1a1a;
+    --popover: #ffffff;
+    --popover-foreground: #1a1a1a;
+    --primary: #1a3328;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f4f4;
+    --secondary-foreground: #1a1a1a;
+    --muted: #f4f4f4;
+    --muted-foreground: #5c5c5c;
+    --accent: #f4f4f4;
+    --accent-foreground: #1a1a1a;
+    --border: rgba(26, 26, 26, 0.08);
+    --input: rgba(26, 26, 26, 0.1);
+    --ring: #1a3328;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #1a1a1a;
+    --sidebar-primary: #1a3328;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f4f4f4;
+    --sidebar-accent-foreground: #1a1a1a;
+    --sidebar-border: rgba(26, 26, 26, 0.08);
+    --sidebar-ring: #1a3328;
+    --op-bg: #ffffff;
+    --op-surface: #ffffff;
+    --op-ink: #1a1a1a;
+    --op-muted: #5c5c5c;
+    --op-rule: rgba(26, 26, 26, 0.08);
+    --op-accent: #1a3328;
+    --order-ink: #1a1a1a;
+    --pos-primary: #1a3328;
+    --font-sans: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-heading: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+    background-color: #e6e6e6;
+    color: #1a1a1a;
+    font-family: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+    caret-color: #1a3328;
 }
 
-.sa-console .bg-sidebar {
-    background-color: var(--sidebar);
+.sa-console ::selection {
+    background: #d7efe2;
+    color: #1a1a1a;
 }
 
-.sa-console .bg-white {
-    background-color: var(--card);
+.sa-console * {
+    scrollbar-color: #d0d0d0 transparent;
 }
 
-.sa-console .rounded-xl,
-.sa-console .rounded-lg,
-.sa-console .rounded-2xl {
-    border-radius: 2px;
+.sa-console .font-heading,
+.sa-console h1,
+.sa-console h2,
+.sa-console h3 {
+    font-family: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+    letter-spacing: -0.03em;
 }
 
-.sa-console .font-heading {
-    font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+.sa-console .dashboard-page-hero {
+    align-items: flex-start;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0.25rem 0 0.75rem;
+    box-shadow: none;
+}
+
+.sa-console .dashboard-page-hero > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+}
+
+.sa-console .dashboard-page-hero > div:first-child > span[aria-hidden] {
+    display: none;
+}
+
+.sa-console .dashboard-page-hero > div:first-child > div:last-child {
+    max-width: 42rem;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #5c5c5c;
+    white-space: normal;
+}
+
+.sa-console .dashboard-page-hero h1 {
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    white-space: normal;
+}
+
+.sa-console .dashboard-page-hero span.inline-flex.size-7 {
+    display: none;
+}
+
+.sa-console table thead tr {
+    background: #f4f4f4;
+}
+
+.sa-console table th {
+    font-weight: 500;
+    color: #5c5c5c;
 }
 
 /* Public marketplace — a paper shelf, not a green portal. */

@@ -13,6 +13,7 @@ import {
   type ComposerSendPayload,
   DayDivider,
   MessageBubble,
+  MessageEditor,
   NewMessagesDivider,
   PlatformAvatar,
   TypingBubble,
@@ -48,8 +49,13 @@ import {
   setGuestPhone,
   startGuestThread,
   subscribeGuestIdentityChange,
+  toggleGuestReaction,
+  editGuestMessage,
+  deleteGuestMessage,
   verifyGuestRecoveryCode,
 } from "@/lib/public-support-api";
+import { applyReactionFrame, toggleReactionLocally } from "@/lib/support-reactions";
+import { applyEditToList, applyDeleteToList } from "@/lib/support-message-ops";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
 import {
   getGuestRealtimeClient,
@@ -94,6 +100,9 @@ function toLocalMessage(message: GuestMessage): ChatMessageShape {
     orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
     replyTo: message.replyTo ?? null,
+    reactions: message.reactions ?? [],
+    editedAt: message.editedAt ?? null,
+    deletedAt: message.deletedAt ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -365,6 +374,9 @@ function GuestSupportPanel({
 
   const [conversation, setConversation] = React.useState<GuestConversation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessageShape[]>([]);
+  const messagesEditRef = React.useRef<ChatMessageShape[]>([]);
+  messagesEditRef.current = messages;
+  const [editing, setEditing] = React.useState<{ id: string; body: string } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState("");
   const [syncError, setSyncError] = React.useState("");
@@ -568,6 +580,58 @@ function GuestSupportPanel({
           ),
         );
       },
+      onSupportReaction: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        const summary = (Array.isArray(data.reactions) ? data.reactions : []) as Array<{
+          emoji: string;
+          count: number;
+          mine?: boolean;
+        }>;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  reactions: applyReactionFrame(
+                    m.reactions ?? [],
+                    {
+                      emoji: String(data.emoji ?? ""),
+                      action: String(data.action ?? ""),
+                      reactions: summary,
+                    },
+                    false,
+                  ),
+                }
+              : m,
+          ),
+        );
+      },
+      onSupportEdited: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyEditToList(
+            prev,
+            messageId,
+            String(data.body ?? ""),
+            String(data.editedAt ?? new Date().toISOString()),
+          ),
+        );
+      },
+      onSupportDeleted: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyDeleteToList(prev, messageId, String(data.deletedAt ?? new Date().toISOString())),
+        );
+      },
       onSupportTyping: (frame: RealtimeFrame) => {
         const data = frame.data as Record<string, unknown>;
         if (String(data.conversationId ?? "") !== conversationId) return;
@@ -623,6 +687,83 @@ function GuestSupportPanel({
     setHighlightMessageId(messageId);
     window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
   }, []);
+
+  const onReact = React.useCallback(
+    (messageId: string, emoji: string) => {
+      if (!conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+            : m,
+        ),
+      );
+      void toggleGuestReaction(context.ns, conversationId, messageId, emoji, {
+        type: context.type,
+        businessSlug: context.businessSlug,
+      })
+        .then((reactions) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+          );
+        })
+        .catch(() => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+                : m,
+            ),
+          );
+        });
+    },
+    [conversationId, context.ns, context.type, context.businessSlug],
+  );
+
+  const onEdit = React.useCallback((message: ChatMessageShape) => {
+    setEditing({ id: message.id, body: message.body });
+    setReplyTo(null);
+  }, []);
+
+  const commitEdit = React.useCallback(
+    async (messageId: string, body: string) => {
+      const trimmed = body.trim();
+      if (!conversationId || !trimmed) return;
+      const prevBody = messagesEditRef.current.find((m) => m.id === messageId)?.body ?? "";
+      setMessages((prev) => applyEditToList(prev, messageId, trimmed, new Date().toISOString()));
+      setEditing(null);
+      try {
+        const saved = await editGuestMessage(context.ns, conversationId, messageId, trimmed, {
+          type: context.type,
+          businessSlug: context.businessSlug,
+        });
+        setMessages((prev) =>
+          applyEditToList(prev, messageId, saved.body, saved.editedAt ?? new Date().toISOString()),
+        );
+      } catch {
+        setMessages((prev) => applyEditToList(prev, messageId, prevBody, null));
+      }
+    },
+    [conversationId, context.ns, context.type, context.businessSlug],
+  );
+
+  const onDelete = React.useCallback(
+    (message: ChatMessageShape) => {
+      if (!conversationId) return;
+      const messageId = message.id;
+      const snapshot = messagesEditRef.current.find((m) => m.id === messageId);
+      setMessages((prev) => applyDeleteToList(prev, messageId, new Date().toISOString()));
+      void deleteGuestMessage(context.ns, conversationId, messageId, {
+        type: context.type,
+        businessSlug: context.businessSlug,
+      }).catch(() => {
+        if (snapshot) {
+          setMessages((prev) => prev.map((m) => (m.id === messageId ? snapshot : m)));
+        }
+      });
+    },
+    [conversationId, context.ns, context.type, context.businessSlug],
+  );
 
   // ── Send / start ─────────────────────────────────────────────────────────
   const send = React.useCallback(
@@ -1219,6 +1360,9 @@ function GuestSupportPanel({
                             clusterPosition={cluster.clusterPosition}
                             highlighted={highlightMessageId === message.id}
                             onReply={(target) => setReplyTo(toReplyTarget(target))}
+                            onReact={message.pending || message.failed ? undefined : onReact}
+                            onEdit={message.pending || message.failed ? undefined : onEdit}
+                            onDelete={message.pending || message.failed ? undefined : onDelete}
                             onScrollToMessage={scrollToMessage}
                             onRetry={message.failed ? () => retry(message) : undefined}
                             staffActions={false}
@@ -1249,11 +1393,20 @@ function GuestSupportPanel({
             ) : null}
           </ChatThreadSurface>
           <div className="min-w-0 shrink-0 overflow-hidden border-t support-rule support-panel">
+            {editing ? (
+              <MessageEditor
+                value={editing.body}
+                onChange={(body) => setEditing((prev) => (prev ? { ...prev, body } : prev))}
+                onCancel={() => setEditing(null)}
+                onSave={() => void commitEdit(editing.id, editing.body)}
+              />
+            ) : null}
             <Composer
               value={draft}
               onChange={setDraft}
               onSend={(payload) => void send(payload)}
-              disabled={Boolean(loadError)}
+              disabled={Boolean(loadError) || editing != null}
+              disabledHint={editing != null ? "Finish editing first" : undefined}
               sending={sending}
               accentHex={accent}
               replyTo={replyTo}

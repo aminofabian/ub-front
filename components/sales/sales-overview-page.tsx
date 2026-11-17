@@ -78,13 +78,16 @@ import {
   formatChannelLabel,
   matchesChannelFilter,
   matchesStatusWithChannel,
+  normalizeSaleChannel,
   type ChannelFilter,
 } from "@/lib/sale-channel-filter";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
+  formatPaymentMethodLabel,
   formatSalePaymentDisplay,
   matchesPaymentFilter,
+  salePaymentCategories,
   type PaymentFilter,
 } from "@/lib/sale-payment-filter";
 import {
@@ -94,6 +97,19 @@ import {
 } from "@/lib/sales-activity-pdf";
 
 const POLL_MS = 8_000;
+
+/** The single payment bucket a sale is attributed to in the payment-mix card. */
+function primaryPaymentKey(
+  paymentMethod: string,
+  paymentMethods?: string | null,
+): PaymentFilter {
+  const cats = salePaymentCategories(paymentMethod, paymentMethods);
+  if (cats.has("split")) return "split";
+  for (const key of ["mpesa", "cash", "credit", "wallet", "loyalty"] as const) {
+    if (cats.has(key)) return key;
+  }
+  return "other";
+}
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -169,24 +185,50 @@ function RevenueBars({
 }) {
   if (values.length < 2) return null;
   const max = Math.max(...values, 1);
+  const peakIdx = values.reduce((best, v, i) => (v > values[best] ? i : best), 0);
+  const peakHasRevenue = values[peakIdx] > 0;
   return (
-    <figure className="mt-3 pb-2">
+    <figure className="mt-3 pb-1">
+      {peakHasRevenue ? (
+        <figcaption
+          className={cn(
+            "mb-1.5 flex items-center gap-1.5 text-[11px]",
+            salesMute,
+          )}
+        >
+          <span className="size-1.5 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
+          Peak{" "}
+          <span className="font-semibold text-foreground">{labels[peakIdx]}</span>
+          <span className="tabular-nums">· {fmtKes(values[peakIdx])}</span>
+        </figcaption>
+      ) : null}
       <div
-        className={cn("flex h-14 items-end gap-[3px] border-b", salesHair)}
+        className={cn("flex h-16 items-end gap-[3px] border-b", salesHair)}
         role="img"
-        aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}`}
+        aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}, peak ${labels[peakIdx]}`}
       >
-        {values.map((v, i) => (
-          <div
-            key={`${labels[i]}-${i}`}
-            className="min-w-0 flex-1 rounded-t-[3px] bg-[var(--pos-primary,#0f766e)] transition-opacity duration-200 hover:!opacity-100"
-            style={{
-              height: `${Math.max(6, (v / max) * 100)}%`,
-              opacity: v > 0 ? 0.3 + (v / max) * 0.7 : 0.12,
-            }}
-            title={`${labels[i]} ${fmtKes(v)}`}
-          />
-        ))}
+        {values.map((v, i) => {
+          const isPeak = i === peakIdx && peakHasRevenue;
+          return (
+            <div
+              key={`${labels[i]}-${i}`}
+              className={cn(
+                "group/bar relative min-w-0 flex-1 rounded-t-[3px] bg-[var(--pos-primary,#0f766e)] transition-[opacity,height] duration-200",
+                isPeak && "!opacity-100 ring-1 ring-inset ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_55%,transparent)]",
+              )}
+              style={{
+                height: `${Math.max(6, (v / max) * 100)}%`,
+                opacity: isPeak ? 1 : v > 0 ? 0.28 + (v / max) * 0.55 : 0.1,
+              }}
+              title={`${labels[i]} ${fmtKes(v)}`}
+            >
+              {/* Hover tooltip so any hour is readable, not just the peak. */}
+              <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background opacity-0 shadow-sm transition-opacity group-hover/bar:opacity-100">
+                {labels[i]} · {fmtKes(v)}
+              </span>
+            </div>
+          );
+        })}
       </div>
       <figcaption
         className={cn(
@@ -212,6 +254,109 @@ function MetricsSkeleton() {
             className="h-[4.75rem] animate-pulse rounded-xl bg-[color-mix(in_srgb,var(--order-ink,#15231f)_6%,white)]"
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Per-method accent for the payment-mix bars — distinct but calm. */
+const PAYMENT_TINTS: Record<string, string> = {
+  mpesa: "#1d9d5e",
+  cash: "#0f766e",
+  split: "#3b5bdb",
+  credit: "#b8690f",
+  wallet: "#7c5cbf",
+  loyalty: "#b8328f",
+  other: "#6b7a72",
+};
+
+/** Horizontal revenue-share bars, one per payment method used this period. */
+function PaymentMixCard({
+  mix,
+  total,
+}: {
+  mix: { method: string; amount: number }[];
+  total: number;
+}) {
+  if (mix.length === 0 || total <= 0) return null;
+  return (
+    <div className="px-4 py-4 sm:px-5">
+      <p className={cn("text-[11px] font-semibold", salesMute)}>Payment mix</p>
+      <ul className="mt-3 space-y-2.5">
+        {mix.map(({ method, amount }) => {
+          const pct = Math.round((amount / total) * 100);
+          const tint = PAYMENT_TINTS[method] ?? PAYMENT_TINTS.other;
+          return (
+            <li key={method}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full"
+                    style={{ backgroundColor: tint }}
+                  />
+                  {formatPaymentMethodLabel(method)}
+                </span>
+                <span className={cn("text-[11px] tabular-nums", salesMute)}>
+                  {fmtKes(amount)} · {pct}%
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]">
+                <div
+                  className="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
+                  style={{
+                    width: `${Math.max(3, pct)}%`,
+                    backgroundColor: tint,
+                  }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** Walk-in vs Online revenue, shown as a single split bar. */
+function ChannelSplitCard({
+  walkIn,
+  online,
+}: {
+  walkIn: number;
+  online: number;
+}) {
+  const total = walkIn + online;
+  if (total <= 0) return null;
+  const walkPct = Math.round((walkIn / total) * 100);
+  const onlinePct = 100 - walkPct;
+  return (
+    <div className={cn("border-t px-4 py-4 sm:px-5", salesHair)}>
+      <p className={cn("text-[11px] font-semibold", salesMute)}>Channel</p>
+      <div className="mt-3 flex h-2.5 overflow-hidden rounded-full">
+        <div
+          className="h-full bg-[var(--pos-primary,#0f766e)]"
+          style={{ width: `${Math.max(online > 0 ? 2 : 0, walkPct)}%` }}
+          title={`Walk-in ${walkPct}%`}
+        />
+        <div
+          className="h-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_38%,transparent)]"
+          style={{ width: `${Math.max(walkIn > 0 ? 2 : 0, onlinePct)}%` }}
+          title={`Online ${onlinePct}%`}
+        />
+      </div>
+      <div className="mt-2.5 flex items-center justify-between text-[11px]">
+        <span className="flex items-center gap-1.5 text-foreground">
+          <span className="size-2 rounded-full bg-[var(--pos-primary,#0f766e)]" aria-hidden />
+          Walk-in <span className={cn("tabular-nums", salesMute)}>{fmtKes(walkIn)}</span>
+        </span>
+        <span className="flex items-center gap-1.5 text-foreground">
+          <span
+            className="size-2 rounded-full bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_38%,transparent)]"
+            aria-hidden
+          />
+          Online <span className={cn("tabular-nums", salesMute)}>{fmtKes(online)}</span>
+        </span>
       </div>
     </div>
   );
@@ -243,6 +388,9 @@ function SalesTillMetrics({
     refundTotal: number;
     avgTicket: number;
     topItem: string;
+    paymentMix: { method: string; amount: number }[];
+    walkInRevenue: number;
+    onlineRevenue: number;
   };
   statusLine: string;
   trendChart: ReactNode;
@@ -348,6 +496,17 @@ function SalesTillMetrics({
               warn={summary.refundLines > 0}
             />
           </div>
+          {summary.revenue > 0 ? (
+            <div className={cn("border-t", salesHair)}>
+              <PaymentMixCard mix={summary.paymentMix} total={summary.revenue} />
+              {summary.onlineRevenue > 0 ? (
+                <ChannelSplitCard
+                  walkIn={summary.walkInRevenue}
+                  online={summary.onlineRevenue}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </>
       )}
     </div>
@@ -1002,6 +1161,11 @@ export function SalesOverviewPage() {
     const saleIds = new Set<string>();
     let units = 0;
     const byItem = new Map<string, { name: string; revenue: number }>();
+    // Revenue by payment method + channel, counted once per sale (not per line).
+    const byPayment = new Map<string, number>();
+    let walkInRevenue = 0;
+    let onlineRevenue = 0;
+    const seenSaleTotals = new Map<string, number>();
 
     for (const row of lines) {
       const refunded = (row.status?.toLowerCase() ?? "").includes("refund");
@@ -1020,6 +1184,16 @@ export function SalesOverviewPage() {
         name: row.itemName,
         revenue: (prev?.revenue ?? 0) + total,
       });
+
+      // Attribute this line's revenue to its sale's payment method + channel.
+      const method = primaryPaymentKey(row.paymentMethod, row.paymentMethods);
+      byPayment.set(method, (byPayment.get(method) ?? 0) + total);
+      if (normalizeSaleChannel(row.channel) === "online_store") {
+        onlineRevenue += total;
+      } else {
+        walkInRevenue += total;
+      }
+      seenSaleTotals.set(row.saleId, (seenSaleTotals.get(row.saleId) ?? 0) + total);
     }
 
     let topItem = "";
@@ -1031,6 +1205,10 @@ export function SalesOverviewPage() {
       }
     }
 
+    const paymentMix = [...byPayment.entries()]
+      .map(([method, amount]) => ({ method, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
     const count = saleIds.size;
     return {
       revenue,
@@ -1041,6 +1219,9 @@ export function SalesOverviewPage() {
       refundTotal,
       avgTicket: count > 0 ? revenue / count : 0,
       topItem,
+      paymentMix,
+      walkInRevenue,
+      onlineRevenue,
     };
   }, [lines]);
 

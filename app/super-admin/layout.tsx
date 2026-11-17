@@ -1,7 +1,7 @@
 import {
-  OXANIUM_SURFACE_CLASS,
-  OXANIUM_SURFACE_STYLE,
-} from "@/lib/oxanium-surface";
+  PLUS_JAKARTA_STACK,
+  plusJakarta,
+} from "@/app/fonts/plus-jakarta";
 
 export default function SuperAdminRootLayout({
   children,
@@ -10,8 +10,12 @@ export default function SuperAdminRootLayout({
 }>) {
   return (
     <div
-      className={`min-h-screen bg-background ${OXANIUM_SURFACE_CLASS}`}
-      style={OXANIUM_SURFACE_STYLE}
+      className={`${plusJakarta.variable} ${plusJakarta.className} min-h-screen`}
+      style={{
+        ["--font-sans" as string]: PLUS_JAKARTA_STACK,
+        ["--font-heading" as string]: PLUS_JAKARTA_STACK,
+        fontFamily: PLUS_JAKARTA_STACK,
+      }}
     >
       {children}
     </div>

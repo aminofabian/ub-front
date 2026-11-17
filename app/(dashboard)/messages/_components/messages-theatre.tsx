@@ -2,9 +2,14 @@
 
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
+  Check,
+  CheckCheck,
+  Clock,
   Inbox,
   Loader2,
   Mail,
+  MessageCircle,
   MessageSquare,
   RefreshCw,
   Search,
@@ -97,6 +102,110 @@ function previewSubject(text: string, max = 72): string {
   if (!cleaned) return "No subject";
   if (cleaned.length <= max) return cleaned;
   return `${cleaned.slice(0, max - 1)}…`;
+}
+
+/** A compact, calm time for a reply bubble's meta line. */
+function formatReplyTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString([], { day: "numeric", month: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * Per-channel identity so a reply reads at a glance as Email vs SMS vs WhatsApp.
+ * Colours are channel-native tints over the conversation forest palette, kept
+ * quiet enough to stay professional in light and dark.
+ */
+const CHANNEL_META: Record<
+  string,
+  { label: string; Icon: typeof Mail; tint: string; text: string; ring: string }
+> = {
+  EMAIL: {
+    label: "Email",
+    Icon: Mail,
+    tint: "bg-[color-mix(in_srgb,#3b5bdb_12%,transparent)]",
+    text: "text-[#3b5bdb]",
+    ring: "ring-[color-mix(in_srgb,#3b5bdb_30%,transparent)]",
+  },
+  WHATSAPP: {
+    label: "WhatsApp",
+    Icon: MessageCircle,
+    tint: "bg-[color-mix(in_srgb,#1d9d5e_14%,transparent)]",
+    text: "text-[#157a47]",
+    ring: "ring-[color-mix(in_srgb,#1d9d5e_32%,transparent)]",
+  },
+  SMS: {
+    label: "SMS",
+    Icon: MessageSquare,
+    tint: "bg-[color-mix(in_srgb,#b8690f_14%,transparent)]",
+    text: "text-[#9a5610]",
+    ring: "ring-[color-mix(in_srgb,#b8690f_30%,transparent)]",
+  },
+};
+
+function channelMeta(channel: string) {
+  return CHANNEL_META[channel?.toUpperCase?.() ?? ""] ?? CHANNEL_META.SMS;
+}
+
+/** Small channel chip (icon + label) shown on each outbound reply. */
+function ChannelBadge({ channel }: { channel: string }) {
+  const meta = channelMeta(channel);
+  const { Icon } = meta;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset",
+        meta.tint,
+        meta.text,
+        meta.ring,
+      )}
+    >
+      <Icon className="size-3" aria-hidden />
+      {meta.label}
+    </span>
+  );
+}
+
+/** Delivery state for a reply, mirroring the chat tick language. */
+function ReplyStatus({ outcome }: { outcome: string }) {
+  if (outcome === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1 font-medium text-destructive">
+        <AlertTriangle className="size-3" aria-hidden />
+        Failed
+      </span>
+    );
+  }
+  if (outcome === "queued") {
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        <Clock className="size-3" aria-hidden />
+        Queued
+      </span>
+    );
+  }
+  if (outcome === "sent" || outcome === "stub") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[var(--pos-primary,#0f766e)]">
+        <CheckCheck className="size-3" aria-hidden />
+        Sent
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-muted-foreground">
+      <Check className="size-3" aria-hidden />
+      {outcome}
+    </span>
+  );
 }
 
 function MessagesContextBanner({
@@ -193,111 +302,120 @@ function MessagesPulse({
   onSelect: (id: string) => void;
   className?: string;
 }) {
-  const card = cn(
-    salesSurface,
-    "absolute z-[1] w-[min(17.5rem,calc(100%-1.5rem))] p-3.5 shadow-[0_12px_32px_color-mix(in_srgb,var(--order-ink,#15231f)_9%,transparent)]",
-  );
-
   const recentUnread = useMemo(
-    () => rows.filter((r) => r.status === "UNREAD").slice(0, 5),
+    () => rows.filter((r) => r.status === "UNREAD").slice(0, 6),
     [rows],
   );
 
   return (
-    <div className={cn("relative h-full min-h-0 overflow-hidden", className)}>
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_16%,transparent)]"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
+    <div
+      className={cn(
+        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-6",
+        className,
+      )}
+    >
+      {/* Soft radial wash so the panel reads as a considered surface, not a void. */}
+      <div
         aria-hidden
-      >
-        <path
-          d="M14 42 C 34 26, 58 22, 84 36"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d="M18 62 C 40 74, 62 68, 82 58"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.35"
-          strokeDasharray="1.4 1.6"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(60%_55%_at_50%_38%,color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,transparent),transparent_70%)]"
+      />
 
-      <article className={cn(card, "left-[8%] top-[16%]")}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Inbox
-        </p>
-        <p
-          className={cn(
-            "mt-2 font-heading text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
-            salesInk,
-          )}
-        >
-          {totalCount.toLocaleString()}
-        </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>
-          Talk to Us messages from your storefront
-        </p>
-      </article>
+      <div className="relative z-[1] w-full max-w-sm">
+        <div className="flex flex-col items-center text-center">
+          <span
+            aria-hidden
+            className="grid size-14 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]"
+          >
+            <Inbox className="size-6" />
+          </span>
+          <h3
+            className={cn(
+              "mt-4 font-heading text-[1.4rem] font-semibold leading-tight tracking-[-0.03em]",
+              salesInk,
+            )}
+          >
+            {unreadCount > 0 ? "You have new messages" : "Inbox is clear"}
+          </h3>
+          <p className={cn(dashboardHintClass(), "mt-1.5 max-w-xs leading-relaxed")}>
+            {totalCount === 0
+              ? "Shoppers reach you from Talk to Us on your storefront — their messages land here first."
+              : "Pick a message on the left to read the full thread and reply from the dock."}
+          </p>
+        </div>
 
-      <article className={cn(card, "right-[6%] top-[34%]")}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Unread
-        </p>
-        <p
-          className={cn(
-            "mt-2 text-[1.85rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
-            unreadCount > 0
-              ? "text-[#9a2e16]"
-              : "text-[var(--pos-primary,#0f766e)]",
-          )}
-          style={{ fontFamily: "var(--font-heading)" }}
-        >
-          {unreadCount.toLocaleString()}
-        </p>
-        <p className={cn(dashboardHintClass(), "mt-2")}>
-          {unreadCount > 0
-            ? "Select a message to mark it read"
-            : "Nothing waiting — check back later"}
-        </p>
-      </article>
+        {/* Two-stat row — the key numbers, side by side. */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className={cn(salesSurface, "rounded-2xl px-4 py-3 text-center")}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Total
+            </p>
+            <p
+              className={cn(
+                "mt-1 font-heading text-[1.9rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
+                salesInk,
+              )}
+            >
+              {totalCount.toLocaleString()}
+            </p>
+          </div>
+          <div className={cn(salesSurface, "rounded-2xl px-4 py-3 text-center")}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Unread
+            </p>
+            <p
+              className={cn(
+                "mt-1 font-heading text-[1.9rem] font-semibold leading-none tracking-[-0.04em] tabular-nums",
+                unreadCount > 0
+                  ? "text-[#9a2e16]"
+                  : "text-[var(--pos-primary,#0f766e)]",
+              )}
+            >
+              {unreadCount.toLocaleString()}
+            </p>
+          </div>
+        </div>
 
-      {recentUnread.length > 0 ? (
-        <article className={cn(card, "left-[10%] bottom-[10%]")}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Needs a look
-          </p>
-          <ul className="mt-2 space-y-1.5">
-            {recentUnread.map((row) => (
-              <li key={row.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(row.id)}
-                  className="text-left text-[12px] font-semibold tracking-[-0.015em] text-foreground underline-offset-2 hover:underline"
-                >
-                  {row.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </article>
-      ) : totalCount === 0 ? (
-        <article className={cn(card, "left-[10%] bottom-[12%]")}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Tip
-          </p>
-          <p className={cn(dashboardHintClass(), "mt-2 max-w-[14rem]")}>
-            Shoppers send messages from Talk to Us on your storefront. They land
-            here first.
-          </p>
-        </article>
-      ) : null}
+        {/* Needs-a-look list — tidy, clickable rows. */}
+        {recentUnread.length > 0 ? (
+          <div className={cn(salesSurface, "mt-3 overflow-hidden rounded-2xl")}>
+            <p className="border-b px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+              Needs a look
+            </p>
+            <ul>
+              {recentUnread.map((row) => (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(row.id)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)]"
+                  >
+                    <span
+                      aria-hidden
+                      className="grid size-7 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)] text-[10px] font-bold uppercase tracking-wide text-foreground"
+                    >
+                      {messageInitials(row.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12.5px] font-semibold tracking-[-0.015em] text-foreground">
+                        {row.name}
+                      </span>
+                      {row.preview ? (
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {row.preview}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="size-1.5 shrink-0 rounded-full bg-[#9a2e16]"
+                    />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -315,73 +433,107 @@ function MessagesFocus({
   const email = detail?.email ?? listRow?.email ?? "";
   const phone = detail?.phone ?? listRow?.phone ?? null;
   const when = detail?.createdAt ?? listRow?.createdAt ?? "";
-  const subject = previewSubject(
-    detail?.body ?? listRow?.preview ?? "",
-  );
-  const summary = previewSubject(
-    detail?.body ?? listRow?.preview ?? "",
-    160,
-  );
+  const body = detail?.body ?? listRow?.preview ?? "";
+  const status = detail?.status ?? listRow?.status ?? "READ";
+
+  const replyCount = detail?.replies?.length ?? 0;
+  // Distinct channels used across the reply history, in first-seen order.
+  const channelsUsed = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const r of detail?.replies ?? []) {
+      const c = r.channel?.toUpperCase?.() ?? "";
+      if (c && !seen.has(c)) {
+        seen.add(c);
+        out.push(c);
+      }
+    }
+    return out;
+  }, [detail?.replies]);
 
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-6",
+        "relative flex h-full min-h-0 items-center justify-center overflow-y-auto px-6 py-8",
         className,
       )}
     >
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full text-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)]"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
+      {/* Soft wash keeps the reading pane from feeling like a blank sheet. */}
+      <div
         aria-hidden
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(55%_50%_at_50%_30%,color-mix(in_srgb,var(--order-ink,#15231f)_5%,transparent),transparent_70%)]"
+      />
+
+      <article
+        className={cn(
+          salesSurface,
+          "relative z-[1] w-full max-w-md rounded-3xl p-6 shadow-[0_18px_48px_color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+        )}
       >
-        <circle
-          cx="50"
-          cy="46"
-          r="28"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.3"
-          strokeDasharray="1.2 1.8"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <div className="relative z-[1] flex max-w-md flex-col items-center text-center">
+        {/* Oversized quote mark as a quiet motif. */}
         <span
-          className={cn(
-            salesSurface,
-            "grid size-16 place-items-center rounded-2xl text-[1.1rem] font-bold tracking-wide shadow-[0_10px_28px_color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]",
-            salesInk,
-          )}
           aria-hidden
+          className="font-heading text-[3.5rem] leading-[0.6] text-[color-mix(in_srgb,var(--pos-primary,#0f766e)_30%,transparent)]"
         >
-          {messageInitials(name)}
+          &ldquo;
         </span>
-        <h3
-          className={cn(
-            "mt-4 font-heading text-[1.45rem] font-semibold leading-tight tracking-[-0.03em]",
-            salesInk,
-          )}
-        >
-          {subject}
-        </h3>
-        <p className="mt-2 text-[12px] text-muted-foreground">
-          From {name}
-          {email ? ` · ${email}` : ""}
-          {phone ? ` · ${phone}` : ""}
-        </p>
-        {when ? (
-          <p className={cn(dashboardHintClass(), "mt-1")}>{formatWhen(when)}</p>
-        ) : null}
-        <p className={cn(dashboardHintClass(), "mt-5 max-w-sm leading-relaxed")}>
-          {summary}
-        </p>
+
+        <MessageBody
+          text={body}
+          className="mt-1 text-[1.05rem] leading-relaxed tracking-[-0.01em] text-foreground"
+        />
+
+        <div className="mt-6 flex items-center gap-3 border-t pt-4 border-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)]">
+          <span
+            aria-hidden
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] text-[12px] font-semibold tracking-wide text-foreground ring-1 ring-inset ring-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
+          >
+            {messageInitials(name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+              {name}
+            </p>
+            <p className="truncate text-[11.5px] text-muted-foreground">
+              {email}
+              {phone ? ` · ${phone}` : ""}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+              status === "UNREAD"
+                ? "bg-[color-mix(in_srgb,#9a2e16_12%,transparent)] text-[#9a2e16]"
+                : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]",
+            )}
+          >
+            {status === "UNREAD" ? "Unread" : "Read"}
+          </span>
+        </div>
+
+        {/* Context strip: when, reply count, channels used. */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+          {when ? <span>{formatWhen(when)}</span> : null}
+          {when ? <span aria-hidden>·</span> : null}
+          <span>
+            {replyCount === 0
+              ? "No replies yet"
+              : `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`}
+          </span>
+          {channelsUsed.length > 0 ? (
+            <span className="inline-flex items-center gap-1">
+              {channelsUsed.map((c) => (
+                <ChannelBadge key={c} channel={c} />
+              ))}
+            </span>
+          ) : null}
+        </div>
+
         <p className={cn(dashboardHintClass(), "mt-4 flex items-center gap-1.5")}>
           <Mail className="size-3.5 shrink-0" aria-hidden />
-          Full thread and reply live in the dock
+          Reply from the dock on the right
         </p>
-      </div>
+      </article>
     </div>
   );
 }
@@ -440,33 +592,97 @@ function MessageDossier({
       )}
     >
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            From
-          </p>
-          <h3
-            className="mt-1 text-[1.15rem] font-semibold leading-tight tracking-[-0.02em]"
-            style={{ fontFamily: "var(--font-heading)" }}
+        {/* Contact header */}
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className="inline-flex size-10 shrink-0 select-none items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--order-ink,#15231f)_8%,transparent)] text-[12px] font-semibold tracking-wide text-foreground ring-1 ring-inset ring-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]"
           >
-            {detail.name}
-          </h3>
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            {detail.email}
-            {detail.phone ? ` · ${detail.phone}` : ""}
-          </p>
-          <p className={cn(dashboardHintClass(), "mt-1")}>
-            {formatWhen(detail.createdAt)}
-            {detail.status === "UNREAD" ? " · Unread" : " · Read"}
-          </p>
+            {messageInitials(detail.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3
+              className="truncate text-[1.05rem] font-semibold leading-tight tracking-[-0.02em]"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {detail.name}
+            </h3>
+            <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+              {detail.email}
+              {detail.phone ? ` · ${detail.phone}` : ""}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+              detail.status === "UNREAD"
+                ? "bg-[color-mix(in_srgb,#9a2e16_12%,transparent)] text-[#9a2e16]"
+                : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_12%,transparent)] text-[var(--pos-primary,#0f766e)]",
+            )}
+          >
+            {detail.status === "UNREAD" ? "Unread" : "Read"}
+          </span>
         </div>
 
-        <MessageBody
-          text={detail.body}
-          className="text-[13px] leading-relaxed text-foreground"
-        />
+        {/* Conversation thread — inbound message, then outbound replies. */}
+        <div className="space-y-3">
+          {/* Inbound: the shopper's original message, left-aligned. */}
+          <div className="flex flex-col items-start">
+            <div
+              className={cn(
+                salesSurface,
+                "max-w-[85%] rounded-2xl rounded-bl-md px-3.5 py-2.5",
+              )}
+            >
+              <MessageBody
+                text={detail.body}
+                className="text-[13px] leading-relaxed text-foreground"
+              />
+            </div>
+            <span className="mt-1 px-1 text-[10.5px] text-muted-foreground">
+              {formatReplyTime(detail.createdAt)}
+            </span>
+          </div>
+
+          {/* Outbound: each reply, right-aligned with its channel + status. */}
+          {detail.replies.map((reply) => {
+            const meta = channelMeta(reply.channel);
+            return (
+              <div key={reply.id} className="flex flex-col items-end">
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl rounded-br-md border px-3.5 py-2.5",
+                    "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_6%,var(--order-surface,#fff))]",
+                    reply.outcome === "failed"
+                      ? "border-destructive/35"
+                      : meta.ring.replace("ring-", "border-"),
+                  )}
+                >
+                  <div className="mb-1.5 flex items-center justify-end gap-2">
+                    <ChannelBadge channel={reply.channel} />
+                  </div>
+                  <MessageBody
+                    text={reply.body}
+                    className="text-[13px] leading-relaxed text-foreground"
+                  />
+                  {reply.outcome === "failed" && reply.detail ? (
+                    <p className="mt-1.5 text-[11px] text-destructive/80">
+                      {reply.detail}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="mt-1 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
+                  <ReplyStatus outcome={reply.outcome} />
+                  <span aria-hidden>·</span>
+                  <span>{formatReplyTime(reply.createdAt)}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
         {onOpenTicket || onOrganize ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-t border-dashed pt-3 border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)]">
             {onOpenTicket ? (
               <Button
                 type="button"
@@ -490,47 +706,6 @@ function MessageDossier({
             ) : null}
           </div>
         ) : null}
-
-        {detail.replies.length > 0 ? (
-          <div className="space-y-2">
-            <h4 className="text-[12px] font-semibold tracking-[-0.01em]">
-              Replies
-            </h4>
-            <ul className="space-y-2">
-              {detail.replies.map((reply) => (
-                <li
-                  key={reply.id}
-                  className={cn(
-                    salesSurface,
-                    "rounded-xl px-3 py-2 text-[13px]",
-                  )}
-                >
-                  <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    <span>{reply.channel}</span>
-                    <span>·</span>
-                    {reply.outcome === "failed" ? (
-                      <span className="font-medium text-destructive">Failed</span>
-                    ) : reply.outcome === "queued" ? (
-                      <span>Queued — sends when online</span>
-                    ) : reply.outcome === "sent" || reply.outcome === "stub" ? (
-                      <span>Sent</span>
-                    ) : (
-                      <span>{reply.outcome}</span>
-                    )}
-                    <span>·</span>
-                    <span>{formatWhen(reply.createdAt)}</span>
-                  </div>
-                  <MessageBody text={reply.body} />
-                  {reply.outcome === "failed" && reply.detail ? (
-                    <p className="mt-1 text-[11px] text-destructive/80">
-                      {reply.detail}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </div>
 
       {canReply ? (
@@ -541,26 +716,33 @@ function MessageDossier({
           )}
           onSubmit={(e) => void onSendReply(e)}
         >
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Reply via
+            </span>
             {(
               [
                 ["EMAIL", "Email", emailDisabled],
                 ["WHATSAPP", "WhatsApp", phoneDisabled],
-                ["SMS", "Message", phoneDisabled],
+                ["SMS", "SMS", phoneDisabled],
               ] as const
-            ).map(([id, label, disabled]) => (
-              <Button
-                key={id}
-                type="button"
-                size="sm"
-                variant={channel === id ? "default" : "outline"}
-                className="h-7 rounded-full px-2.5 text-[11px]"
-                disabled={disabled}
-                onClick={() => onChannelChange(id)}
-              >
-                {label}
-              </Button>
-            ))}
+            ).map(([id, label, disabled]) => {
+              const { Icon } = channelMeta(id);
+              return (
+                <Button
+                  key={id}
+                  type="button"
+                  size="sm"
+                  variant={channel === id ? "default" : "outline"}
+                  className="h-7 gap-1 rounded-full px-2.5 text-[11px]"
+                  disabled={disabled}
+                  onClick={() => onChannelChange(id)}
+                >
+                  <Icon className="size-3" aria-hidden />
+                  {label}
+                </Button>
+              );
+            })}
           </div>
           <textarea
             value={replyBody}

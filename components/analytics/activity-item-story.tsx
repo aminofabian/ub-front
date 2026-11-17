@@ -721,11 +721,21 @@ export function ActivityItemStory({
                         <p className="text-[11px] font-medium text-foreground/90">
                           {new Date(s.soldAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
-                        <p className="truncate text-[10px] text-muted-foreground">{s.cashierName || "—"} · {s.paymentMethod}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">
+                          {s.cashierName || "—"} · {s.paymentMethod}
+                          {s.status === "voided" ? " · Voided" : ""}
+                        </p>
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="font-mono text-[11px] font-semibold tabular-nums">{formatQty(s.quantity)}</p>
-                        <p className="font-mono text-[10px] tabular-nums text-muted-foreground">{formatMoney(s.lineTotal)}</p>
+                        <p
+                          className={cn(
+                            "font-mono text-[10px] tabular-nums text-muted-foreground",
+                            s.status === "voided" && "text-[#9a2e16] line-through",
+                          )}
+                        >
+                          {formatMoney(s.lineTotal)}
+                        </p>
                       </div>
                     </li>
                   ))}

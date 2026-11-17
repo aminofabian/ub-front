@@ -12,6 +12,7 @@ import {
   type ComposerSendPayload,
   DayDivider,
   MessageBubble,
+  MessageEditor,
   NewMessagesDivider,
   TypingBubble,
   chatDayLabel,
@@ -33,7 +34,12 @@ import {
   markStorefrontBuyerConversationRead,
   escalateStorefrontBuyerConversation,
   sendStorefrontBuyerReply,
+  toggleStorefrontBuyerReaction,
+  editStorefrontBuyerMessage,
+  deleteStorefrontBuyerMessage,
 } from "@/lib/support-api";
+import { applyReactionFrame, toggleReactionLocally } from "@/lib/support-reactions";
+import { applyEditToList, applyDeleteToList } from "@/lib/support-message-ops";
 import { setSupportConversationFocused } from "@/lib/support-focus";
 import { unlockSupportAudio } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
@@ -53,6 +59,9 @@ function toLocalMessage(message: {
   orderCard?: LocalMessage["orderCard"];
   attachment?: LocalMessage["attachment"];
   replyTo?: LocalMessage["replyTo"];
+  reactions?: LocalMessage["reactions"];
+  editedAt?: string | null;
+  deletedAt?: string | null;
   readAt: string | null;
   createdAt: string;
 }): LocalMessage {
@@ -67,6 +76,9 @@ function toLocalMessage(message: {
     orderCard: message.orderCard ?? null,
     attachment: message.attachment ?? null,
     replyTo: message.replyTo ?? null,
+    reactions: message.reactions ?? [],
+    editedAt: message.editedAt ?? null,
+    deletedAt: message.deletedAt ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -149,6 +161,9 @@ export function StorefrontBuyerInbox({
   const [escalatedLabel, setEscalatedLabel] = React.useState<string | null>(null);
   const [escalateBusy, setEscalateBusy] = React.useState(false);
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
+  const messagesEditRef = React.useRef<LocalMessage[]>([]);
+  messagesEditRef.current = messages;
+  const [editing, setEditing] = React.useState<{ id: string; body: string } | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
@@ -309,6 +324,58 @@ export function StorefrontBuyerInbox({
           );
         }
       },
+      onSupportReaction: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== activeId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        const summary = (Array.isArray(data.reactions) ? data.reactions : []) as Array<{
+          emoji: string;
+          count: number;
+          mine?: boolean;
+        }>;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  reactions: applyReactionFrame(
+                    m.reactions ?? [],
+                    {
+                      emoji: String(data.emoji ?? ""),
+                      action: String(data.action ?? ""),
+                      reactions: summary,
+                    },
+                    false,
+                  ),
+                }
+              : m,
+          ),
+        );
+      },
+      onSupportEdited: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== activeId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyEditToList(
+            prev,
+            messageId,
+            String(data.body ?? ""),
+            String(data.editedAt ?? new Date().toISOString()),
+          ),
+        );
+      },
+      onSupportDeleted: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== activeId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyDeleteToList(prev, messageId, String(data.deletedAt ?? new Date().toISOString())),
+        );
+      },
       onSupportTyping: (frame: RealtimeFrame) => {
         const data = frame.data as Record<string, unknown>;
         const convId = String(data.conversationId ?? "");
@@ -393,6 +460,77 @@ export function StorefrontBuyerInbox({
     setHighlightMessageId(messageId);
     window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
   }, []);
+
+  const onReact = React.useCallback(
+    (messageId: string, emoji: string) => {
+      const conversationId = activeId;
+      if (!conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+            : m,
+        ),
+      );
+      void toggleStorefrontBuyerReaction(conversationId, messageId, emoji)
+        .then((reactions) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+          );
+        })
+        .catch(() => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+                : m,
+            ),
+          );
+        });
+    },
+    [activeId],
+  );
+
+  const onEdit = React.useCallback((message: LocalMessage) => {
+    setEditing({ id: message.id, body: message.body });
+    setReplyTo(null);
+  }, []);
+
+  const commitEdit = React.useCallback(
+    async (messageId: string, body: string) => {
+      const conversationId = activeId;
+      const trimmed = body.trim();
+      if (!conversationId || !trimmed) return;
+      const prevBody = messagesEditRef.current.find((m) => m.id === messageId)?.body ?? "";
+      setMessages((prev) => applyEditToList(prev, messageId, trimmed, new Date().toISOString()));
+      setEditing(null);
+      try {
+        const saved = await editStorefrontBuyerMessage(conversationId, messageId, trimmed);
+        setMessages((prev) =>
+          applyEditToList(prev, messageId, saved.body, saved.editedAt ?? new Date().toISOString()),
+        );
+      } catch {
+        setMessages((prev) => applyEditToList(prev, messageId, prevBody, null));
+      }
+    },
+    [activeId],
+  );
+
+  const onDelete = React.useCallback(
+    (message: LocalMessage) => {
+      const conversationId = activeId;
+      if (!conversationId) return;
+      const messageId = message.id;
+      const snapshot = messagesEditRef.current.find((m) => m.id === messageId);
+      setMessages((prev) => applyDeleteToList(prev, messageId, new Date().toISOString()));
+      void deleteStorefrontBuyerMessage(conversationId, messageId).catch(() => {
+        if (snapshot) {
+          setMessages((prev) => prev.map((m) => (m.id === messageId ? snapshot : m)));
+        }
+      });
+    },
+    [activeId],
+  );
 
   // ── Send ────────────────────────────────────────────────────────────────
   const send = React.useCallback(
@@ -744,6 +882,9 @@ export function StorefrontBuyerInbox({
                         clusterPosition={cluster.clusterPosition}
                         highlighted={highlightMessageId === message.id}
                         onReply={(target) => setReplyTo(toReplyTarget(target))}
+                        onReact={message.pending || message.failed ? undefined : onReact}
+                        onEdit={message.pending || message.failed ? undefined : onEdit}
+                        onDelete={message.pending || message.failed ? undefined : onDelete}
                         onScrollToMessage={scrollToMessage}
                         onRetry={message.failed ? () => retry(message) : undefined}
                       />
@@ -772,12 +913,24 @@ export function StorefrontBuyerInbox({
         ) : null}
       </div>
       <div className="min-w-0 shrink-0 overflow-hidden border-t border-border/60 p-3">
+        {editing ? (
+          <MessageEditor
+            value={editing.body}
+            onChange={(body) => setEditing((prev) => (prev ? { ...prev, body } : prev))}
+            onCancel={() => setEditing(null)}
+            onSave={() => void commitEdit(editing.id, editing.body)}
+          />
+        ) : null}
         <Composer
           value={draft}
           onChange={setDraft}
           onSend={(payload) => void send(payload)}
-          disabled={!canReply || sending}
-          disabledHint="You do not have permission to reply to buyers."
+          disabled={!canReply || sending || editing != null}
+          disabledHint={
+            editing != null
+              ? "Finish editing first"
+              : "You do not have permission to reply to buyers."
+          }
           sending={sending}
           replyTo={replyTo}
           onClearReply={() => setReplyTo(null)}

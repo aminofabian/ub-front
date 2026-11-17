@@ -9,13 +9,17 @@ import {
   CornerUpLeft,
   FileText,
   Paperclip,
+  Pencil,
   Send,
   ShoppingBag,
   Smile,
+  Trash2,
   X,
 } from "lucide-react";
 
 import { MessageBody } from "@/components/conversations/message-body";
+import { EmojiPicker } from "@/components/support/emoji-picker";
+import { QUICK_REACTIONS } from "@/lib/emoji/emoji-data";
 import { Button } from "@/components/ui/button";
 import { readableInkOn } from "@/lib/color-contrast";
 import { APP_ROUTES } from "@/lib/config";
@@ -78,6 +82,12 @@ export type ChatReplyShape = {
   messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
 };
 
+export type ChatReactionShape = {
+  emoji: string;
+  count: number;
+  mine: boolean;
+};
+
 export type ChatMessageShape = {
   id: string;
   conversationId: string;
@@ -90,6 +100,9 @@ export type ChatMessageShape = {
   welcomeCard?: ChatWelcomeCardShape | null;
   attachment?: ChatAttachmentShape | null;
   replyTo?: ChatReplyShape | null;
+  reactions?: ChatReactionShape[];
+  editedAt?: string | null;
+  deletedAt?: string | null;
   readAt: string | null;
   createdAt: string;
   /** Optimistic, not yet confirmed by the server. */
@@ -344,9 +357,13 @@ export function MessageBubble({
   clusterPosition = "single",
   onRetry,
   onReply,
+  onReact,
+  onEdit,
+  onDelete,
   onScrollToMessage,
   highlighted = false,
   staffActions = true,
+  animateEntrance = false,
 }: {
   message: ChatMessageShape;
   mine: boolean;
@@ -354,18 +371,53 @@ export function MessageBubble({
   clusterPosition?: ClusterPosition;
   onRetry?: () => void;
   onReply?: (message: ChatMessageShape) => void;
+  /** Toggle one emoji reaction on this message. Absent = reactions disabled. */
+  onReact?: (messageId: string, emoji: string) => void;
+  /** Begin editing this (own, text) message. Absent = editing disabled. */
+  onEdit?: (message: ChatMessageShape) => void;
+  /** Delete/unsend this (own) message. Absent = deletion disabled. */
+  onDelete?: (message: ChatMessageShape) => void;
   onScrollToMessage?: (messageId: string) => void;
   highlighted?: boolean;
   /** When false, hide tenant-only CTAs (e.g. Open order in guest chat). */
   staffActions?: boolean;
+  /**
+   * Play the one-shot entrance animation. Only true for rows that arrive after
+   * the thread's first paint — never on initial load (which would animate every
+   * row at once). Reduced-motion disables it in CSS.
+   */
+  animateEntrance?: boolean;
 }) {
   const isFailed = message.failed === true;
   const isPending = message.pending === true;
+  const isDeleted = message.deletedAt != null;
   const isOrderCard =
-    message.messageKind === "ORDER_CARD" && message.orderCard != null;
+    !isDeleted && message.messageKind === "ORDER_CARD" && message.orderCard != null;
   const isWelcomeCard =
-    message.messageKind === "WELCOME_CARD" && message.welcomeCard != null;
+    !isDeleted && message.messageKind === "WELCOME_CARD" && message.welcomeCard != null;
   const [copied, setCopied] = React.useState(false);
+  const [reactOpen, setReactOpen] = React.useState(false);
+  const reactRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!reactOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (reactRef.current && !reactRef.current.contains(e.target as Node)) {
+        setReactOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setReactOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [reactOpen]);
+
+  const reactions = message.reactions ?? [];
 
   if (isWelcomeCard) {
     return (
@@ -389,6 +441,37 @@ export function MessageBubble({
             pending={isPending}
             readAt={message.readAt}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (isDeleted) {
+    return (
+      <div
+        data-message-id={message.id}
+        className={cn(
+          "flex w-full items-end gap-2",
+          mine ? "justify-end" : "justify-start",
+          animateEntrance && (mine ? "support-bubble-enter--out" : "support-bubble-enter--in"),
+        )}
+      >
+        {!mine && showAvatar ? (
+          <Avatar name={message.senderName} seed={message.senderUserId ?? message.id} className="mb-1 size-7" />
+        ) : !mine ? (
+          <span className="mb-1 size-7 shrink-0" aria-hidden />
+        ) : null}
+        <div
+          className={cn(
+            "support-bubble inline-flex items-center gap-1.5 italic opacity-80",
+            mine ? "support-bubble--out" : "support-bubble--in",
+            `support-bubble--${clusterPosition}`,
+          )}
+        >
+          <Trash2 className="size-3 shrink-0 opacity-70" aria-hidden />
+          <span className="text-[13px]">
+            {mine ? "You deleted this message" : "This message was deleted"}
+          </span>
         </div>
       </div>
     );
@@ -456,6 +539,7 @@ export function MessageBubble({
         "group/msg relative flex w-full items-end gap-2",
         mine ? "justify-end" : "justify-start",
         highlighted && "support-message-highlight",
+        animateEntrance && (mine ? "support-bubble-enter--out" : "support-bubble-enter--in"),
       )}
     >
       {!mine && showAvatar ? (
@@ -498,21 +582,45 @@ export function MessageBubble({
             {showMeta || isFailed || isPending ? (
               <span className="support-bubble-time mt-1 flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums">
                 {showMeta ? <span>{chatTime(message.createdAt)}</span> : null}
+                {message.editedAt ? <span className="opacity-70">edited</span> : null}
                 {mine ? (
                   isFailed ? (
                     <span className="font-medium text-destructive">Failed</span>
                   ) : isPending ? (
-                    <Clock className="size-3 opacity-80" aria-label="Sending" />
+                    <Clock key="sending" className="support-tick size-3 opacity-80" aria-label="Sending" />
                   ) : message.readAt ? (
-                    <CheckCheck className="size-3 opacity-90" aria-label="Read" />
+                    <CheckCheck key="read" className="support-tick size-3 opacity-90" aria-label="Read" />
                   ) : (
-                    <Check className="size-3 opacity-80" aria-label="Sent" />
+                    <Check key="sent" className="support-tick size-3 opacity-80" aria-label="Sent" />
                   )
                 ) : null}
               </span>
             ) : null}
           </div>
           <div className="mb-0.5 hidden shrink-0 flex-col gap-1 sm:flex">
+            {onReact ? (
+              <div className="relative" ref={reactRef}>
+                <button
+                  type="button"
+                  onClick={() => setReactOpen((v) => !v)}
+                  aria-label="Add a reaction"
+                  aria-expanded={reactOpen}
+                  title="React"
+                  className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/msg:opacity-100 aria-expanded:opacity-100"
+                >
+                  <Smile className="size-3.5" />
+                </button>
+                {reactOpen ? (
+                  <ReactionPopover
+                    mine={mine}
+                    onPick={(emoji) => {
+                      onReact(message.id, emoji);
+                      setReactOpen(false);
+                    }}
+                  />
+                ) : null}
+              </div>
+            ) : null}
             {onReply ? (
               <button
                 type="button"
@@ -535,8 +643,59 @@ export function MessageBubble({
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
               </button>
             ) : null}
+            {onEdit && mine && message.body?.trim() && !message.attachment ? (
+              <button
+                type="button"
+                onClick={() => onEdit(message)}
+                aria-label="Edit message"
+                title="Edit"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/msg:opacity-100"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+            ) : null}
+            {onDelete && mine ? (
+              <button
+                type="button"
+                onClick={() => onDelete(message)}
+                aria-label="Delete message"
+                title="Delete"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/msg:opacity-100"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            ) : null}
           </div>
         </div>
+        {reactions.length > 0 ? (
+          <div
+            className={cn(
+              "mt-1 flex flex-wrap gap-1",
+              mine ? "justify-end" : "justify-start",
+            )}
+          >
+            {reactions.map((reaction) => (
+              <button
+                key={reaction.emoji}
+                type="button"
+                onClick={onReact ? () => onReact(message.id, reaction.emoji) : undefined}
+                disabled={!onReact}
+                aria-pressed={reaction.mine}
+                aria-label={`${reaction.emoji} ${reaction.count}${reaction.mine ? ", including you" : ""}`}
+                className={cn(
+                  "support-reaction-chip inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] leading-none tabular-nums transition-colors",
+                  reaction.mine
+                    ? "border-[color-mix(in_srgb,var(--conversation-accent,#1d4b3b)_40%,transparent)] bg-[color-mix(in_srgb,var(--conversation-accent,#1d4b3b)_12%,transparent)] text-foreground"
+                    : "support-rule support-panel text-muted-foreground hover:bg-muted/60",
+                  onReact && "cursor-pointer",
+                )}
+              >
+                <span className="text-[13px]">{reaction.emoji}</span>
+                <span className="font-medium">{reaction.count}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {isFailed && onRetry ? (
           <button
             type="button"
@@ -788,6 +947,62 @@ function OrderCardBubble({
   );
 }
 
+// ─── Reaction popover ──────────────────────────────────────────────────────
+
+/** Quick reaction row with a "more" affordance that opens the full picker. */
+function ReactionPopover({
+  mine,
+  onPick,
+}: {
+  mine: boolean;
+  onPick: (emoji: string) => void;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  if (expanded) {
+    return (
+      <div
+        className={cn(
+          "support-reaction-pop absolute bottom-9 z-30",
+          mine ? "right-0" : "left-0",
+        )}
+      >
+        <EmojiPicker compact autoFocus onPick={onPick} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "support-reaction-pop absolute bottom-9 z-30 flex items-center gap-0.5 rounded-full border support-rule support-panel p-1 shadow-[0_16px_40px_-24px_rgba(18,26,22,0.45)]",
+        mine ? "right-0" : "left-0",
+      )}
+    >
+      {QUICK_REACTIONS.map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onPick(emoji)}
+          aria-label={`React ${emoji}`}
+          className="flex size-8 items-center justify-center rounded-full text-[18px] leading-none transition-transform hover:scale-125 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+        >
+          {emoji}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-label="More emoji"
+        title="More"
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+      >
+        <Smile className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Typing indicator ──────────────────────────────────────────────────────
 
 export function TypingBubble({ label }: { label: string }) {
@@ -883,8 +1098,6 @@ function AttachmentBlock({
 }
 
 // ─── Composer ──────────────────────────────────────────────────────────────
-
-const QUICK_EMOJIS = ["🙂", "😄", "😂", "👍", "❤️", "🙏", "🎉", "🤔", "😅", "😎"];
 
 export function Composer({
   value,
@@ -1105,22 +1318,14 @@ export function Composer({
             <Smile className="size-4" />
           </Button>
           {emojiOpen ? (
-            <div className="absolute bottom-12 left-0 z-20 w-60 origin-bottom-left rounded-2xl border support-rule support-panel p-1.5 shadow-[0_16px_40px_-24px_rgba(18,26,22,0.45)]">
-              <div className="grid grid-cols-5 gap-0.5">
-                {QUICK_EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="rounded-xl p-1.5 text-lg transition-colors hover:bg-[color-mix(in_srgb,var(--conversation-ink,#121a16)_6%,transparent)]"
-                    onClick={() => {
-                      onChange(`${value}${emoji}`);
-                      textareaRef.current?.focus();
-                    }}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+            <div className="absolute bottom-12 left-0 z-20 origin-bottom-left">
+              <EmojiPicker
+                autoFocus
+                onPick={(emoji) => {
+                  onChange(`${value}${emoji}`);
+                  textareaRef.current?.focus();
+                }}
+              />
             </div>
           ) : null}
         </div>
@@ -1165,6 +1370,86 @@ export function Composer({
         >
           <Send className="size-4" />
         </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inline message editor ─────────────────────────────────────────────────
+
+/** Edit bar shown above the composer while editing an existing message. */
+export function MessageEditor({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    // Caret to the end.
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, []);
+
+  const canSave = value.trim().length > 0;
+
+  return (
+    <div className="mx-auto w-full min-w-0 max-w-[40rem] px-3 pt-2.5 sm:px-4">
+      <div className="rounded-xl border support-rule support-panel p-2">
+        <div className="mb-1.5 flex items-center justify-between px-1">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+            <Pencil className="size-3" aria-hidden />
+            Editing message
+          </span>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+        <textarea
+          ref={ref}
+          rows={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Edit message"
+          className="max-h-[140px] min-h-[2.5rem] w-full resize-none rounded-lg bg-muted/30 px-2.5 py-2 text-[15px] leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25"
+          onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return;
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onCancel();
+            }
+            const coarse =
+              typeof window !== "undefined" &&
+              window.matchMedia("(pointer: coarse)").matches;
+            if (e.key === "Enter" && !e.shiftKey && !coarse) {
+              e.preventDefault();
+              if (canSave) onSave();
+            }
+          }}
+        />
+        <div className="mt-1.5 flex justify-end gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={!canSave}
+            onClick={onSave}
+            className="h-8 rounded-full px-4 text-[13px]"
+          >
+            Save
+          </Button>
+        </div>
       </div>
     </div>
   );

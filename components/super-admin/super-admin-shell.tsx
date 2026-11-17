@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Mail,
   Menu,
+  Search,
   Settings2,
   Shield,
   Sparkles,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
 
-import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { PlatformPaymentsDrawerBody } from "@/components/super-admin/platform-payments-list";
 import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
@@ -41,112 +42,11 @@ import {
   startSaSessionKeepAlive,
   type SuperAdminMe,
 } from "@/lib/super-admin-api";
-import {
-  OPERATOR_SURFACE_CLASS,
-  OPERATOR_SURFACE_STYLE,
-} from "@/lib/operator-surface";
 import { cn } from "@/lib/utils";
 
-type Crumb = { label: string; href?: string };
-
-function crumbsFor(pathname: string): Crumb[] {
-  if (pathname === APP_ROUTES.superAdminDashboard) return [{ label: "Overview" }];
-  if (pathname === APP_ROUTES.superAdminBusinesses) return [{ label: "Tenants" }];
-  if (pathname.startsWith(`${APP_ROUTES.superAdminBusinesses}/`)) {
-    return [
-      { label: "Tenants", href: APP_ROUTES.superAdminBusinesses },
-      { label: "Tenant" },
-    ];
-  }
-  if (pathname === APP_ROUTES.superAdminAdoptions) return [{ label: "Adoptions" }];
-  if (pathname === APP_ROUTES.superAdminCampaignNew) {
-    return [
-      { label: "Campaigns", href: APP_ROUTES.superAdminCampaigns },
-      { label: "Compose" },
-    ];
-  }
-  if (pathname === APP_ROUTES.superAdminCampaigns) return [{ label: "Campaigns" }];
-  if (pathname.startsWith(`${APP_ROUTES.superAdminCampaigns}/`)) {
-    return [
-      { label: "Campaigns", href: APP_ROUTES.superAdminCampaigns },
-      { label: "Campaign" },
-    ];
-  }
-  if (pathname === APP_ROUTES.superAdminMessages) return [{ label: "Messages" }];
-  if (pathname === APP_ROUTES.superAdminSupport) return [{ label: "Support" }];
-  if (pathname === APP_ROUTES.superAdminServing) return [{ label: "Serving" }];
-  if (pathname === APP_ROUTES.superAdminServingStaff) {
-    return [
-      { label: "Serving", href: APP_ROUTES.superAdminServing },
-      { label: "Staff" },
-    ];
-  }
-  if (pathname.startsWith(`${APP_ROUTES.superAdminServing}/tickets/`)) {
-    return [
-      { label: "Serving", href: APP_ROUTES.superAdminServing },
-      { label: "Ticket" },
-    ];
-  }
-  if (pathname === APP_ROUTES.superAdminSettings) return [{ label: "Profile" }];
-  if (pathname === APP_ROUTES.superAdminPlatformPayments) {
-    return [{ label: "Platform" }, { label: "Payments" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformWhatsApp) {
-    return [{ label: "Platform" }, { label: "WhatsApp numbers" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformIntegrations) {
-    return [{ label: "Platform" }, { label: "Integrations" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformEasyTax) {
-    return [{ label: "Platform" }, { label: "EasyTax (KRA eTIMS)" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformMediaStorage) {
-    return [{ label: "Platform" }, { label: "Media storage" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformBranding) {
-    return [{ label: "Platform" }, { label: "Branding" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformSignup) {
-    return [{ label: "Platform" }, { label: "Signup" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformSmsCredits) {
-    return [{ label: "Platform" }, { label: "SMS credits & limits" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformSubscription) {
-    return [{ label: "Subscriptions" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformSokoMind) {
-    return [{ label: "Platform" }, { label: "SokoMind" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformDomains) {
-    return [{ label: "Platform" }, { label: "Domains" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformDomainOffer) {
-    return [{ label: "Platform" }, { label: "Domain offer" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformLogs) {
-    return [{ label: "Platform" }, { label: "Logs" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformLoadTest) {
-    return [{ label: "Platform" }, { label: "Load test" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformDesktopLicenses) {
-    return [{ label: "Platform" }, { label: "Desktop licenses" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformSupplierPortal) {
-    return [{ label: "Platform" }, { label: "Supplier portal" }];
-  }
-  if (pathname === APP_ROUTES.superAdminPlatformMarketplaceSuppliers) {
-    return [{ label: "Platform" }, { label: "Marketplace" }];
-  }
-  if (
-    pathname === APP_ROUTES.superAdminPlatformGlobalCatalog ||
-    pathname.startsWith(`${APP_ROUTES.superAdminPlatformGlobalCatalog}/`)
-  ) {
-    return [{ label: "Platform" }, { label: "Global catalog" }];
-  }
-  return [{ label: "Console" }];
-}
+const NAV_IDLE =
+  "text-[#5c5c5c] hover:bg-[#f4f4f4] hover:text-[#1a1a1a]";
+const NAV_ACTIVE = "bg-[#1a3328] text-white";
 
 function isPlatformPath(pathname: string) {
   return pathname.includes("/platform/") || pathname === APP_ROUTES.superAdminPlatformPayments;
@@ -175,27 +75,33 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
-        "outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-        active
-          ? "bg-primary/12 font-medium text-foreground"
-          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+        "flex items-center gap-2.5 rounded-[8px] px-2.5 py-[7px] text-[13px] font-medium tracking-[-0.01em] transition-colors",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[#1a3328]/30",
+        active ? NAV_ACTIVE : NAV_IDLE,
       )}
     >
       {Icon ? (
-        <Icon className={cn("size-4 shrink-0", active ? "text-primary" : "opacity-70")} />
+        <Icon
+          className={cn("size-4 shrink-0", active ? "text-[#d7efe2]" : "text-[#7a7a7a]")}
+          strokeWidth={1.75}
+        />
       ) : (
         <span
           className={cn(
             "size-1.5 shrink-0 rounded-full",
-            active ? "bg-primary" : "bg-muted-foreground/35",
+            active ? "bg-[#d7efe2]" : "bg-[#c8c8c8]",
           )}
           aria-hidden
         />
       )}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {badge > 0 ? (
-        <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+        <span
+          className={cn(
+            "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none",
+            active ? "bg-white/20 text-white" : "bg-[#1a3328] text-white",
+          )}
+        >
           {badge > 9 ? "9+" : badge}
         </span>
       ) : null}
@@ -203,21 +109,94 @@ function NavItem({
   );
 }
 
+const SEARCH_PAGES: { href: string; label: string }[] = [
+  { href: APP_ROUTES.superAdminDashboard, label: "Overview" },
+  { href: APP_ROUTES.superAdminBusinesses, label: "Tenants" },
+  { href: APP_ROUTES.superAdminPlatformSubscription, label: "Subscriptions" },
+  { href: APP_ROUTES.superAdminAdoptions, label: "Adoptions" },
+  { href: APP_ROUTES.superAdminCampaigns, label: "Campaigns" },
+  { href: APP_ROUTES.superAdminMessages, label: "Messages" },
+  { href: APP_ROUTES.superAdminSupport, label: "Support" },
+  { href: APP_ROUTES.superAdminServing, label: "Serving" },
+  { href: APP_ROUTES.superAdminSettings, label: "Profile" },
+  { href: APP_ROUTES.superAdminPlatformPayments, label: "Payments" },
+  { href: APP_ROUTES.superAdminPlatformLogs, label: "Logs" },
+  { href: APP_ROUTES.superAdminPlatformDomains, label: "Domains" },
+];
+
+function ConsoleSearch() {
+  const router = useRouter();
+  const [query, setQuery] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+  const matches = SEARCH_PAGES.filter((page) =>
+    page.label.toLowerCase().includes(query.trim().toLowerCase()),
+  ).slice(0, 6);
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <Search
+        className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#8a8a8a]"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <input
+        value={query}
+        placeholder="Type to search"
+        aria-label="Search the console"
+        className="h-9 w-full max-w-[420px] rounded-full border border-[#e6e6e6] bg-white pl-9 pr-3 text-[13px] tracking-[-0.01em] text-[#1a1a1a] outline-none placeholder:text-[#6b6b6b] focus:border-[#1a3328]"
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 120);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && matches[0]) {
+            router.push(matches[0].href);
+            setQuery("");
+            setOpen(false);
+          }
+        }}
+      />
+      {open && query.trim() && matches.length > 0 ? (
+        <ul className="absolute left-0 top-[calc(100%+6px)] z-40 w-full max-w-[420px] overflow-hidden rounded-[12px] border border-[#eee] bg-white py-1 shadow-[0_12px_32px_-16px_rgba(20,20,20,0.35)]">
+          {matches.map((page) => (
+            <li key={page.href}>
+              <button
+                type="button"
+                className="flex w-full px-3 py-1.5 text-left text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f4f4f4]"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  router.push(page.href);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              >
+                {page.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function NavGroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2.5 pb-1 pt-3 text-[11px] font-medium text-muted-foreground/90">{children}</p>
+    <p className="px-2.5 pb-1 pt-3 text-[11px] font-medium text-[#6b6b6b]">{children}</p>
   );
 }
 
 export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const crumbs = crumbsFor(pathname);
-  const currentLabel = crumbs[crumbs.length - 1]?.label ?? "Console";
-
   const [me, setMe] = React.useState<SuperAdminMe | null>(null);
   const [mobileNav, setMobileNav] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [accountOpen, setAccountOpen] = React.useState(false);
   const [openPlatform, setOpenPlatform] = React.useState(() => isPlatformPath(pathname));
 
   // Live unread badge for the support inbox; the console keeps one shared
@@ -247,6 +226,13 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     return startSaSessionKeepAlive();
   }, []);
+
+  React.useEffect(() => {
+    if (!accountOpen) return;
+    const close = () => setAccountOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [accountOpen]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -295,17 +281,19 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
   const sidebarNav = (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center border-b border-border/60 px-3 lg:px-4">
-        <KioskLogo
+      <div className="flex h-[72px] items-center px-4">
+        <Link
           href={fullConsole ? APP_ROUTES.superAdminDashboard : servingHome}
-          size="sm"
-          wordmark="Kiosk"
-          tagline={fullConsole ? "Console" : "Desk"}
-          showTagline
-        />
+          className="flex items-center gap-2 rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[#1a3328]/30"
+        >
+          <KioskLogoMark size={22} plain />
+          <span className="text-[15px] font-bold tracking-[-0.03em] text-[#1a1a1a]">
+            Kiosk
+          </span>
+        </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-3" aria-label="Super admin">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-3 pb-3" aria-label="Super admin">
         <NavItem href={APP_ROUTES.superAdminServing} label="Serving" icon={Ticket} match="prefix" />
         {manageStaff ? (
           <NavItem href={APP_ROUTES.superAdminServingStaff} label="Staff" icon={UsersRound} />
@@ -353,14 +341,20 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           <Collapsible.Trigger
             type="button"
             className={cn(
-              "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors",
-              "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-              "outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-              isPlatformPath(pathname) && "text-foreground",
+              "flex w-full items-center justify-between rounded-[8px] px-2.5 py-[7px] text-left text-[13px] font-medium tracking-[-0.01em] transition-colors",
+              "outline-none focus-visible:ring-2 focus-visible:ring-[#1a3328]/30",
+              NAV_IDLE,
             )}
           >
             <span className="flex items-center gap-2.5">
-              <Shield className="size-4 shrink-0 opacity-70" aria-hidden />
+              <Shield
+                className={cn(
+                  "size-4 shrink-0",
+                  "text-[#7a7a7a]",
+                )}
+                strokeWidth={1.75}
+                aria-hidden
+              />
               Platform
             </span>
             <ChevronDown
@@ -372,7 +366,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             />
           </Collapsible.Trigger>
           <Collapsible.Content className="overflow-hidden">
-            <div className="ml-3 border-l border-border/50 pb-1 pl-2">
+            <div className="pb-1 pl-1">
               <NavGroupLabel>Catalog</NavGroupLabel>
               <NavItem href={APP_ROUTES.superAdminPlatformGlobalCatalog} label="Global catalog" match="prefix" />
               <NavGroupLabel>Commerce</NavGroupLabel>
@@ -400,153 +394,106 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </nav>
 
-      <div className="mt-auto space-y-1 border-t border-border/60 p-3">
+      <div className="mt-auto space-y-0.5 px-3 pb-4">
+        <p className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-[#6b6b6b]">Account</p>
         <NavItem href={APP_ROUTES.superAdminSettings} label="Profile" icon={Settings2} />
-        <div className="rounded-xl px-2.5 py-2">
-          <p className="truncate text-sm font-medium text-foreground">{me?.name ?? "Signed in"}</p>
-          <p className="truncate text-xs text-muted-foreground">{me?.email ?? "—"}</p>
-          <button
-            type="button"
-            className="mt-2 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            onClick={onSignOut}
-          >
-            Sign out
-          </button>
-        </div>
       </div>
     </div>
   );
 
+  const email = me?.email?.trim() ?? "";
+  const accountChip =
+    email.length > 18 ? `${email.slice(0, 6)}…${email.slice(-4)}` : email || "Account";
+  const initial = (me?.name?.trim() || email || "K").slice(0, 1).toUpperCase();
+
   return (
     <>
-      <div
-        className={cn("sa-console flex min-h-[100dvh] bg-background", OPERATOR_SURFACE_CLASS)}
-        style={OPERATOR_SURFACE_STYLE}
-      >
-        <aside
-          className={cn(
-            "fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-border/70",
-            "bg-sidebar lg:flex",
-          )}
-        >
+      <div className="sa-console min-h-[100dvh] bg-[#e6e6e6] p-2 sm:p-3 lg:p-4">
+        <div className="flex min-h-[calc(100dvh-1rem)] overflow-hidden rounded-[22px] bg-white shadow-[0_1px_2px_rgba(20,20,20,0.04),0_18px_50px_-28px_rgba(20,20,20,0.35)] sm:min-h-[calc(100dvh-1.5rem)] lg:min-h-[calc(100dvh-2rem)]">
+        <aside className="hidden w-[228px] shrink-0 flex-col border-r border-[#efefef] lg:flex">
           {sidebarNav}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-[260px]">
-          <header
-            className={cn(
-              "sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 px-4",
-              "bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75",
-            )}
-          >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-[72px] shrink-0 items-center gap-3 px-4 sm:px-6">
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="lg:hidden"
+              className="rounded-[8px] lg:hidden"
               aria-label="Open navigation"
               onClick={() => setMobileNav(true)}
             >
               <Menu className="size-5" />
             </Button>
 
-            <p className="min-w-0 flex-1 truncate text-sm font-medium lg:hidden">{currentLabel}</p>
+            <ConsoleSearch />
 
-            <nav className="hidden min-w-0 flex-1 items-center gap-1.5 text-sm lg:flex" aria-label="Breadcrumb">
-              {crumbs.map((c, i) => (
-                <React.Fragment key={`${c.label}-${i}`}>
-                  {i > 0 ? (
-                    <span className="text-muted-foreground/45" aria-hidden>
-                      /
-                    </span>
-                  ) : null}
-                  {c.href ? (
-                    <Link
-                      href={c.href}
-                      className="truncate text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {c.label}
-                    </Link>
-                  ) : (
-                    <span
-                      className={cn(
-                        "truncate",
-                        i === crumbs.length - 1 ? "font-medium text-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {c.label}
-                    </span>
-                  )}
-                </React.Fragment>
-              ))}
-            </nav>
-
-            <Link
-              href={APP_ROUTES.superAdminSupport}
-              aria-label={
-                saSupportUnread > 0
-                  ? `Support — ${saSupportUnread} unread message${saSupportUnread === 1 ? "" : "s"}`
-                  : "Support inbox"
-              }
-              title={
-                saSupportUnread > 0
-                  ? `${saSupportUnread} unread support message${saSupportUnread === 1 ? "" : "s"}`
-                  : "Support inbox"
-              }
-              className={cn(
-                "relative inline-flex size-9 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                saSupportUnread > 0
-                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
+            <span
+              className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-[#3c8f55] text-[12px] font-semibold text-white sm:inline-flex"
+              aria-hidden
             >
-              <Headset className="size-4" aria-hidden />
-              {saSupportUnread > 0 ? (
-                <>
-                  <span className="absolute right-1 top-1 flex size-2" aria-hidden>
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-60" />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                  </span>
-                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
-                    {saSupportUnread > 9 ? "9+" : saSupportUnread}
-                  </span>
-                </>
-              ) : null}
-            </Link>
+              {initial}
+            </span>
 
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="icon-sm"
-              className={cn(
-                "relative rounded-[2px] text-[var(--op-muted)] hover:border-[var(--op-accent)] hover:text-[var(--op-accent)]",
-                platformPayments.unread > 0 &&
-                  "border border-[var(--op-rule)] bg-[color-mix(in_srgb,var(--op-accent)_6%,var(--op-surface))] text-[var(--op-accent)]",
-              )}
+              className="relative inline-flex size-9 items-center justify-center rounded-full text-[#5c5c5c] outline-none hover:bg-[#f4f4f4] focus-visible:ring-2 focus-visible:ring-[#1a3328]/30"
               aria-label={
                 platformPayments.unread > 0
                   ? `Till book — ${platformPayments.unread} new payment${platformPayments.unread === 1 ? "" : "s"}`
                   : "Till book"
               }
-              title={
-                platformPayments.unread > 0
-                  ? `${platformPayments.unread} new platform payment${platformPayments.unread === 1 ? "" : "s"}`
-                  : "Till book"
-              }
+              title="Till book"
               onClick={() => setNotifOpen(true)}
             >
               <Bell className="size-4" strokeWidth={1.75} />
               {platformPayments.unread > 0 ? (
-                <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] bg-[var(--op-accent)] px-1 text-[10px] font-bold leading-none text-[var(--op-surface)]">
-                  {platformPayments.unread > 9 ? "9+" : platformPayments.unread}
-                </span>
+                <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#3c8f55]" />
               ) : null}
-            </Button>
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                className="inline-flex h-9 max-w-[180px] items-center gap-2 rounded-full border border-[#e4e4e4] bg-white px-2 pr-2.5 text-[12px] font-medium tracking-[-0.01em] text-[#1a1a1a] outline-none hover:bg-[#fafafa] focus-visible:ring-2 focus-visible:ring-[#1a3328]/30"
+                aria-expanded={accountOpen}
+                aria-haspopup="menu"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setAccountOpen((open) => !open);
+                }}
+              >
+                <span className="size-2 shrink-0 rounded-full bg-[#1a3328]" aria-hidden />
+                <span className="truncate">{accountChip}</span>
+                <ChevronDown className="size-3.5 shrink-0 text-[#6b6b6b]" aria-hidden />
+              </button>
+              {accountOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+6px)] z-40 w-52 rounded-[12px] border border-[#eee] bg-white p-1.5 shadow-[0_12px_32px_-16px_rgba(20,20,20,0.35)]"
+                >
+                  <p className="truncate px-2 py-1.5 text-[12px] font-semibold text-[#1a1a1a]">
+                    {me?.name ?? "Signed in"}
+                  </p>
+                  <p className="truncate px-2 pb-1.5 text-[11px] text-[#6b6b6b]">{email || "—"}</p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full rounded-[8px] px-2 py-1.5 text-left text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f4f4f4]"
+                    onClick={onSignOut}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </header>
 
-          <main className="relative flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <main className="relative min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-1 sm:px-6 lg:px-7">
             <div className="mx-auto w-full max-w-[1400px]">{children}</div>
           </main>
+        </div>
         </div>
       </div>
 
@@ -558,7 +505,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
             aria-label="Close menu"
             onClick={closeMobile}
           />
-          <div className="absolute inset-y-0 left-0 flex w-[min(280px,88vw)] flex-col border-r border-border/70 bg-sidebar shadow-xl">
+          <div className="absolute inset-y-0 left-0 flex w-[min(280px,88vw)] flex-col bg-white shadow-[0_18px_50px_-28px_rgba(20,20,20,0.45)]">
             <Button
               type="button"
               variant="ghost"

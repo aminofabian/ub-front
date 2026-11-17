@@ -65,6 +65,9 @@ export type GuestMessage = {
     body: string;
     messageKind?: string | null;
   } | null;
+  reactions?: Array<{ emoji: string; count: number; mine: boolean }>;
+  editedAt?: string | null;
+  deletedAt?: string | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -508,6 +511,115 @@ export async function sendGuestMessage(
   }
   if (!response.ok) {
     throw new Error(`Could not send message (${response.status})`);
+  }
+  return (await response.json()) as GuestMessage;
+}
+
+/** Toggle an emoji reaction on a message in the guest's thread. */
+export async function toggleGuestReaction(
+  ns: string,
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+  opts: { type: GuestChatType; businessSlug?: string },
+): Promise<Array<{ emoji: string; count: number; mine: boolean }>> {
+  const guestId = ensureGuestId();
+  let session = loadGuestSession(ns);
+  const post = (id: string, token: string | null) =>
+    fetch(
+      apiUrl(
+        `/api/v1/public/support/threads/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/reactions`,
+      ),
+      {
+        method: "POST",
+        credentials: "include",
+        headers: guestHeaders(guestId, token),
+        body: JSON.stringify({ emoji }),
+      },
+    );
+
+  let response = await post(conversationId, session.token);
+  if (response.status === 401) {
+    write(threadKey(ns), null);
+    const recovered = await resumeGuestThread(ns, opts).catch(() => null);
+    if (recovered?.conversation?.id) {
+      session = loadGuestSession(ns);
+      response = await post(recovered.conversation.id, session.token);
+    }
+  }
+  if (!response.ok) {
+    throw new Error(`Could not react (${response.status})`);
+  }
+  const payload = (await response.json()) as {
+    reactions?: Array<{ emoji: string; count: number; mine: boolean }>;
+  };
+  return payload.reactions ?? [];
+}
+
+/** Edit one of the guest's own messages. */
+export async function editGuestMessage(
+  ns: string,
+  conversationId: string,
+  messageId: string,
+  body: string,
+  opts: { type: GuestChatType; businessSlug?: string },
+): Promise<GuestMessage> {
+  return guestMessageMutation(ns, conversationId, messageId, opts, (id, token) =>
+    fetch(
+      apiUrl(
+        `/api/v1/public/support/threads/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}`,
+      ),
+      {
+        method: "PATCH",
+        credentials: "include",
+        headers: guestHeaders(ensureGuestId(), token),
+        body: JSON.stringify({ body }),
+      },
+    ),
+  );
+}
+
+/** Delete (unsend) one of the guest's own messages. */
+export async function deleteGuestMessage(
+  ns: string,
+  conversationId: string,
+  messageId: string,
+  opts: { type: GuestChatType; businessSlug?: string },
+): Promise<GuestMessage> {
+  return guestMessageMutation(ns, conversationId, messageId, opts, (id, token) =>
+    fetch(
+      apiUrl(
+        `/api/v1/public/support/threads/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}`,
+      ),
+      {
+        method: "DELETE",
+        credentials: "include",
+        headers: guestHeaders(ensureGuestId(), token),
+      },
+    ),
+  );
+}
+
+/** Shared token-rotation-aware POST/PATCH/DELETE for a single guest message. */
+async function guestMessageMutation(
+  ns: string,
+  conversationId: string,
+  messageId: string,
+  opts: { type: GuestChatType; businessSlug?: string },
+  run: (conversationId: string, token: string | null) => Promise<Response>,
+): Promise<GuestMessage> {
+  let session = loadGuestSession(ns);
+  let response = await run(conversationId, session.token);
+  if (response.status === 401) {
+    write(threadKey(ns), null);
+    const recovered = await resumeGuestThread(ns, opts).catch(() => null);
+    if (recovered?.conversation?.id) {
+      session = loadGuestSession(ns);
+      response = await run(recovered.conversation.id, session.token);
+    }
+  }
+  if (!response.ok) {
+    throw new Error(`Could not update message (${response.status})`);
   }
   return (await response.json()) as GuestMessage;
 }

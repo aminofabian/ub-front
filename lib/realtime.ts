@@ -89,6 +89,9 @@ export type RealtimeEventType =
   | "support.read"
   | "support.typing"
   | "support.conversation"
+  | "support.reaction"
+  | "support.message.edited"
+  | "support.message.deleted"
   | "support.presence"
   | "setup_progress.updated"
   | "till.print"
@@ -161,6 +164,9 @@ export interface RealtimeClientOptions {
   onSupportRead?: FrameHandler;
   onSupportTyping?: FrameHandler;
   onSupportConversation?: FrameHandler;
+  onSupportReaction?: FrameHandler;
+  onSupportEdited?: FrameHandler;
+  onSupportDeleted?: FrameHandler;
   onSupportPresence?: FrameHandler;
   onSetupProgressUpdated?: FrameHandler;
   onTillPrint?: FrameHandler;
@@ -209,6 +215,9 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "support.read": "onSupportRead",
   "support.typing": "onSupportTyping",
   "support.conversation": "onSupportConversation",
+  "support.reaction": "onSupportReaction",
+  "support.message.edited": "onSupportEdited",
+  "support.message.deleted": "onSupportDeleted",
   "support.presence": "onSupportPresence",
   "setup_progress.updated": "onSetupProgressUpdated",
   "crm.message.created": "onNotification",
@@ -415,6 +424,9 @@ export type RealtimeListenerOptions = Pick<
   | "onSupportRead"
   | "onSupportTyping"
   | "onSupportConversation"
+  | "onSupportReaction"
+  | "onSupportEdited"
+  | "onSupportDeleted"
   | "onSupportPresence"
   | "onSetupProgressUpdated"
   | "onTillPrint"
@@ -452,6 +464,9 @@ const LISTENER_HANDLER_KEYS = [
   "onSupportRead",
   "onSupportTyping",
   "onSupportConversation",
+  "onSupportReaction",
+  "onSupportEdited",
+  "onSupportDeleted",
   "onSupportPresence",
   "onSetupProgressUpdated",
   "onTillPrint",

@@ -86,6 +86,12 @@ function toNum(n: number | string | null | undefined): number {
   return typeof n === "number" ? n : Number(n);
 }
 
+const VOIDED_SALE_STATUS = "voided";
+
+function saleWasVoided(status: string): boolean {
+  return status === VOIDED_SALE_STATUS;
+}
+
 function SectionCard({
   title,
   children,
@@ -314,6 +320,8 @@ export default function AnalyticsActivityPage() {
               branchFilter,
               typeFilter,
               view === "lines" && selectedItemId ? selectedItemId : undefined,
+              undefined,
+              true,
             ).catch(() => [] as RecentSaleRow[])
           : Promise.resolve([] as RecentSaleRow[]);
 
@@ -391,6 +399,7 @@ export default function AnalyticsActivityPage() {
         s.itemBarcode,
         s.cashierName,
         s.paymentMethod,
+        s.status,
         s.saleId,
         s.receiptNo,
       ),
@@ -787,7 +796,7 @@ export default function AnalyticsActivityPage() {
                             >
                               {s.itemName}
                             </button>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                              <p className="mt-0.5 text-[11px] text-muted-foreground/70">
                               {date.toLocaleDateString(undefined, {
                                 month: "short",
                                 day: "numeric",
@@ -799,6 +808,7 @@ export default function AnalyticsActivityPage() {
                               })}
                               {" · "}
                               {s.cashierName}
+                              {saleWasVoided(s.status) ? " · Voided" : ""}
                             </p>
                             <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
                               <div className="flex items-baseline gap-2 font-mono tabular-nums">
@@ -810,7 +820,13 @@ export default function AnalyticsActivityPage() {
                                       : 2,
                                   )}
                                 </span>
-                                <span className="text-[16px] font-bold text-foreground">
+                                <span
+                                  className={cn(
+                                    "text-[16px] font-bold text-foreground",
+                                    saleWasVoided(s.status) &&
+                                      "text-[#9a2e16] line-through",
+                                  )}
+                                >
                                   {formatMoney(s.lineTotal)}
                                 </span>
                               </div>
@@ -956,7 +972,13 @@ export default function AnalyticsActivityPage() {
                             <td className="px-3 py-2.5 text-right font-mono text-[11px] tabular-nums text-foreground/70">
                               {formatMoney(s.unitPrice)}
                             </td>
-                            <td className="px-3 py-2.5 text-right font-mono text-[11px] font-semibold tabular-nums text-foreground">
+                            <td
+                              className={cn(
+                                "px-3 py-2.5 text-right font-mono text-[11px] font-semibold tabular-nums text-foreground",
+                                saleWasVoided(s.status) &&
+                                  "text-[#9a2e16] line-through",
+                              )}
+                            >
                               {formatMoney(s.lineTotal)}
                             </td>
                             <td className="px-3 py-2.5 text-right">
@@ -1008,17 +1030,21 @@ export default function AnalyticsActivityPage() {
                               <span
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-[-0.02em]",
-                                  s.status === "completed"
-                                    ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
-                                    : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/70",
+                                  saleWasVoided(s.status)
+                                    ? "border-[color-mix(in_srgb,#9a2e16_40%,transparent)] bg-[color-mix(in_srgb,#9a2e16_8%,white)] text-[#9a2e16]"
+                                    : s.status === "completed"
+                                      ? "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_40%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,white)] text-[var(--pos-primary,#0f766e)]"
+                                      : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/30 text-muted-foreground/70",
                                 )}
                               >
                                 <span
                                   className={cn(
                                     "size-1.5 rounded-full",
-                                    s.status === "completed"
-                                      ? "bg-[var(--pos-primary,#0f766e)]"
-                                      : "bg-muted-foreground/50",
+                                    saleWasVoided(s.status)
+                                      ? "bg-[#9a2e16]"
+                                      : s.status === "completed"
+                                        ? "bg-[var(--pos-primary,#0f766e)]"
+                                        : "bg-muted-foreground/50",
                                   )}
                                   aria-hidden
                                 />

@@ -42,6 +42,7 @@ const TYPE_LABELS: Record<string, string> = {
   "onboarding.web_order": "Someone ordered online!",
   "drawout.approval_requested": "Cash drawout needs approval",
   "drawout.recorded": "Cash drawout recorded",
+  "sale.voided": "Sale voided",
   "till.access_requested": "Till waiting to be trusted",
   "profit_pocket.friday_reminder": "Friday Pocket",
 };
@@ -117,6 +118,8 @@ function defaultActionUrl(notificationType: string): string {
     case "drawout.recorded":
       // Prefer id-bearing URL from payload when present (see resolveActionUrl).
       return "/shifts";
+    case "sale.voided":
+      return "/business/logs";
     case "till.access_requested":
       return "/tills/review";
     case "profit_pocket.friday_reminder":
@@ -388,6 +391,17 @@ function formatPayloadBody(
       }
       return "";
     }
+    case "sale.voided": {
+      const who = readString(payload.voidedByName) || "Someone";
+      const receipt = readString(payload.receiptLabel);
+      const amount = readString(payload.amount);
+      const currency = readString(payload.currency) || "KES";
+      const reason = readString(payload.reasonSuffix).replace(/^\.\s*/, "");
+      const money = amount ? formatMoney(amount, currency) : "";
+      const sale = receipt ? `sale ${receipt}` : "a sale";
+      const head = money ? `${who} voided ${sale} · ${money}` : `${who} voided ${sale}`;
+      return reason ? `${head} · ${reason}` : head;
+    }
     case "drawout.approval_requested":
     case "drawout.recorded": {
       const initiatedByName = readString(payload.initiatedByName);
@@ -451,6 +465,7 @@ const STRUCTURED_NOTIFICATION_TYPES = new Set([
   "profit_pocket.friday_reminder",
   "drawout.approval_requested",
   "drawout.recorded",
+  "sale.voided",
 ]);
 
 /** Same-origin absolute URLs from email/SMS payloads become in-app paths. */

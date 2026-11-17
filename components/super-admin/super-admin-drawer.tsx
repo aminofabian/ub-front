@@ -58,10 +58,10 @@ export function SuperAdminDrawer({
           <header className="relative flex shrink-0 items-start justify-between gap-4 border-b border-[var(--op-rule)] px-5 py-4 sm:px-6">
             <div className="min-w-0 pt-0.5">
               <Dialog.Title
-                className="text-[1.6rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
+                className="text-[1.35rem] font-bold tracking-[-0.03em] text-[var(--op-ink)]"
                 style={{
                   fontFamily:
-                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                    'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif',
                 }}
               >
                 {title}

@@ -4063,6 +4063,9 @@ export type SaSupportMessage = {
     body: string;
     messageKind?: string | null;
   } | null;
+  reactions?: Array<{ emoji: string; count: number; mine: boolean }>;
+  editedAt?: string | null;
+  deletedAt?: string | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -4207,6 +4210,44 @@ export async function sendSaSupportMessage(
           : undefined,
       }),
     },
+  );
+}
+
+/** Toggle an emoji reaction on a message in a tenant/visitor thread (super-admin). */
+export async function toggleSaSupportReaction(
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+): Promise<Array<{ emoji: string; count: number; mine: boolean }>> {
+  const payload = await saRequest<{
+    reactions?: Array<{ emoji: string; count: number; mine: boolean }>;
+  }>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/reactions`,
+    { method: "POST", body: JSON.stringify({ emoji }) },
+  );
+  return payload?.reactions ?? [];
+}
+
+/** Edit a message in a tenant/visitor thread (super-admin). */
+export async function editSaSupportMessage(
+  conversationId: string,
+  messageId: string,
+  body: string,
+): Promise<SaSupportMessage> {
+  return saRequest<SaSupportMessage>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "PATCH", body: JSON.stringify({ body }) },
+  );
+}
+
+/** Delete (unsend) a message in a tenant/visitor thread (super-admin). */
+export async function deleteSaSupportMessage(
+  conversationId: string,
+  messageId: string,
+): Promise<SaSupportMessage> {
+  return saRequest<SaSupportMessage>(
+    `${API_ROUTES.superAdminSupport}/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "DELETE" },
   );
 }
 

@@ -46,7 +46,7 @@ const CHARGE_META: Record<
 };
 
 const DISPLAY =
-  'var(--font-cormorant), Georgia, "Times New Roman", serif';
+  'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
 
 export function platformChargeLabel(contextType: string | null | undefined): string {

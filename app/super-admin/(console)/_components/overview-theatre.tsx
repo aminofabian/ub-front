@@ -503,8 +503,8 @@ export function OverviewTheatre({
           Dossier
         </p>
         <h3
-          className="mt-2 text-[1.65rem] font-normal leading-none tracking-[-0.02em]"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="mt-2 text-[1.65rem] font-bold leading-none tracking-[-0.035em]"
+          style={{ fontFamily: "var(--font-plus-jakarta), \"Plus Jakarta Sans\", system-ui, sans-serif" }}
         >
           Platform pulse
         </h3>

@@ -356,9 +356,9 @@ export function SokoMindGuide() {
         title="Ask Kiosk Guide (⌘J)"
         onClick={() => setOpen(true)}
         className={cn(
-          "group fixed z-40 flex h-12 items-center gap-2 rounded-[2px] max-xl:hidden",
+          "group fixed z-40 flex h-11 items-center gap-2 rounded-[2px] max-xl:hidden",
           FAB_POSITION,
-          "bg-[var(--op-accent)] pl-3.5 pr-4 text-[var(--op-surface)]",
+          "bg-[var(--op-accent)] pl-3 pr-3.5 text-[var(--op-surface)]",
           "shadow-[0_14px_34px_-12px_rgba(18,26,22,0.45)] ring-1 ring-white/10",
           "transition-all duration-200 ease-out",
           "hover:bg-[var(--primary-hover)] hover:shadow-[0_18px_40px_-12px_rgba(22,101,52,0.75)] hover:scale-[1.04]",

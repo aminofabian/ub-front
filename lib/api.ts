@@ -7682,6 +7682,7 @@ export async function fetchRecentSales(
   itemTypeId?: string,
   itemId?: string,
   limit?: number,
+  includeVoided = false,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
@@ -7692,6 +7693,7 @@ export async function fetchRecentSales(
   if (limit != null && Number.isFinite(limit) && limit > 0) {
     params.set("limit", String(Math.floor(limit)));
   }
+  if (includeVoided) params.set("includeVoided", "true");
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,

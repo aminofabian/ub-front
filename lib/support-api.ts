@@ -69,6 +69,9 @@ export type SupportMessage = {
     body: string;
     messageKind?: string | null;
   } | null;
+  reactions?: Array<{ emoji: string; count: number; mine: boolean }>;
+  editedAt?: string | null;
+  deletedAt?: string | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -122,6 +125,75 @@ export async function sendSupportMessage(
 
 export async function markSupportConversationRead(): Promise<void> {
   await apiRequest<void>(`${API_ROUTES.support}/conversation/read`, { method: "POST" });
+}
+
+export type ReactionList = Array<{ emoji: string; count: number; mine: boolean }>;
+
+/** Toggle an emoji on a message in the tenant↔platform thread. */
+export async function toggleSupportReaction(
+  messageId: string,
+  emoji: string,
+): Promise<ReactionList> {
+  const payload = await apiRequest<{ reactions?: ReactionList }>(
+    `${API_ROUTES.support}/conversation/messages/${encodeURIComponent(messageId)}/reactions`,
+    { method: "POST", body: { emoji } },
+  );
+  return payload?.reactions ?? [];
+}
+
+/** Toggle an emoji on a message in a storefront buyer thread. */
+export async function toggleStorefrontBuyerReaction(
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+): Promise<ReactionList> {
+  const payload = await apiRequest<{ reactions?: ReactionList }>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/reactions`,
+    { method: "POST", body: { emoji } },
+  );
+  return payload?.reactions ?? [];
+}
+
+/** Edit a message in the tenant↔platform thread. */
+export async function editSupportMessage(
+  messageId: string,
+  body: string,
+): Promise<SupportMessage> {
+  return apiRequest<SupportMessage>(
+    `${API_ROUTES.support}/conversation/messages/${encodeURIComponent(messageId)}`,
+    { method: "PATCH", body: { body } },
+  );
+}
+
+/** Delete (unsend) a message in the tenant↔platform thread. */
+export async function deleteSupportMessage(messageId: string): Promise<SupportMessage> {
+  return apiRequest<SupportMessage>(
+    `${API_ROUTES.support}/conversation/messages/${encodeURIComponent(messageId)}`,
+    { method: "DELETE" },
+  );
+}
+
+/** Edit a message in a storefront buyer thread. */
+export async function editStorefrontBuyerMessage(
+  conversationId: string,
+  messageId: string,
+  body: string,
+): Promise<SupportMessage> {
+  return apiRequest<SupportMessage>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "PATCH", body: { body } },
+  );
+}
+
+/** Delete (unsend) a message in a storefront buyer thread. */
+export async function deleteStorefrontBuyerMessage(
+  conversationId: string,
+  messageId: string,
+): Promise<SupportMessage> {
+  return apiRequest<SupportMessage>(
+    `${API_ROUTES.support}/storefront/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
+    { method: "DELETE" },
+  );
 }
 
 export async function resolveSupportConversation(): Promise<void> {

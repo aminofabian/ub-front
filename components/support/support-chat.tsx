@@ -14,6 +14,7 @@ import {
   DayDivider,
   NewMessagesDivider,
   MessageBubble,
+  MessageEditor,
   PlatformAvatar,
   ResolvedBanner,
   TypingBubble,
@@ -36,7 +37,12 @@ import {
   reopenSupportConversation,
   resolveSupportConversation,
   sendSupportMessage,
+  toggleSupportReaction,
+  editSupportMessage,
+  deleteSupportMessage,
 } from "@/lib/support-api";
+import { applyReactionFrame, toggleReactionLocally } from "@/lib/support-reactions";
+import { applyEditToList, applyDeleteToList } from "@/lib/support-message-ops";
 import { setSupportConversationFocused } from "@/lib/support-focus";
 import { isSupportSoundEnabled, setSupportSoundEnabled } from "@/lib/support-sound";
 import { cn } from "@/lib/utils";
@@ -62,6 +68,9 @@ function toLocalMessage(message: SupportMessage): LocalMessage {
     welcomeCard: message.welcomeCard ?? null,
     attachment: message.attachment ?? null,
     replyTo: message.replyTo ?? null,
+    reactions: message.reactions ?? [],
+    editedAt: message.editedAt ?? null,
+    deletedAt: message.deletedAt ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -140,6 +149,7 @@ export function SupportChat({
   const [jumpCount, setJumpCount] = React.useState(0);
   const [soundOn, setSoundOn] = React.useState(true);
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [editing, setEditing] = React.useState<{ id: string; body: string } | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
   const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
 
@@ -148,8 +158,16 @@ export function SupportChat({
   }, []);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const messagesRef = React.useRef<LocalMessage[]>([]);
+  messagesRef.current = messages;
   const stickToBottomRef = React.useRef(true);
   const seenIdsRef = React.useRef<Set<string>>(new Set());
+  /**
+   * Ids present at the thread's first paint. Rows NOT in this set arrived after
+   * mount and play the entrance animation; the initial batch does not (so the
+   * whole thread never animates in at once). Frozen after the first load.
+   */
+  const initialIdsRef = React.useRef<Set<string> | null>(null);
   /** Newest platform message we have already acknowledged with a read POST. */
   const lastMarkedReadIdRef = React.useRef("");
   const typingTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -182,7 +200,13 @@ export function SupportChat({
           (m) => m.senderType === "SUPER_ADMIN" && !m.readAt,
         );
         setFirstUnreadId(firstUnread?.id ?? null);
-        setMessages((detail.messages ?? []).map(toLocalMessage));
+        const initial = (detail.messages ?? []).map(toLocalMessage);
+        // Freeze the initial id set once, so rows arriving later animate in but
+        // this first batch does not.
+        if (initialIdsRef.current === null) {
+          initialIdsRef.current = new Set(initial.map((m) => m.id));
+        }
+        setMessages(initial);
       }
       setLoadError("");
       setSyncError("");
@@ -295,6 +319,65 @@ export function SupportChat({
           setConversation((prev) => (prev ? { ...prev, status } : prev));
         }
       },
+      onSupportReaction: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const frameType = String(data.conversationType ?? "");
+        if (frameType && frameType !== "TENANT") return;
+        const convId = String(data.conversationId ?? "");
+        if (conversationId && convId && convId !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        const summary = (Array.isArray(data.reactions) ? data.reactions : []) as Array<{
+          emoji: string;
+          count: number;
+          mine?: boolean;
+        }>;
+        // This frame reflects the tenant's own actions and the admin's. Our own
+        // optimistic update already set mine; preserve it via applyReactionFrame.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  reactions: applyReactionFrame(
+                    m.reactions ?? [],
+                    {
+                      emoji: String(data.emoji ?? ""),
+                      action: String(data.action ?? ""),
+                      reactions: summary,
+                    },
+                    false,
+                  ),
+                }
+              : m,
+          ),
+        );
+      },
+      onSupportEdited: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const convId = String(data.conversationId ?? "");
+        if (conversationId && convId && convId !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyEditToList(
+            prev,
+            messageId,
+            String(data.body ?? ""),
+            String(data.editedAt ?? new Date().toISOString()),
+          ),
+        );
+      },
+      onSupportDeleted: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const convId = String(data.conversationId ?? "");
+        if (conversationId && convId && convId !== conversationId) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyDeleteToList(prev, messageId, String(data.deletedAt ?? new Date().toISOString())),
+        );
+      },
       onConnectionStateChange: (state) => setConnectionState(state),
     });
 
@@ -342,6 +425,66 @@ export function SupportChat({
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     setHighlightMessageId(messageId);
     window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
+  const onReact = React.useCallback((messageId: string, emoji: string) => {
+    // Optimistic toggle; reconcile with the server's authoritative summary.
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+          : m,
+      ),
+    );
+    void toggleSupportReaction(messageId, emoji)
+      .then((reactions) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+        );
+      })
+      .catch(() => {
+        // Revert on failure by toggling the same emoji back.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+              : m,
+          ),
+        );
+      });
+  }, []);
+
+  const onEdit = React.useCallback((message: LocalMessage) => {
+    setEditing({ id: message.id, body: message.body });
+    setReplyTo(null);
+  }, []);
+
+  const commitEdit = React.useCallback(async (messageId: string, body: string) => {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    const prevBody = messagesRef.current.find((m) => m.id === messageId)?.body ?? "";
+    setMessages((prev) => applyEditToList(prev, messageId, trimmed, new Date().toISOString()));
+    setEditing(null);
+    try {
+      const saved = await editSupportMessage(messageId, trimmed);
+      setMessages((prev) =>
+        applyEditToList(prev, messageId, saved.body, saved.editedAt ?? new Date().toISOString()),
+      );
+    } catch {
+      setMessages((prev) => applyEditToList(prev, messageId, prevBody, null));
+    }
+  }, []);
+
+  const onDelete = React.useCallback((message: LocalMessage) => {
+    const messageId = message.id;
+    const snapshot = messagesRef.current.find((m) => m.id === messageId);
+    setMessages((prev) => applyDeleteToList(prev, messageId, new Date().toISOString()));
+    void deleteSupportMessage(messageId).catch(() => {
+      // Restore the original row on failure.
+      if (snapshot) {
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? snapshot : m)));
+      }
+    });
   }, []);
 
   // Count unseen while scrolled up.
@@ -741,7 +884,13 @@ export function SupportChat({
                         showAvatar={cluster.showAvatar}
                         clusterPosition={cluster.clusterPosition}
                         highlighted={highlightMessageId === message.id}
+                        animateEntrance={
+                          initialIdsRef.current != null && !initialIdsRef.current.has(message.id)
+                        }
                         onReply={resolved ? undefined : (target) => setReplyTo(toReplyTarget(target))}
+                        onReact={resolved || message.pending || message.failed ? undefined : onReact}
+                        onEdit={resolved || message.pending || message.failed ? undefined : onEdit}
+                        onDelete={resolved || message.pending || message.failed ? undefined : onDelete}
                         onScrollToMessage={scrollToMessage}
                         onRetry={message.failed ? () => retry(message) : undefined}
                       />
@@ -763,7 +912,7 @@ export function SupportChat({
           <button
             type="button"
             onClick={jumpToBottom}
-            className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border support-rule support-panel px-3.5 py-1.5 text-xs font-medium support-ink shadow-[var(--conversation-shadow)] transition-colors hover:bg-[var(--conversation-paper)]"
+            className="support-rise-in-centered absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border support-rule support-panel px-3.5 py-1.5 text-xs font-medium support-ink shadow-[var(--conversation-shadow)] transition-colors hover:bg-[var(--conversation-paper)]"
           >
             <ArrowDown className="size-3.5" />
             {jumpCount > 1
@@ -775,12 +924,26 @@ export function SupportChat({
 
       {/* Composer */}
       <div className="min-w-0 shrink-0 overflow-hidden border-t support-rule support-panel">
+        {editing ? (
+          <MessageEditor
+            value={editing.body}
+            onChange={(body) => setEditing((prev) => (prev ? { ...prev, body } : prev))}
+            onCancel={() => setEditing(null)}
+            onSave={() => void commitEdit(editing.id, editing.body)}
+          />
+        ) : null}
         <Composer
           value={draft}
           onChange={setDraft}
           onSend={(payload) => void send(payload)}
-          disabled={resolved}
-          disabledHint={resolved ? "Reopen the conversation to send a message" : undefined}
+          disabled={resolved || editing != null}
+          disabledHint={
+            editing != null
+              ? "Finish editing first"
+              : resolved
+                ? "Reopen the conversation to send a message"
+                : undefined
+          }
           sending={sending}
           replyTo={replyTo}
           onClearReply={() => setReplyTo(null)}

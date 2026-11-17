@@ -26,6 +26,7 @@ import {
   type ComposerSendPayload,
   DayDivider,
   MessageBubble,
+  MessageEditor,
   NewMessagesDivider,
   ResolvedBanner,
   TypingBubble,
@@ -68,7 +69,12 @@ import {
   reopenSaSupportConversation,
   resolveSaSupportConversation,
   sendSaSupportMessage,
+  toggleSaSupportReaction,
+  editSaSupportMessage,
+  deleteSaSupportMessage,
 } from "@/lib/super-admin-api";
+import { applyReactionFrame, toggleReactionLocally } from "@/lib/support-reactions";
+import { applyEditToList, applyDeleteToList } from "@/lib/support-message-ops";
 import { newClientId } from "@/lib/client-id";
 import { playSupportMessageSound, unlockSupportAudio } from "@/lib/support-sound";
 import {
@@ -94,6 +100,9 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     welcomeCard: message.welcomeCard ?? null,
     attachment: message.attachment ?? null,
     replyTo: message.replyTo ?? null,
+    reactions: message.reactions ?? [],
+    editedAt: message.editedAt ?? null,
+    deletedAt: message.deletedAt ?? null,
     readAt: message.readAt,
     createdAt: message.createdAt,
   };
@@ -317,6 +326,8 @@ export function SaSupportInbox() {
   const [activeId, setActiveId] = React.useState<string | null>(deepLinkId);
   const [detail, setDetail] = React.useState<SaSupportConversation | null>(null);
   const [messages, setMessages] = React.useState<ChatMessageShape[]>([]);
+  const messagesEditRef = React.useRef<ChatMessageShape[]>([]);
+  messagesEditRef.current = messages;
   const [detailLoading, setDetailLoading] = React.useState(false);
 
   const [draft, setDraft] = React.useState("");
@@ -328,6 +339,7 @@ export function SaSupportInbox() {
   const [mobileView, setMobileView] = React.useState<MobileView>(deepLinkId ? "chat" : "list");
   const [showJump, setShowJump] = React.useState(false);
   const [replyTo, setReplyTo] = React.useState<ComposerReplyTarget | null>(null);
+  const [editing, setEditing] = React.useState<{ id: string; body: string } | null>(null);
   const [highlightMessageId, setHighlightMessageId] = React.useState<string | null>(null);
   const [firstUnreadId, setFirstUnreadId] = React.useState<string | null>(null);
   const [presence, setPresence] = React.useState<Record<string, SaSupportPresence>>({});
@@ -704,6 +716,59 @@ export function SaSupportInbox() {
           setDetail((prev) => (prev ? { ...prev, status } : prev));
         }
       },
+      onSupportReaction: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const convId = String(data.conversationId ?? "");
+        if (convId !== activeIdRef.current) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        const summary = (Array.isArray(data.reactions) ? data.reactions : []) as Array<{
+          emoji: string;
+          count: number;
+          mine?: boolean;
+        }>;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  reactions: applyReactionFrame(
+                    m.reactions ?? [],
+                    {
+                      emoji: String(data.emoji ?? ""),
+                      action: String(data.action ?? ""),
+                      reactions: summary,
+                    },
+                    false,
+                  ),
+                }
+              : m,
+          ),
+        );
+      },
+      onSupportEdited: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== activeIdRef.current) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyEditToList(
+            prev,
+            messageId,
+            String(data.body ?? ""),
+            String(data.editedAt ?? new Date().toISOString()),
+          ),
+        );
+      },
+      onSupportDeleted: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        if (String(data.conversationId ?? "") !== activeIdRef.current) return;
+        const messageId = String(data.messageId ?? "");
+        if (!messageId) return;
+        setMessages((prev) =>
+          applyDeleteToList(prev, messageId, String(data.deletedAt ?? new Date().toISOString())),
+        );
+      },
       onSupportPresence: (frame: RealtimeFrame) => {
         const data = frame.data as Record<string, unknown>;
         const businessId = String(data.businessId ?? "");
@@ -824,6 +889,68 @@ export function SaSupportInbox() {
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     setHighlightMessageId(messageId);
     window.setTimeout(() => setHighlightMessageId((current) => (current === messageId ? null : current)), 1400);
+  }, []);
+
+  const onReact = React.useCallback((messageId: string, emoji: string) => {
+    const conversationId = activeIdRef.current;
+    if (!conversationId) return;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+          : m,
+      ),
+    );
+    void toggleSaSupportReaction(conversationId, messageId, emoji)
+      .then((reactions) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+        );
+      })
+      .catch(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji) }
+              : m,
+          ),
+        );
+      });
+  }, []);
+
+  const onEdit = React.useCallback((message: ChatMessageShape) => {
+    setEditing({ id: message.id, body: message.body });
+    setReplyTo(null);
+  }, []);
+
+  const commitEdit = React.useCallback(async (messageId: string, body: string) => {
+    const conversationId = activeIdRef.current;
+    const trimmed = body.trim();
+    if (!conversationId || !trimmed) return;
+    const prevBody = messagesEditRef.current.find((m) => m.id === messageId)?.body ?? "";
+    setMessages((prev) => applyEditToList(prev, messageId, trimmed, new Date().toISOString()));
+    setEditing(null);
+    try {
+      const saved = await editSaSupportMessage(conversationId, messageId, trimmed);
+      setMessages((prev) =>
+        applyEditToList(prev, messageId, saved.body, saved.editedAt ?? new Date().toISOString()),
+      );
+    } catch {
+      setMessages((prev) => applyEditToList(prev, messageId, prevBody, null));
+    }
+  }, []);
+
+  const onDelete = React.useCallback((message: ChatMessageShape) => {
+    const conversationId = activeIdRef.current;
+    if (!conversationId) return;
+    const messageId = message.id;
+    const snapshot = messagesEditRef.current.find((m) => m.id === messageId);
+    setMessages((prev) => applyDeleteToList(prev, messageId, new Date().toISOString()));
+    void deleteSaSupportMessage(conversationId, messageId).catch(() => {
+      if (snapshot) {
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? snapshot : m)));
+      }
+    });
   }, []);
 
   // ── Reply / status ──────────────────────────────────────────────────────
@@ -1423,6 +1550,9 @@ export function SaSupportInbox() {
                         clusterPosition={cluster.clusterPosition}
                         highlighted={highlightMessageId === message.id}
                         onReply={resolved ? undefined : (target) => setReplyTo(toReplyTarget(target))}
+                        onReact={resolved || message.pending || message.failed ? undefined : onReact}
+                        onEdit={resolved || message.pending || message.failed ? undefined : onEdit}
+                        onDelete={resolved || message.pending || message.failed ? undefined : onDelete}
                         onScrollToMessage={scrollToMessage}
                         onRetry={message.failed ? () => retry(message) : undefined}
                       />
@@ -1469,12 +1599,26 @@ export function SaSupportInbox() {
           </button>
         </div>
       ) : null}
+      {editing ? (
+        <MessageEditor
+          value={editing.body}
+          onChange={(body) => setEditing((prev) => (prev ? { ...prev, body } : prev))}
+          onCancel={() => setEditing(null)}
+          onSave={() => void commitEdit(editing.id, editing.body)}
+        />
+      ) : null}
       <Composer
         value={draft}
         onChange={setDraft}
         onSend={(payload) => void send(payload)}
-        disabled={resolved}
-        disabledHint={resolved ? "Reopen the conversation to reply" : undefined}
+        disabled={resolved || editing != null}
+        disabledHint={
+          editing != null
+            ? "Finish editing first"
+            : resolved
+              ? "Reopen the conversation to reply"
+              : undefined
+        }
         sending={sending}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}

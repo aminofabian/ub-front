@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+
 import { getNotificationPresentation } from "./notification-display";
 
 const orderId = "d03cd100-dcad-45ad-8735-40ec7f5523d9";
@@ -57,5 +58,25 @@ describe("notification presentation", () => {
 
     expect(body.length).toBeLessThanOrEqual(181);
     expect(body.endsWith("…")).toBe(true);
+  });
+
+  test("tells who voided a sale and opens Activity", () => {
+    const view = getNotificationPresentation({
+      notificationType: "sale.voided",
+      payload: {
+        voidedByName: "Faith",
+        receiptLabel: "#1563",
+        amount: "1450.00",
+        currency: "KES",
+        reasonSuffix: ". Reason: customer left",
+        actionUrl: "/business/logs",
+      },
+    });
+
+    expect(view.title).toBe("Sale voided");
+    expect(view.body).toContain("Faith voided sale #1563");
+    expect(view.body).toContain("1,450");
+    expect(view.body).toContain("Reason: customer left");
+    expect(view.actionUrl).toBe("/business/logs");
   });
 });
