@@ -2,6 +2,7 @@
 
 import { BookOpenText } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -654,6 +655,18 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Deep link from the business hub: `?add` opens the add drawer straight away, then the param is
+  // dropped so a refresh or a back-nav does not re-open it.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => {
+    if (canManage && searchParams.get("add") != null) {
+      setEditingItem("new");
+      router.replace(pathname, { scroll: false });
+    }
+  }, [canManage, searchParams, router, pathname]);
 
   const stationName = useMemo(() => new Map((menu?.stations ?? []).map((s) => [s.id, s.name] as const)), [menu]);
   const groupName = useMemo(() => new Map((menu?.modifierGroups ?? []).map((g) => [g.id, g.name] as const)), [menu]);

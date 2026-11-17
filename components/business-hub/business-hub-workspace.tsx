@@ -16,6 +16,7 @@ import {
   MessageCircle,
   MonitorSmartphone,
   Package,
+  Plus,
   Receipt,
   RefreshCw,
   ScanLine,
@@ -26,6 +27,7 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  Wine,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -60,11 +62,13 @@ import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-c
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import {
+  getBusinessStoreTypes,
   isFoodOnlyBusiness,
   isTableServiceBusiness,
   isServiceBusiness,
   isServiceOnlyBusiness,
 } from "@/lib/business-store-type";
+import { foodTillKind } from "@/lib/food-till";
 import { ServiceFloorPanel } from "@/components/business-hub/service-floor-panel";
 import { RecentTicksRail } from "@/components/business-hub/recent-ticks-rail";
 import { CreditTabsRail } from "@/components/business-hub/credit-tabs-rail";
@@ -1104,6 +1108,7 @@ export function BusinessHubWorkspace() {
   const jumpInLinks = useMemo(() => {
     if (foodOnly) {
       // The places a restaurant works from, then its menu and its numbers.
+      const isBar = foodTillKind(getBusinessStoreTypes(business)) === "bar";
       const food: JumpInLink[] = [];
       if (foodTables) {
         food.push({ href: APP_ROUTES.restaurantFloor, label: "Floor", hint: "Tables and open orders", icon: LayoutGrid, group: "Sell" });
@@ -1111,6 +1116,16 @@ export function BusinessHubWorkspace() {
       food.push(
         { href: APP_ROUTES.restaurantCounter, label: "Counter", hint: "Ring an order, take payment", icon: UtensilsCrossed, group: "Sell" },
         { href: APP_ROUTES.restaurantKitchen, label: "Kitchen", hint: "What to make now", icon: ChefHat, group: "Sell" },
+      );
+      // A one-tap way to add to the menu — the add drawer opens straight away.
+      if (canManageMenu) {
+        food.push(
+          isBar
+            ? { href: `${APP_ROUTES.restaurantMenu}?add=1`, label: "Add a drink", hint: "Opens the menu, ready to add", icon: Wine, group: "Menu" }
+            : { href: `${APP_ROUTES.restaurantMenu}?add=1`, label: "Add a dish", hint: "Opens the menu, ready to add", icon: Plus, group: "Menu" },
+        );
+      }
+      food.push(
         { href: APP_ROUTES.restaurantMenu, label: "Menu", hint: "Dishes, prices, pictures", icon: BookOpenText, group: "Menu" },
         { href: APP_ROUTES.restaurantReports, label: "Menu sales", hint: "What sold, and how fast", icon: BarChart3, group: "Insight" },
         { href: APP_ROUTES.sales, label: "Sales", hint: "Receipts and refunds", icon: ShoppingCart, group: "Sell" },
