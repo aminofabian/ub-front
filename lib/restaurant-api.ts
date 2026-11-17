@@ -95,6 +95,15 @@ export type MenuItemRecord = {
   description?: string | null;
   /** The dish's picture, if it has one. */
   imageUrl?: string | null;
+  /**
+   * How many more the branch's usable stock can make, if only this were made. Null when the dish
+   * has no recipe of counted ingredients, or no branch was asked for.
+   */
+  canMake?: number | null;
+  /** The ingredient that runs out first. */
+  limitingIngredient?: string | null;
+  /** How many of `canMake` depend on stock that expires today. */
+  mustUseToday?: number | null;
 };
 
 export type MenuRecord = {

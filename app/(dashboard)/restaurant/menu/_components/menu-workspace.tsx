@@ -45,6 +45,7 @@ import {
   type ModifierGroupRecord,
   type StationPrinterPayload,
 } from "@/lib/restaurant-api";
+import { canMakeNote } from "@/lib/restaurant-can-make";
 
 import { MenuItemDialog } from "./menu-item-dialog";
 import { MeasuresDialog } from "./measures-dialog";
@@ -454,6 +455,7 @@ function DishRow({
   onRemove: () => void;
 }) {
   const status = dishStatus(item);
+  const forecast = canMakeNote(item);
   const price = item.price != null ? kes(item.price) : item.kind === "ITEM" ? "Shelf price" : "—";
   const actions = dishActions({ item, canManage, canMarkRunOut, onToggleAvailable, onRecipe, onMeasures, onEdit, onToggleActive, onRemove });
   return (
@@ -475,6 +477,22 @@ function DishRow({
         <span> · {item.kind === "DISH" ? "Dish" : "From the shelf"} · {madeAt}</span>
         {choices ? <span> · {choices}</span> : null}
       </p>
+      {forecast ? (
+        <p
+          className={cn(
+            "mt-0.5 text-[12px]",
+            forecast.tone === "out"
+              ? "font-semibold text-[#8f3f2f]"
+              : forecast.tone === "low"
+                ? "font-medium text-[var(--kiosk-highlight,#A55237)]"
+                : "text-[color-mix(in_srgb,var(--op-ink,#121A16)_72%,transparent)]",
+          )}
+          title="From what is in stock at this branch, if only this dish were made"
+        >
+          <span className="font-mono tabular-nums">{forecast.label}</span>
+          {forecast.detail ? <span> · {forecast.detail}</span> : null}
+        </p>
+      ) : null}
       {actions.length > 0 ? (
         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           {actions.map((action) => (

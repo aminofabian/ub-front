@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { formatMoney } from "@/lib/money";
 import type { MenuItemRecord, MenuRecord } from "@/lib/restaurant-api";
+import { canMakeOnTile } from "@/lib/restaurant-can-make";
 import { tileState } from "@/lib/restaurant-cart";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +172,11 @@ export function MenuPicker({
                 >
                   {state.reason ?? kes(item.price ?? 0)}
                 </span>
+                {!state.reason && canMakeOnTile(item) ? (
+                  <span className="block text-[12px] font-medium text-[var(--kiosk-highlight,#A55237)]">
+                    {canMakeOnTile(item)}
+                  </span>
+                ) : null}
                 {count > 0 ? (
                   <span
                     aria-label={`${count} on this order`}

@@ -33,6 +33,7 @@ import {
   type OrderSummaryRecord,
   type UnprintedTicketRecord,
 } from "@/lib/restaurant-api";
+import { withoutCanMake } from "@/lib/restaurant-can-make";
 import {
   addToCart,
   buildOrderSalePayload,
@@ -113,7 +114,8 @@ export function CounterScreen({
       setMenuFromCache(false);
       setLoadError(null);
       try {
-        window.localStorage.setItem(cacheKey, JSON.stringify(fresh));
+        // The stock counts are true only now; a menu read back offline must not repeat them.
+        window.localStorage.setItem(cacheKey, JSON.stringify(withoutCanMake(fresh)));
       } catch {
         // no room, or private mode: the counter simply cannot start offline
       }
