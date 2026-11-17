@@ -720,6 +720,11 @@ export function MenuWorkspace({ canManage, canMarkRunOut }: { canManage: boolean
   return (
     <div className={cn(DASHBOARD_MAX, "gap-6")}>
       <DashboardPageHero icon={BookOpenText} title="Menu" description="What you sell, the choices on each dish and where it is made.">
+        {canManage || canMarkRunOut ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={APP_ROUTES.restaurantPantry}>Pantry</Link>
+          </Button>
+        ) : null}
         {menu.items.length > 0 ? (
           <Button asChild variant="outline" size="sm">
             <Link href={`${APP_ROUTES.restaurantMenu}/print`}>Print the menu</Link>

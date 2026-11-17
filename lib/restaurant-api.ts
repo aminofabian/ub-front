@@ -937,3 +937,111 @@ export async function refuseRequisition(id: string, reason: string): Promise<Req
 export async function cancelRequisition(id: string): Promise<RequisitionRecord> {
   return apiRequest<RequisitionRecord>(`${base}/requisitions/${id}/cancel`, { method: "POST" });
 }
+
+// ---------------------------------------------------------------- the pantry (ADR 0026)
+
+export type PantryDishRecord = {
+  menuItemId: string;
+  name: string;
+  /** Portions the usable stock allows, if only this dish were made. */
+  canMake: number;
+  limitingIngredient: string;
+  mustUseToday: number;
+  /** Average sold a day over the last fourteen days. */
+  soldPerDay: number;
+  /** How long `canMake` lasts at that rate; null when none sold. */
+  daysOfCover: number | null;
+};
+
+export type PantryIngredientRecord = {
+  itemId: string;
+  name: string;
+  unit: string | null;
+  usable: number;
+  /** Still on the shelf but past its date: it makes nothing, and can be written off. */
+  expired: number;
+  dishes: string[];
+  /** The dish its stock is stated in: of those that use it, the one that sells most. */
+  servingsDish: string | null;
+  perServing: number | null;
+  servings: number;
+  /** The part of `usable` whose batch expires within three days. */
+  expiringSoon: number;
+  firstExpiry: string | null;
+  lastBoughtAt: string | null;
+  lastSupplier: string | null;
+  lastUnitCost: number | null;
+};
+
+export type PantryLossReason = "SPOILAGE" | "BREAKAGE" | "EXPIRED" | "OTHER";
+
+export type PantryLossRecord = {
+  itemId: string;
+  name: string;
+  unit: string | null;
+  reason: string;
+  quantity: number;
+  cost: number;
+  servingsDish: string | null;
+  servingsLost: number;
+};
+
+export type PantryRecord = {
+  branchId: string;
+  asOf: string;
+  dishes: PantryDishRecord[];
+  ingredients: PantryIngredientRecord[];
+  losses: PantryLossRecord[];
+};
+
+export async function fetchPantry(branchId: string): Promise<PantryRecord> {
+  return apiRequest<PantryRecord>(`${base}/pantry?branchId=${encodeURIComponent(branchId)}`);
+}
+
+export type PantryPlanLineRecord = {
+  itemId: string;
+  name: string;
+  unit: string | null;
+  needed: number;
+  usable: number;
+  /** How much more must be bought; zero when there is enough. */
+  shortfall: number;
+  unitCost: number | null;
+  estimatedCost: number | null;
+  lastSupplier: string | null;
+};
+
+export type PantryPlanRecord = {
+  lines: PantryPlanLineRecord[];
+  estimatedTotal: number;
+  /** False when some shortfall has no known price, so the total is a floor. */
+  costKnown: boolean;
+};
+
+/** What a planned service needs bought. A calculation; nothing is stored. */
+export async function planPantryService(
+  branchId: string,
+  portions: { menuItemId: string; portions: number }[],
+): Promise<PantryPlanRecord> {
+  return apiRequest<PantryPlanRecord>(`${base}/pantry/plan`, { method: "POST", body: { branchId, portions } });
+}
+
+export type PantryLossResult = {
+  itemId: string;
+  name: string;
+  quantity: number;
+  cost: number | null;
+  servingsDish: string | null;
+  servingsLost: number;
+};
+
+/** Writes off an ingredient that spoiled, broke or expired. One call, one write-off. */
+export async function recordPantryLoss(body: {
+  branchId: string;
+  itemId: string;
+  quantity: number;
+  reason: PantryLossReason;
+  note?: string;
+}): Promise<PantryLossResult> {
+  return apiRequest<PantryLossResult>(`${base}/pantry/losses`, { method: "POST", body });
+}

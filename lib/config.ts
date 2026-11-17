@@ -122,6 +122,8 @@ export const APP_ROUTES = {
   restaurantMenu: "/restaurant/menu",
   /** What sold from the menu and how long the kitchen took. */
   restaurantReports: "/restaurant/reports",
+  /** What the stock can make, what to buy, what was lost. */
+  restaurantPantry: "/restaurant/pantry",
   /** A staff member's own commission, tips, payouts and bookings. */
   myEarnings: "/my-earnings",
   /** What each staff member earned, was paid and is owed. */

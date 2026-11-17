@@ -1127,6 +1127,7 @@ export function BusinessHubWorkspace() {
       }
       food.push(
         { href: APP_ROUTES.restaurantMenu, label: "Menu", hint: "Dishes, prices, pictures", icon: BookOpenText, group: "Menu" },
+        { href: APP_ROUTES.restaurantPantry, label: "Pantry", hint: "What your stock can make", icon: Package, group: "Menu" },
         { href: APP_ROUTES.restaurantReports, label: "Menu sales", hint: "What sold, and how fast", icon: BarChart3, group: "Insight" },
         { href: APP_ROUTES.sales, label: "Sales", hint: "Receipts and refunds", icon: ShoppingCart, group: "Sell" },
       );
