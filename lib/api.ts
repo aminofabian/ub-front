@@ -3937,6 +3937,37 @@ export async function reorderMyBrandingBanners(
 }
 
 const MY_ONBOARDING_PATH = "/api/v1/businesses/me/onboarding";
+const MY_FORMATS_PATH = "/api/v1/businesses/me/formats";
+
+/** One shop format for the formats editor: whether it is on, and whether it can be removed now. */
+export type BusinessFormatOption = {
+  code: string;
+  selected: boolean;
+  removable: boolean;
+  /** Why it cannot be removed right now (open orders, guests in), or null when it can. */
+  lockedReason: string | null;
+};
+
+export type BusinessFormatsRecord = {
+  storeTypes: string[];
+  formats: BusinessFormatOption[];
+};
+
+/** The business's current formats, with per-format add/remove state (manage-settings only). */
+export async function fetchBusinessFormats(): Promise<BusinessFormatsRecord> {
+  return request<BusinessFormatsRecord>(MY_FORMATS_PATH, { toast: false });
+}
+
+/**
+ * Set the business's formats to the full new list (a replace). The server blocks removing a format
+ * that still has live work (open orders, guests checked in) with a 409 the caller should surface.
+ */
+export async function changeBusinessFormats(storeTypes: string[]): Promise<BusinessFormatsRecord> {
+  return request<BusinessFormatsRecord>(MY_FORMATS_PATH, {
+    method: "PUT",
+    body: { storeTypes },
+  });
+}
 
 export type OnboardingAnswersRecord = {
   branchCount?: string;

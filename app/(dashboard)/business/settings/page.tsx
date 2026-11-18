@@ -124,6 +124,13 @@ export default function BusinessSettingsPage() {
         group: "Shop",
       },
       {
+        href: APP_ROUTES.businessFormats,
+        label: "Business formats",
+        hint: "Add a bar, rooms, a shop",
+        icon: Package,
+        group: "Shop",
+      },
+      {
         href: APP_ROUTES.businessBranding,
         label: "Branding",
         hint: "Logo and colours",

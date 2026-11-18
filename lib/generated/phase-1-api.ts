@@ -1028,6 +1028,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/businesses/me/formats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_24"];
+        put: operations["change"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/businesses/me/branding/banners/reorder": {
         parameters: {
             query?: never;
@@ -10957,7 +10973,7 @@ export interface paths {
         };
         get: operations["status_1"];
         put?: never;
-        post: operations["change"];
+        post: operations["change_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11547,7 +11563,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_24"];
+        get: operations["get_25"];
         put?: never;
         post?: never;
         delete: operations["delete_4"];
@@ -11627,7 +11643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_25"];
+        get: operations["get_26"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11755,7 +11771,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_26"];
+        get: operations["get_27"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11771,7 +11787,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_27"];
+        get: operations["get_28"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11787,7 +11803,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_28"];
+        get: operations["get_29"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11963,7 +11979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_29"];
+        get: operations["get_30"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12059,7 +12075,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_30"];
+        get: operations["get_31"];
         put?: never;
         post?: never;
         delete: operations["delete_7"];
@@ -12171,7 +12187,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_31"];
+        get: operations["get_32"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12235,7 +12251,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_32"];
+        get: operations["get_33"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12363,7 +12379,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_33"];
+        get: operations["get_34"];
         put?: never;
         post?: never;
         delete: operations["delete_8"];
@@ -12619,7 +12635,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_34"];
+        get: operations["get_35"];
         put?: never;
         post?: never;
         delete: operations["delete_12"];
@@ -12635,7 +12651,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_35"];
+        get: operations["get_36"];
         put?: never;
         post?: never;
         delete: operations["delete_13"];
@@ -12971,7 +12987,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_36"];
+        get: operations["get_37"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13067,7 +13083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_37"];
+        get: operations["get_38"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13243,7 +13259,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_38"];
+        get: operations["get_39"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13595,7 +13611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_39"];
+        get: operations["get_40"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13739,7 +13755,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_40"];
+        get: operations["get_41"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14139,7 +14155,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_41"];
+        get: operations["get_42"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14235,7 +14251,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_42"];
+        get: operations["get_43"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14603,7 +14619,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_43"];
+        get: operations["get_44"];
         put?: never;
         post?: never;
         delete?: never;
@@ -16461,7 +16477,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_44"];
+        get: operations["get_45"];
         put?: never;
         post?: never;
         delete?: never;
@@ -17213,7 +17229,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_45"];
+        get: operations["get_46"];
         put?: never;
         post?: never;
         delete?: never;
@@ -17245,7 +17261,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_46"];
+        get: operations["get_47"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18301,7 +18317,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_47"];
+        get: operations["get_48"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18717,7 +18733,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_48"];
+        get: operations["get_49"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18733,7 +18749,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_49"];
+        get: operations["get_50"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18845,7 +18861,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_50"];
+        get: operations["get_51"];
         put?: never;
         post?: never;
         delete?: never;
@@ -19037,7 +19053,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_51"];
+        get: operations["get_52"];
         put?: never;
         post?: never;
         delete?: never;
@@ -21457,6 +21473,19 @@ export interface components {
         };
         PayModel: {
             model: string;
+        };
+        ChangeBusinessFormatsRequest: {
+            storeTypes: string[];
+        };
+        BusinessFormatsResponse: {
+            storeTypes?: string[];
+            formats?: components["schemas"]["FormatOption"][];
+        };
+        FormatOption: {
+            code?: string;
+            selected?: boolean;
+            removable?: boolean;
+            lockedReason?: string;
         };
         BusinessResponse: {
             id?: string;
@@ -24275,9 +24304,9 @@ export interface components {
             menuItemId?: string;
             modifierOptionIds?: string[];
             note?: string;
-            airtime?: boolean;
             dish?: boolean;
             room?: boolean;
+            airtime?: boolean;
             service?: boolean;
             charge?: boolean;
         };
@@ -29636,51 +29665,51 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["WebOrderSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageableObject: {
-            /** Format: int64 */
-            offset?: number;
-            sort?: components["schemas"]["SortObject"];
             paged?: boolean;
             /** Format: int32 */
             pageNumber?: number;
             /** Format: int32 */
             pageSize?: number;
             unpaged?: boolean;
+            /** Format: int64 */
+            offset?: number;
+            sort?: components["schemas"]["SortObject"];
         };
         SortObject: {
-            empty?: boolean;
             sorted?: boolean;
             unsorted?: boolean;
+            empty?: boolean;
         };
         PageUserResponse: {
             /** Format: int64 */
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["UserResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         UserPinResponse: {
@@ -29699,17 +29728,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SupplierResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SupplierPurchaseHistoryResponse: {
@@ -29795,17 +29824,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SupplierPortalProductResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SupplierPortalPaymentRow: {
@@ -30428,17 +30457,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["MarketplaceSupplierSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         MarketplaceSupplierShopLinkRow: {
@@ -30580,17 +30609,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SourceItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SourceItemResponse: {
@@ -30633,17 +30662,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ProductResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageProductTreeResponse: {
@@ -30651,17 +30680,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ProductTreeResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         ProductTreeResponse: {
@@ -30716,17 +30745,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SaEmailRecipientResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SaEmailRecipientResponse: {
@@ -30749,17 +30778,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PlatformEmailCampaignSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PlatformEmailCampaignSummaryResponse: {
@@ -30831,17 +30860,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ContactMessageListItemResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PageBusinessResponse: {
@@ -30849,17 +30878,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["BusinessResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PaymentMethodRow: {
@@ -31056,17 +31085,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["MessageRow"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         ContactRow: {
@@ -31254,17 +31283,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ServiceResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         ServicePerformerResponse: {
@@ -32323,17 +32352,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PublicMarketplaceSupplierSearchRow"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PublicMarketplaceSupplierSearchRow: {
@@ -32360,17 +32389,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["PublicMarketplaceProductSearchRow"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         PublicMarketplaceProductSearchRow: {
@@ -33326,17 +33355,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ItemSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         ItemTimelineEntryResponse: {
@@ -34130,17 +34159,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["GlobalProductResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         GlobalProductFamilyResponse: {
@@ -34609,17 +34638,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         TabPurchasesPageResponse: {
@@ -34694,17 +34723,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerSmsCampaignSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         CustomerEmailCampaignSummaryResponse: {
@@ -34731,17 +34760,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["CustomerEmailCampaignSummaryResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         CrmInboxStatusResponse: {
@@ -35023,17 +35052,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["BranchResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         GoogleOAuthShopChoiceResponse: {
@@ -35105,17 +35134,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["AuditEventResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         AuditEventSummaryResponse: {
@@ -35149,17 +35178,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["ApiKeyResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         AisleUnassignedCountResponse: {
@@ -35256,17 +35285,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["SyncConflictResponse"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
-            first?: boolean;
-            last?: boolean;
-            pageable?: components["schemas"]["PageableObject"];
             empty?: boolean;
         };
         SyncConflictResponse: {
@@ -37923,6 +37952,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PayModel"];
+                };
+            };
+        };
+    };
+    get_24: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BusinessFormatsResponse"];
+                };
+            };
+        };
+    };
+    change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeBusinessFormatsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BusinessFormatsResponse"];
                 };
             };
         };
@@ -55241,7 +55314,7 @@ export interface operations {
             };
         };
     };
-    change: {
+    change_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -56332,7 +56405,7 @@ export interface operations {
             };
         };
     };
-    get_24: {
+    get_25: {
         parameters: {
             query?: {
                 includeDeleted?: boolean;
@@ -56566,7 +56639,7 @@ export interface operations {
             };
         };
     };
-    get_25: {
+    get_26: {
         parameters: {
             query?: never;
             header?: never;
@@ -56892,7 +56965,7 @@ export interface operations {
             };
         };
     };
-    get_26: {
+    get_27: {
         parameters: {
             query?: never;
             header?: never;
@@ -56936,7 +57009,7 @@ export interface operations {
             };
         };
     };
-    get_27: {
+    get_28: {
         parameters: {
             query?: never;
             header?: never;
@@ -56980,7 +57053,7 @@ export interface operations {
             };
         };
     };
-    get_28: {
+    get_29: {
         parameters: {
             query?: never;
             header?: never;
@@ -57463,7 +57536,7 @@ export interface operations {
             };
         };
     };
-    get_29: {
+    get_30: {
         parameters: {
             query?: never;
             header?: never;
@@ -57682,7 +57755,7 @@ export interface operations {
             };
         };
     };
-    get_30: {
+    get_31: {
         parameters: {
             query?: never;
             header?: never;
@@ -57906,7 +57979,7 @@ export interface operations {
             };
         };
     };
-    get_31: {
+    get_32: {
         parameters: {
             query?: never;
             header?: never;
@@ -58095,7 +58168,7 @@ export interface operations {
             };
         };
     };
-    get_32: {
+    get_33: {
         parameters: {
             query?: never;
             header?: never;
@@ -58419,7 +58492,7 @@ export interface operations {
             };
         };
     };
-    get_33: {
+    get_34: {
         parameters: {
             query?: never;
             header?: never;
@@ -59112,7 +59185,7 @@ export interface operations {
             };
         };
     };
-    get_34: {
+    get_35: {
         parameters: {
             query?: never;
             header?: never;
@@ -59180,7 +59253,7 @@ export interface operations {
             };
         };
     };
-    get_35: {
+    get_36: {
         parameters: {
             query?: never;
             header?: never;
@@ -59803,7 +59876,7 @@ export interface operations {
             };
         };
     };
-    get_36: {
+    get_37: {
         parameters: {
             query: {
                 localSupplierId: string;
@@ -59934,7 +60007,7 @@ export interface operations {
             };
         };
     };
-    get_37: {
+    get_38: {
         parameters: {
             query?: never;
             header?: never;
@@ -60166,7 +60239,7 @@ export interface operations {
             };
         };
     };
-    get_38: {
+    get_39: {
         parameters: {
             query?: never;
             header?: never;
@@ -60635,7 +60708,7 @@ export interface operations {
             };
         };
     };
-    get_39: {
+    get_40: {
         parameters: {
             query?: never;
             header?: never;
@@ -60833,7 +60906,7 @@ export interface operations {
             };
         };
     };
-    get_40: {
+    get_41: {
         parameters: {
             query?: never;
             header?: never;
@@ -61392,7 +61465,7 @@ export interface operations {
             };
         };
     };
-    get_41: {
+    get_42: {
         parameters: {
             query?: never;
             header?: never;
@@ -61525,7 +61598,7 @@ export interface operations {
             };
         };
     };
-    get_42: {
+    get_43: {
         parameters: {
             query?: never;
             header?: never;
@@ -62033,7 +62106,7 @@ export interface operations {
             };
         };
     };
-    get_43: {
+    get_44: {
         parameters: {
             query?: never;
             header?: never;
@@ -64729,7 +64802,7 @@ export interface operations {
             };
         };
     };
-    get_44: {
+    get_45: {
         parameters: {
             query?: never;
             header?: never;
@@ -65766,7 +65839,7 @@ export interface operations {
             };
         };
     };
-    get_45: {
+    get_46: {
         parameters: {
             query?: never;
             header?: never;
@@ -65808,7 +65881,7 @@ export interface operations {
             };
         };
     };
-    get_46: {
+    get_47: {
         parameters: {
             query?: never;
             header?: never;
@@ -67374,7 +67447,7 @@ export interface operations {
             };
         };
     };
-    get_47: {
+    get_48: {
         parameters: {
             query?: never;
             header?: never;
@@ -67977,7 +68050,7 @@ export interface operations {
             };
         };
     };
-    get_48: {
+    get_49: {
         parameters: {
             query?: never;
             header?: never;
@@ -67999,7 +68072,7 @@ export interface operations {
             };
         };
     };
-    get_49: {
+    get_50: {
         parameters: {
             query?: never;
             header?: never;
@@ -68152,7 +68225,7 @@ export interface operations {
             };
         };
     };
-    get_50: {
+    get_51: {
         parameters: {
             query?: never;
             header?: never;
@@ -68416,7 +68489,7 @@ export interface operations {
             };
         };
     };
-    get_51: {
+    get_52: {
         parameters: {
             query?: never;
             header?: never;

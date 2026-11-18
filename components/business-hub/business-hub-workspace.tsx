@@ -1265,6 +1265,13 @@ export function BusinessHubWorkspace() {
         group: "Shop setup",
       });
       links.push({
+        href: APP_ROUTES.businessFormats,
+        label: "Business formats",
+        hint: "Add a bar, rooms, a shop",
+        icon: Boxes,
+        group: "Shop setup",
+      });
+      links.push({
         href: `${APP_ROUTES.businessConfiguration}#settings-whatsapp-alerts`,
         label: "Alerts",
         hint: "WhatsApp order notices",

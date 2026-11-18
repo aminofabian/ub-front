@@ -64,6 +64,8 @@ export const APP_ROUTES = {
   businessSettings: "/business/settings",
   businessConfiguration: "/business/configuration",
   businessBranding: "/business/branding",
+  /** Add, remove or change the shop formats the business runs (restaurant + bar + lodging, …). */
+  businessFormats: "/business/formats",
   businessThemes: "/business/themes",
   businessDesign: "/business/design",
   businessMobile: "/business/mobile",
