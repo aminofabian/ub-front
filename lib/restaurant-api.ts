@@ -549,6 +549,8 @@ export type OrderCardRecord = {
   settled?: boolean;
   /** A delivery: when it left with the rider. */
   dispatchedAt?: string | null;
+  /** Where the order came from: "STAFF", "QR" or "ONLINE" (a web booking). */
+  source?: string | null;
 };
 
 export type FloorRecord = {
@@ -641,7 +643,14 @@ export type OpenOrderRecord = {
   /** A deposit held against a booking, and its state, or null when none. */
   depositAmount: number | null;
   depositState: "HELD" | "APPLIED" | "CREDITED" | "FORFEITED" | "REFUNDED" | null;
+  /** A lodging guest's ID type and number, captured at check-in (ADR 0031). Sensitive. */
+  guestIdType?: string | null;
+  guestIdNumber?: string | null;
 };
+
+/** Record (or clear) a lodging guest's ID on their stay (ADR 0031). Sensitive PII. */
+export const setStayGuestId = (stayOrderId: string, idType: string, idNumber: string) =>
+  post(order(stayOrderId, "/guest-id"), { idType, idNumber });
 
 export async function fetchTables(branchId: string): Promise<RestaurantTableRecord[]> {
   return apiRequest<RestaurantTableRecord[]>(`${base}/tables?branchId=${encodeURIComponent(branchId)}`, { toast: false });
@@ -716,6 +725,43 @@ const post = (url: string, body?: unknown) =>
   apiRequest<OpenOrderRecord>(url, { method: "POST", ...(body === undefined ? {} : { body }), toast: false });
 
 export const addOrderLines = (orderId: string, lines: NewOrderLinePayload[]) => post(order(orderId, "/lines"), { lines });
+
+// ---------------------------------------------------------------- charge to the room (ADR 0030)
+
+/** A checked-in stay a cashier can charge a drink or a meal to. */
+export type InHouseStayRecord = {
+  orderId: string;
+  orderNumber: number;
+  roomId: string | null;
+  roomName: string | null;
+  guestName: string | null;
+  /** What the folio stands at now, before this charge. */
+  total: number;
+};
+
+/** The guests checked in at a branch, to charge an order to their room. */
+export async function fetchInHouseStays(branchId: string): Promise<InHouseStayRecord[]> {
+  const res = await apiRequest<{ branchId: string; stays: InHouseStayRecord[] }>(
+    `${base}/in-house-stays?branchId=${encodeURIComponent(branchId)}`,
+    { toast: false },
+  );
+  return res.stays;
+}
+
+/**
+ * Charge lines to a checked-in stay's folio instead of ringing a sale. The obligation moves to the
+ * guest's room; it settles once, at checkout. Idempotent per line through the client line ids.
+ */
+export const chargeToRoom = (stayOrderId: string, lines: NewOrderLinePayload[]) =>
+  post(order(stayOrderId, "/charge-to-room"), { lines });
+
+/** Move a stay to another room; the guest's folio travels with them (ADR 0030). */
+export const moveStayToRoom = (stayOrderId: string, roomId: string) =>
+  post(order(stayOrderId, "/move-room"), { roomId });
+
+/** Extend, shorten or shift a booking's dates before the guest arrives (ADR 0030). ISO instants. */
+export const changeStayDates = (stayOrderId: string, checkIn: string, checkOut: string) =>
+  post(order(stayOrderId, "/stay-dates"), { checkIn, checkOut });
 
 /** Only for a line that has not been sent. A quantity of zero removes it. */
 export async function changeOrderLine(

@@ -4,12 +4,18 @@
  * without a browser. The page is drawn by `components/restaurant/food-till.tsx`.
  */
 
-export type FoodTillKind = "restaurant" | "bar" | "cafe" | "takeaway";
+export type FoodTillKind = "restaurant" | "bar" | "bar_kitchen" | "cafe" | "takeaway";
 export type FoodTillLights = "day" | "night";
 
-/** A bar that also serves food is still run from the bar; then the sit-down house, the café, the takeaway. */
+/**
+ * Which house the counter speaks as (ADR 0031). A tenant that is BOTH a bar and a restaurant runs a
+ * bar with a kitchen, so the counter names both rather than pretending it is bar-only; a bar alone is
+ * the bar; then the sit-down house, the café, the takeaway. One till, one voice — the voice just
+ * admits every food format the tenant runs.
+ */
 export function foodTillKind(storeTypes: readonly string[] | null | undefined): FoodTillKind {
   const types = new Set((storeTypes ?? []).map((t) => t.trim().toLowerCase()));
+  if (types.has("bar") && types.has("restaurant")) return "bar_kitchen";
   if (types.has("bar")) return "bar";
   if (types.has("restaurant")) return "restaurant";
   if (types.has("cafe")) return "cafe";
@@ -58,6 +64,17 @@ export const COUNTER_VOICES: Record<FoodTillKind, CounterVoice> = {
     orderEmpty: "Tap a drink to start a round.",
     sent: "The bar has it. Give the customer this number.",
     next: "Next round",
+  },
+  bar_kitchen: {
+    till: "Bar & kitchen till",
+    pass: "On the bar and the pass",
+    passEmpty: "Nothing is being made. An order appears here the moment it is paid, and turns terracotta when the bar or the kitchen says it is ready.",
+    making: "being made",
+    board: "The menu",
+    order: "This order",
+    orderEmpty: "Tap the menu to start an order.",
+    sent: "The bar and the kitchen have it. Give the customer this number.",
+    next: "Next customer",
   },
   cafe: {
     till: "Café till",

@@ -5284,6 +5284,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurant/in-house-stays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The checked-in stays a cashier can charge an order to (ADR 0030). */
+        get: operations["inHouseStays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/charge-to-room": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Charge lines to a checked-in stay's folio (ADR 0030). No sale is rung now; the folio settles once at checkout. */
+        post: operations["chargeToRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/move-room": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Move a stay to another free room; the guest's folio travels with them (ADR 0030). */
+        post: operations["moveStayToRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/stay-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Extend, shorten or shift a booking's dates before the guest arrives (ADR 0030). */
+        post: operations["changeStayDates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurant/open-orders/{orderId}/guest-id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Record (or clear, when blank) a lodging guest's ID on their stay (ADR 0031). Sensitive PII; stored plaintext, kept out of logs. */
+        post: operations["setGuestId"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurant/open-orders/{orderId}/lines/{lineId}/cancel": {
         parameters: {
             query?: never;
@@ -6750,6 +6835,74 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["stkPush"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The house's public lodging page: name, branches, check-in/out times, whether it books (ADR 0031). Tenant resolved from the slug; generic 404 when rooms are not published. */
+        get: operations["publicRoomInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/rooms/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The rooms free for a date range at a branch (ADR 0031). Rate-limited per client address. */
+        get: operations["publicRoomAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/rooms/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Request a stay; it opens a BOOKED stay on the front desk for the house to confirm (ADR 0031). Idempotent on requestId; rate-limited; PII kept out of logs. */
+        post: operations["publicRoomBook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/rooms/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pay the booking deposit online by M-Pesa STK; the prompt goes to the guest's phone (ADR 0031). Tenant resolved from the slug and must own the booking; rate-limited; a replayed callback never double-holds. */
+        post: operations["publicRoomDeposit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12148,6 +12301,71 @@ export interface paths {
         patch: operations["updateRoom"];
         trace?: never;
     };
+    "/api/v1/rooms/{roomId}/housekeeping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["setHousekeeping"];
+        trace?: never;
+    };
+    "/api/v1/rooms/{roomId}/type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Assign a room to a type (its rate card), or clear it (ADR 0030). */
+        patch: operations["setRoomType"];
+        trace?: never;
+    };
+    "/api/v1/rooms/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["roomTypes"];
+        put?: never;
+        post: operations["createRoomType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/types/{typeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateRoomType"];
+        trace?: never;
+    };
     "/api/v1/roles/{roleId}": {
         parameters: {
             query?: never;
@@ -15180,6 +15398,40 @@ export interface paths {
             cookie?: never;
         };
         get: operations["frontDesk"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/guest-stays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A guest's past and present stays with this business (ADR 0030). */
+        get: operations["guestStays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The accommodation dashboard: today's rooms, and occupancy / ADR / RevPAR over a period (ADR 0030). */
+        get: operations["accommodationReport"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24379,6 +24631,142 @@ export interface components {
             active?: boolean;
             /** Format: int32 */
             sortOrder?: number;
+            /**
+             * @description Housekeeping state (ADR 0030), separate from occupancy and from active.
+             * @enum {string}
+             */
+            housekeepingStatus?: "CLEAN" | "DIRTY" | "CLEANING" | "INSPECTED" | "MAINTENANCE";
+            /** @description True when the room may take a new stay on its active and housekeeping axes (dates aside). */
+            readyToLet?: boolean;
+            /** @description The room type whose rate card this room inherits (ADR 0030), or null. */
+            roomTypeId?: string;
+            /** @description The weekday rate a guest is actually charged — the type's when typed, else nightlyRate. */
+            effectiveNightlyRate?: number;
+            /** @description The weekend rate, when the type sets one; else the same as the weekday rate. */
+            effectiveWeekendRate?: number;
+            /** @description A short housekeeping note (damage, missing amenity), or null. */
+            housekeepingNote?: string;
+            /** @description The staff member responsible for cleaning this room now, or null. */
+            cleanerStaffProfileId?: string;
+            /** @description That cleaner's display name, resolved; null when none or since left. */
+            cleanerName?: string;
+        };
+        HousekeepingRequest: {
+            /** @enum {string} */
+            status: "CLEAN" | "DIRTY" | "CLEANING" | "INSPECTED" | "MAINTENANCE";
+            cleanerStaffProfileId?: string;
+            note?: string;
+            clearCleaner?: boolean;
+            clearNote?: boolean;
+        };
+        RoomTypeResponse: {
+            id?: string;
+            branchId?: string;
+            name?: string;
+            defaultNightlyRate?: number;
+            weekendNightlyRate?: number;
+            /** Format: int32 */
+            capacity?: number;
+            bedConfig?: string;
+            amenities?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        RoomTypeListResponse: {
+            branchId?: string;
+            types?: components["schemas"]["RoomTypeResponse"][];
+        };
+        CreateRoomTypeRequest: {
+            branchId: string;
+            name: string;
+            defaultNightlyRate: number;
+            weekendNightlyRate?: number;
+            /** Format: int32 */
+            capacity?: number;
+            bedConfig?: string;
+            amenities?: string;
+        };
+        RoomTypeRequest: {
+            name?: string;
+            defaultNightlyRate?: number;
+            weekendNightlyRate?: number;
+            /** Format: int32 */
+            capacity?: number;
+            bedConfig?: string;
+            amenities?: string;
+        };
+        SetRoomTypeRequest: {
+            roomTypeId?: string;
+        };
+        GuestStay: {
+            orderId?: string;
+            /** Format: int64 */
+            orderNumber?: number;
+            roomName?: string;
+            /** Format: date-time */
+            checkIn?: string;
+            /** Format: date-time */
+            checkOut?: string;
+            state?: string;
+            total?: number;
+        };
+        GuestStaysResponse: {
+            customerId?: string;
+            customerName?: string;
+            /** Format: int32 */
+            stayCount?: number;
+            stays?: components["schemas"]["GuestStay"][];
+        };
+        AccommodationReportResponse: {
+            branchId?: string;
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            /** Format: int32 */
+            totalRooms?: number;
+            /** Format: int32 */
+            occupied?: number;
+            /** Format: int32 */
+            free?: number;
+            /** Format: int32 */
+            arrivingToday?: number;
+            /** Format: int32 */
+            leavingToday?: number;
+            /** Format: int32 */
+            dirty?: number;
+            /** Format: int32 */
+            underMaintenance?: number;
+            outstandingBalances?: number;
+            /** Format: int64 */
+            roomNightsSold?: number;
+            accommodationRevenue?: number;
+            averageDailyRate?: number;
+            revPar?: number;
+            occupancyRate?: number;
+        };
+        /** @description A checked-in stay a cashier can charge to (ADR 0030). */
+        InHouseStay: {
+            orderId?: string;
+            /** Format: int64 */
+            orderNumber?: number;
+            roomId?: string;
+            roomName?: string;
+            guestName?: string;
+            total?: number;
+        };
+        InHouseStaysResponse: {
+            branchId?: string;
+            stays?: components["schemas"]["InHouseStay"][];
+        };
+        MoveStayRequest: {
+            roomId: string;
+        };
+        ChangeStayDatesRequest: {
+            /** Format: date-time */
+            checkIn: string;
+            /** Format: date-time */
+            checkOut: string;
         };
         CreateRoleRequest: {
             roleKey: string;
@@ -24626,6 +25014,82 @@ export interface components {
             source?: string;
             depositAmount?: number;
             depositState?: string;
+            /** @description A lodging guest's ID type, captured at check-in (ADR 0031). Sensitive PII. */
+            guestIdType?: string;
+            /** @description A lodging guest's ID number, captured at check-in (ADR 0031). Sensitive PII. */
+            guestIdNumber?: string;
+        };
+        /** @description Record (or clear, when blank) a lodging guest's ID on their stay (ADR 0031). */
+        GuestIdRequest: {
+            idType?: string;
+            idNumber?: string;
+        };
+        PublicRoomBranch: {
+            id?: string;
+            name?: string;
+        };
+        /** @description The public lodging page: the house, its branches and whether it takes bookings (ADR 0031). */
+        PublicRoomInfo: {
+            storeName?: string;
+            bookable?: boolean;
+            checkInTime?: string;
+            checkOutTime?: string;
+            branches?: components["schemas"]["PublicRoomBranch"][];
+        };
+        /** @description A room offered online; no internal state is exposed. */
+        PublicRoom: {
+            id?: string;
+            name?: string;
+            nightlyRate?: number;
+            weekendRate?: number;
+            /** Format: int32 */
+            capacity?: number;
+            bedConfig?: string;
+            amenities?: string;
+            area?: string;
+        };
+        PublicRoomAvailability: {
+            branchId?: string;
+            checkIn?: string;
+            checkOut?: string;
+            /** Format: int32 */
+            nights?: number;
+            rooms?: components["schemas"]["PublicRoom"][];
+        };
+        /** @description A guest's request to stay (ADR 0031). Business comes from the slug, never this body. */
+        PublicRoomBookingRequest: {
+            branchId: string;
+            roomId: string;
+            checkIn: string;
+            checkOut: string;
+            name: string;
+            phone: string;
+            /** Format: int32 */
+            guests?: number;
+            requestId: string;
+        };
+        PublicRoomBookingConfirmation: {
+            /** @description Opaque handle for an optional online deposit; the deposit endpoint re-checks the slug owns it. */
+            bookingId?: string;
+            roomName?: string;
+            checkIn?: string;
+            checkOut?: string;
+            /** Format: int32 */
+            nights?: number;
+            estimatedTotal?: number;
+            message?: string;
+        };
+        /** @description A guest asks to pay their booking deposit online by M-Pesa STK (ADR 0031). */
+        PublicRoomDepositRequest: {
+            bookingId: string;
+            /** @description The number to prompt; defaults to the phone on the booking when blank. */
+            phone?: string;
+        };
+        PublicRoomDepositResponse: {
+            accepted?: boolean;
+            amount?: number;
+            checkoutRequestId?: string;
+            message?: string;
         };
         MoveRequest: {
             tableId?: string;
@@ -45409,6 +45873,132 @@ export interface operations {
             };
         };
     };
+    inHouseStays: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InHouseStaysResponse"];
+                };
+            };
+        };
+    };
+    chargeToRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddLinesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    moveStayToRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveStayRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    changeStayDates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeStayDatesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    setGuestId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuestIdRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
     voidLine: {
         parameters: {
             query?: never;
@@ -47832,6 +48422,106 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PublicWebStkPushResponse"];
+                };
+            };
+        };
+    };
+    publicRoomInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicRoomInfo"];
+                };
+            };
+        };
+    };
+    publicRoomAvailability: {
+        parameters: {
+            query: {
+                branchId: string;
+                checkIn: string;
+                checkOut: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicRoomAvailability"];
+                };
+            };
+        };
+    };
+    publicRoomBook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicRoomBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicRoomBookingConfirmation"];
+                };
+            };
+        };
+    };
+    publicRoomDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicRoomDepositRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicRoomDepositResponse"];
                 };
             };
         };
@@ -57927,6 +58617,130 @@ export interface operations {
             };
         };
     };
+    setHousekeeping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HousekeepingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    setRoomType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRoomTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    roomTypes: {
+        parameters: {
+            query: {
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomTypeListResponse"];
+                };
+            };
+        };
+    };
+    createRoomType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoomTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomTypeResponse"];
+                };
+            };
+        };
+    };
+    updateRoomType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                typeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomTypeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomTypeResponse"];
+                };
+            };
+        };
+    };
     updateRole: {
         parameters: {
             query?: never;
@@ -62970,6 +63784,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FrontDeskResponse"];
+                };
+            };
+        };
+    };
+    guestStays: {
+        parameters: {
+            query: {
+                customerId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GuestStaysResponse"];
+                };
+            };
+        };
+    };
+    accommodationReport: {
+        parameters: {
+            query: {
+                branchId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AccommodationReportResponse"];
                 };
             };
         };

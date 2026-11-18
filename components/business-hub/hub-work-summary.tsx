@@ -37,7 +37,7 @@ export function HubWorkSummary({ cards }: { cards: HubWorkCard[] }) {
                 <span className="block truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
                   {card.label}
                 </span>
-                <span className="mt-0.5 block truncate text-[17px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+                <span className="mt-0.5 block break-words text-[17px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
                   {card.meta}
                 </span>
               </span>

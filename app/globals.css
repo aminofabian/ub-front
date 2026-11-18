@@ -899,6 +899,45 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     }
 }
 
+/* Front desk occupancy board (ADR 0030): a room key-mark filling as a guest takes the room. It
+   grows from its foot, the way a key drops onto the rack, settling with one soft overshoot. */
+@keyframes desk-key-fill {
+    0% {
+        transform: scaleY(0.12);
+        opacity: 0.4;
+    }
+    60% {
+        transform: scaleY(1.08);
+        opacity: 1;
+    }
+    100% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+/* The board's figures counting into place — a calm rise, not a spin. One moment, on load. */
+@keyframes desk-stat-rise {
+    0% {
+        transform: translateY(0.35em);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* A returning guest's line catching the light once — a quiet welcome, not a flash. */
+@keyframes desk-welcome-sweep {
+    0% {
+        background-position: -140% 0;
+    }
+    100% {
+        background-position: 240% 0;
+    }
+}
+
 /* A pickup order flipping to ready: the number card gives one calm lift, like it stepped forward. */
 @keyframes order-ready-arrive {
     0% {

@@ -81,8 +81,10 @@ export function trimNavForFoodOnly<I extends NavItemLike, S extends NavSectionLi
     if (!items.some((item) => item.href === entryHref)) entryHref = items[0]!.href;
     out.push({ ...section, items: items as unknown as readonly I[], entryHref });
   }
-  // Business first, then the restaurant, then everything that supports it.
-  const rank = (id: string) => (id === "overview" ? 0 : id === "restaurant" ? 1 : 2);
+  // Business first, then the restaurant, then the front desk (a food shop that also lets rooms is
+  // food-led but the rooms are daily work too), then everything that supports them.
+  const rank = (id: string) =>
+    id === "overview" ? 0 : id === "restaurant" ? 1 : id === "front-desk" ? 2 : 3;
   return out
     .map((section, index) => ({ section, index }))
     .sort((a, b) => rank(a.section.id) - rank(b.section.id) || a.index - b.index)

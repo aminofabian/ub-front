@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, Plus, UtensilsCrossed } from "lucide-react";
+import { BedDouble, Minus, Plus, UtensilsCrossed } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -16,23 +16,29 @@ import {
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { tryPostSaleWithRetries, type SaleRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { formatMoney } from "@/lib/money";
 import {
+  chargeToRoom,
+  fetchInHouseStays,
   fetchMenu,
   fetchOrderForSale,
   fetchOrdersInProgress,
   fetchUnprintedTickets,
   handOverOrder,
   reprintKitchenTicket,
+  type InHouseStayRecord,
   type MenuItemRecord,
   type MenuRecord,
+  type NewOrderLinePayload,
   type OrderSummaryRecord,
   type UnprintedTicketRecord,
 } from "@/lib/restaurant-api";
+import { isLodgingBusiness } from "@/lib/business-store-type";
 import { withoutCanMake } from "@/lib/restaurant-can-make";
 import {
   addToCart,
@@ -62,7 +68,8 @@ const kes = (n: number) => formatMoney(n, "KES");
 
 type Done =
   | { kind: "paid"; sale: SaleRecord; total: number; change: number | null; orderNumber: number | null }
-  | { kind: "queued"; total: number; lines: OrderCartLine[] };
+  | { kind: "queued"; total: number; lines: OrderCartLine[] }
+  | { kind: "charged"; total: number; roomName: string | null; guestName: string | null };
 
 /**
  * Counter service: ring from the menu, take payment, give the customer a number. Paying is
@@ -79,7 +86,11 @@ export function CounterScreen({
   /** On the till page the till's own header names the screen, so the page title is left off. */
   bare?: boolean;
 }) {
-  const { branchId } = useDashboard();
+  const { branchId, business, me } = useDashboard();
+  // Charging to a room opens/adds to a stay, which needs the take-orders right (the server enforces
+  // it too) — so a sell-only cashier does not see a button that would 403.
+  const canChargeRoom =
+    isLodgingBusiness(business) && hasPermission(me?.permissions, Permission.RestaurantOrdersWrite);
   const [menu, setMenu] = useState<MenuRecord | null>(null);
   const [menuFromCache, setMenuFromCache] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -101,6 +112,9 @@ export function CounterScreen({
   const [phoneAsked, setPhoneAsked] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // The "charge to the room" picker: null when closed, the in-house stays when open.
+  const [roomPicker, setRoomPicker] = useState<InHouseStayRecord[] | null>(null);
+  const [charging, setCharging] = useState(false);
   // One key per order: retrying after a dropped connection must not ring it twice.
   const saleKeyRef = useRef<string>(nextIdempotencyKey());
   const lineSeq = useRef(0);
@@ -314,6 +328,52 @@ export function CounterScreen({
     }
   }
 
+  // "Charge to the room": instead of taking money now, put this order on a checked-in guest's
+  // folio, to settle once at checkout (ADR 0030). Open the picker of who is in.
+  async function openRoomPicker() {
+    const problem = cartProblem(cart);
+    if (problem) return setError(problem);
+    if (!branchId) return setError("Choose a branch at the top of the page first");
+    setError(null);
+    try {
+      const stays = await fetchInHouseStays(branchId);
+      if (stays.length === 0) {
+        return setError("No guests are checked in to charge this to.");
+      }
+      setRoomPicker(stays);
+    } catch {
+      setError("Could not load the rooms. Try again.");
+    }
+  }
+
+  // The lines of the cart, with a client id per line keyed to this order so a retry never
+  // double-charges the room (the same idempotency the counter sale uses).
+  function cartAsLines(): NewOrderLinePayload[] {
+    return cart.map((l, i) => ({
+      clientLineId: `${saleKeyRef.current}-${i}`,
+      menuItemId: l.menuItemId,
+      ...(l.optionIds.length > 0 ? { modifierOptionIds: l.optionIds } : {}),
+      quantity: l.quantity,
+      ...(l.note ? { note: l.note } : {}),
+    }));
+  }
+
+  async function chargeCartTo(stay: InHouseStayRecord) {
+    setCharging(true);
+    setError(null);
+    try {
+      await chargeToRoom(stay.orderId, cartAsLines());
+      setRoomPicker(null);
+      setDone({ kind: "charged", total, roomName: stay.roomName, guestName: stay.guestName });
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message ? e.message : "Could not charge the room. Try again.",
+      );
+    } finally {
+      setCharging(false);
+    }
+  }
+
   async function handOver(order: OrderSummaryRecord) {
     setHandingOver(order.orderId);
     try {
@@ -385,6 +445,26 @@ export function CounterScreen({
                     role="status"
                   >
                     Paid
+                  </span>
+                </>
+              ) : done.kind === "charged" ? (
+                <>
+                  <p className="font-mono text-[11px] text-[var(--op-muted,#556159)]">{kes(done.total)}</p>
+                  <p className="mt-4 text-sm text-[var(--op-muted,#556159)]">Charged to</p>
+                  <p className="mt-1 font-serif text-[2rem] italic leading-none tracking-[-0.02em] text-[var(--op-ink,#121A16)]">
+                    {done.roomName ?? done.guestName ?? "the room"}
+                  </p>
+                  {done.roomName && done.guestName ? (
+                    <p className="mt-2 text-sm text-[var(--op-ink,#121A16)]">{done.guestName}</p>
+                  ) : null}
+                  <p className="mx-auto mt-4 max-w-[16rem] text-sm text-[var(--op-ink,#121A16)]">
+                    On the guest&rsquo;s folio. They settle it at checkout.
+                  </p>
+                  <span
+                    className="kiosk-setup-stamp absolute right-4 top-5 border-[1.5px] border-[var(--kiosk-highlight,#A55237)] px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-highlight,#A55237)]"
+                    role="status"
+                  >
+                    To room
                   </span>
                 </>
               ) : (
@@ -761,6 +841,18 @@ export function CounterScreen({
                 >
                   {paying ? "Recording…" : cart.length === 0 ? "Take payment" : `Take ${kes(total)}`}
                 </Button>
+                {/* A guest house above the bar: put the round on a room instead of taking money now.
+                    It joins the guest's folio and settles once at checkout (ADR 0030). */}
+                {canChargeRoom ? (
+                  <Button
+                    variant="outline"
+                    className="h-12 w-full text-sm"
+                    disabled={paying || phoneAsked || cart.length === 0}
+                    onClick={() => void openRoomPicker()}
+                  >
+                    <BedDouble className="size-4" aria-hidden /> Charge to a room
+                  </Button>
+                ) : null}
               </div>
             </section>
           </div>
@@ -803,6 +895,63 @@ export function CounterScreen({
             setChoosing(null);
           }}
         />
+      ) : null}
+
+      {roomPicker ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(18,26,22,0.4)] p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Charge to a room"
+          onClick={() => (charging ? undefined : setRoomPicker(null))}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-[8px] bg-[var(--op-surface,#FCFAF5)] p-4 sm:rounded-[2px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-serif text-[1.35rem] italic leading-none tracking-[-0.02em] text-[var(--op-ink,#121A16)]">
+              Charge to a room
+            </p>
+            <p className={cn(dashboardHintClass(), "mt-1")}>
+              {kes(total)} joins the guest&rsquo;s folio. They settle it at checkout.
+            </p>
+            <ul className="mt-3 grid gap-1.5">
+              {roomPicker.map((s) => (
+                <li key={s.orderId}>
+                  <button
+                    type="button"
+                    disabled={charging}
+                    className={cn(
+                      DASHBOARD_SECTION_SURFACE,
+                      "flex w-full items-center justify-between gap-2 p-3 text-left disabled:opacity-60 motion-safe:active:scale-[0.99]",
+                    )}
+                    onClick={() => void chargeCartTo(s)}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-[var(--op-ink,#121A16)]">
+                        {s.roomName ?? `Stay #${s.orderNumber}`}
+                      </span>
+                      {s.guestName ? (
+                        <span className={cn(dashboardHintClass(), "block truncate")}>{s.guestName}</span>
+                      ) : null}
+                    </span>
+                    <span className="font-mono text-xs tabular-nums text-[var(--op-muted,#556159)]">
+                      {s.total > 0 ? `${kes(s.total)} so far` : "new folio"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant="outline"
+              className="mt-3 h-11 w-full"
+              disabled={charging}
+              onClick={() => setRoomPicker(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       ) : null}
     </div>
   );

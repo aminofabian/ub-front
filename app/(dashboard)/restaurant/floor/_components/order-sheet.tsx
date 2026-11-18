@@ -39,6 +39,7 @@ import {
   seatBooking,
   sendOrder,
   setBillRequested,
+  setStayGuestId,
   setOrderDelivery,
   updateOrderDetails,
   type MenuItemRecord,
@@ -50,6 +51,7 @@ import {
   type RestaurantTableRecord,
 } from "@/lib/restaurant-api";
 import { equalShares, groupsFor, round2, splitRemainder, tileState } from "@/lib/restaurant-cart";
+import { fetchGuestStays, type GuestStay } from "@/lib/rooms-api";
 import { buildBillEscPos, printOnThisDevice } from "@/lib/restaurant-print";
 import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
@@ -106,6 +108,7 @@ export function OrderSheet({
   tables,
   onBack,
   variant = "floor",
+  lodgingEdit,
 }: {
   orderId: string;
   rights: FloorRights;
@@ -113,6 +116,15 @@ export function OrderSheet({
   onBack: () => void;
   /** "lodging" reads a stay's folio in a guest house's words — check in, room, not seat, table. */
   variant?: "floor" | "lodging";
+  /**
+   * For a lodging booking: move it to another free room, or change its dates before the guest
+   * arrives. Omitted on the restaurant floor and once a guest is checked in.
+   */
+  lodgingEdit?: {
+    freeRooms: { id: string; name: string }[];
+    onMoveRoom: (roomId: string) => Promise<void>;
+    onChangeDates: (checkIn: string, checkOut: string) => Promise<void>;
+  };
 }) {
   const lodging = variant === "lodging";
   // The few words that differ between a table's order and a room's stay. Everything else is shared.
@@ -128,6 +140,7 @@ export function OrderSheet({
           `Mark this booking as a no-show? The room is freed. Keep the ${amount} deposit as the guest's credit? OK = credit them · Cancel = keep it as income.`,
         noShow: "Mark this booking as a no-show? The room is freed.",
         couldNotCheckIn: "Could not check the guest in.",
+        settled: "This stay is checked out. The room is sent for cleaning.",
         unit: "stay",
       }
     : {
@@ -141,6 +154,7 @@ export function OrderSheet({
           `Mark this booking as a no-show? The table is freed. Keep the ${amount} deposit as the customer's credit? OK = credit them · Cancel = keep it as income.`,
         noShow: "Mark this booking as a no-show? The table is freed.",
         couldNotCheckIn: "Could not seat the booking.",
+        settled: "This order is settled.",
         unit: "order",
       };
   const { business } = useDashboard();
@@ -159,6 +173,9 @@ export function OrderSheet({
   const [settlingAll, setSettlingAll] = useState(false);
   const [splitting, setSplitting] = useState(false);
   const [moving, setMoving] = useState(false);
+  // Lodging booking edits: the room picker, and the change-dates sheet.
+  const [movingRoom, setMovingRoom] = useState(false);
+  const [editingDates, setEditingDates] = useState(false);
   const [joining, setJoining] = useState<OrderCardRecord[] | null>(null);
   const [servers, setServers] = useState<{ staffProfileId: string; name: string }[]>([]);
   const lineSeq = useRef(0);
@@ -387,8 +404,12 @@ export function OrderSheet({
         <DeliveryPanel order={order} canChange={rights.canTakeOrders} busy={busy} onAct={act} />
       ) : null}
 
+      {lodging && order.customerId ? (
+        <GuestHistory customerId={order.customerId} thisOrderId={order.id} />
+      ) : null}
+
       {order.status === "completed" ? (
-        <p className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 text-sm font-semibold")}>This order is settled.</p>
+        <p className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 text-sm font-semibold")}>{L.settled}</p>
       ) : order.status === "cancelled" ? (
         <p className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 text-sm font-semibold")}>This order was cancelled.</p>
       ) : order.booked ? (
@@ -456,6 +477,16 @@ export function OrderSheet({
               >
                 Did not come
               </Button>
+              {lodging && lodgingEdit ? (
+                <>
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => setMovingRoom(true)}>
+                    Move room
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => setEditingDates(true)}>
+                    Change dates
+                  </Button>
+                </>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -469,6 +500,12 @@ export function OrderSheet({
         <p role="alert" className="mb-2 text-sm text-red-700">
           {error}
         </p>
+      ) : null}
+
+      {/* A lodging guest's ID, captured at the desk (ADR 0031). Sensitive — only shown to staff who
+          can take orders, and only while the stay is live. */}
+      {lodging && open && rights.canTakeOrders ? (
+        <GuestIdField order={order} onSaved={(updated) => setOrder(updated)} />
       ) : null}
 
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_24rem]">
@@ -776,6 +813,58 @@ export function OrderSheet({
             </ul>
           </DialogContent>
         </Dialog>
+      ) : null}
+
+      {movingRoom && lodgingEdit ? (
+        <Dialog open onOpenChange={(o) => (o ? undefined : setMovingRoom(false))}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Move to another room</DialogTitle>
+              <DialogDescription>The stay and its folio move with the guest. Only free, ready rooms are shown.</DialogDescription>
+            </DialogHeader>
+            {lodgingEdit.freeRooms.filter((r) => r.id !== order.tableId).length === 0 ? (
+              <p className="text-sm text-[color:var(--muted)]">No other room is free for these nights.</p>
+            ) : (
+              <ul className="grid grid-cols-2 gap-2">
+                {lodgingEdit.freeRooms
+                  .filter((r) => r.id !== order.tableId)
+                  .map((r) => (
+                    <li key={r.id}>
+                      <Button
+                        variant="outline"
+                        className="h-11 w-full"
+                        disabled={busy}
+                        onClick={() => {
+                          setMovingRoom(false);
+                          void act(async () => {
+                            await lodgingEdit.onMoveRoom(r.id);
+                            return fetchOpenOrder(orderId);
+                          }, "The stay was not moved. Try again.");
+                        }}
+                      >
+                        {r.name}
+                      </Button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
+      {editingDates && lodgingEdit ? (
+        <ChangeDatesDialog
+          order={order}
+          busy={busy}
+          onClose={() => setEditingDates(false)}
+          onSave={async (checkIn, checkOut) => {
+            setEditingDates(false);
+            await act(async () => {
+              await lodgingEdit.onChangeDates(checkIn, checkOut);
+              return fetchOpenOrder(orderId);
+            }, "The dates were not changed. Try again.");
+          }}
+        />
       ) : null}
     </div>
   );
@@ -1587,5 +1676,219 @@ function SettleAllDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Nairobi's calendar date of an ISO instant, or a fallback `days` from today, as YYYY-MM-DD. */
+function nairobiDate(iso: string | null, fallbackDays: number): string {
+  const when = iso ? new Date(iso) : new Date(Date.now() + fallbackDays * 86400000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(when);
+}
+
+/** Change a booking's check-in and check-out before the guest arrives. Nights drive the charge. */
+function ChangeDatesDialog({
+  order,
+  busy,
+  onClose,
+  onSave,
+}: {
+  order: OpenOrderRecord;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (checkIn: string, checkOut: string) => Promise<void>;
+}) {
+  const [checkIn, setCheckIn] = useState(() => nairobiDate(order.scheduledStart, 0));
+  const [checkOut, setCheckOut] = useState(() => nairobiDate(order.scheduledEnd, 1));
+  const [error, setError] = useState<string | null>(null);
+
+  const nights = Math.round(
+    (new Date(checkOut + "T12:00:00").getTime() - new Date(checkIn + "T12:00:00").getTime()) / 86400000,
+  );
+
+  function save() {
+    if (!Number.isFinite(nights) || nights < 1) return setError("Check-out must be after check-in");
+    // Same convention as a new booking: 2pm check-in, 11am check-out, Nairobi.
+    void onSave(
+      new Date(checkIn + "T14:00:00+03:00").toISOString(),
+      new Date(checkOut + "T11:00:00+03:00").toISOString(),
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => (o ? undefined : onClose())}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change the dates</DialogTitle>
+          <DialogDescription>Only before the guest checks in. The nights set what the room is charged.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex flex-col gap-1">
+            <span className={dashboardLabelClass()}>Check in</span>
+            <input type="date" className={dashboardInputClass(false)} value={checkIn}
+              onChange={(e) => { setCheckIn(e.target.value); setError(null); }} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={dashboardLabelClass()}>Check out</span>
+            <input type="date" className={dashboardInputClass(false)} value={checkOut} min={checkIn}
+              onChange={(e) => { setCheckOut(e.target.value); setError(null); }} />
+          </label>
+        </div>
+        <p className={cn(dashboardHintClass(), "font-mono tabular-nums")}>
+          {nights >= 1 ? `${nights} night${nights === 1 ? "" : "s"}` : "Choose the nights"}
+        </p>
+        {error ? <p role="alert" className="text-sm font-medium text-destructive">{error}</p> : null}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy || nights < 1}>Save the dates</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * A returning guest's past stays with this house (ADR 0030). Shows nothing for a first-time guest,
+ * so it only ever adds a quiet "welcome back" line and a short history when there is one to show.
+ */
+function GuestHistory({ customerId, thisOrderId }: { customerId: string; thisOrderId: string }) {
+  const [past, setPast] = useState<GuestStay[] | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void fetchGuestStays(customerId)
+      .then((h) => live && setPast(h.stays.filter((s) => s.orderId !== thisOrderId)))
+      .catch(() => live && setPast([]));
+    return () => {
+      live = false;
+    };
+  }, [customerId, thisOrderId]);
+
+  if (!past || past.length === 0) return null;
+
+  const stayed = past.filter((s) => s.state === "checked-out").length;
+  const fmt = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Nairobi" })
+      : "—";
+
+  return (
+    <section className={cn(DASHBOARD_SECTION_SURFACE, "mb-2")} aria-label="Guest history">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 text-left text-sm"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="font-semibold text-[var(--pos-primary,#1D4B3B)]">
+          Returning guest
+          <span className="ml-1 font-normal text-[color:var(--muted)]">
+            · {stayed > 0 ? `${stayed} past stay${stayed === 1 ? "" : "s"}` : `${past.length} on record`}
+          </span>
+        </span>
+        <span className="font-mono text-xs text-[color:var(--muted)]">{open ? "Hide" : "See"}</span>
+      </button>
+      {open ? (
+        <ul className="mt-2 grid gap-1 border-t border-dashed border-[rgba(18,26,22,0.2)] pt-2 text-xs">
+          {past.slice(0, 8).map((s) => (
+            <li key={s.orderId} className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate">
+                {fmt(s.checkIn)}
+                {s.roomName ? ` · ${s.roomName}` : ""}
+                {s.state !== "checked-out" ? ` · ${s.state}` : ""}
+              </span>
+              <span className="font-mono tabular-nums text-[color:var(--muted)]">{formatMoney(s.total, "KES")}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+/** The ID types a Kenyan guest house commonly records. */
+const GUEST_ID_TYPES = ["National ID", "Passport", "Driving licence", "Alien ID"] as const;
+
+/**
+ * Capture a lodging guest's ID at the desk (ADR 0031): a type and a number, saved on the stay.
+ * Sensitive PII — a quiet row, collapsed until opened, never shown on a receipt. Starts open only
+ * when nothing is recorded yet, so staff are prompted to take it once.
+ */
+function GuestIdField({
+  order,
+  onSaved,
+}: {
+  order: OpenOrderRecord;
+  onSaved: (order: OpenOrderRecord) => void;
+}) {
+  const has = Boolean(order.guestIdNumber);
+  const [open, setOpen] = useState(!has);
+  const [idType, setIdType] = useState(order.guestIdType ?? GUEST_ID_TYPES[0]);
+  const [idNumber, setIdNumber] = useState(order.guestIdNumber ?? "");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      onSaved(await setStayGuestId(order.id, idType, idNumber.trim()));
+      setOpen(false);
+    } catch (e) {
+      setProblem(message(e, "The ID was not saved. Try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 flex w-full items-center justify-between gap-2 p-2.5 text-left text-sm")}
+      >
+        <span className={dashboardHintClass()}>
+          Guest ID{has ? <span className="ml-1 text-[var(--op-ink,#121A16)]">· {order.guestIdType} on file</span> : " — not taken yet"}
+        </span>
+        <span className="text-xs underline">{has ? "Change" : "Add"}</span>
+      </button>
+    );
+  }
+
+  return (
+    <section className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 grid gap-2")} aria-label="Guest ID">
+      <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-2">
+        <label className="grid gap-1">
+          <span className={dashboardLabelClass()}>ID type</span>
+          <select className={dashboardInputClass(false)} value={idType} onChange={(e) => setIdType(e.target.value)}>
+            {GUEST_ID_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1">
+          <span className={dashboardLabelClass()}>ID number</span>
+          <input
+            className={dashboardInputClass(false, "font-mono")}
+            value={idNumber}
+            maxLength={64}
+            autoComplete="off"
+            onChange={(e) => setIdNumber(e.target.value)}
+            placeholder="As on the document"
+          />
+        </label>
+      </div>
+      {problem ? <p role="alert" className="text-sm text-red-700">{problem}</p> : null}
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        <Button size="sm" disabled={busy} onClick={() => void save()}>
+          Save ID
+        </Button>
+      </div>
+    </section>
   );
 }

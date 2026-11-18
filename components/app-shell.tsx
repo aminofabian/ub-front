@@ -103,6 +103,7 @@ import {
 import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
 import {
   isFoodBusiness,
+  isFoodLedBusiness,
   isFoodOnlyBusiness,
   isLodgingBusiness,
   isServiceBusiness,
@@ -153,6 +154,9 @@ type NavSection = {
 const SERVICE_LEAD_SECTIONS: readonly string[] = ["services", "customers"];
 /** A restaurant, café or bar works from its floor, counter and kitchen: that section leads its rail. */
 const FOOD_LEAD_SECTIONS: readonly string[] = ["restaurant"];
+/** A lodging tenant's daily work starts at the front desk; pull it up the rail, out of the leftovers. */
+const LODGING_LEAD_SECTIONS: readonly string[] = ["front-desk"];
+const FOOD_AND_LODGING_LEAD_SECTIONS: readonly string[] = ["restaurant", "front-desk"];
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -1321,8 +1325,14 @@ export function AppShell({ children }: AppShellProps) {
   // A restaurant, café, fast-food counter or bar: its bottom bar leads to the floor, the kitchen
   // and the counter, where a product shop's leads to shelves and the retail till.
   const foodOnlyShop = isFoodOnlyBusiness(business) && !IS_DESKTOP;
+  // A tenant that lets rooms works from the front desk, so pull it up the rail (not into leftovers).
+  const lodgingShop = isLodgingBusiness(business) && !IS_DESKTOP;
+  // Food-led: a bar or restaurant whether or not it also lets rooms (ADR 0031). Lodging is an add-on,
+  // so a bar-with-rooms still gets the food sidebar, not the full retail one. Drives nav trimming and
+  // the rail lead; the floor-vs-counter home below stays on the stricter food-only read.
+  const foodLedShop = isFoodLedBusiness(business) && !IS_DESKTOP;
   // A restaurant or bar seats people, so its home is the floor; a café or counter pays first.
-  const foodTableService = foodOnlyShop && isTableServiceBusiness(business);
+  const foodTableService = foodLedShop && isTableServiceBusiness(business);
   const canTakeRestaurantOrders = hasPermission(me?.permissions, Permission.RestaurantOrdersWrite);
   const canWorkRestaurantKitchen = hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate);
 
@@ -1417,11 +1427,13 @@ export function AppShell({ children }: AppShellProps) {
       };
     }).filter((s) => s.items.length > 0);
     // A shop that only sells services has no shelves: leave the shelf pages out of its menu.
-    // A shop that only sells food and drink keeps buying and stock, and loses the shelf pages.
-    return trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodOnlyShop, foodTableService);
+    // A food-led shop (a bar or restaurant, rooms or not) keeps buying and stock, loses the shelf
+    // pages, and keeps its front desk — lodging is an add-on, not a reason to show the retail shelf.
+    return trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodLedShop, foodTableService);
   }, [
     serviceOnlyShop,
     foodOnlyShop,
+    foodLedShop,
     foodTableService,
     business,
     me?.permissions,
@@ -2064,7 +2076,17 @@ export function AppShell({ children }: AppShellProps) {
       <ChromeSlot slot="desktop">
         <div className={cn("shrink-0", desktopChromeVisible)}>
           <DesktopNavRail
-            leadSectionIds={serviceOnlyShop ? SERVICE_LEAD_SECTIONS : foodOnlyShop ? FOOD_LEAD_SECTIONS : undefined}
+            leadSectionIds={
+              serviceOnlyShop
+                ? SERVICE_LEAD_SECTIONS
+                : foodLedShop && lodgingShop
+                  ? FOOD_AND_LODGING_LEAD_SECTIONS
+                  : foodLedShop
+                    ? FOOD_LEAD_SECTIONS
+                    : lodgingShop
+                      ? LODGING_LEAD_SECTIONS
+                      : undefined
+            }
             pathname={pathname}
             homeHref={homeHref}
             tenantTitle={tenantTitle}

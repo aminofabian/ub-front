@@ -67,7 +67,7 @@ export function RevenueBarChart({
 
       <div className="relative mt-2">
         <div
-          className="grid h-20 items-stretch gap-2.5 sm:h-[120px]"
+          className="grid h-20 items-stretch gap-2.5 sm:h-[104px]"
           style={columns}
         >
           {points.map((point) => {

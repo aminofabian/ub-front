@@ -64,7 +64,7 @@ import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import {
   getBusinessStoreTypes,
-  isFoodOnlyBusiness,
+  isFoodLedBusiness,
   isFoodOnlyStoreTypes,
   isLodgingBusiness,
   isTableServiceStoreTypes,
@@ -872,7 +872,9 @@ export function BusinessHubWorkspace() {
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
   // A restaurant, café or bar sells from its menu, not a shelf: with no products it is still
   // open, so it gets the ordinary hub and not "stock the shelves".
-  const shopNotReady = catalogueCount === 0 && !isFoodOnlyBusiness(business);
+  // A food-led shop (a bar or restaurant, rooms or not) sells no shelf products, so an empty
+  // catalogue is not "shop not ready" — it should never be nudged to add products (ADR 0031).
+  const shopNotReady = catalogueCount === 0 && !isFoodLedBusiness(business);
 
   // Configure-shop can finish with an empty shelf. When sellable items appear
   // (import, manual create, etc.), mark onboarding completed so setup progress
@@ -1743,12 +1745,13 @@ export function BusinessHubWorkspace() {
           {canManageBusinessSettings ? (
             <QuestionnaireResumeBanner
               businessOnboardingStatus={business?.onboarding?.status}
-              // A shop that only sells services has no shelves to stock; a restaurant, café
-              // or bar sells dishes first and packaged products only if it wants to.
+              // A shop that only sells services has no shelves to stock; a food-led shop (a
+              // restaurant, café or bar, rooms or not) sells dishes first and packaged products
+              // only if it wants to — lodging does not make it a product shop (ADR 0031).
               catalogEmpty={
                 catalogueCount === 0 &&
                 !isServiceOnlyBusiness(business) &&
-                !isFoodOnlyBusiness(business)
+                !isFoodLedBusiness(business)
               }
             />
           ) : null}
@@ -1765,7 +1768,7 @@ export function BusinessHubWorkspace() {
 
           <div
             className={cn(
-              "xl:grid xl:items-start xl:gap-4",
+              "xl:grid xl:items-start xl:gap-3",
               showCleanRail &&
                 "xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]",
             )}
@@ -1838,7 +1841,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-3 sm:gap-4">
+                <div className="flex flex-col gap-2.5 sm:gap-3">
                   {/* The money board: revenue headline + shape, how it arrived,
                       the supporting numbers, then the profit actions. */}
                   {salesEmpty ? null : (

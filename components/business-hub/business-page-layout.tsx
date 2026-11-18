@@ -17,10 +17,13 @@ export const BUSINESS_HUB_VARS = {
   ["--hub-muted" as string]: "#5E6B65",
   ["--order-ink" as string]: "#14211C",
   ["--pos-primary" as string]: "#0F4A38",
-  ["--font-sans" as string]: "var(--font-inter), system-ui, sans-serif",
-  ["--font-heading" as string]: "var(--font-inter), system-ui, sans-serif",
+  ["--font-sans" as string]:
+    'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif',
+  ["--font-heading" as string]:
+    'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif',
   ["--font-serif" as string]: "var(--font-instrument-serif), Georgia, serif",
-  fontFamily: "var(--font-inter), system-ui, sans-serif",
+  fontFamily:
+    'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif',
 } as const;
 
 const HUB_RULE_8 = "border-[color-mix(in_srgb,var(--hub-ink)_8%,transparent)]";

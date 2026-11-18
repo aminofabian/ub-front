@@ -33,32 +33,34 @@ function trendDirection(trend?: string | null): "up" | "down" | null {
 function HeroStat({ item }: { item: HubKpi }) {
   const direction = trendDirection(item.trend);
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-[16px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] p-4">
-      <p className="truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
-        {item.label}
-      </p>
+    <div className="flex min-w-0 items-baseline justify-between gap-3 rounded-[10px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] px-3 py-1.5 sm:flex-col sm:items-stretch sm:justify-start sm:gap-0.5 sm:rounded-[14px] sm:px-4 sm:py-3.5">
+      <div className="flex min-w-0 flex-col sm:contents">
+        <p className="truncate text-[12px] text-[var(--hub-muted,#5E6B65)] sm:order-1 sm:text-[13px]">
+          {item.label}
+        </p>
+        {item.hint || direction ? (
+          <p className="hidden truncate text-[13px] text-[var(--hub-muted,#5E6B65)] sm:order-3 sm:block">
+            {direction ? (
+              <span
+                className={cn(
+                  "font-semibold",
+                  direction === "down" ? "text-[#B3261E]" : "text-[#0B6B43]",
+                )}
+              >
+                {item.trend}
+                {item.hint ? " " : ""}
+              </span>
+            ) : null}
+            {item.hint}
+          </p>
+        ) : null}
+      </div>
       <p
-        className="truncate text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] sm:text-[28px]"
+        className="shrink-0 text-right text-[15px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] [overflow-wrap:anywhere] sm:order-2 sm:text-left sm:text-[24px] sm:leading-[1.15]"
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {item.value}
       </p>
-      {item.hint || direction ? (
-        <p className="truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
-          {direction ? (
-            <span
-              className={cn(
-                "font-semibold",
-                direction === "down" ? "text-[#B3261E]" : "text-[#0B6B43]",
-              )}
-            >
-              {item.trend}
-              {item.hint ? " " : ""}
-            </span>
-          ) : null}
-          {item.hint}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -93,7 +95,10 @@ export function HubMoneyHero({
   const direction = trendDirection(hero.trend);
   const TrendIcon = direction === "down" ? ArrowDownRight : ArrowUpRight;
 
-  const [currencyPrefix, ...amountParts] = hero.value.split(" ");
+  // The formatter joins currency and amount with a non-breaking space, so split
+  // on any whitespace — a plain " " split left the prefix holding the whole
+  // value and printed "Ksh 715" twice.
+  const [currencyPrefix, ...amountParts] = hero.value.split(/\s+/);
   const amount = amountParts.join(" ") || currencyPrefix;
 
   const tenderValues = tender
@@ -184,8 +189,8 @@ export function HubMoneyHero({
 
   return (
     <>
-      <section className="flex flex-col gap-4 rounded-[20px] bg-[var(--hub-accent-deep,#0D3B2E)] px-5 py-5 text-[#F4F2EC] sm:px-6 sm:py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-3.5 rounded-[20px] bg-[var(--hub-accent-deep,#0D3B2E)] px-5 py-4 text-[#F4F2EC] sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-3.5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[rgba(244,242,236,0.72)]">
@@ -198,12 +203,12 @@ export function HubMoneyHero({
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 flex items-baseline gap-2 tabular-nums">
-              <span className="text-[22px] font-medium text-[rgba(244,242,236,0.72)]">
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-0 tabular-nums">
+              <span className="text-[16px] font-medium uppercase tracking-[0.02em] text-[rgba(244,242,236,0.6)]">
                 {currencyPrefix}
               </span>
               <span
-                className="truncate text-[40px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[52px]"
+                className="break-words text-[40px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[52px]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {amount}
@@ -234,12 +239,12 @@ export function HubMoneyHero({
       </section>
 
       {supporting.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_13rem] lg:items-start">
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_13rem] lg:items-start">
           {supporting.map((item) => (
             <HeroStat key={item.id} item={item} />
           ))}
           {actions.length > 0 ? (
-            <div className="col-span-3 grid grid-cols-2 gap-3 lg:col-span-1 lg:grid-cols-1 lg:gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:col-span-3 sm:gap-3 lg:col-span-1 lg:grid-cols-1 lg:gap-2">
               {actions.map((action) => (
                 <button
                   key={action.label}

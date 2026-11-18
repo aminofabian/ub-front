@@ -9,6 +9,7 @@ import {
 } from "@/components/storefront/templates/registry";
 import { ShopRestaurantLanding } from "@/components/storefront/shop-restaurant-landing";
 import { ShopServiceLanding } from "@/components/storefront/shop-service-landing";
+import { ShopRoomLanding } from "@/components/storefront/shop-room-landing";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
   resolveStorefrontSlug,
@@ -26,6 +27,7 @@ import {
   resolveStorefrontDeliveryHint,
 } from "@/lib/storefront-seo-defaults";
 import { fetchPublicShopInfo } from "@/lib/public-booking";
+import { fetchPublicRooms } from "@/lib/public-rooms";
 import { fetchPublicMenu } from "@/lib/public-menu";
 import { parseStorefrontPreview } from "@/lib/storefront-preview";
 import { readStorefrontPreviewFromHeaders } from "@/lib/storefront-preview-headers";
@@ -253,6 +255,37 @@ export async function StorefrontCatalogHome({
           whatsapp={tenant?.landingContent?.whatsapp ?? null}
           address={tenant?.landingContent?.address ?? null}
           mapUrl={design?.business?.location?.mapUrl ?? null}
+          primaryHex={primary}
+        />
+      </>
+    );
+  }
+
+  // A house that lets rooms online and has no shelf and no menu leads with its rooms (ADR 0031).
+  const lodging =
+    shelfEmpty && !preview.landingId && !preview.themeId
+      ? await fetchPublicRooms(slug).catch(() => null)
+      : null;
+  if (lodging && lodging.branches.length > 0) {
+    return (
+      <>
+        <StorefrontAnalyticsBeacon
+          surface="store"
+          slug={slug}
+          storeThemeId={themeId}
+          landingTemplateId={landingTemplateId}
+        />
+        <ShopRoomLanding
+          slug={slug}
+          info={lodging}
+          storeName={storeName}
+          tagline={
+            design?.business?.tagline?.trim() ||
+            tenant?.landingContent?.subheadline?.trim() ||
+            null
+          }
+          phone={tenant?.landingContent?.phone ?? null}
+          address={tenant?.landingContent?.address ?? null}
           primaryHex={primary}
         />
       </>

@@ -221,6 +221,28 @@ export function isFoodOnlyBusiness(
 }
 
 /**
+ * True for a food-led shop once lodging is set aside: a bar or restaurant that also lets a few rooms
+ * is still food-led, not a retail shop (ADR 0031). Lodging is an add-on, so it never pushes a tenant
+ * into the full product-shop chrome. Use this — not {@link isFoodOnlyBusiness} — wherever "is this a
+ * food shop, rooms or not" decides nav trimming, the hub's setup nudges, or the icon-rail lead.
+ */
+export function isFoodLedStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
+  const withoutLodging = (storeTypes ?? []).filter(
+    (type) => !(LODGING_STORE_TYPES as readonly string[]).includes(type),
+  );
+  return isFoodOnlyStoreTypes(withoutLodging);
+}
+
+/** Business form of {@link isFoodLedStoreTypes}. */
+export function isFoodLedBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return isFoodLedStoreTypes(getBusinessStoreTypes(source));
+}
+
+/**
  * True for a food-only shop with at least one table-service format (a restaurant, a bar, or a
  * café that is also one of those): its home is the floor, not the counter.
  */
