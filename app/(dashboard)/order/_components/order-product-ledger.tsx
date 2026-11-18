@@ -30,6 +30,17 @@ const RULE =
   "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]";
 const HAIR =
   "border-[color-mix(in_srgb,var(--order-ink,#121A16)_8%,transparent)]";
+const QTY_COL = "w-[9.5rem] shrink-0";
+
+function focusOrderQty(itemId: string) {
+  const nodes = document.querySelectorAll<HTMLInputElement>(
+    `[data-order-qty="${CSS.escape(itemId)}"]`,
+  );
+  const visible =
+    Array.from(nodes).find((node) => node.offsetParent !== null) ?? nodes[0];
+  visible?.focus();
+  visible?.select();
+}
 
 function ColHead({
   label,
@@ -193,7 +204,7 @@ export function OrderProductLedger({
           <ColHead label="Item" width="min-w-0 flex-1" />
           <ColHead label="Stock" width="w-14 hidden lg:flex" align="right" />
           <ColHead label="Price" width="w-[7.25rem] shrink-0" align="right" />
-          <ColHead label="Qty" width="w-[7.25rem] shrink-0" align="right" />
+          <ColHead label="Qty" width={QTY_COL} align="right" shaded />
           <ColHead
             label="Total"
             width="w-[7.25rem] shrink-0"
@@ -245,9 +256,10 @@ export function OrderProductLedger({
                 <button
                   type="button"
                   onClick={() =>
-                    pickMode ? onPickItem(link) : onSetQty(link.itemId, qty + 1)
+                    pickMode ? onPickItem(link) : focusOrderQty(link.itemId)
                   }
                   disabled={pickMode && pickingItemId === link.itemId}
+                  title={pickMode ? `Add ${primary}` : `Edit quantity for ${primary}`}
                   className={cn(
                     "flex min-w-0 flex-1 items-center border-r px-2 py-1.5 text-left disabled:opacity-60",
                     HAIR,
@@ -302,7 +314,8 @@ export function OrderProductLedger({
                 </div>
                 <div
                   className={cn(
-                    "flex w-[7.25rem] min-w-0 shrink-0 items-center justify-end gap-0.5 border-r px-1",
+                    "flex min-w-0 items-center border-r px-1.5",
+                    QTY_COL,
                     HAIR,
                   )}
                 >
@@ -311,18 +324,28 @@ export function OrderProductLedger({
                       type="button"
                       disabled={pickingItemId === link.itemId}
                       onClick={() => onPickItem(link)}
-                      className="inline-flex h-7 items-center justify-center rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-2.5 text-[10px] font-bold text-[var(--op-surface,#FCFAF5)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
+                      className="inline-flex h-8 w-full items-center justify-center rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-2.5 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
                     >
                       {pickingItemId === link.itemId ? "…" : "Add"}
                     </button>
                   ) : (
-                    <>
+                    <div
+                      className={cn(
+                        "flex h-8 w-full items-center rounded-[2px] border bg-[var(--order-shelf,#FCFAF5)]",
+                        "focus-within:border-[var(--pos-primary,#1D4B3B)] focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)]",
+                        inCart
+                          ? "border-[var(--pos-primary,#1D4B3B)]"
+                          : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_22%,transparent)]",
+                      )}
+                      role="group"
+                      aria-label={`Quantity for ${primary}`}
+                    >
                       <button
                         type="button"
                         disabled={qty <= 0}
                         onClick={() => onSetQty(link.itemId, qty - 1)}
-                        className="flex size-7 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_14%,transparent)] text-[var(--op-muted,#556159)] transition-colors hover:bg-[var(--order-shelf,#FCFAF5)] disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
-                        aria-label="Decrease"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-[2px] text-[var(--op-muted,#556159)] transition-colors hover:text-[var(--op-ink,#121A16)] disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
+                        aria-label={`Decrease ${primary}`}
                       >
                         <Minus className="size-3.5" aria-hidden />
                       </button>
@@ -330,22 +353,24 @@ export function OrderProductLedger({
                         qty={qty}
                         onSetQty={(next) => onSetQty(link.itemId, next)}
                         ariaLabel={`Quantity for ${primary}`}
+                        fieldKey={link.itemId}
+                        advance
                         className={cn(
-                          "h-7 min-w-0 w-full text-[12px]",
+                          "h-8 min-w-0 flex-1 text-[15px]",
                           inCart
                             ? "text-[var(--pos-primary,#1D4B3B)]"
-                            : "text-[var(--op-muted,#556159)]",
+                            : "text-[var(--op-ink,#121A16)]",
                         )}
                       />
                       <button
                         type="button"
                         onClick={() => onSetQty(link.itemId, qty + 1)}
-                        className="flex size-7 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_14%,transparent)] text-[var(--op-muted,#556159)] transition-colors hover:bg-[var(--order-shelf,#FCFAF5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
-                        aria-label="Increase"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--op-surface,#FCFAF5)]"
+                        aria-label={`Increase ${primary}`}
                       >
                         <Plus className="size-3.5" aria-hidden />
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
                 <div
@@ -407,8 +432,8 @@ export function OrderProductLedger({
                 </span>
               </span>
             ) : (
-              <span className="ml-auto font-mono text-[11px] text-[var(--op-muted,#556159)]">
-                Totals appear once a quantity is set
+              <span className="ml-auto text-[11px] text-[var(--op-muted,#556159)]">
+                Type a quantity. Enter moves to the next item.
               </span>
             )}
           </div>

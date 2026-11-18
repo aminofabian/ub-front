@@ -78,13 +78,27 @@ describe("averageTicket / marginPct", () => {
 });
 
 describe("paymentTenderTotals", () => {
-  it("sums cash, mpesa, and credit methods", () => {
+  it("sums cash, mpesa, and credit amounts and transaction counts", () => {
     expect(
       paymentTenderTotals([
-        { method: "cash", totalAmount: 1200 },
-        { method: "mpesa_manual", totalAmount: 800 },
-        { method: "customer_credit", totalAmount: 500 },
+        { method: "cash", totalAmount: 1200, transactionCount: 3 },
+        { method: "mpesa_manual", totalAmount: 800, transactionCount: 2 },
+        { method: "customer_credit", totalAmount: 500, transactionCount: 1 },
       ]),
-    ).toEqual({ cash: 1200, mpesa: 800, credit: 500 });
+    ).toEqual({
+      cash: { amount: 1200, count: 3 },
+      mpesa: { amount: 800, count: 2 },
+      credit: { amount: 500, count: 1 },
+    });
+  });
+
+  it("defaults counts to zero when the breakdown omits them", () => {
+    expect(
+      paymentTenderTotals([{ method: "cash", totalAmount: 1200 }]),
+    ).toEqual({
+      cash: { amount: 1200, count: 0 },
+      mpesa: { amount: 0, count: 0 },
+      credit: { amount: 0, count: 0 },
+    });
   });
 });

@@ -49,7 +49,7 @@ export function ImpersonationBanner() {
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100 sm:px-6"
+      className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-[13px] text-amber-950 dark:text-amber-100 sm:px-6"
       role="status"
     >
       <div className="flex min-w-0 items-start gap-2">

@@ -58,6 +58,7 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import { describeTillSend } from "@/lib/till-remote-print";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
@@ -432,9 +433,9 @@ export function OrderReceivePanel({
 
   const supplierName = useMemo(() => {
     if (!detail) return "—";
-    return (
-      suppliers.find((s) => s.id === detail.supplierId)?.name ?? "Supplier"
-    );
+    const match = suppliers.find((s) => s.id === detail.supplierId);
+    if (!match) return "Supplier";
+    return displaySupplierName({ name: match.name, code: match.code });
   }, [detail, suppliers]);
 
   const openLines = useMemo(
@@ -1205,9 +1206,12 @@ export function OrderReceivePanel({
       );
 
       if (printCashierIds.length > 0) {
-        const supplierName =
-          suppliers.find((supplier) => supplier.id === po.supplierId)?.name ||
-          "Supplier";
+        const poSupplier = suppliers.find(
+          (supplier) => supplier.id === po.supplierId,
+        );
+        const supplierName = poSupplier
+          ? displaySupplierName({ name: poSupplier.name, code: poSupplier.code })
+          : "Supplier";
         const branchName =
           branches.find((branch) => branch.id === receiveBranch)?.name ?? "";
         try {
@@ -1332,9 +1336,13 @@ export function OrderReceivePanel({
           ) : (
             <ul className="space-y-1.5">
               {orders.map((o) => {
-                const name =
-                  suppliers.find((s) => s.id === o.supplierId)?.name ??
-                  "Supplier";
+                const oSupplier = suppliers.find((s) => s.id === o.supplierId);
+                const name = oSupplier
+                  ? displaySupplierName({
+                      name: oSupplier.name,
+                      code: oSupplier.code,
+                    })
+                  : "Supplier";
                 const active = selectedId === o.id;
                 const phase = deliveryPhaseLabel(o.deliveryStatus);
                 return (

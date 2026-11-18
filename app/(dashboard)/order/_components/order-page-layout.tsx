@@ -46,7 +46,7 @@ export function OrderPageLayout({
   return (
     <div
       className={cn(
-        "premium-procurement relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[var(--op-bg)] px-0 pt-0 sm:px-5 sm:pt-1.5",
+        "premium-procurement relative mx-auto flex w-full min-w-0 max-w-[1400px] flex-col bg-[var(--op-bg)] px-0 pt-0 sm:px-3 sm:pt-1",
         mobileScroll
           ? "lg:h-full lg:min-h-0 lg:overflow-hidden"
           : "h-full min-h-0 overflow-hidden",
@@ -56,13 +56,11 @@ export function OrderPageLayout({
       )}
       style={PROCUREMENT_VARS}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-0.5">
         <div
           className={cn(
             "shrink-0 border-b border-[var(--op-rule)] bg-[var(--op-surface)] sm:rounded-[2px] sm:border",
             hideHubOnPhone && "max-sm:hidden",
-            isStockManager &&
-              "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
           )}
         >
           <ProcurementHubNav end={hubEnd} />

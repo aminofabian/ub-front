@@ -7,7 +7,7 @@ export const ORDER_TEMPLATE_IDS = ["shelf", "ledger"] as const;
 
 export type OrderTemplateId = (typeof ORDER_TEMPLATE_IDS)[number];
 
-export const DEFAULT_ORDER_TEMPLATE_ID: OrderTemplateId = "shelf";
+export const DEFAULT_ORDER_TEMPLATE_ID: OrderTemplateId = "ledger";
 
 export const ORDER_TEMPLATE_STORAGE_KEY = "ub.orderTemplateId";
 

@@ -20,7 +20,6 @@ import {
   PackagePlus,
   Plus,
   Printer,
-  Save,
   Search,
   Truck,
   Wallet,
@@ -44,6 +43,7 @@ import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
 import { Permission, hasPermission } from "@/lib/permissions";
 import { canLinkSupplierProducts, canWriteSuppliers } from "@/lib/supplier-access";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { APP_ROUTES } from "@/lib/config";
 import {
   addItemSupplierLink,
@@ -784,6 +784,12 @@ export function TenantOrderWorkspace({
   );
 
   const activeSupplier = suppliers.find((s) => s.id === supplierId) ?? null;
+  const activeSupplierLabel = activeSupplier
+    ? displaySupplierName({
+        name: activeSupplier.name,
+        code: activeSupplier.code,
+      })
+    : null;
   const supplierWalletCredit = supplyN(activeSupplier?.prepaymentBalance);
 
   const refreshSuppliers = useCallback(async () => {
@@ -2051,6 +2057,7 @@ export function TenantOrderWorkspace({
       ) : (
         <div className="rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white p-3.5">
           <div className="space-y-3">
+            {cartLines.length > 0 ? (
             <div className="sticky top-0 z-[1] -mx-3.5 -mt-3.5 flex min-w-0 items-end justify-between gap-2 bg-white px-3.5 pb-2 pt-3.5">
               <p className="min-w-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                 {cartUnits} line{cartUnits === 1 ? "" : "s"}
@@ -2075,11 +2082,13 @@ export function TenantOrderWorkspace({
                 ) : null}
               </div>
             </div>
+            ) : null}
 
             <div
               className={cn(
                 "min-w-0 space-y-1.5",
-                !slipMoreOpen && "max-xl:hidden",
+                cartLines.length === 0 && "hidden",
+                !slipMoreOpen && "hidden",
               )}
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
@@ -2140,7 +2149,12 @@ export function TenantOrderWorkspace({
             </div>
           </div>
 
-          <div className={cn(!slipMoreOpen && "max-xl:hidden")}>
+          <div
+            className={cn(
+              cartLines.length === 0 && "hidden",
+              !slipMoreOpen && "hidden",
+            )}
+          >
           {canDeposit && activeSupplier ? (
             <div className="mt-3 flex items-center justify-between gap-2 border border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-2.5 py-2">
               <div className="min-w-0">
@@ -2168,7 +2182,7 @@ export function TenantOrderWorkspace({
           <OrderNotifyOptions
             prefs={notifyPrefs}
             onChange={setNotifyPrefs}
-            supplierName={activeSupplier?.name || "Supplier"}
+            supplierName={activeSupplierLabel || "Supplier"}
             supplierPhone={supplierPhone}
             supplierPortalLinked={Boolean(
               activeSupplier?.marketplaceSupplierId?.trim(),
@@ -2228,17 +2242,17 @@ export function TenantOrderWorkspace({
             type="button"
             disabled={placing || cartLines.length === 0}
             onClick={() => void placeOrder(false)}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] active:scale-[0.98] disabled:opacity-40 xl:h-11 xl:rounded-none xl:text-[13px]"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#1D4B3B)] text-[14px] font-semibold text-white transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] active:scale-[0.98] disabled:opacity-40 xl:h-11 xl:rounded-none xl:text-[13px]"
           >
             {placing ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
+                Placing…
               </>
             ) : (
               <>
-                <Save className="size-4" aria-hidden />
-                Save
+                <Check className="size-4" aria-hidden />
+                Place order
               </>
             )}
           </button>
@@ -2247,7 +2261,7 @@ export function TenantOrderWorkspace({
             type="button"
             aria-expanded={slipMoreOpen}
             onClick={() => setSlipMoreOpen((open) => !open)}
-            className="mt-2 flex min-h-11 w-full items-center justify-center gap-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] xl:hidden"
+            className="mt-2 flex min-h-9 w-full items-center justify-center gap-1.5 text-[12px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] transition-colors hover:text-[var(--order-ink,#15231f)] xl:min-h-8"
           >
             {slipMoreOpen ? "Fewer options" : "Print, snap, deposit & more"}
             <ChevronDown
@@ -2263,7 +2277,7 @@ export function TenantOrderWorkspace({
       )}
 
       {!pendingDeposit ? (
-        <div className={cn(!slipMoreOpen && "max-xl:hidden")}>
+        <div className={cn(!slipMoreOpen && "hidden")}>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] lg:gap-x-3 lg:gap-y-1">
         <button
           type="button"
@@ -2370,7 +2384,7 @@ export function TenantOrderWorkspace({
               Supplier
             </span>
             <span className="block truncate text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[var(--op-ink,#121A16)]">
-              {activeSupplier?.name ?? "Select supplier"}
+              {activeSupplierLabel ?? "Select supplier"}
             </span>
           </span>
           <ChevronDown
@@ -2388,7 +2402,7 @@ export function TenantOrderWorkspace({
         </button>
       </div>
 
-      <div className="relative z-[1] hidden shrink-0 items-center px-1 sm:flex sm:px-2">
+      <div className="relative z-[1] hidden shrink-0 items-center px-1 sm:flex sm:px-2 xl:hidden">
         <button
           type="button"
           onClick={() => {
@@ -2396,20 +2410,20 @@ export function TenantOrderWorkspace({
             setSupplierQuery("");
           }}
           className={cn(
-            "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none px-3 py-2.5 text-left transition-colors",
+            "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-none px-3 py-1.5 text-left transition-colors",
             "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)] active:bg-black/[0.03]",
             !embedded && "xl:pointer-events-none",
           )}
         >
           <div className="min-w-0">
             <p
-              className="truncate text-[1.45rem] font-normal leading-tight tracking-[-0.02em] text-[var(--op-ink)]"
+              className="truncate text-[1.2rem] font-normal leading-tight tracking-[-0.02em] text-[var(--op-ink)]"
               style={{
                 fontFamily:
                   'var(--font-cormorant), Georgia, "Times New Roman", serif',
               }}
             >
-              {activeSupplier?.name ?? "Select supplier"}
+              {activeSupplierLabel ?? "Select supplier"}
             </p>
           </div>
           <ChevronDown
@@ -2437,18 +2451,20 @@ export function TenantOrderWorkspace({
             <button
               type="button"
               onClick={onOpenConfirm}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-3 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] active:scale-[0.98]"
+              title="Receive goods already ordered"
+              className={cn(salesToolBtnClass(), "h-8 shrink-0 px-2.5")}
             >
               <ClipboardList className="size-3.5" aria-hidden />
-              Confirm
+              Receive
             </button>
           ) : (
             <Link
               href={APP_ROUTES.orderReceive}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-3 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_88%,black)] active:scale-[0.98]"
+              title="Receive goods already ordered"
+              className={cn(salesToolBtnClass(), "h-8 shrink-0 px-2.5")}
             >
               <ClipboardList className="size-3.5" aria-hidden />
-              Confirm
+              Receive
             </Link>
           )}
           {activeSupplier && canCreateProduct ? (
@@ -2551,7 +2567,7 @@ export function TenantOrderWorkspace({
               <Link
                 href={`${APP_ROUTES.suppliers}?new=1`}
                 title="Add a supplier"
-                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-white px-2 text-[11px] font-semibold text-[#0f766e] ring-1 ring-black/[0.05] transition-colors hover:bg-[#f2f7f5] active:scale-[0.98]"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] px-2 text-[11px] font-semibold text-[var(--pos-primary,#1D4B3B)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_7%,var(--op-surface,#FCFAF5))] active:scale-[0.98]"
               >
                 <Plus className="size-3.5" aria-hidden />
                 Add
@@ -2595,7 +2611,9 @@ export function TenantOrderWorkspace({
                             : "border-transparent bg-white font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] hover:text-[var(--order-ink,#15231f)]",
                         )}
                       >
-                        <span className="truncate">{s.name}</span>
+                        <span className="truncate">
+                          {displaySupplierName({ name: s.name, code: s.code })}
+                        </span>
                       </button>
                     </li>
                   );
@@ -2615,15 +2633,21 @@ export function TenantOrderWorkspace({
         >
           <div
             className={cn(
-              "flex shrink-0 items-center gap-2 border-b px-3 py-2.5",
+              "flex shrink-0 items-center gap-2 border-b px-3 py-1.5",
               salesHair,
               "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]",
             )}
           >
+            <p
+              className="hidden max-w-[12rem] shrink-0 truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--op-ink,#121A16)] xl:block"
+              title={activeSupplierLabel ?? "Select a supplier"}
+            >
+              {activeSupplierLabel ?? "Select a supplier"}
+            </p>
             <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--op-muted,#556159)]" />
               <input
-                className="h-12 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-3 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-11 sm:text-[14px]"
+                className="h-11 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-3 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-9 sm:text-[14px]"
                 placeholder={
                   orderTemplate === "ledger"
                     ? "Search products in this list…"
@@ -2647,6 +2671,62 @@ export function TenantOrderWorkspace({
               value={orderTemplate}
               onChange={setOrderTemplate}
             />
+            <div className="hidden shrink-0 items-center gap-1 xl:flex">
+              {onOpenConfirm ? (
+                <button
+                  type="button"
+                  onClick={onOpenConfirm}
+                  title="Receive goods already ordered"
+                  className={cn(salesToolBtnClass(), "h-9 px-2.5")}
+                >
+                  <ClipboardList className="size-3.5" aria-hidden />
+                  Receive
+                </button>
+              ) : (
+                <Link
+                  href={APP_ROUTES.orderReceive}
+                  title="Receive goods already ordered"
+                  className={cn(salesToolBtnClass(), "h-9 px-2.5")}
+                >
+                  <ClipboardList className="size-3.5" aria-hidden />
+                  Receive
+                </Link>
+              )}
+              {activeSupplier && canCreateProduct ? (
+                <button
+                  type="button"
+                  onClick={() => setCreateProductOpen(true)}
+                  className={cn(salesToolBtnClass(), "h-9 px-2")}
+                  title="Create a new catalog product and link it to this supplier"
+                >
+                  <PackagePlus className="size-3.5" aria-hidden />
+                  <span className="sr-only">Create</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setPastOrdersOpen(true)}
+                className={cn(salesToolBtnClass(), "h-9 px-2")}
+                title="Reorder from a previous purchase order"
+              >
+                <History className="size-3.5" aria-hidden />
+                <span className="sr-only">Past orders</span>
+              </button>
+              {!embedded ? (
+                <SupplierGuideDrawer
+                  trigger={
+                    <button
+                      type="button"
+                      className={cn(salesToolBtnClass(), "h-9 px-2")}
+                      title="The complete supplier flow"
+                    >
+                      <BookOpen className="size-3.5" aria-hidden />
+                      <span className="sr-only">Guide</span>
+                    </button>
+                  }
+                />
+              ) : null}
+            </div>
             {supplierId && canLinkProducts ? (
               <button
                 type="button"
@@ -2664,8 +2744,8 @@ export function TenantOrderWorkspace({
           </div>
 
           {showShelfChips ? (
-            <div className="shrink-0 px-3 pb-1 pt-0.5 sm:py-2">
-              <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="shrink-0 px-3 pb-0.5 pt-0 sm:py-1">
+              <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => {
@@ -2673,7 +2753,7 @@ export function TenantOrderWorkspace({
                     setInOrderOnly(false);
                   }}
                   className={cn(
-                    "inline-flex min-h-11 shrink-0 items-center rounded-[2px] border px-3 py-2 text-[13px] font-semibold tracking-[-0.02em] transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:py-1.5 sm:text-[12px]",
+                    "inline-flex min-h-11 shrink-0 items-center rounded-[2px] border px-3 py-2 text-[13px] font-semibold tracking-[-0.02em] transition-transform duration-150 active:scale-[0.98] sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[12px]",
                     !parentFilterId && !inOrderOnly
                       ? "border-[var(--pos-primary,#1D4B3B)] bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)]"
                       : "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-muted,#556159)] hover:text-[var(--op-ink,#121A16)]",
@@ -2776,8 +2856,8 @@ export function TenantOrderWorkspace({
               </p>
             ) : visibleLinks.length === 0 ? (
               inOrderOnly ? (
-                <p className="py-16 text-center text-[14px] text-[#667085]">
-                  Nothing in this order yet. Tap Add on a product.
+                <p className="py-16 text-center text-[14px] text-[var(--op-muted,#556159)]">
+                  Nothing in this order yet. Type a quantity on a product.
                 </p>
               ) : parentFilterId && links.length > 0 ? (
                 <p className="py-20 text-center text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
@@ -2785,7 +2865,7 @@ export function TenantOrderWorkspace({
                 </p>
               ) : (
                 <OrderCatalogSetupPanel
-                  supplierName={activeSupplier?.name ?? "this supplier"}
+                  supplierName={activeSupplierLabel ?? "this supplier"}
                   filterQuery={filter}
                   hasLinks={links.length > 0}
                   canLink={canLinkProducts}
@@ -2828,16 +2908,21 @@ export function TenantOrderWorkspace({
             embedded ? "hidden" : "hidden xl:flex",
           )}
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-4 py-3">
-            <p
-              className="text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
-              style={{
-                fontFamily:
-                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
-              }}
-            >
-              Order slip
-            </p>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 py-2">
+            <div className="min-w-0">
+              <p
+                className="truncate text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]"
+                style={{
+                  fontFamily:
+                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                }}
+              >
+                Order slip
+              </p>
+              <p className="mt-1 truncate font-mono text-[13px] font-semibold tabular-nums text-[var(--pos-primary,#1D4B3B)]">
+                {formatMoney(effectiveTotal, currency)}
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               {cartLines.length > 0 ? (
                 <button
@@ -2943,19 +3028,19 @@ export function TenantOrderWorkspace({
                     setToolsOpen(false);
                     onOpenConfirm();
                   }}
-                  className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#0f766e] px-3.5 text-[15px] font-semibold text-white active:scale-[0.99]"
+                  className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#f4f7f6] px-3.5 text-[15px] font-semibold text-[#15231f] active:scale-[0.99]"
                 >
                   <ClipboardList className="size-4" aria-hidden />
-                  Confirm
+                  Receive
                 </button>
               ) : (
                 <Link
                   href={APP_ROUTES.orderReceive}
                   onClick={() => setToolsOpen(false)}
-                  className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#0f766e] px-3.5 text-[15px] font-semibold text-white active:scale-[0.99]"
+                  className="flex min-h-12 items-center gap-3 rounded-2xl bg-[#f4f7f6] px-3.5 text-[15px] font-semibold text-[#15231f] active:scale-[0.99]"
                 >
                   <ClipboardList className="size-4" aria-hidden />
-                  Confirm
+                  Receive
                 </Link>
               )}
               {activeSupplier && canCreateProduct ? (
@@ -3099,7 +3184,7 @@ export function TenantOrderWorkspace({
                       : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,transparent)]",
                   )}
                 >
-                  {s.name}
+                  {displaySupplierName({ name: s.name, code: s.code })}
                 </button>
               ))}
             </div>
@@ -3140,7 +3225,7 @@ export function TenantOrderWorkspace({
             />
             <div className="flex items-center justify-between gap-2 border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3.5 py-3">
               <p className="min-w-0 truncate font-heading text-[16px] font-semibold tracking-[-0.02em]">
-                {activeSupplier?.name ?? "Supplier"}
+                {activeSupplierLabel ?? "Supplier"}
               </p>
               <div className="flex shrink-0 items-center gap-1">
                 {cartLines.length > 0 ? (
@@ -3306,7 +3391,7 @@ export function TenantOrderWorkspace({
         open={pastOrdersOpen}
         onOpenChange={setPastOrdersOpen}
         supplierId={supplierId}
-        supplierName={activeSupplier?.name ?? null}
+        supplierName={activeSupplierLabel ?? null}
         suppliers={suppliers}
         onReorder={async (poId) => reorderFromPo(poId)}
       />

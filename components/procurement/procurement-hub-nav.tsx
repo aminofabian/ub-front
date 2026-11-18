@@ -267,13 +267,8 @@ export function ProcurementHubNav({
         ) : null}
       </div>
 
-      {/* sm+: one horizontal row of pills + optional path fork. */}
-      <ol className="m-0 hidden list-none flex-wrap items-center gap-1.5 px-4 py-2.5 sm:flex">
-        <li className="hidden sm:block">
-          <p className="pr-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98a2b3]">
-            Buying journey
-          </p>
-        </li>
+      {/* sm+: one short row. The numbered step is the label; no second line. */}
+      <ol className="m-0 hidden list-none flex-nowrap items-center gap-0.5 overflow-x-auto px-1.5 py-0.5 [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden">
         {steps.map((step, index) => {
           const active = index === activeIndex;
           const past = activeIndex > index;
@@ -284,20 +279,20 @@ export function ProcurementHubNav({
                 title={`${step.label}: ${step.hint}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-[2px] px-3 py-1.5 text-[13px] transition-colors",
+                  "flex items-center gap-1.5 rounded-[2px] px-2 py-1 text-[12px] transition-colors",
                   active
-                    ? "bg-[#e6f4f0]"
+                    ? "bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_10%,white)]"
                     : "hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,white)]",
                 )}
               >
                 <span
                   className={cn(
-                    "inline-flex size-5 shrink-0 items-center justify-center rounded-[2px] text-[11px] font-semibold tabular-nums",
+                    "inline-flex size-4 shrink-0 items-center justify-center rounded-[2px] text-[10px] font-semibold tabular-nums",
                     active
-                      ? "bg-[#0f766e] text-white"
+                      ? "bg-[var(--pos-primary,#1D4B3B)] text-[var(--op-surface,#FCFAF5)]"
                       : past
-                        ? "bg-[#d9f0eb] text-[#0f766e]"
-                        : "border border-[#e6eaec] text-[#98a2b3]",
+                        ? "bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_14%,white)] text-[var(--pos-primary,#1D4B3B)]"
+                        : "border border-[color-mix(in_srgb,var(--order-ink,#121A16)_14%,transparent)] text-[var(--op-muted,#556159)]",
                   )}
                   aria-hidden
                 >
@@ -307,8 +302,8 @@ export function ProcurementHubNav({
                   className={cn(
                     "truncate tracking-[-0.01em]",
                     active
-                      ? "font-semibold text-[#0f766e]"
-                      : "font-medium text-[#667085]",
+                      ? "font-semibold text-[var(--pos-primary,#1D4B3B)]"
+                      : "font-medium text-[var(--op-muted,#556159)]",
                   )}
                 >
                   {step.label}
@@ -317,17 +312,11 @@ export function ProcurementHubNav({
             </li>
           );
         })}
-        <li className="ml-auto flex min-w-0 shrink-0 items-center self-center">
-          {end ? (
-            end
-          ) : (
-            <p className="text-[12px] font-medium tabular-nums text-[#0f766e]">
-              {activeIndex >= 0
-                ? `Step ${activeIndex + 1} of ${steps.length}`
-                : `${steps.length} stops`}
-            </p>
-          )}
-        </li>
+        {end ? (
+          <li className="ml-auto flex min-w-0 shrink-0 items-center self-center">
+            {end}
+          </li>
+        ) : null}
       </ol>
     </nav>
   );

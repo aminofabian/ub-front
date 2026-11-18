@@ -14,16 +14,35 @@ function parseQty(raw: string): number | null {
   return Math.min(n, MAX_QTY);
 }
 
+function focusSiblingQty(
+  current: HTMLInputElement,
+  direction: "next" | "prev",
+) {
+  const nodes = Array.from(
+    document.querySelectorAll<HTMLInputElement>("[data-order-qty]"),
+  ).filter((node) => node.offsetParent !== null);
+  const index = nodes.indexOf(current);
+  if (index < 0) return;
+  const target = nodes[index + (direction === "next" ? 1 : -1)];
+  if (!target) return;
+  target.focus();
+  target.select();
+}
+
 export function OrderQtyField({
   qty,
   onSetQty,
   ariaLabel,
   className,
+  fieldKey,
+  advance = false,
 }: {
   qty: number;
   onSetQty: (qty: number) => void;
   ariaLabel: string;
   className?: string;
+  fieldKey?: string;
+  advance?: boolean;
 }) {
   const focusedRef = useRef(false);
   const [draft, setDraft] = useState(String(qty));
@@ -58,7 +77,12 @@ export function OrderQtyField({
       maxLength={6}
       value={draft}
       aria-label={ariaLabel}
-      title="Type a quantity"
+      title={
+        advance
+          ? "Type a quantity. Enter moves to the next product."
+          : "Type a quantity"
+      }
+      data-order-qty={fieldKey}
       className={cn(
         "w-full min-w-0 bg-transparent text-center font-heading font-semibold tabular-nums leading-none tracking-normal text-current outline-none",
         compact ? "text-[12px]" : "text-[13px]",
@@ -81,8 +105,15 @@ export function OrderQtyField({
         commit(e.currentTarget.value, true);
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.currentTarget.blur();
+        if (e.key === "Enter" || (advance && e.key === "ArrowDown")) {
+          e.preventDefault();
+          commit(e.currentTarget.value, true);
+          if (advance) focusSiblingQty(e.currentTarget, "next");
+          else e.currentTarget.blur();
+        } else if (advance && e.key === "ArrowUp") {
+          e.preventDefault();
+          commit(e.currentTarget.value, true);
+          focusSiblingQty(e.currentTarget, "prev");
         }
         e.stopPropagation();
       }}

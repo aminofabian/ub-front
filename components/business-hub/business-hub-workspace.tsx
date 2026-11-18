@@ -808,7 +808,11 @@ export function BusinessHubWorkspace() {
   const revenueBreakdown = useMemo(() => {
     if (!canViewSalesIntelligence) return null;
     const { cash, mpesa, credit } = paymentTenderTotals(paymentBreakdown);
-    return { cash: money(cash), mpesa: money(mpesa), credit: money(credit) };
+    return {
+      cash: money(cash.amount),
+      mpesa: money(mpesa.amount),
+      credit: money(credit.amount),
+    };
   }, [canViewSalesIntelligence, money, paymentBreakdown]);
   const revenueFooterTone = !revenueTrend
     ? "muted"

@@ -134,24 +134,39 @@ export function marginPct(
 export type PaymentBreakdownRow = {
   method: string;
   totalAmount: number | string;
+  /** How many sales settled on this method. Absent in older callers. */
+  transactionCount?: number | string | null;
 };
 
-/** Sum cash, M-Pesa, and credit tender from a payments-by-method breakdown. */
+export type TenderTotal = {
+  amount: number;
+  /** Number of sales settled on this tender. */
+  count: number;
+};
+
+/** Sum cash, M-Pesa, and credit tender (amount + transaction count) from a payments-by-method breakdown. */
 export function paymentTenderTotals(rows: PaymentBreakdownRow[]): {
-  cash: number;
-  mpesa: number;
-  credit: number;
+  cash: TenderTotal;
+  mpesa: TenderTotal;
+  credit: TenderTotal;
 } {
-  let cash = 0;
-  let mpesa = 0;
-  let credit = 0;
+  const cash: TenderTotal = { amount: 0, count: 0 };
+  const mpesa: TenderTotal = { amount: 0, count: 0 };
+  const credit: TenderTotal = { amount: 0, count: 0 };
   for (const row of rows) {
     const amount = toNum(row.totalAmount);
+    const count = toNum(row.transactionCount);
     const method = row.method.trim().toLowerCase();
-    if (method === "cash") cash += amount;
-    else if (method.includes("mpesa")) mpesa += amount;
-    else if (method === "customer_credit" || method === "credit")
-      credit += amount;
+    if (method === "cash") {
+      cash.amount += amount;
+      cash.count += count;
+    } else if (method.includes("mpesa")) {
+      mpesa.amount += amount;
+      mpesa.count += count;
+    } else if (method === "customer_credit" || method === "credit") {
+      credit.amount += amount;
+      credit.count += count;
+    }
   }
   return { cash, mpesa, credit };
 }

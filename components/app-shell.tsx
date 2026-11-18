@@ -2065,23 +2065,23 @@ export function AppShell({ children }: AppShellProps) {
         <ChromeSlot slot="desktop">
           <header
             className={cn(
-              "items-center justify-between gap-4 border-b bg-background px-6 py-3",
+              "h-11 items-center justify-between gap-3 border-b bg-background px-4",
               desktopChromeVisible,
             )}
           >
-            <div className="flex min-w-0 flex-col">
-              <p className="text-sm text-muted-foreground truncate">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <p className="min-w-0 truncate text-[13px] font-medium text-foreground">
                 {headerSubtitle ? headerSubtitle : ""}
               </p>
               {currentBranch ? (
-                <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80 truncate">
+                <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
                   <MapPin className="size-3 shrink-0" aria-hidden />
                   {currentBranch.name}
                 </span>
               ) : null}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <HeaderPosLinks
                 links={headerPosLinks}
                 pathname={pathname}

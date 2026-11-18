@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  DEFAULT_ORDER_TEMPLATE_ID,
   ORDER_TEMPLATE_CHANGED_EVENT,
   parseOrderTemplateId,
   readLocalOrderTemplate,
@@ -22,7 +23,9 @@ export function useOrderTemplate(): {
   setTemplate: (id: OrderTemplateId) => void;
 } {
   const isLg = useMediaLg();
-  const [local, setLocal] = useState<OrderTemplateId>("shelf");
+  const [local, setLocal] = useState<OrderTemplateId>(
+    DEFAULT_ORDER_TEMPLATE_ID,
+  );
 
   useEffect(() => {
     setLocal(readLocalOrderTemplate());

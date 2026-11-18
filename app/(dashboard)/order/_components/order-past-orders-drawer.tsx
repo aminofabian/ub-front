@@ -23,6 +23,7 @@ import {
   sortPastOrders,
 } from "@/app/(dashboard)/order/_lib/order-lifetime-stats";
 import { toOrderStatNum } from "@/app/(dashboard)/order/_hooks/use-order-pipeline-stats";
+import { displaySupplierName } from "@/lib/supplier-display";
 import { cn, formatMoney } from "@/lib/utils";
 
 const CURRENCY = "KES";
@@ -135,7 +136,10 @@ export function OrderPastOrdersDrawer({
   const supplierNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const supplier of suppliers) {
-      map.set(supplier.id, supplier.name);
+      map.set(
+        supplier.id,
+        displaySupplierName({ name: supplier.name, code: supplier.code }),
+      );
     }
     return map;
   }, [suppliers]);

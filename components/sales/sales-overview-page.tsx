@@ -469,22 +469,25 @@ function PaymentMix({
   mix,
   total,
 }: {
-  mix: { method: string; amount: number }[];
+  mix: { method: string; amount: number; count: number }[];
   total: number;
 }) {
   if (mix.length === 0 || total <= 0) return null;
   return (
-    <section className={cn(PAPER_CARD, "px-5 py-5")}>
+    <section className={cn(PAPER_CARD, "px-5 py-4")}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold" style={{ color: INK }}>
+        <h2
+          className="text-[11px] font-semibold uppercase tracking-[0.07em]"
+          style={{ color: MUTED }}
+        >
           Payment mix
         </h2>
-        <p className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+        <p className="text-[12px] tabular-nums" style={{ color: MUTED }}>
           {fmtKes(total)} total
         </p>
       </div>
       <div
-        className="mt-4 flex h-2.5 overflow-hidden rounded-full"
+        className="mt-3 flex h-2 overflow-hidden rounded-full"
         style={{ background: "#EFEBE3" }}
       >
         {mix.map(({ method, amount }) => (
@@ -499,14 +502,14 @@ function PaymentMix({
           />
         ))}
       </div>
-      <ul className="mt-4 space-y-2.5">
-        {mix.map(({ method, amount }) => {
+      <ul className="mt-3 space-y-1.5">
+        {mix.map(({ method, amount, count }) => {
           const pct = Math.round((amount / total) * 100);
           return (
-            <li key={method} className="flex items-center gap-2.5 text-[14px]">
+            <li key={method} className="flex items-center gap-2 text-[12px]">
               <span
                 aria-hidden
-                className="size-2.5 shrink-0 rounded-[3px]"
+                className="size-2 shrink-0 rounded-[2px]"
                 style={{
                   background: PAYMENT_TINTS[method] ?? PAYMENT_TINTS.other,
                 }}
@@ -514,14 +517,14 @@ function PaymentMix({
               <span className="font-medium" style={{ color: INK }}>
                 {formatPaymentMethodLabel(method)}
               </span>
-              <span className="ml-auto tabular-nums" style={{ color: INK }}>
+              <span
+                className="ml-auto font-semibold tabular-nums"
+                style={{ color: INK }}
+              >
                 {fmtKes(amount)}
               </span>
-              <span
-                className="w-10 text-right tabular-nums"
-                style={{ color: MUTED }}
-              >
-                {pct}%
+              <span className="tabular-nums" style={{ color: MUTED }}>
+                {count} · {pct}%
               </span>
             </li>
           );
@@ -572,7 +575,7 @@ function SalesLedger({
     refundTotal: number;
     avgTicket: number;
     topItem: string;
-    paymentMix: { method: string; amount: number }[];
+    paymentMix: { method: string; amount: number; count: number }[];
   };
   trend: { values: number[]; labels: string[] };
 }) {
@@ -1248,6 +1251,8 @@ export function SalesOverviewPage() {
     const byItem = new Map<string, { name: string; revenue: number }>();
     // Revenue by payment method + channel, counted once per sale (not per line).
     const byPayment = new Map<string, number>();
+    // Distinct sales settled on each method, so the mix can show a txn count.
+    const salesByPayment = new Map<string, Set<string>>();
     let walkInRevenue = 0;
     let onlineRevenue = 0;
     const seenSaleTotals = new Map<string, number>();
@@ -1273,6 +1278,12 @@ export function SalesOverviewPage() {
       // Attribute this line's revenue to its sale's payment method + channel.
       const method = primaryPaymentKey(row.paymentMethod, row.paymentMethods);
       byPayment.set(method, (byPayment.get(method) ?? 0) + total);
+      let methodSales = salesByPayment.get(method);
+      if (!methodSales) {
+        methodSales = new Set<string>();
+        salesByPayment.set(method, methodSales);
+      }
+      methodSales.add(row.saleId);
       if (normalizeSaleChannel(row.channel) === "online_store") {
         onlineRevenue += total;
       } else {
@@ -1291,7 +1302,11 @@ export function SalesOverviewPage() {
     }
 
     const paymentMix = [...byPayment.entries()]
-      .map(([method, amount]) => ({ method, amount }))
+      .map(([method, amount]) => ({
+        method,
+        amount,
+        count: salesByPayment.get(method)?.size ?? 0,
+      }))
       .sort((a, b) => b.amount - a.amount);
 
     const count = saleIds.size;

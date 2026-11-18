@@ -16,10 +16,12 @@ const TENDERS = [
   { id: "credit", label: "Credit", bar: "bg-[#F0B45B]" },
 ] as const;
 
+type TenderTotal = { amount: number; count: number };
+
 export type HeroTender = {
-  cash: number;
-  mpesa: number;
-  credit: number;
+  cash: TenderTotal;
+  mpesa: TenderTotal;
+  credit: TenderTotal;
   format: (value: number) => string;
 };
 
@@ -31,18 +33,18 @@ function trendDirection(trend?: string | null): "up" | "down" | null {
 function HeroStat({ item }: { item: HubKpi }) {
   const direction = trendDirection(item.trend);
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-[20px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] p-5 sm:p-[22px]">
-      <p className="truncate text-[14px] text-[var(--hub-muted,#5E6B65)]">
+    <div className="flex min-w-0 flex-col gap-1 rounded-[16px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] p-4">
+      <p className="truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
         {item.label}
       </p>
       <p
-        className="truncate text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] sm:text-[36px]"
+        className="truncate text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] sm:text-[28px]"
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {item.value}
       </p>
       {item.hint || direction ? (
-        <p className="truncate text-[14px] text-[var(--hub-muted,#5E6B65)]">
+        <p className="truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
           {direction ? (
             <span
               className={cn(
@@ -98,7 +100,9 @@ export function HubMoneyHero({
     ? { cash: tender.cash, mpesa: tender.mpesa, credit: tender.credit }
     : null;
   const tenderTotal = tenderValues
-    ? tenderValues.cash + tenderValues.mpesa + tenderValues.credit
+    ? tenderValues.cash.amount +
+      tenderValues.mpesa.amount +
+      tenderValues.credit.amount
     : 0;
 
   const windowStats = [
@@ -110,34 +114,34 @@ export function HubMoneyHero({
 
   const paymentBlock =
     tender && tenderValues ? (
-      <div className="flex flex-col gap-3.5">
-        <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-5 lg:gap-y-2">
-          <h3 className="shrink-0 text-[15px] font-semibold text-[#F4F2EC]">
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-4 lg:gap-y-1.5">
+          <h3 className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.07em] text-[rgba(244,242,236,0.72)]">
             How you got paid
           </h3>
-          <dl className="m-0 flex flex-col gap-2.5 text-[14px] tabular-nums lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-1.5">
+          <dl className="m-0 flex flex-col gap-1.5 text-[12px] tabular-nums lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-1">
             {TENDERS.map((lane) => {
-              const value = tenderValues[lane.id];
+              const { amount, count } = tenderValues[lane.id];
               const share =
-                tenderTotal > 0 ? Math.round((value / tenderTotal) * 100) : 0;
+                tenderTotal > 0 ? Math.round((amount / tenderTotal) * 100) : 0;
               return (
                 <div
                   key={lane.id}
                   className="flex items-center justify-between gap-2 lg:justify-start"
                 >
-                  <dt className="flex min-w-0 items-center gap-2 text-[#F4F2EC]">
+                  <dt className="flex min-w-0 items-center gap-1.5 text-[#F4F2EC]">
                     <span
-                      className={cn("size-2.5 shrink-0 rounded-[3px]", lane.bar)}
+                      className={cn("size-2 shrink-0 rounded-[2px]", lane.bar)}
                       aria-hidden
                     />
                     <span className="truncate">{lane.label}</span>
                   </dt>
-                  <dd className="flex shrink-0 items-baseline gap-2">
+                  <dd className="flex shrink-0 items-baseline gap-1.5">
                     <b className="font-semibold text-[#F4F2EC]">
-                      {tender.format(value)}
+                      {tender.format(amount)}
                     </b>
-                    <span className="text-[rgba(244,242,236,0.72)]">
-                      {share}%
+                    <span className="text-[rgba(244,242,236,0.6)]">
+                      {count} · {share}%
                     </span>
                   </dd>
                 </div>
@@ -146,14 +150,14 @@ export function HubMoneyHero({
           </dl>
         </div>
         <div
-          className="flex h-3.5 w-full gap-[3px]"
+          className="flex h-2.5 w-full gap-[3px]"
           role="img"
           aria-label="Payment mix"
         >
           {tenderTotal > 0
             ? TENDERS.map((lane, index) => {
-                const value = tenderValues[lane.id];
-                if (value <= 0) return null;
+                const { amount } = tenderValues[lane.id];
+                if (amount <= 0) return null;
                 const isFirst = index === 0;
                 const isLast = index === TENDERS.length - 1;
                 return (
@@ -168,7 +172,7 @@ export function HubMoneyHero({
                           ? "rounded-l-[3px] rounded-r-[7px]"
                           : "rounded-[3px]",
                     )}
-                    style={{ flex: `${value} 1 0` }}
+                    style={{ flex: `${amount} 1 0` }}
                     aria-hidden
                   />
                 );
@@ -180,26 +184,26 @@ export function HubMoneyHero({
 
   return (
     <>
-      <section className="flex flex-col gap-6 rounded-[24px] bg-[var(--hub-accent-deep,#0D3B2E)] px-5 py-6 text-[#F4F2EC] sm:px-7 sm:py-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
+      <section className="flex flex-col gap-4 rounded-[20px] bg-[var(--hub-accent-deep,#0D3B2E)] px-5 py-5 text-[#F4F2EC] sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[rgba(244,242,236,0.72)]">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[rgba(244,242,236,0.72)]">
                 {hero.label} · {periodLabel}
               </p>
               {direction ? (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[13px] font-semibold tabular-nums text-[#FFD3A3]">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[12px] font-semibold tabular-nums text-[#FFD3A3]">
                   <TrendIcon className="size-3" aria-hidden />
                   {hero.trend}
                 </span>
               ) : null}
             </div>
-            <p className="mt-3.5 flex items-baseline gap-2.5 tabular-nums">
-              <span className="text-[28px] font-medium text-[rgba(244,242,236,0.72)]">
+            <p className="mt-2 flex items-baseline gap-2 tabular-nums">
+              <span className="text-[22px] font-medium text-[rgba(244,242,236,0.72)]">
                 {currencyPrefix}
               </span>
               <span
-                className="truncate text-[56px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[72px]"
+                className="truncate text-[40px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[52px]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {amount}
@@ -207,13 +211,13 @@ export function HubMoneyHero({
             </p>
           </div>
           {chartPoints.length > 0 ? (
-            <dl className="m-0 flex flex-wrap gap-7">
+            <dl className="m-0 flex flex-wrap gap-x-6 gap-y-2">
               {windowStats.map((stat) => (
                 <div key={stat.label} className="min-w-0">
-                  <dt className="text-[13px] text-[rgba(244,242,236,0.72)]">
+                  <dt className="text-[12px] text-[rgba(244,242,236,0.72)]">
                     {stat.label}
                   </dt>
-                  <dd className="mt-1 text-[18px] font-semibold tabular-nums text-[#F4F2EC]">
+                  <dd className="mt-0.5 text-[16px] font-semibold tabular-nums text-[#F4F2EC]">
                     {stat.value}
                   </dd>
                 </div>
@@ -225,14 +229,12 @@ export function HubMoneyHero({
         <RevenueBarChart points={chartPoints} ariaLabel={chartAriaLabel} />
 
         {paymentBlock ? (
-          <div className="border-t border-white/[0.14] pt-[22px]">
-            {paymentBlock}
-          </div>
+          <div className="border-t border-white/[0.14] pt-4">{paymentBlock}</div>
         ) : null}
       </section>
 
       {supporting.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3 sm:gap-[22px] lg:grid-cols-[repeat(3,minmax(0,1fr))_13rem] lg:items-start">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_13rem] lg:items-start">
           {supporting.map((item) => (
             <HeroStat key={item.id} item={item} />
           ))}
