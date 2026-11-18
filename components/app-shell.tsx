@@ -109,7 +109,9 @@ import {
   isServiceBusiness,
   isTableServiceBusiness,
   isServiceOnlyBusiness,
+  sellsGoodsBusiness,
 } from "@/lib/business-store-type";
+import { AddProductLineButton } from "@/components/shell/add-product-line-button";
 import { isServiceCashier, serviceCashierMayOpen, SERVICE_CASHIER_ROUTES, trimNavForServiceOnly } from "@/lib/service-nav";
 import { trimNavForFoodOnly } from "@/lib/food-nav";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -648,6 +650,8 @@ type NavGate = {
   isFoodBusiness: boolean;
   /** The business lets rooms (a guest house, or a bar with rooms above it). */
   isLodgingBusiness: boolean;
+  /** The business sells physical goods off a shelf — a retail shop, or one that opted into a product line. */
+  sellsGoods: boolean;
   canManageMenu: boolean;
   canWorkKitchen: boolean;
   canTakeOrders: boolean;
@@ -739,11 +743,44 @@ const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
 
 const DESKTOP_ONLY_NAV_HREFS: readonly string[] = [APP_ROUTES.desktopSettings];
 
+/**
+ * Pages that only make sense for a business that sells goods off a shelf — the retail catalogue,
+ * shelf prices, the retail till, storefront product orders. A food, service or lodging shop that
+ * has not opted into a product line never sees these (ADR 0031 nav cleanup). A plain retail shop,
+ * or one that turned a product line on, always does. Pages shared with a kitchen (Buying, Stock
+ * counts, suppliers) are deliberately NOT here — a restaurant still buys and counts what it cooks.
+ */
+const GOODS_ONLY_NAV_HREFS: readonly string[] = [
+  APP_ROUTES.products,
+  APP_ROUTES.priceTags,
+  APP_ROUTES.itemTypes,
+  APP_ROUTES.aisles,
+  APP_ROUTES.categories,
+  APP_ROUTES.pricing,
+  APP_ROUTES.discounts,
+  APP_ROUTES.salesQuick,
+  APP_ROUTES.cashier,
+  APP_ROUTES.storefrontWebOrders,
+  APP_ROUTES.salesPendingCarts,
+  APP_ROUTES.businessMobile,
+  APP_ROUTES.store,
+];
+
+/** Whole sections that vanish for a non-goods shop (their every page is retail). */
+const GOODS_ONLY_NAV_SECTIONS: readonly string[] = ["catalog", "store"];
+
 function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (!IS_DESKTOP && DESKTOP_ONLY_NAV_HREFS.includes(item.href)) {
     return false;
   }
   if (IS_DESKTOP && DESKTOP_HIDDEN_NAV_HREFS.includes(item.href)) {
+    return false;
+  }
+
+  // A shop that does not sell goods (a bar, kinyozi or guest house with no product line) hides the
+  // retail catalogue, shelf prices and the retail till. Opting into a product line flips sellsGoods
+  // on and they return. Pages shared with a kitchen (Buying, Stock) are not gated here.
+  if (!gate.sellsGoods && GOODS_ONLY_NAV_HREFS.includes(item.href)) {
     return false;
   }
 
@@ -1335,6 +1372,16 @@ export function AppShell({ children }: AppShellProps) {
   const foodTableService = foodLedShop && isTableServiceBusiness(business);
   const canTakeRestaurantOrders = hasPermission(me?.permissions, Permission.RestaurantOrdersWrite);
   const canWorkRestaurantKitchen = hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate);
+  // A bar, kinyozi or guest house with no product line can add one from the rail. Offered only to
+  // someone who can manage settings, only in the cloud (the desktop sidebar always has retail), and
+  // only once the shop has no goods format — a plain retail shop never sees it. Restricted operator
+  // roles (cashier, clerk) run a flat rail and never manage formats, so they never see it either.
+  const canManageFormats = isOwner || canManageBusinessSettings;
+  const showAddProductLine =
+    !IS_DESKTOP &&
+    canManageFormats &&
+    !sellsGoodsBusiness(business) &&
+    (isFoodBusiness(business) || isServiceBusiness(business) || isLodgingBusiness(business));
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
@@ -1348,6 +1395,10 @@ export function AppShell({ children }: AppShellProps) {
       // screens stay off on the desktop app for the same reason.
       isFoodBusiness: isFoodBusiness(business) && !IS_DESKTOP,
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
+      // On the desktop app the full retail sidebar always stands (service/food screens are off there),
+      // so never let a desktop tenant lose the catalogue. In the cloud, a shop sells goods when it has
+      // a retail format — a plain shop always; a food/service/lodging shop only once it opts in.
+      sellsGoods: IS_DESKTOP || sellsGoodsBusiness(business),
       canManageMenu: hasPermission(me?.permissions, Permission.RestaurantMenuManage),
       canWorkKitchen: hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate),
       canTakeOrders: hasPermission(me?.permissions, Permission.RestaurantOrdersWrite),
@@ -1405,7 +1456,9 @@ export function AppShell({ children }: AppShellProps) {
       canWriteSuppliers: canWriteSuppliersDelegated,
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
-    const permitted = NAV_SECTIONS.map((section) => {
+    const permitted = NAV_SECTIONS.filter(
+      (section) => gate.sellsGoods || !GOODS_ONLY_NAV_SECTIONS.includes(section.id),
+    ).map((section) => {
       let items = section.items.filter((item) =>
         isNavItemVisible(item, gate),
       );
@@ -1865,8 +1918,17 @@ export function AppShell({ children }: AppShellProps) {
       }
       return tab;
     }).filter((tab) => {
-      if (tab.id !== "ops") return true;
-      return canQuickSale || canViewShifts || canViewPricing;
+      if (tab.id === "ops") {
+        return canQuickSale || canViewShifts || canViewPricing;
+      }
+      return true;
+    }).filter((tab) => {
+      // A shop with no product line drops the retail tabs the rail already hides — Products, and the
+      // retail-till "Sell". A food/service shop keeps its remapped Floor/Counter tab (that tab's href
+      // is no longer a retail route after the remap above), so only a true goods tab falls away.
+      if (sellsGoodsBusiness(business) || IS_DESKTOP) return true;
+      if (!tab.href) return true;
+      return !GOODS_ONLY_NAV_HREFS.includes(tab.href);
     });
   }, [
     me,
@@ -2097,6 +2159,7 @@ export function AppShell({ children }: AppShellProps) {
             sections={visibleSections}
             flat={isCashier || isButcherCashier || isGroceryClerk}
             badgeByHref={navBadgeByHref}
+            footerSlot={showAddProductLine ? <AddProductLineButton /> : undefined}
           />
         </div>
       </ChromeSlot>

@@ -50,6 +50,25 @@ export const TABLE_SERVICE_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", 
  */
 export const LODGING_STORE_TYPES: readonly StoreTypeId[] = ["lodging"];
 
+/**
+ * Shop formats that sell physical goods off a shelf: a mini-mart, a butchery, a pharmacy, a
+ * wines-and-spirits shop. These are the formats whose day is Products → Stock → the retail till.
+ * A service, food or lodging business is <em>not</em> a goods seller by its nature; it becomes one
+ * only by also picking one of these (the "sell products" sideline — see {@link sellsGoodsBusiness}).
+ * {@code "other"} counts as a goods format: an unclassified shop keeps the retail sidebar it had.
+ */
+export const GOODS_STORE_TYPES: readonly StoreTypeId[] = [
+  "butchery",
+  "mini-mart",
+  "full-grocery",
+  "fresh-market",
+  "mixed-shop",
+  "cosmetics",
+  "wines-spirits",
+  "pharmacy",
+  "other",
+];
+
 /** Shop formats that get a starter-product catalogue during onboarding. */
 export const CATALOG_ELIGIBLE_STORE_TYPES: readonly StoreTypeId[] = [
   "mini-mart",
@@ -296,6 +315,36 @@ export function isButcheryBusiness(
 ): boolean {
   return getBusinessStoreTypes(source).includes("butchery");
 }
+
+/**
+ * True when the business sells physical goods off a shelf — it has at least one goods format
+ * (see {@link GOODS_STORE_TYPES}). A plain retail shop always is. A food, service or lodging
+ * business is one only if it has also opted into a retail sideline (added a goods format via the
+ * "Add a product line" rail control / Business formats). This is the single gate for the retail
+ * sidebar — Products, Stock, shelf prices, the retail till — in a non-retail shop.
+ */
+export function sellsGoodsStoreTypes(
+  storeTypes: readonly string[] | null | undefined,
+): boolean {
+  return (
+    Array.isArray(storeTypes) &&
+    storeTypes.some((type) => (GOODS_STORE_TYPES as readonly string[]).includes(type))
+  );
+}
+
+/** Business form of {@link sellsGoodsStoreTypes}. */
+export function sellsGoodsBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return sellsGoodsStoreTypes(getBusinessStoreTypes(source));
+}
+
+/**
+ * The goods format a non-retail shop gains when it turns on "sell products": a general
+ * {@code "mixed-shop"} line (crisps, cigarettes, sodas beside the bar; toiletries beside the salon).
+ * It is the least surprising default — a catch-all shelf, not a specialised one.
+ */
+export const DEFAULT_GOODS_STORE_TYPE: StoreTypeId = "mixed-shop";
 
 /** True when any selected format can use the shared starter catalogue. */
 export function isCatalogEligibleStoreTypes(

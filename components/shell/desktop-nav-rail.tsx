@@ -651,6 +651,8 @@ type DesktopNavRailProps = {
   badgeByHref?: Readonly<Record<string, number>>;
   /** Section ids to show as their own cluster right after the first one. Product shops pass none. */
   leadSectionIds?: readonly string[];
+  /** Optional affordance pinned to the foot of the icon rail (e.g. "+ Add a product line"). */
+  footerSlot?: React.ReactNode;
 };
 
 const NAV_PANEL_COLLAPSED_KEY = "ub.navPanel.collapsed";
@@ -667,6 +669,7 @@ export function DesktopNavRail({
   flat = false,
   badgeByHref,
   leadSectionIds,
+  footerSlot,
 }: DesktopNavRailProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -795,6 +798,12 @@ export function DesktopNavRail({
                   </div>
                 ))}
           </nav>
+
+          {footerSlot ? (
+            <div className="mt-2 w-full border-t border-border/50 px-1.5 pt-2">
+              {footerSlot}
+            </div>
+          ) : null}
         </div>
       </aside>
 
