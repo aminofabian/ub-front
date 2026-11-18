@@ -1292,7 +1292,8 @@ export function BusinessHubWorkspace() {
         group: "Customers",
       });
     }
-    return links;
+    // A shop that also lets rooms gets its front desk first, as a food-only lodging tenant does.
+    return lodgingLink ? [lodgingLink, ...links] : links;
   }, [
     foodOnly,
     foodTables,

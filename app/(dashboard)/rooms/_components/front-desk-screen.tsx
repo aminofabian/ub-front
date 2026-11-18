@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { OrderSheet } from "../../restaurant/floor/_components/order-sheet";
 import { type FloorRights } from "../../restaurant/floor/_components/floor-screen";
 import { NoBranch } from "../../restaurant/_components/no-branch";
+import { OpenForTheDay } from "../../restaurant/_components/open-for-the-day";
 import { RoomToken, type RoomState } from "./room-token";
 
 const kes = (n: number) => formatMoney(n, "KES");
@@ -48,7 +49,13 @@ const TITLE = "font-serif text-[1.45rem] italic leading-none tracking-[-0.02em] 
 
 /** Nairobi's today, as a YYYY-MM-DD string, for deciding who arrives or leaves today. */
 function nairobiToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(new Date());
+  return nairobiDateIso(0);
+}
+
+/** A YYYY-MM-DD string `days` from now, read in Nairobi's calendar (not the device's UTC date). */
+function nairobiDateIso(days: number): string {
+  const when = new Date(Date.now() + days * 86400000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(when);
 }
 
 function sameNairobiDay(iso: string | null, today: string): boolean {
@@ -150,14 +157,16 @@ export function FrontDeskScreen({
         title="Front desk"
         description={
           noRooms ? "The rooms you let." : (
-            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] tabular-nums">
-              <span className="text-[var(--pos-primary,#1D4B3B)]">{tally.inHouse} in</span>
-              <span className={dashboardHintClass()}>·</span>
-              <span>{tally.arriving} arriving</span>
-              <span className={dashboardHintClass()}>·</span>
-              <span>{tally.leaving} leaving</span>
-              <span className={dashboardHintClass()}>·</span>
-              <span className={dashboardHintClass()}>{tally.free} free</span>
+            <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-[11px] tabular-nums">
+              {/* In-house carries the forest; today's comings and goings — the one thing the desk
+                  acts on — carry the single terracotta accent; the rest stay quiet muted ink. */}
+              <TallyStat n={tally.inHouse} label="in" tone="forest" />
+              <TallyDot />
+              <TallyStat n={tally.arriving} label="arriving" tone="attention" />
+              <TallyDot />
+              <TallyStat n={tally.leaving} label="leaving" tone="attention" />
+              <TallyDot />
+              <TallyStat n={tally.free} label="free" tone="muted" />
             </span>
           )
         }
@@ -174,6 +183,10 @@ export function FrontDeskScreen({
           Showing the last front desk loaded; the connection dropped.
         </p>
       ) : null}
+
+      {/* Money — a deposit, or settling a folio — needs a shift open on this till. Ask at a quiet
+          moment, before a guest is at the desk, as the floor and counter do. */}
+      {rights.canTakeMoney ? <OpenForTheDay branchId={branchId} className="mt-1" /> : null}
 
       {noRooms ? (
         <EmptyRooms canManage={canManage} onManage={() => setManaging(true)} />
@@ -290,7 +303,7 @@ function RoomTile({
             <span className="min-w-0 truncate">
               <DoorOpen className="mr-1 inline size-3.5 align-text-bottom" aria-hidden />
               {here.customerName ?? "In house"}
-              {leavingToday ? <span className="ml-1 font-semibold text-[#8f3f2f]">· leaving today</span> : null}
+              {leavingToday ? <span className="ml-1 font-semibold text-[var(--kiosk-highlight,#8f3f2f)]">· leaving today</span> : null}
             </span>
             <span className="font-mono tabular-nums">{kes(here.total)}</span>
           </button>
@@ -316,7 +329,7 @@ function RoomTile({
               <CalendarCheck className="mr-1 inline size-3 align-text-bottom" aria-hidden />
               {s.customerName ?? `Stay #${s.orderNumber}`}
               {sameNairobiDay(s.scheduledStart, today) ? (
-                <span className="ml-1 font-semibold text-[#8f3f2f]">· arriving today</span>
+                <span className="ml-1 font-semibold text-[var(--kiosk-highlight,#8f3f2f)]">· arriving today</span>
               ) : (
                 <span className={cn(dashboardHintClass(), "ml-1")}>{bookedFor(s.scheduledStart)}</span>
               )}
@@ -343,6 +356,32 @@ function bookedFor(iso: string | null): string {
     day: "numeric",
     month: "short",
   }).format(d);
+}
+
+/** One count in the front-desk tally. A tone shows only when the count is live; a zero stays quiet. */
+function TallyStat({ n, label, tone }: { n: number; label: string; tone: "forest" | "attention" | "muted" }) {
+  const lit = n > 0 && tone !== "muted";
+  return (
+    <span
+      className={cn(
+        "transition-colors",
+        tone === "muted"
+          ? "text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]"
+          : lit && tone === "forest"
+            ? "text-[var(--pos-primary,#1D4B3B)]"
+            : lit && tone === "attention"
+              ? "font-semibold text-[var(--kiosk-highlight,#8f3f2f)]"
+              : "text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]",
+      )}
+    >
+      {n} {label}
+    </span>
+  );
+}
+
+/** The hairline separator between tally counts, dimmer than the counts themselves. */
+function TallyDot() {
+  return <span className="text-[color-mix(in_srgb,var(--op-ink,#121A16)_28%,transparent)]" aria-hidden>·</span>;
 }
 
 function EmptyRooms({ canManage, onManage }: { canManage: boolean; onManage: () => void }) {
@@ -376,8 +415,10 @@ function BookingDrawer({
   onClose: () => void;
   onBooked: () => void;
 }) {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  // Nairobi's calendar, not the device's UTC date: at night the two differ and the defaults and
+  // the min= guard below would otherwise land a day off.
+  const todayIso = nairobiDateIso(0);
+  const tomorrow = nairobiDateIso(1);
   const [checkIn, setCheckIn] = useState(todayIso);
   const [checkOut, setCheckOut] = useState(tomorrow);
   const [name, setName] = useState("");
@@ -446,11 +487,18 @@ function BookingDrawer({
           </label>
         </div>
 
-        <p className={cn(dashboardHintClass(), "font-mono tabular-nums")}>
-          {nights > 0
-            ? `${nights} night${nights === 1 ? "" : "s"} × ${kes(room.nightlyRate)} = ${kes(nights * room.nightlyRate)}`
-            : "Choose the nights"}
-        </p>
+        {/* The stay's cost: the working muted, the figure the guest pays in ink. A hairline rule
+            sets it apart as the number the booking turns on. */}
+        {nights > 0 ? (
+          <div className="flex items-baseline justify-between border-t border-[color-mix(in_srgb,var(--op-ink,#121A16)_10%,transparent)] pt-2 font-mono tabular-nums">
+            <span className={dashboardHintClass()}>
+              {nights} night{nights === 1 ? "" : "s"} × {kes(room.nightlyRate)}
+            </span>
+            <span className="text-sm font-semibold text-[var(--op-ink,#121A16)]">{kes(nights * room.nightlyRate)}</span>
+          </div>
+        ) : (
+          <p className={cn(dashboardHintClass(), "font-mono")}>Choose the nights</p>
+        )}
 
         <label className="flex flex-col gap-1">
           <span className={dashboardLabelClass()}>Guest name</span>
@@ -492,7 +540,7 @@ function BookingDrawer({
         </div>
 
         {error ? (
-          <p role="alert" className="text-sm text-red-700">{error}</p>
+          <p role="alert" className="text-sm font-medium text-destructive">{error}</p>
         ) : null}
 
         <div className="mt-auto flex items-center justify-end gap-2 pt-2">
@@ -599,7 +647,7 @@ function ManageRoomsDrawer({
         </form>
 
         {error ? (
-          <p role="alert" className="text-sm text-red-700">{error}</p>
+          <p role="alert" className="text-sm font-medium text-destructive">{error}</p>
         ) : null}
 
         <div className="mt-auto flex justify-end pt-2">

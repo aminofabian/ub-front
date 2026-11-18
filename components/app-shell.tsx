@@ -25,6 +25,7 @@ import {
   Tags,
   Scissors,
   UtensilsCrossed,
+  BedDouble,
   LayoutGrid,
   ChefHat,
   Truck,
@@ -103,6 +104,7 @@ import { OPEN_SHELL_MORE_EVENT } from "@/lib/branch-guidance";
 import {
   isFoodBusiness,
   isFoodOnlyBusiness,
+  isLodgingBusiness,
   isServiceBusiness,
   isTableServiceBusiness,
   isServiceOnlyBusiness,
@@ -338,6 +340,16 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.restaurantMenu, label: "Menu" },
       { href: APP_ROUTES.restaurantReports, label: "Menu sales" },
     ],
+  },
+  {
+    // Lodging businesses only (a guest house, or a bar with rooms above it) — see isNavItemVisible.
+    id: "front-desk",
+    title: "Front desk",
+    shortLabel: "Rooms",
+    blurb: "Who's in, arriving, leaving",
+    icon: BedDouble,
+    entryHref: APP_ROUTES.rooms,
+    items: [{ href: APP_ROUTES.rooms, label: "Front desk" }],
   },
   {
     id: "procurement",
@@ -630,6 +642,8 @@ type NavGate = {
   canManageServices: boolean;
   /** The business takes orders and prepares food or drink (restaurant, café, fast food, bar). */
   isFoodBusiness: boolean;
+  /** The business lets rooms (a guest house, or a bar with rooms above it). */
+  isLodgingBusiness: boolean;
   canManageMenu: boolean;
   canWorkKitchen: boolean;
   canTakeOrders: boolean;
@@ -835,6 +849,11 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.isFoodBusiness && (gate.canManageMenu || gate.canWorkKitchen || gate.canSell);
   if (item.href === APP_ROUTES.restaurantReports)
     return gate.isFoodBusiness && (gate.canManageMenu || gate.canReadSalesReports);
+  // The front desk: anyone who can set up the shop, take orders or sell — the same permissions
+  // RoomsController serves it to. (Locked roles like cashier early-return above with their own
+  // allowlist, so they can still reach /rooms by URL but don't get the link here, as with the floor.)
+  if (item.href === APP_ROUTES.rooms)
+    return gate.isLodgingBusiness && (gate.canManageMenu || gate.canTakeOrders || gate.canSell);
   if (item.href === APP_ROUTES.commissions)
     return gate.isServiceBusiness && gate.canReadCommissions;
   if (item.href === APP_ROUTES.myEarnings)
@@ -1318,6 +1337,7 @@ export function AppShell({ children }: AppShellProps) {
       // Desktop sync does not carry menus, orders or kitchen tickets either, so the restaurant
       // screens stay off on the desktop app for the same reason.
       isFoodBusiness: isFoodBusiness(business) && !IS_DESKTOP,
+      isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
       canManageMenu: hasPermission(me?.permissions, Permission.RestaurantMenuManage),
       canWorkKitchen: hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate),
       canTakeOrders: hasPermission(me?.permissions, Permission.RestaurantOrdersWrite),
