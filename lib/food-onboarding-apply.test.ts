@@ -18,6 +18,8 @@ const shop = {
   failMenu: false,
   tables: [] as { branchId: string; name: string }[],
   failTables: false,
+  pictures: [] as { id: string; name: string }[],
+  failPictures: false,
 };
 
 mock.module("@/lib/api", () => ({
@@ -90,6 +92,14 @@ mock.module("@/lib/restaurant-api", () => ({
     shop.items.push(item);
     return item;
   },
+  setMenuItemPicture: async (id: string, file: File) => {
+    if (shop.failPictures) {
+      throw new Error("The picture was refused.");
+    }
+    const item = shop.items.find((row) => row.id === id);
+    shop.pictures.push({ id, name: file.name });
+    return item;
+  },
 }));
 
 const { applyOnboardingQuestionnaire } = await import(
@@ -124,6 +134,8 @@ describe("food setup writes the kitchen and first dishes", () => {
     shop.failMenu = false;
     shop.tables.length = 0;
     shop.failTables = false;
+    shop.pictures.length = 0;
+    shop.failPictures = false;
   });
 
   afterAll(() => {
@@ -159,6 +171,32 @@ describe("food setup writes the kitchen and first dishes", () => {
       stationId: "station-1",
       sortOrder: 1,
     });
+  });
+
+  it("uploads a picture onto the dish it belongs to, and still finishes if that fails", async () => {
+    const chips = new File(["a"], "chips.jpg", { type: "image/jpeg" });
+    const withPicture = {
+      ...foodAnswers,
+    };
+
+    const saved = await applyOnboardingQuestionnaire(withPicture, {
+      business: null,
+      foodMenuPictures: [{ name: "Chips", file: chips }],
+    });
+
+    expect(saved.completed).toBe(true);
+    expect(saved.warnings).toHaveLength(0);
+    expect(shop.pictures).toEqual([{ id: "item-1", name: "chips.jpg" }]);
+
+    shop.failPictures = true;
+    const again = await applyOnboardingQuestionnaire(withPicture, {
+      business: null,
+      foodMenuPictures: [{ name: "Chips", file: chips }],
+    });
+
+    expect(again.completed).toBe(true);
+    expect(again.warnings.join(" ")).toContain("Chips was saved without its picture");
+    expect(shop.items.map((item) => item.name)).toEqual(["Chips", "Soda"]);
   });
 
   it("a retry after the same answers creates nothing twice", async () => {

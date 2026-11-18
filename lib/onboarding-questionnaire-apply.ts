@@ -33,6 +33,7 @@ import {
   createTable,
   fetchMenu,
   fetchTables,
+  setMenuItemPicture,
 } from "@/lib/restaurant-api";
 import {
   buildPendingSectionCreates,
@@ -143,6 +144,30 @@ export function formatApplyFailureMessage(result: OnboardingApplyResult): string
       ? " Remove the logo on the previous step, or tap That’s my number to retry."
       : " Tap That’s my number to retry — already-saved steps won't repeat.";
   return `${savedPart}${phaseLabel} could not be saved.${detail}${hint}`;
+}
+
+/**
+ * A picture is optional and must not undo a dish that already saved. A miss is said once,
+ * and the owner can add the picture from Menu.
+ */
+async function attachFoodDishPictures(
+  itemIdByName: ReadonlyMap<string, string>,
+  pictures: readonly { name: string; file: File }[] | undefined,
+  warnings: string[],
+): Promise<void> {
+  for (const picture of pictures ?? []) {
+    const id = itemIdByName.get(picture.name.trim().toLowerCase());
+    if (!id || !(picture.file instanceof File)) {
+      continue;
+    }
+    try {
+      await setMenuItemPicture(id, picture.file);
+    } catch {
+      warnings.push(
+        `${picture.name.trim()} was saved without its picture. Add the picture from Menu.`,
+      );
+    }
+  }
 }
 
 /**
@@ -336,15 +361,15 @@ export async function applyOnboardingQuestionnaire(
             (stations[0] ? stationIdByName.get(stations[0].toLowerCase()) : null) ??
             menu.stations[0]?.id ??
             null;
-          const dishNames = new Set(
-            menu.items.map((item) => item.name.trim().toLowerCase()),
+          const itemIdByName = new Map(
+            menu.items.map((item) => [item.name.trim().toLowerCase(), item.id]),
           );
           for (const [index, dish] of dishes.entries()) {
             const key = dish.name.toLowerCase();
-            if (dishNames.has(key)) {
+            if (itemIdByName.has(key)) {
               continue;
             }
-            await createMenuItem({
+            const created = await createMenuItem({
               name: dish.name,
               kind: "DISH",
               price: dish.price,
@@ -352,8 +377,9 @@ export async function applyOnboardingQuestionnaire(
               // Keep the order the owner typed them in on the counter's menu.
               sortOrder: index,
             });
-            dishNames.add(key);
+            itemIdByName.set(key, created.id);
           }
+          await attachFoodDishPictures(itemIdByName, opts.foodMenuPictures, warnings);
         } catch (restaurantError) {
           // The menu endpoints can refuse (the restaurant flag off, the station cap reached).
           // That must not leave a new shop stuck at the shop-line step: the kitchen and dishes

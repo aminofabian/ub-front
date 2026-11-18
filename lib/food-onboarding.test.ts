@@ -13,6 +13,8 @@ import {
   defaultFoodStationName,
   foodMenuDraftError,
   foodMenuDraftsToItems,
+  foodMenuPictureError,
+  foodMenuPicturesFromDrafts,
   foodTableNames,
   parseFoodMenuPrice,
   parseFoodTableCount,
@@ -93,6 +95,13 @@ describe("a price typed by the owner", () => {
     expect(foodMenuDraftError({ name: "", price: "" })).toBeNull();
   });
 
+  test("a picture on an empty row has to be named or removed", () => {
+    const file = new File(["a"], "dish.jpg", { type: "image/jpeg" });
+    expect(foodMenuDraftError({ name: "", price: "", picture: file })).toContain(
+      "name and a price",
+    );
+  });
+
   test("a half-filled row says what is missing", () => {
     expect(foodMenuDraftError({ name: "Chips", price: "" })).toContain("price");
     expect(foodMenuDraftError({ name: "", price: "250" })).toContain("name");
@@ -106,6 +115,38 @@ describe("a price typed by the owner", () => {
     expect(foodMenuDraftError({ name: "x".repeat(192), price: "250" })).toContain(
       "191 characters",
     );
+  });
+
+  test("a picture must be a JPEG, PNG or WebP under 8 MB", () => {
+    expect(foodMenuPictureError(new File(["x"], "dish.gif", { type: "image/gif" }))).toContain(
+      "JPEG",
+    );
+    const huge = new File([new Uint8Array(8 * 1024 * 1024 + 1)], "dish.jpg", {
+      type: "image/jpeg",
+    });
+    expect(foodMenuPictureError(huge)).toContain("8 MB");
+    expect(
+      foodMenuPictureError(new File(["x"], "dish.jpg", { type: "image/jpeg" })),
+    ).toBeNull();
+  });
+
+  test("a picture stays with the first valid row of that dish", () => {
+    const chips = new File(["a"], "chips.jpg", { type: "image/jpeg" });
+    const later = new File(["b"], "later.jpg", { type: "image/jpeg" });
+    const tea = new File(["c"], "tea.png", { type: "image/png" });
+    expect(
+      foodMenuPicturesFromDrafts([
+        { name: "Chips", price: "250", picture: chips },
+        { name: "  ", price: "", picture: later },
+        { name: "chips", price: "300", picture: later },
+        { name: "Soda", price: "70" },
+        { name: "Tea", price: "", picture: tea },
+        { name: "Tea", price: "80", picture: tea },
+      ]),
+    ).toEqual([
+      { name: "Chips", file: chips },
+      { name: "Tea", file: tea },
+    ]);
   });
 
   test("only complete, named dishes are created — once each", () => {

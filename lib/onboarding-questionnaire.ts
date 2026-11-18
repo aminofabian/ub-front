@@ -45,7 +45,15 @@ export type OnlineStoreChoice = "yes" | "no";
 export type ProductSourceChoice = "new" | "spreadsheet" | "other_pos";
 
 /** A dish typed during setup. `price` is kept as typed so a half-typed amount survives. */
-export type FoodMenuDraft = { name: string; price: string };
+export type FoodMenuDraft = {
+  name: string;
+  price: string;
+  /**
+   * Chosen on this device only. A File does not survive JSON, so it is never written into
+   * saved answers — it travels with the finish extras when setup is applied.
+   */
+  picture?: File | null;
+};
 
 export type OnboardingQuestionnaireAnswers = {
   branchCount: BranchCountChoice;
@@ -97,6 +105,8 @@ export type OnboardingQuestionnaireFinishExtras = {
   faviconFile?: File | null;
   ogImageFile?: File | null;
   appIconFile?: File | null;
+  /** Pictures for dishes typed in setup, matched to the dish by name when the menu is created. */
+  foodMenuPictures?: { name: string; file: File }[];
 };
 
 export type OnboardingQuestionnaireStatus =
@@ -479,7 +489,9 @@ export function foodMenuDraftError(draft: FoodMenuDraft): string | null {
   const name = draft.name.trim();
   const price = draft.price.trim();
   if (!name && !price) {
-    return null;
+    return draft.picture instanceof File
+      ? "Add a name and a price for this picture, or remove it."
+      : null;
   }
   if (!name) {
     return "Add a name for this dish, or clear its price.";
@@ -494,6 +506,51 @@ export function foodMenuDraftError(draft: FoodMenuDraft): string | null {
     return "Type a price from 1 to 999,999 — for example 250.";
   }
   return null;
+}
+
+const FOOD_PICTURE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const FOOD_PICTURE_MAX_BYTES = 8 * 1024 * 1024;
+
+/** What the menu picture endpoint accepts. A bad file is refused here, before setup finishes. */
+export function foodMenuPictureError(file: File): string | null {
+  if (!FOOD_PICTURE_TYPES.has(file.type)) {
+    return "Use a JPEG, PNG or WebP picture.";
+  }
+  if (file.size > FOOD_PICTURE_MAX_BYTES) {
+    return "That picture is too large. Use one under 8 MB.";
+  }
+  return null;
+}
+
+/**
+ * Pictures that belong to the dishes setup will create. The first valid row for a name wins,
+ * same as the dish itself, so a later duplicate cannot swap the picture.
+ */
+export function foodMenuPicturesFromDrafts(
+  drafts: readonly FoodMenuDraft[] | null | undefined,
+): { name: string; file: File }[] {
+  const seen = new Set<string>();
+  const out: { name: string; file: File }[] = [];
+  for (const draft of drafts ?? []) {
+    if (foodMenuDraftError(draft) !== null) {
+      continue;
+    }
+    const name = draft.name.trim();
+    const price = parseFoodMenuPrice(draft.price);
+    const key = name.toLowerCase();
+    if (!name || price == null || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const file = draft.picture;
+    if (file instanceof File && foodMenuPictureError(file) === null) {
+      out.push({ name, file });
+    }
+    if (seen.size >= FOOD_MAX_DISHES) {
+      break;
+    }
+  }
+  return out;
 }
 
 /** The dishes to create: valid, named rows, de-duplicated by name, in the order typed. */

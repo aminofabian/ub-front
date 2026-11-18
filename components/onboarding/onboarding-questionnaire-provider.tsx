@@ -559,6 +559,7 @@ export function OnboardingQuestionnaireProvider({
         faviconFile: extras?.faviconFile ?? null,
         ogImageFile: extras?.ogImageFile ?? null,
         appIconFile: extras?.appIconFile ?? null,
+        foodMenuPictures: extras?.foodMenuPictures,
       });
       await Promise.all([refreshBranches(), refreshItemTypes(), refreshSession()]);
       if (result.firstBranchId) {
