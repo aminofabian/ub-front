@@ -29,7 +29,7 @@ import {
   type KitchenTicketRecord,
   type MenuItemRecord,
 } from "@/lib/restaurant-api";
-import { elapsedLabel } from "@/lib/restaurant-cart";
+import { elapsedLabel, ticketUrgency, type TicketUrgency } from "@/lib/restaurant-cart";
 import { buildKitchenTicketEscPos, jobPrinterTarget, localPrinter, printKitchenJob, printOnThisDevice } from "@/lib/restaurant-print";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,28 @@ function timeOfDay(iso: string): string {
  */
 const LANE_TITLE = "font-serif text-[1.45rem] italic leading-none tracking-[-0.02em] text-[var(--op-ink,#121A16)]";
 const LANE_RULE = "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]";
+
+// Age-based urgency on a ticket (see ticketUrgency): a faint whole-card wash and a colour on the
+// waiting time, both in the system's terracotta attention hue (--kiosk-highlight) — not a fourth
+// red/amber hue, and distinct from the hard danger-red that a cancelled ticket keeps for itself.
+// "late" also gets a word in the label, so it never reads by colour alone; the waiting time is the
+// primary signal and the wash is a quiet background, deepening as the ticket ages.
+// Static class strings (Tailwind's JIT only sees literals — no interpolation).
+const TICKET_URGENCY_CARD: Record<TicketUrgency, string> = {
+  ok: "",
+  slow: "bg-[color-mix(in_srgb,var(--kiosk-highlight,#A55237)_5%,transparent)]",
+  late: "bg-[color-mix(in_srgb,var(--kiosk-highlight,#A55237)_12%,transparent)]",
+};
+const TICKET_URGENCY_TIME: Record<TicketUrgency, string> = {
+  ok: "",
+  slow: "text-[color-mix(in_srgb,var(--kiosk-highlight,#A55237)_82%,var(--order-ink,#121A16))]",
+  late: "font-semibold text-[var(--kiosk-highlight,#A55237)]",
+};
+const TICKET_URGENCY_WORD: Record<TicketUrgency, string> = {
+  ok: "",
+  slow: "behind",
+  late: "late",
+};
 
 export function KitchenBoard({ canWork }: { canWork: boolean }) {
   const { branchId } = useDashboard();
@@ -260,18 +282,25 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   const renderTicket = (ticket: KitchenTicketRecord) => {
             const isVoid = ticket.ticketType === "VOID";
             const left = ticket.lines.filter((l) => l.stage === "NEW" || l.stage === "PREPARING").length;
+            // A void ticket already shouts in red; only colour by age when it is a live ticket.
+            const urgency = isVoid ? "ok" : ticketUrgency(ticket.sentAt, now);
+            const urgencyWord = TICKET_URGENCY_WORD[urgency];
             return (
               <li
                 key={ticket.id}
                 className={cn(
                   "grid content-start gap-2 rounded-[2px] border bg-[#FFFEFA] p-3",
                   isVoid ? "border-2 border-red-700" : LANE_RULE,
+                  TICKET_URGENCY_CARD[urgency],
                 )}
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-mono text-4xl font-semibold tabular-nums">{ticket.orderNumber}</span>
                   <span className="text-right text-sm">
-                    <span className="block font-mono tabular-nums">{elapsedLabel(ticket.sentAt, now)}</span>
+                    <span className={cn("block font-mono tabular-nums", TICKET_URGENCY_TIME[urgency])}>
+                      {elapsedLabel(ticket.sentAt, now)}
+                      {urgencyWord ? <span className="font-sans font-semibold"> · {urgencyWord}</span> : null}
+                    </span>
                     {ticket.stationId && station === ALL ? (
                       <span className={dashboardHintClass()}>{stationName.get(ticket.stationId) ?? "Station"}</span>
                     ) : null}

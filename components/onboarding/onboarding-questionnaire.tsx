@@ -5,6 +5,7 @@ import {
   SERVICE_STORE_TYPES,
   isTableServiceStoreTypes,
 } from "@/lib/business-store-type";
+import { fetchBusinessTypes } from "@/lib/business-types-api";
 import { IS_DESKTOP } from "@/lib/runtime";
 
 import {
@@ -39,6 +40,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { FoodDishPicture } from "@/components/onboarding/food-dish-picture";
 import { OnboardingReceiveMpesaStep } from "@/components/onboarding/onboarding-receive-mpesa-step";
 import { SetupSlip, type SetupSlipLine } from "@/components/onboarding/setup-slip";
 import {
@@ -87,6 +89,7 @@ import {
   defaultFoodStations,
   formatBranchDisplayName,
   foodMenuDraftError,
+  foodMenuPicturesFromDrafts,
   localityPlaceholdersForCountry,
   looksLikeOwnerPhone,
   storeTypesSectionLabels,
@@ -328,6 +331,7 @@ function StoreTypeButton({
   label,
   hint,
   icon: Icon,
+  imageUrl,
   clay,
   selected,
   onClick,
@@ -335,6 +339,8 @@ function StoreTypeButton({
   label: string;
   hint: string;
   icon: typeof Store;
+  /** Super-admin image for this type (ADR 0029). When set, it replaces the icon chip. */
+  imageUrl?: string | null;
   /** The one terracotta stamp on this step. Every other key stays forest. */
   clay?: boolean;
   selected: boolean;
@@ -360,7 +366,7 @@ function StoreTypeButton({
     >
       <span
         className={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-[2px] sm:size-8",
+          "flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-[2px] sm:size-8",
           selected
             ? "bg-[#F4F1EA] text-[#1D4B3B]"
             : clay
@@ -368,7 +374,12 @@ function StoreTypeButton({
               : "bg-[#EFEBE2] text-[#1D4B3B]",
         )}
       >
-        <Icon className="size-3.5 sm:size-4" strokeWidth={1.75} aria-hidden />
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="size-full object-cover" aria-hidden />
+        ) : (
+          <Icon className="size-3.5 sm:size-4" strokeWidth={1.75} aria-hidden />
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 text-[13px] font-semibold leading-tight tracking-[-0.015em]">
@@ -560,6 +571,27 @@ function StepHeading({
   );
 }
 
+function shiftRowRecord<T>(record: Record<number, T>, removed: number): Record<number, T> {
+  const next: Record<number, T> = {};
+  for (const [key, value] of Object.entries(record)) {
+    const row = Number(key);
+    if (row === removed) {
+      continue;
+    }
+    next[row > removed ? row - 1 : row] = value;
+  }
+  return next;
+}
+
+function slipMenuLine(dishes: number, pictures: number): string {
+  const dishWord = dishes === 1 ? "dish" : "dishes";
+  if (pictures === 0) {
+    return `${dishes} ${dishWord}`;
+  }
+  const pictureWord = pictures === 1 ? "picture" : "pictures";
+  return `${dishes} ${dishWord}, ${pictures} ${pictureWord}`;
+}
+
 export function OnboardingQuestionnaire({
   step,
   initialAnswers,
@@ -603,6 +635,27 @@ export function OnboardingQuestionnaire({
     const legacy = (initialAnswers as { storeType?: StoreTypeChoice }).storeType;
     return legacy ? [legacy] : [];
   });
+  // Super-admin-uploaded images per type code (ADR 0029). Best-effort: the picker falls back to its
+  // built-in icons when the catalogue cannot be fetched (offline, desktop, slow), so failure is silent.
+  const [typeImages, setTypeImages] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let active = true;
+    void fetchBusinessTypes()
+      .then((catalog) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        for (const t of catalog) {
+          if (t.imageUrl) map[t.code] = t.imageUrl;
+        }
+        setTypeImages(map);
+      })
+      .catch(() => {
+        // Keep the icon fallback; onboarding must not block on the catalogue.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(
     initialAnswers.selectedDepartments ?? [],
   );
@@ -678,6 +731,8 @@ export function OnboardingQuestionnaire({
   const [foodDraftTouched, setFoodDraftTouched] = useState<Record<number, boolean>>(
     {},
   );
+  /** A picture the menu will not accept, keyed to the row it was chosen on. */
+  const [foodPictureNotes, setFoodPictureNotes] = useState<Record<number, string>>({});
   const [sellsProducts, setSellsProducts] = useState<"yes" | "no" | "">(
     initialAnswers.sellsProducts === true
       ? "yes"
@@ -1012,18 +1067,30 @@ export function OnboardingQuestionnaire({
   /** Removes a dish row and keeps the "touched" marks on the rows that stay. */
   const removeFoodMenuItem = (index: number) => {
     setFoodMenuItems((prev) => prev.filter((_, i) => i !== index));
-    setFoodDraftTouched((prev) => {
-      const next: Record<number, boolean> = {};
-      for (const [key, touched] of Object.entries(prev)) {
-        const row = Number(key);
-        if (row === index) {
-          continue;
-        }
-        next[row > index ? row - 1 : row] = touched;
+    setFoodDraftTouched((prev) => shiftRowRecord(prev, index));
+    setFoodPictureNotes((prev) => shiftRowRecord(prev, index));
+  };
+
+  const setFoodMenuPicture = (index: number, file: File | null) => {
+    setFoodMenuItems((prev) => {
+      const next = [...prev];
+      const row = next[index];
+      if (!row) {
+        return prev;
       }
+      next[index] = { ...row, picture: file };
       return next;
     });
   };
+
+  const brandFiles = (): OnboardingQuestionnaireFinishExtras => ({
+    logoFile: logoFile ?? logoDraftPair?.light ?? null,
+    logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
+    faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
+    ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
+    appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
+    foodMenuPictures: foodMenuPicturesFromDrafts(foodMenuItems),
+  });
 
   const handleContinue = () => {
     if (logoGenerating) {
@@ -1106,13 +1173,7 @@ export function OnboardingQuestionnaire({
             primaryColor: primaryColor.trim(),
             accentColor: accentColor.trim(),
           },
-          {
-            logoFile: logoFile ?? logoDraftPair?.light ?? null,
-            logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
-            faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
-            ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
-            appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
-          },
+          brandFiles(),
         );
         break;
       case QUESTIONNAIRE_PHONE_STEP:
@@ -1123,25 +1184,11 @@ export function OnboardingQuestionnaire({
             landingWhatsapp:
               landingWhatsapp.trim() || ownerPhone.trim() || undefined,
           },
-          {
-            logoFile: logoFile ?? logoDraftPair?.light ?? null,
-            logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
-            faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
-            ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
-            appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
-          },
+          brandFiles(),
         );
         break;
     }
   };
-
-  const brandFiles = (): OnboardingQuestionnaireFinishExtras => ({
-    logoFile: logoFile ?? logoDraftPair?.light ?? null,
-    logoDarkFile: logoDarkFile ?? logoDraftPair?.dark ?? null,
-    faviconFile: faviconFile ?? logoDraftPair?.favicon ?? null,
-    ogImageFile: ogImageFile ?? logoDraftPair?.og ?? null,
-    appIconFile: appIconFile ?? logoDraftPair?.appIcon ?? null,
-  });
 
   /**
    * What a food shop has typed on the step it is looking at, when it can be kept. Leaving early
@@ -1375,6 +1422,7 @@ export function OnboardingQuestionnaire({
   const slipFoodDishCount = foodMenuItems.filter(
     (item) => foodMenuDraftError(item) === null && item.name.trim().length > 0,
   ).length;
+  const slipFoodPictureCount = foodMenuPicturesFromDrafts(foodMenuItems).length;
   const receiptLines: SetupSlipLine[] = [
     {
       label: "Shop",
@@ -1418,9 +1466,7 @@ export function OnboardingQuestionnaire({
             label: "Menu",
             value:
               step >= 4 && slipFoodDishCount > 0
-                ? `${slipFoodDishCount} ${
-                    slipFoodDishCount === 1 ? "dish" : "dishes"
-                  }`
+                ? slipMenuLine(slipFoodDishCount, slipFoodPictureCount)
                 : null,
             skipped: step > 4 && slipFoodDishCount === 0,
           },
@@ -1749,6 +1795,7 @@ export function OnboardingQuestionnaire({
                               label={opt.label}
                               hint={opt.hint}
                               icon={STORE_TYPE_ICONS[opt.value]}
+                              imageUrl={typeImages[opt.value]}
                               clay={opt.value === "butchery"}
                               selected={storeTypes.includes(opt.value)}
                               onClick={() => toggleStoreType(opt.value)}
@@ -1937,45 +1984,65 @@ export function OnboardingQuestionnaire({
                   title="What's on the menu?"
                   description="A few dishes or drinks with your prices — they become your menu, so the counter can ring them today. Add the rest later."
                 />
-                <div className="space-y-3">
+                <div className="space-y-3 pt-1">
                   {foodMenuItems.map((item, index) => {
-                    const error = foodDraftTouched[index]
-                      ? foodMenuDraftError(item)
-                      : null;
+                    const error =
+                      foodDraftTouched[index] || item.picture instanceof File
+                        ? foodMenuDraftError(item)
+                        : null;
                     const errorId = `food-dish-${index}-error`;
                     const markTouched = () =>
                       setFoodDraftTouched((prev) =>
                         prev[index] ? prev : { ...prev, [index]: true },
                       );
+                    const pictureNote = foodPictureNotes[index] ?? null;
+                    const dishLabel = item.name.trim() || `dish ${index + 1}`;
                     return (
                       <div key={index} className="space-y-1.5">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                          <input
-                            type="text"
-                            value={item.name}
-                            onChange={(event) => {
-                              const value = event.target.value;
-                              setFoodMenuItems((prev) => {
-                                const next = [...prev];
-                                next[index] = { ...next[index]!, name: value };
-                                return next;
-                              });
-                            }}
-                            ref={(element) => {
-                              foodDishInputsRef.current[index] = element;
-                            }}
-                            maxLength={191}
-                            enterKeyHint="next"
-                            onBlur={markTouched}
-                            aria-invalid={error ? true : undefined}
-                            aria-describedby={error ? errorId : undefined}
-                            className={cn(
-                              FIELD_CLASS,
-                              "w-full min-w-0 sm:flex-1",
-                            )}
-                            placeholder={FOOD_MENU_EXAMPLES[index] ?? "Dish or drink"}
-                            aria-label={`Dish ${index + 1} name`}
-                          />
+                          <div className="flex min-w-0 flex-1 items-start gap-2">
+                            <FoodDishPicture
+                              file={item.picture instanceof File ? item.picture : null}
+                              dishLabel={dishLabel}
+                              onFile={(file) => setFoodMenuPicture(index, file)}
+                              onProblem={(message) =>
+                                setFoodPictureNotes((prev) => {
+                                  if (!message) {
+                                    if (!(index in prev)) {
+                                      return prev;
+                                    }
+                                    const next = { ...prev };
+                                    delete next[index];
+                                    return next;
+                                  }
+                                  return { ...prev, [index]: message };
+                                })
+                              }
+                            />
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setFoodMenuItems((prev) => {
+                                  const next = [...prev];
+                                  next[index] = { ...next[index]!, name: value };
+                                  return next;
+                                });
+                              }}
+                              ref={(element) => {
+                                foodDishInputsRef.current[index] = element;
+                              }}
+                              maxLength={191}
+                              enterKeyHint="next"
+                              onBlur={markTouched}
+                              aria-invalid={error ? true : undefined}
+                              aria-describedby={error ? errorId : undefined}
+                              className={cn(FIELD_CLASS, "min-w-0 flex-1")}
+                              placeholder={FOOD_MENU_EXAMPLES[index] ?? "Dish or drink"}
+                              aria-label={`Dish ${index + 1} name`}
+                            />
+                          </div>
                           <div className="flex items-center gap-2">
                             <div
                               className={cn(
@@ -2034,6 +2101,11 @@ export function OnboardingQuestionnaire({
                             {error}
                           </p>
                         ) : null}
+                        {pictureNote ? (
+                          <p className="text-[13px] text-[#8F3F2F]" role="alert">
+                            {pictureNote}
+                          </p>
+                        ) : null}
                       </div>
                     );
                   })}
@@ -2062,10 +2134,10 @@ export function OnboardingQuestionnaire({
                   </button>
                 </div>
                 <p className={NOTE}>
-                  Blank rows are skipped. Prices are yours — nothing is filled in
-                  for you, and you can change them in Menu. Headings such as
-                  Mains and Drinks, a line about each dish and pictures are
-                  added there too, when you have a minute.
+                  Blank rows are skipped. A picture is optional — leave it
+                  until later if you like. Prices are yours, and you can change
+                  them in Menu. Headings such as Mains and Drinks, and a line
+                  about each dish, are added there too.
                 </p>
               </>
             ) : null}

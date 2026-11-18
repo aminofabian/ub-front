@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, CalendarClock, LayoutGrid, NotebookPen, ShoppingBag } from "lucide-react";
+import { Bike, BookPlus, CalendarClock, LayoutGrid, NotebookPen, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -38,6 +38,7 @@ import {
   type RestaurantTableRecord,
   type TableTakingsReport,
 } from "@/lib/restaurant-api";
+import { toISODate } from "@/lib/analytics-date-range";
 import { elapsedLabel } from "@/lib/restaurant-cart";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,85 @@ function needsSomeone(card: OrderCardRecord): boolean {
   return Boolean(card.billRequestedAt) || card.ready > 0 || card.unsent > 0;
 }
 
+/**
+ * A count in the floor's summary row that also filters the room to that state. A status chip is the
+ * one place DESIGN.md sanctions a pill. Tone carries meaning in the system's own hues: forest for
+ * seated, terracotta for attention, muted ink for free.
+ */
+function FloorChip({
+  label,
+  count,
+  tone,
+  active,
+  onToggle,
+}: {
+  label: string;
+  count: number;
+  tone: "forest" | "terracotta" | "muted";
+  active: boolean;
+  onToggle: () => void;
+}) {
+  const dot =
+    tone === "forest"
+      ? "bg-[#1D4B3B]"
+      : tone === "terracotta"
+        ? "bg-[#8f3f2f]"
+        : "bg-[color-mix(in_srgb,var(--op-ink,#121A16)_40%,transparent)]";
+  const text =
+    tone === "forest"
+      ? "text-[#1D4B3B]"
+      : tone === "terracotta"
+        ? "text-[#8f3f2f]"
+        : "text-[color-mix(in_srgb,var(--op-ink,#121A16)_62%,transparent)]";
+  const activeRing =
+    tone === "terracotta"
+      ? "border-[#8f3f2f] bg-[color-mix(in_srgb,#8f3f2f_8%,var(--op-surface,#FCFAF5))]"
+      : tone === "forest"
+        ? "border-[#1D4B3B] bg-[color-mix(in_srgb,#1D4B3B_8%,var(--op-surface,#FCFAF5))]"
+        : "border-[color-mix(in_srgb,var(--op-ink,#121A16)_32%,transparent)] bg-[color-mix(in_srgb,var(--op-ink,#121A16)_5%,var(--op-surface,#FCFAF5))]";
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onToggle}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 leading-none",
+        "transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-surface,#FCFAF5)]",
+        active
+          ? activeRing
+          : "border-transparent hover:border-[color-mix(in_srgb,var(--op-ink,#121A16)_14%,transparent)]",
+      )}
+    >
+      <span aria-hidden className={cn("size-1.5 rounded-full", dot)} />
+      <span className={cn("font-mono tabular-nums font-semibold", text)}>{count}</span>
+      <span className={text}>{label}</span>
+    </button>
+  );
+}
+
+type TableStatus = "seated" | "attention" | "booked" | "free";
+
+/** The one state a table reads as on the floor, from its orders. Drives the counts and the filter. */
+function tableStatus(orders: OrderCardRecord[]): TableStatus {
+  const live = orders.filter((o) => !o.booked);
+  if (live.length > 0) return live.some(needsSomeone) ? "attention" : "seated";
+  if (orders.length > 0) return "booked";
+  return "free";
+}
+
+/**
+ * True when a live order was opened on an earlier business day (Africa/Nairobi) and is still here —
+ * a table someone forgot to settle before closing up, now carried into today. A future booking does
+ * not count. {@link toISODate} gives each date in the shop's own day, so this ignores clock offset.
+ */
+function openedBeforeToday(card: OrderCardRecord, now: number): boolean {
+  if (card.booked || card.settled) return false;
+  const opened = Date.parse(card.openedAt);
+  if (!Number.isFinite(opened)) return false;
+  return toISODate(new Date(opened)) < toISODate(new Date(now));
+}
+
 function cardState(card: OrderCardRecord): string {
   if (card.booked) return card.scheduledStart ? `Booked for ${timeOfDay(card.scheduledStart)}` : "Booked";
   // A delivery paid up front: nothing is owed, but it is not done until it reaches the customer.
@@ -124,6 +204,7 @@ export function FloorScreen(rights: FloorRights) {
   const sendHint = `Nothing is ${voice.making} until you send it.`;
   const [floor, setFloor] = useState<FloorRecord | null>(null);
   const [stale, setStale] = useState(false);
+  const [floorFilter, setFloorFilter] = useState<"all" | "attention" | "seated" | "free">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [seating, setSeating] = useState<RestaurantTableRecord | null>(null);
   const [starting, setStarting] = useState<"TAB" | "TAKEAWAY" | "DELIVERY" | "BOOKING" | null>(null);
@@ -200,6 +281,16 @@ export function FloorScreen(rights: FloorRights) {
     return { seated, booked, free, attention };
   }, [floor]);
 
+  // Orders left open from an earlier day — the "why is table 4 still here from Tuesday?" case.
+  const carriedOver = useMemo(() => {
+    if (!floor) return [];
+    const all = [...floor.tables.flatMap((t) => t.orders), ...floor.otherOrders];
+    return all.filter((o) => openedBeforeToday(o, now));
+  }, [floor, now]);
+  // Dismissed for the current Nairobi day, so it does not nag all shift once acknowledged.
+  const [carriedDismissed, setCarriedDismissed] = useState<string | null>(null);
+  const showCarried = carriedOver.length > 0 && carriedDismissed !== toISODate(new Date(now));
+
   if (!branchId) {
     return (
       <div className={DASHBOARD_MAX_WIDE}>
@@ -246,9 +337,48 @@ export function FloorScreen(rights: FloorRights) {
             Tables
           </Button>
         ) : null}
+        {rights.canManage ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={APP_ROUTES.restaurantMenu}>
+              <BookPlus className="size-4" aria-hidden /> Add to menu
+            </Link>
+          </Button>
+        ) : null}
       </DashboardPageHero>
 
       {rights.canTakeOrders ? <OpenForTheDay branchId={branchId} className="mb-2" /> : null}
+
+      {showCarried ? (
+        <section
+          role="status"
+          aria-label="Orders from an earlier day"
+          className={cn(
+            "mb-2 flex flex-col gap-2 rounded-[2px] border px-4 py-3 sm:flex-row sm:items-center sm:gap-4",
+            "border-[color-mix(in_srgb,var(--kiosk-highlight,#A55237)_45%,transparent)]",
+            "bg-[color-mix(in_srgb,var(--kiosk-highlight,#A55237)_7%,var(--op-surface,#FCFAF5))]",
+          )}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-[var(--order-ink,#121A16)]">
+              {carriedOver.length === 1
+                ? "1 order is still open from an earlier day"
+                : `${carriedOver.length} orders are still open from an earlier day`}
+            </p>
+            <p className="mt-0.5 text-[13px] text-[color-mix(in_srgb,var(--order-ink,#121A16)_74%,transparent)]">
+              Settle or close them if yesterday is done, or leave them if the table is genuinely still
+              running. They keep counting against the day they were opened.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setCarriedDismissed(toISODate(new Date(now)))}
+          >
+            Got it
+          </Button>
+        </section>
+      ) : null}
 
       {stale ? (
         <p role="alert" className={cn(DASHBOARD_SECTION_SURFACE, "mb-2 text-sm font-semibold text-red-700")}>
@@ -293,11 +423,31 @@ export function FloorScreen(rights: FloorRights) {
         <div className={cn(DASHBOARD_TABLE_SURFACE, "grid grid-cols-[minmax(0,1fr)] lg:grid-cols-12")}>
           {/* The room: every table, by the part of the restaurant it stands in. */}
           <div className="lg:col-span-8 xl:col-span-9">
-          <div className={cn("flex flex-wrap gap-x-4 gap-y-1 border-b px-4 py-2.5 text-[12px] sm:px-5", FLOOR_RULE)}>
-            <span className="text-[#1D4B3B]">{tally.seated} seated</span>
-            {tally.attention > 0 ? <span className="text-[#8f3f2f]">{tally.attention} need someone</span> : null}
-            {tally.booked > 0 ? <span>{tally.booked} booked</span> : null}
-            <span className="text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">{tally.free} free</span>
+          <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-4 py-2.5 text-[12px] sm:px-5", FLOOR_RULE)}>
+            <FloorChip
+              label="seated"
+              count={tally.seated}
+              tone="forest"
+              active={floorFilter === "seated"}
+              onToggle={() => setFloorFilter((f) => (f === "seated" ? "all" : "seated"))}
+            />
+            {tally.attention > 0 ? (
+              <FloorChip
+                label="need someone"
+                count={tally.attention}
+                tone="terracotta"
+                active={floorFilter === "attention"}
+                onToggle={() => setFloorFilter((f) => (f === "attention" ? "all" : "attention"))}
+              />
+            ) : null}
+            {tally.booked > 0 ? <span className="px-1 text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">{tally.booked} booked</span> : null}
+            <FloorChip
+              label="free"
+              count={tally.free}
+              tone="muted"
+              active={floorFilter === "free"}
+              onToggle={() => setFloorFilter((f) => (f === "free" ? "all" : "free"))}
+            />
             {takings ? (
               <Link
                 href={APP_ROUTES.restaurantReports}
@@ -329,8 +479,11 @@ export function FloorScreen(rights: FloorRights) {
                   const attn = first ? needsSomeone(first) : false;
                   const booked = Boolean(first?.booked) && busy.length === 0;
                   const takenToday = takenByTable.get(table.id) ?? 0;
+                  // A filter dims the tables it excludes rather than hiding them, so the room keeps
+                  // its shape and a seated table never vanishes mid-service.
+                  const dimmed = floorFilter !== "all" && tableStatus(orders) !== floorFilter;
                   return (
-                    <li key={table.id}>
+                    <li key={table.id} className={cn(dimmed && "opacity-35 transition-opacity")}>
                       <button
                         type="button"
                         disabled={!first && !rights.canTakeOrders}
@@ -350,11 +503,6 @@ export function FloorScreen(rights: FloorRights) {
                         )}
                         onClick={() => (first ? setOpenId(first.orderId) : setSeating(table))}
                       >
-                        {/* Attention gets a terracotta spine down the left: the floor's first read. */}
-                        {attn ? (
-                          <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-[#8f3f2f]" />
-                        ) : null}
-
                         <span className="flex items-center justify-between gap-1.5">
                           <span className="min-w-0 truncate text-sm font-semibold leading-none text-[var(--op-ink,#121A16)]">
                             {table.name}

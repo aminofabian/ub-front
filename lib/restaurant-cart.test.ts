@@ -10,6 +10,9 @@ import {
   elapsedLabel,
   groupsFor,
   priceSelection,
+  ticketUrgency,
+  TICKET_LATE_MINUTES,
+  TICKET_SLOW_MINUTES,
   selectionProblem,
   tileState,
   toggleOption,
@@ -180,6 +183,30 @@ describe("waiting time", () => {
     expect(elapsedLabel(sent, at(4))).toBe("4 min");
     expect(elapsedLabel(sent, at(65))).toBe("1 h 05 min");
     expect(elapsedLabel(sent, at(-3))).toBe("now");
+  });
+});
+
+describe("ticket urgency", () => {
+  const sent = "2026-11-15T09:00:00Z";
+  const at = (m: number) => Date.parse(sent) + m * 60000;
+
+  test("a fresh ticket is ok", () => {
+    expect(ticketUrgency(sent, at(0))).toBe("ok");
+    expect(ticketUrgency(sent, at(TICKET_SLOW_MINUTES - 1))).toBe("ok");
+  });
+
+  test("turns slow at the slow threshold", () => {
+    expect(ticketUrgency(sent, at(TICKET_SLOW_MINUTES))).toBe("slow");
+    expect(ticketUrgency(sent, at(TICKET_LATE_MINUTES - 1))).toBe("slow");
+  });
+
+  test("turns late at the late threshold and stays late", () => {
+    expect(ticketUrgency(sent, at(TICKET_LATE_MINUTES))).toBe("late");
+    expect(ticketUrgency(sent, at(60 * 40))).toBe("late"); // a 40-hour stale ticket
+  });
+
+  test("a clock skew into the past is not urgent", () => {
+    expect(ticketUrgency(sent, at(-5))).toBe("ok");
   });
 });
 

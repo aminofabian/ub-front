@@ -198,6 +198,26 @@ export function elapsedLabel(fromIso: string, now: number): string {
 }
 
 /**
+ * How long a kitchen ticket may sit before it needs attention, in minutes. A ticket past
+ * {@link TICKET_SLOW_MINUTES} is running behind; past {@link TICKET_LATE_MINUTES} it is late and
+ * should stand out on the board. These are deliberately plain numbers to tune later; a real kitchen
+ * could make them per-station one day.
+ */
+export const TICKET_SLOW_MINUTES = 15;
+export const TICKET_LATE_MINUTES = 30;
+
+export type TicketUrgency = "ok" | "slow" | "late";
+
+/** The urgency of a ticket from how long it has been waiting (see the threshold constants). */
+export function ticketUrgency(fromIso: string, now: number): TicketUrgency {
+  const minutes = (now - Date.parse(fromIso)) / 60000;
+  if (!Number.isFinite(minutes)) return "ok";
+  if (minutes >= TICKET_LATE_MINUTES) return "late";
+  if (minutes >= TICKET_SLOW_MINUTES) return "slow";
+  return "ok";
+}
+
+/**
  * The notes a customer is likely to hand over for a total: the exact amount, then the next
  * round figures above it. Up to four, smallest first; none for an empty order.
  */

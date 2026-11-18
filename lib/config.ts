@@ -45,6 +45,7 @@ export const APP_ROUTES = {
   superAdminPlatformSignup: "/super-admin/platform/signup",
   superAdminPlatformMediaStorage: "/super-admin/platform/media-storage",
   superAdminPlatformBranding: "/super-admin/platform/branding",
+  superAdminPlatformBusinessTypes: "/super-admin/platform/business-types",
   superAdminPlatformSmsCredits: "/super-admin/platform/sms-credits",
   superAdminPlatformSubscription: "/super-admin/platform/subscription",
   superAdminPlatformSokoMind: "/super-admin/platform/sokomind",
@@ -397,6 +398,9 @@ export const API_ROUTES = {
   superAdminPlatformMediaStorage: "/api/v1/super-admin/platform/media-storage",
   superAdminPlatformAuth: "/api/v1/super-admin/platform/auth",
   superAdminPlatformBranding: "/api/v1/super-admin/platform/branding",
+  superAdminPlatformBusinessTypes: "/api/v1/super-admin/platform/business-types",
+  /** Public, merged, enabled-only business-type catalogue (ADR 0029) — onboarding, hub, storefront. */
+  publicBusinessTypes: "/api/v1/public/business-types",
   superAdminPlatformSokoMind: "/api/v1/super-admin/platform/sokomind",
   superAdminPlatformDomains: "/api/v1/super-admin/platform/domains",
   superAdminPlatformDomainsCoolifyDiagnose:

@@ -4,6 +4,7 @@ import {
   type CloudinarySignature,
   type MediaUploadResult,
 } from "@/lib/api";
+import type { BusinessType } from "@/lib/business-types-api";
 import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { recordOpsClientError } from "@/lib/ops-client-log";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
@@ -1808,6 +1809,48 @@ export async function uploadPlatformEmailLogo(
 export async function clearPlatformEmailLogo(): Promise<PlatformBrandingSettingsRecord> {
   return saRequest<PlatformBrandingSettingsRecord>(
     `${API_ROUTES.superAdminPlatformBranding}/email-logo`,
+    { method: "DELETE" },
+  );
+}
+
+// --- Business-type catalogue (ADR 0029) ---
+
+/**
+ * The full catalogue for the Super Admin editor — includes hidden ({@code enabled=false}) types so
+ * they can be re-enabled. The code is a fixed enum and is not editable here.
+ */
+export async function fetchBusinessTypesForAdmin(): Promise<BusinessType[]> {
+  return saRequest<BusinessType[]>(API_ROUTES.superAdminPlatformBusinessTypes);
+}
+
+export async function updateBusinessType(
+  code: string,
+  body: {
+    label: string;
+    hint: string | null;
+    section: string;
+    displayOrder: number;
+    enabled: boolean;
+  },
+): Promise<BusinessType> {
+  return saRequest<BusinessType>(
+    `${API_ROUTES.superAdminPlatformBusinessTypes}/${encodeURIComponent(code)}`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export async function uploadBusinessTypeImage(code: string, file: File): Promise<BusinessType> {
+  const form = new FormData();
+  form.append("file", file);
+  return saRequest<BusinessType>(
+    `${API_ROUTES.superAdminPlatformBusinessTypes}/${encodeURIComponent(code)}/image`,
+    { method: "POST", body: form },
+  );
+}
+
+export async function clearBusinessTypeImage(code: string): Promise<BusinessType> {
+  return saRequest<BusinessType>(
+    `${API_ROUTES.superAdminPlatformBusinessTypes}/${encodeURIComponent(code)}/image`,
     { method: "DELETE" },
   );
 }

@@ -115,6 +115,7 @@ const SEARCH_PAGES: { href: string; label: string }[] = [
   { href: APP_ROUTES.superAdminPlatformSubscription, label: "Subscriptions" },
   { href: APP_ROUTES.superAdminAdoptions, label: "Adoptions" },
   { href: APP_ROUTES.superAdminCampaigns, label: "Campaigns" },
+  { href: APP_ROUTES.superAdminPlatformBusinessTypes, label: "Business types" },
   { href: APP_ROUTES.superAdminMessages, label: "Messages" },
   { href: APP_ROUTES.superAdminSupport, label: "Support" },
   { href: APP_ROUTES.superAdminServing, label: "Serving" },
@@ -380,6 +381,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
               <NavItem href={APP_ROUTES.superAdminPlatformWhatsApp} label="WhatsApp numbers" />
               <NavItem href={APP_ROUTES.superAdminPlatformMediaStorage} label="Media storage" />
               <NavItem href={APP_ROUTES.superAdminPlatformBranding} label="Branding" />
+              <NavItem href={APP_ROUTES.superAdminPlatformBusinessTypes} label="Business types" />
               <NavItem href={APP_ROUTES.superAdminPlatformSmsCredits} label="SMS credits & limits" />
               <NavItem href={APP_ROUTES.superAdminPlatformSokoMind} label="SokoMind" />
               <NavGroupLabel>Ops</NavGroupLabel>

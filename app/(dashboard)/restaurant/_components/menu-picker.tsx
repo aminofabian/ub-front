@@ -136,7 +136,7 @@ export function MenuPicker({
                 disabled={!state.canRing}
                 className={cn(
                   MENU_TILE,
-                  "relative flex flex-col justify-between gap-2",
+                  "group/tile relative flex flex-col justify-between gap-2",
                   pictures && "overflow-hidden",
                   count > 0 && MENU_TILE_ON,
                 )}
@@ -146,25 +146,38 @@ export function MenuPicker({
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "-mx-3 -mt-2 block h-20 overflow-hidden border-b",
+                      "-mx-3 -mt-2 block h-[6.5rem] overflow-hidden border-b",
                       INK_RULE,
                       "bg-[color-mix(in_srgb,var(--order-ink,#121A16)_5%,transparent)]",
                     )}
                   >
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element -- a till tile; no layout shift to manage, and it must work offline from cache
-                      <img src={item.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-safe:group-hover/tile:scale-[1.04]"
+                      />
                     ) : (
-                      <span className="grid h-full place-items-center font-serif text-3xl italic text-[color-mix(in_srgb,var(--order-ink,#121A16)_28%,transparent)]">
+                      <span className="grid h-full place-items-center font-serif text-4xl italic text-[color-mix(in_srgb,var(--order-ink,#121A16)_24%,transparent)]">
                         {item.name.trim().charAt(0).toUpperCase()}
                       </span>
                     )}
                   </span>
                 ) : null}
-                <span className={cn("block text-[15px] font-semibold leading-snug", !pictures && "pr-7")}>{item.name}</span>
                 <span
                   className={cn(
-                    "block font-mono text-sm tabular-nums",
+                    "block font-semibold leading-snug tracking-[-0.01em]",
+                    pictures ? "text-sm" : "text-[15px] pr-7",
+                  )}
+                >
+                  {item.name}
+                </span>
+                <span
+                  className={cn(
+                    "mt-auto block font-mono text-sm tabular-nums",
                     state.reason
                       ? "text-[var(--kiosk-highlight,#A55237)]"
                       : "text-[color-mix(in_srgb,var(--order-ink,#121A16)_72%,transparent)]",
@@ -179,8 +192,17 @@ export function MenuPicker({
                 ) : null}
                 {count > 0 ? (
                   <span
+                    // Keyed on count so each add re-pops the badge — the one authored moment in the
+                    // flow, the acknowledgement that the dish landed. Reduced motion gets no pop.
+                    key={count}
                     aria-label={`${count} on this order`}
-                    className="absolute right-2 top-2 min-w-6 rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-1.5 py-0.5 text-center font-mono text-xs font-semibold tabular-nums text-[var(--pos-on-primary,#F4F1EA)]"
+                    className={cn(
+                      "absolute right-2 top-2 min-w-6 rounded-[2px] px-1.5 py-0.5 text-center font-mono text-xs font-semibold tabular-nums",
+                      "bg-[var(--pos-primary,#1D4B3B)] text-[var(--pos-on-primary,#F4F1EA)]",
+                      // Over a photo, a hairline ring keeps the chip crisp against a busy image.
+                      pictures && "ring-1 ring-[color-mix(in_srgb,#FCFAF5_60%,transparent)]",
+                      "motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    )}
                   >
                     {count}
                   </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { getBusinessStoreTypes } from "@/lib/business-store-type";
@@ -156,6 +156,7 @@ export function OrderSheet({
   const [choosing, setChoosing] = useState<MenuItemRecord | null>(null);
   const [seat, setSeat] = useState(0);
   const [paying, setPaying] = useState<OrderBillRecord | null>(null);
+  const [settlingAll, setSettlingAll] = useState(false);
   const [splitting, setSplitting] = useState(false);
   const [moving, setMoving] = useState(false);
   const [joining, setJoining] = useState<OrderCardRecord[] | null>(null);
@@ -211,7 +212,7 @@ export function OrderSheet({
   }
 
   // Kitchen progress arrives by polling; a dialog being open pauses nothing but is not interrupted.
-  useRestaurantLive(() => void load(), 6000, !busy && paying == null && !splitting);
+  useRestaurantLive(() => void load(), 6000, !busy && paying == null && !settlingAll && !splitting);
 
   /** Runs one change to the order and shows its result, or says plainly why it was refused. */
   async function act(run: () => Promise<OpenOrderRecord>, fallback: string): Promise<boolean> {
@@ -510,11 +511,21 @@ export function OrderSheet({
             hasUnsent={unsent.length > 0}
             onAct={act}
             onPay={setPaying}
+            onSettleAll={() => setSettlingAll(true)}
             onSplit={() => setSplitting(true)}
           />
         </div>
 
-        <section className={cn(DASHBOARD_SECTION_SURFACE, "content-start")} aria-label="On this order">
+        <section
+          className={cn(
+            DASHBOARD_SECTION_SURFACE,
+            "content-start",
+            // On a wide screen the running order follows you down a long menu, so the total and the
+            // send action stay in reach without scrolling back up.
+            "lg:sticky lg:top-2 lg:max-h-[calc(100dvh-1rem)] lg:overflow-y-auto",
+          )}
+          aria-label="On this order"
+        >
           <h2 className={dashboardLabelClass()}>On this order</h2>
           {order.lines.length === 0 ? (
             <p className={cn("mt-2", dashboardHintClass())}>
@@ -678,6 +689,17 @@ export function OrderSheet({
             setOrder(updated);
           }}
           onChanged={() => void load()}
+        />
+      ) : null}
+      {settlingAll ? (
+        <SettleAllDialog
+          order={order}
+          onClose={() => setSettlingAll(false)}
+          onDone={(updated) => {
+            setSettlingAll(false);
+            if (updated) setOrder(updated);
+            void load();
+          }}
         />
       ) : null}
       {splitting ? (
@@ -849,6 +871,7 @@ function BillsSection({
   hasUnsent,
   onAct,
   onPay,
+  onSettleAll,
   onSplit,
 }: {
   order: OpenOrderRecord;
@@ -859,6 +882,7 @@ function BillsSection({
   hasUnsent: boolean;
   onAct: (run: () => Promise<OpenOrderRecord>, fallback: string) => Promise<boolean>;
   onPay: (bill: OrderBillRecord) => void;
+  onSettleAll: () => void;
   onSplit: () => void;
 }) {
   const [printProblem, setPrintProblem] = useState<string | null>(null);
@@ -866,6 +890,12 @@ function BillsSection({
   const open = order.status === "pending" && !order.booked;
   const canBill = open && (rights.canTakeOrders || rights.canTakeMoney);
   if (order.bills.length === 0 && (!canBill || order.total <= 0)) return null;
+
+  // "Settle the table": the open bills, paid one after another. Only worth offering when more than
+  // one is open — a single open bill already has its own Take payment button.
+  const openBills = order.bills.filter((b) => b.status === "OPEN");
+  const openTotal = openBills.reduce((sum, b) => sum + b.toPay, 0);
+  const canSettleAll = open && rights.canTakeMoney && openBills.length > 1;
 
   function close(bill: OrderBillRecord, outcome: "COMP" | "UNPAID") {
     setAsking({
@@ -893,7 +923,14 @@ function BillsSection({
   return (
     <section className={DASHBOARD_SECTION_SURFACE} aria-label="Bills">
       {asking ? <ReasonDialog request={asking} onClose={() => setAsking(null)} /> : null}
-      <h2 className={dashboardLabelClass()}>Bills</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className={dashboardLabelClass()}>Bills</h2>
+        {canSettleAll ? (
+          <Button size="sm" disabled={busy} onClick={onSettleAll}>
+            Settle table · {kes(openTotal)}
+          </Button>
+        ) : null}
+      </div>
       {printProblem ? (
         <p role="alert" className="text-sm text-red-700">
           {printProblem}
@@ -932,8 +969,10 @@ function BillsSection({
                   <Button variant="outline" size="sm" disabled={busy} onClick={() => void printBill(bill)}>
                     Print bill
                   </Button>
+                  {/* Tear up / on the house / left unpaid are the quiet closing actions: ghost weight,
+                      set apart from the safe Print so a destructive tap is never the loud one. */}
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     disabled={busy}
                     onClick={() => void onAct(() => discardBill(order.id, bill.id), "The bill was not removed. Try again.")}
@@ -1408,6 +1447,142 @@ function PayDialog({
                   ? `Take last ${kes(due)}`
                   : `Take share ${kes(due)}`
                 : `Take ${kes(toPay)}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Settle a whole table at once: every open bill is paid, one after another, by the single method
+ * chosen here (the usual case — the table pays together, cash or M-Pesa). Each bill is still its own
+ * sale, so this is the per-bill payment run back to back, not one merged sale. A bill that is split
+ * person-by-person, or paid part-cash-part-M-Pesa, still uses its own Take payment button.
+ */
+function SettleAllDialog({
+  order,
+  onClose,
+  onDone,
+}: {
+  order: OpenOrderRecord;
+  onClose: () => void;
+  onDone: (updated: OpenOrderRecord | null) => void;
+}) {
+  const openBills = useMemo(
+    () => order.bills.filter((b) => b.status === "OPEN"),
+    [order.bills],
+  );
+  const total = openBills.reduce((sum, b) => sum + b.toPay, 0);
+  const [method, setMethod] = useState<"cash" | "mpesa_manual">("cash");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const TAB =
+    "min-h-11 flex-1 rounded-[2px] border px-2 text-sm font-semibold border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]";
+  const TAB_ON = "border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,transparent)]";
+
+  async function settle() {
+    setError(null);
+    setBusy(true);
+    let last: OpenOrderRecord | null = null;
+    let settled = 0;
+    try {
+      // One at a time, oldest bill first: each is its own sale, and stopping on the first failure
+      // leaves a clear "settled N of M" rather than a half-finished parallel mess.
+      for (const bill of openBills) {
+        last = await payBill(order.id, bill.id, {
+          payments: [{ method, amount: bill.toPay }],
+          clientSoldAt: new Date().toISOString(),
+        });
+        settled += 1;
+        setDone(settled);
+      }
+      onDone(last);
+    } catch (e) {
+      setError(
+        `${message(e, "A bill was not paid.")} ${settled} of ${openBills.length} bills were settled; the rest are still open.`,
+      );
+      // Refresh so the already-paid bills show as paid and the staff can retry the rest.
+      onDone(last);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => (o || busy ? undefined : onClose())}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Settle the table · {kes(total)}</DialogTitle>
+          <DialogDescription>
+            {openBills.length} open bills, paid one after another. Each is its own sale and receipt.
+            For a split or part-cash payment, use a bill’s own Take payment instead.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3">
+          <ul className="grid gap-0.5 text-sm">
+            {openBills.map((b) => (
+              <li key={b.id} className="flex justify-between">
+                <span>Bill {b.billNo}</span>
+                <span className="font-mono tabular-nums">{kes(b.toPay)}</span>
+              </li>
+            ))}
+            <li className="flex justify-between border-t pt-1 font-semibold">
+              <span>To pay</span>
+              <span className="font-mono tabular-nums">{kes(total)}</span>
+            </li>
+          </ul>
+
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How the table is paying">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={method === "cash"}
+              disabled={busy}
+              className={cn(TAB, method === "cash" && TAB_ON)}
+              onClick={() => setMethod("cash")}
+            >
+              Cash
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={method === "mpesa_manual"}
+              disabled={busy}
+              className={cn(TAB, method === "mpesa_manual" && TAB_ON)}
+              onClick={() => setMethod("mpesa_manual")}
+            >
+              M-Pesa
+            </button>
+          </div>
+
+          {method === "mpesa_manual" ? (
+            <p className={dashboardHintClass()}>
+              No M-Pesa code is recorded against these bills. To keep a code for each, pay them one by
+              one with Take payment instead.
+            </p>
+          ) : null}
+          {busy ? (
+            <p className={dashboardHintClass()} role="status">
+              Settling bill {Math.min(done + 1, openBills.length)} of {openBills.length}…
+            </p>
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" disabled={busy} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={busy || openBills.length === 0} onClick={() => void settle()}>
+            Take {kes(total)}
           </Button>
         </DialogFooter>
       </DialogContent>
