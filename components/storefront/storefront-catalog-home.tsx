@@ -310,6 +310,7 @@ export async function StorefrontCatalogHome({
         />
         <Landing
           templateId={landingTemplateId}
+          slug={slug}
           storeName={storeName}
           logoUrl={resolveLogoForTemplate(
             { logoUrl, logoDarkUrl },
@@ -320,6 +321,7 @@ export async function StorefrontCatalogHome({
           accentHex={accentHex}
           landingContent={tenant?.landingContent ?? null}
           catalogItems={list?.items ?? []}
+          catalogCursor={list?.nextCursor ?? null}
           featured={featured}
           categories={categories}
           types={types}

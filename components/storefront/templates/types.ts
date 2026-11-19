@@ -55,8 +55,11 @@ export type LandingTemplateProps = {
   accentHex?: string | null;
   landingContent?: LandingContent | null;
   templateId: string;
+  slug?: string | null;
   catalogItems?: PublicCatalogItemCard[];
   featured?: PublicCatalogItemCard[];
+  /** Cursor for the next public catalog page after `catalogItems`. */
+  catalogCursor?: string | null;
   categories?: PublicCategory[];
   types?: PublicDepartment[];
   currency?: string | null;

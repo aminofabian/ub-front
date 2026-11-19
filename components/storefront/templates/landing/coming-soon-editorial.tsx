@@ -31,6 +31,11 @@ export function ComingSoonEditorialLanding(props: LandingTemplateProps) {
         paysWithMpesa={paysWithMpesa(props.currency, props.countryCode)}
         content={content}
         landingContent={props.landingContent ?? null}
+        slug={props.slug ?? null}
+        catalogItems={props.catalogItems}
+        featured={props.featured}
+        catalogCursor={props.catalogCursor ?? null}
+        totalCount={props.totalCount ?? null}
       />
     </div>
   );

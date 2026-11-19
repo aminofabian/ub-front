@@ -121,6 +121,32 @@
   color: var(--ink);
 }
 
+.staffDoor {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.45rem 0.15rem;
+  color: var(--green);
+  text-decoration: none;
+  border-bottom: 1px solid var(--green);
+}
+
+.staffDoorTitle {
+  font-size: 0.94rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.staffDoorDetail {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.staffDoor:hover .staffDoorTitle {
+  color: #084428;
+}
+
 .navCta,
 .primary,
 .secondary,
@@ -408,6 +434,53 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.skeleton {
+  border: 1px solid var(--line);
+  background: #fff;
+  animation: shelfPulse 1.4s ease-in-out infinite;
+}
+
+.skeletonBand {
+  height: 6.5rem;
+  background: #efebe2;
+}
+
+.skeletonBody {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0.9rem 1rem;
+}
+
+.skeletonLine {
+  height: 0.7rem;
+  background: #efebe2;
+}
+
+.skeletonLineShort {
+  width: 42%;
+}
+
+.shelfNote {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.shelfNote button {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .card {
@@ -996,8 +1069,19 @@
   }
 }
 
+@keyframes shelfPulse {
+  0%,
+  100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .slip {
+  .slip,
+  .skeleton {
     animation: none;
+  }
+
+  .skeleton {
+    opacity: 0.72;
   }
 }

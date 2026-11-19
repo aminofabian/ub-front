@@ -6,15 +6,18 @@ import { Clock, MapPin, MessageCircle, Minus, Plus, Smartphone } from "lucide-re
 
 import { inter } from "@/app/fonts/inter";
 import { ComingSoonOrderSlip } from "@/components/storefront/coming-soon-order-slip";
+import { ComingSoonStaffDoor } from "@/components/storefront/coming-soon-staff-door";
 import { LandingAccountAction } from "@/components/storefront/templates/landing/shared";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
+import { useComingSoonCatalog } from "@/hooks/use-coming-soon-catalog";
 import { ComingSoonOrderProvider, useComingSoonOrder } from "@/hooks/use-coming-soon-order";
 import { useComingSoonStaff } from "@/hooks/use-coming-soon-staff";
 import {
   openStorefrontFromLanding,
   saveComingSoonPhoto,
 } from "@/lib/coming-soon-landing-edit";
-import type { ComingSoonEditorialContent } from "@/lib/coming-soon-editorial";
+import type { ComingSoonEditorialContent, ComingSoonShelfItem } from "@/lib/coming-soon-editorial";
+import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { buildComingSoonTheme } from "@/lib/coming-soon-theme";
 import {
   COMING_SOON_PHOTO_FIELDS,
@@ -44,6 +47,8 @@ const TILE_TONES = [
   { bg: "#EFE9DC", fg: "#4F4631" },
 ] as const;
 
+const SKELETON_KEYS = ["a", "b", "c", "d"] as const;
+
 const PHOTO_NOUN: Record<ComingSoonPhotoSlot, string> = {
   cover: "cover photo",
   story: "story photo",
@@ -59,6 +64,11 @@ export type ShopStorefrontComingSoonProps = {
   paysWithMpesa?: boolean;
   content: ComingSoonEditorialContent;
   landingContent?: LandingContent | null;
+  slug?: string | null;
+  catalogItems?: readonly PublicCatalogItemCard[];
+  featured?: readonly PublicCatalogItemCard[];
+  catalogCursor?: string | null;
+  totalCount?: number | null;
 };
 
 export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
@@ -111,6 +121,7 @@ export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
               story={showStory}
               visit={showVisit}
             />
+            <ComingSoonStaffDoor />
             <LandingAccountAction className={styles.account} />
             <ListNavButton />
             {showHow && props.content.contactHref ? (
@@ -133,7 +144,17 @@ export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
         landing={landing}
         onPhoto={onPhoto}
       />
-      {props.content.shelf.length > 0 ? <Shelf content={props.content} /> : null}
+      {props.content.shelf.length > 0 ? (
+        <Shelf
+          content={props.content}
+          slug={props.slug ?? null}
+          catalogItems={props.catalogItems}
+          featured={props.featured}
+          currency={props.currency ?? null}
+          nextCursor={props.catalogCursor ?? null}
+          totalCount={props.totalCount ?? null}
+        />
+      ) : null}
       {showHow ? <HowItWorks place={props.content.footerPlace} /> : null}
       {props.content.services.length > 0 ? (
         <ServiceList services={props.content.services} />
@@ -485,12 +506,43 @@ function HeroOrderAction({ href }: { href: string | null }) {
   return <ShopContact href={href} label="Order on WhatsApp" kind="secondary" />;
 }
 
-function Shelf({ content }: { content: ComingSoonEditorialContent }) {
+function Shelf({
+  content,
+  slug,
+  catalogItems,
+  featured,
+  currency,
+  nextCursor,
+  totalCount,
+}: {
+  content: ComingSoonEditorialContent;
+  slug: string | null;
+  catalogItems?: readonly PublicCatalogItemCard[];
+  featured?: readonly PublicCatalogItemCard[];
+  currency: string | null;
+  nextCursor: string | null;
+  totalCount: number | null;
+}) {
   const order = useComingSoonOrder();
-  const count = content.chips.find((chip) => chip.kind === "products")?.label;
+  const catalog = useComingSoonCatalog({
+    slug,
+    currency,
+    catalogItems,
+    featured,
+    fallback: content.shelf,
+    nextCursor,
+    totalCount,
+  });
+  const chip = content.chips.find((item) => item.kind === "products")?.label;
+  const count = catalog.countLabel ?? chip;
   const canOrder = Boolean(content.contactHref?.startsWith("http"));
   return (
-    <section id={SHELF_ID} className={styles.block} aria-labelledby="shelf-heading">
+    <section
+      id={SHELF_ID}
+      className={styles.block}
+      aria-labelledby="shelf-heading"
+      aria-busy={catalog.loading}
+    >
       <div className={styles.blockHead}>
         <h2 id="shelf-heading">In the shop</h2>
         {count ? <p className={styles.count}>{count}</p> : null}
@@ -503,50 +555,133 @@ function Shelf({ content }: { content: ComingSoonEditorialContent }) {
         </ul>
       ) : null}
       <ul className={styles.grid}>
-        {content.shelf.map((item, index) => {
-          const tone = TILE_TONES[index % TILE_TONES.length];
-          const qty = order.quantityOf(item.id);
-          return (
-            <li key={item.id}>
-              <article className={cn(styles.card, qty > 0 && styles.cardOnList)}>
-                {item.imageUrl ? (
-                  <div className={styles.cardPhoto}>
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.imageAlt}
-                      fill
-                      sizes="280px"
-                      className={styles.cover}
-                      unoptimized
-                    />
-                    {qty > 0 ? <span className={styles.qtyStamp}>{qty}</span> : null}
-                  </div>
-                ) : (
-                  <div className={styles.cardFace} style={{ background: tone.bg, color: tone.fg }}>
-                    <h3 className={styles.faceName}>{item.name}</h3>
-                    {qty > 0 ? <span className={styles.qtyStamp}>{qty}</span> : null}
-                  </div>
-                )}
-                <div className={styles.cardBody}>
-                  {item.imageUrl ? <h3 className={styles.cardName}>{item.name}</h3> : null}
-                  <div className={styles.cardRow}>
-                    {item.price ? <span className={styles.cardPrice}>{item.price}</span> : <span />}
-                    <ShelfOrderControl
-                      item={item}
-                      quantity={qty}
-                      enabled={canOrder}
-                      onAdd={() => order.add(item)}
-                      onSet={(next) => order.setQuantity(item.id, next)}
-                    />
-                  </div>
-                </div>
-              </article>
-            </li>
-          );
-        })}
+        {catalog.items.map((item, index) => (
+          <ShelfCard
+            key={item.id}
+            item={item}
+            tone={TILE_TONES[index % TILE_TONES.length]}
+            quantity={order.quantityOf(item.id)}
+            canOrder={canOrder}
+            onAdd={() => order.add(item)}
+            onSet={(next) => order.setQuantity(item.id, next)}
+          />
+        ))}
+        {catalog.loading ? <ShelfSkeletons /> : null}
+        {catalog.hasMore ? <li ref={catalog.sentinelRef} className={styles.sentinel} /> : null}
       </ul>
+      <ShelfStatus
+        failed={catalog.failed}
+        hasMore={catalog.hasMore}
+        watchesScroll={catalog.watchesScroll}
+        onRetry={() => void catalog.loadMore()}
+      />
     </section>
   );
+}
+
+function ShelfCard({
+  item,
+  tone,
+  quantity,
+  canOrder,
+  onAdd,
+  onSet,
+}: {
+  item: ComingSoonShelfItem;
+  tone: (typeof TILE_TONES)[number];
+  quantity: number;
+  canOrder: boolean;
+  onAdd: () => void;
+  onSet: (quantity: number) => void;
+}) {
+  return (
+    <li>
+      <article className={cn(styles.card, quantity > 0 && styles.cardOnList)}>
+        {item.imageUrl ? (
+          <div className={styles.cardPhoto}>
+            <Image
+              src={item.imageUrl}
+              alt={item.imageAlt}
+              fill
+              sizes="280px"
+              className={styles.cover}
+              unoptimized
+            />
+            {quantity > 0 ? <span className={styles.qtyStamp}>{quantity}</span> : null}
+          </div>
+        ) : (
+          <div className={styles.cardFace} style={{ background: tone.bg, color: tone.fg }}>
+            <h3 className={styles.faceName}>{item.name}</h3>
+            {quantity > 0 ? <span className={styles.qtyStamp}>{quantity}</span> : null}
+          </div>
+        )}
+        <div className={styles.cardBody}>
+          {item.imageUrl ? <h3 className={styles.cardName}>{item.name}</h3> : null}
+          <div className={styles.cardRow}>
+            {item.price ? <span className={styles.cardPrice}>{item.price}</span> : <span />}
+            <ShelfOrderControl
+              item={item}
+              quantity={quantity}
+              enabled={canOrder}
+              onAdd={onAdd}
+              onSet={onSet}
+            />
+          </div>
+        </div>
+      </article>
+    </li>
+  );
+}
+
+function ShelfSkeletons() {
+  return (
+    <>
+      {SKELETON_KEYS.map((key) => (
+        <li key={key} aria-hidden="true">
+          <div className={styles.skeleton}>
+            <div className={styles.skeletonBand} />
+            <div className={styles.skeletonBody}>
+              <div className={styles.skeletonLine} />
+              <div className={cn(styles.skeletonLine, styles.skeletonLineShort)} />
+            </div>
+          </div>
+        </li>
+      ))}
+    </>
+  );
+}
+
+function ShelfStatus({
+  failed,
+  hasMore,
+  watchesScroll,
+  onRetry,
+}: {
+  failed: boolean;
+  hasMore: boolean;
+  watchesScroll: boolean;
+  onRetry: () => void;
+}) {
+  if (failed) {
+    return (
+      <p className={styles.shelfNote}>
+        The rest of the shelf did not load.{" "}
+        <button type="button" onClick={onRetry}>
+          Try again
+        </button>
+      </p>
+    );
+  }
+  if (hasMore && !watchesScroll) {
+    return (
+      <p className={styles.shelfNote}>
+        <button type="button" onClick={onRetry}>
+          Load the rest
+        </button>
+      </p>
+    );
+  }
+  return null;
 }
 
 function HowItWorks({ place }: { place: string | null }) {

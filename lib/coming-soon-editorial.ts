@@ -626,6 +626,20 @@ function toShelfItem(
   };
 }
 
+/** Catalog cards for the shop grid. Drops names that are not real products. */
+export function comingSoonShelfFromCards(
+  items: readonly PublicCatalogItemCard[],
+  currency: string | null | undefined,
+): ComingSoonShelfItem[] {
+  const out: ComingSoonShelfItem[] = [];
+  for (const item of items) {
+    const shelf = toShelfItem(item, currency ?? null);
+    if (!shelf.name) continue;
+    out.push(shelf);
+  }
+  return out;
+}
+
 function mapServices(
   services: readonly ComingSoonServiceInput[] | null | undefined,
   currency: string | null,
