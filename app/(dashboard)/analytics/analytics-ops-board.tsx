@@ -103,6 +103,16 @@ function MobileEmpty({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LedgerCheck() {
+  return (
+    <Check
+      className="size-4 shrink-0 text-[var(--pos-primary,#0f766e)]"
+      strokeWidth={2.25}
+      aria-hidden
+    />
+  );
+}
+
 function StatusMark({
   tone,
   children,
@@ -210,7 +220,8 @@ export function AnalyticsOpsBoard({
       .slice(0, 5)
       .map((row) => ({
         key: row.paymentId,
-        type: row.mpesaVerified === false ? "Unverified M-Pesa" : "Open tender",
+        type: row.mpesaVerified === false ? "" : "Open tender",
+        checked: row.mpesaVerified === false,
         detail: `${formatPaymentMethodLabel(row.method)} · ${row.customerName || row.cashierName || "Sale"}`,
         amount: toNum(row.amount),
         when: row.soldAt,
@@ -221,6 +232,7 @@ export function AnalyticsOpsBoard({
       .map((t) => ({
         key: `tab-${t.customerId}`,
         type: "Suspended tab",
+        checked: false,
         detail: t.name,
         amount: toNum(t.balanceOwed),
         when: "",
@@ -556,10 +568,19 @@ export function AnalyticsOpsBoard({
                   className="flex items-start justify-between gap-3 px-3 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold">{row.type}</p>
-                    <p className="mt-0.5 truncate text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                      {row.detail}
-                    </p>
+                    {row.checked ? (
+                      <p className="flex min-w-0 items-center gap-1.5 text-[14px] font-semibold">
+                        <LedgerCheck />
+                        <span className="truncate">{row.detail}</span>
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-[14px] font-semibold">{row.type}</p>
+                        <p className="mt-0.5 truncate text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                          {row.detail}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <p className="shrink-0 text-[15px] font-semibold tabular-nums">
                     {money(row.amount)}
@@ -587,7 +608,9 @@ export function AnalyticsOpsBoard({
                       key={row.key}
                       className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] last:border-0"
                     >
-                      <td className="px-3 py-2">{row.type}</td>
+                      <td className="px-3 py-2">
+                        {row.checked ? <LedgerCheck /> : row.type}
+                      </td>
                       <td className="max-w-[12rem] truncate px-3 py-2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
                         {row.detail}
                       </td>
