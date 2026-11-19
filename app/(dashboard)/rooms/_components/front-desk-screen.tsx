@@ -46,6 +46,7 @@ import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
 
 import { OrderSheet } from "../../restaurant/floor/_components/order-sheet";
+import { RoomMaintenancePanel } from "./room-maintenance-panel";
 import { type FloorRights } from "../../restaurant/floor/_components/floor-screen";
 import { NoBranch } from "../../restaurant/_components/no-branch";
 import { OpenForTheDay } from "../../restaurant/_components/open-for-the-day";
@@ -398,6 +399,14 @@ function RoomTile({
             ) : null}
             {room.cleanerName ? <span className="truncate">· {room.cleanerName}</span> : null}
           </div>
+        ) : null}
+
+        {/* Open maintenance issues outlive the housekeeping note, so the desk always sees them. */}
+        {room.openIssueCount > 0 ? (
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[color-mix(in_srgb,#8f3f2f_12%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[#8f3f2f]">
+            <Wrench className="size-3 shrink-0" aria-hidden />
+            {room.openIssueCount} open {room.openIssueCount === 1 ? "issue" : "issues"}
+          </span>
         ) : null}
 
         {booked.map((s) => (
@@ -1056,6 +1065,19 @@ function ManageRoomsDrawer({
                   ) : null}
                 </div>
               ) : null}
+              <RoomMaintenancePanel
+                room={r}
+                cleaners={cleaners}
+                busy={busy}
+                setBusy={setBusy}
+                setError={setError}
+                onAfterChange={async () => {
+                  // Raising/closing an issue can flip the room's housekeeping + issue count; refresh.
+                  const fresh = await fetchRooms(branchId).catch(() => null);
+                  if (fresh) setRows(fresh);
+                  onChanged();
+                }}
+              />
             </li>
           ))}
         </ul>

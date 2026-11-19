@@ -1,6 +1,6 @@
 "use client";
 
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getCloudinarySignature, uploadToCloudinary } from "@/lib/api";
 import { API_ROUTES } from "@/lib/config";
 import {
   openOrder,
@@ -45,6 +45,27 @@ export type RoomRecord = {
   cleanerStaffProfileId: string | null;
   /** That cleaner's display name, or null. */
   cleanerName: string | null;
+  /** How many maintenance issues on this room are not yet done (ADR 0030 Phase 2). */
+  openIssueCount: number;
+};
+
+/** Where a maintenance issue is in its life (ADR 0030 Phase 2). */
+export type MaintenanceStatus = "OPEN" | "IN_PROGRESS" | "DONE";
+
+/** A maintenance issue on a room — a persistent ticket that outlives the housekeeping flag. */
+export type MaintenanceIssueRecord = {
+  id: string;
+  roomId: string;
+  roomName: string | null;
+  description: string;
+  status: MaintenanceStatus;
+  /** A photo of the fault (a stored URL), or null. */
+  photoUrl: string | null;
+  assignedStaffProfileId: string | null;
+  /** The assignee's display name, or null. */
+  assignedName: string | null;
+  openedAt: string;
+  closedAt: string | null;
 };
 
 /** A room type: the rate card for a category of room (ADR 0030). */
@@ -109,6 +130,54 @@ export async function setRoomHousekeeping(
 /** Assign a room to a type (its rate card), or clear it with a null id (ADR 0030). */
 export async function setRoomType(id: string, roomTypeId: string | null): Promise<RoomRecord> {
   return apiRequest<RoomRecord>(`${base}/${id}/type`, { method: "PATCH", body: { roomTypeId } });
+}
+
+// ---------------------------------------------------------------- maintenance issues (ADR 0030 Phase 2)
+
+type MaintenanceIssueList = { branchId: string; issues: MaintenanceIssueRecord[] };
+
+/** Raise a maintenance issue on a room; it takes the room out of service (MAINTENANCE). */
+export async function raiseRoomIssue(
+  roomId: string,
+  body: { description: string; photoUrl?: string; assignedStaffProfileId?: string },
+): Promise<MaintenanceIssueRecord> {
+  return apiRequest<MaintenanceIssueRecord>(`${base}/${roomId}/issues`, { method: "POST", body });
+}
+
+/** A room's maintenance history, newest first. */
+export async function fetchRoomIssues(roomId: string): Promise<MaintenanceIssueRecord[]> {
+  const res = await apiRequest<MaintenanceIssueList>(`${base}/${roomId}/issues`, { toast: false });
+  return res.issues;
+}
+
+/** Every open maintenance issue at a branch (openOnly=true), or the full list. */
+export async function fetchBranchIssues(branchId: string, openOnly = true): Promise<MaintenanceIssueRecord[]> {
+  const res = await apiRequest<MaintenanceIssueList>(
+    `${base}/issues?branchId=${encodeURIComponent(branchId)}&openOnly=${openOnly}`,
+    { toast: false },
+  );
+  return res.issues;
+}
+
+/** Upload a photo of a fault and return its stored URL (reuses the shared media path). */
+export async function uploadRoomIssuePhoto(file: File, businessId: string): Promise<string> {
+  const sig = await getCloudinarySignature(`ub/${businessId}/rooms/maintenance`);
+  const result = await uploadToCloudinary(file, sig);
+  return result.secure_url;
+}
+
+/** Move an issue's status, (re)assign it, or set/clear its photo. A field left out is unchanged. */
+export async function updateRoomIssue(
+  issueId: string,
+  body: {
+    status?: MaintenanceStatus;
+    assignedStaffProfileId?: string;
+    photoUrl?: string;
+    clearAssignee?: boolean;
+    clearPhoto?: boolean;
+  },
+): Promise<MaintenanceIssueRecord> {
+  return apiRequest<MaintenanceIssueRecord>(`${base}/issues/${issueId}`, { method: "PATCH", body });
 }
 
 // ---------------------------------------------------------------- room types (rate cards)

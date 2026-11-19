@@ -12334,6 +12334,58 @@ export interface paths {
         patch: operations["setRoomType"];
         trace?: never;
     };
+    "/api/v1/rooms/{roomId}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A room's maintenance history, newest first (ADR 0030 Phase 2). */
+        get: operations["roomIssues"];
+        put?: never;
+        /** @description Raise a maintenance issue on a room; it moves the room to MAINTENANCE and is kept as history (ADR 0030 Phase 2). */
+        post: operations["openRoomIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Maintenance issues at a branch — open (not-yet-done) only by default (ADR 0030 Phase 2). */
+        get: operations["branchIssues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/issues/{issueId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Move an issue's status, (re)assign it, or set/clear its photo (ADR 0030 Phase 2). */
+        patch: operations["updateRoomIssue"];
+        trace?: never;
+    };
     "/api/v1/rooms/types": {
         parameters: {
             query?: never;
@@ -24650,6 +24702,11 @@ export interface components {
             cleanerStaffProfileId?: string;
             /** @description That cleaner's display name, resolved; null when none or since left. */
             cleanerName?: string;
+            /**
+             * Format: int32
+             * @description How many maintenance issues on this room are not yet done (ADR 0030 Phase 2).
+             */
+            openIssueCount?: number;
         };
         HousekeepingRequest: {
             /** @enum {string} */
@@ -24658,6 +24715,41 @@ export interface components {
             note?: string;
             clearCleaner?: boolean;
             clearNote?: boolean;
+        };
+        /** @description Raise a maintenance issue on a room (ADR 0030 Phase 2). */
+        MaintenanceIssueRequest: {
+            description: string;
+            photoUrl?: string;
+            assignedStaffProfileId?: string;
+        };
+        /** @description Move an issue's status, (re)assign it, or set/clear its photo. */
+        MaintenanceIssueUpdate: {
+            /** @enum {string} */
+            status?: "OPEN" | "IN_PROGRESS" | "DONE";
+            assignedStaffProfileId?: string;
+            photoUrl?: string;
+            clearAssignee?: boolean;
+            clearPhoto?: boolean;
+        };
+        MaintenanceIssueResponse: {
+            id?: string;
+            roomId?: string;
+            roomName?: string;
+            description?: string;
+            /** @description OPEN, IN_PROGRESS or DONE. */
+            status?: string;
+            photoUrl?: string;
+            assignedStaffProfileId?: string;
+            /** @description The assignee's display name, resolved; null when none or since left. */
+            assignedName?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            /** Format: date-time */
+            closedAt?: string;
+        };
+        MaintenanceIssueListResponse: {
+            branchId?: string;
+            issues?: components["schemas"]["MaintenanceIssueResponse"][];
         };
         RoomTypeResponse: {
             id?: string;
@@ -58665,6 +58757,103 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    roomIssues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MaintenanceIssueListResponse"];
+                };
+            };
+        };
+    };
+    openRoomIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceIssueRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MaintenanceIssueResponse"];
+                };
+            };
+        };
+    };
+    branchIssues: {
+        parameters: {
+            query: {
+                branchId: string;
+                openOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MaintenanceIssueListResponse"];
+                };
+            };
+        };
+    };
+    updateRoomIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceIssueUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MaintenanceIssueResponse"];
                 };
             };
         };
