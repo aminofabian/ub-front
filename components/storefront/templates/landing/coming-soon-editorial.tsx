@@ -27,9 +27,17 @@ export function ComingSoonEditorialLanding(props: LandingTemplateProps) {
         logoUrl={props.logoUrl}
         primaryHex={props.primaryHex}
         accentHex={props.accentHex}
+        currency={props.currency}
+        paysWithMpesa={paysWithMpesa(props.currency, props.countryCode)}
         content={content}
         landingContent={props.landingContent ?? null}
       />
     </div>
   );
+}
+
+function paysWithMpesa(currency?: string | null, countryCode?: string | null): boolean {
+  const code = currency?.trim().toUpperCase() ?? "";
+  const country = countryCode?.trim().toUpperCase() ?? "";
+  return code === "KES" || country === "KE";
 }
