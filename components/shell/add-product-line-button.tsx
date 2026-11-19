@@ -23,12 +23,12 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * The inline "give this shop a product line" affordance at the foot of the icon rail (ADR 0031 nav
- * cleanup). A bar, kinyozi or guest house doesn't sell goods, so its sidebar carries no Products or
- * Stock — but a bar often also sells crisps and cigarettes, a salon toiletries. This turns that
- * sideline on in place: it adds a general retail format to the business's formats (the same change
- * the Business formats editor makes), after which the retail sidebar appears. Shown only to someone
- * who can manage settings, and only while the shop has no goods format yet.
+ * The inline "give this shop a product line" affordance at the foot of the icon rail. A restaurant
+ * or a service shop does not sell goods until it says so, so its sidebar carries no Products —
+ * but a bar often also sells crisps and cigarettes, a salon toiletries. This turns that sideline
+ * on in place: it adds a general retail format to the business's formats (the same change the
+ * Business formats editor makes), after which Products appears. Shown only to someone who can
+ * manage settings, and only while products are still off.
  */
 export function AddProductLineButton() {
   const { refreshSession, business } = useDashboard();

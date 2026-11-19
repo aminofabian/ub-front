@@ -7,46 +7,58 @@ import {
   sellsGoodsStoreTypes,
 } from "./business-store-type";
 
-const business = (storeTypes: string[]) => ({ profile: { storeTypes } });
+const business = (
+  storeTypes: string[],
+  sellsProducts?: boolean,
+) => ({
+  profile: { storeTypes },
+  onboarding:
+    sellsProducts === undefined ? undefined : { answers: { sellsProducts } },
+});
 
-describe("sells goods — the retail-sidebar gate (ADR 0031 nav cleanup)", () => {
-  test("a plain retail shop always sells goods", () => {
+describe("sells goods — who sees Products in the sidebar", () => {
+  test("a mini-mart, a shop, or an unclassified business always shows products", () => {
     expect(sellsGoodsBusiness(business(["mini-mart"]))).toBe(true);
+    expect(sellsGoodsBusiness(business(["full-grocery"]))).toBe(true);
     expect(sellsGoodsBusiness(business(["pharmacy"]))).toBe(true);
     expect(sellsGoodsBusiness(business(["butchery"]))).toBe(true);
     expect(sellsGoodsBusiness(business(["wines-spirits"]))).toBe(true);
-    // "other" is an unclassified shop — it keeps the retail sidebar it had.
+    expect(sellsGoodsBusiness(business(["mixed-shop"]))).toBe(true);
+    // "other" and a shop that never picked a format keep the retail sidebar.
     expect(sellsGoodsBusiness(business(["other"]))).toBe(true);
+    expect(sellsGoodsBusiness(business([]))).toBe(true);
+    expect(sellsGoodsBusiness(null)).toBe(true);
+    expect(sellsGoodsStoreTypes(undefined)).toBe(true);
+    // A guest house sells from a shelf unless it is also a restaurant or a service.
+    expect(sellsGoodsBusiness(business(["lodging"]))).toBe(true);
   });
 
-  test("a bar, kinyozi or guest house does not sell goods on its own", () => {
+  test("a restaurant or a service shop hides products until they are turned on", () => {
     expect(sellsGoodsBusiness(business(["bar"]))).toBe(false);
     expect(sellsGoodsBusiness(business(["restaurant"]))).toBe(false);
+    expect(sellsGoodsBusiness(business(["cafe"]))).toBe(false);
+    expect(sellsGoodsBusiness(business(["fast-food"]))).toBe(false);
     expect(sellsGoodsBusiness(business(["barbershop"]))).toBe(false);
     expect(sellsGoodsBusiness(business(["salon", "spa"]))).toBe(false);
-    expect(sellsGoodsBusiness(business(["lodging"]))).toBe(false);
+    // Rooms above a bar do not bring the shelf back.
     expect(sellsGoodsBusiness(business(["bar", "lodging"]))).toBe(false);
     expect(sellsGoodsBusiness(business(["restaurant", "bar", "lodging"]))).toBe(false);
+    expect(sellsGoodsBusiness(business(["restaurant", "salon"]))).toBe(false);
   });
 
-  test("adding a retail line flips the gate on — the opt-in path", () => {
-    // What AddProductLineButton does: append the default goods format.
+  test("turning products on brings the sidebar back", () => {
     expect(sellsGoodsBusiness(business(["bar", DEFAULT_GOODS_STORE_TYPE]))).toBe(true);
     expect(sellsGoodsBusiness(business(["salon", "cosmetics"]))).toBe(true);
     expect(sellsGoodsBusiness(business(["lodging", "mini-mart"]))).toBe(true);
-    // The default is itself a goods format, so the opt-in always works.
+    expect(sellsGoodsBusiness(business(["restaurant"], true))).toBe(true);
+    expect(sellsGoodsBusiness(business(["barbershop"], true))).toBe(true);
+    expect(sellsGoodsBusiness(business(["restaurant"], false))).toBe(false);
     expect((GOODS_STORE_TYPES as readonly string[]).includes(DEFAULT_GOODS_STORE_TYPE)).toBe(true);
   });
 
-  test("no formats means no goods (and no crash)", () => {
-    expect(sellsGoodsBusiness(business([]))).toBe(false);
-    expect(sellsGoodsBusiness(null)).toBe(false);
-    expect(sellsGoodsStoreTypes(undefined)).toBe(false);
-  });
-
-  test("a goods format and a food/service format are not mutually exclusive", () => {
-    // The whole point: a food-led shop can also sell goods once it opts in.
+  test("a goods format and a food or service format are not mutually exclusive", () => {
     expect(sellsGoodsStoreTypes(["bar", "mixed-shop"])).toBe(true);
+    expect(sellsGoodsStoreTypes(["cafe", "mini-mart"])).toBe(true);
     expect(sellsGoodsStoreTypes(["bar"])).toBe(false);
   });
 });

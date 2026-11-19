@@ -53,9 +53,10 @@ export const LODGING_STORE_TYPES: readonly StoreTypeId[] = ["lodging"];
 /**
  * Shop formats that sell physical goods off a shelf: a mini-mart, a butchery, a pharmacy, a
  * wines-and-spirits shop. These are the formats whose day is Products → Stock → the retail till.
- * A service, food or lodging business is <em>not</em> a goods seller by its nature; it becomes one
- * only by also picking one of these (the "sell products" sideline — see {@link sellsGoodsBusiness}).
- * {@code "other"} counts as a goods format: an unclassified shop keeps the retail sidebar it had.
+ * A restaurant or a service shop is not a goods seller until it also picks one of these, or answers
+ * that it sells products (see {@link sellsGoodsBusiness}). Every other shop — a mini-mart, a mixed
+ * shop, a guest house, one that has not picked a format — keeps Products in the sidebar.
+ * {@code "other"} counts as a goods format.
  */
 export const GOODS_STORE_TYPES: readonly StoreTypeId[] = [
   "butchery",
@@ -101,6 +102,8 @@ type StoreTypeSource = {
     answers?: {
       storeType?: string | null;
       storeTypes?: string[] | null;
+      /** Restaurant setup: "yes, we also sell packaged goods." */
+      sellsProducts?: boolean | null;
     } | null;
   } | null;
 };
@@ -316,27 +319,37 @@ export function isButcheryBusiness(
   return getBusinessStoreTypes(source).includes("butchery");
 }
 
+const PRODUCTS_HIDDEN_UNTIL_ENABLED: ReadonlySet<string> = new Set([
+  ...FOOD_STORE_TYPES,
+  ...SERVICE_STORE_TYPES,
+]);
+
 /**
- * True when the business sells physical goods off a shelf — it has at least one goods format
- * (see {@link GOODS_STORE_TYPES}). A plain retail shop always is. A food, service or lodging
- * business is one only if it has also opted into a retail sideline (added a goods format via the
- * "Add a product line" rail control / Business formats). This is the single gate for the retail
- * sidebar — Products, Stock, shelf prices, the retail till — in a non-retail shop.
+ * True when the sidebar should include Products. A mini-mart, a shop, a guest house, and a
+ * business that has not picked a format all keep it. A restaurant or a service shop hides it
+ * until it also has a goods format (the "sell products" sideline). Lodging does not hide it;
+ * a bar that also lets rooms still hides it, because the bar is a food format.
  */
 export function sellsGoodsStoreTypes(
   storeTypes: readonly string[] | null | undefined,
 ): boolean {
-  return (
-    Array.isArray(storeTypes) &&
-    storeTypes.some((type) => (GOODS_STORE_TYPES as readonly string[]).includes(type))
+  if (!storeTypes?.length) return true;
+  const deciding = storeTypes.filter(
+    (type) => !(LODGING_STORE_TYPES as readonly string[]).includes(type),
   );
+  if (deciding.length === 0) return true;
+  if (deciding.some((type) => (GOODS_STORE_TYPES as readonly string[]).includes(type))) {
+    return true;
+  }
+  return !deciding.every((type) => PRODUCTS_HIDDEN_UNTIL_ENABLED.has(type));
 }
 
-/** Business form of {@link sellsGoodsStoreTypes}. */
+/** Business form of {@link sellsGoodsStoreTypes}. A saved "we also sell products" answer counts. */
 export function sellsGoodsBusiness(
   source: StoreTypeSource | null | undefined,
 ): boolean {
-  return sellsGoodsStoreTypes(getBusinessStoreTypes(source));
+  if (sellsGoodsStoreTypes(getBusinessStoreTypes(source))) return true;
+  return source?.onboarding?.answers?.sellsProducts === true;
 }
 
 /**

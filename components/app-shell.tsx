@@ -745,10 +745,10 @@ const DESKTOP_ONLY_NAV_HREFS: readonly string[] = [APP_ROUTES.desktopSettings];
 
 /**
  * Pages that only make sense for a business that sells goods off a shelf — the retail catalogue,
- * shelf prices, the retail till, storefront product orders. A food, service or lodging shop that
- * has not opted into a product line never sees these (ADR 0031 nav cleanup). A plain retail shop,
- * or one that turned a product line on, always does. Pages shared with a kitchen (Buying, Stock
- * counts, suppliers) are deliberately NOT here — a restaurant still buys and counts what it cooks.
+ * shelf prices, the retail till, storefront product orders. A restaurant or a service shop that
+ * has not turned products on never sees these. A mini-mart, any other shop, and a shop that has
+ * not picked a format always does. Pages shared with a kitchen (Buying, Stock counts, suppliers)
+ * are deliberately NOT here — a restaurant still buys and counts what it cooks.
  */
 const GOODS_ONLY_NAV_HREFS: readonly string[] = [
   APP_ROUTES.products,
@@ -777,9 +777,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return false;
   }
 
-  // A shop that does not sell goods (a bar, kinyozi or guest house with no product line) hides the
-  // retail catalogue, shelf prices and the retail till. Opting into a product line flips sellsGoods
-  // on and they return. Pages shared with a kitchen (Buying, Stock) are not gated here.
+  // A restaurant or a service shop with products still off hides the retail catalogue, shelf
+  // prices and the retail till. Turning products on flips sellsGoods and they return. A mini-mart
+  // or any other shop always keeps them. Pages shared with a kitchen (Buying, Stock) are not gated here.
   if (!gate.sellsGoods && GOODS_ONLY_NAV_HREFS.includes(item.href)) {
     return false;
   }
@@ -1357,31 +1357,35 @@ export function AppShell({ children }: AppShellProps) {
     canViewSuppliers &&
     (canWriteSuppliersDelegated || canLinkSupplierProductsDelegated);
 
-  // Service screens are off on the desktop app, so its sidebar stays the full one.
-  const serviceOnlyShop = isServiceOnlyBusiness(business) && !IS_DESKTOP;
+  // Mini-marts and other shops always sell goods. A restaurant or service shop does only once it
+  // turns products on — until then its sidebar is the floor or the chairs, not the shelf.
+  const productSidebar = sellsGoodsBusiness(business);
+  // Service screens are off on the desktop app, so its sidebar stays the full one. Once products
+  // are on, the shelf comes back and the service-only trim no longer removes it.
+  const serviceOnlyShop = isServiceOnlyBusiness(business) && !productSidebar && !IS_DESKTOP;
   // A restaurant, café, fast-food counter or bar: its bottom bar leads to the floor, the kitchen
   // and the counter, where a product shop's leads to shelves and the retail till.
-  const foodOnlyShop = isFoodOnlyBusiness(business) && !IS_DESKTOP;
+  const foodOnlyShop = isFoodOnlyBusiness(business) && !productSidebar && !IS_DESKTOP;
   // A tenant that lets rooms works from the front desk, so pull it up the rail (not into leftovers).
   const lodgingShop = isLodgingBusiness(business) && !IS_DESKTOP;
   // Food-led: a bar or restaurant whether or not it also lets rooms (ADR 0031). Lodging is an add-on,
-  // so a bar-with-rooms still gets the food sidebar, not the full retail one. Drives nav trimming and
-  // the rail lead; the floor-vs-counter home below stays on the stricter food-only read.
-  const foodLedShop = isFoodLedBusiness(business) && !IS_DESKTOP;
+  // so a bar-with-rooms still gets the food sidebar, not the full retail one — until it turns
+  // products on. Drives nav trimming and the rail lead.
+  const foodLedShop = isFoodLedBusiness(business) && !productSidebar && !IS_DESKTOP;
   // A restaurant or bar seats people, so its home is the floor; a café or counter pays first.
   const foodTableService = foodLedShop && isTableServiceBusiness(business);
   const canTakeRestaurantOrders = hasPermission(me?.permissions, Permission.RestaurantOrdersWrite);
   const canWorkRestaurantKitchen = hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate);
-  // A bar, kinyozi or guest house with no product line can add one from the rail. Offered only to
-  // someone who can manage settings, only in the cloud (the desktop sidebar always has retail), and
-  // only once the shop has no goods format — a plain retail shop never sees it. Restricted operator
-  // roles (cashier, clerk) run a flat rail and never manage formats, so they never see it either.
+  // A restaurant or a service shop with products still off can add them from the rail. Offered only
+  // to someone who can manage settings, only in the cloud (the desktop sidebar always has retail),
+  // and only while products are hidden. A mini-mart never sees it. Restricted operator roles
+  // (cashier, clerk) run a flat rail and never manage formats, so they never see it either.
   const canManageFormats = isOwner || canManageBusinessSettings;
   const showAddProductLine =
     !IS_DESKTOP &&
     canManageFormats &&
-    !sellsGoodsBusiness(business) &&
-    (isFoodBusiness(business) || isServiceBusiness(business) || isLodgingBusiness(business));
+    !productSidebar &&
+    (isFoodBusiness(business) || isServiceBusiness(business));
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
@@ -1396,9 +1400,9 @@ export function AppShell({ children }: AppShellProps) {
       isFoodBusiness: isFoodBusiness(business) && !IS_DESKTOP,
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
       // On the desktop app the full retail sidebar always stands (service/food screens are off there),
-      // so never let a desktop tenant lose the catalogue. In the cloud, a shop sells goods when it has
-      // a retail format — a plain shop always; a food/service/lodging shop only once it opts in.
-      sellsGoods: IS_DESKTOP || sellsGoodsBusiness(business),
+      // so never let a desktop tenant lose the catalogue. In the cloud, mini-marts and other shops
+      // always have it; a restaurant or a service shop gets it once products are turned on.
+      sellsGoods: IS_DESKTOP || productSidebar,
       canManageMenu: hasPermission(me?.permissions, Permission.RestaurantMenuManage),
       canWorkKitchen: hasPermission(me?.permissions, Permission.RestaurantKitchenUpdate),
       canTakeOrders: hasPermission(me?.permissions, Permission.RestaurantOrdersWrite),
@@ -1488,6 +1492,7 @@ export function AppShell({ children }: AppShellProps) {
     foodOnlyShop,
     foodLedShop,
     foodTableService,
+    productSidebar,
     business,
     me?.permissions,
     mergedFeatureFlags,
@@ -1926,13 +1931,14 @@ export function AppShell({ children }: AppShellProps) {
       // A shop with no product line drops the retail tabs the rail already hides — Products, and the
       // retail-till "Sell". A food/service shop keeps its remapped Floor/Counter tab (that tab's href
       // is no longer a retail route after the remap above), so only a true goods tab falls away.
-      if (sellsGoodsBusiness(business) || IS_DESKTOP) return true;
+      if (productSidebar || IS_DESKTOP) return true;
       if (!tab.href) return true;
       return !GOODS_ONLY_NAV_HREFS.includes(tab.href);
     });
   }, [
     me,
     business,
+    productSidebar,
     canViewSuppliers,
     supplierToolsEnabled,
     canAddSupplies,
