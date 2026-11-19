@@ -40,9 +40,9 @@ export function parseShelfAmount(price: string): number | null {
 }
 
 export function addOrderLine(
-  lines: readonly ComingSoonOrderLine[],
+  lines: ComingSoonOrderLine[],
   draft: ComingSoonOrderDraft,
-): readonly ComingSoonOrderLine[] {
+): ComingSoonOrderLine[] {
   const id = draft.id.trim();
   const name = draft.name.trim();
   if (!id || !name) return lines;
@@ -62,10 +62,10 @@ export function addOrderLine(
 }
 
 export function setOrderQuantity(
-  lines: readonly ComingSoonOrderLine[],
+  lines: ComingSoonOrderLine[],
   id: string,
   quantity: number,
-): readonly ComingSoonOrderLine[] {
+): ComingSoonOrderLine[] {
   const qty = Math.round(quantity);
   if (!Number.isFinite(qty) || qty <= 0) {
     return lines.filter((line) => line.id !== id);
