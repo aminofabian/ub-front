@@ -5,7 +5,6 @@ import { useRef, useState, type ReactNode } from "react";
 
 import { LandingAccountAction } from "@/components/storefront/templates/landing/shared";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
-import { pickReadableTextColor } from "@/lib/branding-color-presets";
 import { useComingSoonStaff } from "@/hooks/use-coming-soon-staff";
 import {
   openStorefrontFromLanding,
@@ -61,7 +60,6 @@ export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
   };
 
   const manager = staff === "manager";
-  const plateGrounds = [theme.darkBg, theme.darkBgMid, theme.primaryDeep, theme.primary];
   const showStory = Boolean(
     photos.story || props.content.storyTitle || props.content.storyBody || props.content.storyQuote,
   );
@@ -69,8 +67,7 @@ export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
     photos.visit ||
       props.content.address ||
       props.content.hours ||
-      props.content.visitTitle ||
-      props.content.contactHref,
+      props.content.visitTitle,
   );
 
   return (
@@ -101,9 +98,7 @@ export function ShopStorefrontComingSoon(props: ShopStorefrontComingSoonProps) {
         landing={landing}
         onPhoto={onPhoto}
       />
-      {props.content.shelf.length > 0 ? (
-        <Shelf content={props.content} grounds={plateGrounds} />
-      ) : null}
+      {props.content.shelf.length > 0 ? <Shelf content={props.content} /> : null}
       {props.content.services.length > 0 ? (
         <ServiceList services={props.content.services} />
       ) : null}
@@ -323,6 +318,7 @@ function Hero({
 }) {
   const action = content.ctaLabel || content.contactLabel;
   const shopNamed = content.headline.mode === "shop";
+  const title = shopNamed ? content.displayName : content.headline.lines.join(" ");
   return (
     <section aria-label={content.displayName}>
       {photos.hero ? (
@@ -331,29 +327,16 @@ function Hero({
             <PhotoActions slot="cover" url={photos.hero} landing={landing} compact onPhoto={onPhoto} />
           ) : null}
         </PhotoFrame>
-      ) : (
-        <div className={styles.heroSign}>
-          {shopNamed ? (
-            <h1 className={styles.heroSignWord}>{content.displayName}</h1>
-          ) : (
-            <p className={styles.heroSignWord}>{content.displayName}</p>
-          )}
-        </div>
-      )}
-      <div className={styles.heroSheet}>
-        {photos.hero || !shopNamed ? (
-          <h1 className={styles.title}>{content.headline.lines.join(" ")}</h1>
-        ) : null}
+      ) : null}
+      <div className={cn(styles.heroSheet, photos.hero && styles.heroSheetOverlap)}>
+        <h1 className={styles.title}>{title}</h1>
         <p className={styles.lede}>{content.description}</p>
         {content.chips.length > 0 ? (
-          <p className={styles.facts}>
-            {content.chips.map((chip, index) => (
-              <span key={chip.kind} className={styles.fact}>
-                {index > 0 ? "· " : ""}
-                {chip.label}
-              </span>
+          <ul className={styles.facts}>
+            {content.chips.map((chip) => (
+              <li key={chip.kind}>{chip.label}</li>
             ))}
-          </p>
+          </ul>
         ) : null}
         {content.contactHref && action ? (
           <ShopContact href={content.contactHref} label={action} />
@@ -363,13 +346,7 @@ function Hero({
   );
 }
 
-function Shelf({
-  content,
-  grounds,
-}: {
-  content: ComingSoonEditorialContent;
-  grounds: readonly string[];
-}) {
+function Shelf({ content }: { content: ComingSoonEditorialContent }) {
   const count = content.chips.find((chip) => chip.kind === "products")?.label;
   return (
     <section id={SHELF_ID} className={styles.block} aria-labelledby="shelf-heading">
@@ -379,28 +356,31 @@ function Shelf({
       </div>
       <ul className={styles.film}>
         {content.shelf.map((item) => (
-          <li key={item.id} className={styles.filmItem}>
-            <div className={styles.filmPhoto}>
-              {item.imageUrl ? (
+          <li key={item.id} className={cn(styles.filmItem, item.imageUrl && styles.filmItemPhoto)}>
+            {item.imageUrl ? (
+              <div className={styles.filmPhoto}>
                 <Image
                   src={item.imageUrl}
                   alt={item.imageAlt}
                   fill
-                  sizes="220px"
+                  sizes="72px"
                   className={styles.cover}
                   unoptimized
                 />
-              ) : (
-                <CatalogPlate name={item.name} id={item.id} grounds={grounds} />
-              )}
-            </div>
-            {item.imageUrl ? <p className={styles.filmName}>{item.name}</p> : null}
+              </div>
+            ) : null}
+            <p className={styles.filmName}>{item.name}</p>
+            {item.price ? <span className={styles.leader} aria-hidden /> : null}
             {item.price ? <p className={styles.filmPrice}>{item.price}</p> : null}
           </li>
         ))}
       </ul>
       {content.collectionNames.length > 0 ? (
-        <p className={styles.collections}>{content.collectionNames.join("  ·  ")}</p>
+        <ul className={styles.collections}>
+          {content.collectionNames.map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );
@@ -518,7 +498,7 @@ function Visit({
         {content.address && content.address !== heading ? <p>{content.address}</p> : null}
         {content.hours && content.hours !== heading ? <p>{content.hours}</p> : null}
         {content.contactHref && action ? (
-          <ShopContact href={content.contactHref} label={action} onDark />
+          <ShopContact href={content.contactHref} label={action} />
         ) : null}
       </div>
       {photo ? (
@@ -535,32 +515,6 @@ function Visit({
       ) : null}
     </section>
   );
-}
-
-function CatalogPlate({
-  name,
-  id,
-  grounds,
-}: {
-  name: string;
-  id: string;
-  grounds: readonly string[];
-}) {
-  const ground = grounds[plateIndex(id, grounds.length)] ?? grounds[0];
-  const ink = ground ? pickReadableTextColor(ground) : undefined;
-  return (
-    <span className={styles.plate} style={{ background: ground, color: ink }}>
-      <span className={styles.plateRule} />
-      <span className={styles.plateName}>{name}</span>
-    </span>
-  );
-}
-
-function plateIndex(id: string, count: number): number {
-  if (count <= 1) return 0;
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i) * (i + 1)) % 2147483647;
-  return hash % count;
 }
 
 function PhotoFrame({
@@ -584,19 +538,11 @@ function PhotoFrame({
   );
 }
 
-function ShopContact({
-  href,
-  label,
-  onDark = false,
-}: {
-  href: string;
-  label: string;
-  onDark?: boolean;
-}) {
+function ShopContact({ href, label }: { href: string; label: string }) {
   const external = href.startsWith("http");
   return (
     <a
-      className={onDark ? styles.contactOnDark : styles.contact}
+      className={styles.contact}
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
     >
