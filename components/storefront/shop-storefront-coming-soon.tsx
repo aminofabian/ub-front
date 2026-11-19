@@ -202,7 +202,7 @@ function OrderFrame({
   return (
     <div
       id="top"
-      className={cn(className, order.lines.length > 0 && styles.pageWithList, order.open && styles.pageListOpen)}
+      className={cn(className, order.open && styles.pageListOpen)}
       style={style}
     >
       {children}
@@ -220,8 +220,10 @@ function ListNavButton() {
   return (
     <button
       type="button"
+      id="your-list-toggle"
       className={styles.listChip}
       aria-expanded={order.open}
+      aria-controls="your-list"
       onClick={() => order.setOpen(!order.open)}
     >
       Your list

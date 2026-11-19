@@ -7,27 +7,35 @@ import { useComingSoonOrder } from "@/hooks/use-coming-soon-order";
 import { lineAmount, type ComingSoonOrderLine } from "@/lib/coming-soon-order";
 import { formatMoney } from "@/lib/money";
 import { trackWhatsAppCheckoutEvent } from "@/lib/whatsapp-order";
-import { cn } from "@/lib/utils";
 
 export function ComingSoonOrderSlip() {
   const order = useComingSoonOrder();
-  if (order.lines.length === 0 || !order.sendHref) return null;
+  if (order.lines.length === 0 || !order.sendHref || !order.open) return null;
   return (
-    <section className={cn(styles.slip, order.open && styles.slipOpen)} aria-label="Your list">
-      <button
-        type="button"
-        className={styles.slipBar}
-        aria-expanded={order.open}
-        onClick={() => order.setOpen(!order.open)}
-      >
-        <span className={styles.slipLead}>
-          <span className={styles.slipTitle}>Your list</span>
-          <span className={styles.slipHint}>{order.summary}</span>
-        </span>
-        <span className={styles.slipTotal}>{order.totalLabel ?? `${order.itemCount}`}</span>
-      </button>
-      {order.open ? <SlipLines /> : null}
-      <div className={styles.slipActions}>
+    <section id="your-list" className={styles.slip} aria-label="Your list">
+      <div className={styles.slipBar}>
+        <p className={styles.slipTitle}>Your list</p>
+        <button
+          type="button"
+          className={styles.slipMinimize}
+          aria-label="Minimize"
+          onClick={() => {
+            order.setOpen(false);
+            document.getElementById("your-list-toggle")?.focus();
+          }}
+        >
+          <Minus size={16} strokeWidth={2} aria-hidden />
+        </button>
+        <p className={styles.slipHint}>{order.summary}</p>
+      </div>
+      <SlipLines />
+      <div className={styles.slipFoot}>
+        <p className={styles.slipTotal}>{order.totalLabel ?? `${order.itemCount}`}</p>
+        <p className={styles.slipNote}>
+          {order.totalLabel
+            ? "We confirm stock before you pay."
+            : "We'll confirm the total with stock."}
+        </p>
         <a
           className={styles.slipSend}
           href={order.sendHref}
@@ -42,11 +50,9 @@ export function ComingSoonOrderSlip() {
         >
           Send on WhatsApp
         </a>
-        {order.open ? (
-          <button type="button" className={styles.clearList} onClick={order.clear}>
-            Clear list
-          </button>
-        ) : null}
+        <button type="button" className={styles.clearList} onClick={order.clear}>
+          Clear list
+        </button>
       </div>
     </section>
   );
@@ -59,11 +65,6 @@ function SlipLines() {
       {order.lines.map((line) => (
         <SlipLine key={line.id} line={line} />
       ))}
-      <li className={styles.slipNote}>
-        {order.totalLabel
-          ? "We confirm stock before you pay."
-          : "We'll confirm the total with stock."}
-      </li>
     </ul>
   );
 }
@@ -92,7 +93,7 @@ function SlipLine({ line }: { line: ComingSoonOrderLine }) {
           <Plus size={16} strokeWidth={2} aria-hidden />
         </button>
       </span>
-      {price ? <span className={styles.slipPrice}>{price}</span> : null}
+      <span className={styles.slipPrice}>{price}</span>
     </li>
   );
 }
