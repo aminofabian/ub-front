@@ -1,4 +1,4 @@
-# Palmart Till Print Bridge for Windows 7 (PowerShell + .NET - no Node.js).
+# Kiosk Till Print Bridge for Windows 7 (PowerShell + .NET - no Node.js).
 # ASCII-only. Compatible with Windows PowerShell 2.0+.
 # Uses TcpListener (NOT HttpListener) so no netsh URL ACL / admin is required.
 # Listens on http://127.0.0.1:19500  (same API as the modern Node bridge)
@@ -111,7 +111,7 @@ function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
   }
   $tempRoot = [System.IO.Path]::GetTempPath()
   if (-not $tempRoot) { $tempRoot = $base }
-  $tmp = [System.IO.Path]::Combine($tempRoot, ("palmart-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
+  $tmp = [System.IO.Path]::Combine($tempRoot, ("kiosk-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
   [System.IO.File]::WriteAllBytes($tmp, $Bytes)
   try {
     & $helper -PrinterName $PrinterName -FilePath $tmp
@@ -330,7 +330,7 @@ try {
   $listener.Start()
 } catch {
   Write-BridgeLog ("FATAL: cannot bind 127.0.0.1:$Port - " + $_.Exception.Message)
-  Write-BridgeLog "Is another Palmart bridge already running? Check bridge.log / Task Manager for powershell."
+  Write-BridgeLog "Is another Kiosk bridge already running? Check bridge.log / Task Manager for powershell."
   exit 1
 }
 

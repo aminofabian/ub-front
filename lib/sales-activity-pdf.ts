@@ -179,7 +179,7 @@ function drawPageChrome(
   continued: boolean,
 ): number {
   const top = PAGE_H - MARGIN;
-  const business = truncate(input.businessLabel?.trim() || "Palmart", 42);
+  const business = truncate(input.businessLabel?.trim() || "Kiosk", 42);
 
   stream.text(MARGIN, top, business, { font: "bold", size: 11, color: C.ink });
   stream.textRight(PAGE_W - MARGIN, top, "Sales report", {
@@ -285,7 +285,7 @@ function drawFooter(page: PageLayout, businessLabel?: string | null) {
   stream.text(
     MARGIN,
     FOOTER_Y,
-    truncate(`${businessLabel?.trim() || "Palmart"} · Confidential`, 50),
+    truncate(`${businessLabel?.trim() || "Kiosk"} · Confidential`, 50),
     { size: 7, color: C.faint },
   );
   stream.textRight(PAGE_W - MARGIN, FOOTER_Y, `Page ${page.pageNo}`, {

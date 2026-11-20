@@ -1,15 +1,15 @@
-Palmart Till Print Bridge - Windows 7
+Kiosk Till Print Bridge - Windows 7
 =====================================
 
 This package is for Windows 7 only.
 It does NOT need Node.js (uses built-in PowerShell).
 
 1. Unzip this folder completely (keep all files together).
-2. Open the unzipped folder (e.g. palmart-till-print-bridge-windows7).
-3. Double-click: Install-Palmart-Print-Bridge-Win7.cmd
+2. Open the unzipped folder (e.g. kiosk-till-print-bridge-windows7).
+3. Double-click: Install-Kiosk-Print-Bridge-Win7.cmd
    (Allow SmartScreen / Run anyway if prompted)
    Do NOT copy only the .cmd into Downloads - the .ps1 files must stay beside it.
-4. Return to Palmart Cashier -> Printer -> Detect printers.
+4. Return to Kiosk Cashier -> Printer -> Detect printers.
 
 After install:
   - Bridge runs hidden in the background
@@ -27,4 +27,4 @@ If install says health check failed, run Command Prompt as Administrator:
 Then run the installer again.
 
 For Windows 10 / 11, use the normal Windows download instead
-(palmart-till-print-bridge-windows.zip).
+(kiosk-till-print-bridge-windows.zip).

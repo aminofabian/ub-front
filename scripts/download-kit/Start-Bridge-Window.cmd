@@ -7,7 +7,7 @@ set "BRIDGE=%~dp0till-print-bridge-windows.ps1"
 if not exist "%BRIDGE%" set "BRIDGE=%~dp0..\till-print-bridge-windows.ps1"
 if not exist "%BRIDGE%" (
   echo Missing till-print-bridge-windows.ps1
-  echo Run this from the unzipped palmart-till-print-bridge-windows folder.
+  echo Run this from the unzipped kiosk-till-print-bridge-windows folder.
   pause
   exit /b 1
 )

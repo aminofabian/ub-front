@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-11-18T10:03:24.139Z",
+  "generatedAt": "2026-11-20T04:52:16.626Z",
   "files": [
-    "palmart-till-print-bridge-macos.zip",
-    "palmart-till-print-bridge-windows.zip",
-    "Install-Palmart-Print-Bridge.cmd",
-    "palmart-till-print-bridge-linux.zip",
-    "palmart-till-print-bridge-windows7.zip"
+    "kiosk-till-print-bridge-macos.zip",
+    "kiosk-till-print-bridge-windows.zip",
+    "Install-Kiosk-Print-Bridge.cmd",
+    "kiosk-till-print-bridge-linux.zip",
+    "kiosk-till-print-bridge-windows7.zip"
   ],
-  "note": "Windows 10/11: run Install-Palmart-Print-Bridge.cmd (one file). Others: unzip, run the installer, then Detect printers in Cashier."
+  "note": "Windows 10/11: run Install-Kiosk-Print-Bridge.cmd (one file). Others: unzip, run the installer, then Detect printers in Cashier."
 }

@@ -1,4 +1,4 @@
-# Palmart Till Print Bridge for Windows 10 / 11 (PowerShell + .NET - no Node.js).
+# Kiosk Till Print Bridge for Windows 10 / 11 (PowerShell + .NET - no Node.js).
 # ASCII-only. Same HTTP API as the Win7 / Node bridges: http://127.0.0.1:19500
 # Uses TcpListener so no netsh URL ACL / admin is required.
 #
@@ -513,14 +513,14 @@ function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
   if (-not $base) { $base = [string](Get-Location).Path }
   $helper = Join-Path $base "windows-raw-print.ps1"
   if (-not (Test-Path -LiteralPath $helper)) {
-    throw ("Missing windows-raw-print.ps1 next to the bridge (" + $helper + "). Re-run Install-Palmart-Print-Bridge.cmd.")
+    throw ("Missing windows-raw-print.ps1 next to the bridge (" + $helper + "). Re-run Install-Kiosk-Print-Bridge.cmd.")
   }
   if ([string]::IsNullOrEmpty($PrinterName)) {
     throw "PrinterName is empty."
   }
   $tempRoot = [System.IO.Path]::GetTempPath()
   if (-not $tempRoot) { $tempRoot = $base }
-  $tmp = [System.IO.Path]::Combine($tempRoot, ("palmart-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
+  $tmp = [System.IO.Path]::Combine($tempRoot, ("kiosk-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
   [System.IO.File]::WriteAllBytes($tmp, $Bytes)
   try {
     & $helper -PrinterName $PrinterName -FilePath $tmp
@@ -802,6 +802,6 @@ try {
 } catch {
   Write-BridgeLog ("FATAL: " + $_.Exception.Message)
   try { Write-BridgeLog ([string]$_.ScriptStackTrace) } catch { }
-  Write-BridgeLog "If this PC blocked the script, Unblock-File the .ps1 or re-run Install-Palmart-Print-Bridge.cmd"
+  Write-BridgeLog "If this PC blocked the script, Unblock-File the .ps1 or re-run Install-Kiosk-Print-Bridge.cmd"
   exit 1
 }

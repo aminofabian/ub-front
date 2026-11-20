@@ -33,6 +33,8 @@ export type SyncableSupplyRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  /** Manufacturer's lot number; kept on the server draft line. */
+  lot?: string;
   description: string;
   suggestedItemId: string | null;
   /** qty × unit cost line total; null when row is not ready to sync. */
@@ -133,6 +135,7 @@ export function pathBLineToSyncFields(line: PathBLineRecord): {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  lot: string;
   amountMoney: number | null;
 } {
   const draftQty = line.draftQty != null ? Number(line.draftQty) : NaN;
@@ -153,6 +156,7 @@ export function pathBLineToSyncFields(line: PathBLineRecord): {
     sellPriceStr: sell,
     sellPriceTouched: sell.length > 0,
     expiry: line.draftExpiryDate?.trim() || "",
+    lot: line.draftLotNumber?.trim() || "",
     amountMoney: Number.isFinite(amount) ? amount : null,
   };
 }
@@ -165,7 +169,9 @@ function toLinePayload(row: SyncableSupplyRow): AddPathBLinePayload | null {
     return null;
   }
   const exp = row.expiry.trim();
+  const lot = row.lot?.trim() ?? "";
   return {
+    ...(lot ? { draftLotNumber: lot.slice(0, 64) } : {}),
     description: row.description,
     amountMoney: roundMoney2(row.amountMoney),
     suggestedItemId: row.suggestedItemId,

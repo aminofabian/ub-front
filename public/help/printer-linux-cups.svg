@@ -11,7 +11,7 @@
   <text x="60" y="164" font-size="13" fill="#6b7280">$ lpstat -p -d</text>
   <text x="60" y="188" font-size="13" fill="#e5e7eb">printer XP-80C is idle. enabled since Thu 10 Sep</text>
   <text x="60" y="212" font-size="13" fill="#86efac">system default destination: XP-80C</text>
-  <text x="60" y="244" font-size="13" fill="#6b7280">$ bash install-palmart-print-bridge.sh</text>
+  <text x="60" y="244" font-size="13" fill="#6b7280">$ bash install-kiosk-print-bridge.sh</text>
   <text x="60" y="268" font-size="13" fill="#e5e7eb">Installing Palmart Print Bridge (systemd user unit)&</text>
   <text x="60" y="292" font-size="13" fill="#86efac">listening on 127.0.0.1:19500</text>
 

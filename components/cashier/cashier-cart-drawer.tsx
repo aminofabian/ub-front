@@ -59,6 +59,7 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
+import { settleSplitTender, type SplitSettlement } from "@/lib/split-tender";
 import { cn } from "@/lib/utils";
 
 const fieldClass = (extra?: string) =>
@@ -340,6 +341,72 @@ function PayMethodChip({
   );
 }
 
+function splitCheckoutLine(
+  settled: SplitSettlement,
+  customerName: string | null,
+  currency: string,
+): { text: string; tone: "ok" | "short" | "over" } {
+  if (settled.change > 0.001) {
+    return {
+      text: `Give back ${settled.change.toFixed(2)} ${currency}`,
+      tone: "ok",
+    };
+  }
+  if (settled.overBy > 0.001) {
+    return {
+      text: `Over by ${settled.overBy.toFixed(2)} ${currency}`,
+      tone: "over",
+    };
+  }
+  const collected = settled.wallet + settled.cashApplied + settled.mpesa;
+  if (settled.tab > 0.001 && customerName && collected > 0) {
+    return {
+      text: `${settled.tab.toFixed(2)} ${currency} to ${customerName}'s tab`,
+      tone: "ok",
+    };
+  }
+  if (settled.tab <= 0.001 && settled.wallet > 0) {
+    const take = (settled.cashApplied + settled.mpesa).toFixed(2);
+    return {
+      text: `Wallet ${settled.wallet.toFixed(2)} · collect ${take} ${currency}`,
+      tone: "ok",
+    };
+  }
+  if (settled.tab <= 0.001) {
+    return { text: "Split covers the total", tone: "ok" };
+  }
+  return {
+    text: `Still need ${settled.tab.toFixed(2)} ${currency}`,
+    tone: "short",
+  };
+}
+
+function SplitCheckoutStatus({
+  settled,
+  customerName,
+  currency,
+}: {
+  settled: SplitSettlement;
+  customerName: string | null;
+  currency: string;
+}) {
+  const line = splitCheckoutLine(settled, customerName, currency);
+  return (
+    <p
+      className={cn(
+        "text-[12px] font-medium",
+        line.tone === "over"
+          ? "text-destructive"
+          : line.tone === "ok"
+            ? "text-emerald-700 dark:text-emerald-300"
+            : "text-muted-foreground",
+      )}
+    >
+      {line.text}
+    </p>
+  );
+}
+
 export function CashierCartDrawer(props: CashierCartDrawerProps) {
   const {
     open,
@@ -524,6 +591,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     Number.isFinite(tenderNum) && tenderNum >= grandTotal
       ? (tenderNum - grandTotal).toFixed(2)
       : null;
+  const splitWalletForSettle =
+    splitPay && selectedCustomer && walletAvail > 0
+      ? Math.min(walletSplitApplied, walletAvail)
+      : 0;
+  const splitSettlement = settleSplitTender({
+    total: grandTotal,
+    wallet: splitWalletForSettle,
+    cash: Number(cashSplitStr.trim()) || 0,
+    mpesa: Number(mpesaSplitStr.trim()) || 0,
+  });
+  const splitChange = splitPay ? splitSettlement.change : 0;
   const cashReady =
     !splitPay &&
     payMethod === "cash" &&
@@ -637,6 +715,22 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
       }
       if (splitUsesWallet && !selectedCustomer) {
         return "Find a customer to apply wallet.";
+      }
+      const nonCash =
+        Math.round((splitSettlement.wallet + splitSettlement.mpesa) * 100) / 100;
+      if (nonCash > grandTotal + 0.001) {
+        return "M-Pesa and wallet are more than the total.";
+      }
+      if (splitSettlement.overBy > 0.001) {
+        return "The other amounts already cover the total.";
+      }
+      if (
+        splitSettlement.change > 0.001 &&
+        splitSettlement.mpesa <= 0 &&
+        splitSettlement.wallet <= 0 &&
+        !selectedCustomer
+      ) {
+        return "Add M-Pesa or a customer, or take this payment as cash.";
       }
       return "Split amounts must add up to the total.";
     }
@@ -787,7 +881,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                     className="!text-[11px] tracking-[0.12em] text-muted-foreground/70"
                   />
                 </div>
-                {cashReady && changeDueAmount > 0 ? (
+                {splitPay && splitChange > 0 ? (
+                  <p className="shrink-0 rounded-none bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                    Change {splitChange.toFixed(2)}
+                  </p>
+                ) : cashReady && changeDueAmount > 0 ? (
                   <p className="shrink-0 rounded-none bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
                     {creditChangeToWallet
                       ? `+${cashChange} wallet`
@@ -1691,11 +1789,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       <div className="grid grid-cols-2 gap-2">
                         <label className="space-y-1">
                           <span className="text-[11px] font-medium text-muted-foreground">
-                            Cash ({currency})
+                            Cash received ({currency})
                           </span>
                           <input
                             type="text"
                             inputMode="decimal"
+                            aria-label={`Cash received in ${currency}`}
                             className={fieldClass(
                               "h-11 w-full text-right font-semibold tabular-nums",
                             )}
@@ -1718,56 +1817,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           />
                         </label>
                       </div>
+                      <div className="flex gap-1 overflow-x-auto pb-0.5">
+                        {CASH_QUICK_AMOUNTS.map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setCashSplitStr(n.toFixed(2))}
+                            className="shrink-0 rounded-none border border-border/50 bg-background px-2 py-1 text-[11px] font-semibold tabular-nums transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
                       {allowMpesaCode ? (
                         <MpesaTransactionCodeField
                           value={splitMpesaRef}
                           onChange={setSplitMpesaRef}
                         />
                       ) : null}
-                      {(() => {
-                        const w =
-                          selectedCustomer && walletAvail > 0
-                            ? Math.min(
-                                Number(walletSplitStr.trim()) || 0,
-                                walletAvail,
-                              )
-                            : 0;
-                        const c = Number(cashSplitStr.trim()) || 0;
-                        const m = Number(mpesaSplitStr.trim()) || 0;
-                        const sum = Math.round((w + c + m) * 100) / 100;
-                        const rem =
-                          Math.round((grandTotal - sum) * 100) / 100;
-                        if (walletOverAvail) {
-                          return (
-                            <p className="text-[12px] font-medium text-destructive">
-                              {!selectedCustomer
-                                ? "Find a customer before applying wallet"
-                                : `Wallet only has ${walletAvail.toFixed(2)} ${currency}`}
-                            </p>
-                          );
-                        }
-                        const creditRemainder = selectedCustomer && rem > 0.001 && sum > 0;
-                        return (
-                          <p
-                            className={cn(
-                              "text-[12px] font-medium",
-                              Math.abs(rem) <= 0.001 || creditRemainder
-                                ? "text-emerald-700 dark:text-emerald-300"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {Math.abs(rem) <= 0.001
-                              ? w > 0
-                                ? `Wallet ${w.toFixed(2)} · collect ${(c + m).toFixed(2)} ${currency}`
-                                : "Split covers the total"
-                              : creditRemainder
-                                ? `${rem.toFixed(2)} ${currency} to ${selectedCustomer.name}'s tab`
-                                : rem > 0
-                                  ? `Still need ${rem.toFixed(2)} ${currency}`
-                                  : `Over by ${Math.abs(rem).toFixed(2)} ${currency}`}
-                          </p>
-                        );
-                      })()}
+                      {walletOverAvail ? (
+                        <p className="text-[12px] font-medium text-destructive">
+                          {!selectedCustomer
+                            ? "Find a customer before applying wallet"
+                            : `Wallet only has ${walletAvail.toFixed(2)} ${currency}`}
+                        </p>
+                      ) : (
+                        <SplitCheckoutStatus
+                          settled={splitSettlement}
+                          customerName={selectedCustomer?.name ?? null}
+                          currency={currency}
+                        />
+                      )}
                     </div>
                   ) : null}
                 </section>

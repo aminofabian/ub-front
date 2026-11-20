@@ -1,4 +1,4 @@
-# Install Palmart Till Print Bridge once on Windows 10 / 11.
+# Install Kiosk Till Print Bridge once on Windows 10 / 11.
 # ASCII-only. Starts powershell.exe directly (no VBScript / Node.js).
 # Windows Script Host is often disabled on Win10, which left :19500 dead.
 $ErrorActionPreference = "Stop"
@@ -17,7 +17,7 @@ if (-not (Test-Path $HelperSrc)) {
 $HelperDst = Join-Path $InstallDir "windows-raw-print.ps1"
 $LogPath = Join-Path $InstallDir "bridge.log"
 $StartCmdPath = Join-Path $InstallDir "start-till-print-bridge.cmd"
-$UninstallPath = Join-Path $InstallDir "Uninstall-Palmart-Print-Bridge.ps1"
+$UninstallPath = Join-Path $InstallDir "Uninstall-Kiosk-Print-Bridge.ps1"
 $TaskName = "PalmartTillPrintBridge"
 $StartupName = "Palmart-Till-Print-Bridge.cmd"
 $Port = 19500
@@ -139,7 +139,7 @@ function Test-IsAdmin {
 }
 
 # Chrome / Edge 142+ ask before a website may reach 127.0.0.1 ("Local network
-# access"). These policy keys pre-grant it for the Palmart site so the cashier
+# access"). These policy keys pre-grant it for your Kiosk shop site so the cashier
 # never sees the prompt. HKCU needs no admin; HKLM is added too when elevated.
 function Add-PolicyUrlList([string]$KeyPath, [string[]]$Patterns) {
   if (-not (Test-Path $KeyPath)) { New-Item -Path $KeyPath -Force | Out-Null }
@@ -264,7 +264,7 @@ function Install-LogonTask([string]$PowerShellExe, [string]$BridgeFile, [string]
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "Palmart Till Print Bridge (127.0.0.1:19500) - powershell.exe, no VBS, no Node" `
+    -Description "Kiosk Till Print Bridge (127.0.0.1:19500) - powershell.exe, no VBS, no Node" `
     -Force | Out-Null
 
   try {
@@ -285,7 +285,7 @@ if (-not (Test-Path $psExe)) {
 }
 
 Write-Host ""
-Write-Host "=== Palmart Till Print Bridge - Windows 10 / 11 install ==="
+Write-Host "=== Kiosk Till Print Bridge - Windows 10 / 11 install ==="
 Write-Step ("PowerShell: " + $psExe)
 Write-Step ("Install dir: " + $InstallDir)
 Write-Step "No Node.js. No VBScript."
@@ -387,7 +387,7 @@ if ($ok) {
     Write-Host ("Opening " + $cashierUrl)
     try { Start-Process $cashierUrl | Out-Null } catch { }
   } else {
-    Write-Host "Now open Palmart Cashier on this PC."
+    Write-Host "Now open Kiosk Cashier on this PC."
   }
   if (-not $picked) { Write-Host "In Cashier open Printer -> Detect printers." }
   exit 0

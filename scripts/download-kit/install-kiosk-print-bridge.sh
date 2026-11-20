@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Install / start Palmart Till Print Bridge from an extracted Linux download package.
-# Usage: bash install-palmart-print-bridge.sh
+# Install / start Kiosk Till Print Bridge from an extracted Linux download package.
+# Usage: bash install-kiosk-print-bridge.sh
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ INSTALL_DIR="${HOME}/.palmart/till-print-bridge"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 UNIT_DST="$UNIT_DIR/palmart-till-print-bridge.service"
 
-echo "=== Palmart Till Print Bridge (Linux) ==="
+echo "=== Kiosk Till Print Bridge (Linux) ==="
 
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js is required. Install it (e.g. sudo apt install nodejs) then re-run."
@@ -24,7 +24,7 @@ cp -f "$PKG_DIR/windows-raw-print-embed.mjs" "$INSTALL_DIR/windows-raw-print-emb
 
 cat > "$UNIT_DST" <<EOF
 [Unit]
-Description=Palmart Till Print Bridge
+Description=Kiosk Till Print Bridge
 After=network.target
 
 [Service]
@@ -47,7 +47,7 @@ fi
 sleep 1
 if curl -sf http://127.0.0.1:19500/health >/dev/null; then
   echo "Installed and running at http://127.0.0.1:19500"
-  echo "Go back to Palmart Cashier and click Detect printers."
+  echo "Go back to Kiosk Cashier and click Detect printers."
 else
   echo "Installed, but health check failed. See: journalctl --user -u palmart-till-print-bridge -e"
   exit 1

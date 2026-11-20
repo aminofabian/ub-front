@@ -4,6 +4,11 @@ import { apiRequest, ApiRequestError } from "@/lib/api";
 import type { PostSaleLinePayload, PostSalePaymentPayload, SaleRecord } from "@/lib/api";
 import { shareInflight } from "@/lib/share-inflight";
 import {
+  parseDispensingRequired,
+  type DispensingRequiredDetail,
+  type SaleDispensingPayload,
+} from "@/lib/pharmacy-dispensing";
+import {
   parseSetupRequired,
   type SetupRequiredDetail,
 } from "@/lib/setup-requirements";
@@ -238,6 +243,8 @@ export type CompletePosDraftRequest = {
   clientSoldAt?: string | null;
   expectedVersion?: number;
   additionalLines?: PostSaleLinePayload[];
+  /** Dispensing details when the cart holds prescription-only or controlled medicines. */
+  dispensing?: SaleDispensingPayload;
 };
 
 export type CompletePosDraftResponse = {
@@ -257,6 +264,8 @@ export type CompletePosDraftAttemptResult =
       message: string;
       /** Set when the API says something has to be set up first (no open shift, unregistered till). */
       setup?: SetupRequiredDetail;
+      /** Set when a medicine in the sale needs a dispensing record, an approval or a class. */
+      dispensing?: DispensingRequiredDetail;
     };
 
 const COMPLETE_RETRY_ATTEMPTS = 3;
@@ -285,8 +294,12 @@ export async function tryCompletePosDraft(
   } catch (e) {
     if (e instanceof PosDraftApiError) {
       const setup = parseSetupRequired(e.payload);
-      return setup
-        ? { ok: false, status: e.status, message: e.message, setup }
+      if (setup) {
+        return { ok: false, status: e.status, message: e.message, setup };
+      }
+      const dispensing = parseDispensingRequired(e.payload);
+      return dispensing
+        ? { ok: false, status: e.status, message: e.message, dispensing }
         : { ok: false, status: e.status, message: e.message };
     }
     return {

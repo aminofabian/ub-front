@@ -10,12 +10,12 @@ export type TillBridgeDownloadOs =
   | "unknown";
 
 export const TILL_BRIDGE_DOWNLOADS = {
-  macos: "/downloads/palmart-till-print-bridge-macos.zip",
-  windows: "/downloads/palmart-till-print-bridge-windows.zip",
+  macos: "/downloads/kiosk-till-print-bridge-macos.zip",
+  windows: "/downloads/kiosk-till-print-bridge-windows.zip",
   /** One-file Windows 10/11 installer: the zip embedded in a .cmd. */
-  windowsOneClick: "/downloads/Install-Palmart-Print-Bridge.cmd",
-  windows7: "/downloads/palmart-till-print-bridge-windows7.zip",
-  linux: "/downloads/palmart-till-print-bridge-linux.zip",
+  windowsOneClick: "/downloads/Install-Kiosk-Print-Bridge.cmd",
+  windows7: "/downloads/kiosk-till-print-bridge-windows7.zip",
+  linux: "/downloads/kiosk-till-print-bridge-linux.zip",
 } as const;
 
 /** True when UA looks like Windows 7 / Server 2008 R2. */
@@ -94,7 +94,7 @@ export async function downloadTillPrintBridgeWindowsOneClick(): Promise<boolean>
     const body = text.replace(ORIGIN_PLACEHOLDER, safeOrigin);
     const url = URL.createObjectURL(new Blob([body], { type: "application/octet-stream" }));
     try {
-      clickDownload(url, "Install-Palmart-Print-Bridge.cmd");
+      clickDownload(url, "Install-Kiosk-Print-Bridge.cmd");
     } finally {
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     }
@@ -113,5 +113,5 @@ export async function downloadTillPrintBridge(
     return;
   }
   const href = tillBridgeDownloadHref(os);
-  clickDownload(href, href.split("/").pop() || "palmart-till-print-bridge.zip");
+  clickDownload(href, href.split("/").pop() || "kiosk-till-print-bridge.zip");
 }

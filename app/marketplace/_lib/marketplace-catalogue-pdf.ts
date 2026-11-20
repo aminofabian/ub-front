@@ -300,13 +300,13 @@ type PageBuild = { canvas: PdfCanvas };
 
 export type CataloguePdfInput = {
   detail: MarketplaceSupplierDetail;
+  /** Page origin the PDF was requested from. Accepted for callers; never printed. */
   origin?: string;
   includePrices?: boolean;
 };
 
 export async function buildMarketplaceCataloguePdf({
   detail,
-  origin,
   includePrices = true,
 }: CataloguePdfInput): Promise<Blob> {
   const products = detail.products;
@@ -330,8 +330,9 @@ export async function buildMarketplaceCataloguePdf({
     month: "short",
     year: "numeric",
   });
-  const host = origin?.replace(/^https?:\/\//, "") ?? "";
-  const footerLeft = host && host.toLowerCase() !== "kiosk.ke" ? `Kiosk.ke · ${host}` : "Kiosk.ke";
+  // Platform credit only. Never the host the page was opened on: a catalogue
+  // downloaded from a tenant's domain (e.g. palmart.co.ke) is not that tenant's.
+  const footerLeft = "Kiosk.ke";
 
   const dummy = new PdfCanvas();
   const firstTop = paintHero(dummy, detail, {

@@ -115,6 +115,8 @@ export type PayGroceryInvoiceRequest = {
     quantity: number;
     unitPrice: number;
   }>;
+  /** Notes handed over. Change is this minus the cash payment. */
+  cashReceived?: number;
 };
 
 export type PayGroceryInvoiceResponse = {

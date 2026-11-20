@@ -1,4 +1,4 @@
-# Install Palmart Till Print Bridge on Windows 7 (no Node.js).
+# Install Kiosk Till Print Bridge on Windows 7 (no Node.js).
 # ASCII-only. Works with Windows PowerShell 2.0+.
 # Autostart = Startup folder only (schtasks is unreliable on Win7).
 $ErrorActionPreference = "Stop"
@@ -116,7 +116,7 @@ if (-not (Test-Path $Wscript)) {
 }
 
 Write-Host ""
-Write-Host "=== Palmart Till Print Bridge - Windows 7 install ==="
+Write-Host "=== Kiosk Till Print Bridge - Windows 7 install ==="
 Write-Step ("PowerShell: " + $psExe)
 Write-Step ("Install dir: " + $InstallDir)
 Write-Step "No Node.js required on Windows 7."
@@ -178,7 +178,7 @@ if ($ok) {
   }
   Write-Host ("Logs: " + $LogPath)
   Write-Host ""
-  Write-Host "Go back to Palmart Cashier and click Detect printers."
+  Write-Host "Go back to Kiosk Cashier and click Detect printers."
   Write-Host "Confirm: http://127.0.0.1:19500/health shows printEngine v5-bypass-epson"
   Write-Host "Tip: use Chrome 109 (last Chrome for Windows 7) for the cashier site."
   exit 0

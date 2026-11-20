@@ -2830,6 +2830,11 @@ const PHARMACY_ARTICLE: BlogArticle = {
       ],
     },
     {
+      type: "callout",
+      tone: "info",
+      text: "Where Kiosk stands today: it tracks stock by batch with expiry dates, sells the oldest-expiring stock first when expiry dates are entered, and reports expired and short-dated stock. Prescription and dispensing records, controlled-substance registers, insurance claims and automatic eTIMS submission are not available yet; we are building the pharmacy features in stages. Check any POS against this list before you buy, ours included.",
+    },
+    {
       type: "heading",
       text: "Bottom Line",
     },

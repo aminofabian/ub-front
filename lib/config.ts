@@ -97,6 +97,8 @@ export const APP_ROUTES = {
   staffPayPortal: (phone: string) => `/pay/${encodeURIComponent(phone)}`,
   products: "/products",
   priceTags: "/products/price-tags",
+  /** Make in-store barcodes for products that have none. */
+  barcodes: "/products/barcodes",
   productsCatalog: "/products/catalog",
   /** Operator SKU ledger (sales, supplier spend). Static `p` so it does not collide with the storefront `/products/[handle]`. */
   productDossier: (slug: string) =>
@@ -135,6 +137,8 @@ export const APP_ROUTES = {
   commissions: "/commissions",
   /** Simple store-room register — not sellable catalog / inventory stock. */
   store: "/store",
+  /** Pharmacy: medicines, stock safety, dispensing log and pharmacy settings. */
+  pharmacy: "/pharmacy",
   categories: "/categories",
   suppliers: "/suppliers",
   /** Cashier-style receive-stock till for one tenant supplier (name slug). */

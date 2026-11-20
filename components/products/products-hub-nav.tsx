@@ -7,6 +7,7 @@ import {
   Layers,
   Library,
   Package,
+  ScanBarcode,
   Tags,
   type LucideIcon,
 } from "lucide-react";
@@ -38,6 +39,13 @@ const HUB_TABS: HubTab[] = [
     hint: "Print shelf labels",
     icon: Tags,
     match: (p) => p.startsWith(APP_ROUTES.priceTags),
+  },
+  {
+    href: APP_ROUTES.barcodes,
+    label: "Barcodes",
+    hint: "Make missing codes",
+    icon: ScanBarcode,
+    match: (p) => p.startsWith(APP_ROUTES.barcodes),
   },
   {
     href: APP_ROUTES.itemTypes,

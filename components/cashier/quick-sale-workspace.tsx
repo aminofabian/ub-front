@@ -142,6 +142,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DispensingDialog } from "@/components/pharmacy/dispensing-dialog";
+import { isPharmacyBusiness } from "@/lib/business-store-type";
+import {
+  OFFLINE_DISPENSING_MESSAGE,
+  cartHasCounterOnlyItem,
+  refreshCounterOnlyItemIds,
+} from "@/lib/pharmacy-counter-only";
+import {
+  dispensingIsFixableAtTill,
+  withoutPatientDetails,
+  type DispensingHint,
+  type DispensingRequiredDetail,
+  type SaleDispensingPayload,
+} from "@/lib/pharmacy-dispensing";
 import {
   getTopProducts,
   recordSaleLines,
@@ -183,6 +197,7 @@ import {
 } from "@/lib/customer-phone";
 import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
+import { settleSplitTender } from "@/lib/split-tender";
 import { isApiReachable } from "@/lib/browser-network";
 import { kickCashDrawer, printPosReceipt } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
@@ -2672,27 +2687,36 @@ export function QuickSaleWorkspace({
       const w = parseMoney(walletSplitStr) ?? 0;
       const c = parseMoney(cashSplitStr) ?? 0;
       const m = parseMoney(mpesaSplitStr) ?? 0;
-      if (w < 0 || c < 0 || m < 0) return false;
       if (w <= 0 && c <= 0 && m <= 0) return false;
       if (w > 0 && !selectedCustomer) return false;
       if (selectedCustomer && w > 0) {
         const bal = Number(selectedCustomer.credit.walletBalance);
         if (Number.isFinite(bal) && w > bal + 0.001) return false;
       }
-      const sum = roundMoney2(w + c + m);
-      const remainder = roundMoney2(grandTotal - sum);
-      // If a customer is selected, the remainder goes to their tab (credit).
-      if (selectedCustomer && remainder > 0.001 && sum > 0) {
+      const settled = settleSplitTender({
+        total: grandTotal,
+        wallet: w,
+        cash: c,
+        mpesa: m,
+      });
+      if (settled.overBy > 0.001) return false;
+      const collected = roundMoney2(
+        settled.wallet + settled.cashApplied + settled.mpesa,
+      );
+      // A short split can finish on the customer's tab.
+      if (selectedCustomer && settled.tab > 0.001 && collected > 0) {
         if (customerTabSuspended(selectedCustomer)) return false;
         return true;
       }
-      const positiveParts = [w, c, m].filter((n) => n > 0).length;
+      const positiveParts = [settled.wallet, settled.cashApplied, settled.mpesa].filter(
+        (n) => n > 0,
+      ).length;
       if (positiveParts < 1) return false;
-      if (w <= 0 && (c <= 0 || m <= 0)) {
-        // Allow single-tender + credit when a customer is selected.
+      if (settled.wallet <= 0 && (settled.cashApplied <= 0 || settled.mpesa <= 0)) {
+        // A single tender in split mode still needs a customer (the rest goes on tab).
         if (!selectedCustomer) return false;
       }
-      return Math.abs(sum - grandTotal) <= 0.001;
+      return settled.tab <= 0.001;
     }
     if (payMethod === "cash") {
       const tender = parseMoney(cashTenderStr.trim());
@@ -3462,6 +3486,29 @@ export function QuickSaleWorkspace({
   }, [online, refreshOutbox]);
 
   const shiftsDisabled = isShiftsDisabled(featureFlags);
+  // Pharmacy shops: keep the list of medicines that need the pharmacist, for offline refusals.
+  const pharmacyBusinessId = isPharmacyBusiness(business) ? (business?.id ?? "") : "";
+  useEffect(() => {
+    if (!pharmacyBusinessId) return;
+    void refreshCounterOnlyItemIds(pharmacyBusinessId);
+    const onOnline = () => void refreshCounterOnlyItemIds(pharmacyBusinessId);
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [pharmacyBusinessId]);
+
+  /** A sale waiting on the dispensing dialog; `opts` are replayed with the details added. */
+  const [dispensingPrompt, setDispensingPrompt] = useState<{
+    hint: DispensingHint;
+    itemIds: string[];
+    /** Quantity of each item in the sale, so a pharmacist approves the amount as well as the medicine. */
+    quantities: Record<string, number>;
+    opts: {
+      skipBranchConfirm?: boolean;
+      skipBelowCostConfirm?: boolean;
+      allowOutOfStock?: boolean;
+      setupTried?: SetupRequirement[];
+    };
+  } | null>(null);
   /** Latest `onComplete`, so a sale paused for the open-shift dialog resumes with fresh state. */
   const onCompleteRef = useRef<
     | ((opts?: {
@@ -3469,6 +3516,7 @@ export function QuickSaleWorkspace({
         skipBelowCostConfirm?: boolean;
         allowOutOfStock?: boolean;
         setupTried?: SetupRequirement[];
+        dispensing?: SaleDispensingPayload;
       }) => Promise<void>)
     | null
   >(null);
@@ -3480,6 +3528,8 @@ export function QuickSaleWorkspace({
     allowOutOfStock?: boolean;
     /** Set-up steps this sale already went through (register the till, open a shift). */
     setupTried?: SetupRequirement[];
+    /** Dispensing details collected by the dispensing dialog for gated medicines. */
+    dispensing?: SaleDispensingPayload;
   }) => {
     const bid = branchId.trim();
     if (!bid) {
@@ -3817,16 +3867,22 @@ export function QuickSaleWorkspace({
       }
       cashTendered = tender;
     }
-    if (splitPay) {
-      const w = parseMoney(walletSplitStr) ?? 0;
-      const c = parseMoney(cashSplitStr) ?? 0;
-      const m = parseMoney(mpesaSplitStr) ?? 0;
-      if (w < 0 || c < 0 || m < 0) {
-        setError("Split amounts cannot be negative.");
-        setNotice("");
-        return;
-      }
-      if (w <= 0 && c <= 0 && m <= 0) {
+    const splitSettlement = splitPay
+      ? settleSplitTender({
+          total: grandTotal,
+          wallet: parseMoney(walletSplitStr) ?? 0,
+          cash: parseMoney(cashSplitStr) ?? 0,
+          mpesa: parseMoney(mpesaSplitStr) ?? 0,
+        })
+      : null;
+    if (splitPay && splitSettlement) {
+      const w = splitSettlement.wallet;
+      const collected = roundMoney2(
+        splitSettlement.wallet +
+          splitSettlement.cashApplied +
+          splitSettlement.mpesa,
+      );
+      if (w <= 0 && splitSettlement.cashTendered <= 0 && splitSettlement.mpesa <= 0) {
         setError("Enter at least one split amount.");
         setNotice("");
         return;
@@ -3846,17 +3902,30 @@ export function QuickSaleWorkspace({
           return;
         }
       }
-      const sum = roundMoney2(w + c + m);
-      const splitRemainder = roundMoney2(grandTotal - sum);
-      if (splitRemainder > 0.001 && !linkedCustomer) {
+      const nonCash = roundMoney2(splitSettlement.wallet + splitSettlement.mpesa);
+      if (nonCash > grandTotal + 0.001) {
         setError(
-          `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}). Select a customer to charge the rest to their tab.`,
+          `M-Pesa and wallet (${nonCash.toFixed(2)}) are more than the total (${grandTotal.toFixed(2)}).`,
+        );
+        setNotice("");
+        return;
+      }
+      if (splitSettlement.overBy > 0.001) {
+        setError(
+          "Those amounts already cover the total. Take the extra cash back, or clear it.",
+        );
+        setNotice("");
+        return;
+      }
+      if (splitSettlement.tab > 0.001 && !linkedCustomer) {
+        setError(
+          `Split amounts (${collected.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}). Select a customer to charge the rest to their tab.`,
         );
         setNotice("");
         return;
       }
       if (
-        splitRemainder > 0.001 &&
+        splitSettlement.tab > 0.001 &&
         linkedCustomer &&
         customerTabSuspended(linkedCustomer)
       ) {
@@ -3866,36 +3935,28 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
-      if (sum > grandTotal + 0.001) {
-        setError(
-          `Split amounts (${sum.toFixed(2)}) exceed cart total (${grandTotal.toFixed(2)}).`,
-        );
-        setNotice("");
-        return;
+      if (splitSettlement.change > 0.001) {
+        cashTendered = splitSettlement.cashTendered;
       }
     }
 
     const payments: PostSalePayload["payments"] = [];
-    if (splitPay) {
-      const w = parseMoney(walletSplitStr) ?? 0;
-      const c = parseMoney(cashSplitStr) ?? 0;
-      const m = parseMoney(mpesaSplitStr) ?? 0;
-      if (w > 0) {
-        payments.push({ method: "customer_wallet", amount: w });
+    if (splitPay && splitSettlement) {
+      if (splitSettlement.wallet > 0) {
+        payments.push({ method: "customer_wallet", amount: splitSettlement.wallet });
       }
-      if (c > 0) {
-        payments.push({ method: "cash", amount: c });
+      if (splitSettlement.cashApplied > 0) {
+        payments.push({ method: "cash", amount: splitSettlement.cashApplied });
       }
-      if (m > 0) {
+      if (splitSettlement.mpesa > 0) {
         payments.push({
           method: "mpesa_manual",
-          amount: m,
+          amount: splitSettlement.mpesa,
           reference: mpesaCodeForPayment(splitMpesaRef),
         });
       }
-      const creditRem = roundMoney2(grandTotal - roundMoney2(w + c + m));
-      if (creditRem > 0.001 && linkedCustomer) {
-        payments.push({ method: "customer_credit", amount: creditRem });
+      if (splitSettlement.tab > 0.001 && linkedCustomer) {
+        payments.push({ method: "customer_credit", amount: splitSettlement.tab });
       }
     } else if (
       creditChangeToWallet &&
@@ -3931,6 +3992,7 @@ export function QuickSaleWorkspace({
         : {}),
       // Admin override: force this sale through even when stock is short.
       ...(opts?.allowOutOfStock ? { allowOutOfStock: true } : {}),
+      ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
     };
 
     const linesSnapshot = lines.map((line) => ({
@@ -3965,6 +4027,15 @@ export function QuickSaleWorkspace({
     setError("");
     setNotice("");
 
+    // Queueing is safe for a gated medicine only when the person at the till may dispense and
+    // has already given the details; a PIN approval is short-lived and may not survive a replay.
+    const mustNotQueueForDispensing = () =>
+      !(opts?.dispensing && !opts.dispensing.approvalId) &&
+      cartHasCounterOnlyItem(
+        business?.id ?? null,
+        payloadLines.map((l) => l.itemId?.trim() ?? "").filter((id) => id !== ""),
+      );
+
     const offlineNow = !isApiReachable();
     if (offlineNow) {
       if (lines.some(isAirtimeCartLine)) {
@@ -3987,6 +4058,12 @@ export function QuickSaleWorkspace({
         );
         return;
       }
+      // A medicine that needs the pharmacist cannot be queued: the server would refuse the
+      // sale on replay, after the medicine has already left the shop.
+      if (mustNotQueueForDispensing()) {
+        setError(OFFLINE_DISPENSING_MESSAGE);
+        return;
+      }
       setLoading(true);
       try {
         const completeBody = {
@@ -3994,19 +4071,21 @@ export function QuickSaleWorkspace({
           ...saleCustomerIdPatch(linkedCustomer),
           clientSoldAt: salePayload.clientSoldAt,
           expectedVersion: activeCart.version,
+          ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
         };
 
         const draftId = activeCart.draftId;
         const ticketNum = activeCart.ticketNumber;
+        // Patient name and phone are never written to the offline queue.
         if (
           posDraftPersistence &&
           draftId &&
           posDraftOfflineMirror &&
           isPosDraftStoreSupported()
         ) {
-          await enqueuePendingDraftComplete(idem, draftId, completeBody);
+          await enqueuePendingDraftComplete(idem, draftId, withoutPatientDetails(completeBody));
         } else {
-          await enqueuePendingSale(idem, salePayload);
+          await enqueuePendingSale(idem, withoutPatientDetails(salePayload));
         }
 
         recordTopSellers();
@@ -4166,40 +4245,57 @@ export function QuickSaleWorkspace({
           return;
         }
 
-        const groceryPayments = splitPay
-          ? [
-              {
-                method: "cash" as const,
-                amount: parseMoney(cashSplitStr)!,
-              },
-              {
-                method: "mpesa_manual" as const,
-                amount: parseMoney(mpesaSplitStr)!,
-                reference: mpesaCodeForPayment(splitMpesaRef) ?? undefined,
-              },
-            ]
-          : [
-              {
-                method: groceryPayMethod,
-                amount: mpesaPaymentAmount ?? groceryCoverTotal,
-                reference: isStkTender(payMethod)
-                  ? mpesaCodeForPayment(mpesaRef, {
-                      verified: stkPushStatus === "confirmed",
-                    }) ?? undefined
-                  : undefined,
-              },
-            ];
-
+        const groceryPayments: Array<{
+          method: "cash" | "mpesa_manual" | "customer_credit";
+          amount: number;
+          reference?: string;
+        }> = [];
+        let groceryCashReceived: number | null = null;
         if (splitPay) {
-          const splitSum = roundMoney2(
-            groceryPayments.reduce((s, p) => s + p.amount, 0),
-          );
-          if (Math.abs(splitSum - groceryCoverTotal) > 0.001) {
+          const settled = settleSplitTender({
+            total: groceryCoverTotal,
+            wallet: 0,
+            cash: parseMoney(cashSplitStr) ?? 0,
+            mpesa: parseMoney(mpesaSplitStr) ?? 0,
+          });
+          const collected = roundMoney2(settled.cashApplied + settled.mpesa);
+          if (settled.overBy > 0.001 || settled.tab > 0.001) {
             setLoading(false);
             setError(
-              `Split amounts (${splitSum.toFixed(2)}) must equal invoice total (${groceryCoverTotal.toFixed(2)}).`,
+              `Split amounts (${collected.toFixed(2)}) must equal invoice total (${groceryCoverTotal.toFixed(2)}).`,
             );
             return;
+          }
+          if (settled.cashApplied > 0) {
+            groceryPayments.push({ method: "cash", amount: settled.cashApplied });
+          }
+          if (settled.mpesa > 0) {
+            groceryPayments.push({
+              method: "mpesa_manual",
+              amount: settled.mpesa,
+              reference: mpesaCodeForPayment(splitMpesaRef) ?? undefined,
+            });
+          }
+          if (settled.change > 0.001) {
+            groceryCashReceived = settled.cashTendered;
+            cashTendered = settled.cashTendered;
+          }
+        } else {
+          groceryPayments.push({
+            method: groceryPayMethod,
+            amount: mpesaPaymentAmount ?? groceryCoverTotal,
+            reference: isStkTender(payMethod)
+              ? mpesaCodeForPayment(mpesaRef, {
+                  verified: stkPushStatus === "confirmed",
+                }) ?? undefined
+              : undefined,
+          });
+          if (
+            payMethod === "cash" &&
+            cashTendered != null &&
+            cashTendered + 0.001 >= groceryCoverTotal
+          ) {
+            groceryCashReceived = cashTendered;
           }
         }
 
@@ -4210,6 +4306,9 @@ export function QuickSaleWorkspace({
               payments: groceryPayments,
               ...(linkedCustomer?.id
                 ? { customerId: linkedCustomer.id }
+                : {}),
+              ...(groceryCashReceived != null
+                ? { cashReceived: groceryCashReceived }
                 : {}),
               ...(additionalLines.length > 0 ? { additionalLines } : {}),
             },
@@ -4364,12 +4463,14 @@ export function QuickSaleWorkspace({
         clientSoldAt: salePayload.clientSoldAt,
         expectedVersion: draftVersion,
         ...(airtimeLines.length > 0 ? { additionalLines: airtimeLines } : {}),
+        ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
       };
 
       let sale: SaleRecord | null = null;
       let failMsg = "Sale failed.";
       let failStatus = 0;
       let failSetup: SetupRequiredDetail | undefined;
+      let failDispensing: DispensingRequiredDetail | undefined;
 
       // Use draft-complete path whenever we have a server draft ID,
       // even if pos_drafts.enabled was toggled OFF mid-day.
@@ -4385,6 +4486,7 @@ export function QuickSaleWorkspace({
           failMsg = draftResult.message;
           failStatus = draftResult.status;
           failSetup = draftResult.setup;
+          failDispensing = draftResult.dispensing;
         }
       } else {
         const postResult = await tryPostSaleWithRetries(salePayload, idem);
@@ -4394,6 +4496,7 @@ export function QuickSaleWorkspace({
           failMsg = postResult.message;
           failStatus = postResult.status;
           failSetup = postResult.setup;
+          failDispensing = postResult.dispensing;
         }
       }
 
@@ -4483,6 +4586,30 @@ export function QuickSaleWorkspace({
         return;
       }
 
+      // A medicine in the cart needs a dispensing record or a pharmacist's approval. Nothing
+      // was recorded: collect the details, then send the same sale again with them attached.
+      if (failDispensing) {
+        if (dispensingIsFixableAtTill(failDispensing.hint)) {
+          setError("");
+          setDispensingPrompt({
+            hint: failDispensing.hint,
+            itemIds: payloadLines
+              .map((l) => l.itemId?.trim() ?? "")
+              .filter((id) => id !== ""),
+            quantities: payloadLines.reduce<Record<string, number>>((acc, l) => {
+              const id = l.itemId?.trim() ?? "";
+              const q = Number(l.quantity);
+              if (id !== "" && Number.isFinite(q) && q > 0) acc[id] = (acc[id] ?? 0) + q;
+              return acc;
+            }, {}),
+            opts: opts ?? {},
+          });
+        } else {
+          setError(failDispensing.message || failMsg);
+        }
+        return;
+      }
+
       const msg = failMsg;
       if (
         payMethod === "customer_wallet" &&
@@ -4513,8 +4640,12 @@ export function QuickSaleWorkspace({
           setError(failMsg);
           return;
         }
+        if (mustNotQueueForDispensing()) {
+          setError(OFFLINE_DISPENSING_MESSAGE);
+          return;
+        }
         try {
-          await enqueuePendingSale(idem, salePayload);
+          await enqueuePendingSale(idem, withoutPatientDetails(salePayload));
           recordTopSellers();
           clearCartAfterSale(soldCartId);
           setVoidNotes("");
@@ -5316,6 +5447,19 @@ export function QuickSaleWorkspace({
           "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
       )}
     >
+      {dispensingPrompt ? (
+        <DispensingDialog
+          itemIds={dispensingPrompt.itemIds}
+          quantities={dispensingPrompt.quantities}
+          hint={dispensingPrompt.hint}
+          onDismiss={() => setDispensingPrompt(null)}
+          onConfirm={(dispensing) => {
+            const held = dispensingPrompt;
+            setDispensingPrompt(null);
+            void onCompleteRef.current?.({ ...held.opts, dispensing });
+          }}
+        />
+      ) : null}
       {!isLedger && cashierPresentation !== "counter" ? (
         <div
           className={cn(

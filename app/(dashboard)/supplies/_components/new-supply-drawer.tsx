@@ -166,6 +166,8 @@ export type SupplyDraftRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  /** Manufacturer's lot number; the server requires it (with an expiry) for medicines. */
+  lot?: string;
   serverLineId?: string | null;
   packMode?: SupplyPackMode | null;
   /** Saved item pack option id when pack mode came from a saved option. */
@@ -1011,6 +1013,7 @@ export function NewSupplyDrawer({
               sellPriceStr: fields.sellPriceStr,
               sellPriceTouched: fields.sellPriceTouched,
               expiry: fields.expiry,
+              lot: fields.lot,
               serverLineId: line.id,
             };
           });
@@ -1087,6 +1090,7 @@ export function NewSupplyDrawer({
               sellPriceStr: row.sellPriceStr,
               sellPriceTouched: row.sellPriceTouched,
               expiry: row.expiry,
+              lot: row.lot ?? "",
               description: payload?.description ?? rowLabel(row),
               suggestedItemId: payload?.suggestedItemId ?? rowItemId(row),
               amountMoney: payload?.amountMoney ?? null,
@@ -1572,6 +1576,7 @@ export function NewSupplyDrawer({
               sellPriceStr: prev[idx].sellPriceStr.trim() || catalogShelf,
               sellPriceTouched: prev[idx].sellPriceTouched,
               expiry: prev[idx].expiry,
+              lot: prev[idx].lot,
             }
           : {
               qtyStr: "",
@@ -1687,6 +1692,7 @@ export function NewSupplyDrawer({
           sellPriceStr: row.sellPriceStr,
           sellPriceTouched: row.sellPriceTouched,
           expiry: row.expiry,
+          lot: row.lot ?? "",
           description: payload?.description ?? rowLabel(row),
           suggestedItemId: payload?.suggestedItemId ?? rowItemId(row),
           amountMoney: payload?.amountMoney ?? null,
@@ -1738,6 +1744,7 @@ export function NewSupplyDrawer({
             usableQty: qty,
             wastageQty: 0,
             expiryDate: exp.length >= 8 ? exp : null,
+            lotNumber: row.lot?.trim() || null,
           };
         }),
       };
@@ -2282,6 +2289,15 @@ export function NewSupplyDrawer({
                                         ),
                                       )
                                     }
+                                    onLotChange={(value) =>
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, lot: value }
+                                            : r,
+                                        ),
+                                      )
+                                    }
                                     onItemChange={(item) =>
                                       setRows((prev) =>
                                         prev.map((r) =>
@@ -2393,7 +2409,7 @@ export function NewSupplyDrawer({
                                     <th
                                       className={cn(nsdTableTh, "min-w-[6rem]")}
                                     >
-                                      Expires
+                                      Lot / expires
                                     </th>
                                   ) : null}
                                   <th className={cn(nsdTableTh, "w-7")} />
@@ -2729,6 +2745,26 @@ export function NewSupplyDrawer({
                                             "p-0 align-middle",
                                           )}
                                         >
+                                          <input
+                                            type="text"
+                                            value={row.lot ?? ""}
+                                            onChange={(e) => {
+                                              const value = e.target.value;
+                                              setRows((prev) =>
+                                                prev.map((r) =>
+                                                  r.key === row.key
+                                                    ? { ...r, lot: value }
+                                                    : r,
+                                                ),
+                                              );
+                                            }}
+                                            disabled={busy}
+                                            maxLength={64}
+                                            autoComplete="off"
+                                            placeholder="Lot no."
+                                            aria-label="Lot number"
+                                            className="h-7 w-full border-0 border-b border-border/50 bg-transparent px-2 font-mono text-[12px] outline-none placeholder:font-sans placeholder:text-muted-foreground/60 focus-visible:bg-background"
+                                          />
                                           <SupplyExpiryCell
                                             compact
                                             quiet

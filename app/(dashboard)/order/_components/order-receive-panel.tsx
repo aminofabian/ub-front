@@ -64,6 +64,13 @@ import { cn, formatMoney } from "@/lib/utils";
 import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { orderNameTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
+import {
+  MedicineLotDialog,
+  type MedicineLotLine,
+  type MedicineLotValues,
+} from "@/components/pharmacy/medicine-lot-dialog";
+import { isPharmacyBusiness } from "@/lib/business-store-type";
+import { fetchMedicinesAmong } from "@/lib/pharmacy-api";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
 import { OrderTemplatePicker } from "./order-template-picker";
@@ -260,6 +267,11 @@ export function OrderReceivePanel({
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  /** Medicines in the delivery being received, waiting for their lot and expiry. */
+  const [lotPrompt, setLotPrompt] = useState<{
+    lines: MedicineLotLine[];
+    overrideArrival?: boolean;
+  } | null>(null);
   const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
   const [printingReceipt, setPrintingReceipt] = useState(false);
   const [markingArrived, setMarkingArrived] = useState(false);
@@ -1110,7 +1122,11 @@ export function OrderReceivePanel({
     }
   };
 
-  const confirmSelected = async (opts?: { overrideArrival?: boolean }) => {
+  const confirmSelected = async (opts?: {
+    overrideArrival?: boolean;
+    /** Lot and expiry per order line, collected by the medicines dialog. */
+    lots?: MedicineLotValues;
+  }) => {
     if (!detail) return;
     const receiveBranch = detail.branchId || branchId;
     if (!receiveBranch.trim()) {
@@ -1168,6 +1184,29 @@ export function OrderReceivePanel({
         return;
       }
 
+      // Medicines need the lot number and expiry from the pack before they enter stock. Ask
+      // once, then come back here with the answers. Nothing has been received at this point.
+      if (isPharmacyBusiness(business) && !opts?.lots) {
+        let medicines: Array<{ itemId: string; name: string }> = [];
+        try {
+          medicines = await fetchMedicinesAmong(lines.map((l) => l.itemId));
+        } catch {
+          // The server still refuses a medicine with no lot, with its own message.
+        }
+        const names = new Map(medicines.map((m) => [m.itemId, m.name]));
+        const ask = lines
+          .filter((l) => names.has(l.itemId))
+          .map((l) => ({
+            lineId: l.purchaseOrderLineId,
+            name: names.get(l.itemId) ?? "Medicine",
+            quantity: l.qtyReceived,
+          }));
+        if (ask.length > 0) {
+          setLotPrompt({ lines: ask, overrideArrival: opts?.overrideArrival });
+          return;
+        }
+      }
+
       const poArrived =
         (po.deliveryStatus ?? "not_shipped").toLowerCase() === "delivered";
       const grn = await postPathAGoodsReceipt(
@@ -1179,6 +1218,12 @@ export function OrderReceivePanel({
           lines: lines.map((l) => ({
             purchaseOrderLineId: l.purchaseOrderLineId,
             qtyReceived: l.qtyReceived,
+            ...(opts?.lots?.[l.purchaseOrderLineId]
+              ? {
+                  lotNumber: opts.lots[l.purchaseOrderLineId]!.lotNumber,
+                  expiryDate: opts.lots[l.purchaseOrderLineId]!.expiryDate,
+                }
+              : {}),
           })),
           ...(twoStepDelivery && !poArrived && opts?.overrideArrival
             ? { overrideArrival: true }
@@ -2376,6 +2421,17 @@ export function OrderReceivePanel({
           </div>
         </div>
       </div>
+      {lotPrompt ? (
+        <MedicineLotDialog
+          lines={lotPrompt.lines}
+          onDismiss={() => setLotPrompt(null)}
+          onConfirm={(lots) => {
+            const held = lotPrompt;
+            setLotPrompt(null);
+            void confirmSelected({ overrideArrival: held.overrideArrival, lots });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

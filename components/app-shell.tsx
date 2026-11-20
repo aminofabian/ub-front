@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   SlidersHorizontal,
   Sparkles,
+  Pill,
   Store,
   Tags,
   Scissors,
@@ -106,6 +107,7 @@ import {
   isFoodLedBusiness,
   isFoodOnlyBusiness,
   isLodgingBusiness,
+  isPharmacyBusiness,
   isServiceBusiness,
   isTableServiceBusiness,
   isServiceOnlyBusiness,
@@ -308,6 +310,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.products, label: "Add products" },
       { href: APP_ROUTES.priceTags, label: "Price tags" },
+      { href: APP_ROUTES.barcodes, label: "Barcodes" },
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.aisles, label: "Shelf zones" },
       { href: APP_ROUTES.categories, label: "Categories" },
@@ -506,6 +509,15 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [{ href: APP_ROUTES.store, label: "Store" }],
   },
   {
+    id: "pharmacy",
+    title: "Pharmacy",
+    shortLabel: "Pharmacy",
+    blurb: "Medicines, stock safety and the dispensing log",
+    icon: Pill,
+    entryHref: APP_ROUTES.pharmacy,
+    items: [{ href: APP_ROUTES.pharmacy, label: "Pharmacy" }],
+  },
+  {
     id: "ops",
     title: "Shifts",
     shortLabel: "Shifts",
@@ -650,6 +662,8 @@ type NavGate = {
   isFoodBusiness: boolean;
   /** The business lets rooms (a guest house, or a bar with rooms above it). */
   isLodgingBusiness: boolean;
+  /** One of the business's formats is a pharmacy / chemist. */
+  isPharmacyBusiness: boolean;
   /** The business sells physical goods off a shelf — a retail shop, or one that opted into a product line. */
   sellsGoods: boolean;
   canManageMenu: boolean;
@@ -753,6 +767,7 @@ const DESKTOP_ONLY_NAV_HREFS: readonly string[] = [APP_ROUTES.desktopSettings];
 const GOODS_ONLY_NAV_HREFS: readonly string[] = [
   APP_ROUTES.products,
   APP_ROUTES.priceTags,
+  APP_ROUTES.barcodes,
   APP_ROUTES.itemTypes,
   APP_ROUTES.aisles,
   APP_ROUTES.categories,
@@ -920,6 +935,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
   if (item.href === APP_ROUTES.store) return gate.canViewStoreRoom;
+  if (item.href === APP_ROUTES.pharmacy)
+    // Same permission as the store room: the pharmacy pages read with catalog.items.read.
+    return gate.isPharmacyBusiness && gate.canViewStoreRoom;
   if (item.href === APP_ROUTES.purchasingIntelligence)
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
@@ -1399,6 +1417,8 @@ export function AppShell({ children }: AppShellProps) {
       // screens stay off on the desktop app for the same reason.
       isFoodBusiness: isFoodBusiness(business) && !IS_DESKTOP,
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
+      // The desktop till does not carry batch or dispensing data to the cloud yet.
+      isPharmacyBusiness: isPharmacyBusiness(business) && !IS_DESKTOP,
       // On the desktop app the full retail sidebar always stands (service/food screens are off there),
       // so never let a desktop tenant lose the catalogue. In the cloud, mini-marts and other shops
       // always have it; a restaurant or a service shop gets it once products are turned on.

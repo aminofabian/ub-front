@@ -19,9 +19,12 @@ import {
   PackagePlus,
   Plus,
   ScanBarcode,
+  WandSparkles,
 } from "lucide-react";
 
+import { toast } from "sonner";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { reserveBarcode } from "@/lib/barcode-generate-client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -1550,6 +1553,19 @@ export function ProductCreateModal({
                           aria-label="Scan barcode with camera"
                         >
                           <ScanBarcode className="size-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void reserveBarcode()
+                              .then((barcode) => m.setParentDraft((p) => ({ ...p, barcode })))
+                              .catch(() => toast.error("Couldn't make a barcode. Try again."))
+                          }
+                          className="flex w-12 shrink-0 items-center justify-center border-l border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] hover:text-[var(--catalog-ink,#15231f)] sm:w-11"
+                          aria-label="Generate a barcode"
+                          title="No barcode on the pack? Generate one"
+                        >
+                          <WandSparkles className="size-4" aria-hidden />
                         </button>
                       </div>
                     </div>

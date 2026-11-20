@@ -106,7 +106,7 @@ export type BuildPosReceiptInput = {
   sale: SaleRecord;
   customerName?: string | null;
   customerPhone?: string | null;
-  /** Cash tendered by customer (full cash checkout only). */
+  /** Notes the customer handed over (full cash, or the cash share of a split). */
   cashTendered?: number | null;
   clientSoldAt?: string;
 };
@@ -168,6 +168,11 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
     }),
   );
 
+  const cashPaid = roundMoney2(
+    payments
+      .filter((p) => p.method.trim().toLowerCase() === "cash")
+      .reduce((acc, p) => acc + p.amount, 0),
+  );
   const isFullCash =
     payments.length === 1 && payments[0]?.method.trim().toLowerCase() === "cash";
 
@@ -182,20 +187,19 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
   if (overpay > 0.001 && sale.customerId) {
     walletCredited = overpay;
   }
-  if (isFullCash && walletCredited == null) {
+  if (isFullCash && walletCredited != null) {
+    cashReceived = roundMoney2(payments[0]?.amount ?? 0);
+  } else if (walletCredited == null && cashPaid > 0.001) {
     const tender =
-      persistedCash != null && persistedCash >= grandTotal
+      persistedCash != null && persistedCash + 0.001 >= cashPaid
         ? persistedCash
-        : cashTendered != null && cashTendered >= grandTotal
+        : cashTendered != null && cashTendered + 0.001 >= cashPaid
           ? cashTendered
           : null;
     if (tender != null) {
       cashReceived = roundMoney2(tender);
-      changeGiven = roundMoney2(tender - grandTotal);
+      changeGiven = roundMoney2(tender - cashPaid);
     }
-  } else if (isFullCash && walletCredited != null) {
-    const cashPay = payments[0]?.amount ?? 0;
-    cashReceived = roundMoney2(cashPay);
   }
 
   const servedBy =

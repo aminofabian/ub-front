@@ -244,35 +244,35 @@ export function BranchDetailPanel({
             <strong className="font-medium text-foreground">
               Download for macOS / Windows / Linux
             </strong>
-            , unzip, run the installer once (Windows: Install-Palmart-Print-Bridge.cmd
+            , unzip, run the installer once (Windows: Install-Kiosk-Print-Bridge.cmd
             — runs hidden at sign-in, no window to leave open), then{" "}
             <strong className="font-medium text-foreground">Detect printers</strong>{" "}
             above and <strong className="font-medium text-foreground">Save</strong>.
             Direct zips:{" "}
             <a
               className="underline"
-              href="/downloads/palmart-till-print-bridge-macos.zip"
+              href="/downloads/kiosk-till-print-bridge-macos.zip"
             >
               macOS
             </a>
             {" · "}
             <a
               className="underline"
-              href="/downloads/palmart-till-print-bridge-windows.zip"
+              href="/downloads/kiosk-till-print-bridge-windows.zip"
             >
               Windows 10/11
             </a>
             {" · "}
             <a
               className="underline"
-              href="/downloads/palmart-till-print-bridge-windows7.zip"
+              href="/downloads/kiosk-till-print-bridge-windows7.zip"
             >
               Windows 7
             </a>
             {" · "}
             <a
               className="underline"
-              href="/downloads/palmart-till-print-bridge-linux.zip"
+              href="/downloads/kiosk-till-print-bridge-linux.zip"
             >
               Linux
             </a>

@@ -75,12 +75,12 @@ const common = [
 const packages = [
   {
     id: "macos",
-    zip: "palmart-till-print-bridge-macos.zip",
+    zip: "kiosk-till-print-bridge-macos.zip",
     files: [
       ...common,
       [
-        "Install Palmart Print Bridge.command",
-        join(KIT, "Install Palmart Print Bridge.command"),
+        "Install Kiosk Print Bridge.command",
+        join(KIT, "Install Kiosk Print Bridge.command"),
       ],
       [
         "start-till-print-bridge.command",
@@ -90,7 +90,7 @@ const packages = [
   },
   {
     id: "windows",
-    zip: "palmart-till-print-bridge-windows.zip",
+    zip: "kiosk-till-print-bridge-windows.zip",
     files: [
       ...common,
       ["windows-raw-print.ps1", WIN_RAW],
@@ -103,12 +103,12 @@ const packages = [
         join(KIT, "Start-Bridge-Window.cmd"),
       ],
       [
-        "Install-Palmart-Print-Bridge.cmd",
-        join(KIT, "Install-Palmart-Print-Bridge.cmd"),
+        "Install-Kiosk-Print-Bridge.cmd",
+        join(KIT, "Install-Kiosk-Print-Bridge.cmd"),
       ],
       [
-        "Install-Palmart-Print-Bridge.ps1",
-        join(KIT, "Install-Palmart-Print-Bridge.ps1"),
+        "Install-Kiosk-Print-Bridge.ps1",
+        join(KIT, "Install-Kiosk-Print-Bridge.ps1"),
       ],
       [
         "start-till-print-bridge.cmd",
@@ -116,12 +116,12 @@ const packages = [
       ],
       // Bundled so Win7 PCs that download the main Windows zip still get a no-Node path.
       [
-        "Install-Palmart-Print-Bridge-Win7.cmd",
-        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.cmd"),
+        "Install-Kiosk-Print-Bridge-Win7.cmd",
+        join(KIT, "win7", "Install-Kiosk-Print-Bridge-Win7.cmd"),
       ],
       [
-        "Install-Palmart-Print-Bridge-Win7.ps1",
-        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.ps1"),
+        "Install-Kiosk-Print-Bridge-Win7.ps1",
+        join(KIT, "win7", "Install-Kiosk-Print-Bridge-Win7.ps1"),
       ],
       [
         "till-print-bridge-win7.ps1",
@@ -132,18 +132,18 @@ const packages = [
   },
   {
     id: "linux",
-    zip: "palmart-till-print-bridge-linux.zip",
+    zip: "kiosk-till-print-bridge-linux.zip",
     files: [
       ...common,
       [
-        "install-palmart-print-bridge.sh",
-        join(KIT, "install-palmart-print-bridge.sh"),
+        "install-kiosk-print-bridge.sh",
+        join(KIT, "install-kiosk-print-bridge.sh"),
       ],
     ],
   },
   {
     id: "windows7",
-    zip: "palmart-till-print-bridge-windows7.zip",
+    zip: "kiosk-till-print-bridge-windows7.zip",
     files: [
       ["INSTALL.txt", join(KIT, "win7", "INSTALL.txt")],
       [
@@ -152,12 +152,12 @@ const packages = [
       ],
       ["windows-raw-print.ps1", WIN_RAW],
       [
-        "Install-Palmart-Print-Bridge-Win7.cmd",
-        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.cmd"),
+        "Install-Kiosk-Print-Bridge-Win7.cmd",
+        join(KIT, "win7", "Install-Kiosk-Print-Bridge-Win7.cmd"),
       ],
       [
-        "Install-Palmart-Print-Bridge-Win7.ps1",
-        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.ps1"),
+        "Install-Kiosk-Print-Bridge-Win7.ps1",
+        join(KIT, "win7", "Install-Kiosk-Print-Bridge-Win7.ps1"),
       ],
     ],
   },
@@ -166,7 +166,7 @@ const packages = [
 /**
  * One-file Windows 10/11 installer: a .cmd that carries the Windows zip as
  * base64 after an `exit /b`, extracts it with PowerShell into %TEMP% and runs
- * the normal Install-Palmart-Print-Bridge.cmd. The cashier page replaces
+ * the normal Install-Kiosk-Print-Bridge.cmd. The cashier page replaces
  * __PALMART_ORIGIN__ with the tenant's origin at download time so the installer
  * can pre-grant browser local-network access and open Cashier afterwards.
  */
@@ -175,25 +175,25 @@ function writeWindowsOneFileInstaller(zipPath, outPath) {
   const lines = b64.match(/.{1,76}/g) || [];
   const launcher = [
     "@echo off",
-    "REM Palmart Till Print Bridge - one-file installer for Windows 10 / 11.",
+    "REM Kiosk Till Print Bridge - one-file installer for Windows 10 / 11.",
     "REM Double-click. It unpacks itself, installs the bridge, finds the receipt",
-    "REM printer and opens Palmart Cashier. No Node.js. Nothing to keep open.",
+    "REM printer and opens Kiosk Cashier. No Node.js. Nothing to keep open.",
     "setlocal",
     'set "PALMART_ORIGIN=__PALMART_ORIGIN__"',
     'if "%PALMART_ORIGIN%"=="__PALMART_ORIGIN__" set "PALMART_ORIGIN="',
     'set "PALMART_WORK=%TEMP%\\palmart-print-bridge-setup"',
     'if exist "%PALMART_WORK%" rmdir /s /q "%PALMART_WORK%" >nul 2>&1',
     'mkdir "%PALMART_WORK%" >nul 2>&1',
-    "echo === Palmart Till Print Bridge ===",
+    "echo === Kiosk Till Print Bridge ===",
     "echo Unpacking...",
     `powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $f=[IO.File]::ReadAllLines($env:PALMART_SELF); $i=[Array]::IndexOf($f,':::PAYLOAD'); if ($i -lt 0) { throw 'payload marker missing' }; $b=[string]::Join('', $f[($i+1)..($f.Length-1)]); $zip=Join-Path $env:PALMART_WORK 'kit.zip'; [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b)); Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $env:PALMART_WORK 'kit') -Force"`,
     "if errorlevel 1 (",
     "  echo.",
-    "  echo Could not unpack the installer. Download the Windows zip from Palmart Cashier instead.",
+    "  echo Could not unpack the installer. Download the Windows zip from Kiosk Cashier instead.",
     "  pause",
     "  exit /b 1",
     ")",
-    'call "%PALMART_WORK%\\kit\\Install-Palmart-Print-Bridge.cmd"',
+    'call "%PALMART_WORK%\\kit\\Install-Kiosk-Print-Bridge.cmd"',
     "exit /b %ERRORLEVEL%",
     ":::PAYLOAD",
   ];
@@ -223,9 +223,9 @@ for (const pkg of packages) {
   built.push(pkg.zip);
   console.log(`Wrote ${zipPath}`);
   if (pkg.id === "windows") {
-    const oneFile = join(OUT, "Install-Palmart-Print-Bridge.cmd");
+    const oneFile = join(OUT, "Install-Kiosk-Print-Bridge.cmd");
     writeWindowsOneFileInstaller(zipPath, oneFile);
-    built.push("Install-Palmart-Print-Bridge.cmd");
+    built.push("Install-Kiosk-Print-Bridge.cmd");
     console.log(`Wrote ${oneFile}`);
   }
 }
@@ -236,7 +236,7 @@ writeFileSync(
     {
       generatedAt: new Date().toISOString(),
       files: built,
-      note: "Windows 10/11: run Install-Palmart-Print-Bridge.cmd (one file). Others: unzip, run the installer, then Detect printers in Cashier.",
+      note: "Windows 10/11: run Install-Kiosk-Print-Bridge.cmd (one file). Others: unzip, run the installer, then Detect printers in Cashier.",
     },
     null,
     2,

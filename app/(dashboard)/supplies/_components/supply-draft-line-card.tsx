@@ -35,6 +35,8 @@ type DraftLineRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  /** Manufacturer's lot number (medicines). */
+  lot?: string;
   packMode?: SupplyPackMode | null;
 };
 
@@ -57,6 +59,8 @@ type SupplyDraftLineCardProps = {
   onUnitChange: (value: string) => void;
   onSellPriceChange: (value: string) => void;
   onExpiryChange: (value: string) => void;
+  /** When given, the card shows a lot-number field beside the expiry date. */
+  onLotChange?: (value: string) => void;
   onItemChange: (item: ItemSummaryRecord | null) => void;
   onRemove: () => void;
   hasItemId: boolean;
@@ -105,6 +109,7 @@ export function SupplyDraftLineCard({
   onUnitChange,
   onSellPriceChange,
   onExpiryChange,
+  onLotChange,
   onItemChange,
   onRemove,
   hasItemId,
@@ -336,7 +341,11 @@ export function SupplyDraftLineCard({
           onClick={() => setMoreOpen((o) => !o)}
         >
           <span className="text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            {row.expiry.trim() ? `Expires ${row.expiry}` : "Expiry (optional)"}
+            {row.expiry.trim()
+              ? `Expires ${row.expiry}${row.lot?.trim() ? ` · lot ${row.lot.trim()}` : ""}`
+              : onLotChange
+                ? "Lot and expiry (needed for medicines)"
+                : "Expiry (optional)"}
           </span>
           <ChevronDown
             className={cn(
@@ -348,6 +357,20 @@ export function SupplyDraftLineCard({
         </button>
         {moreOpen ? (
           <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2">
+            {onLotChange ? (
+              <label className="mb-2 block text-[11px] font-medium text-muted-foreground">
+                Lot number
+                <input
+                  type="text"
+                  value={row.lot ?? ""}
+                  onChange={(e) => onLotChange(e.target.value)}
+                  disabled={busy}
+                  maxLength={64}
+                  autoComplete="off"
+                  className="mt-1 h-11 w-full rounded-md border border-border/60 bg-background px-2.5 font-mono text-sm outline-none focus-visible:border-foreground/40"
+                />
+              </label>
+            ) : null}
             <SupplyExpiryCell
               touch
               quiet

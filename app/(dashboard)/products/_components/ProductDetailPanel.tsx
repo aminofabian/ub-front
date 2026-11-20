@@ -24,7 +24,9 @@ import {
   Scale,
   Sparkles,
   Star,
+  WandSparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +36,7 @@ import {
 import { isRealSupplierLink } from "@/lib/supplier-display";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { reserveBarcode } from "@/lib/barcode-generate-client";
 import {
   foldVariantStockIntoBase,
   itemListThumbnailUrl,
@@ -1828,14 +1831,29 @@ export function ProductDetailPanel(props: Props) {
                       onChange={(e) => setQuickBarcode(e.target.value)}
                       placeholder="Scan or type…"
                     />,
-                    <button
-                      type="button"
-                      onClick={() => setScannerOpen(true)}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-none border border-input/80 bg-white text-muted-foreground shadow-none hover:bg-white"
-                      aria-label="Scan barcode with camera"
-                    >
-                      <Camera className="size-3.5" />
-                    </button>,
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setScannerOpen(true)}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-none border border-input/80 bg-white text-muted-foreground shadow-none hover:bg-white"
+                        aria-label="Scan barcode with camera"
+                      >
+                        <Camera className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void reserveBarcode()
+                            .then(setQuickBarcode)
+                            .catch(() => toast.error("Couldn't make a barcode. Try again."))
+                        }
+                        className="flex size-8 shrink-0 items-center justify-center rounded-none border border-input/80 bg-white text-muted-foreground shadow-none hover:bg-white"
+                        aria-label="Generate a barcode"
+                        title="Generate a barcode"
+                      >
+                        <WandSparkles className="size-3.5" />
+                      </button>
+                    </>,
                   )
                 : fieldBtn(
                     "Barcode",

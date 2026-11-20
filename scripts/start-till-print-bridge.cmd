@@ -30,13 +30,13 @@ if exist "%INSTALLED_WIN%" (
 cd /d "%HERE%"
 if exist "%HERE%till-print-bridge-windows.ps1" (
   echo Starting PowerShell Till Print Bridge in this window.
-  echo For cashiering, run Install-Palmart-Print-Bridge.cmd once instead.
+  echo For cashiering, run Install-Kiosk-Print-Bridge.cmd once instead.
   "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%HERE%till-print-bridge-windows.ps1"
   exit /b %ERRORLEVEL%
 )
 
 echo Till Print Bridge is not installed.
-echo Unzip the Windows download and run Install-Palmart-Print-Bridge.cmd
+echo Unzip the Windows download and run Install-Kiosk-Print-Bridge.cmd
 echo If health still fails, run Start-Bridge-Window.cmd and leave it open.
 pause
 exit /b 1

@@ -112,7 +112,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     {
       question: "Why does Detect printers say the helper is not running?",
       answer:
-        "The Print Bridge must run on the computer the printer is plugged into. Open Cashier on that PC, tap Receipts on screen → Connect a printer, and download the helper from that chip. Then open http://127.0.0.1:19500/health. If the page fails, run Install-Palmart-Print-Bridge.cmd on this machine and Detect again.",
+        "The Print Bridge must run on the computer the printer is plugged into. Open Cashier on that PC, tap Receipts on screen → Connect a printer, and download the helper from that chip. Then open http://127.0.0.1:19500/health. If the page fails, run Install-Kiosk-Print-Bridge.cmd on this machine and Detect again.",
     },
     {
       question: "Device Manager shows the Xprinter. Why is Detect empty?",
@@ -374,7 +374,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Unzip the package. Windows 10/11: run Install-Palmart-Print-Bridge.cmd (no Node.js needed; it can start hidden at sign-in). Windows 7: the Win7 installer. macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh. Then click Detect printers.",
+      text: "Unzip the package. Windows 10/11: run Install-Kiosk-Print-Bridge.cmd (no Node.js needed; it can start hidden at sign-in). Windows 7: the Win7 installer. macOS: Install Kiosk Print Bridge.command. Linux: bash install-kiosk-print-bridge.sh. Then click Detect printers.",
     },
     {
       type: "image",
@@ -450,7 +450,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
     {
       type: "callout",
       tone: "info",
-      text: "“Printer helper is not running” → it is the bridge. On that PC open http://127.0.0.1:19500/health. If that fails, open Cashier → Receipts on screen → Connect a printer, download the Print Bridge, run Install-Palmart-Print-Bridge.cmd on this machine, then Detect again.",
+      text: "“Printer helper is not running” → it is the bridge. On that PC open http://127.0.0.1:19500/health. If that fails, open Cashier → Receipts on screen → Connect a printer, download the Print Bridge, run Install-Kiosk-Print-Bridge.cmd on this machine, then Detect again.",
     },
     {
       type: "callout",
@@ -469,7 +469,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
         [
           "Detect: helper not running",
           "Bridge never started on this PC",
-          "Cashier → Connect a printer → download. Then http://127.0.0.1:19500/health. Run Install-Palmart-Print-Bridge.cmd.",
+          "Cashier → Connect a printer → download. Then http://127.0.0.1:19500/health. Run Install-Kiosk-Print-Bridge.cmd.",
         ],
         [
           "Detect: no print queues found",
@@ -518,7 +518,7 @@ export const INSTALL_PRINTER_ARTICLE: BlogArticle = {
         "Thermal printer ON, paper seated shiny-side to the head, data cable in the till PC.",
         "Self-test with FEED + power. Confirm a real name under Printers & scanners — not only Device Manager. Skip PDF and Fax.",
         "Cashier on this PC → Receipts on screen → Connect a printer → download the helper from that chip.",
-        "Run Install-Palmart-Print-Bridge.cmd once on this computer. Confirm http://127.0.0.1:19500/health.",
+        "Run Install-Kiosk-Print-Bridge.cmd once on this computer. Confirm http://127.0.0.1:19500/health.",
         "Detect printers. Read the toast. Empty queues: add Generic / Text Only as Xprinter, then Detect again.",
         "One test sale. Paper in the customer's hand.",
       ],

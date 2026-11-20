@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Install / start Palmart Till Print Bridge from an extracted download package.
-# Double-click this file on macOS (or: bash "Install Palmart Print Bridge.command").
+# Install / start Kiosk Till Print Bridge from an extracted download package.
+# Double-click this file on macOS (or: bash "Install Kiosk Print Bridge.command").
 
 set -euo pipefail
 
@@ -10,7 +10,7 @@ LOG_DIR="${HOME}/Library/Logs/palmart"
 PLIST_DST="${HOME}/Library/LaunchAgents/com.palmart.till-print-bridge.plist"
 LABEL="com.palmart.till-print-bridge"
 
-echo "=== Palmart Till Print Bridge (macOS) ==="
+echo "=== Kiosk Till Print Bridge (macOS) ==="
 
 if ! command -v node >/dev/null 2>&1; then
   echo ""
@@ -69,7 +69,7 @@ if curl -sf http://127.0.0.1:19500/health >/dev/null; then
   echo ""
   echo "Installed and running at http://127.0.0.1:19500"
   echo "It will start automatically when you log in."
-  echo "Go back to Palmart Cashier and click Detect printers."
+  echo "Go back to Kiosk Cashier and click Detect printers."
 else
   echo ""
   echo "Installed, but health check failed. Try:"

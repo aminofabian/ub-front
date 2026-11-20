@@ -20,6 +20,8 @@ export type LoyaltyCardModel = {
   tierLabel: string;
   qrDataUrl: string;
   accountUrl: string;
+  /** The shop's own name; empty when the shop has none. Never another tenant's. */
+  shopName: string;
   brandLeft: string;
   brandRight: string | null;
   tagline: string;
@@ -28,9 +30,9 @@ export type LoyaltyCardModel = {
   handle: string;
 };
 
-const DEFAULT_ADDRESS = "Mirema, Opp. Safari Park Gate B";
-const DEFAULT_PHONE = "0708 123 456";
-const DEFAULT_HANDLE = "@palmart.ke";
+// No tenant defaults: a shop with no address, phone or website prints none,
+// rather than borrowing another shop's (these used to fall back to Palmart's).
+const DEFAULT_HANDLE = "";
 const TAGLINE = "Everyday essentials, close to you.";
 
 export function escapeHtml(value: string): string {
@@ -80,7 +82,7 @@ export function loyaltyCardBrandParts(displayName: string | null | undefined): {
   left: string;
   right: string | null;
 } {
-  const name = displayName?.trim() || "palmart";
+  const name = displayName?.trim() || "Rewards";
   if (/^palmart$/i.test(name)) return { left: "palm", right: "art" };
   return { left: name, right: null };
 }
@@ -110,11 +112,12 @@ export function buildLoyaltyCardModel(
     tierLabel: loyaltyCardTierLabel(customer.loyaltyPoints),
     qrDataUrl: opts.qrDataUrl,
     accountUrl: loyaltyCardAccountUrl(customer.phone, opts.origin),
+    shopName: shop.displayName?.trim() || "",
     brandLeft: brand.left,
     brandRight: brand.right,
     tagline: TAGLINE,
-    address: shop.address?.trim() || DEFAULT_ADDRESS,
-    phone: shop.phone?.trim() || DEFAULT_PHONE,
+    address: shop.address?.trim() || "",
+    phone: shop.phone?.trim() || "",
     handle: loyaltyCardHandle(shop.website),
   };
 }
@@ -230,6 +233,14 @@ export function buildLoyaltyCardMarkup(model: LoyaltyCardModel): string {
   const phone = escapeHtml(model.phone);
   const handle = escapeHtml(model.handle);
   const qr = escapeHtml(model.qrDataUrl);
+  const shop = escapeHtml(model.shopName);
+  const footer = [
+    address ? `<span>📍 ${address}</span>` : "",
+    phone ? `<span>📞 ${phone}</span>` : "",
+    handle ? `<span>${handle}</span>` : "",
+  ]
+    .filter(Boolean)
+    .join("\n        ");
 
   return `
 <div class="pm-loyalty">
@@ -253,7 +264,7 @@ export function buildLoyaltyCardMarkup(model: LoyaltyCardModel): string {
         </div>
       </div>
       <div class="front-right">
-        <div class="qr-label">SCAN TO OPEN<br>YOUR PALMART ACCOUNT</div>
+        <div class="qr-label">SCAN TO OPEN<br>YOUR ACCOUNT</div>
         <div class="qr-box">
           <img src="${qr}" alt="Account QR code" width="102" height="102" />
         </div>
@@ -289,15 +300,13 @@ export function buildLoyaltyCardMarkup(model: LoyaltyCardModel): string {
         </div>
         <div class="back-right">
           <div class="headline-rule"></div>
-          <div class="headline">More shopping.<br>More rewards.<br><span class="accent">That's Palmart.</span></div>
+          <div class="headline">More shopping.<br>More rewards.<br><span class="accent">${shop ? `That's ${shop}.` : "Every visit."}</span></div>
         </div>
       </div>
       <div class="back-footer">
-        <span>📍 ${address}</span>
-        <span>📞 ${phone}</span>
-        <span>${handle}</span>
+        ${footer}
       </div>
-      <div class="terms">This card is non-transferable. Palmart reserves the right to update terms and conditions.</div>
+      <div class="terms">This card is non-transferable. ${shop || "The shop"} reserves the right to update terms and conditions.</div>
     </div>
   </div>
 </div>`;
@@ -308,7 +317,7 @@ export function buildLoyaltyCardPrintDocument(model: LoyaltyCardModel): string {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>${escapeHtml(model.memberName)} — Palmart rewards card</title>
+<title>${escapeHtml(model.memberName)} — ${escapeHtml(model.shopName || "Shop")} rewards card</title>
 <style>
   @page { size: A4 portrait; margin: 12mm; }
   html, body {

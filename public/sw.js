@@ -122,7 +122,7 @@ async function networkFirst(request) {
 
 // ── Web Push (Phase C) ─────────────────────────────────────────────
 self.addEventListener("push", (event) => {
-  let data = { title: "Palmart", body: "", url: "/" };
+  let data = { title: "Kiosk", body: "", url: "/" };
   try {
     if (event.data) {
       data = Object.assign(data, event.data.json());
@@ -131,7 +131,7 @@ self.addEventListener("push", (event) => {
     // ignore malformed payload
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || "Palmart", {
+    self.registration.showNotification(data.title || "Kiosk", {
       body: data.body || "",
       icon: "/app-icon.png",
       badge: "/app-icon.png",

@@ -32,6 +32,14 @@ export const Permission = {
   MarketplaceSuppliersConnect: "marketplace.suppliers.connect",
   InventoryRead: "inventory.read",
   InventoryWrite: "inventory.write",
+  /** Mark products as medicines, set their dispensing class, edit the pharmacy profile. */
+  PharmacyManage: "pharmacy.manage",
+  /** Dispense prescription-only medicines and approve a cashier's sale of them. */
+  PharmacyDispense: "pharmacy.dispense",
+  /** Read dispensing records (prescriber and patient details). */
+  PharmacyRecordsRead: "pharmacy.records.read",
+  /** Add medical schemes and mark scheme claims submitted, paid or rejected. */
+  PharmacyClaimsManage: "pharmacy.claims.manage",
   InventoryTransfer: "inventory.transfer",
   StocktakeRead: "stocktake.read",
   StocktakeRun: "stocktake.run",

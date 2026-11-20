@@ -382,9 +382,9 @@ export function SupplyLinesToolbar({
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
-          title="Show expiry date column"
+          title="Show the lot number and expiry date column"
         >
-          {showExpiry ? "Hide expiry" : "Expiry"}
+          {showExpiry ? "Hide lot & expiry" : "Lot & expiry"}
         </button>
       ) : null}
       {visibleCount !== totalCount &&

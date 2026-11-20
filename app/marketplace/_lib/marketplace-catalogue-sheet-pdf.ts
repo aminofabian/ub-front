@@ -1,8 +1,12 @@
 /**
  * Supplier catalogue PDF (dependency-free A4).
  *
- * One sheet matching the Palmart price-list mock: green identity, WhatsApp
- * bar, two ITEM/PRICE columns, letter badges, family thumbs, footer CTA.
+ * One sheet in the Kiosk price-list layout: green identity, WhatsApp bar,
+ * two ITEM/PRICE columns, letter badges, family thumbs, footer CTA.
+ *
+ * The catalogue belongs to the supplier. The only brand allowed on it is the
+ * platform's (Kiosk): never a tenant's name, logo or domain, whichever host the
+ * marketplace page was opened on.
  */
 import type {
   MarketplaceCatalogProductPreview,
@@ -109,6 +113,17 @@ class PdfCanvas {
       `${round(x + rr - k)} ${round(y2)} ${round(x)} ${round(y2 - rr + k)} ${round(x)} ${round(y2 - rr)} c`,
       `${round(x)} ${round(y + rr)} l`,
       `${round(x)} ${round(y + rr - k)} ${round(x + rr - k)} ${round(y)} ${round(x + rr)} ${round(y)} c`,
+      "f",
+    );
+  }
+
+  polygon(points: ReadonlyArray<readonly [number, number]>, color: Rgb) {
+    if (points.length < 3) return;
+    const [first, ...rest] = points;
+    this.ops.push(
+      `${rgb(color)} rg`,
+      `${round(first[0])} ${round(first[1])} m`,
+      ...rest.map(([px, py]) => `${round(px)} ${round(py)} l`),
       "f",
     );
   }
@@ -408,13 +423,13 @@ function colX(col: number): number {
 
 export type CatalogueSheetPdfInput = {
   detail: MarketplaceSupplierDetail;
+  /** Page origin the PDF was requested from. Accepted for callers; never printed. */
   origin?: string;
   includePrices?: boolean;
 };
 
 export async function buildMarketplaceCatalogueSheetPdf({
   detail,
-  origin,
   includePrices = true,
 }: CatalogueSheetPdfInput): Promise<Blob> {
   const products = detail.products;
@@ -441,8 +456,9 @@ export async function buildMarketplaceCatalogueSheetPdf({
     month: "long",
     year: "numeric",
   });
-  const host = origin?.replace(/^https?:\/\//, "") ?? "";
-  const footerLeft = host && host.toLowerCase() !== "kiosk.ke" ? `Kiosk.ke · ${host}` : "Kiosk.ke";
+  // Platform credit only. Never the host the page was opened on: a catalogue
+  // downloaded from a tenant's domain (e.g. palmart.co.ke) is not that tenant's.
+  const footerLeft = "Kiosk.ke";
 
   const pages: PageBuild[] = packed.map((cols, index) => {
     const page: PageBuild = { canvas: new PdfCanvas(), images: [] };
@@ -517,16 +533,7 @@ function paintChrome(
   canvas.fill(0, 0, PAGE_W, PAGE_H, C.white);
 
   if (ctx.first) {
-    paintBagMark(canvas, PAGE_W - MARGIN - 22, PAGE_H - 48);
-    canvas.text(PAGE_W - MARGIN - 78, PAGE_H - 40, "palmart", {
-      font: "bold",
-      size: 8,
-      color: C.brand,
-    });
-    canvas.text(PAGE_W - MARGIN - 78, PAGE_H - 50, "Mini Mart", {
-      size: 7,
-      color: C.muted,
-    });
+    paintPlatformBrand(canvas);
 
     const nameLines = wrapText(detail.name, 18, CONTENT_W - 92, 2);
     let y = PAGE_H - 28;
@@ -802,11 +809,70 @@ function paintFooter(
   });
 }
 
-function paintBagMark(canvas: PdfCanvas, cx: number, cy: number) {
-  canvas.roundRect(cx - 9, cy - 11, 18, 16, 2.5, C.brand);
-  canvas.fill(cx - 7, cy + 2, 14, 2.2, C.white);
-  canvas.roundRect(cx - 6, cy - 8, 12, 8, 1.2, C.white);
-  canvas.circle(cx + 4, cy - 5, 2.2, C.green);
+/** Platform credit, top right of page one: Kiosk logomark + wordmark. */
+function paintPlatformBrand(canvas: PdfCanvas) {
+  const size = 22;
+  const x = PAGE_W - MARGIN - size;
+  paintKioskMark(canvas, x, PAGE_H - 50, size);
+  canvas.textRight(x - 7, PAGE_H - 37, "kiosk", { font: "bold", size: 10, color: C.brand });
+  canvas.textRight(x - 7, PAGE_H - 46, "Marketplace", { size: 7, color: C.muted });
+}
+
+function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+/**
+ * Kiosk platform logomark (square till tile: awning, barcode, receipt). Same
+ * artwork as `lib/platform-logo-mark.ts`, drawn with PDF primitives: flat fills,
+ * and the SVG's partial opacities pre-blended against the shape underneath.
+ * `(x, y)` is the tile's bottom-left corner, `size` its side in points.
+ */
+function paintKioskMark(canvas: PdfCanvas, x: number, y: number, size: number) {
+  const s = size / 32;
+  const px = (v: number) => x + v * s;
+  const py = (v: number) => y + (32 - v) * s; // the SVG's y runs down, the PDF's runs up
+  const rect = (rx: number, ry: number, w: number, h: number, color: Rgb) =>
+    canvas.fill(px(rx), py(ry + h), w * s, h * s, color);
+
+  const tile: Rgb = [0.157, 0.655, 0.275]; // #28A745
+  const barInk: Rgb = [0.094, 0.42, 0.188]; // #186B30
+
+  canvas.roundRect(x, y, size, size, size * 0.18, tile);
+  canvas.polygon(
+    (
+      [
+        [3.5, 12.4],
+        [16, 7.2],
+        [28.5, 12.4],
+        [28.5, 14],
+        [3.5, 14],
+      ] as const
+    ).map(([vx, vy]) => [px(vx), py(vy)] as const),
+    C.white,
+  );
+  rect(5.5, 14, 21, 13, C.white);
+
+  // Barcode bars: [x, height, opacity] over the white body.
+  for (const [bx, bh, opacity] of [
+    [7.8, 4.4, 0.55],
+    [9.5, 6.4, 0.78],
+    [11.2, 3.5, 0.45],
+    [12.9, 5.5, 0.68],
+    [14.6, 4.1, 0.5],
+  ] as const) {
+    rect(bx, 16.2, 1.15, bh, mixRgb(C.white, barInk, opacity));
+  }
+
+  // Door with three receipt lines: [y, width, opacity] over the green door.
+  rect(19.8, 21.4, 5, 6.2, tile);
+  for (const [ly, lw, opacity] of [
+    [22.5, 3.5, 0.95],
+    [23.7, 2.6, 0.7],
+    [24.9, 3.1, 0.85],
+  ] as const) {
+    rect(20.55, ly, lw, 0.7, mixRgb(tile, C.white, opacity));
+  }
 }
 
 function paintWhatsAppMark(canvas: PdfCanvas, cx: number, cy: number, size: number) {

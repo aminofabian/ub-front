@@ -46,6 +46,8 @@ export type SupplyDraftRowPersisted = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  /** Manufacturer's lot number (medicines). */
+  lot?: string;
   serverLineId?: string | null;
   packReceipt?: SupplyDraftPackReceipt | null;
   packMode?: SupplyPackMode | null;

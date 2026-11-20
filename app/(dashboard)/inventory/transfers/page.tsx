@@ -35,6 +35,7 @@ import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
+  fetchItemById,
   fetchItemsPage,
   fetchStockTransfers,
   postCancelStockTransfer,
@@ -55,10 +56,53 @@ type LineDraft = { itemId: string; qty: string; label?: string };
 type TransferItemPickerProps = {
   value: string;
   label?: string;
+  /** Sending branch. On-hand in the results is stock at this branch. */
+  branchId?: string;
   disabled?: boolean;
   className?: string;
   onChange: (itemId: string, label?: string) => void;
 };
+
+function transferOnHand(
+  stockQty: number | string | null | undefined,
+): number | null {
+  if (stockQty == null || stockQty === "") return null;
+  const n = typeof stockQty === "number" ? stockQty : Number(stockQty);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatTransferOnHand(n: number): string {
+  return n.toLocaleString("en-KE", {
+    maximumFractionDigits: Number.isInteger(n) ? 0 : 2,
+  });
+}
+
+function TransferOnHand({
+  qty,
+  pending = false,
+}: {
+  qty: number | null;
+  pending?: boolean;
+}) {
+  const none = qty === 0;
+  return (
+    <span className="flex shrink-0 flex-col items-end leading-tight">
+      <span
+        className={cn(
+          "text-xs font-semibold tabular-nums",
+          none
+            ? "text-amber-800 dark:text-amber-300"
+            : "text-foreground",
+        )}
+      >
+        {pending ? "…" : qty == null ? "—" : formatTransferOnHand(qty)}
+      </span>
+      <span className="text-[10px] font-medium text-muted-foreground">
+        on hand
+      </span>
+    </span>
+  );
+}
 
 /**
  * Product lookup for transfer lines — search by name, SKU or barcode via the
@@ -68,6 +112,7 @@ type TransferItemPickerProps = {
 function TransferItemPicker({
   value,
   label,
+  branchId,
   disabled = false,
   className,
   onChange,
@@ -77,9 +122,13 @@ function TransferItemPicker({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [onHand, setOnHand] = useState<number | null>(null);
+  const [onHandPending, setOnHandPending] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const stockKeyRef = useRef("");
 
   const selected = Boolean(value.trim()) && Boolean(label);
+  const sendingBranchId = branchId?.trim() ?? "";
 
   useEffect(() => {
     if (!open) return;
@@ -113,6 +162,7 @@ function TransferItemPicker({
     const t = window.setTimeout(() => {
       fetchItemsPage(q, {
         size: 8,
+        branchId: sendingBranchId || undefined,
         sort: [{ property: "name", direction: "asc" }],
         signal: controller.signal,
       })
@@ -134,13 +184,43 @@ function TransferItemPicker({
       window.clearTimeout(t);
       controller.abort();
     };
-  }, [query, open, selected]);
+  }, [query, open, selected, sendingBranchId]);
+
+  useEffect(() => {
+    const id = value.trim();
+    if (!selected || !id || !sendingBranchId) return;
+    const key = `${sendingBranchId}:${id}`;
+    if (stockKeyRef.current === key) return;
+    let cancelled = false;
+    setOnHand(null);
+    setOnHandPending(true);
+    fetchItemById(id, { branchId: sendingBranchId, toast: false })
+      .then((item) => {
+        if (cancelled) return;
+        stockKeyRef.current = key;
+        setOnHand(transferOnHand(item.stockQty));
+      })
+      .catch(() => {
+        if (!cancelled) setOnHand(null);
+      })
+      .finally(() => {
+        if (!cancelled) setOnHandPending(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, value, sendingBranchId]);
 
   if (selected) {
     return (
       <div className={cn("flex items-center gap-1.5", className)}>
-        <span className="min-w-0 flex-1 truncate rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
-          {label}
+        <span className="flex min-w-0 flex-1 items-center gap-2 rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-muted/40 px-2 py-1">
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+            {label}
+          </span>
+          {sendingBranchId ? (
+            <TransferOnHand qty={onHand} pending={onHandPending} />
+          ) : null}
         </span>
         <button
           type="button"
@@ -148,6 +228,9 @@ function TransferItemPicker({
           aria-label="Change item"
           className="inline-flex size-7 shrink-0 items-center justify-center rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] text-muted-foreground hover:text-foreground disabled:opacity-50"
           onClick={() => {
+            stockKeyRef.current = "";
+            setOnHand(null);
+            setOnHandPending(false);
             setQuery("");
             setResults([]);
             setSearched(false);
@@ -194,28 +277,50 @@ function TransferItemPicker({
               {searched ? "No matching products." : "Type to search products."}
             </p>
           ) : (
-            results.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none"
-                onClick={() => {
-                  onChange(item.id, item.name);
-                  setOpen(false);
-                  setResults([]);
-                  setSearched(false);
-                }}
-              >
-                <span className="text-xs font-medium text-foreground">
-                  {item.name}
-                  {item.variantName ? ` · ${item.variantName}` : ""}
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {item.sku ? `SKU ${item.sku}` : "No SKU"}
-                  {item.barcode ? ` · ${item.barcode}` : ""}
-                </span>
-              </button>
-            ))
+            <>
+              {sendingBranchId ? null : (
+                <p className="border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] px-3 py-1.5 text-[10px] text-muted-foreground">
+                  Choose the From branch to see quantities.
+                </p>
+              )}
+              {results.map((item) => {
+                const qty = sendingBranchId
+                  ? transferOnHand(item.stockQty)
+                  : null;
+                const name = `${item.name}${item.variantName ? ` · ${item.variantName}` : ""}`;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-none"
+                    onClick={() => {
+                      if (sendingBranchId) {
+                        stockKeyRef.current = `${sendingBranchId}:${item.id}`;
+                        setOnHand(qty);
+                        setOnHandPending(false);
+                      }
+                      onChange(item.id, item.name);
+                      setOpen(false);
+                      setResults([]);
+                      setSearched(false);
+                    }}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-medium text-foreground">
+                        {name}
+                      </span>
+                      <span className="block truncate text-[10px] text-muted-foreground">
+                        {item.sku ? `SKU ${item.sku}` : "No SKU"}
+                        {item.barcode ? ` · ${item.barcode}` : ""}
+                      </span>
+                    </span>
+                    {sendingBranchId ? (
+                      <TransferOnHand qty={qty} />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </>
           )}
         </div>
       ) : null}
@@ -519,6 +624,7 @@ export default function InventoryTransfersPage() {
                   className="min-w-[10rem] flex-1"
                   value={line.itemId}
                   label={line.label}
+                  branchId={fromBranchId}
                   onChange={(itemId, label) => {
                     const next = [...lines];
                     next[idx] = { ...line, itemId, label };

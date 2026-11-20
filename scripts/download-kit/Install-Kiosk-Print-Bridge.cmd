@@ -7,12 +7,12 @@ REM Windows 7 / Server 2008 R2 = version 6.1
 ver | findstr /R /C:"Version 6\.1\." >nul
 if not errorlevel 1 goto :win7
 
-echo === Palmart Till Print Bridge (Windows 10 / 11) ===
+echo === Kiosk Till Print Bridge (Windows 10 / 11) ===
 echo Install once. After this it runs in the background at every sign-in.
 echo No Node.js required. You do NOT need to keep a window open.
 echo.
 
-if not exist "%~dp0Install-Palmart-Print-Bridge.ps1" goto :missing
+if not exist "%~dp0Install-Kiosk-Print-Bridge.ps1" goto :missing
 if not exist "%~dp0till-print-bridge-windows.ps1" goto :missing
 if not exist "%~dp0windows-raw-print.ps1" goto :missing
 
@@ -22,7 +22,7 @@ if not exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Palmart-Print-Bridge.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Kiosk-Print-Bridge.ps1"
 if errorlevel 1 (
   echo.
   echo Install failed. Open Start-Bridge-Window.cmd from this folder and leave it open.
@@ -33,7 +33,7 @@ if errorlevel 1 (
 )
 echo.
 echo Done. Close this window - the bridge keeps running in the background.
-echo Next: Palmart Cashier - open Printer - Detect printers.
+echo Next: Kiosk Cashier - open Printer - Detect printers.
 pause
 exit /b 0
 
@@ -41,7 +41,7 @@ exit /b 0
 echo.
 echo ERROR: Required files are not next to this .cmd
 echo This folder: %CD%
-echo Need: Install-Palmart-Print-Bridge.ps1, till-print-bridge-windows.ps1, windows-raw-print.ps1
+echo Need: Install-Kiosk-Print-Bridge.ps1, till-print-bridge-windows.ps1, windows-raw-print.ps1
 echo Unzip the full Windows folder and run the .cmd from THERE.
 pause
 exit /b 1
@@ -50,23 +50,23 @@ exit /b 1
 echo === Windows 7 detected ===
 echo This PC should use the Windows 7 installer (PowerShell, no Node.js).
 echo.
-if exist "%~dp0Install-Palmart-Print-Bridge-Win7.cmd" (
-  echo Launching Install-Palmart-Print-Bridge-Win7.cmd ...
+if exist "%~dp0Install-Kiosk-Print-Bridge-Win7.cmd" (
+  echo Launching Install-Kiosk-Print-Bridge-Win7.cmd ...
   echo.
-  call "%~dp0Install-Palmart-Print-Bridge-Win7.cmd"
+  call "%~dp0Install-Kiosk-Print-Bridge-Win7.cmd"
   exit /b %ERRORLEVEL%
 )
-if exist "%~dp0win7\Install-Palmart-Print-Bridge-Win7.cmd" (
-  echo Launching win7\Install-Palmart-Print-Bridge-Win7.cmd ...
+if exist "%~dp0win7\Install-Kiosk-Print-Bridge-Win7.cmd" (
+  echo Launching win7\Install-Kiosk-Print-Bridge-Win7.cmd ...
   echo.
-  call "%~dp0win7\Install-Palmart-Print-Bridge-Win7.cmd"
+  call "%~dp0win7\Install-Kiosk-Print-Bridge-Win7.cmd"
   exit /b %ERRORLEVEL%
 )
 echo.
 echo Windows 7 files are missing from this folder.
-echo Download "Windows 7" from Palmart Cashier:
-echo   palmart-till-print-bridge-windows7.zip
-echo Then run Install-Palmart-Print-Bridge-Win7.cmd - no Node.js needed.
+echo Download "Windows 7" from Kiosk Cashier:
+echo   kiosk-till-print-bridge-windows7.zip
+echo Then run Install-Kiosk-Print-Bridge-Win7.cmd - no Node.js needed.
 echo.
 pause
 exit /b 1

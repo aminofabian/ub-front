@@ -4,12 +4,12 @@ REM Must be run from the unzipped folder (same folder as the .ps1 files).
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-echo === Palmart Till Print Bridge (Windows 7) ===
+echo === Kiosk Till Print Bridge (Windows 7) ===
 echo Install once. Runs in the background at every sign-in.
 echo No Node.js required.
 echo.
 
-set "PS1=%~dp0Install-Palmart-Print-Bridge-Win7.ps1"
+set "PS1=%~dp0Install-Kiosk-Print-Bridge-Win7.ps1"
 set "BRIDGE=%~dp0till-print-bridge-win7.ps1"
 set "RAW=%~dp0windows-raw-print.ps1"
 
@@ -38,7 +38,7 @@ if not "%ERR%"=="0" (
 echo.
 echo SUCCESS - bridge is running. Close this window.
 echo Confirm in Internet Explorer: http://127.0.0.1:19500/health
-echo Then refresh Palmart Cashier and Detect printers.
+echo Then refresh Kiosk Cashier and Detect printers.
 echo Use Chrome 109 if the cashier site will not load on this PC.
 pause
 exit /b 0
@@ -49,15 +49,15 @@ echo ERROR: Required install files are not next to this .cmd
 echo.
 echo This folder: %CD%
 echo Looking for:
-echo   Install-Palmart-Print-Bridge-Win7.ps1
+echo   Install-Kiosk-Print-Bridge-Win7.ps1
 echo   till-print-bridge-win7.ps1
 echo   windows-raw-print.ps1
 echo.
 echo Fix:
-echo   1. Open the unzipped folder named palmart-till-print-bridge-windows7
+echo   1. Open the unzipped folder named kiosk-till-print-bridge-windows7
 echo      (not only the Downloads folder)
 echo   2. Make sure BOTH .cmd and .ps1 files are in that same folder
-echo   3. Double-click Install-Palmart-Print-Bridge-Win7.cmd from THERE
+echo   3. Double-click Install-Kiosk-Print-Bridge-Win7.cmd from THERE
 echo.
 echo Do not copy only the .cmd file out of the zip.
 pause

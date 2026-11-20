@@ -61,6 +61,12 @@ import {
   type SetupRequiredDetail,
 } from "@/lib/setup-requirements";
 import {
+  cleanDispensingPayload,
+  parseDispensingRequired,
+  type DispensingRequiredDetail,
+  type SaleDispensingPayload,
+} from "@/lib/pharmacy-dispensing";
+import {
   parseProblem,
   formatApiProblemMessage,
   getBranchGuidanceKind,
@@ -11868,7 +11874,7 @@ export type PostSalePayload = {
   payments: PostSalePaymentPayload[];
   /** ISO-8601 instant when the cashier completed the sale (offline-safe; server may clamp skew). */
   clientSoldAt?: string | null;
-  /** Cash handed over by customer (full cash sales) — printed as Received / Change. */
+  /** Notes handed over — printed as Received / Change. On a split, only the cash share. */
   cashReceived?: number | string | null;
   /**
    * Admin-only override: allow this sale to drive stock negative when an item is
@@ -11877,6 +11883,8 @@ export type PostSalePayload = {
   allowOutOfStock?: boolean;
   /** Tips for staff on this sale. The payments must cover the total plus the tips. */
   tips?: PostSaleTipPayload[];
+  /** Dispensing details when the cart holds prescription-only or controlled medicines. */
+  dispensing?: SaleDispensingPayload;
 };
 
 export type SaleItemResponseRecord = {
@@ -12044,6 +12052,9 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   if (body.allowOutOfStock) {
     payload.allowOutOfStock = true;
   }
+  if (body.dispensing) {
+    payload.dispensing = cleanDispensingPayload(body.dispensing);
+  }
   return payload;
 }
 
@@ -12055,6 +12066,8 @@ export type PostSaleAttemptResult =
       message: string;
       /** Set when the API says something has to be set up first (no open shift, unregistered till). */
       setup?: SetupRequiredDetail;
+      /** Set when a medicine in the sale needs a dispensing record, an approval or a class. */
+      dispensing?: DispensingRequiredDetail;
     };
 
 function isTransientSaleFailure(r: PostSaleAttemptResult): boolean {
@@ -12165,8 +12178,12 @@ export async function tryPostSale(
     return { ok: false, status: response.status, message };
   }
   const setup = parseSetupRequired(payload);
-  return setup
-    ? { ok: false, status: response.status, message, setup }
+  if (setup) {
+    return { ok: false, status: response.status, message, setup };
+  }
+  const dispensing = parseDispensingRequired(payload);
+  return dispensing
+    ? { ok: false, status: response.status, message, dispensing }
     : { ok: false, status: response.status, message };
 }
 
@@ -12408,6 +12425,8 @@ export type PathBLineRecord = {
   draftExpiryDate?: string | null;
   /** Saved item pack option the line was received in; null = unit / custom pack. */
   packOptionId?: string | null;
+  /** Manufacturer's lot number typed on the draft line. */
+  draftLotNumber?: string | null;
 };
 
 export type PathBSessionDetailRecord = {
@@ -12433,6 +12452,8 @@ export type AddPathBLinePayload = {
   /** Saved item pack option. When set, {@link draftQty} is the pack count and the
    *  server expands it to stock units + unit cost authoritatively. */
   packOptionId?: string | null;
+  /** Manufacturer's lot number; required at post time when the item is a medicine. */
+  draftLotNumber?: string | null;
 };
 
 export type PatchPathBSessionPayload = {
@@ -12448,6 +12469,8 @@ export type PostPathBLineBreakdownPayload = {
   wastageQty: number | string;
   /** ISO calendar date `YYYY-MM-DD`; optional batch expiry. */
   expiryDate?: string | null;
+  /** Manufacturer's lot number; required with an expiry date when the item is a medicine. */
+  lotNumber?: string | null;
   /** As-entered purchase qty/unit — server validates conversion when present. */
   purchaseQty?: number | string;
   purchaseUnit?: string;

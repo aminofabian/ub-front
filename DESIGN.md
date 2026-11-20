@@ -480,3 +480,46 @@ the order the work happens; on a phone they stack in that order.
   night. Night's pressed ink is bright, so its lettering is dark.
 - Each house has one ink of its own (forest, brass, coffee, chilli). Do not add a second accent per house.
 
+
+## Pharmacy workspace
+
+Every section and the till's dispensing dialog were viewed at 1440 wide in a
+preview harness with sample data (stand-in font for TT Norms; real Cormorant
+and Geist Mono), except Recall and an opened patient profile. Not yet viewed
+inside the running app, on a phone, or with a real shop's data.
+
+- `/pharmacy` uses the operator shell kit (`pharmacy-ui.tsx` plus the SMS Hub
+  `Panel`, `Chip`, `EmptyState`): ivory ground, paper panels, 2px edges,
+  hairline rules, no shadows, no filled warning cards.
+- **Overview answers "what needs me now".** One list, most urgent first: a
+  count, a plain sentence, where to fix it. Things that stop a sale come first
+  with a terracotta count; the first row carries the view's one forest button,
+  the rest are outlines. Good-to-know figures sit below as a quiet strip.
+  Set-up shows only the steps still to do, in a side column, and disappears
+  when done. No row of equal stat cards.
+- Navigation is two rows. First row: six groups, 44px, forest underline on the
+  open group, terracotta count where something needs attention. Second row,
+  only when a group has more than one section: quiet text tabs, ink and
+  semibold when open, no underline.
+- An opened dispensing record reads top to bottom: what was dispensed and the
+  directions, then who and for whom in four columns, then corrections, then
+  one row of actions. Forms (correction, scheme claim) open from that row
+  instead of sitting open.
+- Forms that are used less than the list they feed (a reaction note) open from
+  an "Add" button. A form used every day (a temperature reading) stays open.
+- Sections that are forms and short lists (Patients, Follow-ups, Compliance,
+  Settings) are held to 1080px so a five-column table is not stretched across
+  1400px. Wide tables (log, ordering, register, claims) use the full width.
+- Buttons beside fields are the field's height (36px, 44px on phones).
+- Timestamps are sans, tabular, muted and never wrap. Mono is kept for
+  identifiers: receipt, lot, member number. (Mono timestamps were tried and
+  read as costume.)
+- Status sits in its own column as a chip, never beside an identifier.
+- Dialogs use the shared `Dialog`, so they take the paper chrome.
+- **The dispensing dialog asks for the one required thing first**: the
+  prescriber. Then the medicines with a line for directions, then the patient.
+  Prescription reference and date, part supply and refill date open from one
+  text link, so a routine sale is three fields and a PIN.
+- A row has one outlined action; its lesser actions (Print, Rejected) are text
+  links beside it. A write-off is never the filled button.
+- A missing value ("Name not recorded") is muted, never ink.

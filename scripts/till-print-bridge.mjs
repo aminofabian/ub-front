@@ -2,20 +2,20 @@
 /**
  * Till Print Bridge — run on the cashier PC (USB / local / network thermal printer).
  *
- * Cloud-hosted Palmart cannot reach USB printers. This small local server
+ * Cloud-hosted Kiosk cannot reach USB printers. This small local server
  * listens on 127.0.0.1:19500 and accepts raw ESC/POS from the browser.
  *
  * Platforms:
  *   macOS / Linux — CUPS (`lp` / `lpstat`)
- *   Windows 10/11 — PowerShell listener (Install-Palmart-Print-Bridge.cmd, no Node)
- *   Windows 7     — PowerShell listener (Install-Palmart-Print-Bridge-Win7.cmd)
+ *   Windows 10/11 — PowerShell listener (Install-Kiosk-Print-Bridge.cmd, no Node)
+ *   Windows 7     — PowerShell listener (Install-Kiosk-Print-Bridge-Win7.cmd)
  *   All           — Ethernet/Wi‑Fi ESC/POS on TCP port 9100 (X-Printer-Host)
  *
  * Also: POST /drawer/kick — ESC/POS cash-drawer pulse (same printer target headers).
  *
  * Usage:
- *   Windows 10/11 (recommended): run Install-Palmart-Print-Bridge.cmd once — autostarts hidden, no Node.
- *   Windows 7: Install-Palmart-Print-Bridge-Win7.cmd
+ *   Windows 10/11 (recommended): run Install-Kiosk-Print-Bridge.cmd once — autostarts hidden, no Node.
+ *   Windows 7: Install-Kiosk-Print-Bridge-Win7.cmd
  *   Dev / manual: node scripts/till-print-bridge.mjs
  *   pnpm till-print-bridge
  *
@@ -381,7 +381,7 @@ function sendCups(name, data) {
       );
       return;
     }
-    const file = join(tmpdir(), `palmart-escpos-${process.pid}-${Date.now()}.bin`);
+    const file = join(tmpdir(), `kiosk-escpos-${process.pid}-${Date.now()}.bin`);
     writeFile(file, data)
       .then(() => {
         const child = spawn(
@@ -451,7 +451,7 @@ async function sendWindowsRaw(name, data) {
   }
   const file = join(
     tmpdir(),
-    `palmart-escpos-${process.pid}-${Date.now()}.bin`,
+    `kiosk-escpos-${process.pid}-${Date.now()}.bin`,
   );
   await writeFile(file, data);
   const helper = await materializeWindowsRawPrintPs1();

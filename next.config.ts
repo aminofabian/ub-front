@@ -137,6 +137,19 @@ const cloudOnlyConfig: NextConfig = {
   async redirects() {
     return [
       overviewRedirect,
+      // Till Print Bridge downloads were renamed from palmart-* to kiosk-*
+      // (Kiosk is the platform). Keep old links, open cashier tabs and help
+      // bookmarks working.
+      {
+        source: "/downloads/Install-Palmart-Print-Bridge.cmd",
+        destination: "/downloads/Install-Kiosk-Print-Bridge.cmd",
+        permanent: false,
+      },
+      ...["macos", "windows", "windows7", "linux"].map((platform) => ({
+        source: `/downloads/palmart-till-print-bridge-${platform}.zip`,
+        destination: `/downloads/kiosk-till-print-bridge-${platform}.zip`,
+        permanent: false,
+      })),
       {
         source: "/grocery",
         destination: "/clerk",

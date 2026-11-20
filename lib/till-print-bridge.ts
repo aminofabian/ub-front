@@ -378,4 +378,4 @@ export async function kickCashDrawerViaTillBridge(
 }
 
 export const TILL_BRIDGE_START_HINT =
-  "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: unzip and run Install-Palmart-Print-Bridge.cmd (no Node.js). Windows 7: download the Windows 7 package and run Install-Palmart-Print-Bridge-Win7.cmd. macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh.";
+  "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: unzip and run Install-Kiosk-Print-Bridge.cmd (no Node.js). Windows 7: download the Windows 7 package and run Install-Kiosk-Print-Bridge-Win7.cmd. macOS: Install Kiosk Print Bridge.command. Linux: bash install-kiosk-print-bridge.sh.";

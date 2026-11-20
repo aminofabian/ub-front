@@ -936,7 +936,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         type: "list",
         items: [
           "Apply a percentage or fixed discount when your role allows it.",
-          "Split the remaining balance across cash and M-Pesa.",
+          "Split the remaining balance across cash and M-Pesa. Type the cash the customer handed over — anything above the cash share is the change to give back.",
           "Confirm each tender before completing the sale.",
         ],
       },
@@ -1118,7 +1118,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
         items: [
           "Install CUPS if needed, then add a raw ESC/POS queue (http://localhost:631 or your Printers app).",
           "Confirm lpstat lists the printer idle.",
-          "Run bash install-palmart-print-bridge.sh from the Linux zip.",
+          "Run bash install-kiosk-print-bridge.sh from the Linux zip.",
         ],
       },
       {
@@ -1162,7 +1162,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       {
         type: "steps",
         items: [
-          "Unzip and run the installer once. Windows 10/11: Install-Palmart-Print-Bridge.cmd (no Node.js needed). It can start hidden at sign-in.",
+          "Unzip and run the installer once. Windows 10/11: Install-Kiosk-Print-Bridge.cmd (no Node.js needed). It can start hidden at sign-in.",
           "Click Detect printers. Pick the row marked (receipt). Skip Fax and PDF — every time.",
           "If you manage the shop, Detect can save the name on the branch so every cashier on that till inherits it. You can also set it under Branches → Receipt details, then Save.",
         ],
@@ -1225,7 +1225,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
       {
         type: "list",
         items: [
-          "“Printer helper is not running” — the bridge. On this PC open http://127.0.0.1:19500/health. If that fails: Cashier → Connect a printer → download, run Install-Palmart-Print-Bridge.cmd, Detect again.",
+          "“Printer helper is not running” — the bridge. On this PC open http://127.0.0.1:19500/health. If that fails: Cashier → Connect a printer → download, run Install-Kiosk-Print-Bridge.cmd, Detect again.",
           "Only Fax / Print to PDF — the bridge is fine, and Windows has not registered a USB port yet. Unplug the printer, wait two seconds, plug it back in, then Detect again. USB001 or Xprinter in the list is the receipt printer.",
           "Still empty after a replug: add a queue (isn’t listed → USB001 or the COM port → Generic / Text Only → name it Xprinter, Online) and Detect again.",
           "Lights on, no paper — charger cable, or roll seated backwards.",
@@ -1258,7 +1258,7 @@ export const MERCHANT_ARTICLES: HelpArticle[] = [
           {
             question: "Which Detect toast means what?",
             answer:
-              "“Printer helper is not running” is the bridge: download it from Cashier on this PC, then open http://127.0.0.1:19500/health and run Install-Palmart-Print-Bridge.cmd. Only Fax / PDF means Windows has not registered a USB port yet — unplug the printer, wait two seconds, plug it back in, and Detect again. USB001 or Xprinter is the receipt printer.",
+              "“Printer helper is not running” is the bridge: download it from Cashier on this PC, then open http://127.0.0.1:19500/health and run Install-Kiosk-Print-Bridge.cmd. Only Fax / PDF means Windows has not registered a USB port yet — unplug the printer, wait two seconds, plug it back in, and Detect again. USB001 or Xprinter is the receipt printer.",
           },
           {
             question: "Where do I download the Print Bridge?",

@@ -25,7 +25,7 @@ On the Cashier page at {{businessName}}:
 
 1. Click Receipts on screen → Connect a printer.
 2. Download for Windows or for macOS, matching the computer the printer is plugged into.
-3. Unzip the file. Open Install Palmart Print Bridge (the one with the gear icon).
+3. Unzip the file. Open Install Kiosk Print Bridge (the one with the gear icon).
 4. A terminal window will open — press any key, then follow Next until it finishes.
 5. Go back to Cashier and click Detect printers. Pick the receipt printer (skip Fax and Print to PDF).
 

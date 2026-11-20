@@ -25,7 +25,7 @@ mkdir -p "$UNIT_DIR"
 
 cat > "$UNIT_DST" <<EOF
 [Unit]
-Description=Palmart Till Print Bridge
+Description=Kiosk Till Print Bridge
 After=network.target
 
 [Service]

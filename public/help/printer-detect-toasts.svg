@@ -15,7 +15,7 @@
   <text x="68" y="214" font-size="13" fill="#c5d0cb">On this till PC, open http://127.0.0.1:19500/health</text>
   <text x="68" y="236" font-size="13" fill="#c5d0cb">If that page fails: open Cashier ’ Receipts on screen ’ Connect a printer.</text>
   <text x="68" y="258" font-size="13" fill="#c5d0cb">Download the Print Bridge from that chip  not from Settings, not from WhatsApp.</text>
-  <text x="68" y="280" font-size="13" fill="#86efac">Unzip, run Install-Palmart-Print-Bridge.cmd, then Detect again.</text>
+  <text x="68" y="280" font-size="13" fill="#86efac">Unzip, run Install-Kiosk-Print-Bridge.cmd, then Detect again.</text>
   <text x="68" y="304" font-size="12" fill="#86a396">Windows 7 uses the Win7 installer. macOS and Linux have their own files on the same chip.</text>
 
   <!-- Toast 2 -->

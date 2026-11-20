@@ -45,7 +45,8 @@ describe("loyalty-card", () => {
 
   it("turns a website into an @handle", () => {
     expect(loyaltyCardHandle("https://www.palmart.ke")).toBe("@palmart.ke");
-    expect(loyaltyCardHandle(null)).toBe("@palmart.ke");
+    // No website: print no handle rather than another shop's.
+    expect(loyaltyCardHandle(null)).toBe("");
   });
 
   it("escapes markup in printed fields", () => {

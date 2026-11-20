@@ -21,6 +21,6 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Starting Till Print Bridge for Palmart cloud cashier..."
+echo "Starting Till Print Bridge for Kiosk cloud cashier..."
 echo "Leave this window open while cashiering. Press Ctrl+C to stop."
 exec node "$BRIDGE"

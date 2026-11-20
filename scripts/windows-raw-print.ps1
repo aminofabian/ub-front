@@ -1,4 +1,4 @@
-# Palmart Windows ESC/POS raw sender (v5).
+# Kiosk Windows ESC/POS raw sender (v5).
 # Epson ePOS drivers reject spooler RAW (StartDocPrinter) - we bypass the spooler.
 param(
   [Parameter(Mandatory = $true)][string]$PrinterName,
@@ -111,7 +111,7 @@ public class PalmartRawPrintV5 {
         bool started = false;
         for (int i = 0; i < dtypes.Length; i++) {
           DOCINFOA di = new DOCINFOA();
-          di.pDocName = "Palmart ESC/POS";
+          di.pDocName = "Kiosk receipt";
           di.pOutputFile = null;
           di.pDatatype = dtypes[i];
           if (StartDocPrinter(hPrinter, 1, di)) {
@@ -323,7 +323,7 @@ function Ensure-PrinterShared([object]$Wmi) {
   if (-not $Wmi) { return $null }
   $existing = [string]$Wmi.ShareName
   if ($existing) { return $existing }
-  $share = "PalmartRaw"
+  $share = "KioskRaw"
   try {
     $Wmi.Shared = $true
     $Wmi.ShareName = $share

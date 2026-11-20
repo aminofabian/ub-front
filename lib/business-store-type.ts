@@ -205,6 +205,13 @@ export function isFoodBusiness(
   );
 }
 
+/** True when one of the business's formats is a pharmacy / chemist. */
+export function isPharmacyBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return getBusinessStoreTypes(source).includes("pharmacy");
+}
+
 /** True when any selected format lets rooms: the business has a front desk. */
 export function isLodgingBusiness(
   source: StoreTypeSource | null | undefined,
