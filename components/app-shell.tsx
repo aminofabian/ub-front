@@ -565,6 +565,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.shifts,
     items: [
       { href: APP_ROUTES.shifts, label: "Open & close", group: "Floor" },
+      { href: APP_ROUTES.drawerOpens, label: "Drawer log", group: "Floor" },
       { href: APP_ROUTES.pricing, label: "Shelf prices", group: "Floor" },
       { href: APP_ROUTES.discounts, label: "Discounts", group: "Floor" },
     ],
@@ -1069,6 +1070,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.discounts) return gate.canManageDiscounts;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
+  if (item.href === APP_ROUTES.drawerOpens) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.analyticsActivity) {
     if (gate.roleKey === "stock_manager") return gate.stockManagerActivity;
@@ -1132,6 +1134,9 @@ function itemIsActive(
     return path === APP_ROUTES.butcher;
   }
   if (hrefPath === APP_ROUTES.order) {
+    return path === hrefPath;
+  }
+  if (hrefPath === APP_ROUTES.shifts) {
     return path === hrefPath;
   }
   if (hrefPath === APP_ROUTES.purchasingAddSupplies) {

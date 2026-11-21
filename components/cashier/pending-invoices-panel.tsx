@@ -396,7 +396,10 @@ export function PendingInvoicesPanel({
       setMpesaRef("");
       onInvoiceVoided?.(inv.id);
       if (method === "cash") {
-        void kickCashDrawer({ branchId: branchId?.trim() || null });
+        void kickCashDrawer(
+          { branchId: branchId?.trim() || null },
+          { reason: "CASH_SALE" },
+        );
       }
       toast.success(`Invoice ${inv.barcodeCode} marked paid`);
     } catch (e) {

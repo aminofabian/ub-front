@@ -6760,6 +6760,12 @@ export async function fetchAllGlobalCatalogProducts(
   opts?: {
     pageSize?: number;
     onProgress?: (loaded: number, total: number) => void;
+    /** Each page as it lands, so the shelf can show and select products before the last page. */
+    onPage?: (
+      page: GlobalProductRecord[],
+      loaded: number,
+      total: number,
+    ) => void;
     signal?: { cancelled: boolean };
   },
 ): Promise<GlobalProductRecord[]> {
@@ -6780,6 +6786,7 @@ export async function fetchAllGlobalCatalogProducts(
     total = result.totalElements;
     out.push(...result.content);
     opts?.onProgress?.(out.length, total);
+    opts?.onPage?.(result.content, out.length, total);
     if (result.last || result.content.length === 0) {
       break;
     }
@@ -11499,6 +11506,44 @@ export async function fetchShifts(params?: {
   query.set("page", String(params?.page ?? 0));
   query.set("size", String(params?.size ?? 50));
   return request<ShiftListResponse>(`/api/v1/shifts?${query.toString()}`);
+}
+
+export type CashDrawerOpenLogRow = {
+  id: string;
+  openedAt: string;
+  closedAt: string | null;
+  source: "KEY" | "TRIGGERED";
+  reason: "KEY" | "CASH_SALE" | "REPRINT" | "UNKNOWN";
+  matched: boolean;
+  matchKind: "CASH" | "DRAWOUT" | null;
+  matchLabel: string | null;
+  matchAmount: number | string | null;
+  matchAt: string | null;
+};
+
+export type CashDrawerOpenLogTender = {
+  id: string;
+  kind: "CASH" | "DRAWOUT";
+  label: string | null;
+  amount: number | string | null;
+  at: string | null;
+  coincided: boolean;
+  drawerOpenedAt: string | null;
+};
+
+export type CashDrawerOpenLogResponse = {
+  rows: CashDrawerOpenLogRow[];
+  unmatched: number;
+  tenders?: CashDrawerOpenLogTender[];
+};
+
+export async function fetchCashDrawerOpenLog(
+  shiftId: string,
+): Promise<CashDrawerOpenLogResponse> {
+  const query = new URLSearchParams({ shiftId });
+  return request<CashDrawerOpenLogResponse>(
+    `/api/v1/cash-drawer/opens/log?${query.toString()}`,
+  );
 }
 
 export type LastClosedShiftFloatRecord = {

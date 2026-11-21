@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
+  DoorOpen,
   Coins,
   FileText,
   HandCoins,
@@ -2016,6 +2017,7 @@ export default function ShiftsPage() {
   const selectedShift = shifts.find((s) => s.id === selectedShiftId);
 
   const quickLinks = [
+    { href: APP_ROUTES.drawerOpens, label: "Drawer log", icon: DoorOpen },
     ...(isBranchLockedRole
       ? []
       : [{ href: APP_ROUTES.branches, label: "Branches", icon: MapPin }]),

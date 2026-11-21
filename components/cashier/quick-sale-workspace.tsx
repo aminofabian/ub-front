@@ -202,6 +202,7 @@ import { toKenyanMsisdn254 } from "@/lib/kenyan-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { settleSplitTender } from "@/lib/split-tender";
 import { isApiReachable } from "@/lib/browser-network";
+import { CashDrawerOpenWatch } from "@/components/cashier/cash-drawer-open-watch";
 import { kickCashDrawer, printPosReceipt } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
 import {
@@ -4205,10 +4206,13 @@ export function QuickSaleWorkspace({
         clearCartAfterSale(soldCartId);
         setVoidNotes("");
         if (payments.some((p) => p.method === "cash" && Number(p.amount) > 0)) {
-          void kickCashDrawer({
-            cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
-            branchId: bid,
-          });
+          void kickCashDrawer(
+            {
+              cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+              branchId: bid,
+            },
+            { reason: "CASH_SALE" },
+          );
         }
         await refreshOutbox();
         setPendingSalesRefreshKey((k) => k + 1);
@@ -4486,7 +4490,7 @@ export function QuickSaleWorkspace({
                   change: completedReceipt.changeGiven ?? 0,
                 }
               : null,
-            { openDrawer: shouldKickDrawer, quiet: true },
+            { openDrawer: shouldKickDrawer, drawerReason: "CASH_SALE", quiet: true },
           ).catch(() => false);
           if (printed) {
             if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
@@ -4657,7 +4661,7 @@ export function QuickSaleWorkspace({
                 change: completedReceipt.changeGiven ?? 0,
               }
             : null,
-          { openDrawer: shouldKickDrawer, quiet: true },
+          { openDrawer: shouldKickDrawer, drawerReason: "CASH_SALE", quiet: true },
         ).catch(() => false);
         if (printed) {
           if (Boolean(receiptBranch?.receipt?.whatsappReceiptEnabled)) {
@@ -6049,6 +6053,10 @@ export function QuickSaleWorkspace({
   // Pharmacy shops: product rows and cart lines read medicine details from this provider.
   const tillBody = (
     <PharmacyTillProvider store={tillStore} branchId={branchId}>
+      <CashDrawerOpenWatch
+        branchId={branchId}
+        shiftId={branchOpenShift?.id ?? null}
+      />
       {workspaceBody}
     </PharmacyTillProvider>
   );

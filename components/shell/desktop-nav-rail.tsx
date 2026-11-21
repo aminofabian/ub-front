@@ -29,6 +29,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Clock,
+  DoorOpen,
   CreditCard,
   FilePlus,
   FileUp,
@@ -171,6 +172,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.pricing]: Tags,
   [APP_ROUTES.discounts]: Tags,
   [APP_ROUTES.shifts]: Clock,
+  [APP_ROUTES.drawerOpens]: DoorOpen,
   [APP_ROUTES.paymentsSettings]: CreditCard,
   [APP_ROUTES.integrationsEasyTax]: Receipt,
   [APP_ROUTES.paymentsDayLedger]: Receipt,
@@ -258,6 +260,9 @@ function itemIsActive(pathname: string, href: string): boolean {
   // `/order/receive` must not light up "New order" (`/order`).
   if (href === APP_ROUTES.order) {
     return path === APP_ROUTES.order || path.startsWith(`${APP_ROUTES.order}?`);
+  }
+  if (href === APP_ROUTES.shifts) {
+    return path === href;
   }
   if (href === APP_ROUTES.products) {
     return path === href || path.startsWith(`${APP_ROUTES.products}/p/`);

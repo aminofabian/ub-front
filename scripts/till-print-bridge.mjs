@@ -12,6 +12,7 @@
  *   All           — Ethernet/Wi‑Fi ESC/POS on TCP port 9100 (X-Printer-Host)
  *
  * Also: POST /drawer/kick — ESC/POS cash-drawer pulse (same printer target headers).
+ *       POST /drawer/status — read the drawer switch (network printers only).
  *
  * Usage:
  *   Windows 10/11 (recommended): run Install-Kiosk-Print-Bridge.cmd once — autostarts hidden, no Node.
@@ -485,6 +486,38 @@ async function sendWindowsRaw(name, data) {
   }
 }
 
+/** ESC/POS GS r 2. Bit 0 of the reply is drawer-kick pin 3. */
+const DRAWER_STATUS = Buffer.from([0x1d, 0x72, 0x02]);
+const STATUS_TIMEOUT_MS = 1_200;
+
+function readDrawerStatus(host, port) {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection({ host, port });
+    let settled = false;
+    const finish = (err, value) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      if (err) reject(err);
+      else resolve(value);
+    };
+    socket.setTimeout(STATUS_TIMEOUT_MS, () => {
+      finish(new Error(`Timed out reading drawer status from ${host}:${port}`));
+    });
+    socket.on("connect", () => {
+      socket.write(DRAWER_STATUS, (err) => {
+        if (err) finish(err);
+      });
+    });
+    socket.on("data", (buf) => {
+      if (!buf || buf.length < 1) return;
+      const raw = buf[0];
+      finish(null, { raw, pinHigh: (raw & 0x01) === 1 });
+    });
+    socket.on("error", (err) => finish(err));
+  });
+}
+
 function sendNetworkRaw(host, port, data) {
   return new Promise((resolve, reject) => {
     const socket = createConnection({ host, port }, () => {
@@ -561,6 +594,33 @@ const server = createServer(async (req, res) => {
     } catch (e) {
       send(res, 502, e instanceof Error ? e.message : String(e));
     }
+    return;
+  }
+
+  if (req.method === "POST" && (url === "/drawer/status" || url === "/drawer/status/")) {
+    const netHost = req.headers["x-printer-host"]?.trim() || "";
+    const netPort = parsePort(req.headers["x-printer-port"]);
+    const cups = req.headers["x-printer-cups-name"]?.trim() || "";
+    if (netHost) {
+      if (!HOST_RE.test(netHost)) {
+        send(res, 400, "Invalid X-Printer-Host");
+        return;
+      }
+      try {
+        const status = await readDrawerStatus(netHost, netPort);
+        send(res, 200, { readable: true, pinHigh: status.pinHigh, raw: status.raw }, "application/json");
+      } catch (e) {
+        logLine("Drawer status unreadable:", e instanceof Error ? e.message : e);
+        send(res, 200, { readable: false, reason: "timeout" }, "application/json");
+      }
+      return;
+    }
+    send(
+      res,
+      200,
+      { readable: false, reason: cups ? "queue" : "no-printer" },
+      "application/json",
+    );
     return;
   }
 
@@ -660,7 +720,7 @@ server.listen(PORT, HOST, () => {
     logLine("Windows: PowerShell WMI / USB auto-queue / WritePrinter (RAW)");
   }
   logLine("Network ESC/POS: X-Printer-Host (+ optional X-Printer-Port, default 9100)");
-  logLine("Cash drawer: POST /drawer/kick (same printer headers as /print)");
+  logLine("Cash drawer: POST /drawer/kick and POST /drawer/status (same printer headers as /print)");
   if (LOG_FILE) {
     logLine(`Logging to ${LOG_FILE}`);
   } else if (IS_WIN) {

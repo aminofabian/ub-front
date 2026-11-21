@@ -231,6 +231,7 @@ export const APP_ROUTES = {
   pricing: "/pricing",
   discounts: "/discounts",
   shifts: "/shifts",
+  drawerOpens: "/shifts/drawer",
   analytics: "/analytics",
   analyticsActivity: "/analytics/activity",
   analyticsCustomers: "/analytics/customers",

@@ -12,6 +12,14 @@ import {
   createDrawerKickReporter,
 } from "@/lib/cash-drawer-kick";
 import {
+  CASH_DRAWER_KICK_ARM_EVENT,
+  CASH_DRAWER_KICK_CANCEL_EVENT,
+  CASH_DRAWER_KICKED_EVENT,
+  newDrawerEventId,
+  type CashDrawerKickedDetail,
+  type DrawerKickReason,
+} from "@/lib/cash-drawer-watch";
+import {
   fetchDesktopPrinterConfig,
   kickDesktopCashDrawer,
 } from "@/lib/desktop-api";
@@ -67,6 +75,8 @@ export type PrintPosReceiptOptions = {
    * the pulse must not ride inside the receipt bytes.
    */
   openDrawer?: boolean;
+  /** Why this pulse is being sent. A receipt button is a reprint. */
+  drawerReason?: DrawerKickReason;
   /** Skip toasts — used for automatic post-sale print so cashiers can sell without a printer. */
   quiet?: boolean;
 };
@@ -79,11 +89,12 @@ export type PrintPosReceiptOptions = {
 const DRAWER_BEFORE_RECEIPT_MS = 300;
 
 async function openDrawerBeforeReceipt(
-  printer?: LocalReceiptPrinterTarget | null,
+  printer: LocalReceiptPrinterTarget | null | undefined,
+  notice: { reason: DrawerKickReason; saleId: string | null },
 ): Promise<void> {
   let opened = false;
   try {
-    opened = await kickCashDrawer(printer);
+    opened = await kickCashDrawer(printer, notice);
   } catch {
     return;
   }
@@ -242,6 +253,10 @@ export async function printPosReceipt(
   const id = saleId.trim();
   const openDrawer = Boolean(opts?.openDrawer);
   const quiet = Boolean(opts?.quiet);
+  const drawerNotice = {
+    reason: opts?.drawerReason ?? "REPRINT",
+    saleId: id || null,
+  };
   if (!id) {
     window.print();
     return false;
@@ -257,7 +272,7 @@ export async function printPosReceipt(
     }
     try {
       if (openDrawer) {
-        await openDrawerBeforeReceipt(printer);
+        await openDrawerBeforeReceipt(printer, drawerNotice);
       }
       const params = new URLSearchParams({ widthMm: String(widthMm) });
       if (cashTender?.received != null && cashTender.received > 0) {
@@ -292,7 +307,7 @@ export async function printPosReceipt(
     branchId: resolved?.branchId ?? printer?.branchId ?? null,
   };
   if (openDrawer) {
-    await openDrawerBeforeReceipt(kickTarget);
+    await openDrawerBeforeReceipt(kickTarget, drawerNotice);
   }
 
   if (!cupsName && !host) {
@@ -382,10 +397,18 @@ async function kickDesktopDrawer(): Promise<void> {
  * the cashier knows to open the drawer by hand. A till with no printer at all
  * is told once per page load. Pass `quiet` to log only.
  */
+function publishKick(name: string, detail: unknown) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
 export async function kickCashDrawer(
   printer?: LocalReceiptPrinterTarget | null,
-  opts?: { quiet?: boolean },
+  opts?: { quiet?: boolean; reason?: DrawerKickReason; saleId?: string | null },
 ): Promise<boolean> {
+  const clientEventId = newDrawerEventId();
+  const openedAt = new Date().toISOString();
+  publishKick(CASH_DRAWER_KICK_ARM_EVENT, { at: Date.parse(openedAt) });
   const result = await attemptDrawerKick({
     isDesktop: IS_DESKTOP,
     kickDesktop: kickDesktopDrawer,
@@ -399,7 +422,17 @@ export async function kickCashDrawer(
     isBridgeUp: isTillPrintBridgeUp,
     kickViaBridge: kickCashDrawerViaTillBridge,
   });
-  if (result.ok) return true;
+  if (result.ok) {
+    const detail: CashDrawerKickedDetail = {
+      clientEventId,
+      openedAt,
+      reason: opts?.reason ?? "UNKNOWN",
+      saleId: opts?.saleId ?? null,
+    };
+    publishKick(CASH_DRAWER_KICKED_EVENT, detail);
+    return true;
+  }
+  publishKick(CASH_DRAWER_KICK_CANCEL_EVENT, {});
   reportDrawerKickFailure(result, opts?.quiet);
   return false;
 }

@@ -377,5 +377,51 @@ export async function kickCashDrawerViaTillBridge(
   }
 }
 
+export type DrawerSwitchReading =
+  | { readable: true; pinHigh: boolean }
+  | { readable: false; reason: "queue" | "timeout" | "no-printer" | "bridge-down" };
+
+const STATUS_REASONS = new Set(["queue", "timeout", "no-printer"]);
+
+/**
+ * Ask the till bridge whether the drawer's open switch is high.
+ * A CUPS or Windows queue cannot answer; only a raw network printer can.
+ */
+export async function readDrawerSwitch(
+  target: { host: string; port: number } | null,
+): Promise<DrawerSwitchReading> {
+  const headers: Record<string, string> = {};
+  if (target?.host) {
+    headers["X-Printer-Host"] = target.host;
+    headers["X-Printer-Port"] = String(target.port > 0 ? target.port : 9100);
+  }
+  const { signal, done } = bridgeTimeoutSignal(BRIDGE_DRAWER_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${TILL_PRINT_BRIDGE_URL}/drawer/status`, {
+      ...LOOPBACK_FETCH,
+      method: "POST",
+      headers,
+      signal,
+    });
+  } catch {
+    return { readable: false, reason: "bridge-down" };
+  } finally {
+    done();
+  }
+  if (res.status === 404) return { readable: false, reason: "no-printer" };
+  if (!res.ok) return { readable: false, reason: "bridge-down" };
+  const body = (await res.json().catch(() => null)) as {
+    readable?: boolean;
+    pinHigh?: boolean;
+    reason?: string;
+  } | null;
+  if (body?.readable === true && typeof body.pinHigh === "boolean") {
+    return { readable: true, pinHigh: body.pinHigh };
+  }
+  const reason = body?.reason && STATUS_REASONS.has(body.reason) ? body.reason : "no-printer";
+  return { readable: false, reason: reason as "queue" | "timeout" | "no-printer" };
+}
+
 export const TILL_BRIDGE_START_HINT =
   "The bridge must run on THIS computer (the one with the printer), not another PC. Windows 10/11: unzip and run Install-Kiosk-Print-Bridge.cmd (no Node.js). Windows 7: download the Windows 7 package and run Install-Kiosk-Print-Bridge-Win7.cmd. macOS: Install Kiosk Print Bridge.command. Linux: bash install-kiosk-print-bridge.sh.";

@@ -529,6 +529,27 @@ function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
   }
 }
 
+# ESC/POS GS r 2. Bit 0 of the reply is drawer-kick pin 3.
+function Read-DrawerSwitch([string]$HostName, [int]$PortNumber) {
+  $client = New-Object System.Net.Sockets.TcpClient
+  try {
+    $iar = $client.BeginConnect($HostName, $PortNumber, $null, $null)
+    $ok = $iar.AsyncWaitHandle.WaitOne(1200, $false)
+    if (-not $ok) { throw "Timed out connecting to ${HostName}:${PortNumber}" }
+    $client.EndConnect($iar)
+    $stream = $client.GetStream()
+    $stream.ReadTimeout = 800
+    $cmd = [byte[]](0x1D, 0x72, 0x02)
+    $stream.Write($cmd, 0, $cmd.Length)
+    $stream.Flush()
+    $one = $stream.ReadByte()
+    if ($one -lt 0) { throw "Printer closed the status connection" }
+    return $one
+  } finally {
+    try { $client.Close() } catch { }
+  }
+}
+
 function Send-NetworkRaw([string]$HostName, [int]$PortNumber, [byte[]]$Bytes) {
   $client = New-Object System.Net.Sockets.TcpClient
   try {
@@ -708,6 +729,33 @@ function Handle-Request($Req, $Stream) {
     } catch {
       Write-HttpResponse $Stream 502 $_.Exception.Message "text/plain"
     }
+    return
+  }
+
+  if ($method -eq "POST" -and ($path -eq "/drawer/status" -or $path -eq "/drawer/status/")) {
+    $netHost = Get-HeaderValue $Req.Headers "X-Printer-Host"
+    $netPortRaw = Get-HeaderValue $Req.Headers "X-Printer-Port"
+    $cups = Get-HeaderValue $Req.Headers "X-Printer-Cups-Name"
+    if (-not $netPortRaw) { $netPortRaw = "9100" }
+    $netPort = 9100
+    try { $netPort = [int]$netPortRaw } catch { $netPort = 9100 }
+    if ($netHost -and $netHost.Trim()) {
+      try {
+        $raw = Read-DrawerSwitch $netHost.Trim() $netPort
+        $pin = "false"
+        if (($raw -band 1) -eq 1) { $pin = "true" }
+        Write-HttpResponse $Stream 200 ("{""readable"":true,""pinHigh"":" + $pin + ",""raw"":" + $raw + "}") "application/json"
+      } catch {
+        Write-BridgeLog ("Drawer status unreadable: " + $_.Exception.Message)
+        Write-HttpResponse $Stream 200 '{"readable":false,"reason":"timeout"}' "application/json"
+      }
+      return
+    }
+    if ($cups -and $cups.Trim()) {
+      Write-HttpResponse $Stream 200 '{"readable":false,"reason":"queue"}' "application/json"
+      return
+    }
+    Write-HttpResponse $Stream 200 '{"readable":false,"reason":"no-printer"}' "application/json"
     return
   }
 
