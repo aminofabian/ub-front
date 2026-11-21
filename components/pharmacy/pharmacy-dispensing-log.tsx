@@ -207,7 +207,13 @@ export function PharmacyDispensingLog({ canDispense = false }: { canDispense?: b
                                 <span>
                                   <span className={cn("font-medium", RX_INK)}>{l.itemName}</span>
                                   <span className="tabular-nums"> × {formatQty(l.quantity)}</span>
-                                  {l.quantityPrescribed != null ? (
+                                  {l.quantityReturned != null && l.quantityReturned > 0 ? (
+                                    <span className={cn("block text-[12.5px]", RX_MUTED)}>
+                                      {l.quantityReturned >= l.quantity
+                                        ? "Refunded and returned"
+                                        : `${formatQty(l.quantityReturned)} refunded and returned`}
+                                    </span>
+                                  ) : l.quantityPrescribed != null ? (
                                     <span className={cn("block text-[12.5px]", RX_MUTED)}>
                                       {formatQty(l.quantityPrescribed)} prescribed, {formatQty(l.quantityPrescribed - l.quantity)} still owed
                                     </span>

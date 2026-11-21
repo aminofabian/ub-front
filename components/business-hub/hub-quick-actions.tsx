@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { JumpInLink } from "@/components/business-hub/jump-in-grid";
+import { HUB_SECTION } from "@/lib/business-hub/constants";
 import { cn } from "@/lib/utils";
 
 const TILE_LINK =
@@ -56,11 +57,9 @@ export function HubQuickActions({
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-[17px] font-semibold text-[var(--hub-ink)]">
-        {title}
-      </h3>
-      <div className="flex flex-wrap gap-2.5">
+    <section className="flex flex-col gap-1.5">
+      <h3 className={HUB_SECTION}>{title}</h3>
+      <div className="flex flex-wrap gap-1.5">
         {tiles.map((link) => {
           const Icon = link.icon;
           return (
@@ -68,10 +67,10 @@ export function HubQuickActions({
               key={link.href + link.label}
               href={link.href}
               title={link.hint}
-              className="flex min-h-[56px] flex-1 basis-[140px] items-center gap-3 rounded-[14px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] px-4 text-[14px] font-medium text-[var(--hub-ink,#14211C)] transition-colors hover:border-[var(--hub-accent,#0F4A38)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/35"
+              className="flex min-h-11 flex-1 basis-[132px] items-center gap-2 rounded-[2px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] px-3 text-[13px] font-medium text-[var(--hub-ink,#14211C)] transition-colors hover:border-[var(--hub-accent,#0F4A38)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/35"
             >
               <Icon
-                className="size-[19px] shrink-0 text-[var(--hub-accent,#0F4A38)]"
+                className="size-4 shrink-0 text-[var(--hub-accent,#0F4A38)]"
                 strokeWidth={1.9}
                 aria-hidden
               />

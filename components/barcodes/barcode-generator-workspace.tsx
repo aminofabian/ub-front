@@ -22,6 +22,20 @@ import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 const SAVE_CONCURRENCY = 4;
+/** Start the next page before the list end reaches the fold. */
+const SCROLL_LOAD_ROOT_MARGIN = "240px 0px";
+
+/** The box that actually scrolls this list. A growing, non-scrolling ancestor is skipped. */
+function listScrollRoot(node: HTMLElement): HTMLElement | null {
+  let current: HTMLElement | null = node.parentElement;
+  while (current) {
+    const { overflowY } = getComputedStyle(current);
+    const clips = overflowY === "auto" || overflowY === "scroll";
+    if (clips && current.scrollHeight > current.clientHeight + 1) return current;
+    current = current.parentElement;
+  }
+  return null;
+}
 
 type RowState = { status: "saved"; code: string } | { status: "failed" } | { status: "saving" };
 
@@ -39,10 +53,15 @@ export function BarcodeGeneratorWorkspace() {
 
   const [rows, setRows] = useState<ItemSummaryRecord[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const pageRef = useRef(0);
+  const paging = useRef(false);
+  const listGeneration = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<() => void>(() => {});
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
@@ -68,43 +87,75 @@ export function BarcodeGeneratorWorkspace() {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const generation = ++listGeneration.current;
+    pageRef.current = 0;
+    paging.current = false;
+    setLoadFailed(false);
+    setLoadingMore(false);
     setLoading(true);
     fetchPage(0)
       .then((result) => {
-        if (cancelled) return;
+        if (generation !== listGeneration.current) return;
         setRows(result.content);
         setTotal(result.totalElements);
-        setPage(0);
         setHasMore(!result.last);
       })
       .catch(() => {
-        if (!cancelled) toast.error("Couldn't load your products. Check your connection and try again.");
+        if (generation !== listGeneration.current) return;
+        toast.error("Couldn't load your products. Check your connection and try again.");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (generation === listGeneration.current) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [fetchPage]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
+    if (paging.current) return;
+    const generation = listGeneration.current;
+    const nextPage = pageRef.current + 1;
+    paging.current = true;
     setLoadingMore(true);
+    setLoadFailed(false);
     try {
-      const result = await fetchPage(page + 1);
+      const result = await fetchPage(nextPage);
+      if (generation !== listGeneration.current) return;
       setRows((current) => {
-        const have = new Set(current.map((r) => r.id));
-        return [...current, ...result.content.filter((r) => !have.has(r.id))];
+        const have = new Set(current.map((row) => row.id));
+        const added = result.content.filter((row) => !have.has(row.id));
+        return added.length === 0 ? current : [...current, ...added];
       });
-      setPage(page + 1);
+      pageRef.current = nextPage;
       setHasMore(!result.last);
     } catch {
+      if (generation !== listGeneration.current) return;
+      setLoadFailed(true);
       toast.error("Couldn't load more. Try again.");
     } finally {
-      setLoadingMore(false);
+      if (generation === listGeneration.current) {
+        paging.current = false;
+        setLoadingMore(false);
+      }
     }
+  }, [fetchPage]);
+
+  loadMoreRef.current = () => {
+    if (paging.current || loading || loadFailed || !hasMore) return;
+    void loadMore();
   };
+
+  useEffect(() => {
+    if (loading || loadingMore || loadFailed || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMoreRef.current();
+      },
+      { root: listScrollRoot(sentinel), rootMargin: SCROLL_LOAD_ROOT_MARGIN, threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, loadFailed, hasMore, rows.length]);
 
   const isSaved = (id: string) => state.get(id)?.status === "saved";
   const todo = useMemo(() => rows.filter((r) => !isSaved(r.id)), [rows, state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -315,18 +366,30 @@ export function BarcodeGeneratorWorkspace() {
           )}
         </div>
 
-        {hasMore ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(CATALOG_BTN_OUTLINE, "self-center")}
-            disabled={loadingMore}
-            onClick={() => void loadMore()}
+        {!loading && hasMore ? (
+          <div
+            ref={sentinelRef}
+            className="flex h-12 shrink-0 items-center justify-center"
           >
-            {loadingMore ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-            Show more
-          </Button>
+            {loadingMore ? (
+              <span role="status" className="flex items-center gap-2 text-[12px] opacity-60">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Loading more products…
+              </span>
+            ) : loadFailed ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={CATALOG_BTN_OUTLINE}
+                onClick={() => void loadMore()}
+              >
+                Try again
+              </Button>
+            ) : (
+              <span className="sr-only">More products load as you scroll</span>
+            )}
+          </div>
         ) : null}
         {allDone ? (
           <p className="text-center text-[13px] opacity-65">That&apos;s all of them. Nothing left without a barcode.</p>

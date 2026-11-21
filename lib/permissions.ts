@@ -40,6 +40,16 @@ export const Permission = {
   PharmacyRecordsRead: "pharmacy.records.read",
   /** Add medical schemes and mark scheme claims submitted, paid or rejected. */
   PharmacyClaimsManage: "pharmacy.claims.manage",
+  /** Clinic (ADR 0034): open a visit, find or add a patient. */
+  ClinicReception: "clinic.reception",
+  /** Clinic: work a visit, add the services given. */
+  ClinicConsult: "clinic.consult",
+  /** Clinic: write a prescription. */
+  ClinicPrescribe: "clinic.prescribe",
+  /** Clinic: carry out a test or procedure. */
+  ClinicPerform: "clinic.perform",
+  /** Clinic: stations, fee first, review visits. */
+  ClinicManage: "clinic.manage",
   InventoryTransfer: "inventory.transfer",
   StocktakeRead: "stocktake.read",
   StocktakeRun: "stocktake.run",

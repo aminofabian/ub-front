@@ -139,6 +139,8 @@ export const APP_ROUTES = {
   store: "/store",
   /** Pharmacy: medicines, stock safety, dispensing log and pharmacy settings. */
   pharmacy: "/pharmacy",
+  /** Clinic: today's visits, appointments, services and clinic settings (ADR 0034). */
+  clinic: "/clinic",
   categories: "/categories",
   suppliers: "/suppliers",
   /** Cashier-style receive-stock till for one tenant supplier (name slug). */

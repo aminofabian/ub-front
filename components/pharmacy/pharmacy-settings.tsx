@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   RX_INK,
   RX_INPUT,
@@ -17,15 +18,28 @@ import {
 import { Panel } from "@/components/sms-hub/sms-hub-ui";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { setUserPin } from "@/lib/api";
+import {
   fetchPharmacyProfile,
   savePharmacyProfile,
   savePharmacyStaffCredential,
   type PharmacyProfile,
   type PharmacyStaff,
 } from "@/lib/pharmacy-api";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 export function PharmacySettings({ canManage, onChanged }: { canManage: boolean; onChanged: () => void }) {
+  const { me } = useDashboard();
+  const canSetPin = hasPermission(me?.permissions, Permission.UsersUpdate);
+  const [pinStaff, setPinStaff] = useState<PharmacyStaff | null>(null);
   const [profile, setProfile] = useState<PharmacyProfile | null>(null);
   const [error, setError] = useState("");
   const [licenceNo, setLicenceNo] = useState("");
@@ -158,7 +172,7 @@ export function PharmacySettings({ canManage, onChanged }: { canManage: boolean;
 
       <Panel
         title="Staff who may dispense"
-        description="Anyone with the Pharmacist role, or another role that includes dispensing. Give a role under Business, Staff. A till PIN lets them approve a cashier's sale."
+        description="Anyone with the Pharmacist role, or another role that includes dispensing. Give a role under Business, Staff. A till PIN lets them approve a cashier's sale. Setting one here needs the Users permission; ask an owner or admin if the buttons are missing."
         flush
       >
         {profile.staff.length === 0 ? (
@@ -181,13 +195,32 @@ export function PharmacySettings({ canManage, onChanged }: { canManage: boolean;
               </thead>
               <tbody>
                 {profile.staff.map((s) => (
-                  <StaffRow key={s.userId} staff={s} canManage={canManage} onSaved={apply} />
+                  <StaffRow
+                    key={s.userId}
+                    staff={s}
+                    canManage={canManage}
+                    canSetPin={canSetPin}
+                    onSetPin={setPinStaff}
+                    onSaved={apply}
+                  />
                 ))}
               </tbody>
             </table>
           </div>
         )}
       </Panel>
+      {pinStaff ? (
+        <PinDialog
+          staff={pinStaff}
+          onClose={() => setPinStaff(null)}
+          onSaved={() => {
+            setPinStaff(null);
+            fetchPharmacyProfile()
+              .then(apply)
+              .catch(() => toast.error("PIN set, but the list could not be refreshed."));
+          }}
+        />
+      ) : null}
     </>
   );
 }
@@ -195,10 +228,14 @@ export function PharmacySettings({ canManage, onChanged }: { canManage: boolean;
 function StaffRow({
   staff,
   canManage,
+  canSetPin,
+  onSetPin,
   onSaved,
 }: {
   staff: PharmacyStaff;
   canManage: boolean;
+  canSetPin: boolean;
+  onSetPin: (staff: PharmacyStaff) => void;
   onSaved: (p: PharmacyProfile) => void;
 }) {
   const [title, setTitle] = useState(staff.title ?? "");
@@ -242,7 +279,18 @@ function StaffRow({
           disabled={!canManage}
         />
       </td>
-      <td className={cn(RX_TD, staff.hasPin ? RX_MUTED : "text-[#8A4129]")}>{staff.hasPin ? "Set" : "Not set"}</td>
+      <td className={cn(RX_TD, staff.hasPin ? RX_MUTED : "text-[#8A4129]")}>
+        <span>{staff.hasPin ? "Set" : "Not set"}</span>
+        {canSetPin ? (
+          <button
+            type="button"
+            className="ml-2 font-medium text-[var(--op-accent,#1d4b3b)] underline underline-offset-4"
+            onClick={() => onSetPin(staff)}
+          >
+            {staff.hasPin ? "Change" : "Set"}
+          </button>
+        ) : null}
+      </td>
       <td className={cn(RX_TD, "text-right")}>
         {canManage ? (
           <Button type="button" variant="outline" className="h-11 rounded-[2px] px-3.5 sm:h-9" disabled={!dirty || busy} onClick={() => void save()}>
@@ -251,5 +299,103 @@ function StaffRow({
         ) : null}
       </td>
     </tr>
+  );
+}
+
+/**
+ * Sets a till PIN for someone who may dispense. The PIN is what lets them approve a cashier's
+ * sale at the counter, so this is the last step of setting a pharmacist up. The server signs
+ * them out everywhere when an admin sets a PIN, hence the warning.
+ */
+function PinDialog({
+  staff,
+  onClose,
+  onSaved,
+}: {
+  staff: PharmacyStaff;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    if (!/^\d{4,6}$/.test(pin)) {
+      setError("A till PIN is 4 to 6 digits.");
+      return;
+    }
+    if (pin !== confirm) {
+      setError("The two PINs do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await setUserPin(staff.userId, pin);
+      toast.success(`Till PIN set for ${staff.name}`);
+      onSaved();
+    } catch (err) {
+      setError(errorText(err, "Could not set the PIN."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
+      <DialogContent side="center" className="sm:max-w-md">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <DialogHeader className="text-left">
+            <DialogTitle>{staff.hasPin ? "Change" : "Set"} till PIN for {staff.name}</DialogTitle>
+            <DialogDescription className="text-[13px] leading-relaxed">
+              They enter this PIN to approve a cashier&apos;s sale. Setting it signs them out on
+              every device, so they will need to sign in again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="PIN" hint="4 to 6 digits.">
+              <input
+                className={RX_INPUT}
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={6}
+                value={pin}
+                autoFocus
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </Field>
+            <Field label="Enter it again">
+              <input
+                className={RX_INPUT}
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={6}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </Field>
+          </div>
+          {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : "Save PIN"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

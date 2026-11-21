@@ -4,6 +4,7 @@ import {
   printEscPosViaTillBridge,
   type TillBridgePrintTarget,
 } from "@/lib/till-print-bridge";
+import { fetchSaleReceiptThermal } from "@/lib/api";
 import type {
   KitchenPrintJobRecord,
   KitchenTicketRecord,
@@ -32,6 +33,7 @@ function ascii(text: string): number[] {
   for (const ch of text.normalize("NFKD")) {
     const code = ch.charCodeAt(0);
     if (code === 0xd7) out.push(0x78); // the multiplication sign prints as "x"
+    else if (code === 0xb7) out.push(0x2d); // a middle dot prints as "-", not as noise
     else if (code >= 0x20 && code < 0x7f) out.push(code);
     else if (code === 0x0a) out.push(0x0a);
     else if (code < 0x300 || code > 0x36f) out.push(0x3f);
@@ -66,7 +68,7 @@ function clock(iso: string | null | undefined): string {
   return d.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Nairobi" });
 }
 
-/** What a station is told to make: order number large, each line with its choices and note, and no prices. */
+/** What a station is told to make: order number large, where it goes, each line with its choices and note, no prices. */
 export function buildKitchenTicketEscPos(
   ticket: KitchenTicketRecord,
   stationName: string | null,
@@ -78,15 +80,41 @@ export function buildKitchenTicketEscPos(
   if (reprint) bytes.push(...BOLD_ON, ...line("** REPRINT **"), ...BOLD_OFF);
   bytes.push(...BIG, ...line(`Order ${ticket.orderNumber}`), ...NORMAL);
   bytes.push(...line(`${stationName ?? "Kitchen"}  ${clock(ticket.sentAt)}${ticket.roundNo > 1 ? `  round ${ticket.roundNo}` : ""}`));
+  // Where the food goes. A docket without it cannot be carried to the right table or bagged.
+  const where = kitchenWhere(ticket);
+  if (where) bytes.push(...BOLD_ON, ...line(where), ...BOLD_OFF);
   bytes.push(...line("-".repeat(WIDTH)));
   for (const l of ticket.lines) {
-    bytes.push(...BOLD_ON, ...wrap(`${l.quantity} x ${l.name}`), ...BOLD_OFF);
+    const seat = l.seatNo ? `S${l.seatNo} · ` : "";
+    bytes.push(...BOLD_ON, ...wrap(`${seat}${l.quantity} x ${l.name}`), ...BOLD_OFF);
     if (l.modifiers.length > 0) bytes.push(...wrap(l.modifiers.map((m) => m.option).join(", "), "  "));
     if (l.note) bytes.push(...wrap(`"${l.note}"`, "  "));
   }
   if (isVoid) bytes.push(...line("-".repeat(WIDTH)), ...line("Stop making the above."));
   bytes.push(...CUT);
   return new Uint8Array(bytes);
+}
+
+/** "DINE-IN · Table 4" / "TAKEAWAY · Kevin" / "DELIVERY" for a ticket's heading; empty on an old ticket. */
+export function kitchenWhere(ticket: Pick<KitchenTicketRecord, "orderChannel" | "tableName" | "customerName">): string {
+  const channel =
+    ticket.orderChannel === "TAKEAWAY"
+      ? "TAKEAWAY"
+      : ticket.orderChannel === "DELIVERY"
+        ? "DELIVERY"
+        : ticket.orderChannel === "COUNTER"
+          ? "COUNTER"
+          : ticket.orderChannel === "DINE_IN"
+            ? "DINE-IN"
+            : ticket.orderChannel === "LODGING"
+              ? "ROOM"
+              : "";
+  if (ticket.tableName) return channel === "DINE-IN" ? `DINE-IN · ${ticket.tableName}` : `${channel || "DINE-IN"} · ${ticket.tableName}`;
+  // A counter or takeaway order is called by the guest's name when the cashier took one.
+  if (ticket.customerName && (channel === "COUNTER" || channel === "TAKEAWAY" || channel === "DELIVERY")) {
+    return `${channel} · ${ticket.customerName}`;
+  }
+  return channel;
 }
 
 /** A bill for the customer to check before paying. It is not a receipt: that prints when it is paid. */
@@ -125,6 +153,23 @@ export async function printOnThisDevice(bytes: Uint8Array): Promise<void> {
     throw new Error("No printer is set up on this device. Set one up under the till's printer settings first.");
   }
   await printEscPosViaTillBridge(new Blob([bytes as BlobPart]), target);
+}
+
+/**
+ * The customer's receipt for a sale, printed through the till bridge. The bytes come from the
+ * server's own receipt renderer, so the paper says exactly what the fiscal receipt says — the shop's
+ * name, the tax, the payments and the order number. Throws a message a person can act on.
+ */
+export async function printSaleReceiptOnThisDevice(
+  saleId: string,
+  cashReceived?: number | null,
+): Promise<void> {
+  const target = localPrinter();
+  if (!target) {
+    throw new Error("No printer is set up on this device. Set one up under the till's printer settings first.");
+  }
+  const blob = await fetchSaleReceiptThermal(saleId, 80, cashReceived ?? null);
+  await printEscPosViaTillBridge(blob, target);
 }
 
 /** The printer a job should go to: the station's own, if it named one, else this device's. */

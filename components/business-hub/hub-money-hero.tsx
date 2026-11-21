@@ -30,16 +30,23 @@ function trendDirection(trend?: string | null): "up" | "down" | null {
   return trend.startsWith("-") || trend.startsWith("<-") ? "down" : "up";
 }
 
-function HeroStat({ item }: { item: HubKpi }) {
+function HeroStat({ item, divided }: { item: HubKpi; divided?: boolean }) {
   const direction = trendDirection(item.trend);
   return (
-    <div className="flex min-w-0 items-baseline justify-between gap-3 rounded-[10px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] px-3 py-1.5 sm:flex-col sm:items-stretch sm:justify-start sm:gap-0.5 sm:rounded-[14px] sm:px-4 sm:py-3.5">
+    <div
+      className={cn(
+        "flex min-w-0 items-baseline justify-between gap-3 px-3 py-2",
+        "sm:flex-col sm:items-stretch sm:justify-center sm:gap-0.5 sm:px-3.5 sm:py-2.5",
+        divided &&
+          "border-t border-[var(--hub-rule,#E7E3D8)] sm:border-t-0 sm:border-l",
+      )}
+    >
       <div className="flex min-w-0 flex-col sm:contents">
-        <p className="truncate text-[12px] text-[var(--hub-muted,#5E6B65)] sm:order-1 sm:text-[13px]">
+        <p className="truncate text-[12px] text-[var(--hub-muted,#5E6B65)] sm:order-1">
           {item.label}
         </p>
         {item.hint || direction ? (
-          <p className="hidden truncate text-[13px] text-[var(--hub-muted,#5E6B65)] sm:order-3 sm:block">
+          <p className="hidden truncate text-[12px] text-[var(--hub-muted,#5E6B65)] sm:order-3 sm:block">
             {direction ? (
               <span
                 className={cn(
@@ -56,7 +63,7 @@ function HeroStat({ item }: { item: HubKpi }) {
         ) : null}
       </div>
       <p
-        className="shrink-0 text-right text-[15px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] [overflow-wrap:anywhere] sm:order-2 sm:text-left sm:text-[24px] sm:leading-[1.15]"
+        className="shrink-0 text-right text-[15px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-[var(--hub-ink,#14211C)] [overflow-wrap:anywhere] sm:order-2 sm:text-left sm:text-[20px]"
         style={{ fontFamily: "var(--font-heading)" }}
       >
         {item.value}
@@ -66,10 +73,9 @@ function HeroStat({ item }: { item: HubKpi }) {
 }
 
 /**
- * The shop's money, top of the board. On phones the headline, the payment mix,
- * the three supporting numbers, and the profit actions read as separate blocks;
- * from `lg` the payment mix folds into the headline card and the numbers become
- * their own cards with the actions stacked beside them.
+ * The shop's money, top of the board. The headline and payment mix share one
+ * forest panel. The supporting numbers sit in a single hairline strip, with
+ * the profit actions in the last cell from `lg`.
  */
 export function HubMoneyHero({
   items,
@@ -119,7 +125,7 @@ export function HubMoneyHero({
 
   const paymentBlock =
     tender && tenderValues ? (
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-4 lg:gap-y-1.5">
           <h3 className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.07em] text-[rgba(244,242,236,0.72)]">
             How you got paid
@@ -189,8 +195,8 @@ export function HubMoneyHero({
 
   return (
     <>
-      <section className="flex flex-col gap-3.5 rounded-[20px] bg-[var(--hub-accent-deep,#0D3B2E)] px-5 py-4 text-[#F4F2EC] sm:px-6 sm:py-4">
-        <div className="flex flex-col gap-3.5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-2.5 rounded-[2px] bg-[var(--hub-accent-deep,#0D3B2E)] px-4 py-3 text-[#F4F2EC]">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[rgba(244,242,236,0.72)]">
@@ -203,12 +209,12 @@ export function HubMoneyHero({
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-0 tabular-nums">
-              <span className="text-[16px] font-medium uppercase tracking-[0.02em] text-[rgba(244,242,236,0.6)]">
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0 tabular-nums">
+              <span className="text-[13px] font-medium uppercase tracking-[0.02em] text-[rgba(244,242,236,0.6)]">
                 {currencyPrefix}
               </span>
               <span
-                className="break-words text-[40px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[52px]"
+                className="break-words text-[32px] font-semibold leading-none tracking-[-0.03em] text-[#F4F2EC] sm:text-[40px]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {amount}
@@ -216,13 +222,13 @@ export function HubMoneyHero({
             </p>
           </div>
           {chartPoints.length > 0 ? (
-            <dl className="m-0 flex flex-wrap gap-x-6 gap-y-2">
+            <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1.5">
               {windowStats.map((stat) => (
                 <div key={stat.label} className="min-w-0">
-                  <dt className="text-[12px] text-[rgba(244,242,236,0.72)]">
+                  <dt className="text-[11px] text-[rgba(244,242,236,0.72)]">
                     {stat.label}
                   </dt>
-                  <dd className="mt-0.5 text-[16px] font-semibold tabular-nums text-[#F4F2EC]">
+                  <dd className="text-[14px] font-semibold tabular-nums text-[#F4F2EC]">
                     {stat.value}
                   </dd>
                 </div>
@@ -234,17 +240,17 @@ export function HubMoneyHero({
         <RevenueBarChart points={chartPoints} ariaLabel={chartAriaLabel} />
 
         {paymentBlock ? (
-          <div className="border-t border-white/[0.14] pt-4">{paymentBlock}</div>
+          <div className="border-t border-white/[0.14] pt-2.5">{paymentBlock}</div>
         ) : null}
       </section>
 
       {supporting.length > 0 ? (
-        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_13rem] lg:items-start">
-          {supporting.map((item) => (
-            <HeroStat key={item.id} item={item} />
+        <div className="overflow-hidden rounded-[2px] border border-[var(--hub-rule,#E7E3D8)] bg-[var(--hub-paper,#FFFFFF)] sm:grid sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_11rem]">
+          {supporting.map((item, index) => (
+            <HeroStat key={item.id} item={item} divided={index > 0} />
           ))}
           {actions.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 sm:col-span-3 sm:gap-3 lg:col-span-1 lg:grid-cols-1 lg:gap-2">
+            <div className="grid grid-cols-2 gap-1.5 border-t border-[var(--hub-rule,#E7E3D8)] p-2 sm:col-span-3 lg:col-span-1 lg:grid-cols-1 lg:border-l lg:border-t-0">
               {actions.map((action) => (
                 <button
                   key={action.label}
@@ -252,7 +258,7 @@ export function HubMoneyHero({
                   onClick={action.onClick}
                   className={cn(
                     HUB_BTN,
-                    "inline-flex min-h-11 items-center justify-center gap-1.5 px-3 text-[13px] font-semibold transition-colors",
+                    "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[2px] px-3 text-[12.5px] font-semibold transition-colors",
                     action.emphasize
                       ? "bg-[var(--hub-accent,#0F4A38)] text-white hover:bg-[var(--hub-accent-deep,#0D3B2E)]"
                       : "bg-[#E3EEE8] text-[var(--hub-accent,#0F4A38)] hover:bg-[#D7E7DF]",

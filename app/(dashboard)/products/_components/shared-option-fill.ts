@@ -76,6 +76,72 @@ export function optionSuffixFromShared(
   return name || detail || fallback;
 }
 
+function countText(value: number | null | undefined): string {
+  return value != null && Number.isFinite(value) && value >= 0 ? String(value) : "";
+}
+
+/** Cover photo: the catalog cover, or the first gallery image when the cover is empty. */
+export function sharedCatalogCoverUrl(product: {
+  imageUrl?: string | null;
+  images?: Array<{ imageUrl?: string | null }> | null;
+}): string {
+  const cover = tidy(product.imageUrl);
+  if (cover) return cover;
+  const first = product.images?.find((image) => tidy(image.imageUrl));
+  return tidy(first?.imageUrl);
+}
+
+/** Every form field a shared-catalog product can fill on its own. */
+export type SharedProductFormFill = {
+  name: string;
+  barcode: string;
+  sku: string;
+  brand: string;
+  size: string;
+  description: string;
+  unitType: string;
+  buyingPrice: string;
+  sellingPrice: string;
+  bundleQty: string;
+  bundleName: string;
+  reorderLevel: string;
+  reorderQty: string;
+  minStockLevel: string;
+  isSellable: boolean;
+  isStocked: boolean;
+  isWeighed: boolean;
+  photoUrl: string;
+};
+
+export function sharedProductFormFill(
+  product: GlobalProductRecord,
+): SharedProductFormFill {
+  const packQty = product.packagingUnitQty;
+  return {
+    name: tidy(product.name),
+    barcode: tidy(product.barcode),
+    sku: tidy(product.skuTemplate),
+    brand: tidy(product.brand),
+    size: tidy(product.size),
+    description: tidy(product.description),
+    unitType: tidy(product.unitType),
+    buyingPrice: moneyText(product.recommendedBuyingPrice),
+    sellingPrice: moneyText(product.recommendedSellingPrice),
+    bundleQty:
+      packQty != null && Number.isFinite(packQty) && packQty > 0
+        ? String(packQty)
+        : "",
+    bundleName: tidy(product.packagingUnitName ?? product.variantName),
+    reorderLevel: countText(product.defaultReorderLevel),
+    reorderQty: countText(product.defaultReorderQty),
+    minStockLevel: countText(product.defaultMinStockLevel),
+    isSellable: product.sellable,
+    isStocked: product.stocked,
+    isWeighed: product.weighed,
+    photoUrl: sharedCatalogCoverUrl(product),
+  };
+}
+
 function moneyText(value: number | null | undefined): string {
   return value != null && Number.isFinite(value) && value > 0
     ? String(value)

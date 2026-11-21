@@ -41,6 +41,7 @@ import {
   type SupplierPortalOrderDetail,
   type SupplierPortalOrderRow,
 } from "@/lib/marketplace-api";
+import { supplyPackSnapshotLabel } from "@/lib/supply-pack-math";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -713,6 +714,11 @@ function OrderDetailBody({
                   Ordered {item?.qtyOrdered}
                   {item?.itemSku ? ` · ${item.itemSku}` : ""}
                 </p>
+                {item && supplyPackSnapshotLabel(item) ? (
+                  <p className="mt-0.5 text-[11px] font-medium text-[color-mix(in_srgb,var(--pos-primary)_85%,transparent)]">
+                    {supplyPackSnapshotLabel(item)}
+                  </p>
+                ) : null}
 
                 {awaiting ? (
                   <div className="mt-2.5 grid gap-2 sm:grid-cols-[minmax(0,8.5rem)_minmax(0,5.5rem)_minmax(0,1fr)]">

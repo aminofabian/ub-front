@@ -45,6 +45,7 @@ const {
   formatTillExpiry,
   tillGenericLine,
   tillMedicineBlocked,
+  offlineDispensingCheck,
 } = await import("./pharmacy-till");
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -135,6 +136,18 @@ describe("till medicine store", () => {
     store.setPatient(null);
     expect(store.patient()).toBeNull();
   });
+
+  test("a patient belongs to the cart, so switching carts does not carry them over", () => {
+    const store = new PharmacyTillStore(true);
+    store.setActiveCart("cart-a");
+    store.setPatient({ id: "p1", name: "Grace", phone: null, allergies: "penicillin" });
+    store.setActiveCart("cart-b");
+    expect(store.patient()).toBeNull();
+    store.setActiveCart("cart-a");
+    expect(store.patient()?.name).toBe("Grace");
+    store.retainCarts(["cart-b"]);
+    expect(store.patient()).toBeNull();
+  });
 });
 
 describe("generic-name search", () => {
@@ -150,3 +163,52 @@ describe("generic-name search", () => {
     expect(calls.length).toBe(0);
   });
 });
+
+describe("offlineDispensingCheck", () => {
+  const med = (status: "ok" | "needs_record" | "unclassified" | "controlled_blocked") => ({
+    itemId: "x",
+    dispensingClass: status === "ok" ? ("OTC" as const) : ("PRESCRIPTION_ONLY" as const),
+    status,
+    genericName: null,
+    strength: null,
+    dosageForm: null,
+    nextLot: null,
+    nextExpiry: null,
+    shortDated: false,
+  });
+  const known: Record<string, ReturnType<typeof med>> = {
+    amox: med("needs_record"),
+    para: med("ok"),
+    unk: med("unclassified"),
+  };
+  const get = (id: string) => known[id] ?? null;
+  const cart = [
+    { itemId: "amox", name: "Amoxicillin" },
+    { itemId: "para", name: "Paracetamol" },
+    { itemId: "bread", name: "Bread" },
+    { itemId: "amox", name: "Amoxicillin" },
+  ];
+
+  test("a pharmacist gets the medicines the till knows, each once, and ordinary goods are left out", () => {
+    const check = offlineDispensingCheck(cart, get, true);
+    expect(check?.lines.map((l) => l.itemId)).toEqual(["amox", "para"]);
+    expect(check?.needsRecord).toBe(true);
+    expect(check?.blocked).toBe(false);
+    expect(check?.userMayDispense).toBe(true);
+  });
+
+  test("someone who may not dispense is never let through offline", () => {
+    expect(offlineDispensingCheck(cart, get, false)).toBeNull();
+  });
+
+  test("a cart whose prescription medicine the till never learned about is not opened", () => {
+    expect(offlineDispensingCheck([{ itemId: "mystery", name: "?" }], get, true)).toBeNull();
+    expect(offlineDispensingCheck([{ itemId: "para", name: "Paracetamol" }], get, true)).toBeNull();
+  });
+
+  test("an unclassified medicine in the cart is reported as blocking", () => {
+    const check = offlineDispensingCheck([...cart, { itemId: "unk", name: "New thing" }], get, true);
+    expect(check?.blocked).toBe(true);
+  });
+});
+

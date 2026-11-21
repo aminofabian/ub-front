@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Globe2, Store, TriangleAlert } from "lucide-react";
+import { Check, TriangleAlert } from "lucide-react";
 
 import {
   fetchItemsPage,
@@ -60,10 +60,9 @@ function formatPrice(value: number | null | undefined): string | null {
 }
 
 /**
- * One-line answer under an option row once its barcode is typed or scanned:
- * "already in your catalog", "the shared catalog knows this one" or a duplicate
- * barcode inside the family. A unique shared-catalog hit on an untouched row fills
- * the row by itself — scan, and the option is done.
+ * One line under an option once its barcode is typed or scanned. A shared-catalog
+ * match offers Use; a product already in the shop shows a check. A unique
+ * shared-catalog hit on an untouched row fills the row by itself.
  */
 export function OptionBarcodeLookup({
   barcode,
@@ -148,62 +147,13 @@ export function OptionBarcodeLookup({
   }
 
   if (current) {
-    const shared = current.shared;
-    const existingId = current.shop
-      ? current.shop.id
-      : shared?.alreadyImported
-        ? (shared.adoptedItemId ?? null)
-        : null;
-
-    if (current.shop || existingId) {
-      const title = current.shop
-        ? itemCatalogDisplayTitle(current.shop)
-        : (shared?.name ?? "this barcode");
-      notes.push(
-        <span key="shop" className={styles.hintWarn}>
-          <Store className="size-3 shrink-0" aria-hidden />
-          <span className={styles.hintText}>
-            Already in your catalog: {title}
-          </span>
-          {existingId && onOpenExisting ? (
-            <button
-              type="button"
-              className={styles.hintAction}
-              onClick={() => onOpenExisting(existingId)}
-            >
-              View
-            </button>
-          ) : null}
-        </span>,
-      );
-    } else if (shared) {
-      const sell = formatPrice(shared.recommendedSellingPrice);
-      notes.push(
-        appliedSharedId === shared.id ? (
-          <span key="shared" className={styles.hintOk}>
-            <Globe2 className="size-3 shrink-0" aria-hidden />
-            <span className={styles.hintText}>
-              Filled from the shared catalog: {shared.name}
-            </span>
-          </span>
-        ) : (
-          <span key="shared" className={styles.hintInfo}>
-            <Globe2 className="size-3 shrink-0" aria-hidden />
-            <span className={styles.hintText}>
-              Shared catalog: {shared.name}
-              {sell ? ` · sell ${sell}` : ""}
-            </span>
-            <button
-              type="button"
-              className={styles.hintAction}
-              onClick={() => onUseShared(shared)}
-            >
-              Use
-            </button>
-          </span>
-        ),
-      );
-    }
+    const match = optionMatchNote({
+      current,
+      appliedSharedId,
+      onUseShared,
+      onOpenExisting,
+    });
+    if (match) notes.push(match);
   }
 
   if (notes.length === 0) return null;
@@ -211,5 +161,69 @@ export function OptionBarcodeLookup({
     <div className={styles.hint} role="status">
       {notes}
     </div>
+  );
+}
+
+function optionMatchNote({
+  current,
+  appliedSharedId,
+  onUseShared,
+  onOpenExisting,
+}: {
+  current: LookupResult;
+  appliedSharedId: string | null;
+  onUseShared: (product: GlobalProductRecord) => void;
+  onOpenExisting?: (itemId: string) => void;
+}): React.ReactNode | null {
+  const shared = current.shared;
+  const adoptedId = shared?.adoptedItemId?.trim() || null;
+  const shopId = current.shop?.id ?? (shared?.alreadyImported ? adoptedId : null);
+  const inShop = Boolean(current.shop) || Boolean(shared?.alreadyImported);
+  const title = current.shop
+    ? itemCatalogDisplayTitle(current.shop)
+    : (shared?.name ?? "");
+
+  if (inShop && title) {
+    return (
+      <span key="shop" className={styles.hintOk}>
+        <Check className="size-3 shrink-0" aria-hidden />
+        <span className={styles.hintText}>In your shop · {title}</span>
+        {shopId && onOpenExisting ? (
+          <button
+            type="button"
+            className={styles.hintAction}
+            onClick={() => onOpenExisting(shopId)}
+          >
+            Open
+          </button>
+        ) : null}
+      </span>
+    );
+  }
+
+  if (!shared) return null;
+  if (appliedSharedId === shared.id) {
+    return (
+      <span key="filled" className={styles.hintOk}>
+        <span className={styles.hintText}>{shared.name}</span>
+      </span>
+    );
+  }
+
+  const sell = formatPrice(shared.recommendedSellingPrice);
+  return (
+    <span key="shared" className={styles.hintInfo}>
+      <span className={styles.hintText}>
+        {shared.name}
+        {sell ? ` · sell ${sell}` : ""}
+      </span>
+      <button
+        type="button"
+        className={styles.hintAction}
+        onClick={() => onUseShared(shared)}
+      >
+        Fill
+      </button>
+    </span>
   );
 }

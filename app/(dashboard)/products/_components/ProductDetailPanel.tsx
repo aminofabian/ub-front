@@ -1390,6 +1390,44 @@ export function ProductDetailPanel(props: Props) {
         </div>
       ) : null}
 
+      {/* Purchase packaging — how this product is bought (ADR 0036) */}
+      {detail.packs && detail.packs.length > 0 ? (
+        <div
+          className={cn(
+            detailSectionClass,
+            "flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border px-2.5 py-2",
+          )}
+          role="group"
+          aria-label="Purchase packaging"
+        >
+          <span className="flex items-center gap-1.5">
+            <Package className="size-3.5 shrink-0 text-foreground/40" aria-hidden />
+            <span className={detailMetaClass}>Bought as</span>
+          </span>
+          <div className="flex flex-wrap gap-1">
+            {detail.packs.map((pack) => (
+              <span
+                key={pack.id}
+                className="inline-flex items-center gap-1 border border-border bg-muted/25 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-foreground/80"
+                title={
+                  pack.defaultPurchase
+                    ? "Default purchase unit on new receipts"
+                    : undefined
+                }
+              >
+                {pack.packUnit} ×{Number(pack.unitsPerPack)}
+                {pack.innerPackUnit && pack.innerPackCount
+                  ? ` · ${Number(pack.innerPackCount)} ${pack.innerPackUnit}s`
+                  : ""}
+                {pack.defaultPurchase ? (
+                  <Star className="size-2.5 text-primary" aria-hidden />
+                ) : null}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {/* Compact alerts */}
       {packagePoolEmpty ? (
         <div

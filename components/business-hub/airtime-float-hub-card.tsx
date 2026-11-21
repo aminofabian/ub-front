@@ -300,7 +300,7 @@ export function AirtimeFloatHubCard({
         aria-label="Sell airtime"
         className={cn(
           HUB_SURFACE,
-          "text-left",
+          "rounded-[2px] text-left",
           rail && "border-0 shadow-none",
           (phase === "ready" || phase === "try" || phase === "blocked") &&
             "border-[color-mix(in_srgb,var(--pos-primary,#0f766e)_22%,transparent)]",

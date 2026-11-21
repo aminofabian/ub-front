@@ -16,13 +16,28 @@ import { cn } from "@/lib/utils";
 const PRICE_LIST_PAGE_SIZE = 200;
 const PRICE_LIST_PAGE_CAP = 40;
 
-const CHOICES: readonly {
-  mode: InventoryPriceListMode;
-  label: string;
-  hint: string;
+const GROUPS: readonly {
+  title: string;
+  choices: readonly {
+    mode: InventoryPriceListMode;
+    label: string;
+    hint: string;
+  }[];
 }[] = [
-  { mode: "sell", label: "Name and selling price", hint: "Shop copy" },
-  { mode: "both", label: "Name, buying and selling", hint: "Staff copy" },
+  {
+    title: "Prices",
+    choices: [
+      { mode: "sell", label: "Name and selling price", hint: "Shop copy" },
+      { mode: "both", label: "Name, buying and selling", hint: "Staff copy" },
+    ],
+  },
+  {
+    title: "Stock",
+    choices: [
+      { mode: "stock", label: "Name and stock", hint: "Quantities only" },
+      { mode: "stock-prices", label: "Stock with buying and selling", hint: "Quantities and prices" },
+    ],
+  },
 ];
 
 type LoadPriceListPage = (
@@ -93,7 +108,7 @@ export function StockPriceListDownload({
         inventoryPriceListFilename(businessName, mode, when),
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not build the price list.");
+      toast.error(error instanceof Error ? error.message : "Could not build the PDF.");
     } finally {
       setBusy(null);
     }
@@ -107,7 +122,7 @@ export function StockPriceListDownload({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label="Download price list"
+        aria-label="Download inventory PDF"
         onClick={() => setOpen((value) => !value)}
         className={triggerClass(variant, open)}
       >
@@ -126,48 +141,57 @@ export function StockPriceListDownload({
         <div
           id={menuId}
           role="menu"
-          aria-label="Price list"
+          aria-label="Inventory PDF"
           className={cn(
-            "absolute top-[calc(100%+4px)] right-0 z-40 w-[15.5rem] overflow-hidden rounded-xl",
+            "absolute top-[calc(100%+4px)] right-0 z-40 w-[18rem] overflow-hidden rounded-xl",
             "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_14%,transparent)] bg-white",
             "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--order-ink,#15231f)_28%,transparent)]",
           )}
         >
-          <p
-            className={cn(
-              "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
-              "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-1.5",
-              "text-[9px] font-bold uppercase tracking-[0.14em]",
-              "text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
-            )}
-          >
-            Print price list
-          </p>
-          {CHOICES.map((choice) => (
-            <button
-              key={choice.mode}
-              type="button"
-              role="menuitem"
-              onClick={() => void download(choice.mode)}
-              className={cn(
-                "flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left",
-                "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
-                "focus-visible:outline-none focus-visible:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
-              )}
+          {GROUPS.map((group, index) => (
+            <div
+              key={group.title}
+              className={
+                index > 0
+                  ? "border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]"
+                  : undefined
+              }
             >
-              <span className="text-[13px] font-semibold tracking-[-0.01em] text-[var(--order-ink,#15231f)]">
-                {choice.label}
-              </span>
-              <span className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
-                {choice.hint}
-              </span>
-            </button>
+              <p className={menuHeadingClass}>{group.title}</p>
+              {group.choices.map((choice) => (
+                <button
+                  key={choice.mode}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void download(choice.mode)}
+                  className={cn(
+                    "flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left",
+                    "hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_7%,white)]",
+                    "focus-visible:outline-none focus-visible:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_10%,white)]",
+                  )}
+                >
+                  <span className="text-[13px] font-semibold tracking-[-0.01em] text-[var(--order-ink,#15231f)]">
+                    {choice.label}
+                  </span>
+                  <span className="text-[11px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+                    {choice.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       ) : null}
     </div>
   );
 }
+
+const menuHeadingClass = cn(
+  "border-b border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
+  "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_3%,white)] px-3 py-1.5",
+  "text-[9px] font-bold uppercase tracking-[0.14em]",
+  "text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]",
+);
 
 function triggerClass(variant: "bar" | "icon", open: boolean): string {
   if (variant === "icon") {
@@ -212,6 +236,7 @@ function toPriceListItem(item: ItemSummaryRecord): InventoryPriceListItem {
     category: item.categoryName?.trim() || null,
     buyPrice: money(item.buyingPrice),
     sellPrice: money(item.sellingPrice ?? item.bundlePrice),
+    stockQty: money(item.stockQty),
   };
 }
 

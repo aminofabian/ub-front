@@ -155,7 +155,7 @@ export function RecentTicksRail({
                     <li
                       key={tick.saleId}
                       className={cn(
-                        "px-3.5 py-4 transition-colors sm:px-4 sm:py-5",
+                        "px-3 py-2.5 transition-colors",
                         newest && "bg-[#ffffff] hub-figure-pop",
                       )}
                     >

@@ -70,27 +70,27 @@ export function WebOrdersRail({
       )}
       aria-label="Web pickup orders"
     >
-      <header className="flex shrink-0 items-start justify-between gap-2.5 px-[18px] pb-3 pt-4">
+      <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+          <p className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Web orders
           </p>
           {!empty ? (
-            <p className="mt-0.5 truncate text-[13px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+            <p className="truncate text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {orders.length} open · {fmtMoney(total, currency)}
             </p>
           ) : null}
         </div>
         <Link
           href={APP_ROUTES.storefrontWebOrders}
-          className="flex min-h-9 shrink-0 items-center rounded-[10px] bg-[#F0EDE4] px-3 text-[13px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[12px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
         >
           All
         </Link>
       </header>
 
       {empty ? (
-        <div className="px-[18px] pb-4 pt-1">
+        <div className="px-3 pb-3 pt-0.5">
           <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
             No open web orders right now.
           </p>
@@ -118,7 +118,7 @@ export function WebOrdersRail({
                 <li
                   key={order.id}
                   className={cn(
-                    "flex items-center gap-3 border-t border-[#EFEBE0] px-[18px] py-3 transition-colors",
+                    "flex items-center gap-2.5 border-t border-[#EFEBE0] px-3 py-2 transition-colors",
                     newest && "bg-[#FCFBF8] hub-figure-pop",
                   )}
                 >

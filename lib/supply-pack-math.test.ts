@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
   supplyLineTotal,
   supplyStockQty,
+  supplyPackSnapshotLabel,
   supplyUnitCost,
   toPackEntry,
   toUnitEntry,
@@ -46,5 +47,25 @@ describe("supply pack math", () => {
       qtyStr: "12",
       unitStr: "4.17",
     });
+  });
+
+  it("labels a posted receipt's packaging snapshot", () => {
+    expect(
+      supplyPackSnapshotLabel({
+        purchaseUnit: "carton",
+        purchaseQty: 2,
+        unitsPerPurchaseUnit: 24,
+        packPrice: 1200,
+        baseUnit: "each",
+      }),
+    ).toBe("2 × cartons · 1200.00 per carton · 24 per carton = 48 each");
+    expect(
+      supplyPackSnapshotLabel({
+        purchaseUnit: "carton",
+        purchaseQty: 1,
+        unitsPerPurchaseUnit: 24,
+      }),
+    ).toBe("1 × carton · 24 per carton = 24 units");
+    expect(supplyPackSnapshotLabel({ purchaseUnit: null })).toBeNull();
   });
 });

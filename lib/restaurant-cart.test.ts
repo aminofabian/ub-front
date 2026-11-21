@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { MenuItemRecord, ModifierGroupRecord } from "./restaurant-api";
 import {
   addToCart,
+  allDayCounts,
   buildOrderSalePayload,
   cartProblem,
   cartTotal,
@@ -173,6 +174,38 @@ describe("the order", () => {
     });
     expect(short.cashReceived).toBeUndefined();
   });
+
+  test("a counter order can carry the guest's name, trimmed and bounded", () => {
+    const named = buildOrderSalePayload({
+      branchId: "b1", cart: [line()], method: "cash", customerName: "  Kevin  ", soldAt: new Date(0),
+    });
+    expect(named.customerName).toBe("Kevin");
+    const long = buildOrderSalePayload({
+      branchId: "b1", cart: [line()], method: "cash", customerName: "x".repeat(200), soldAt: new Date(0),
+    });
+    expect(long.customerName).toHaveLength(120);
+    const blank = buildOrderSalePayload({
+      branchId: "b1", cart: [line()], method: "cash", customerName: "   ", soldAt: new Date(0),
+    });
+    expect(blank.customerName).toBeUndefined();
+  });
+
+  test("part cash and part M-Pesa is one sale with two tenders", () => {
+    const split = buildOrderSalePayload({
+      branchId: "b1",
+      cart: [line()],
+      method: "cash",
+      payments: [
+        { method: "cash", amount: 150 },
+        { method: "mpesa_manual", amount: 250, reference: " qk9 " },
+      ],
+      soldAt: new Date(0),
+    });
+    expect(split.payments).toEqual([
+      { method: "cash", amount: 150 },
+      { method: "mpesa_manual", amount: 250, reference: "QK9" },
+    ]);
+  });
 });
 
 describe("waiting time", () => {
@@ -225,5 +258,44 @@ describe("cashSuggestions", () => {
     expect(cashSuggestions(0)).toEqual([]);
     expect(cashSuggestions(-5)).toEqual([]);
     expect(cashSuggestions(Number.NaN)).toEqual([]);
+  });
+});
+
+describe("all day counts", () => {
+  test("adds what is still to make and leaves out what is ready, served or cancelled", () => {
+    const counts = allDayCounts([
+      {
+        ticketType: "NEW",
+        lines: [
+          { name: "Burger", quantity: 2, stage: "NEW" },
+          { name: "Chips", quantity: 1, stage: "PREPARING" },
+        ],
+      },
+      {
+        ticketType: "NEW",
+        lines: [
+          { name: "Burger", quantity: 1, stage: "NEW" },
+          { name: "Chips", quantity: 1, stage: "READY" },
+          { name: "Soda", quantity: 3, stage: "SERVED" },
+        ],
+      },
+      { ticketType: "VOID", lines: [{ name: "Burger", quantity: 9, stage: "NEW" }] },
+    ]);
+    expect(counts).toEqual([
+      ["Burger", 3],
+      ["Chips", 1],
+    ]);
+  });
+
+  test("orders by how much is left, then by name, and caps the strip", () => {
+    const lines = Array.from({ length: 20 }, (_, i) => ({
+      name: `Dish ${i}`,
+      quantity: i,
+      stage: "NEW",
+    }));
+    const counts = allDayCounts([{ ticketType: "NEW", lines }]);
+    expect(counts).toHaveLength(14);
+    expect(counts[0]).toEqual(["Dish 19", 19]);
+    expect(counts[1]).toEqual(["Dish 18", 18]);
   });
 });

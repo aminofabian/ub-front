@@ -1,5 +1,6 @@
 "use client";
 
+import { ProductsToReviewPanel } from "@/components/pharmacy/products-to-review";
 import { Pill, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -160,6 +161,14 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
 
   return (
     <>
+      {canManage ? (
+        <ProductsToReviewPanel
+          onChanged={() => {
+            load();
+            onChanged?.();
+          }}
+        />
+      ) : null}
       <Panel
         title="Medicines"
         description="A product marked as a medicine must be received with a lot number and expiry, is sold earliest-expiry-first, and is never sold without real stock."

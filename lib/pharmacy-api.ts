@@ -156,6 +156,22 @@ export function confirmSuggestedClasses(itemIds: string[]): Promise<{ changed: n
   });
 }
 
+export type ProductsToReview = {
+  since: string;
+  total: number;
+  products: Array<{ itemId: string; name: string; variantName: string | null; addedAt: string }>;
+};
+
+/** Products added since the last check that are not marked as medicines. */
+export function fetchProductsToReview(): Promise<ProductsToReview> {
+  return apiRequest("/api/v1/pharmacy/medicines/to-review", { toast: false });
+}
+
+/** Confirms that what is left on that list is not a medicine. */
+export function confirmProductsReviewed(): Promise<ProductsToReview> {
+  return apiRequest("/api/v1/pharmacy/medicines/to-review/done", { method: "POST", body: {}, toast: false });
+}
+
 export function markMedicines(body: {
   itemIds?: string[];
   itemTypeId?: string;
@@ -387,6 +403,8 @@ export type DispensingRecord = {
     quantityPrescribed?: number | null;
     refillDueOn?: string | null;
     settlesLineId?: string | null;
+    /** How much came back on a refund. */
+    quantityReturned?: number | null;
   }>;
   patientId?: string | null;
   /** Who did the second check, when one was done. */
@@ -520,6 +538,8 @@ export function fetchMedicinesAmong(itemIds: string[]): Promise<Array<{ itemId: 
 
 export type PharmacyPatient = {
   id: string;
+  /** Running number per business; shown with {@link formatPatientNo}. */
+  patientNo?: number | null;
   name: string;
   phone: string | null;
   dateOfBirth: string | null;
@@ -539,7 +559,17 @@ export type PharmacyPatientInput = {
   reminderConsent?: boolean;
 };
 
-export type PatientMatch = { id: string; name: string; phone: string | null; allergies: string | null };
+export type PatientMatch = {
+  id: string;
+  patientNo?: number | null;
+  name: string;
+  phone: string | null;
+  /** Whole years, so the till can tell a parent from a child on one phone. */
+  ageYears?: number | null;
+  allergies: string | null;
+};
+
+export { formatPatientNo, looksLikePatientNo, patientMatchDetail } from "@/lib/pharmacy-patient-no";
 
 export function fetchPatients(opts: { q?: string; page?: number; size?: number }): Promise<{
   patients: PharmacyPatient[];
@@ -619,6 +649,15 @@ export function fetchOwingsForPatient(patientId: string): Promise<Owing[]> {
     `/api/v1/pharmacy/follow-ups/owings/for-patient?patientId=${encodeURIComponent(patientId)}`,
     { toast: false },
   );
+}
+
+/** A balance that will not be collected, or a refill that has been dealt with. */
+export function closeFollowUp(lineId: string, note: string): Promise<void> {
+  return apiRequest(`/api/v1/pharmacy/follow-ups/${encodeURIComponent(lineId)}/close`, {
+    method: "POST",
+    body: { note },
+    toast: false,
+  });
 }
 
 export function fetchRefillsDue(): Promise<RefillDue[]> {

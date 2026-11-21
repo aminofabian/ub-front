@@ -86,7 +86,12 @@ export class PharmacyTillStore {
   private listeners = new Set<() => void>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private branchId: string | null = null;
-  private patientValue: PatientMatch | null = null;
+  /**
+   * The patient belongs to the cart, not the till: two parked carts can be for two different
+   * people, and carrying one across would file the second sale under the first patient.
+   */
+  private activeCartId: string | null = null;
+  private patients = new Map<string, PatientMatch>();
   private mayDispenseValue = false;
 
   constructor(readonly enabled: boolean) {}
@@ -159,11 +164,42 @@ export class PharmacyTillStore {
 
   mayDispense = (): boolean => this.mayDispenseValue;
 
-  patient = (): PatientMatch | null => this.patientValue;
+  /** Which cart is on screen; its patient is the one the till shows and the sale uses. */
+  setActiveCart(cartId: string | null) {
+    const next = cartId?.trim() || null;
+    if (next === this.activeCartId) return;
+    this.activeCartId = next;
+    this.emit();
+  }
+
+  private patientKey(): string {
+    return this.activeCartId ?? "";
+  }
+
+  patient = (): PatientMatch | null => this.patients.get(this.patientKey()) ?? null;
 
   setPatient(patient: PatientMatch | null) {
-    this.patientValue = patient;
+    const key = this.patientKey();
+    if (patient) this.patients.set(key, patient);
+    else this.patients.delete(key);
     this.emit();
+  }
+
+  /** Forgets a cart's patient (a removed or finished cart), leaving the others alone. */
+  clearPatient(cartId: string) {
+    if (this.patients.delete(cartId)) this.emit();
+  }
+
+  /** Drops patients whose cart is no longer open. */
+  retainCarts(cartIds: readonly string[]) {
+    const open = new Set(cartIds);
+    let changed = false;
+    for (const id of [...this.patients.keys()]) {
+      if (open.has(id)) continue;
+      this.patients.delete(id);
+      changed = true;
+    }
+    if (changed) this.emit();
   }
 }
 
@@ -202,4 +238,44 @@ export async function fetchGenericHits(
     }),
   );
   return rows.filter((r): r is ItemSummaryRecord => r !== null);
+}
+
+/**
+ * What the dispensing dialog needs to know about a cart when the server cannot be asked
+ * (the till is offline). Built from what the till already learned about each medicine while it
+ * was online.
+ *
+ * Null means the dialog must not open offline: the person at the till could not dispense when
+ * last checked, or the till never learned about a medicine in this cart that needs a record.
+ * A pharmacist's PIN approval cannot be given offline, so only someone who may dispense
+ * themselves gets through.
+ */
+export function offlineDispensingCheck(
+  cart: ReadonlyArray<{ itemId: string; name: string }>,
+  get: (itemId: string) => TillMedicine | null,
+  mayDispense: boolean,
+): {
+  lines: Array<{ itemId: string; name: string; dispensingClass: DispensingClass; status: TillMedicineStatus }>;
+  needsRecord: boolean;
+  blocked: boolean;
+  userMayDispense: boolean;
+} | null {
+  if (!mayDispense) return null;
+  const seen = new Set<string>();
+  const lines: Array<{ itemId: string; name: string; dispensingClass: DispensingClass; status: TillMedicineStatus }> = [];
+  for (const line of cart) {
+    if (!line.itemId || seen.has(line.itemId)) continue;
+    seen.add(line.itemId);
+    const info = get(line.itemId);
+    if (!info) continue;
+    lines.push({ itemId: line.itemId, name: line.name, dispensingClass: info.dispensingClass, status: info.status });
+  }
+  const needsRecord = lines.some((l) => l.status === "needs_record");
+  if (!needsRecord) return null;
+  return {
+    lines,
+    needsRecord,
+    blocked: lines.some((l) => l.status === "unclassified" || l.status === "controlled_blocked"),
+    userMayDispense: true,
+  };
 }

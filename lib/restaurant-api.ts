@@ -276,6 +276,8 @@ export type KitchenLineRecord = {
   note: string | null;
   stage: KitchenStage;
   readyAt: string | null;
+  /** Which guest at the table the dish is for, so it can be plated and carried to the right seat. */
+  seatNo?: number | null;
 };
 
 export type KitchenTicketRecord = {
@@ -290,6 +292,11 @@ export type KitchenTicketRecord = {
   sentAt: string;
   readyAt: string | null;
   lines: KitchenLineRecord[];
+  /** Where the food goes. Absent on a ticket made before the columns existed. */
+  orderChannel?: OrderChannel | null;
+  tableName?: string | null;
+  /** The name a counter order is called by; never a phone number. */
+  customerName?: string | null;
 };
 
 export type KitchenBoardRecord = { branchId: string; asOf: string; tickets: KitchenTicketRecord[] };
@@ -397,6 +404,8 @@ export type OrderSummaryRecord = {
   linesTotal: number;
   linesReady: number;
   lineNames: string[];
+  /** The name the order is called by, if one was given at the counter. */
+  customerName?: string | null;
 };
 
 /** Orders paid for and not yet handed over, oldest first. */
@@ -559,6 +568,8 @@ export type FloorRecord = {
   tables: { table: RestaurantTableRecord; orders: OrderCardRecord[] }[];
   /** Open orders with no table: takeaway, delivery, and bookings not yet given a table. */
   otherOrders: OrderCardRecord[];
+  /** The caller's own staff profile, for filtering to their tables; absent when they have none here. */
+  myStaffProfileId?: string | null;
 };
 
 export type OrderLineStage = "DRAFT" | KitchenStage;
@@ -1135,4 +1146,22 @@ export async function recordPantryLoss(body: {
   note?: string;
 }): Promise<PantryLossResult> {
   return apiRequest<PantryLossResult>(`${base}/pantry/losses`, { method: "POST", body });
+}
+
+// ---------------------------------------------------------------- what happened to an order
+
+export type OrderActivityRecord = {
+  id: string;
+  at: string;
+  /** ORDER_LINE_CANCELLED, ORDER_MOVED, ORDER_MERGED, ORDER_CANCELLED, ORDER_SERVED_BY_CHANGED, BILL_COMP or BILL_UNPAID. */
+  action: string;
+  lineId: string | null;
+  userId: string;
+  userName: string | null;
+  detail: string | null;
+};
+
+/** Cancellations, comps, moves, merges and waiter changes on an order, newest first. */
+export async function fetchOrderActivity(orderId: string): Promise<OrderActivityRecord[]> {
+  return apiRequest<OrderActivityRecord[]>(`${base}/open-orders/${orderId}/activity`, { toast: false });
 }

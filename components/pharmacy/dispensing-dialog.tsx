@@ -20,6 +20,7 @@ import {
   fetchDispensingApprovers,
   fetchOwingsForPatient,
   lookupPatientsByPhone,
+  patientMatchDetail,
   type DispensingApprover,
   type Owing,
   type PatientMatch,
@@ -41,6 +42,16 @@ type Props = {
   hint: DispensingHint;
   onConfirm: (dispensing: SaleDispensingPayload) => void;
   onDismiss: () => void;
+  /**
+   * What the till already knows about the cart, used when the server cannot be asked. Only
+   * given for someone who may dispense themselves; the sale is then queued and sent later.
+   */
+  offlineCheck?: DispensingCheck | null;
+  /**
+   * Details from a previous attempt on this same cart, after a charge failed. They come back
+   * filled in so nothing has to be retyped; a still-valid pharmacist approval is reused too.
+   */
+  initial?: SaleDispensingPayload | null;
 };
 
 /** Prescribers typed during this session, offered again as suggestions. Never stored. */
@@ -65,31 +76,59 @@ function errorMessage(err: unknown, fallback: string): string {
  * PIN. One dialog covers every gated medicine in the cart. On confirm the sale is sent again
  * with these details attached; nothing was recorded before that.
  */
-export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismiss }: Props) {
+export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismiss, offlineCheck, initial }: Props) {
   const [check, setCheck] = useState<DispensingCheck | null>(null);
+  const [usingOffline, setUsingOffline] = useState(false);
   const [approvers, setApprovers] = useState<DispensingApprover[]>([]);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [prescriberName, setPrescriberName] = useState("");
-  const [prescriberRegNo, setPrescriberRegNo] = useState("");
-  const [prescriptionRef, setPrescriptionRef] = useState("");
-  const [prescriptionDate, setPrescriptionDate] = useState("");
-  const [patientName, setPatientName] = useState("");
-  const [patientPhone, setPatientPhone] = useState("");
-  const [instructions, setInstructions] = useState<Record<string, string>>({});
+  const [prescriberName, setPrescriberName] = useState(initial?.prescriberName ?? "");
+  const [prescriberRegNo, setPrescriberRegNo] = useState(initial?.prescriberRegNo ?? "");
+  const [prescriptionRef, setPrescriptionRef] = useState(initial?.prescriptionRef ?? "");
+  const [prescriptionDate, setPrescriptionDate] = useState(initial?.prescriptionDate ?? "");
+  const [patientName, setPatientName] = useState(initial?.patientName ?? "");
+  const [patientPhone, setPatientPhone] = useState(initial?.patientPhone ?? "");
+  /** A profile chosen on the failed attempt, kept unless the phone number is changed. */
+  const [keptPatientId, setKeptPatientId] = useState(initial?.patientId ?? "");
+  const [instructions, setInstructions] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (initial?.lines ?? [])
+        .filter((l) => l.instructions?.trim())
+        .map((l) => [l.itemId, l.instructions!]),
+    ),
+  );
   /** Phase 2: a patient profile found by phone, the balances owed to them, and per-medicine extras. */
   const [matches, setMatches] = useState<PatientMatch[]>([]);
   const [linked, setLinked] = useState<PatientMatch | null>(null);
   const [owed, setOwed] = useState<Owing[]>([]);
-  const [prescribed, setPrescribed] = useState<Record<string, string>>({});
+  const [prescribed, setPrescribed] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (initial?.lines ?? [])
+        .filter((l) => l.quantityPrescribed != null)
+        .map((l) => [l.itemId, String(l.quantityPrescribed)]),
+    ),
+  );
   const [daysSupply, setDaysSupply] = useState<Record<string, string>>({});
-  const [settle, setSettle] = useState<Record<string, boolean>>({});
+  const [settle, setSettle] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      (initial?.lines ?? []).filter((l) => l.settlesLineId).map((l) => [l.itemId, true]),
+    ),
+  );
 
-  const [more, setMore] = useState(false);
+  const [more, setMore] = useState(
+    Boolean(initial?.prescriptionRef || initial?.prescriptionDate || initial?.prescriberRegNo),
+  );
   const [approverId, setApproverId] = useState("");
   const [pin, setPin] = useState("");
+  /**
+   * A fresh approval from the failed attempt stands; ask for a new PIN only if it does not.
+   * When the server has just turned an approval down (`hint: approve`), do not offer it again.
+   */
+  const [reuseApproval, setReuseApproval] = useState(
+    Boolean(initial?.approvalId) && hint !== "approve",
+  );
 
   const prescriberRef = useRef<HTMLInputElement | null>(null);
   const idsKey = useMemo(() => [...new Set(itemIds)].sort().join(","), [itemIds]);
@@ -112,12 +151,19 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
         }
       })
       .catch((err) => {
-        if (alive) setLoadError(errorMessage(err, "Could not check the medicines in this sale."));
+        if (!alive) return;
+        if (offlineCheck) {
+          // Offline, and the till knows these medicines: carry on from what it knows.
+          setCheck(offlineCheck);
+          setUsingOffline(true);
+          return;
+        }
+        setLoadError(errorMessage(err, "Could not check the medicines in this sale."));
       });
     return () => {
       alive = false;
     };
-  }, [idsKey]);
+  }, [idsKey, offlineCheck]);
 
   useEffect(() => {
     if (check) prescriberRef.current?.focus();
@@ -147,6 +193,9 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
     if (!tillPatient || tillPatientApplied.current) return;
     tillPatientApplied.current = true;
     setLinked(tillPatient);
+    // The cart's patient is the one this sale is for; a profile kept from a failed attempt is
+    // only a fallback when the till itself has nobody attached.
+    setKeptPatientId("");
     setPatientName((prev) => prev.trim() || tillPatient.name);
     setPatientPhone((prev) => prev.trim() || (tillPatient.phone ?? ""));
     fetchOwingsForPatient(tillPatient.id)
@@ -156,6 +205,7 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
 
   const unlinkProfile = () => {
     setLinked(null);
+    setKeptPatientId("");
     setOwed([]);
     setSettle({});
   };
@@ -182,20 +232,26 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
     setBusy(true);
     try {
       if (needsApproval) {
-        if (!approverId) {
-          setError("Choose the pharmacist who is approving.");
-          return;
+        if (reuseApproval && initial?.approvalId) {
+          // The pharmacist approved these same medicines minutes ago and the cart has not
+          // changed, so do not make them walk back to the till for a second PIN.
+          approvalId = initial.approvalId;
+        } else {
+          if (!approverId) {
+            setError("Choose the pharmacist who is approving.");
+            return;
+          }
+          if (!pin.trim()) {
+            setError("The pharmacist must enter their PIN.");
+            return;
+          }
+          const approval = await approveDispensing({
+            approverUserId: approverId,
+            pin: pin.trim(),
+            lines: gated.map((g) => ({ itemId: g.itemId, quantity: quantities[g.itemId] ?? 0 })),
+          });
+          approvalId = approval.approvalId;
         }
-        if (!pin.trim()) {
-          setError("The pharmacist must enter their PIN.");
-          return;
-        }
-        const approval = await approveDispensing({
-          approverUserId: approverId,
-          pin: pin.trim(),
-          lines: gated.map((g) => ({ itemId: g.itemId, quantity: quantities[g.itemId] ?? 0 })),
-        });
-        approvalId = approval.approvalId;
       }
       rememberPrescriber(prescriberName);
       onConfirm(
@@ -207,24 +263,36 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
           patientName,
           patientPhone,
           approvalId,
-          patientId: linked?.id,
+          patientId: linked?.id ?? (keptPatientId || undefined),
           lines: gated.map((g) => {
             const supplying = quantities[g.itemId] ?? 0;
             const asked = Number(prescribed[g.itemId]);
             const days = Number(daysSupply[g.itemId]);
             const balance = owed.find((o) => o.itemId === g.itemId);
+            const before = initial?.lines?.find((l) => l.itemId === g.itemId);
+            // The fields above are prefilled from `before`, so a value cleared here stays
+            // cleared. The refill date is the exception: it is held as a date, not the days
+            // that produced it, so it is carried over unless the days are entered again.
+            const settled =
+              settle[g.itemId] === true
+                ? (balance?.lineId ?? before?.settlesLineId)
+                : settle[g.itemId] === false
+                  ? undefined
+                  : before?.settlesLineId;
             return {
               itemId: g.itemId,
               instructions: instructions[g.itemId] ?? "",
               quantityPrescribed: Number.isFinite(asked) && asked > supplying ? asked : undefined,
-              refillDueOn: daysSupply[g.itemId]?.trim() ? refillDueDate(days) : undefined,
-              settlesLineId: balance && settle[g.itemId] ? balance.lineId : undefined,
+              refillDueOn: daysSupply[g.itemId]?.trim() ? refillDueDate(days) : before?.refillDueOn,
+              settlesLineId: settled,
             };
           }),
         }),
       );
     } catch (err) {
       setPin("");
+      // A reused approval that the server no longer accepts must fall back to the PIN fields.
+      if (reuseApproval) setReuseApproval(false);
       setError(errorMessage(err, "Could not approve. Try again."));
     } finally {
       setBusy(false);
@@ -267,6 +335,12 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
             </p>
           ) : null}
           {!check && !loadError ? <p className="text-sm text-muted-foreground">Checking the cart…</p> : null}
+          {usingOffline ? (
+            <p className="rounded-[2px] border border-[#8a3c0b] px-3 py-2 text-[13px] text-[#8a3c0b]">
+              This till is offline. The sale and its dispensing record are kept here and sent when it is back online.
+              The patient&apos;s name and phone are not kept on the till, so write them on the prescription.
+            </p>
+          ) : null}
 
           {stopped.length > 0 ? (
             <div role="alert" className="rounded-[2px] border border-destructive/40 px-3 py-2 text-sm text-destructive">
@@ -365,7 +439,7 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
                 value={patientPhone}
                 onChange={(e) => {
                   setPatientPhone(e.target.value);
-                  if (linked) unlinkProfile();
+                  if (linked || keptPatientId) unlinkProfile();
                 }}
                 onBlur={findProfiles}
                 placeholder="Optional"
@@ -390,12 +464,26 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
               </div>
             ) : matches.length > 0 ? (
               <div className="space-y-1 text-[13px] sm:col-span-2">
-                <p className="text-muted-foreground">A patient profile has this number:</p>
-                {matches.map((m) => (
-                  <Button key={m.id} type="button" variant="outline" className="mr-2" onClick={() => linkProfile(m)}>
-                    Use {m.name}
-                  </Button>
-                ))}
+                <p className="text-muted-foreground">
+                  {matches.length > 1
+                    ? `${matches.length} patient profiles share this number. Choose the one this is for:`
+                    : "A patient profile has this number:"}
+                </p>
+                {matches.map((m) => {
+                  const detail = patientMatchDetail(m);
+                  return (
+                    <Button
+                      key={m.id}
+                      type="button"
+                      variant="outline"
+                      className="mb-1 mr-2"
+                      onClick={() => linkProfile(m)}
+                    >
+                      Use {m.name}
+                      {detail ? <span className="ml-1.5 font-normal tabular-nums text-muted-foreground">{detail}</span> : null}
+                    </Button>
+                  );
+                })}
               </div>
             ) : null}
           </div>
@@ -473,7 +561,18 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
           )}
 
 
-          {needsApproval ? (
+          {needsApproval && reuseApproval && initial?.approvalId ? (
+            <fieldset className="space-y-2 rounded-[2px] border px-3 py-3">
+              <legend className="px-1 text-sm font-medium">Pharmacist approval</legend>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                The pharmacist approved these medicines a moment ago, and the cart has not changed.
+                Charge again to use that approval.
+              </p>
+              <Button type="button" variant="outline" onClick={() => setReuseApproval(false)}>
+                Ask for a new PIN instead
+              </Button>
+            </fieldset>
+          ) : needsApproval ? (
             <fieldset className="space-y-2 rounded-[2px] border px-3 py-3">
               <legend className="px-1 text-sm font-medium">Pharmacist approval</legend>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -482,8 +581,8 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
               </p>
               {check && usableApprovers.length === 0 ? (
                 <p role="alert" className="text-sm text-destructive">
-                  Nobody who may dispense has a till PIN yet. A manager can set this up under Pharmacy,
-                  Settings.
+                  Nobody who may dispense has a till PIN yet. An owner or admin can set it under
+                  Pharmacy, Settings, in Staff who may dispense.
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">

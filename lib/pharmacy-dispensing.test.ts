@@ -5,6 +5,7 @@ import {
   dispensingIsFixableAtTill,
   parseDispensingRequired,
   refillDueDate,
+  saleFingerprint,
   withoutPatientDetails,
 } from "./pharmacy-dispensing";
 
@@ -132,5 +133,33 @@ describe("Phase 2 dispensing details", () => {
     expect(refillDueDate(0, today)).toBeUndefined();
     expect(refillDueDate(Number.NaN, today)).toBeUndefined();
     expect(refillDueDate(1000, today)).toBeUndefined();
+  });
+});
+
+describe("saleFingerprint", () => {
+  test("the same medicines in another order, or split over two lines, are the same sale", () => {
+    expect(
+      saleFingerprint([
+        { itemId: "amox", quantity: 2 },
+        { itemId: "para", quantity: 1 },
+      ]),
+    ).toBe(
+      saleFingerprint([
+        { itemId: "para", quantity: 1 },
+        { itemId: "amox", quantity: 1 },
+        { itemId: "amox", quantity: 1 },
+      ]),
+    );
+  });
+
+  test("a different quantity, a new medicine or a removed one is a different sale", () => {
+    const base = saleFingerprint([{ itemId: "amox", quantity: 2 }]);
+    expect(saleFingerprint([{ itemId: "amox", quantity: 3 }])).not.toBe(base);
+    expect(saleFingerprint([{ itemId: "amox", quantity: 2 }, { itemId: "para", quantity: 1 }])).not.toBe(base);
+    expect(saleFingerprint([])).not.toBe(base);
+  });
+
+  test("lines with no product (airtime) or no positive quantity are left out", () => {
+    expect(saleFingerprint([{ itemId: null, quantity: 1 }, { itemId: "amox", quantity: 0 }])).toBe("");
   });
 });

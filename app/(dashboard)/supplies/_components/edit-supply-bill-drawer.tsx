@@ -18,6 +18,7 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
+import { supplyPackSnapshotLabel } from "@/lib/supply-pack-math";
 
 import {
   SupDrawerFooter,
@@ -621,6 +622,7 @@ export function EditSupplyBillDrawer({
                     ? f.buyingPriceStr
                     : String(supplyN(ln.unitCost));
                   const sellStr = f ? f.sellPriceStr : "";
+                  const packLabel = supplyPackSnapshotLabel(ln);
                   return (
                     <article
                       key={ln.id}
@@ -651,6 +653,11 @@ export function EditSupplyBillDrawer({
                             {ln.description || "—"}
                           </h4>
                         )}
+                        {packLabel ? (
+                          <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                            {packLabel}
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="grid grid-cols-2 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
@@ -781,6 +788,11 @@ export function EditSupplyBillDrawer({
                             ) : (
                               <span className="text-muted-foreground">
                                 {ln.description}
+                                {supplyPackSnapshotLabel(ln) ? (
+                                  <span className="mt-0.5 block text-[10px] leading-snug">
+                                    {supplyPackSnapshotLabel(ln)}
+                                  </span>
+                                ) : null}
                               </span>
                             )}
                           </td>

@@ -32,12 +32,12 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-1.5">
       <HubSectionLabel
         title="Needs attention"
         meta={`${items.length} to review`}
       />
-      <div className="flex flex-wrap gap-3.5">
+      <div className="flex flex-wrap gap-2">
         {items.map((item) => {
           const tone = TONES[item.tone === "info" ? "info" : "warning"];
           const Icon = item.tone === "info" ? Info : AlertTriangle;
@@ -46,31 +46,31 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
               key={item.id}
               href={item.href}
               className={cn(
-                "flex min-h-[76px] flex-1 basis-[300px] items-center gap-3.5 rounded-[18px] border px-[18px] py-3.5 transition-colors",
+                "flex min-h-11 flex-1 basis-[260px] items-center gap-2.5 rounded-[2px] border px-3 py-2 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45",
                 tone.card,
               )}
             >
               <span
                 className={cn(
-                  "flex size-[42px] shrink-0 items-center justify-center rounded-xl",
+                  "flex size-8 shrink-0 items-center justify-center rounded-[2px]",
                   tone.icon,
                 )}
               >
-                <Icon className="size-5" strokeWidth={1.9} aria-hidden />
+                <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]">
+                <span className="block text-[13px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]">
                   {item.label}
                 </span>
                 {item.detail ? (
-                  <span className="mt-0.5 block truncate text-[13px] text-[var(--hub-muted,#5E6B65)]">
+                  <span className="block truncate text-[12px] text-[var(--hub-muted,#5E6B65)]">
                     {item.detail}
                   </span>
                 ) : null}
               </span>
               <ChevronRight
-                className="size-[18px] shrink-0 text-[var(--hub-muted,#5E6B65)]"
+                className="size-4 shrink-0 text-[var(--hub-muted,#5E6B65)]"
                 strokeWidth={2}
                 aria-hidden
               />

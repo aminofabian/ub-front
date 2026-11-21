@@ -29,8 +29,15 @@ import {
   type KitchenTicketRecord,
   type MenuItemRecord,
 } from "@/lib/restaurant-api";
-import { elapsedLabel, ticketUrgency, type TicketUrgency } from "@/lib/restaurant-cart";
-import { buildKitchenTicketEscPos, jobPrinterTarget, localPrinter, printKitchenJob, printOnThisDevice } from "@/lib/restaurant-print";
+import { allDayCounts, elapsedLabel, ticketUrgency, type TicketUrgency } from "@/lib/restaurant-cart";
+import {
+  buildKitchenTicketEscPos,
+  jobPrinterTarget,
+  kitchenWhere,
+  localPrinter,
+  printKitchenJob,
+  printOnThisDevice,
+} from "@/lib/restaurant-print";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
 import { NoBranch } from "../../_components/no-branch";
@@ -38,6 +45,43 @@ import { KitchenRequests } from "../../_components/kitchen-requests";
 
 const STATION_KEY = "kiosk:restaurant:kitchen-station:v1";
 const AUTO_PRINT_KEY = "kiosk:restaurant:kitchen-autoprint:v1";
+const CHIME_KEY = "kiosk:restaurant:kitchen-chime:v1";
+
+/**
+ * A short two-note chime when a ticket arrives, so a cook not looking at the screen still hears
+ * it. Built on the Web Audio API, so it needs no asset and no dependency; a browser that blocks
+ * it before a tap simply stays silent, and the board works as before.
+ */
+let audio: AudioContext | null = null;
+function chime(): void {
+  try {
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    audio ??= new Ctor();
+    if (audio.state === "suspended") void audio.resume();
+    const at = audio.currentTime;
+    const gain = audio.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.22, at + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+    gain.connect(audio.destination);
+    for (const [offset, frequency] of [[0, 880], [0.14, 1180]] as const) {
+      const note = audio.createOscillator();
+      note.type = "sine";
+      note.frequency.setValueAtTime(frequency, at + offset);
+      note.connect(gain);
+      note.start(at + offset);
+      note.stop(at + offset + 0.35);
+    }
+  } catch {
+    // Sound is a courtesy; failing to make it must never break the board.
+  }
+}
+
+type WakeSentinel = { release: () => Promise<void> };
+type WakeNavigator = Navigator & { wakeLock?: { request: (kind: "screen") => Promise<WakeSentinel> } };
 
 const ALL = "";
 const NONE = "none";
@@ -93,7 +137,8 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   const [station, setStation] = useState<string>(ALL);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [disconnected, setDisconnected] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [sound, setSound] = useState(true);
   const [problem, setProblem] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [runOutOpen, setRunOutOpen] = useState(false);
@@ -104,6 +149,11 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   const printing = useRef(false);
   const stationRef = useRef(station);
   stationRef.current = station;
+  // A set of ids, not one "busy" flag: two cooks on one tablet must not swallow each other's taps,
+  // and a tap on one plate must not freeze every other ticket on the board.
+  const busyRef = useRef<Set<string>>(new Set());
+  const seenTickets = useRef<Set<string> | null>(null);
+  const isBusy = (id: string) => busyIds.has(id);
 
   // The station a screen shows is a fact about that device, so it is remembered on it.
   useEffect(() => {
@@ -119,7 +169,9 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
     if (!branchId) return;
     const wanted = stationRef.current;
     try {
-      const board = await fetchKitchenBoard(branchId, wanted || null);
+      // Every station's tickets, not only this screen's: the chips carry each station's count, and
+      // a cook pinned to Grill must be able to see that the bar is piling up.
+      const board = await fetchKitchenBoard(branchId, null);
       if (stationRef.current !== wanted) return; // the station was changed while this was in flight
       setTickets(board.tickets);
       setLastUpdated(board.asOf);
@@ -146,9 +198,55 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   useEffect(() => {
     try {
       setAutoPrint(window.localStorage.getItem(AUTO_PRINT_KEY) === "1");
+      setSound(window.localStorage.getItem(CHIME_KEY) !== "0");
     } catch {
-      // private mode: printing stays manual
+      // private mode: printing stays manual, the chime stays on
     }
+  }, []);
+
+  // A chime when a ticket this screen shows has not been seen before. The first load fills the set
+  // silently, so opening the board at the start of a shift does not ring for everything already up.
+  useEffect(() => {
+    if (tickets == null) return;
+    const here = tickets.filter((t) =>
+      station === ALL ? true : station === NONE ? !t.stationId : t.stationId === station,
+    );
+    // A cancellation is as urgent as a new ticket — the kitchen must stop making something.
+    const ids = new Set(here.filter((t) => t.ticketType === "NEW" || t.ticketType === "VOID").map((t) => t.id));
+    if (seenTickets.current == null) {
+      seenTickets.current = ids;
+      return;
+    }
+    const fresh = [...ids].some((id) => !seenTickets.current!.has(id));
+    seenTickets.current = ids;
+    if (fresh && sound) chime();
+  }, [tickets, station, sound]);
+
+  // A kitchen tablet that sleeps stops showing tickets. Ask the browser to keep the screen on while
+  // the board is open (unsupported browsers simply carry on as before).
+  useEffect(() => {
+    const nav = navigator as WakeNavigator;
+    if (!nav.wakeLock) return;
+    let sentinel: WakeSentinel | null = null;
+    let stopped = false;
+    const acquire = async () => {
+      if (stopped) return;
+      try {
+        sentinel = await nav.wakeLock!.request("screen");
+      } catch {
+        sentinel = null;
+      }
+    };
+    void acquire();
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && sentinel == null) void acquire();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      void sentinel?.release().catch(() => undefined);
+    };
   }, []);
 
   const stationLabel = useCallback(
@@ -251,8 +349,9 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
   }
 
   async function act(id: string, run: () => Promise<KitchenTicketRecord | void>) {
-    if (busy) return;
-    setBusy(id);
+    if (busyRef.current.has(id)) return;
+    busyRef.current.add(id);
+    setBusyIds(new Set(busyRef.current));
     setProblem(null);
     try {
       const updated = await run();
@@ -260,7 +359,8 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
     } catch {
       setProblem("That did not go through. Check the connection and tap again.");
     } finally {
-      setBusy(null);
+      busyRef.current.delete(id);
+      setBusyIds(new Set(busyRef.current));
       void load();
     }
   }
@@ -306,6 +406,9 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
                     ) : null}
                   </span>
                 </div>
+                {kitchenWhere(ticket) ? (
+                  <p className="text-base font-semibold">{kitchenWhere(ticket)}</p>
+                ) : null}
                 {isVoid ? (
                   <p className="text-base font-bold uppercase text-red-700">Cancelled — stop making this</p>
                 ) : null}
@@ -316,7 +419,8 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
                       line={line}
                       isVoid={isVoid}
                       canWork={canWork}
-                      busy={busy != null}
+                      busy={isBusy(line.id)}
+                      onStart={() => void act(line.id, () => setKitchenLineStage(line.id, "PREPARING"))}
                       onReady={() => void act(line.id, () => setKitchenLineStage(line.id, "READY"))}
                       onUndo={() => void act(line.id, () => setKitchenLineStage(line.id, "PREPARING"))}
                     />
@@ -326,7 +430,7 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
                   <Button
                     className="h-12 text-base"
                     variant="outline"
-                    disabled={busy != null}
+                    disabled={isBusy(ticket.id)}
                     onClick={() =>
                       void act(ticket.id, async () => {
                         await acknowledgeVoidTicket(ticket.id);
@@ -340,10 +444,20 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
                 <button type="button" className="justify-self-start text-sm underline" onClick={() => void printTicket(ticket)}>
                   Print
                 </button>
+                {canWork && !isVoid && ticket.lines.some((l) => l.stage === "NEW") ? (
+                  <Button
+                    variant="outline"
+                    className="h-12 text-base"
+                    disabled={isBusy(ticket.id)}
+                    onClick={() => void act(ticket.id, () => setKitchenTicketStage(ticket.id, "PREPARING"))}
+                  >
+                    Start all
+                  </Button>
+                ) : null}
                 {canWork && !isVoid && left > 1 ? (
                   <Button
                     className="h-12 text-base"
-                    disabled={busy != null}
+                    disabled={isBusy(ticket.id)}
                     onClick={() => void act(ticket.id, () => setKitchenTicketStage(ticket.id, "READY"))}
                   >
                     All ready
@@ -357,7 +471,19 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
    * The board in lanes, left to right in the order a cook should look: what must stop, what has
    * not been touched, what is part-way out. Within a lane the oldest ticket is on top.
    */
-  const all = tickets ?? [];
+  const all = (tickets ?? []).filter((t) =>
+    station === ALL ? true : station === NONE ? !t.stationId : t.stationId === station,
+  );
+  // How much work each station still has. A screen pinned to Grill must be able to see the bar piling
+  // up without switching tabs, so the count comes from every station's tickets, not the filtered list.
+  const workLeft = (t: KitchenTicketRecord) => t.lines.some((l) => l.stage === "NEW" || l.stage === "PREPARING");
+  const openCounts = new Map<string, number>();
+  for (const t of tickets ?? []) {
+    if (t.ticketType === "VOID" || !workLeft(t)) continue;
+    const key = t.stationId ?? NONE;
+    openCounts.set(key, (openCounts.get(key) ?? 0) + 1);
+  }
+  const totalOpen = (tickets ?? []).filter((t) => t.ticketType !== "VOID" && workLeft(t)).length;
   const stop = all.filter((t) => t.ticketType === "VOID");
   const live = all.filter((t) => t.ticketType !== "VOID");
   const started = live.filter((t) => t.lines.some((l) => l.stage === "READY" || l.stage === "SERVED"));
@@ -369,6 +495,10 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
     { key: "fresh", title: "To make", hint: "Nothing on these is ready yet. Oldest on top.", empty: "Nothing new to make.", tickets: fresh },
     { key: "started", title: "Part ready", hint: "Some plates are out; finish the rest.", empty: "Nothing is part-way.", tickets: started },
   ];
+
+  // "All day": how many of each dish the station still has to make across every open ticket. It is
+  // the pass's running total, read off the tickets already on the board — no extra request.
+  const allDay = allDayCounts(all);
 
   return (
     <div ref={boardRef} className={cn(DASHBOARD_MAX_WIDE, "bg-[var(--op-ground,#F6F1E7)]")}>
@@ -386,6 +516,23 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
         <Button variant="outline" size="sm" aria-pressed={autoPrint} onClick={toggleAutoPrint}>
           {autoPrint ? "Printing new tickets" : "Print new tickets"}
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-pressed={sound}
+          onClick={() => {
+            const next = !sound;
+            setSound(next);
+            try {
+              window.localStorage.setItem(CHIME_KEY, next ? "1" : "0");
+            } catch {
+              // private mode: the choice lasts for this visit
+            }
+            if (next) chime();
+          }}
+        >
+          {sound ? "Chime on" : "Chime off"}
+        </Button>
         <Button variant="outline" size="sm" onClick={fullScreen}>
           Full screen
         </Button>
@@ -398,17 +545,41 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
 
       {stations.length > 0 ? (
         <div className="mb-2 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Kitchen station">
-          {[{ id: ALL, name: "Every station" }, ...stations, { id: NONE, name: "No station" }].map((s) => (
-            <button
-              key={s.id || "all"}
-              type="button"
-              role="tab"
-              aria-selected={station === s.id}
-              className={cn(CHIP, station === s.id && CHIP_ON)}
-              onClick={() => chooseStation(s.id)}
-            >
-              {s.name}
-            </button>
+          {[{ id: ALL, name: "Every station" }, ...stations, { id: NONE, name: "No station" }].map((s) => {
+            const count = s.id === ALL ? totalOpen : (openCounts.get(s.id) ?? 0);
+            return (
+              <button
+                key={s.id || "all"}
+                type="button"
+                role="tab"
+                aria-selected={station === s.id}
+                className={cn(CHIP, station === s.id && CHIP_ON)}
+                onClick={() => chooseStation(s.id)}
+              >
+                {s.name}
+                {count > 0 ? (
+                  <span className="ml-1.5 font-mono tabular-nums opacity-80" aria-label={`${count} to make`}>
+                    {count}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {allDay.length > 0 ? (
+        <div
+          aria-label="All day"
+          className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-[2px] border bg-[#FFFEFA] px-3 py-2"
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--order-ink,#121A16)_55%,transparent)]">
+            All day
+          </span>
+          {allDay.map(([name, quantity]) => (
+            <span key={name} className="whitespace-nowrap text-sm text-[var(--op-ink,#121A16)]">
+              <span className="font-mono font-semibold tabular-nums">{quantity}</span> {name}
+            </span>
           ))}
         </div>
       ) : null}
@@ -427,12 +598,14 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
 
       {tickets == null ? (
         <DashboardLoading label="Loading tickets…" />
-      ) : tickets.length === 0 ? (
+      ) : all.length === 0 ? (
         <div className={DASHBOARD_SECTION_SURFACE}>
-          <p className="text-base font-semibold">Nothing to make</p>
+          <p className="text-base font-semibold">Nothing to make here</p>
           <p className={dashboardHintClass()}>
-            New orders appear here as soon as they are sent to the kitchen
-            {lastUpdated && !disconnected ? `. Checked at ${timeOfDay(lastUpdated)}.` : "."}
+            {totalOpen > 0
+              ? `${totalOpen} ${totalOpen === 1 ? "ticket is" : "tickets are"} waiting at another station.`
+              : "New orders appear here as soon as they are sent to the kitchen" +
+                (lastUpdated && !disconnected ? `. Checked at ${timeOfDay(lastUpdated)}.` : ".")}
           </p>
         </div>
       ) : (
@@ -486,7 +659,7 @@ export function KitchenBoard({ canWork }: { canWork: boolean }) {
       {runOutOpen ? <RunOutDialog onClose={() => setRunOutOpen(false)} /> : null}
       {storeOpen ? (
         <Dialog open onOpenChange={(o) => (o ? undefined : setStoreOpen(false))}>
-          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>Ask the store</DialogTitle>
               <DialogDescription>What the kitchen needs from the store, and what it has been given.</DialogDescription>
@@ -504,6 +677,7 @@ function TicketLine({
   isVoid,
   canWork,
   busy,
+  onStart,
   onReady,
   onUndo,
 }: {
@@ -511,15 +685,18 @@ function TicketLine({
   isVoid: boolean;
   canWork: boolean;
   busy: boolean;
+  onStart: () => void;
   onReady: () => void;
   onUndo: () => void;
 }) {
   const made = line.stage === "READY" || line.stage === "SERVED";
   const cancelled = line.stage === "VOIDED";
+  const making = line.stage === "PREPARING";
   return (
     <li className="flex items-start gap-3 py-2">
       <div className={cn("min-w-0 flex-1", (made || cancelled) && "opacity-60")}>
         <div className={cn("text-lg font-semibold leading-tight", cancelled && "line-through")}>
+          {line.seatNo ? <span className="mr-1 font-mono text-sm tabular-nums">S{line.seatNo}</span> : null}
           <span className="font-mono tabular-nums">{line.quantity} ×</span> {line.name}
         </div>
         {line.modifiers.length > 0 ? (
@@ -536,9 +713,18 @@ function TicketLine({
             </button>
           ) : null
         ) : (
-          <Button className="h-12 min-w-[5.5rem] text-base" disabled={busy} onClick={onReady}>
-            Ready
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {making ? (
+              <span className="py-3 text-sm font-semibold text-[var(--op-muted,#556159)]">Making</span>
+            ) : (
+              <Button variant="outline" className="h-12" disabled={busy} onClick={onStart}>
+                Start
+              </Button>
+            )}
+            <Button className="h-12 min-w-[5.5rem] text-base" disabled={busy} onClick={onReady}>
+              Ready
+            </Button>
+          </div>
         )
       ) : made ? (
         <span className="py-3 text-sm font-semibold">Ready</span>
@@ -573,7 +759,7 @@ function RunOutDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Something ran out</DialogTitle>
           <DialogDescription>A dish marked as run out cannot be ordered until it is switched back on.</DialogDescription>

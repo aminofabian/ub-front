@@ -29,6 +29,7 @@ export type SupplierProfileDraft = {
   taxExempt: boolean;
   creditTermsDays: string;
   creditLimit: string;
+  markupPct: string;
   paymentMethodPreferred: string;
   paymentDetails: string;
   payoutType: string;
@@ -52,6 +53,7 @@ export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   taxExempt: false,
   creditTermsDays: "",
   creditLimit: "",
+  markupPct: "",
   paymentMethodPreferred: "",
   paymentDetails: "",
   payoutType: "manual",
@@ -75,6 +77,7 @@ export function supplierRecordToProfileDraft(supplier: {
   taxExempt?: boolean | null;
   creditTermsDays?: number | null;
   creditLimit?: number | string | null;
+  defaultMarkupPct?: number | string | null;
   paymentMethodPreferred?: string | null;
   paymentDetails?: string | null;
   payoutType?: string | null;
@@ -97,6 +100,10 @@ export function supplierRecordToProfileDraft(supplier: {
       supplier.creditLimit != null &&
       Number.isFinite(Number(supplier.creditLimit))
         ? String(supplier.creditLimit)
+        : "",
+    markupPct:
+      supplier.defaultMarkupPct != null && supplier.defaultMarkupPct !== ""
+        ? String(supplier.defaultMarkupPct)
         : "",
     paymentMethodPreferred: supplier.paymentMethodPreferred ?? "",
     paymentDetails: supplier.paymentDetails ?? "",
@@ -316,6 +323,18 @@ export function SupplierProfileFields({
                   placeholder="Optional"
                 />
               </SupFormRow>
+              <SupFormRow
+                label="Markup %"
+                hint="25 means the selling price is 125% of cost. Overrides the category and department."
+              >
+                <input
+                  className={cn(supFormCellInput, "tabular-nums")}
+                  inputMode="decimal"
+                  value={draft.markupPct}
+                  onChange={(e) => onDraftChange({ markupPct: e.target.value })}
+                  placeholder="Optional"
+                />
+              </SupFormRow>
               <SupFormRow label="Preferred payment method">
                 <input
                   className={supFormCellInput}
@@ -448,6 +467,18 @@ export function SupplierProfileFields({
                 })
               }
               placeholder="e.g. 30"
+            />
+          </SupFormRow>
+          <SupFormRow
+            label="Markup %"
+            hint="Overrides the category and department. Blank clears it."
+          >
+            <input
+              className={cn(supFormCellInput, "tabular-nums")}
+              inputMode="decimal"
+              value={draft.markupPct}
+              onChange={(e) => onDraftChange({ markupPct: e.target.value })}
+              placeholder="Optional"
             />
           </SupFormRow>
           <SupFormRow label="Credit limit">

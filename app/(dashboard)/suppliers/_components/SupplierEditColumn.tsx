@@ -1202,6 +1202,13 @@ function SupplierCommercialSection({
       value: s.creditTermsDays != null ? `${s.creditTermsDays} days` : "—",
     },
     {
+      label: "Markup",
+      value:
+        s.defaultMarkupPct != null && String(s.defaultMarkupPct).trim() !== ""
+          ? `${s.defaultMarkupPct}%`
+          : "—",
+    },
+    {
       label: "Credit limit",
       value:
         s.creditLimit != null && Number.isFinite(s.creditLimit)

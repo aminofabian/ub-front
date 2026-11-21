@@ -120,3 +120,24 @@ export function withoutPatientDetails<T extends { dispensing?: SaleDispensingPay
   void _phone;
   return { ...payload, dispensing: rest };
 }
+
+/**
+ * The sale's medicines and quantities in a form that changes when either does. Lines for the
+ * same product are added together, because one cart may hold two lines of it. Used to decide
+ * whether details typed for an earlier attempt still describe the sale in front of the cashier.
+ */
+export function saleFingerprint(
+  lines: ReadonlyArray<{ itemId?: string | null; quantity: number | string }>,
+): string {
+  const totals = new Map<string, number>();
+  for (const line of lines) {
+    const id = line.itemId?.trim() ?? "";
+    const qty = Number(line.quantity);
+    if (id === "" || !Number.isFinite(qty) || qty <= 0) continue;
+    totals.set(id, (totals.get(id) ?? 0) + qty);
+  }
+  return [...totals.entries()]
+    .map(([id, qty]) => `${id}:${qty.toFixed(3)}`)
+    .sort()
+    .join("|");
+}

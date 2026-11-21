@@ -1,16 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatMoney } from "@/lib/money";
 import {
+  askForPublicTableBill,
   fetchPublicTableMenu,
+  fetchPublicTableStatus,
   placePublicTableOrder,
   PublicTableOrderError,
+  removePublicTableLine,
   type PublicDish,
   type PublicOrderConfirmation,
+  type PublicOrderStatus,
+  type PublicStatusLine,
   type PublicTableMenu,
 } from "@/lib/public-table-order";
+
+/** The kitchen's stage codes in the diner's words. */
+const STAGE_WORDS: Record<string, string> = {
+  DRAFT: "Waiting for a waiter to confirm",
+  NEW: "In the kitchen",
+  PREPARING: "Being made",
+  READY: "Ready",
+  SERVED: "Served",
+  VOIDED: "Cancelled",
+};
 
 type Line = {
   key: string;
@@ -44,9 +59,32 @@ export function ShopTableOrderView({ slug, token }: { slug: string; token: strin
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<PublicOrderConfirmation | null>(null);
+  const [status, setStatus] = useState<PublicOrderStatus | null>(null);
+  const [statusProblem, setStatusProblem] = useState<string | null>(null);
+  const [askingBill, setAskingBill] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   // One id per order: tapping Send twice, or retrying after a dropped connection, orders once.
   const requestId = useRef(newRequestId());
   const seq = useRef(0);
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      setStatus(await fetchPublicTableStatus(slug, token));
+      setStatusProblem(null);
+    } catch {
+      setStatusProblem("Could not check your order. Check the connection.");
+    }
+  }, [slug, token]);
+
+  // The table's order is shared by every phone at it, so the status is read from the server every
+  // few seconds rather than remembered on this device. A reload shows the same order.
+  useEffect(() => {
+    void refreshStatus();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshStatus();
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [refreshStatus]);
 
   useEffect(() => {
     let live = true;
@@ -140,6 +178,7 @@ export function ShopTableOrderView({ slug, token }: { slug: string; token: strin
       setPlaced(confirmation);
       setLines([]);
       requestId.current = newRequestId();
+      void refreshStatus();
     } catch (e) {
       if (e instanceof PublicTableOrderError && e.status === 404) {
         setError("This table's code no longer works. Please ask a member of staff.");
@@ -150,6 +189,42 @@ export function ShopTableOrderView({ slug, token }: { slug: string; token: strin
       }
     } finally {
       setSending(false);
+    }
+  }
+
+  /** "Please bring the bill" — the same flag the floor shows as a table that needs someone. */
+  async function askBill() {
+    if (askingBill) return;
+    setAskingBill(true);
+    setStatusProblem(null);
+    try {
+      setStatus(await askForPublicTableBill(slug, token));
+    } catch (e) {
+      setStatusProblem(
+        e instanceof PublicTableOrderError && e.status === 409
+          ? e.message
+          : "Could not ask for the bill. Try again, or wave a member of staff over.",
+      );
+    } finally {
+      setAskingBill(false);
+    }
+  }
+
+  /** Take off a line this phone added, while staff have not sent it to the kitchen. */
+  async function removeLine(line: PublicStatusLine) {
+    if (removingId) return;
+    setRemovingId(line.id);
+    setStatusProblem(null);
+    try {
+      setStatus(await removePublicTableLine(slug, token, line.id));
+    } catch (e) {
+      setStatusProblem(
+        e instanceof PublicTableOrderError && e.status === 409
+          ? e.message
+          : "Could not remove that line. Try again, or tell a member of staff.",
+      );
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -196,6 +271,65 @@ export function ShopTableOrderView({ slug, token }: { slug: string; token: strin
             Order something else
           </button>
         </section>
+      ) : null}
+
+      {status && status.orderNumber != null ? (
+        <section aria-label="Your order" className="mt-4 rounded border p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">
+              Your order · <span className="font-mono tabular-nums">{status.orderNumber}</span>
+            </h2>
+            <span className="font-mono tabular-nums">{money(status.total)}</span>
+          </div>
+          <ul className="mt-2 divide-y text-sm">
+            {status.lines.map((line, i) => (
+              <li key={`${line.name}-${i}`} className={line.stage === "VOIDED" ? "py-1.5 opacity-60 line-through" : "py-1.5"}>
+                <div className="flex justify-between gap-2">
+                  <span className="min-w-0">
+                    <span className="font-mono tabular-nums">{line.quantity} ×</span> {line.name}
+                  </span>
+                  <span className="shrink-0 font-mono tabular-nums">{money(line.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs opacity-70">
+                  <span>{STAGE_WORDS[line.stage] ?? line.stage}</span>
+                  {line.removable ? (
+                    <button
+                      type="button"
+                      className="min-h-8 rounded px-1 text-xs underline underline-offset-2 opacity-100 disabled:opacity-50"
+                      disabled={removingId === line.id}
+                      onClick={() => void removeLine(line)}
+                    >
+                      {removingId === line.id ? "Removing…" : "Remove"}
+                    </button>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-baseline justify-between border-t pt-2">
+            <span className="text-sm">To pay</span>
+            <span className="font-mono text-lg font-semibold tabular-nums">{money(status.due)}</span>
+          </div>
+          {status.billRequested ? (
+            <p role="status" className="mt-2 text-sm font-semibold">
+              Bill requested — a member of staff is coming.
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="mt-3 min-h-11 w-full rounded border px-4 text-sm font-semibold disabled:opacity-50"
+              disabled={askingBill}
+              onClick={() => void askBill()}
+            >
+              {askingBill ? "Asking…" : "Ask for the bill"}
+            </button>
+          )}
+        </section>
+      ) : null}
+      {statusProblem ? (
+        <p role="alert" className="mt-2 text-sm text-red-700">
+          {statusProblem}
+        </p>
       ) : null}
 
       {menu.dishes.length === 0 ? (

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Globe2, Loader2, Package, Store } from "lucide-react";
+import { Check, Globe2, Loader2, Package } from "lucide-react";
 
 import {
   fetchItemsPage,
@@ -12,6 +12,9 @@ import {
   type ItemSummaryRecord,
 } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
+import { sharedCatalogCoverUrl } from "./shared-option-fill";
+import { planSuggestionRows } from "./plan-suggestion-rows";
+import styles from "./product-create-modal.module.css";
 
 const SEARCH_DEBOUNCE_MS = 280;
 const MIN_QUERY_LEN = 2;
@@ -64,8 +67,7 @@ export function ProductNameSuggestions({
   onOpenExisting,
   onUseGlobal,
   onAutoGlobal,
-  useLabel = "Use",
-  dismissedLabel = "Creating as a new product",
+  useLabel = "Fill",
 }: Props) {
   const [tenantHits, setTenantHits] = useState<ItemSummaryRecord[]>([]);
   const [globalHits, setGlobalHits] = useState<GlobalProductRecord[]>([]);
@@ -178,149 +180,285 @@ export function ProductNameSuggestions({
 
   if (!enabled) return null;
 
-  const hasMatches = tenantHits.length > 0 || globalHits.length > 0;
+  const plans = planSuggestionRows({ name, barcode }, globalHits, tenantHits);
+  const hasMatches = plans.length > 0;
+  const shown = plans.slice(0, 3);
   if (!busy && !hasMatches) return null;
 
   if (dismissed && hasMatches) {
     return (
-      <div className="flex items-center justify-between gap-2 border border-border bg-muted/15 px-2 py-1.5">
-        <p className="text-[11px] text-muted-foreground">
-          {dismissedLabel}
-        </p>
-        <button
-          type="button"
-          onClick={() => setDismissedKey(null)}
-          className="shrink-0 text-[11px] font-medium text-primary hover:underline"
-        >
-          Show matches
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setDismissedKey(null)}
+        className={styles.suggestShow}
+      >
+        Matches
+      </button>
     );
   }
 
   return (
-    <div className="space-y-2 rounded-none border border-border bg-muted/15 p-2 shadow-none">
+    <div className={styles.suggest}>
       {busy && !hasMatches ? (
-        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <p className={styles.suggestWait}>
           <Loader2 className="size-3 animate-spin" aria-hidden />
-          Checking shared catalog…
+          Looking…
         </p>
       ) : null}
 
-      {tenantHits.length > 0 ? (
-        <section className="space-y-1">
-          <h3 className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            <Store className="size-3" aria-hidden />
-            Already in your catalog
-          </h3>
-          <ul className="overflow-hidden rounded-none border border-border bg-background divide-y divide-border">
-            {tenantHits.map((hit) => {
-              const thumb = itemListThumbnailUrl(hit);
-              return (
-                <li key={hit.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenExisting(hit.id)}
-                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
-                  >
-                    <SuggestionThumb
-                      src={thumb}
-                      fallback={
-                        <Package
-                          className="size-3 text-muted-foreground"
-                          aria-hidden
-                        />
-                      }
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-medium text-foreground">
-                        {itemCatalogDisplayTitle(hit)}
-                      </span>
-                      <span className="block truncate font-mono text-[10px] text-muted-foreground">
-                        {[hit.sku, hit.barcode].filter(Boolean).join(" · ") ||
-                          "No SKU"}
-                        {hit.active === false ? " · inactive" : ""}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[10px] font-medium text-primary">
-                      View
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
-
-      {globalHits.length > 0 ? (
-        <section className="space-y-1">
-          <h3 className="flex items-center gap-1 text-[10px] font-semibold tracking-[-0.02em] text-muted-foreground">
-            <Globe2 className="size-3" aria-hidden />
-            Shared catalog
-          </h3>
-          <ul className="overflow-hidden rounded-none border border-border bg-background divide-y divide-border">
-            {globalHits.map((hit) => {
-              const sell = formatPrice(hit.recommendedSellingPrice);
-              const already = hit.alreadyImported && hit.adoptedItemId;
-              return (
-                <li key={hit.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (already && hit.adoptedItemId) {
-                        onOpenExisting(hit.adoptedItemId);
-                        return;
-                      }
-                      onUseGlobal(hit);
-                    }}
-                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
-                  >
-                    <SuggestionThumb
-                      src={hit.imageUrl}
-                      fallback={
-                        <Globe2
-                          className="size-3 text-muted-foreground"
-                          aria-hidden
-                        />
-                      }
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-medium text-foreground">
-                        {hit.name}
-                      </span>
-                      <span className="block truncate text-[10px] text-muted-foreground">
-                        {[
-                          hit.brand,
-                          hit.size,
-                          hit.barcode,
-                          sell ? `sell ${sell}` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[10px] font-medium text-primary">
-                      {already ? "Open" : useLabel}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+      {shown.length > 0 ? (
+        <ul className={styles.suggestList} aria-label="Matching products">
+          {shown.map((plan) => (
+            <li key={plan.source === "shared" ? plan.catalogId : plan.itemId}>
+              <PlannedSuggestionRow
+                plan={plan}
+                catalog={globalHits}
+                shop={tenantHits}
+                useLabel={useLabel}
+                onOpenExisting={onOpenExisting}
+                onUseGlobal={onUseGlobal}
+              />
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       {hasMatches ? (
         <button
           type="button"
           onClick={() => setDismissedKey(activeKey)}
-          className="w-full border border-border bg-background px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted/50"
+          className={styles.suggestSkip}
         >
-          None of these — create new
+          Skip
         </button>
       ) : null}
     </div>
+  );
+}
+
+function sharedDetail(hit: GlobalProductRecord): string {
+  const sell = formatPrice(hit.recommendedSellingPrice);
+  return sell ? `Sell ${sell}` : "";
+}
+
+const suggestionRowClass = styles.suggestStatic;
+const suggestionButtonClass = styles.suggestRow;
+
+function SuggestionFace({
+  title,
+  detail,
+  imageUrl,
+  catalog,
+  ownedLine,
+  action,
+}: {
+  title: string;
+  detail: string;
+  imageUrl?: string | null;
+  catalog: boolean;
+  ownedLine: boolean;
+  action: React.ReactNode;
+}) {
+  return (
+    <>
+      <SuggestionThumb
+        src={imageUrl}
+        fallback={
+          catalog ? (
+            <Globe2 className="size-3.5 text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_45%,transparent)]" aria-hidden />
+          ) : (
+            <Package className="size-3.5 text-[color-mix(in_srgb,var(--catalog-ink,#121A16)_45%,transparent)]" aria-hidden />
+          )
+        }
+      />
+      <span className={styles.suggestCopy}>
+        <span className={styles.suggestName}>{title}</span>
+        {ownedLine ? (
+          <span className={styles.suggestOwned}>
+            <Check className="size-3 shrink-0" aria-hidden />
+            In your shop
+          </span>
+        ) : null}
+        {!ownedLine && detail ? (
+          <span className={styles.suggestMeta}>{detail}</span>
+        ) : null}
+      </span>
+      {action}
+    </>
+  );
+}
+
+function InShopMark() {
+  return (
+    <span className={styles.suggestOwned}>
+      <Check className="size-3.5" aria-hidden />
+      In your shop
+    </span>
+  );
+}
+
+function OwnedSuggestionButton({
+  title,
+  detail,
+  imageUrl,
+  catalog,
+  open,
+  onOpen,
+}: {
+  title: string;
+  detail: string;
+  imageUrl?: string | null;
+  catalog: boolean;
+  open: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={suggestionButtonClass}
+      aria-label={open ? `Open ${title}` : `${title}, in your shop`}
+    >
+      <SuggestionFace
+        title={title}
+        detail={detail}
+        imageUrl={imageUrl}
+        catalog={catalog}
+        ownedLine={false}
+        action={
+          open ? (
+            <span className={styles.suggestGo}>Open</span>
+          ) : (
+            <InShopMark />
+          )
+        }
+      />
+    </button>
+  );
+}
+
+function ShopSuggestionRow({
+  itemId,
+  open,
+  shop,
+  onOpenExisting,
+}: {
+  itemId: string;
+  open: boolean;
+  shop: ItemSummaryRecord[];
+  onOpenExisting: (itemId: string) => void;
+}) {
+  const item = shop.find((row) => row.id === itemId);
+  if (!item) return null;
+  const title = itemCatalogDisplayTitle(item);
+  return (
+    <OwnedSuggestionButton
+      title={title}
+      detail=""
+      imageUrl={itemListThumbnailUrl(item)}
+      catalog={false}
+      open={open}
+      onOpen={() => onOpenExisting(item.id)}
+    />
+  );
+}
+
+function CatalogSuggestionRow({
+  plan,
+  catalog,
+  useLabel,
+  onOpenExisting,
+  onUseGlobal,
+}: {
+  plan: Extract<ReturnType<typeof planSuggestionRows>[number], { source: "shared" }>;
+  catalog: GlobalProductRecord[];
+  useLabel: string;
+  onOpenExisting: (itemId: string) => void;
+  onUseGlobal: (product: GlobalProductRecord) => void;
+}) {
+  const hit = catalog.find((row) => row.id === plan.catalogId);
+  const shopItemId = plan.itemId;
+  if (!hit) return null;
+  if (plan.inShop && shopItemId) {
+    return (
+      <OwnedSuggestionButton
+        title={hit.name}
+        detail={sharedDetail(hit)}
+        imageUrl={sharedCatalogCoverUrl(hit)}
+        catalog
+        open={plan.open}
+        onOpen={() => onOpenExisting(shopItemId)}
+      />
+    );
+  }
+  if (plan.inShop) {
+    return (
+      <div className={suggestionRowClass}>
+        <SuggestionFace
+          title={hit.name}
+          detail={sharedDetail(hit)}
+          imageUrl={sharedCatalogCoverUrl(hit)}
+          catalog
+          ownedLine={false}
+          action={<InShopMark />}
+        />
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onUseGlobal(hit)}
+      className={suggestionButtonClass}
+      aria-label={`${useLabel} ${hit.name}`}
+    >
+      <SuggestionFace
+        title={hit.name}
+        detail={sharedDetail(hit)}
+        imageUrl={sharedCatalogCoverUrl(hit)}
+        catalog
+        ownedLine={false}
+        action={
+          <span className={styles.suggestGo}>{useLabel}</span>
+        }
+      />
+    </button>
+  );
+}
+
+function PlannedSuggestionRow({
+  plan,
+  catalog,
+  shop,
+  useLabel,
+  onOpenExisting,
+  onUseGlobal,
+}: {
+  plan: ReturnType<typeof planSuggestionRows>[number];
+  catalog: GlobalProductRecord[];
+  shop: ItemSummaryRecord[];
+  useLabel: string;
+  onOpenExisting: (itemId: string) => void;
+  onUseGlobal: (product: GlobalProductRecord) => void;
+}) {
+  if (plan.source === "shop") {
+    return (
+      <ShopSuggestionRow
+        itemId={plan.itemId}
+        open={plan.open}
+        shop={shop}
+        onOpenExisting={onOpenExisting}
+      />
+    );
+  }
+  return (
+    <CatalogSuggestionRow
+      plan={plan}
+      catalog={catalog}
+      useLabel={useLabel}
+      onOpenExisting={onOpenExisting}
+      onUseGlobal={onUseGlobal}
+    />
   );
 }
 
@@ -332,7 +470,7 @@ function SuggestionThumb({
   fallback: React.ReactNode;
 }) {
   return (
-    <span className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-none border border-border bg-muted/60">
+    <span className={styles.suggestThumb}>
       {src ? (
         <Image
           src={src}

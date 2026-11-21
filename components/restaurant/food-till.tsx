@@ -88,7 +88,7 @@ export function FoodTill() {
 
   return (
     <div
-      className={cn("food-till flex h-[100dvh] min-h-screen flex-col", lights === "night" && "dark")}
+      className={cn("food-till flex min-h-screen flex-col", lights === "night" && "dark")}
       data-house={house}
       data-lights={lights}
     >

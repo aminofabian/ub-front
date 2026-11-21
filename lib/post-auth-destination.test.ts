@@ -69,6 +69,14 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.grocery);
   });
 
+  it("sends clinic staff to the clinic, and only where there is one", () => {
+    const clinic = { profile: { storeTypes: ["pharmacy", "clinic"] } };
+    for (const key of ["clinician", "nurse", "clinic_receptionist"]) {
+      expect(resolvePostAuthDestination({ role: { key } }, null, clinic)).toBe(APP_ROUTES.clinic);
+    }
+    expect(resolvePostAuthDestination({ role: { key: "pharmacist" } }, null, clinic)).toBe(APP_ROUTES.pharmacy);
+  });
+
   it("sends a pharmacist to the pharmacy workspace, and only in a pharmacy", () => {
     const chemist = { profile: { storeTypes: ["pharmacy"] } };
     expect(

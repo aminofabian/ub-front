@@ -11,12 +11,10 @@ import {
 import Image from "next/image";
 import {
   ChevronDown,
-  Globe2,
+  Check,
   ImagePlus,
-  Layers,
   Loader2,
   Minus,
-  PackagePlus,
   Plus,
   ScanBarcode,
   WandSparkles,
@@ -47,6 +45,9 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 import {
   fetchGlobalCatalogProductFamily,
+  patchCategory,
+  patchSupplier,
+  updateItemType,
   type BranchRecord,
   type GlobalProductFamilyRecord,
   type GlobalProductRecord,
@@ -60,6 +61,13 @@ import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { ParentDraft } from "../_types";
 import { formatAmount, toNumber } from "../_utils";
+import {
+  buyingFollowsShare,
+  buyingPriceFromSelling,
+  parseMarkupPct,
+  resolveMarkupPct,
+  shelfShareTarget,
+} from "./buying-price-share";
 import { categorySelectOptions } from "./category-select-options";
 import {
   CreateGroupOptionsPad,
@@ -82,6 +90,8 @@ import {
   fetchImageAsFile,
   fillEmptyOptionFields,
   planFamilyFill,
+  sharedCatalogCoverUrl,
+  sharedProductFormFill,
   sharedProductToOptionSeed,
 } from "./shared-option-fill";
 import { useInlineCategoryCreate } from "../_hooks/useInlineCategoryCreate";
@@ -116,6 +126,7 @@ type Props = {
     | "suppliersForLink"
     | "suppliersLoading"
     | "loadSuppliersForLink"
+    | "upsertSupplierForLink"
     | "onCreateParent"
     | "pendingCreateImage"
     | "setPendingCreateImage"
@@ -145,20 +156,30 @@ type FamilyFill = {
 
 function describeFamilyFill(fill: FamilyFill): string {
   if (fill.count === 0) {
-    return fill.onShelf > 0
-      ? "Everything in this family is already on your shelf."
-      : "Nothing from the shared catalog could be added.";
+    return fill.onShelf > 0 ? "Already in your shop." : "Nothing to add.";
   }
-  const parts = [
-    `${fill.count} option${fill.count === 1 ? "" : "s"} filled from the shared catalog — confirm the prices and how many you have.`,
-  ];
-  if (fill.onShelf > 0) {
-    parts.push(`${fill.onShelf} already on your shelf, left out.`);
-  }
-  if (fill.trimmed > 0) {
-    parts.push(`Only ${MAX_GROUP_OPTIONS} fit in one family.`);
-  }
-  return parts.join(" ");
+  const bits = [`${fill.count} filled`];
+  if (fill.onShelf > 0) bits.push(`${fill.onShelf} already in the shop`);
+  if (fill.trimmed > 0) bits.push(`${fill.trimmed} did not fit`);
+  return bits.join(" · ");
+}
+
+function markupForShelf(
+  suppliers: { id: string; defaultMarkupPct?: number | string | null }[],
+  itemTypes: { id: string; defaultMarkupPct?: number | string | null }[],
+  categories: { id: string; defaultMarkupPct?: number | string | null }[],
+  supplierId: string,
+  departmentId: string,
+  categoryId: string,
+): number | null {
+  const supplier = suppliers.find((row) => row.id === supplierId.trim());
+  const department = itemTypes.find((row) => row.id === departmentId.trim());
+  const category = categories.find((row) => row.id === categoryId.trim());
+  return resolveMarkupPct(
+    supplier?.defaultMarkupPct,
+    department?.defaultMarkupPct,
+    category?.defaultMarkupPct,
+  );
 }
 
 function matchItemTypeFromHint(
@@ -277,6 +298,40 @@ function QtyStepper({
   );
 }
 
+function optionWithShare(row: GroupOptionRow, markupPct: number | null): GroupOptionRow {
+  if (row.buyingPrice.trim() || !row.unitPrice.trim()) return row;
+  const buyingPrice = buyingPriceFromSelling(row.unitPrice, markupPct);
+  return buyingPrice ? { ...row, buyingPrice } : row;
+}
+
+function BuyingShareField({
+  value,
+  caption,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  caption: string;
+  disabled?: boolean;
+  onChange: (raw: string) => void;
+}) {
+  return (
+    <label className={styles.share}>
+      <input
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step={1}
+        value={value}
+        disabled={disabled}
+        aria-label="Markup percent on the buying price"
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <span>{caption}</span>
+    </label>
+  );
+}
+
 export function ProductCreateModal({
   open,
   onClose,
@@ -303,7 +358,23 @@ export function ProductCreateModal({
   const aisleSelectRef = useRef<SearchableSelectHandle>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [keepOpen, setKeepOpen] = useState(false);
+  const [keepOpen, setKeepOpen] = useState(true);
+  const supplierId = m.parentDraft.supplierId;
+  const departmentId = m.parentDraft.itemTypeId;
+  const categoryId = m.parentDraft.categoryId;
+  const shelfPct = markupForShelf(
+    m.suppliersForLink,
+    catalog.itemTypes,
+    catalog.sortedCategories,
+    supplierId,
+    departmentId,
+    categoryId,
+  );
+  const [shareDraft, setShareDraft] = useState<string | null>(null);
+  const buyingShareInput = shareDraft ?? (shelfPct == null ? "" : String(shelfPct));
+  const typedShare = parseMarkupPct(buyingShareInput);
+  const buyingSharePct = shareDraft == null ? shelfPct : typedShare;
+  const [runCount, setRunCount] = useState(0);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [desktop, setDesktop] = useState(() =>
@@ -316,9 +387,6 @@ export function ProductCreateModal({
   const [stamp, setStamp] = useState(0);
   const prevArmed = useRef(false);
   const [descGenError, setDescGenError] = useState("");
-  const [linkedGlobalLabel, setLinkedGlobalLabel] = useState<string | null>(
-    null,
-  );
   /** Shared-catalog photo shown in the form the moment a match is applied. */
   const [globalPhotoUrl, setGlobalPhotoUrl] = useState<string | null>(null);
   /** Root + pack sizes around the linked product ("also add its pack sizes"). */
@@ -353,6 +421,11 @@ export function ProductCreateModal({
   const aisleCreate = useInlineAisleCreate(catalog.upsertAisle);
 
   useEffect(() => {
+    if (open) return;
+    setRunCount(0);
+  }, [open]);
+
+  useEffect(() => {
     const mq = window.matchMedia("(min-width: 640px)");
     const sync = () => setDesktop(mq.matches);
     mq.addEventListener("change", sync);
@@ -361,7 +434,7 @@ export function ProductCreateModal({
 
   useEffect(() => {
     if (!open) return;
-    setKeepOpen(false);
+    setKeepOpen(true);
     setScannerOpen(false);
     setMoreOpen(false);
     setPhotoOver(false);
@@ -369,7 +442,6 @@ export function ProductCreateModal({
     setStamp(0);
     prevArmed.current = false;
     setDescGenError("");
-    setLinkedGlobalLabel(null);
     setGlobalPhotoUrl(null);
     setOptionScanKey(null);
     setFamilyShared(null);
@@ -395,7 +467,6 @@ export function ProductCreateModal({
           globalProductSourceId: null,
           globalExtraVariantIds: [],
         }));
-        setLinkedGlobalLabel(null);
         setGlobalPhotoUrl(null);
         setGlobalFamily(null);
         return;
@@ -427,6 +498,7 @@ export function ProductCreateModal({
 
   const applyGlobalMatch = useCallback(
     (match: GlobalProductRecord) => {
+      const fill = sharedProductFormFill(match);
       const matchedTypeId = matchItemTypeFromHint(
         catalog.itemTypes,
         match.itemTypeKeyHint,
@@ -439,46 +511,50 @@ export function ProductCreateModal({
         const next: ParentDraft = {
           ...prev,
           productStructure: "standalone",
-          isSellable: match.sellable,
-          isStocked: match.stocked,
-          isWeighed: match.weighed,
-          name: match.name,
-          barcode: match.barcode?.trim() || prev.barcode,
-          sku: match.skuTemplate?.trim() || prev.sku,
-          brand: match.brand?.trim() || prev.brand,
-          size: match.size?.trim() || prev.size,
-          description: match.description?.trim() || prev.description,
-          unitType: match.unitType?.trim() || prev.unitType,
+          isSellable: fill.isSellable,
+          isStocked: fill.isStocked,
+          isWeighed: fill.isWeighed,
+          name: fill.name || prev.name,
+          barcode: fill.barcode || prev.barcode,
+          sku: fill.sku || prev.sku,
+          brand: fill.brand || prev.brand,
+          size: fill.size || prev.size,
+          description: fill.description || prev.description,
+          unitType: fill.unitType || prev.unitType,
           itemTypeId: matchedTypeId || prev.itemTypeId,
           categoryId: matchedCategoryId || prev.categoryId,
-          buyingPrice:
-            match.recommendedBuyingPrice != null
-              ? String(match.recommendedBuyingPrice)
-              : prev.buyingPrice,
-          bundlePrice:
-            match.recommendedSellingPrice != null
-              ? String(match.recommendedSellingPrice)
-              : prev.bundlePrice,
-          reorderLevel:
-            match.defaultReorderLevel != null
-              ? String(match.defaultReorderLevel)
-              : prev.reorderLevel,
-          reorderQty:
-            match.defaultReorderQty != null
-              ? String(match.defaultReorderQty)
-              : prev.reorderQty,
-          minStockLevel:
-            match.defaultMinStockLevel != null
-              ? String(match.defaultMinStockLevel)
-              : prev.minStockLevel,
+          buyingPrice: (() => {
+            if (fill.buyingPrice) return fill.buyingPrice;
+            const share = markupForShelf(
+              m.suppliersForLink,
+              catalog.itemTypes,
+              catalog.sortedCategories,
+              prev.supplierId,
+              matchedTypeId || prev.itemTypeId,
+              matchedCategoryId || prev.categoryId,
+            );
+            return buyingFollowsShare(prev.buyingPrice, prev.bundlePrice, share)
+              ? buyingPriceFromSelling(fill.sellingPrice || prev.bundlePrice, share)
+              : prev.buyingPrice;
+          })(),
+          bundlePrice: fill.sellingPrice || prev.bundlePrice,
+          bundleQty: fill.bundleQty || prev.bundleQty,
+          bundleName: fill.bundleName || prev.bundleName,
+          reorderLevel: fill.reorderLevel || prev.reorderLevel,
+          reorderQty: fill.reorderQty || prev.reorderQty,
+          minStockLevel: fill.minStockLevel || prev.minStockLevel,
           globalProductSourceId: match.id,
         };
         return syncCostsFromBuyingPrice(next.buyingPrice, next);
       });
-      setLinkedGlobalLabel(match.name);
-      setGlobalPhotoUrl(match.imageUrl?.trim() || null);
-      // Everything is filled — put the cursor on the one thing the shopkeeper
-      // actually decides: the selling price.
+      setGlobalPhotoUrl(fill.photoUrl || null);
+      if (fill.photoUrl) {
+        void fetchImageAsFile(fill.photoUrl, fill.name || match.name).then(
+          (file) => {
+            if (file) m.setPendingCreateImage(file);
+          },
+        );
+      }
       requestAnimationFrame(() => {
         const sellInput = document.getElementById(
           "create-selling-price",
@@ -544,17 +620,19 @@ export function ProductCreateModal({
       const seed = sharedProductToOptionSeed(product, m.parentDraft.name);
       setGroupOptions((prev) =>
         prev.map((r) =>
-          r.key === rowKey ? fillEmptyOptionFields(r, seed) : r,
+          r.key === rowKey
+            ? optionWithShare(fillEmptyOptionFields(r, seed), buyingSharePct)
+            : r,
         ),
       );
-      const photo = product.imageUrl?.trim();
+      const photo = sharedCatalogCoverUrl(product);
       if (photo) {
         void fetchImageAsFile(photo, product.name).then((file) => {
           if (file) attachOptionPhoto(rowKey, file);
         });
       }
     },
-    [attachOptionPhoto, m.parentDraft.name],
+    [attachOptionPhoto, buyingSharePct, m.parentDraft.name],
   );
 
   /**
@@ -584,7 +662,7 @@ export function ProductCreateModal({
         const { root, isFamily, familyTitle } = plan;
         const added = plan.picks.map(({ g, seed }) => ({
           g,
-          row: newGroupOptionRow(seed),
+          row: optionWithShare(newGroupOptionRow(seed), buyingSharePct),
         }));
 
         if (added.length > 0) {
@@ -611,6 +689,7 @@ export function ProductCreateModal({
           );
           const brand = isFamily ? root.brand?.trim() : "";
           const description = isFamily ? root.description?.trim() : "";
+          const unitType = root.unitType?.trim() || "";
           m.setParentDraft((prev) =>
             prev.productStructure !== "group"
               ? prev
@@ -619,12 +698,15 @@ export function ProductCreateModal({
                   name: familyTitle,
                   ...(brand ? { brand } : {}),
                   ...(description ? { description } : {}),
+                  ...(unitType ? { unitType } : {}),
                   itemTypeId: matchedTypeId || prev.itemTypeId,
                   categoryId: matchedCategoryId || prev.categoryId,
                 },
           );
 
-          const familyPhoto = isFamily ? root.imageUrl?.trim() : "";
+          const familyPhoto = isFamily
+            ? sharedCatalogCoverUrl(root)
+            : sharedCatalogCoverUrl(match);
           if (familyPhoto && !m.pendingCreateImage) {
             void fetchImageAsFile(familyPhoto, familyTitle).then((file) => {
               if (file) m.setPendingCreateImage((cur) => cur ?? file);
@@ -633,7 +715,7 @@ export function ProductCreateModal({
           // One at a time: a family can bring a couple of dozen photos.
           void (async () => {
             for (const { g, row } of added) {
-              const url = g.imageUrl?.trim();
+              const url = sharedCatalogCoverUrl(g);
               if (!url) continue;
               const file = await fetchImageAsFile(url, g.name);
               if (file) attachOptionPhoto(row.key, file);
@@ -653,7 +735,9 @@ export function ProductCreateModal({
         setFamilyShared({
           name: familyTitle,
           photoUrl:
-            root.imageUrl?.trim() || added[0]?.g.imageUrl?.trim() || null,
+            sharedCatalogCoverUrl(root) ||
+            (added[0] ? sharedCatalogCoverUrl(added[0].g) : "") ||
+            null,
           rows: added.map((a) => ({ key: a.row.key, barcode: a.row.barcode })),
           count: added.length,
           onShelf: plan.onShelf,
@@ -665,6 +749,7 @@ export function ProductCreateModal({
     },
     [
       attachOptionPhoto,
+      buyingSharePct,
       catalog.itemTypes,
       catalog.sortedCategories,
       m,
@@ -739,6 +824,12 @@ export function ProductCreateModal({
     return catalog.itemTypes.find((t) => t.id === id)?.label;
   }, [catalog.itemTypes, m.parentDraft.itemTypeId]);
 
+  const createSupplierName = useMemo(() => {
+    const id = m.parentDraft.supplierId.trim();
+    if (!id) return undefined;
+    return m.suppliersForLink.find((row) => row.id === id)?.name;
+  }, [m.parentDraft.supplierId, m.suppliersForLink]);
+
   const categoryOptions = useMemo(
     () => categorySelectOptions(catalog.sortedCategories),
     [catalog.sortedCategories],
@@ -810,9 +901,100 @@ export function ProductCreateModal({
   const currency = currencyCode.trim() || "KES";
   const familyName = m.parentDraft.name.trim();
   const readyOptions = useMemo(
-    () => readyGroupOptions(groupOptions, familyName),
-    [groupOptions, familyName],
+    () => readyGroupOptions(groupOptions, familyName, buyingSharePct),
+    [buyingSharePct, groupOptions, familyName],
   );
+
+  const shareCaption = useMemo(() => {
+    const target = shelfShareTarget(supplierId, departmentId, categoryId);
+    const supplierMarkup = m.suppliersForLink.find((row) => row.id === supplierId.trim())
+      ?.defaultMarkupPct;
+    if (target?.kind === "supplier" && createSupplierName) {
+      if (parseMarkupPct(supplierMarkup) == null && (createCategoryName || createDepartmentName)) {
+        const inherited = createCategoryName ?? createDepartmentName;
+        return `from ${inherited}, until you set one for ${createSupplierName}`;
+      }
+      return `supplier markup for ${createSupplierName}`;
+    }
+    if (target?.kind === "category" && createCategoryName) {
+      return `markup on cost for ${createCategoryName}`;
+    }
+    if (createDepartmentName) {
+      return `markup on cost for ${createDepartmentName}`;
+    }
+    return "markup on cost, until you type a buying price";
+  }, [
+    categoryId,
+    createCategoryName,
+    createDepartmentName,
+    createSupplierName,
+    departmentId,
+    m.suppliersForLink,
+    supplierId,
+  ]);
+
+  const changeBuyingShare = useCallback(
+    (raw: string) => {
+      setShareDraft(raw);
+      const target = shelfShareTarget(supplierId, departmentId, categoryId);
+      if (!target) return;
+      const clear = !raw.trim();
+      const next = clear ? null : parseMarkupPct(raw);
+      if (!clear && next == null) return;
+      const save = (markup: number | null) => {
+        const body = markup == null ? { clearDefaultMarkup: true } : { defaultMarkupPct: markup };
+        if (target.kind === "supplier") {
+          return patchSupplier(target.id, body).then((row) => m.upsertSupplierForLink(row));
+        }
+        if (target.kind === "category") {
+          return patchCategory(target.id, body).then((row) => catalog.upsertCategory(row));
+        }
+        return updateItemType(target.id, body).then((row) => catalog.upsertItemType(row));
+      };
+      void save(next).catch(() => toast.error("Couldn't save the markup."));
+    },
+    [catalog, categoryId, departmentId, m, supplierId],
+  );
+
+  const appliedShare = useRef(buyingSharePct);
+  const seenShelf = useRef(`${supplierId}|${departmentId}|${categoryId}`);
+  useEffect(() => {
+    const shelfKey = `${supplierId}|${departmentId}|${categoryId}`;
+    const shelfChanged = seenShelf.current !== shelfKey;
+    if (shelfChanged) {
+      seenShelf.current = shelfKey;
+      setShareDraft(null);
+    }
+    const next = shelfChanged ? shelfPct : buyingSharePct;
+    const previous = appliedShare.current;
+    if (previous === next) return;
+    appliedShare.current = next;
+    setGroupOptions((rows) =>
+      rows.map((row) => {
+        if (!buyingFollowsShare(row.buyingPrice, row.unitPrice, previous)) return row;
+        return {
+          ...row,
+          buyingPrice: buyingPriceFromSelling(row.unitPrice, next),
+        };
+      }),
+    );
+    m.setParentDraft((draft) => {
+      if (!buyingFollowsShare(draft.buyingPrice, draft.bundlePrice, previous)) return draft;
+      return syncCostsFromBuyingPrice(
+        buyingPriceFromSelling(draft.bundlePrice, next),
+        draft,
+      );
+    });
+  }, [
+    buyingSharePct,
+    categoryId,
+    departmentId,
+    m,
+    supplierId,
+    setGroupOptions,
+    shelfPct,
+    syncCostsFromBuyingPrice,
+  ]);
   const startedOptions = groupOptions.filter(
     (r) => r.label.trim() || r.unitPrice.trim(),
   ).length;
@@ -844,6 +1026,9 @@ export function ProductCreateModal({
 
       const saved = await m.onCreateParent(e, {
         keepOpen: creatingGroup ? false : keepOpen,
+        buyingPrice: m.parentDraft.buyingPrice.trim()
+          ? m.parentDraft.buyingPrice
+          : buyingPriceFromSelling(m.parentDraft.bundlePrice, buyingSharePct),
         groupOptions: creatingGroup
           ? readyOptions.map((o) => ({
               label: o.label,
@@ -855,7 +1040,11 @@ export function ProductCreateModal({
             }))
           : undefined,
       });
-      if (saved) createDraft.forgetDraft();
+      if (saved) {
+        const added = creatingGroup ? Math.max(readyOptions.length, 1) : 1;
+        setRunCount((count) => count + added);
+        createDraft.forgetDraft();
+      }
 
       if (creatingGroup || !keepOpen) return;
       createDraft.resumeSaving();
@@ -892,14 +1081,13 @@ export function ProductCreateModal({
         setPrimarySupplier: true,
       });
       m.setPendingCreateImage(null);
-      setLinkedGlobalLabel(null);
       setJustAdded(true);
       window.setTimeout(() => {
         document.getElementById("create-product-name")?.focus();
       }, 0);
       window.setTimeout(() => setJustAdded(false), 560);
     },
-    [createDraft, keepOpen, m, readyOptions],
+    [buyingSharePct, createDraft, keepOpen, m, readyOptions],
   );
 
   const showExisting = (itemId: string) => setConflictItemId(itemId);
@@ -924,15 +1112,15 @@ export function ProductCreateModal({
         overlayClassName="bg-black/40 supports-[backdrop-filter]:backdrop-blur-[2px]"
         className={cn(
           styles.root,
-          "gap-0 overflow-hidden p-0",
+          "gap-0 overflow-hidden bg-[#F4F1EA] p-0",
           desktop
             ? "w-[min(100%,60rem)] max-w-[60rem] sm:rounded-none"
-            : "max-h-[min(92dvh,44rem)] rounded-t-[2px] bg-[var(--op-surface)]",
+            : "max-h-[min(92dvh,44rem)] rounded-t-[2px]",
         )}
       >
         {!desktop ? (
           <div className="flex shrink-0 justify-center pt-2" aria-hidden>
-            <span className="h-1 w-10 rounded-full bg-[#D1D5DB]" />
+            <span className="h-1 w-10 rounded-full bg-[color-mix(in_srgb,#121A16_18%,#F4F1EA)]" />
           </div>
         ) : null}
         <form
@@ -942,18 +1130,13 @@ export function ProductCreateModal({
         >
           <header className={styles.header}>
             <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="flex items-center gap-2 text-[1.5rem] text-[var(--catalog-ink,#121A16)]">
-                <span className={styles.iconMark}>
-                  <PackagePlus className="size-3.5" aria-hidden />
-                </span>
-                Add product
-              </DialogTitle>
-              <DialogDescription className="text-[13px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_58%,transparent)]">
+              <DialogTitle>Add product</DialogTitle>
+              <DialogDescription className="text-[13px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)]">
                 {isGroup
-                  ? "Name the family, then each size or flavour you sell."
+                  ? "Name the family, then each option."
                   : justAdded
-                    ? "Added. Name the next one."
-                    : "Name and selling price are enough to sell. Photo and barcode can wait."}
+                    ? "Name the next one."
+                    : "Name and price. The rest can wait."}
               </DialogDescription>
               {createDraft.hasWork ? (
                 <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_62%,transparent)]">
@@ -989,8 +1172,7 @@ export function ProductCreateModal({
                 className={styles.modeBtn}
                 onClick={() => setFamilyMode(false)}
               >
-                <PackagePlus className="size-3.5" aria-hidden />
-                Single item
+                One product
               </button>
               <button
                 type="button"
@@ -1001,8 +1183,7 @@ export function ProductCreateModal({
                 className={styles.modeBtn}
                 onClick={() => setFamilyMode(true)}
               >
-                <Layers className="size-3.5" aria-hidden />
-                Family + options
+                Family
               </button>
             </div>
           </header>
@@ -1019,50 +1200,23 @@ export function ProductCreateModal({
             ) : null}
 
             {m.parentDraft.globalProductSourceId ? (
-              <div className="flex items-center gap-2.5 rounded-none border border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_7%,white)] px-3 py-2.5">
-                <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white">
-                  {globalPhotoUrl ? (
-                    <Image
-                      src={globalPhotoUrl}
-                      alt=""
-                      width={40}
-                      height={40}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Globe2
-                      className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]"
-                      aria-hidden
-                    />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold text-[var(--catalog-ink,#15231f)]">
-                    {linkedGlobalLabel ?? "Filled from the shared catalog"}
-                  </span>
-                  <span className="block text-[11px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_60%,transparent)]">
-                    Photo, barcode &amp; details come with it — just confirm the
-                    prices and how many you have.
-                  </span>
-                </span>
+              <p className={styles.filledLine}>
+                <span>Filled from the catalog</span>
                 <button
                   type="button"
-                  className="shrink-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] underline-offset-2 hover:text-[var(--catalog-ink,#15231f)] hover:underline"
                   onClick={() => {
                     m.setParentDraft((p) => ({
                       ...p,
                       globalProductSourceId: null,
                       globalExtraVariantIds: [],
                     }));
-                    setLinkedGlobalLabel(null);
                     setGlobalPhotoUrl(null);
                     setGlobalFamily(null);
                   }}
                 >
-                  Unlink
+                  Undo
                 </button>
-              </div>
+              </p>
             ) : null}
 
             {m.parentDraft.globalProductSourceId && globalFamily
@@ -1099,7 +1253,7 @@ export function ProductCreateModal({
                             {globalFamily.root.name}
                           </span>
                           {globalFamily.root.alreadyImported
-                            ? " — already on your shelf; they will be linked."
+                            ? " — in your shop, so they will be linked."
                             : " — the base product is added and linked automatically."}
                         </p>
                       ) : null}
@@ -1116,19 +1270,37 @@ export function ProductCreateModal({
                               const sell = formatFamilyPrice(
                                 v.recommendedSellingPrice,
                               );
+                              const detail = `${v.name}${sell ? ` · sell ${sell}` : ""}`;
+                              if (onShelf) {
+                                return (
+                                  <li key={v.id}>
+                                    <div className="flex w-full items-center gap-2 px-2 py-1.5">
+                                      <Check
+                                        className="size-4 shrink-0 text-primary"
+                                        aria-hidden
+                                      />
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-xs font-medium text-foreground">
+                                          {packLabel(v)}
+                                        </span>
+                                        <span className="block truncate text-[10px] text-muted-foreground">
+                                          {detail}
+                                        </span>
+                                      </span>
+                                      <span className="shrink-0 text-[10px] font-medium text-primary">
+                                        In your shop
+                                      </span>
+                                    </div>
+                                  </li>
+                                );
+                              }
                               return (
                                 <li key={v.id}>
-                                  <label
-                                    className={cn(
-                                      "flex w-full cursor-pointer items-center gap-2 px-2 py-1.5",
-                                      onShelf && "cursor-default opacity-60",
-                                    )}
-                                  >
+                                  <label className="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5">
                                     <input
                                       type="checkbox"
                                       className="size-4 shrink-0 rounded-none border"
-                                      checked={onShelf || selected.has(v.id)}
-                                      disabled={onShelf}
+                                      checked={selected.has(v.id)}
                                       onChange={() => toggle(v.id)}
                                     />
                                     <span className="min-w-0 flex-1">
@@ -1136,9 +1308,7 @@ export function ProductCreateModal({
                                         {packLabel(v)}
                                       </span>
                                       <span className="block truncate text-[10px] text-muted-foreground">
-                                        {v.name}
-                                        {sell ? ` · sell ${sell}` : ""}
-                                        {onShelf ? " · already on your shelf" : ""}
+                                        {detail}
                                       </span>
                                     </span>
                                   </label>
@@ -1160,7 +1330,7 @@ export function ProductCreateModal({
                 })()
               : null}
 
-            <div className={cn("space-y-4", justAdded && styles.fresh)}>
+            <div className="space-y-4">
               <div className={styles.identity}>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="create-product-name">
@@ -1168,11 +1338,16 @@ export function ProductCreateModal({
                   </FieldLabel>
                   <input
                     id="create-product-name"
-                    className={fieldClass}
+                    className={cn(
+                      fieldClass,
+                      "font-semibold tracking-[-0.02em] sm:h-12 sm:text-[17px]",
+                    )}
                     placeholder={
                       isGroup
                         ? "e.g. Fresh milk, Phone cases"
-                        : "e.g. Brookside 500ml"
+                        : runCount > 0
+                          ? "Next product"
+                          : "e.g. Brookside 500ml"
                     }
                     value={m.parentDraft.name}
                     onChange={(e) =>
@@ -1272,9 +1447,7 @@ export function ProductCreateModal({
                 }}
               />
 
-              {/* Matches surface the moment the name (or a scanned barcode) is typed:
-                  one tap fills the whole form from the shared catalog, or opens the
-                  product if it is already on the shelf. */}
+              {/* One match list. A check means it is already in the shop. An exact hit stands alone with Open. */}
               {!isGroup && !m.parentDraft.globalProductSourceId ? (
                 <ProductNameSuggestions
                   name={m.parentDraft.name}
@@ -1287,9 +1460,7 @@ export function ProductCreateModal({
                 />
               ) : null}
 
-              {/* Family + options gets the same help: naming the family surfaces what
-                  is already on the shelf and what the shared catalog has, and one tap
-                  fills the options from its pack sizes. */}
+              {/* Family name uses the same shared-catalog list. One tap fills the options. */}
               {isGroup && !familyShared ? (
                 familyFillBusy ? (
                   <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -1312,40 +1483,14 @@ export function ProductCreateModal({
               ) : null}
 
               {isGroup && familyShared ? (
-                <div className="flex items-center gap-2.5 rounded-none border border-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_35%,transparent)] bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_7%,white)] px-3 py-2.5">
-                  <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--catalog-ink,#15231f)_10%,transparent)] bg-white">
-                    {familyShared.photoUrl ? (
-                      <Image
-                        src={familyShared.photoUrl}
-                        alt=""
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <Globe2
-                        className="size-4 text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_45%,transparent)]"
-                        aria-hidden
-                      />
-                    )}
+                <p className={styles.filledLine}>
+                  <span className="min-w-0 truncate">
+                    {describeFamilyFill(familyShared)}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12.5px] font-semibold text-[var(--catalog-ink,#15231f)]">
-                      {familyShared.name}
-                    </span>
-                    <span className="block text-[11px] leading-snug text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_60%,transparent)]">
-                      {describeFamilyFill(familyShared)}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 text-[11px] font-medium text-[color-mix(in_srgb,var(--catalog-ink,#15231f)_55%,transparent)] underline-offset-2 hover:text-[var(--catalog-ink,#15231f)] hover:underline"
-                    onClick={clearFamilyShared}
-                  >
-                    Clear
+                  <button type="button" onClick={clearFamilyShared}>
+                    Undo
                   </button>
-                </div>
+                </p>
               ) : null}
 
               <div className="space-y-1.5">
@@ -1465,12 +1610,25 @@ export function ProductCreateModal({
                           )}
                           placeholder="0"
                           value={m.parentDraft.bundlePrice}
-                          onChange={(e) =>
-                            m.setParentDraft((p) => ({
-                              ...p,
-                              bundlePrice: e.target.value,
-                            }))
-                          }
+                          onChange={(e) => {
+                            const selling = e.target.value;
+                            m.setParentDraft((p) => {
+                              const next = { ...p, bundlePrice: selling };
+                              if (
+                                !buyingFollowsShare(
+                                  p.buyingPrice,
+                                  p.bundlePrice,
+                                  buyingSharePct,
+                                )
+                              ) {
+                                return next;
+                              }
+                              return syncCostsFromBuyingPrice(
+                                buyingPriceFromSelling(selling, buyingSharePct),
+                                next,
+                              );
+                            });
+                          }}
                           required
                         />
                         <span className={styles.priceCur}>{currency}</span>
@@ -1494,16 +1652,24 @@ export function ProductCreateModal({
                           )}
                           placeholder="0"
                           value={m.parentDraft.buyingPrice}
-                          onChange={(e) =>
-                            m.setParentDraft((p) =>
-                              syncCostsFromBuyingPrice(e.target.value, p),
-                            )
-                          }
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            m.setParentDraft((p) => {
+                              if (raw.trim()) return syncCostsFromBuyingPrice(raw, p);
+                              return { ...p, buyingPrice: "", openingUnitCost: "" };
+                            });
+                          }}
                         />
                         <span className={styles.priceCur}>{currency}</span>
                       </div>
                     </div>
                   </div>
+                  <BuyingShareField
+                    value={buyingShareInput}
+                    caption={shareCaption}
+                    disabled={m.parentCreateBusy}
+                    onChange={changeBuyingShare}
+                  />
                   <p
                     className={styles.margin}
                     data-show={marginInfo ? "" : undefined}
@@ -1581,11 +1747,19 @@ export function ProductCreateModal({
                   </div>
                 </>
               ) : (
+                <>
+                <BuyingShareField
+                  value={buyingShareInput}
+                  caption={shareCaption}
+                  disabled={m.parentCreateBusy}
+                  onChange={changeBuyingShare}
+                />
                 <CreateGroupOptionsPad
                   rows={groupOptions}
                   onChange={setGroupOptions}
                   currency={currency}
                   familyName={familyName}
+                  buyingSharePct={buyingSharePct}
                   disabled={m.parentCreateBusy}
                   onScanBarcode={setOptionScanKey}
                   renderRowHint={(row, ctx) => (
@@ -1605,6 +1779,7 @@ export function ProductCreateModal({
                     />
                   )}
                 />
+                </>
               )}
 
               <button
@@ -1962,19 +2137,26 @@ export function ProductCreateModal({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 flex-col gap-2.5 border-t border-[var(--op-rule)] bg-[var(--op-surface)] px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:pb-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={keepOpen}
-              aria-label="Keep adding after save"
-              disabled={isGroup || m.parentCreateBusy}
-              onClick={() => setKeepOpen((v) => !v)}
-              className={cn(styles.keep, "self-start sm:self-auto")}
-            >
-              <span className={styles.keepDot} aria-hidden />
-              Keep adding
-            </button>
+          <DialogFooter className={cn(styles.dock, "shrink-0 flex-col gap-2.5 border-t border-[color-mix(in_srgb,#121A16_10%,transparent)] bg-[#F4F1EA] px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:pb-3")}>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={keepOpen}
+                aria-label="Keep adding after save"
+                disabled={isGroup || m.parentCreateBusy}
+                onClick={() => setKeepOpen((v) => !v)}
+                className={cn(styles.keep, "self-start sm:self-auto")}
+              >
+                <span className={styles.keepDot} aria-hidden />
+                Keep adding
+              </button>
+              {runCount > 0 ? (
+                <span className={styles.runQuiet} aria-live="polite">
+                  {runCount} added
+                </span>
+              ) : null}
+            </div>
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Button
                 type="button"

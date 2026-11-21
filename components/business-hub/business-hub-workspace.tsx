@@ -1778,7 +1778,7 @@ export function BusinessHubWorkspace() {
 
           <div
             className={cn(
-              "xl:grid xl:items-start xl:gap-3",
+              "xl:grid xl:items-start xl:gap-2",
               showCleanRail &&
                 "xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]",
             )}
@@ -1851,7 +1851,7 @@ export function BusinessHubWorkspace() {
               ) : null}
 
               {shopNotReady ? null : (
-                <div className="flex flex-col gap-2.5 sm:gap-3">
+                <div className="flex flex-col gap-2">
                   {/* The money board: revenue headline + shape, how it arrived,
                       the supporting numbers, then the profit actions. */}
                   {salesEmpty ? null : (
@@ -1994,7 +1994,7 @@ export function BusinessHubWorkspace() {
                       reads the same tape in the lane rail beside this column. */}
                   {showTillStage && !galleryOpen ? (
                     <ChromeSlot slot={["phone", "tablet"]}>
-                      <section className="space-y-3 xl:hidden">
+                      <section className="space-y-1.5 xl:hidden">
                         <HubSectionLabel
                           title="Floor tape"
                           meta={
@@ -2018,7 +2018,7 @@ export function BusinessHubWorkspace() {
 
                   {/* 6 — Stock: the checks, then what is actually moving */}
                   {stockItems.length > 0 || showMovers ? (
-                    <section className="space-y-3">
+                    <section className="space-y-1.5">
                       <HubSectionLabel
                         title="Stock"
                         meta={
@@ -2052,7 +2052,7 @@ export function BusinessHubWorkspace() {
                     >
                       <div
                         className={cn(
-                          "flex items-center justify-between gap-3 border-b px-3.5 py-2.5",
+                          "flex items-center justify-between gap-3 border-b px-3 py-2",
                           HUB_BORDER,
                         )}
                       >
@@ -2060,7 +2060,7 @@ export function BusinessHubWorkspace() {
                         <ReportDeliveryManager />
                       </div>
                       <div className={cn("divide-y bg-white", HUB_DIVIDE)}>
-                        <div className="flex items-center gap-3 px-3.5 py-3">
+                        <div className="flex items-center gap-2.5 px-3 py-2">
                           <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
                           <div className="min-w-0 flex-1">
                             <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
@@ -2081,7 +2081,7 @@ export function BusinessHubWorkspace() {
                             />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 px-3.5 py-3">
+                        <div className="flex items-center gap-2.5 px-3 py-2">
                           <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
                           <div className="min-w-0 flex-1">
                             <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
@@ -2098,7 +2098,7 @@ export function BusinessHubWorkspace() {
                             />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 px-3.5 py-3">
+                        <div className="flex items-center gap-2.5 px-3 py-2">
                           <span className="size-1.5 shrink-0 rounded-full bg-[var(--hub-accent,#1D4B3B)]" />
                           <div className="min-w-0 flex-1">
                             <div className="text-[13px] font-semibold text-[var(--order-ink,#15231f)]">
@@ -2130,11 +2130,11 @@ export function BusinessHubWorkspace() {
             </div>
 
             {showCleanRail ? (
-              <aside className="flex flex-col gap-3">
+              <aside className="flex flex-col gap-2">
                 {/* Desk-only rail content — the phone column already shows its
                     own quick actions and floor tape, so keep these unmounted. */}
                 <ChromeSlot slot="desktop">
-                  <div className="hidden xl:flex xl:flex-col xl:gap-3">
+                  <div className="hidden xl:flex xl:flex-col xl:gap-2">
                     {showTillStage
                       ? tickLanes.map((lane, index) => (
                           <RecentTicksRail
@@ -2160,7 +2160,7 @@ export function BusinessHubWorkspace() {
                     panel on phones, individual rail cards at xl, where the
                     wrappers fall away with `display: contents`. */}
                 {showSetupPanel ? (
-                  <section className="space-y-3 xl:contents">
+                  <section className="space-y-1.5 xl:contents">
                     <HubSectionLabel
                       title="Shop setup"
                       meta="Payments · float · tills"
@@ -2168,7 +2168,7 @@ export function BusinessHubWorkspace() {
                     />
                     <div
                       className={cn(
-                        "flex flex-col gap-px overflow-hidden rounded-2xl border",
+                        "flex flex-col gap-px overflow-hidden rounded-[2px] border",
                         "border-[color-mix(in_srgb,var(--order-ink,#15231f)_7%,transparent)]",
                         "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)]",
                         "shadow-[0_1px_2px_rgba(16,24,40,0.05)]",

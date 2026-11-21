@@ -61,6 +61,7 @@ import { describeTillSend } from "@/lib/till-remote-print";
 import { displaySupplierName } from "@/lib/supplier-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn, formatMoney } from "@/lib/utils";
+import { supplyPackSnapshotLabel } from "@/lib/supply-pack-math";
 import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { orderNameTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
@@ -1615,6 +1616,7 @@ export function OrderReceivePanel({
                     Boolean(savingLines[line.id]) || deletingLineId === line.id;
                   const lineSaved = Boolean(savedLineIds[line.id]);
                   const canDelete = toNum(line.qtyReceived) === 0;
+                  const packLabel = supplyPackSnapshotLabel(line);
                   return (
                     <li
                       key={line.id}
@@ -1671,6 +1673,11 @@ export function OrderReceivePanel({
                           {lineOption ? (
                             <p className="line-clamp-1 break-words text-[11px] font-semibold leading-snug text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
                               {lineOption}
+                            </p>
+                          ) : null}
+                          {packLabel ? (
+                            <p className="mt-0.5 text-[11px] font-medium leading-snug text-[var(--pos-primary,#0f766e)] lg:text-[10px]">
+                              {packLabel}
                             </p>
                           ) : null}
                           <p className="mt-0.5 text-[13px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] lg:text-[10px]">

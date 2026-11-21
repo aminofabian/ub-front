@@ -31,6 +31,7 @@ import {
   fetchFloor,
   fetchMenu,
   fetchOpenOrder,
+  fetchOrderActivity,
   fetchServers,
   markOrderServed,
   mergeOrder,
@@ -46,13 +47,14 @@ import {
   type MenuRecord,
   type OpenOrderRecord,
   type OrderBillRecord,
+  type OrderActivityRecord,
   type OrderCardRecord,
   type OrderLineRecord,
   type RestaurantTableRecord,
 } from "@/lib/restaurant-api";
 import { equalShares, groupsFor, round2, splitRemainder, tileState } from "@/lib/restaurant-cart";
 import { fetchGuestStays, type GuestStay } from "@/lib/rooms-api";
-import { buildBillEscPos, printOnThisDevice } from "@/lib/restaurant-print";
+import { buildBillEscPos, localPrinter, printOnThisDevice, printSaleReceiptOnThisDevice } from "@/lib/restaurant-print";
 import { cleanMoneyText, parseMoney } from "@/lib/service-cart";
 import { useRestaurantLive } from "@/lib/use-restaurant-live";
 import { cn } from "@/lib/utils";
@@ -546,6 +548,7 @@ export function OrderSheet({
             usesSeats={usesSeats}
             seats={seats}
             hasUnsent={unsent.length > 0}
+            shopName={business?.name ?? null}
             onAct={act}
             onPay={setPaying}
             onSettleAll={() => setSettlingAll(true)}
@@ -559,7 +562,7 @@ export function OrderSheet({
             "content-start",
             // On a wide screen the running order follows you down a long menu, so the total and the
             // send action stay in reach without scrolling back up.
-            "lg:sticky lg:top-2 lg:max-h-[calc(100dvh-1rem)] lg:overflow-y-auto",
+            "lg:sticky lg:top-2 lg:max-h-[calc(100vh-1rem)] lg:overflow-y-auto",
           )}
           aria-label="On this order"
         >
@@ -703,6 +706,8 @@ export function OrderSheet({
         </section>
       </div>
 
+      <OrderHistory orderId={order.id} />
+
       {choosing && menu ? (
         <ModifierSheet
           item={choosing}
@@ -751,7 +756,7 @@ export function OrderSheet({
       ) : null}
       {joining ? (
         <Dialog open onOpenChange={(o) => (o ? undefined : setJoining(null))}>
-          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-sm">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Join with another order</DialogTitle>
               <DialogDescription>
@@ -870,9 +875,84 @@ export function OrderSheet({
   );
 }
 
+const ACTIVITY_WORDS: Record<string, string> = {
+  ORDER_LINE_CANCELLED: "Dish cancelled",
+  ORDER_MOVED: "Moved",
+  ORDER_MERGED: "Joined",
+  ORDER_CANCELLED: "Order cancelled",
+  ORDER_SERVED_BY_CHANGED: "Waiter",
+  BILL_COMP: "On the house",
+  BILL_UNPAID: "Left unpaid",
+};
+
+function activityWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-KE", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi",
+  });
+}
+
+/**
+ * What has happened to this order, as a manager reads it back. Loaded when opened so a normal
+ * service does not fetch it on every poll; the detail is written by the server with each action.
+ */
+function OrderHistory({ orderId }: { orderId: string }) {
+  const [rows, setRows] = useState<OrderActivityRecord[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setFailed(false);
+    try {
+      setRows(await fetchOrderActivity(orderId));
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <details
+      className={cn(DASHBOARD_SECTION_SURFACE, "mt-2")}
+      onToggle={(e) => {
+        if (e.currentTarget.open && rows == null && !loading) void load();
+      }}
+    >
+      <summary className="cursor-pointer text-sm font-semibold">What happened to this order</summary>
+      {loading ? <p className={cn("mt-2", dashboardHintClass())}>Loading…</p> : null}
+      {failed ? <p className="mt-2 text-sm text-red-700">The history could not be loaded.</p> : null}
+      {rows != null && rows.length === 0 ? (
+        <p className={cn("mt-2", dashboardHintClass())}>
+          Nothing has been cancelled, moved, comped or handed to another waiter on this order.
+        </p>
+      ) : null}
+      {rows != null && rows.length > 0 ? (
+        <ul className="mt-2 divide-y text-sm">
+          {rows.map((row) => (
+            <li key={row.id} className="flex flex-wrap items-baseline gap-x-2 py-1.5">
+              <span className="font-mono text-xs tabular-nums text-[var(--op-muted,#556159)]">
+                {activityWhen(row.at)}
+              </span>
+              <span className="font-semibold">{ACTIVITY_WORDS[row.action] ?? row.action}</span>
+              {row.detail ? <span className="min-w-0 flex-1">{row.detail}</span> : null}
+              {row.userName ? <span className={dashboardHintClass()}>{row.userName}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </details>
+  );
+}
+
 /** A delivery order: where it is going, what the delivery costs, who is taking it and whether it has left. */
-function DeliveryPanel({
-  order,
+function DeliveryPanel({  order,
   canChange,
   busy,
   onAct,
@@ -958,6 +1038,7 @@ function BillsSection({
   usesSeats,
   seats,
   hasUnsent,
+  shopName,
   onAct,
   onPay,
   onSettleAll,
@@ -969,6 +1050,8 @@ function BillsSection({
   usesSeats: boolean;
   seats: number;
   hasUnsent: boolean;
+  /** The shop's own name, printed at the top of a bill. */
+  shopName: string | null;
   onAct: (run: () => Promise<OpenOrderRecord>, fallback: string) => Promise<boolean>;
   onPay: (bill: OrderBillRecord) => void;
   onSettleAll: () => void;
@@ -1003,9 +1086,20 @@ function BillsSection({
   async function printBill(bill: OrderBillRecord) {
     setPrintProblem(null);
     try {
-      await printOnThisDevice(buildBillEscPos(order, bill, null));
+      await printOnThisDevice(buildBillEscPos(order, bill, shopName));
     } catch (e) {
       setPrintProblem(e instanceof Error && e.message ? e.message : "The bill did not print.");
+    }
+  }
+
+  /** The customer's receipt for a bill already paid: the same bytes the fiscal receipt is made of. */
+  async function printReceipt(bill: OrderBillRecord) {
+    if (!bill.saleId) return;
+    setPrintProblem(null);
+    try {
+      await printSaleReceiptOnThisDevice(bill.saleId);
+    } catch (e) {
+      setPrintProblem(e instanceof Error && e.message ? e.message : "The receipt did not print.");
     }
   }
 
@@ -1078,6 +1172,12 @@ function BillsSection({
                       </Button>
                     </>
                   ) : null}
+                </div>
+              ) : bill.status === "PAID" && bill.saleId ? (
+                <div className="mt-1">
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => void printReceipt(bill)}>
+                    Print receipt
+                  </Button>
                 </div>
               ) : null}
             </li>
@@ -1161,7 +1261,7 @@ function SplitDialog({
 
   return (
     <Dialog open onOpenChange={(o) => (o ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Split by items</DialogTitle>
           <DialogDescription>Choose what one person is paying for. Make another bill for the rest.</DialogDescription>
@@ -1321,14 +1421,20 @@ function PayDialog({
   async function submit(payments: { method: "cash" | "mpesa_manual"; amount: number; reference?: string }[]) {
     setBusy(true);
     try {
-      onPaid(
-        await payBill(order.id, bill.id, {
-          payments,
-          ...(tip > 0 ? { tip } : {}),
-          ...(!split && method === "cash" && received != null && received >= toPay ? { cashReceived: received } : {}),
-          clientSoldAt: new Date().toISOString(),
-        }),
-      );
+      const updated = await payBill(order.id, bill.id, {
+        payments,
+        ...(tip > 0 ? { tip } : {}),
+        ...(!split && method === "cash" && received != null && received >= toPay ? { cashReceived: received } : {}),
+        clientSoldAt: new Date().toISOString(),
+      });
+      // The guest's receipt, on this device's printer if it has one. The bills section keeps a
+      // "Print receipt" button on the paid bill, so a printer that was off is recoverable.
+      const paid = updated.bills.find((b) => b.id === bill.id);
+      const cash = !split && method === "cash" && received != null && received >= toPay ? received : null;
+      if (paid?.saleId && localPrinter()) {
+        void printSaleReceiptOnThisDevice(paid.saleId, cash).catch(() => undefined);
+      }
+      onPaid(updated);
     } catch (e) {
       setError(message(e, "The payment was not recorded. Try again."));
       // A price that moved changes the bill itself; show the new figure before trying again.
@@ -1344,7 +1450,7 @@ function PayDialog({
 
   return (
     <Dialog open onOpenChange={(o) => (o || phoneAsked ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             Bill {bill.billNo} · {kes(bill.toPay)}
@@ -1602,7 +1708,7 @@ function SettleAllDialog({
 
   return (
     <Dialog open onOpenChange={(o) => (o || busy ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Settle the table · {kes(total)}</DialogTitle>
           <DialogDescription>

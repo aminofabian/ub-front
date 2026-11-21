@@ -3,35 +3,36 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  BedDouble,
   Building2,
-  ClipboardList,
   CalendarDays,
+  ChefHat,
+  ClipboardList,
   Clock,
   CreditCard,
   LayoutDashboard,
+  LayoutGrid,
   LifeBuoy,
   Lock,
   MapPin,
   Package,
   PackageCheck,
+  Pill,
   Receipt,
   ScanLine,
+  Scissors,
   Settings2,
   ShoppingBag,
   ShoppingCart,
   SlidersHorizontal,
   Sparkles,
-  Pill,
+  Stethoscope,
   Store,
   Tags,
-  Scissors,
-  UtensilsCrossed,
-  BedDouble,
-  LayoutGrid,
-  ChefHat,
   Truck,
-  Users,
   UserRound,
+  Users,
+  UtensilsCrossed,
   Wallet,
   Warehouse,
   type LucideIcon,
@@ -107,6 +108,7 @@ import {
   isFoodLedBusiness,
   isFoodOnlyBusiness,
   isLodgingBusiness,
+  isClinicBusiness,
   isPharmacyBusiness,
   isServiceBusiness,
   isTableServiceBusiness,
@@ -163,6 +165,9 @@ const LODGING_LEAD_SECTIONS: readonly string[] = ["front-desk"];
 const FOOD_AND_LODGING_LEAD_SECTIONS: readonly string[] = ["restaurant", "front-desk"];
 /** A chemist's daily work is the pharmacy section; it follows Business in the rail. */
 const PHARMACY_LEAD_SECTIONS: readonly string[] = ["pharmacy"];
+/** A clinic's daily work is the Today list; a chemist that is also a clinic leads with both. */
+const CLINIC_LEAD_SECTIONS: readonly string[] = ["clinic"];
+const CLINIC_AND_PHARMACY_LEAD_SECTIONS: readonly string[] = ["clinic", "pharmacy"];
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -536,6 +541,22 @@ const NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
+    id: "clinic",
+    title: "Clinic",
+    shortLabel: "Clinic",
+    blurb: "Today's visits, bookings and the clinic's services",
+    icon: Stethoscope,
+    entryHref: APP_ROUTES.clinic,
+    // One page with ?tab= sections, like Pharmacy. See isNavItemVisible and itemIsActive.
+    items: [
+      { href: APP_ROUTES.clinic, label: "Today" },
+      { href: `${APP_ROUTES.clinic}?tab=appointments`, label: "Appointments" },
+      { href: `${APP_ROUTES.clinic}?tab=services`, label: "Services" },
+      { href: `${APP_ROUTES.clinic}?tab=takings`, label: "Takings" },
+      { href: `${APP_ROUTES.clinic}?tab=settings`, label: "Settings" },
+    ],
+  },
+  {
     id: "ops",
     title: "Shifts",
     shortLabel: "Shifts",
@@ -684,6 +705,8 @@ type NavGate = {
   isPharmacyBusiness: boolean;
   /** Which Pharmacy sections this person can open; mirrors the checks in PharmacyWorkspace. */
   pharmacyNav: { stock: boolean; recall: boolean; records: boolean; compliance: boolean };
+  /** One of the business's formats is a clinic, and this person holds a clinic hat. */
+  clinicNav: { enter: boolean; manage: boolean };
   /** The business sells physical goods off a shelf — a retail shop, or one that opted into a product line. */
   sellsGoods: boolean;
   canManageMenu: boolean;
@@ -955,6 +978,12 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
   if (item.href === APP_ROUTES.store) return gate.canViewStoreRoom;
+  if (item.href.split("?")[0] === APP_ROUTES.clinic) {
+    if (!gate.clinicNav.enter) return false;
+    const section = new URLSearchParams(item.href.split("?")[1] ?? "").get("tab");
+    if (section === "settings" || section === "takings") return gate.clinicNav.manage;
+    return true;
+  }
   if (item.href.split("?")[0] === APP_ROUTES.pharmacy) {
     // Same permission as the store room: the pharmacy pages read with catalog.items.read.
     if (!gate.isPharmacyBusiness || !gate.canViewStoreRoom) return false;
@@ -1114,6 +1143,12 @@ function itemIsActive(
   // Product pages live under /products/p/. Price tags and the catalog must not light up "Add products".
   if (hrefPath === APP_ROUTES.products) {
     return path === hrefPath || path.startsWith(`${APP_ROUTES.products}/p/`);
+  }
+
+  // Clinic is one page with ?tab= sections; an open visit (?visit=) belongs to Today.
+  if (hrefPath === APP_ROUTES.clinic && !hrefQuery) {
+    const tab = live.get("tab");
+    return path === hrefPath && (!tab || tab === "today");
   }
 
   // Pharmacy is one page with ?tab= sections. The bare path is its front page only.
@@ -1461,6 +1496,19 @@ export function AppShell({ children }: AppShellProps) {
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
       // The desktop till does not carry batch or dispensing data to the cloud yet.
       isPharmacyBusiness: isPharmacyBusiness(business) && !IS_DESKTOP,
+      // Visits are held tickets with a patient; the desktop till carries neither.
+      clinicNav: {
+        enter:
+          isClinicBusiness(business) &&
+          !IS_DESKTOP &&
+          (hasPermission(me?.permissions, Permission.ClinicReception) ||
+            hasPermission(me?.permissions, Permission.ClinicConsult) ||
+            hasPermission(me?.permissions, Permission.ClinicPrescribe) ||
+            hasPermission(me?.permissions, Permission.ClinicPerform) ||
+            hasPermission(me?.permissions, Permission.ClinicManage) ||
+            hasPermission(me?.permissions, Permission.PharmacyDispense)),
+        manage: hasPermission(me?.permissions, Permission.ClinicManage),
+      },
       pharmacyNav: {
         stock: hasPermission(me?.permissions, Permission.InventoryRead),
         recall: hasPermission(me?.permissions, Permission.InventoryWrite),
@@ -1945,7 +1993,23 @@ export function AppShell({ children }: AppShellProps) {
                   ? { id: "kitchen", label: "Kitchen", icon: ChefHat, href: APP_ROUTES.restaurantKitchen, matchSectionIds: ["restaurant"] }
                   : tab,
             )
-          : BOTTOM_TABS;
+          : !IS_DESKTOP && (isClinicBusiness(business) || isPharmacyBusiness(business))
+            ? // A chemist's daily work is Pharmacy, a clinic's is Today: each takes the place of a
+              // tab that is one tap away inside it (stock safety covers Stock; Products stays in More).
+              BOTTOM_TABS.map((tab) =>
+                tab.id === "inventory" && isPharmacyBusiness(business) && hasPermission(me?.permissions, Permission.CatalogItemsRead)
+                  ? { id: "pharmacy", label: "Pharmacy", icon: Pill, href: APP_ROUTES.pharmacy, matchSectionIds: ["pharmacy"] }
+                  : tab.id === "catalog" &&
+                      isClinicBusiness(business) &&
+                      (hasPermission(me?.permissions, Permission.ClinicReception) ||
+                        hasPermission(me?.permissions, Permission.ClinicConsult) ||
+                        hasPermission(me?.permissions, Permission.ClinicPerform) ||
+                        hasPermission(me?.permissions, Permission.ClinicManage) ||
+                        hasPermission(me?.permissions, Permission.PharmacyDispense))
+                    ? { id: "clinic", label: "Clinic", icon: Stethoscope, href: APP_ROUTES.clinic, matchSectionIds: ["clinic"] }
+                    : tab,
+              )
+            : BOTTOM_TABS;
     return tabs.map((tab) => {
       if (tab.id !== "ops") return tab;
       if (canQuickSale && foodOnlyShop) {
@@ -2223,9 +2287,13 @@ export function AppShell({ children }: AppShellProps) {
                     ? FOOD_LEAD_SECTIONS
                     : lodgingShop
                       ? LODGING_LEAD_SECTIONS
-                      : isPharmacyBusiness(business) && !IS_DESKTOP
-                        ? PHARMACY_LEAD_SECTIONS
-                        : undefined
+                      : isClinicBusiness(business) && !IS_DESKTOP
+                        ? isPharmacyBusiness(business)
+                          ? CLINIC_AND_PHARMACY_LEAD_SECTIONS
+                          : CLINIC_LEAD_SECTIONS
+                        : isPharmacyBusiness(business) && !IS_DESKTOP
+                          ? PHARMACY_LEAD_SECTIONS
+                          : undefined
             }
             pathname={pathname}
             homeHref={homeHref}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useDashboard } from "@/components/dashboard-provider";
+import { isClinicBusiness } from "@/lib/business-store-type";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -55,6 +57,8 @@ export function ServiceFormDialog({
   onClose: () => void;
   onSaved: () => Promise<void> | void;
 }) {
+  // A clinic's services are consultations and tests; the examples say so (ADR 0034).
+  const clinic = isClinicBusiness(useDashboard().business);
   const [name, setName] = useState(service?.name ?? "");
   const [minutes, setMinutes] = useState(service ? String(service.durationMinutes) : "30");
   const [price, setPrice] = useState(service ? String(service.price) : "");
@@ -177,7 +181,7 @@ export function ServiceFormDialog({
               className={dashboardInputClass()}
               value={name}
               maxLength={191}
-              placeholder="Haircut"
+              placeholder={clinic ? "Consultation" : "Haircut"}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
@@ -221,7 +225,11 @@ export function ServiceFormDialog({
             change={picture}
             onChange={setPicture}
             disabled={saving}
-            hint="A photo of the finished work. Customers see it on your price list when they book."
+            hint={
+              clinic
+                ? "Optional. A picture for your price list."
+                : "A photo of the finished work. Customers see it on your price list when they book."
+            }
           />
 
           <label className="grid gap-1">
@@ -245,7 +253,7 @@ export function ServiceFormDialog({
               className={dashboardInputClass()}
               value={newCategory}
               maxLength={191}
-              placeholder="Haircuts"
+              placeholder={clinic ? "Tests" : "Haircuts"}
               aria-label="New category name"
               onChange={(e) => setNewCategory(e.target.value)}
             />

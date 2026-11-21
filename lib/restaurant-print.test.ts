@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { buildKitchenTicketEscPos, jobPrinterTarget } from "@/lib/restaurant-print";
+import { buildKitchenTicketEscPos, jobPrinterTarget, kitchenWhere } from "@/lib/restaurant-print";
 import type { KitchenPrintJobRecord, KitchenTicketRecord } from "@/lib/restaurant-api";
 
 const ticket: KitchenTicketRecord = {
@@ -52,6 +52,46 @@ describe("kitchen ticket ESC/POS", () => {
     expect(text(buildKitchenTicketEscPos(ticket, "Grill", true))).toContain("REPRINT");
     const voided = { ...ticket, ticketType: "VOID" as const };
     expect(text(buildKitchenTicketEscPos(voided, "Grill"))).toContain("CANCELLED");
+  });
+
+  it("says which table the plate goes to, and which seat it is for", () => {
+    const seated: KitchenTicketRecord = {
+      ...ticket,
+      orderChannel: "DINE_IN",
+      tableName: "Table 4",
+      lines: [{ ...ticket.lines[0]!, seatNo: 2 }],
+    };
+    const out = text(buildKitchenTicketEscPos(seated, "Grill"));
+    expect(out).toContain("DINE-IN - Table 4");
+    expect(out).toContain("S2 - 2 x Burger");
+  });
+
+  it("says a takeaway is a bag, not a plate", () => {
+    const takeaway: KitchenTicketRecord = { ...ticket, orderChannel: "TAKEAWAY", tableName: null };
+    const out = text(buildKitchenTicketEscPos(takeaway, "Grill"));
+    expect(out).toContain("TAKEAWAY");
+    expect(out).not.toContain("Table");
+  });
+
+  it("prints no place line on a ticket made before the columns existed", () => {
+    expect(kitchenWhere({})).toBe("");
+    expect(text(buildKitchenTicketEscPos(ticket, "Grill"))).not.toContain("DINE-IN");
+  });
+});
+
+describe("kitchenWhere", () => {
+  it("reads a dine-in ticket with its table", () => {
+    expect(kitchenWhere({ orderChannel: "DINE_IN", tableName: "Table 4" })).toBe("DINE-IN · Table 4");
+  });
+
+  it("keeps a table name even when the channel is missing", () => {
+    expect(kitchenWhere({ tableName: "Table 4" })).toBe("DINE-IN · Table 4");
+  });
+
+  it("calls a counter order by the guest's name", () => {
+    expect(kitchenWhere({ orderChannel: "COUNTER", customerName: "Kevin" })).toBe("COUNTER · Kevin");
+    const takeaway: KitchenTicketRecord = { ...ticket, orderChannel: "TAKEAWAY", customerName: "Kevin" };
+    expect(text(buildKitchenTicketEscPos(takeaway, "Grill"))).toContain("TAKEAWAY - Kevin");
   });
 });
 

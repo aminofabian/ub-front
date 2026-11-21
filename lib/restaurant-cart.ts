@@ -141,16 +141,40 @@ export function cartProblem(cart: readonly OrderCartLine[]): string | null {
   return null;
 }
 
+/** One tender of a counter sale: cash, or an M-Pesa payment with the customer's code. */
+export type CounterPayment = { method: "cash" | "mpesa_manual"; amount: number; reference?: string };
+
 export function buildOrderSalePayload(input: {
   branchId: string;
   cart: readonly OrderCartLine[];
   method: "cash" | "mpesa_manual";
   reference?: string;
+  /** The tenders when one sale is paid with more than one (some cash, the rest M-Pesa). */
+  payments?: readonly CounterPayment[];
+  /** The name the order is called by ("Kevin"). Never a phone number. */
+  customerName?: string;
   /** Cash the customer handed over, for change. Ignored unless it covers the total. */
   cashReceived?: number | null;
   soldAt: Date;
 }): PostSalePayload {
   const total = cartTotal(input.cart);
+  const given = (input.payments ?? []).filter((p) => p.amount > 0);
+  const payments =
+    given.length > 0
+      ? given.map((p) => ({
+          method: p.method,
+          amount: round2(p.amount),
+          ...(p.reference?.trim() ? { reference: p.reference.trim().toUpperCase() } : {}),
+        }))
+      : [
+          {
+            method: input.method,
+            amount: total,
+            ...(input.method === "mpesa_manual" && input.reference?.trim()
+              ? { reference: input.reference.trim().toUpperCase() }
+              : {}),
+          },
+        ];
   const payload: PostSalePayload = {
     branchId: input.branchId,
     lines: input.cart.map((l) =>
@@ -171,17 +195,11 @@ export function buildOrderSalePayload(input: {
             ...(l.note.trim() ? { note: l.note.trim() } : {}),
           },
     ),
-    payments: [
-      {
-        method: input.method,
-        amount: total,
-        ...(input.method === "mpesa_manual" && input.reference?.trim()
-          ? { reference: input.reference.trim().toUpperCase() }
-          : {}),
-      },
-    ],
+    payments,
     clientSoldAt: input.soldAt.toISOString(),
   };
+  const name = input.customerName?.trim();
+  if (name) payload.customerName = name.slice(0, 120);
   if (input.method === "cash" && input.cashReceived != null && input.cashReceived >= total) {
     payload.cashReceived = round2(input.cashReceived);
   }
@@ -229,6 +247,30 @@ export function cashSuggestions(total: number): number[] {
     if (next > total) out.add(next);
   }
   return [...out].sort((a, b) => a - b).slice(0, 4);
+}
+
+/** A ticket as the "all day" count needs it: what is on it and where each line stands. */
+export type AllDayLine = { name: string; quantity: number; stage: string };
+export type AllDayTicket = { ticketType: string; lines: AllDayLine[] };
+
+/**
+ * How many of each dish a station still has to make across every open ticket: the pass's "all day"
+ * totals. Lines already ready, served or cancelled are not counted, and a cancelled ticket's lines
+ * are left out entirely. Ties read alphabetically so the strip does not jump about between polls.
+ */
+export function allDayCounts(tickets: readonly AllDayTicket[]): [string, number][] {
+  const counts = new Map<string, number>();
+  for (const ticket of tickets) {
+    if (ticket.ticketType === "VOID") continue;
+    for (const line of ticket.lines) {
+      if (line.stage === "NEW" || line.stage === "PREPARING") {
+        counts.set(line.name, (counts.get(line.name) ?? 0) + line.quantity);
+      }
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 14);
 }
 
 /**

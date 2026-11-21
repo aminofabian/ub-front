@@ -104,7 +104,7 @@ export function ManageTillsHubCard({
         aria-label="Trusted tills"
         className={cn(
           HUB_SURFACE,
-          "text-left",
+          "rounded-[2px] text-left",
           rail && "border-0 shadow-none",
           waiting &&
             !rail &&

@@ -173,6 +173,8 @@ type SupplyQtyCellProps = CompactProps & {
   onPackOptionIdChange?: (packOptionId: string | null) => void;
   /** Notify parent when pack size editor is open so nested drawers don't dismiss. */
   onPackModalOpenChange?: (open: boolean) => void;
+  /** Catalog write permission: allows saving a custom pack shape to the product. */
+  canSavePackOption?: boolean;
   /** Hide under-cell hints for a denser receiving grid. */
   quiet?: boolean;
 };
@@ -195,6 +197,7 @@ export function SupplyQtyCell({
   savedOptions = null,
   onPackOptionIdChange,
   onPackModalOpenChange,
+  canSavePackOption = false,
   quiet = false,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
@@ -315,7 +318,7 @@ export function SupplyQtyCell({
           <Package className={touch ? "size-3.5" : "size-3"} aria-hidden />
         </button>
       </div>
-      {!quiet && !touch && !packed ? (
+      {!quiet && !touch ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
@@ -332,14 +335,27 @@ export function SupplyQtyCell({
       <SupplyPackQtyModal
         open={packSheetOpen}
         onOpenChange={setPackSheet}
-        defaults={packDefaults}
+        defaults={
+          packMode
+            ? {
+                ...(packDefaults ?? {}),
+                packUnit: packMode.packUnit,
+                packSize: packMode.unitsPerPack,
+              }
+            : packDefaults
+        }
         initialUnitsPerPack={packed ? packSize : null}
         savedOptions={savedOptions}
+        canSavePackOption={canSavePackOption}
         onApply={(result) => {
           onPackOptionIdChange?.(result.packOptionId ?? null);
           onPackModeChange?.({
             unitsPerPack: result.unitsPerPack,
             packUnit: result.packUnit || "pack",
+            remember: result.saveAsPackOption === true,
+            innerPackUnit: result.innerPackUnit ?? null,
+            innerPackCount: result.innerPackCount ?? null,
+            baseUnitsPerInner: result.baseUnitsPerInner ?? null,
           });
           if (!value.trim()) {
             onChange?.("1");

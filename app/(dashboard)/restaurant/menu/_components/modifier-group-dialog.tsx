@@ -82,7 +82,7 @@ export function ModifierGroupDialog({
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{group ? `Change ${group.name}` : "Add choices"}</DialogTitle>
           <DialogDescription>

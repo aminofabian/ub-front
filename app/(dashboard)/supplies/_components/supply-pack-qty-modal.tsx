@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Package } from "lucide-react";
+import { Package, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import type { ItemLinkPackOfferRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+import { COMMON_PURCHASE_UNITS } from "@/lib/purchase-unit-conversion";
 
 import { nsdInput } from "./new-supply-drawer-ui";
 
@@ -33,6 +36,12 @@ export type SupplyPackQtyApply = {
   unitCost: number | null;
   /** Saved item pack option id when a saved pack shape was picked; null for custom. */
   packOptionId?: string | null;
+  /** Optional second packaging level, persisted with a remembered custom pack. */
+  innerPackUnit?: string | null;
+  innerPackCount?: number | null;
+  baseUnitsPerInner?: number | null;
+  /** Save this custom shape as a reusable pack option for the product. */
+  saveAsPackOption?: boolean;
 };
 
 type SupplyPackQtyModalProps = {
@@ -43,6 +52,8 @@ type SupplyPackQtyModalProps = {
   initialUnitsPerPack?: number | null;
   /** Saved pack shapes offered by the supplier link — rendered as quick picks. */
   savedOptions?: ItemLinkPackOfferRecord[] | null;
+  /** Catalog write permission: gates saving a custom shape to the product. */
+  canSavePackOption?: boolean;
   onApply: (result: SupplyPackQtyApply) => void;
 };
 
@@ -79,12 +90,18 @@ function roundMoney2(n: number): number {
 export function formatPackQtyHint(result: SupplyPackQtyApply): string {
   const packPart =
     result.packCount === 1
-      ? `Pack of ${formatQty(result.unitsPerPack)}`
-      : `${formatQty(result.packCount)} packs × ${formatQty(result.unitsPerPack)}`;
+      ? `${capitalize(result.packUnit)} of ${formatQty(result.unitsPerPack)}`
+      : `${formatQty(result.packCount)} ${result.packUnit}s × ${formatQty(result.unitsPerPack)}`;
   if (result.unitCost != null) {
     return `${packPart} · unit ${formatMoney(result.unitCost)}`;
   }
   return packPart;
+}
+
+function capitalize(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "Pack";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 /** Prefill pack calculator from supplier link and/or catalog packaging. */
@@ -107,11 +124,12 @@ export function resolveSupplyPackDefaults(args: {
   };
 }
 
-const QUICK_SIZES = [6, 12, 24, 30, 40] as const;
+const QUICK_SIZES = [6, 12, 24, 30, 48] as const;
 
 /**
- * Two-beat pack setup: pieces in the carton + what the carton cost.
- * Pack count stays on the line (type 1 for one pack).
+ * Purchase packaging for one receipt line: the unit bought (carton, bale, sack…)
+ * and how many base items one unit holds. Optional second level (outer → inner → item)
+ * is persisted with the custom shape so the next purchase is one tap.
  */
 export function SupplyPackQtyModal({
   open,
@@ -119,6 +137,7 @@ export function SupplyPackQtyModal({
   defaults = null,
   initialUnitsPerPack = null,
   savedOptions = null,
+  canSavePackOption = false,
   onApply,
 }: SupplyPackQtyModalProps) {
   const dismissGuardRef = useRef(false);
@@ -131,9 +150,23 @@ export function SupplyPackQtyModal({
     return fromDefaults != null ? formatQty(fromDefaults) : "12";
   }, [initialUnitsPerPack, defaults?.packSize]);
 
+  const seedUnit = useMemo(
+    () => defaults?.packUnit?.trim() || "pack",
+    [defaults?.packUnit],
+  );
+
+  const [packUnit, setPackUnit] = useState(seedUnit);
   const [unitsPerPackStr, setUnitsPerPackStr] = useState(seedSize);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const [innerUnitStr, setInnerUnitStr] = useState("packet");
+  const [innerCountStr, setInnerCountStr] = useState("");
+  const [innerBaseStr, setInnerBaseStr] = useState("");
   const [packPriceStr, setPackPriceStr] = useState("");
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const savedPacks =
+    savedOptions && savedOptions.length > 0 ? savedOptions : null;
 
   useEffect(() => {
     if (!open) return;
@@ -141,11 +174,19 @@ export function SupplyPackQtyModal({
     const timer = window.setTimeout(() => {
       dismissGuardRef.current = false;
     }, 200);
+    setPackUnit(seedUnit);
     setUnitsPerPackStr(seedSize);
+    setInnerOpen(false);
+    setInnerUnitStr("packet");
+    setInnerCountStr("");
+    setInnerBaseStr("");
     setPackPriceStr("");
+    setRemember(!savedPacks && canSavePackOption);
     setError(null);
     return () => window.clearTimeout(timer);
-  }, [open, seedSize]);
+    // savedPacks intentionally read at open time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, seedSize, seedUnit, canSavePackOption]);
 
   useEffect(() => {
     if (!open) return;
@@ -156,7 +197,15 @@ export function SupplyPackQtyModal({
     return () => window.clearTimeout(timer);
   }, [open]);
 
-  const unitsPerPack = toPositiveNumber(unitsPerPackStr);
+  const innerCount = toPositiveNumber(innerCountStr);
+  const innerBase = toPositiveNumber(innerBaseStr);
+  const innerTotal =
+    innerCount != null && innerBase != null
+      ? Math.round(innerCount * innerBase * 10000) / 10000
+      : null;
+  const typedUnits = toPositiveNumber(unitsPerPackStr);
+  const unitsPerPack = innerOpen ? innerTotal : typedUnits;
+
   const packPriceRaw = packPriceStr.trim();
   const packPriceParsed =
     packPriceRaw === "" ? null : toNonNegNumber(packPriceStr);
@@ -167,12 +216,40 @@ export function SupplyPackQtyModal({
       ? roundMoney2(packPriceParsed / unitsPerPack)
       : null;
 
-  const canApply = unitsPerPack != null && !packPriceInvalid;
+  const unitLabel = packUnit.trim() || "pack";
+
+  const canApply =
+    unitsPerPack != null && unitsPerPack > 1 && !packPriceInvalid;
 
   const handleApply = () => {
-    if (unitsPerPack == null) {
-      setError("How many pieces are in one pack?");
+    if (!packUnit.trim()) {
+      setError("Which unit do you buy this in?");
       return;
+    }
+    if (unitsPerPack == null || unitsPerPack <= 1) {
+      setError(`How many items are in one ${unitLabel}?`);
+      return;
+    }
+    if (innerOpen) {
+      if (!innerUnitStr.trim()) {
+        setError("Name the inner package (packet, sachet…).");
+        return;
+      }
+      if (innerCount == null || innerCount <= 1) {
+        setError(`How many ${innerUnitStr.trim()}s are in one ${unitLabel}?`);
+        return;
+      }
+      if (innerBase == null) {
+        setError(`How many items are in one ${innerUnitStr.trim()}?`);
+        return;
+      }
+      if (
+        innerTotal == null ||
+        Math.abs(innerTotal - innerCount * innerBase) > 0.0001
+      ) {
+        setError("Inner packaging does not add up — check the numbers.");
+        return;
+      }
     }
     if (packPriceInvalid) {
       setError("Pack price must be 0 or more.");
@@ -187,17 +264,18 @@ export function SupplyPackQtyModal({
       totalQty: unitsPerPack,
       packCount: 1,
       unitsPerPack,
-      packUnit: defaults?.packUnit?.trim() || "pack",
+      packUnit: unitLabel,
       amountSpent: packPrice,
       packPrice,
       unitCost: unit,
       packOptionId: null,
+      innerPackUnit: innerOpen ? innerUnitStr.trim() : null,
+      innerPackCount: innerOpen ? innerCount : null,
+      baseUnitsPerInner: innerOpen ? innerBase : null,
+      saveAsPackOption: remember,
     });
     window.setTimeout(() => onOpenChange(false), 0);
   };
-
-  const savedPacks =
-    savedOptions && savedOptions.length > 0 ? savedOptions : null;
 
   const applySavedOption = (option: ItemLinkPackOfferRecord) => {
     const units = Number(option.unitsPerPack);
@@ -214,16 +292,21 @@ export function SupplyPackQtyModal({
       packPrice: price,
       unitCost: price != null ? roundMoney2(price / units) : null,
       packOptionId: option.id,
+      saveAsPackOption: false,
     });
     window.setTimeout(() => onOpenChange(false), 0);
   };
 
   const product = defaults?.productLabel?.trim() || null;
+  const breakdown =
+    innerOpen && innerTotal != null && innerCount != null && innerBase != null
+      ? `${formatQty(innerCount)} ${innerUnitStr.trim() || "inner"}s × ${formatQty(innerBase)} = ${formatQty(innerTotal)}`
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-[300] flex w-[calc(100vw-1.5rem)] max-w-[22rem] flex-col gap-0 overflow-hidden p-0 sm:w-full"
+        className="z-[300] flex w-[calc(100vw-1.5rem)] max-w-[24rem] flex-col gap-0 overflow-hidden p-0 sm:w-full"
         overlayClassName="z-[295]"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => {
@@ -246,7 +329,7 @@ export function SupplyPackQtyModal({
               <span className="grid size-8 place-items-center border border-amber-900/35 bg-amber-100 text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/60 dark:text-amber-100">
                 <Package className="size-4" aria-hidden />
               </span>
-              Sold as a pack
+              Bought as a package
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {product ? (
@@ -255,7 +338,8 @@ export function SupplyPackQtyModal({
                   {" — "}
                 </>
               ) : null}
-              Set the carton size. Then type packs and pack price on the line.
+              One {unitLabel} holds how many? Type the price for one {unitLabel}{" "}
+              and we work out the cost per item.
             </DialogDescription>
           </DialogHeader>
 
@@ -282,7 +366,7 @@ export function SupplyPackQtyModal({
                         title={
                           option.unitPrice != null
                             ? `${formatMoney(Number(option.unitPrice))} per ${option.packUnit || "pack"}`
-                            : `Pack of ${formatQty(units)}`
+                            : `${capitalize(option.packUnit || "pack")} of ${formatQty(units)}`
                         }
                         onClick={() => applySavedOption(option)}
                       >
@@ -299,9 +383,33 @@ export function SupplyPackQtyModal({
               </div>
             ) : null}
 
-            <div className="flex flex-col items-center gap-2 border border-amber-900/25 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_72%,var(--card))] px-4 py-5 dark:border-amber-200/20 dark:bg-amber-950/40">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
+                Purchase unit
+              </span>
+              <input
+                className={cn(nsdInput, "h-10 text-sm font-medium")}
+                value={packUnit}
+                onChange={(e) => {
+                  setPackUnit(e.target.value);
+                  setError(null);
+                }}
+                list="supply-purchase-units"
+                placeholder="carton, bale, sack, crate…"
+                maxLength={32}
+                autoComplete="off"
+                aria-label="Purchase unit"
+              />
+              <datalist id="supply-purchase-units">
+                {COMMON_PURCHASE_UNITS.map((unit) => (
+                  <option key={unit} value={unit} />
+                ))}
+              </datalist>
+            </label>
+
+            <div className="flex flex-col items-center gap-2 border border-amber-900/25 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_72%,var(--card))] px-4 py-4 dark:border-amber-200/20 dark:bg-amber-950/40">
               <p className="text-[10px] font-bold tracking-[-0.02em] text-amber-950/70 dark:text-amber-100/70">
-                Pieces in this pack
+                Items in each {unitLabel}
               </p>
               <input
                 ref={unitsInputRef}
@@ -310,45 +418,136 @@ export function SupplyPackQtyModal({
                   "text-amber-950 outline-none dark:text-amber-50",
                   "placeholder:text-amber-950/25 dark:placeholder:text-amber-100/25",
                 )}
-                value={unitsPerPackStr}
+                value={innerOpen && innerTotal != null ? formatQty(innerTotal) : unitsPerPackStr}
                 onChange={(e) => {
                   setUnitsPerPackStr(e.target.value);
                   setError(null);
                 }}
+                readOnly={innerOpen}
                 inputMode="decimal"
                 placeholder="12"
                 autoComplete="off"
-                aria-label="Pieces in one pack"
+                aria-label={`Items in one ${unitLabel}`}
               />
-              <div className="flex flex-wrap justify-center gap-1.5">
-                {QUICK_SIZES.map((n) => {
-                  const active =
-                    unitsPerPack != null && Math.abs(unitsPerPack - n) < 0.0001;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      className={cn(
-                        "min-w-9 border px-2 py-1 font-mono text-[11px] font-bold tabular-nums transition-colors",
-                        active
-                          ? "border-amber-950 bg-amber-950 text-amber-50 dark:border-amber-100 dark:bg-amber-100 dark:text-amber-950"
-                          : "border-amber-900/25 text-amber-950/80 hover:border-amber-900/50 dark:border-amber-200/25 dark:text-amber-100/80",
-                      )}
-                      onClick={() => {
-                        setUnitsPerPackStr(String(n));
+              {innerOpen ? (
+                <p className="text-[11px] font-medium text-amber-950/70 dark:text-amber-100/70">
+                  {breakdown ?? "Set the inner packing below"}
+                </p>
+              ) : (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {QUICK_SIZES.map((n) => {
+                    const active =
+                      typedUnits != null && Math.abs(typedUnits - n) < 0.0001;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        className={cn(
+                          "min-w-9 border px-2 py-1 font-mono text-[11px] font-bold tabular-nums transition-colors",
+                          active
+                            ? "border-amber-950 bg-amber-950 text-amber-50 dark:border-amber-100 dark:bg-amber-100 dark:text-amber-950"
+                            : "border-amber-900/25 text-amber-950/80 hover:border-amber-900/50 dark:border-amber-200/25 dark:text-amber-100/80",
+                        )}
+                        onClick={() => {
+                          setUnitsPerPackStr(String(n));
+                          setError(null);
+                        }}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-border/70 bg-muted/10">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                onClick={() => {
+                  setInnerOpen((v) => !v);
+                  setError(null);
+                }}
+                aria-expanded={innerOpen}
+              >
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                  <Plus
+                    className={cn(
+                      "size-3.5 transition-transform",
+                      innerOpen && "rotate-45",
+                    )}
+                    aria-hidden
+                  />
+                  Inner packs inside each {unitLabel}?
+                </span>
+                <span className="text-[10px] text-muted-foreground">optional</span>
+              </button>
+              {innerOpen ? (
+                <div className="grid grid-cols-2 gap-2 border-t border-border/60 px-3 py-2.5">
+                  <label className="col-span-2 flex flex-col gap-1">
+                    <span className="text-[10px] text-muted-foreground">
+                      Inner unit
+                    </span>
+                    <input
+                      className={cn(nsdInput, "h-9")}
+                      value={innerUnitStr}
+                      onChange={(e) => {
+                        setInnerUnitStr(e.target.value);
                         setError(null);
                       }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
+                      list="supply-inner-units"
+                      placeholder="packet, sachet, inner carton"
+                      maxLength={32}
+                      autoComplete="off"
+                    />
+                    <datalist id="supply-inner-units">
+                      {["packet", "sachet", "inner carton", "jar", "can", "bottle", "bar"].map(
+                        (u) => (
+                          <option key={u} value={u} />
+                        ),
+                      )}
+                    </datalist>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] text-muted-foreground">
+                      {innerUnitStr || "inner"}s per {unitLabel}
+                    </span>
+                    <input
+                      className={cn(nsdInput, "h-9 text-right font-mono")}
+                      value={innerCountStr}
+                      onChange={(e) => {
+                        setInnerCountStr(e.target.value);
+                        setError(null);
+                      }}
+                      inputMode="decimal"
+                      placeholder="12"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] text-muted-foreground">
+                      Items per {innerUnitStr || "inner"}
+                    </span>
+                    <input
+                      className={cn(nsdInput, "h-9 text-right font-mono")}
+                      value={innerBaseStr}
+                      onChange={(e) => {
+                        setInnerBaseStr(e.target.value);
+                        setError(null);
+                      }}
+                      inputMode="decimal"
+                      placeholder="10"
+                      autoComplete="off"
+                    />
+                  </label>
+                </div>
+              ) : null}
             </div>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
-                Pack price{" "}
+                Price for one {unitLabel}{" "}
                 <span className="font-medium normal-case tracking-normal text-muted-foreground/80">
                   (optional)
                 </span>
@@ -364,7 +563,7 @@ export function SupplyPackQtyModal({
                   setError(null);
                 }}
                 inputMode="decimal"
-                placeholder="What one pack cost"
+                placeholder={`What one ${unitLabel} cost`}
                 autoComplete="off"
                 aria-invalid={packPriceInvalid || undefined}
               />
@@ -396,11 +595,30 @@ export function SupplyPackQtyModal({
               <p className="max-w-[9.5rem] text-right text-[11px] leading-snug text-muted-foreground">
                 {unitsPerPack != null
                   ? packPriceParsed != null
-                    ? `1 pack · ${formatQty(unitsPerPack)} pcs`
+                    ? `1 ${unitLabel} · ${formatQty(unitsPerPack)} items`
                     : `Then type 1 in qty for ${formatQty(unitsPerPack)} on the shelf`
                   : "Pick a pack size first"}
               </p>
             </div>
+
+            {canSavePackOption ? (
+              <label className="flex items-center justify-between gap-3 border border-border/70 bg-background px-3 py-2">
+                <span className="flex flex-col">
+                  <span className="text-[11px] font-semibold text-foreground">
+                    Remember this for the product
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Next time it is one tap — saved on the item, not just this device
+                  </span>
+                </span>
+                <Switch
+                  size="sm"
+                  checked={remember}
+                  onCheckedChange={(checked) => setRemember(checked)}
+                  aria-label="Remember this packaging for the product"
+                />
+              </label>
+            ) : null}
           </div>
 
           <DialogFooter className="border-t border-border/50 bg-muted/20 px-4 py-3 sm:px-5">
@@ -422,9 +640,9 @@ export function SupplyPackQtyModal({
             >
               {unitsPerPack != null
                 ? unitCost != null
-                  ? `Pack of ${formatQty(unitsPerPack)} · ${formatMoney(unitCost)} ea`
-                  : `Pack of ${formatQty(unitsPerPack)}`
-                : "Use pack"}
+                  ? `${capitalize(unitLabel)} of ${formatQty(unitsPerPack)} · ${formatMoney(unitCost)} ea`
+                  : `${capitalize(unitLabel)} of ${formatQty(unitsPerPack)}`
+                : "Use package"}
             </Button>
           </DialogFooter>
         </form>

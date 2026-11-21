@@ -1090,6 +1090,21 @@ export function TenantOrderWorkspace({
         itemId: line.link.itemId,
         qtyOrdered,
         unitEstimatedCost,
+        // Order in base units, but keep how it was bought ("2 cartons × 24").
+        ...(line.pack
+          ? {
+              purchaseUnit: line.pack.unit,
+              purchaseQty: line.qty,
+              unitsPerPurchaseUnit: line.pack.size,
+              packPrice:
+                line.totalOverride != null &&
+                line.totalOverride > 0 &&
+                line.qty > 0
+                  ? Math.round((line.totalOverride / line.qty) * 100) / 100
+                  : packUnitPrice(line.link, line.pack, line.priceOverride),
+              packOptionId: line.pack.packOptionId ?? undefined,
+            }
+          : {}),
       };
     });
     if (roundingActive && linesToPost.length > 0) {

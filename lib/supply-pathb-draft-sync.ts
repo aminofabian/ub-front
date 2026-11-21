@@ -42,6 +42,12 @@ export type SyncableSupplyRow = {
   qty: number | null;
   unitCost: number | null;
   sellPrice: number | null;
+  /** Packaging entered on the line; sent so the server (not the browser) owns conversion. */
+  purchaseUnit?: string | null;
+  purchaseQty?: number | null;
+  unitsPerPurchaseUnit?: number | null;
+  packPrice?: number | null;
+  packOptionId?: string | null;
 };
 
 function roundMoney2(n: number): number {
@@ -137,6 +143,12 @@ export function pathBLineToSyncFields(line: PathBLineRecord): {
   expiry: string;
   lot: string;
   amountMoney: number | null;
+  /** Packaging snapshot the server kept, so a reopened draft shows packs again. */
+  packUnit: string | null;
+  purchaseQty: number | null;
+  unitsPerPurchaseUnit: number | null;
+  packPrice: number | null;
+  packOptionId: string | null;
 } {
   const draftQty = line.draftQty != null ? Number(line.draftQty) : NaN;
   const draftUnit = line.draftUnitCost != null ? Number(line.draftUnitCost) : NaN;
@@ -144,6 +156,11 @@ export function pathBLineToSyncFields(line: PathBLineRecord): {
   const hasDraftQty = Number.isFinite(draftQty) && draftQty > 0;
   const hasDraftUnit = Number.isFinite(draftUnit) && draftUnit > 0;
   const sell = moneyStr(line.draftSellPrice);
+  const unitsPer = line.unitsPerPurchaseUnit != null
+    ? Number(line.unitsPerPurchaseUnit)
+    : NaN;
+  const purchaseQty = line.purchaseQty != null ? Number(line.purchaseQty) : NaN;
+  const packPrice = line.packPrice != null ? Number(line.packPrice) : NaN;
   return {
     qtyStr: hasDraftQty ? qtyStr(draftQty) : hasDraftUnit && Number.isFinite(amount) && amount > 0
       ? "1"
@@ -158,6 +175,12 @@ export function pathBLineToSyncFields(line: PathBLineRecord): {
     expiry: line.draftExpiryDate?.trim() || "",
     lot: line.draftLotNumber?.trim() || "",
     amountMoney: Number.isFinite(amount) ? amount : null,
+    packUnit: line.purchaseUnit?.trim() || null,
+    purchaseQty: Number.isFinite(purchaseQty) && purchaseQty > 0 ? purchaseQty : null,
+    unitsPerPurchaseUnit:
+      Number.isFinite(unitsPer) && unitsPer > 1 ? unitsPer : null,
+    packPrice: Number.isFinite(packPrice) && packPrice >= 0 ? packPrice : null,
+    packOptionId: line.packOptionId?.trim() || null,
   };
 }
 
@@ -170,11 +193,26 @@ function toLinePayload(row: SyncableSupplyRow): AddPathBLinePayload | null {
   }
   const exp = row.expiry.trim();
   const lot = row.lot?.trim() ?? "";
+  const packed =
+    row.purchaseQty != null &&
+    row.unitsPerPurchaseUnit != null &&
+    row.unitsPerPurchaseUnit > 1;
   return {
     ...(lot ? { draftLotNumber: lot.slice(0, 64) } : {}),
+    ...(row.packOptionId ? { packOptionId: row.packOptionId } : {}),
+    ...(packed
+      ? {
+          purchaseUnit: row.purchaseUnit ?? undefined,
+          purchaseQty: row.purchaseQty ?? undefined,
+          unitsPerPurchaseUnit: row.unitsPerPurchaseUnit ?? undefined,
+          ...(row.packPrice != null ? { packPrice: row.packPrice } : {}),
+        }
+      : {}),
     description: row.description,
     amountMoney: roundMoney2(row.amountMoney),
     suggestedItemId: row.suggestedItemId,
+    // draftQty is always the expanded base quantity; pack fields above let the
+    // server re-derive it authoritatively and reject a mismatch.
     draftQty: row.qty,
     draftUnitCost: roundMoney2(row.unitCost),
     draftSellPrice: row.sellPrice,

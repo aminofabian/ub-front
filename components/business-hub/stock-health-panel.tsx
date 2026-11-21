@@ -29,7 +29,7 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
   const fill = (columns: number) => (columns - (items.length % columns)) % columns;
 
   return (
-    <section aria-label="Store and stock" className={cn(HUB_SURFACE)}>
+    <section aria-label="Store and stock" className={cn(HUB_SURFACE, "rounded-[2px]")}>
       <div
         className={cn(
           "grid grid-cols-2 gap-px sm:grid-cols-3",

@@ -88,7 +88,7 @@ export function BusinessPageLayout({
         backgroundColor: "var(--hub-bg)",
       }}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2 sm:gap-3">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-1.5 sm:gap-2">
         {/* `data-hub-chrome` lets in-page jumps measure the sticky header they
             have to clear, instead of guessing a fixed offset. */}
         <div
@@ -130,7 +130,7 @@ export function BusinessPageLayout({
             ) : null}
           </div>
 
-          <div className="hidden items-center gap-2 px-2 py-2 sm:flex sm:flex-wrap sm:gap-x-3 sm:gap-y-1.5">
+          <div className="hidden items-center gap-2 px-2 py-1.5 sm:flex sm:flex-wrap sm:gap-x-2 sm:gap-y-1">
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
               {toolbarLeading}
               <OnlineStoreHeaderSwitch />

@@ -65,9 +65,9 @@ export function RevenueBarChart({
         </div>
       ) : null}
 
-      <div className="relative mt-2">
+      <div className="relative mt-1.5">
         <div
-          className="grid h-20 items-stretch gap-2.5 sm:h-[104px]"
+          className="grid h-14 items-stretch gap-1.5 sm:h-[72px]"
           style={columns}
         >
           {points.map((point) => {
@@ -102,7 +102,7 @@ export function RevenueBarChart({
         </div>
       </div>
 
-      <div className="mt-2 grid gap-2.5" style={columns}>
+      <div className="mt-1.5 grid gap-1.5" style={columns}>
         {points.map((point) => {
           const isToday = point.day === todayDay;
           const weekday = weekdayNarrow(point.day);

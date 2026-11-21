@@ -103,6 +103,16 @@ import {
 } from "./_components/supplier-ui-tokens";
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
+function readSupplierMarkup(raw: string): { error?: string; value?: number } {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) {
+    return { error: "Markup must be zero or more." };
+  }
+  return { value: n };
+}
+
 const EMPTY_CONTACT_DRAFT: CreateSupplierContactPayload = {
   name: "",
   roleLabel: "",
@@ -581,6 +591,11 @@ export default function SuppliersPage() {
         }
         creditLimit = n;
       }
+      const markup = readSupplierMarkup(createDraft.markupPct);
+      if (markup.error) {
+        setFeedback({ text: markup.error, kind: "error" });
+        return;
+      }
       const vatTrim = createDraft.vatPin.trim();
       const payPrefTrim = createDraft.paymentMethodPreferred.trim();
       const body: CreateSupplierPayload = {
@@ -593,6 +608,7 @@ export default function SuppliersPage() {
         taxExempt: createDraft.taxExempt,
         ...(creditTermsDays != null ? { creditTermsDays } : {}),
         ...(creditLimit != null ? { creditLimit } : {}),
+        ...(markup.value != null ? { defaultMarkupPct: markup.value } : {}),
         ...(payPrefTrim ? { paymentMethodPreferred: payPrefTrim } : {}),
         ...(createDraft.paymentDetails.trim()
           ? { paymentDetails: createDraft.paymentDetails.trim() }
@@ -724,6 +740,11 @@ export default function SuppliersPage() {
         }
         creditLimit = n;
       }
+      const markup = readSupplierMarkup(patchDraft.markupPct);
+      if (markup.error) {
+        setFeedback({ text: markup.error, kind: "error" });
+        return;
+      }
       const next = await patchSupplier(selectedId, {
         name: patchDraft.name.trim(),
         code: codeTrim.length > 0 ? codeTrim : "",
@@ -734,6 +755,9 @@ export default function SuppliersPage() {
         taxExempt: patchDraft.taxExempt,
         ...(creditTermsDays != null ? { creditTermsDays } : {}),
         ...(creditLimit != null ? { creditLimit } : {}),
+        ...(markup.value != null
+          ? { defaultMarkupPct: markup.value }
+          : { clearDefaultMarkup: true }),
         paymentMethodPreferred: patchDraft.paymentMethodPreferred.trim(),
         paymentDetails: patchDraft.paymentDetails.trim(),
         payoutType: patchDraft.payoutType.trim() || undefined,

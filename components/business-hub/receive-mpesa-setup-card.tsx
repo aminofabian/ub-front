@@ -103,7 +103,7 @@ export function ReceiveMpesaSetupCard({
         aria-label="Payment method — where customers pay"
         className={cn(
           HUB_SURFACE,
-          "text-left",
+          "rounded-[2px] text-left",
           rail && "border-0 shadow-none",
           needsSetup &&
             !rail &&

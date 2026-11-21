@@ -82,6 +82,8 @@ type SupplyDraftLineCardProps = {
   /** Called with the saved option id (or null) whenever the pack sheet applies. */
   onPackOptionIdChange?: (packOptionId: string | null) => void;
   onPackModalOpenChange?: (open: boolean) => void;
+  /** Catalog write permission: allows saving a custom pack shape to the product. */
+  canSavePackOption?: boolean;
   /** Always show sell in the main grid; expiry can stay optional. */
   showSellExpiry?: boolean;
   showExpiryColumn?: boolean;
@@ -128,6 +130,7 @@ export function SupplyDraftLineCard({
   savedOptions = null,
   onPackOptionIdChange,
   onPackModalOpenChange,
+  canSavePackOption = false,
   showSellExpiry = true,
   showExpiryColumn = false,
 }: SupplyDraftLineCardProps) {
@@ -284,6 +287,7 @@ export function SupplyDraftLineCard({
           savedOptions={savedOptions}
           onPackOptionIdChange={onPackOptionIdChange}
           onPackModalOpenChange={onPackModalOpenChange}
+          canSavePackOption={canSavePackOption}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}
         />

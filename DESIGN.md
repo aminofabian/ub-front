@@ -586,3 +586,32 @@ inside the running app, on a phone, or with a real shop's data.
 - A row has one outlined action; its lesser actions (Print, Rejected) are text
   links beside it. A write-off is never the filled button.
 - A missing value ("Name not recorded") is muted, never ink.
+
+
+### Clinic (the Clinic section and a visit)
+
+Viewed in the preview harness with sample data at 1440 and 390 wide: Today, the
+visit as one person sees it, the visit as a receptionist sees it, the payment
+dialog, Appointments, Services and Settings. Not yet seen in the running app.
+
+- Clinic uses the operator shell, like Pharmacy: paper surface, forest for the one
+  action that moves the visit on, serif for the page title and the patient's name.
+- **Today is columns of stations.** A card is a queue number, a first name and how
+  long, with one muted line under it. It never says what the person came for. The
+  number is the largest thing on the card because it is what gets called out.
+- Weight follows what needs noticing: a red edge and "See first" for an urgent
+  visit; amber minutes once someone has waited 30; the Ready to pay column carries
+  forest. Everything else is ink on paper.
+- A card the signed-in person can act on has an ink edge and a paper fill; one
+  shown only for context is a hairline with no fill. Columns for stations a person
+  does not hold are hidden until they ask for "Every station".
+- **A visit is two columns**: what was done and the prescription on the left, one
+  bill on the right, as on the till. On a phone the bill follows the work.
+- An allergy is a red-edged block beside the name, shown only to people working the
+  visit clinically or dispensing. It says Kiosk does not check against it.
+- A medicine line on the bill carries the same one-line treatment as the till:
+  class in forest when a pharmacist is needed, "given here" after it.
+- One primary action per state: Done on a service, Put on the bill at the
+  dispensary, Take payment on the bill. "Take the fee first" is offered only before
+  anything has started.
+- Words: patient, clinician, room, visit. Never client, stylist, chair or ticket.

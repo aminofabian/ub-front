@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { ShelfBuyingShareInput } from "@/app/(dashboard)/products/_components/buying-share-field";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -442,6 +443,19 @@ export default function CategoriesPage() {
     text: string;
     kind: "error" | "success";
   } | null>(null);
+
+  const saveCategoryMarkup = useCallback(async (id: string, pct: number | null) => {
+    try {
+      const updated = await patchCategory(
+        id,
+        pct == null ? { clearDefaultMarkup: true } : { defaultMarkupPct: pct },
+      );
+      setRows((prev) => prev.map((row) => (row.id === id ? updated : row)));
+    } catch {
+      setFeedback({ kind: "error", text: "Couldn't save the markup." });
+      throw new Error("markup");
+    }
+  }, []);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
@@ -2108,6 +2122,18 @@ export default function CategoriesPage() {
                                 <span className="mx-1 opacity-40">·</span>
                                 Pos {row.position}
                               </p>
+                              <label
+                                className="mt-1.5 flex items-center gap-2 text-[12px] text-muted-foreground"
+                                onMouseDown={stopActivateRow}
+                              >
+                                Markup %
+                                <ShelfBuyingShareInput
+                                  name={row.name}
+                                  value={row.defaultMarkupPct}
+                                  disabled={!canManageCategories}
+                                  onSave={(pct) => saveCategoryMarkup(row.id, pct)}
+                                />
+                              </label>
                               <p className="mt-0.5 truncate font-mono text-[12px] text-muted-foreground">
                                 {row.slug}
                               </p>
@@ -2201,6 +2227,9 @@ export default function CategoriesPage() {
                     </th>
                     <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                       Suppliers
+                    </th>
+                    <th className="w-24 px-3 py-2 text-right text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
+                      Markup %
                     </th>
                     <th className="w-16 px-3 py-2 text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
                       Active
@@ -2595,6 +2624,14 @@ export default function CategoriesPage() {
                           <span className="line-clamp-2" title={supplierHint}>
                             {supplierHint}
                           </span>
+                        </td>
+                        <td className="px-3 py-2 text-right" onMouseDown={stopActivateRow}>
+                          <ShelfBuyingShareInput
+                            name={row.name}
+                            value={row.defaultMarkupPct}
+                            disabled={!canManageCategories}
+                            onSave={(pct) => saveCategoryMarkup(row.id, pct)}
+                          />
                         </td>
                         <td className="px-3 py-2" onMouseDown={stopActivateRow}>
                           {rowIsEditing && draft ? (

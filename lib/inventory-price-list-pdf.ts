@@ -1,17 +1,20 @@
 /**
- * Print-ready A4 inventory price list.
+ * Print-ready A4 inventory sheet for the current stock view.
  *
- * Selling-only is a two-column shop sheet. Buying and selling is a
- * single-column staff ledger. Both are black-on-white so they photocopy.
+ * Selling-only is a two-column shop sheet. Stock, buying and selling,
+ * and stock with both prices are single-column ledgers.
+ * All of them are black-on-white so they photocopy.
  */
 
-export type InventoryPriceListMode = "sell" | "both";
+export type InventoryPriceListMode = "sell" | "both" | "stock" | "stock-prices";
 
 export type InventoryPriceListItem = {
   name: string;
   category: string | null;
   buyPrice: number | null;
   sellPrice: number | null;
+  /** Branch on-hand. Zero is a real quantity; null means the list had no figure. */
+  stockQty: number | null;
 };
 
 export type InventoryPriceListInput = {
@@ -44,6 +47,8 @@ const CATEGORY_H = 18;
 const SELL_GAP = 22;
 const SELL_COL_W = (CONTENT_W - SELL_GAP) / 2;
 const PRICE_COL_W = 72;
+const LEDGER_PRICE_W = 70;
+const LEDGER_STOCK_W = 52;
 const OTHER_CATEGORY = "Other";
 const NAME_FONT = 9;
 const PRICE_FONT = 9;
@@ -77,10 +82,20 @@ type Section = {
   items: InventoryPriceListItem[];
 };
 
+type PairBlock = {
+  kind: "sell";
+  left: InventoryPriceListItem;
+  right: InventoryPriceListItem | null;
+  height: number;
+  stripe: boolean;
+};
+
 type Block =
   | { kind: "category"; label: string; count: number; continued: boolean; height: number }
-  | { kind: "sell"; left: InventoryPriceListItem; right: InventoryPriceListItem | null; height: number; stripe: boolean }
-  | { kind: "both"; item: InventoryPriceListItem; height: number; stripe: boolean };
+  | PairBlock
+  | { kind: "both"; item: InventoryPriceListItem; height: number; stripe: boolean }
+  | { kind: "qty"; item: InventoryPriceListItem; height: number; stripe: boolean }
+  | { kind: "ledger"; item: InventoryPriceListItem; height: number; stripe: boolean };
 
 class PdfCanvas {
   private ops: string[] = [];
@@ -193,6 +208,12 @@ function formatPrice(value: number | null): string {
   });
 }
 
+function formatQty(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const rounded = Math.round(value * 1000) / 1000;
+  return rounded.toLocaleString("en-KE", { maximumFractionDigits: 3 });
+}
+
 function compareLabel(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
@@ -231,16 +252,28 @@ function buildBlocks(input: InventoryPriceListInput): Block[] {
         height: CATEGORY_H,
       });
     }
-    if (input.mode === "sell") {
-      pushSellRows(blocks, section.items);
-    } else {
-      pushBothRows(blocks, section.items);
-    }
+    pushSectionRows(blocks, section.items, input.mode);
   }
   return blocks;
 }
 
-function pushSellRows(blocks: Block[], items: InventoryPriceListItem[]) {
+function pushSectionRows(blocks: Block[], items: InventoryPriceListItem[], mode: InventoryPriceListMode) {
+  if (mode === "sell") {
+    pushPairRows(blocks, items);
+    return;
+  }
+  if (mode === "stock") {
+    pushQtyRows(blocks, items);
+    return;
+  }
+  if (mode === "stock-prices") {
+    pushLedgerRows(blocks, items);
+    return;
+  }
+  pushBothRows(blocks, items);
+}
+
+function pushPairRows(blocks: Block[], items: InventoryPriceListItem[]) {
   for (let index = 0; index < items.length; index += 2) {
     blocks.push({
       kind: "sell",
@@ -250,6 +283,28 @@ function pushSellRows(blocks: Block[], items: InventoryPriceListItem[]) {
       stripe: Math.floor(index / 2) % 2 === 1,
     });
   }
+}
+
+function pushQtyRows(blocks: Block[], items: InventoryPriceListItem[]) {
+  items.forEach((item, index) => {
+    blocks.push({
+      kind: "qty",
+      item,
+      height: ROW_H,
+      stripe: index % 2 === 1,
+    });
+  });
+}
+
+function pushLedgerRows(blocks: Block[], items: InventoryPriceListItem[]) {
+  items.forEach((item, index) => {
+    blocks.push({
+      kind: "ledger",
+      item,
+      height: ROW_H,
+      stripe: index % 2 === 1,
+    });
+  });
 }
 
 function pushBothRows(blocks: Block[], items: InventoryPriceListItem[]) {
@@ -320,7 +375,10 @@ function usableHeight(top: number): number {
 }
 
 function modeTitle(mode: InventoryPriceListMode): string {
-  return mode === "both" ? "Buying and selling prices" : "Selling prices";
+  if (mode === "both") return "Buying and selling prices";
+  if (mode === "stock") return "Stock on hand";
+  if (mode === "stock-prices") return "Stock, buying and selling";
+  return "Selling prices";
 }
 
 function paintFirstMasthead(canvas: PdfCanvas, input: InventoryPriceListInput, when: Date): number {
@@ -388,24 +446,49 @@ function paintRunningHead(
 function paintColumnHeads(canvas: PdfCanvas, mode: InventoryPriceListMode, top: number) {
   const baseline = top + 5;
   canvas.text(MARGIN_X, baseline, "ITEM", { size: 7, color: MUTED });
-  if (mode === "sell") {
-    paintSellColumnHead(canvas, baseline, 0);
-    paintSellColumnHead(canvas, baseline, 1);
-  } else {
-    const sellRight = PAGE_W - MARGIN_X;
-    const buyRight = sellRight - PRICE_COL_W;
-    canvas.textRight(buyRight, baseline, "BUYING", { size: 7, color: MUTED });
-    canvas.textRight(sellRight, baseline, "SELLING", { size: 7, color: MUTED });
-  }
+  if (mode === "sell") paintPairColumnHeads(canvas, baseline);
+  else if (mode === "stock") paintQtyColumnHead(canvas, baseline);
+  else if (mode === "stock-prices") paintLedgerColumnHeads(canvas, baseline);
+  else paintPriceColumnHeads(canvas, baseline);
   canvas.line(MARGIN_X, top + 1, PAGE_W - MARGIN_X, top + 1, HAIR, 0.6);
 }
 
-function paintSellColumnHead(canvas: PdfCanvas, baseline: number, column: number) {
+function paintPairColumnHeads(canvas: PdfCanvas, baseline: number) {
+  paintPairColumnHead(canvas, baseline, 0, "PRICE");
+  paintPairColumnHead(canvas, baseline, 1, "PRICE");
+}
+
+function paintQtyColumnHead(canvas: PdfCanvas, baseline: number) {
+  canvas.textRight(PAGE_W - MARGIN_X, baseline, "STOCK", { size: 7, color: MUTED });
+}
+
+function paintPairColumnHead(canvas: PdfCanvas, baseline: number, column: number, label: string) {
   const x = MARGIN_X + column * (SELL_COL_W + SELL_GAP);
   if (column === 1) {
     canvas.text(x, baseline, "ITEM", { size: 7, color: MUTED });
   }
-  canvas.textRight(x + SELL_COL_W, baseline, "PRICE", { size: 7, color: MUTED });
+  canvas.textRight(x + SELL_COL_W, baseline, label, { size: 7, color: MUTED });
+}
+
+function paintPriceColumnHeads(canvas: PdfCanvas, baseline: number) {
+  const sellRight = PAGE_W - MARGIN_X;
+  const buyRight = sellRight - PRICE_COL_W;
+  canvas.textRight(buyRight, baseline, "BUYING", { size: 7, color: MUTED });
+  canvas.textRight(sellRight, baseline, "SELLING", { size: 7, color: MUTED });
+}
+
+function ledgerColumns() {
+  const sellRight = PAGE_W - MARGIN_X;
+  const buyRight = sellRight - LEDGER_PRICE_W;
+  const stockRight = buyRight - LEDGER_STOCK_W;
+  return { sellRight, buyRight, stockRight };
+}
+
+function paintLedgerColumnHeads(canvas: PdfCanvas, baseline: number) {
+  const cols = ledgerColumns();
+  canvas.textRight(cols.stockRight, baseline, "STOCK", { size: 7, color: MUTED });
+  canvas.textRight(cols.buyRight, baseline, "BUYING", { size: 7, color: MUTED });
+  canvas.textRight(cols.sellRight, baseline, "SELLING", { size: 7, color: MUTED });
 }
 
 function paintCategory(canvas: PdfCanvas, top: number, block: Extract<Block, { kind: "category" }>) {
@@ -422,11 +505,32 @@ function paintCategory(canvas: PdfCanvas, top: number, block: Extract<Block, { k
   });
 }
 
-function paintSellRow(canvas: PdfCanvas, top: number, block: Extract<Block, { kind: "sell" }>) {
+function paintPairRow(canvas: PdfCanvas, top: number, block: PairBlock) {
   const baseline = top - 11;
   if (block.stripe) paintSellStripe(canvas, top);
-  paintSellCell(canvas, MARGIN_X, baseline, block.left);
-  if (block.right) paintSellCell(canvas, MARGIN_X + SELL_COL_W + SELL_GAP, baseline, block.right);
+  paintPairCell(canvas, MARGIN_X, baseline, block.left, "sell");
+  if (block.right) {
+    paintPairCell(canvas, MARGIN_X + SELL_COL_W + SELL_GAP, baseline, block.right, "sell");
+  }
+  canvas.line(MARGIN_X, top - ROW_H + 1, PAGE_W - MARGIN_X, top - ROW_H + 1, HAIR, 0.3);
+}
+
+function paintQtyRow(canvas: PdfCanvas, top: number, block: Extract<Block, { kind: "qty" }>) {
+  const baseline = top - 11;
+  if (block.stripe) {
+    canvas.fill(MARGIN_X, top - ROW_H + 1, CONTENT_W, ROW_H - 1, ZEBRA);
+  }
+  const stockRight = PAGE_W - MARGIN_X;
+  const nameMax = stockRight - MARGIN_X - LEDGER_STOCK_W - 12;
+  canvas.text(MARGIN_X, baseline, truncateToWidth(block.item.name, NAME_FONT, "regular", nameMax), {
+    size: NAME_FONT,
+    color: INK,
+  });
+  canvas.textRight(stockRight, baseline, formatQty(block.item.stockQty), {
+    font: "mono",
+    size: PRICE_FONT,
+    color: INK,
+  });
   canvas.line(MARGIN_X, top - ROW_H + 1, PAGE_W - MARGIN_X, top - ROW_H + 1, HAIR, 0.3);
 }
 
@@ -437,14 +541,24 @@ function paintSellStripe(canvas: PdfCanvas, top: number) {
   canvas.fill(MARGIN_X + SELL_COL_W + SELL_GAP, y, SELL_COL_W, h, ZEBRA);
 }
 
-function paintSellCell(canvas: PdfCanvas, x: number, baseline: number, item: InventoryPriceListItem) {
-  const price = formatPrice(item.sellPrice);
-  const priceW = textWidth(price, PRICE_FONT, "mono");
-  const name = truncateToWidth(item.name, NAME_FONT, "regular", SELL_COL_W - priceW - 14);
+function pairValue(item: InventoryPriceListItem, kind: "sell" | "stock"): string {
+  return kind === "stock" ? formatQty(item.stockQty) : formatPrice(item.sellPrice);
+}
+
+function paintPairCell(
+  canvas: PdfCanvas,
+  x: number,
+  baseline: number,
+  item: InventoryPriceListItem,
+  kind: "sell" | "stock",
+) {
+  const value = pairValue(item, kind);
+  const valueW = textWidth(value, PRICE_FONT, "mono");
+  const name = truncateToWidth(item.name, NAME_FONT, "regular", SELL_COL_W - valueW - 14);
   canvas.text(x, baseline, name, { size: NAME_FONT, color: INK });
   const nameEnd = x + textWidth(name, NAME_FONT, "regular");
-  canvas.dash(nameEnd + 4, baseline + 2, x + SELL_COL_W - priceW - 5, baseline + 2, HAIR);
-  canvas.textRight(x + SELL_COL_W, baseline, price, {
+  canvas.dash(nameEnd + 4, baseline + 2, x + SELL_COL_W - valueW - 5, baseline + 2, HAIR);
+  canvas.textRight(x + SELL_COL_W, baseline, value, {
     font: "mono",
     size: PRICE_FONT,
     color: INK,
@@ -476,15 +590,58 @@ function paintBothRow(canvas: PdfCanvas, top: number, block: Extract<Block, { ki
   canvas.line(MARGIN_X, top - ROW_H + 1, PAGE_W - MARGIN_X, top - ROW_H + 1, HAIR, 0.3);
 }
 
+function paintLedgerRow(canvas: PdfCanvas, top: number, block: Extract<Block, { kind: "ledger" }>) {
+  const baseline = top - 11;
+  if (block.stripe) {
+    canvas.fill(MARGIN_X, top - ROW_H + 1, CONTENT_W, ROW_H - 1, ZEBRA);
+  }
+  const cols = ledgerColumns();
+  const nameMax = cols.stockRight - MARGIN_X - 12;
+  canvas.text(MARGIN_X, baseline, truncateToWidth(block.item.name, NAME_FONT, "regular", nameMax), {
+    size: NAME_FONT,
+    color: INK,
+  });
+  canvas.textRight(cols.stockRight, baseline, formatQty(block.item.stockQty), {
+    font: "mono",
+    size: PRICE_FONT,
+    color: INK,
+  });
+  canvas.textRight(cols.buyRight, baseline, formatPrice(block.item.buyPrice), {
+    font: "mono",
+    size: PRICE_FONT,
+    color: SOFT,
+  });
+  canvas.textRight(cols.sellRight, baseline, formatPrice(block.item.sellPrice), {
+    font: "mono",
+    size: PRICE_FONT,
+    color: INK,
+  });
+  canvas.line(MARGIN_X, top - ROW_H + 1, PAGE_W - MARGIN_X, top - ROW_H + 1, HAIR, 0.3);
+}
+
+function footerNote(mode: InventoryPriceListMode): string {
+  if (mode === "both") return "Staff copy  ·  buying prices stay in the shop";
+  if (mode === "stock") return "Count sheet  ·  quantities on hand";
+  if (mode === "stock-prices") return "Staff copy  ·  stock with buying and selling";
+  return "Shop copy  ·  selling prices";
+}
+
 function paintFooter(canvas: PdfCanvas, input: InventoryPriceListInput, pageNo: number, pageCount: number) {
   canvas.line(MARGIN_X, 32, PAGE_W - MARGIN_X, 32, HAIR, 0.5);
-  const note = input.mode === "both" ? "Staff copy  ·  buying prices stay in the shop" : "Shop copy  ·  selling prices";
-  canvas.text(MARGIN_X, 20, note, { size: 7.5, color: MUTED });
+  canvas.text(MARGIN_X, 20, footerNote(input.mode), { size: 7.5, color: MUTED });
   canvas.textRight(PAGE_W - MARGIN_X, 20, `${pageNo}  /  ${pageCount}`, {
     font: "mono",
     size: 8,
     color: SOFT,
   });
+}
+
+function paintBlock(canvas: PdfCanvas, top: number, block: Block) {
+  if (block.kind === "category") paintCategory(canvas, top, block);
+  else if (block.kind === "sell") paintPairRow(canvas, top, block);
+  else if (block.kind === "qty") paintQtyRow(canvas, top, block);
+  else if (block.kind === "ledger") paintLedgerRow(canvas, top, block);
+  else paintBothRow(canvas, top, block);
 }
 
 function paintGutter(canvas: PdfCanvas, top: number) {
@@ -513,9 +670,7 @@ function paintPage(
     canvas.text(MARGIN_X, cursor - 16, "No items match this view.", { size: 10, color: SOFT });
   }
   for (const block of blocks) {
-    if (block.kind === "category") paintCategory(canvas, cursor, block);
-    else if (block.kind === "sell") paintSellRow(canvas, cursor, block);
-    else paintBothRow(canvas, cursor, block);
+    paintBlock(canvas, cursor, block);
     cursor -= block.height;
   }
   paintFooter(canvas, input, pageIndex + 1, pageCount);
@@ -596,13 +751,19 @@ export function inventoryPriceListFilename(
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "inventory";
-  const kind = mode === "both" ? "buy-sell" : "selling";
   const month = String(when.getMonth() + 1).padStart(2, "0");
   const day = String(when.getDate()).padStart(2, "0");
-  return `${slug}-${kind}-prices-${when.getFullYear()}-${month}-${day}.pdf`;
+  return `${slug}-${fileStem(mode)}-${when.getFullYear()}-${month}-${day}.pdf`;
 }
 
-/** A4 price list for the current stock view. `sell` omits buying prices. */
+function fileStem(mode: InventoryPriceListMode): string {
+  if (mode === "both") return "buy-sell-prices";
+  if (mode === "stock") return "stock";
+  if (mode === "stock-prices") return "stock-buy-sell";
+  return "selling-prices";
+}
+
+/** A4 sheet for the current stock view. `sell` omits buying prices and quantities. */
 export function buildInventoryPriceListPdf(input: InventoryPriceListInput): Blob {
   const when = input.generatedAt ?? new Date();
   const blocks = buildBlocks(input);

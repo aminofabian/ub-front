@@ -2492,10 +2492,26 @@ export function SupplierReceiveWorkspace({
           description: `${line.name}${line.sku ? ` (${line.sku})` : ""}`,
           amountMoney,
           suggestedItemId: line.itemId,
-          // Saved pack option: server expands pack count → stock qty + unit cost.
+          // Packaged lines carry the packaging, so the server (not the browser)
+          // owns the pack → stock-unit conversion and the line history.
           ...(line.packOptionId
-            ? { draftQty: parsePos(line.qtyStr) ?? qty, packOptionId: line.packOptionId }
-            : { draftQty: qty }),
+            ? {
+                draftQty: parsePos(line.qtyStr) ?? qty,
+                packOptionId: line.packOptionId,
+                purchaseUnit: line.packMode?.packUnit,
+                purchaseQty: parsePos(line.qtyStr) ?? undefined,
+                unitsPerPurchaseUnit: line.packMode?.unitsPerPack,
+                packPrice: line.packMode ? parsePos(line.costStr) ?? undefined : undefined,
+              }
+            : line.packMode
+              ? {
+                  draftQty: qty,
+                  purchaseUnit: line.packMode.packUnit,
+                  purchaseQty: parsePos(line.qtyStr) ?? undefined,
+                  unitsPerPurchaseUnit: line.packMode.unitsPerPack,
+                  packPrice: parsePos(line.costStr) ?? undefined,
+                }
+              : { draftQty: qty }),
           draftUnitCost: cost,
         });
         synced.push({ line, serverLineId: created.id });
@@ -2520,6 +2536,11 @@ export function SupplierReceiveWorkspace({
           itemId: line.itemId,
           usableQty: supplyStockQty(line.qtyStr, line.packMode)!,
           wastageQty: 0,
+          purchaseQty: line.packMode ? parsePos(line.qtyStr) ?? undefined : undefined,
+          purchaseUnit: line.packMode?.packUnit,
+          unitsPerPurchaseUnit: line.packMode?.unitsPerPack,
+          packPrice: line.packMode ? parsePos(line.costStr) ?? undefined : undefined,
+          packOptionId: line.packOptionId ?? undefined,
         })),
       });
 

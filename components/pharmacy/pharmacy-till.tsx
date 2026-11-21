@@ -2,7 +2,13 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import { DISPENSING_CLASS_LABEL, lookupPatientsByPhone, type PatientMatch } from "@/lib/pharmacy-api";
+import {
+  DISPENSING_CLASS_LABEL,
+  looksLikePatientNo,
+  lookupPatientsByPhone,
+  patientMatchDetail,
+  type PatientMatch,
+} from "@/lib/pharmacy-api";
 import {
   NO_PHARMACY_TILL,
   PharmacyTillStore,
@@ -207,7 +213,7 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
 
   const find = () => {
     const value = phone.trim();
-    if (value.replace(/\D/g, "").length < 7) {
+    if (!looksLikePatientNo(value) && value.replace(/\D/g, "").length < 7) {
       setMatches(null);
       setShortNumber(true);
       return;
@@ -268,11 +274,12 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
           }}
         >
           <label className="block">
-            <span className="block text-muted-foreground">Patient phone number</span>
+            <span className="block text-muted-foreground">Patient phone or patient number</span>
             <span className="mt-0.5 flex gap-1.5">
               <input
-                type="tel"
-                inputMode="tel"
+                type="text"
+                inputMode="text"
+                autoComplete="off"
                 autoFocus
                 value={phone}
                 onChange={(e) => {
@@ -295,7 +302,9 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
               </button>
             </span>
           </label>
-          {shortNumber ? <p className="text-muted-foreground">Enter the whole phone number.</p> : null}
+          {shortNumber ? (
+            <p className="text-muted-foreground">Enter the whole phone number, or a patient number like P-0412.</p>
+          ) : null}
           {lookupFailed ? (
             <p role="alert" className={WARN}>
               Could not search just now. Check the connection and try again, or type their details at payment.
@@ -306,15 +315,22 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
               No patient profile has this number. You can still type their details at payment.
             </p>
           ) : null}
+          {matches && matches.length > 1 ? (
+            <p className="text-muted-foreground">{matches.length} people share this number. Choose one.</p>
+          ) : null}
           {matches && matches.length > 0 ? (
-            <ul>
-              {matches.map((match) => (
-                <li key={match.id}>
-                  <button type="button" className={linkClass} onClick={() => pick(match)}>
-                    {match.name}
-                  </button>
-                </li>
-              ))}
+            <ul className="space-y-0.5">
+              {matches.map((match) => {
+                const detail = patientMatchDetail(match);
+                return (
+                  <li key={match.id}>
+                    <button type="button" className={linkClass} onClick={() => pick(match)}>
+                      {match.name}
+                    </button>
+                    {detail ? <span className="ml-1.5 tabular-nums text-muted-foreground">{detail}</span> : null}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </form>

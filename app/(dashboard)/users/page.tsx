@@ -2,6 +2,7 @@
 
 import { useTeamAccountSync } from "@/hooks/use-team-account-sync";
 import { isServiceBusiness } from "@/lib/business-store-type";
+import { rolesForBusiness } from "@/lib/role-formats";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -72,7 +73,13 @@ export default function UsersPage() {
   const searchParams = useSearchParams();
   const { me, refreshSession, itemTypes, business } = useDashboard();
   const [users, setUsers] = useState<UserRecord[]>([]);
-  const [roles, setRoles] = useState<RoleRecord[]>([]);
+  // Every role the server knows. What the screen offers is `roles`, below, narrowed to the
+  // formats this shop runs: a chemist is not offered Kitchen staff or Butcher Cashier.
+  const [allRoles, setRoles] = useState<RoleRecord[]>([]);
+  const roles = useMemo(
+    () => rolesForBusiness(allRoles, business, users.map((u) => u.role?.id ?? "")),
+    [allRoles, business, users],
+  );
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterRoleId, setFilterRoleId] = useState("");

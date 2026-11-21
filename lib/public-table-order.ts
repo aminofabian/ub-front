@@ -25,6 +25,30 @@ export type PublicTableMenu = { shopName: string; tableName: string; currency: s
 
 export type PublicOrderConfirmation = { orderNumber: number; tableName: string; added: number; total: number };
 
+export type PublicStatusLine = {
+  id: string;
+  name: string;
+  quantity: number;
+  amount: number;
+  stage: string;
+  /** True only for a line this phone added that staff have not sent yet. */
+  removable: boolean;
+};
+
+/** What the table has ordered and still owes, as the diner sees it. No staff or customer detail. */
+export type PublicOrderStatus = {
+  shopName: string;
+  tableName: string;
+  currency: string;
+  /** Null when the table has no open order yet. */
+  orderNumber: number | null;
+  status: string;
+  billRequested: boolean;
+  total: number;
+  due: number;
+  lines: PublicStatusLine[];
+};
+
 /** Carries the HTTP status so the page can tell "this code no longer works" from a real fault. */
 export class PublicTableOrderError extends Error {
   constructor(
@@ -76,4 +100,35 @@ export async function placePublicTableOrder(
     body: JSON.stringify(body),
   });
   return read<PublicOrderConfirmation>(res);
+}
+
+/** What the table has ordered, what is left to pay, and whether the bill has been asked for. */
+export async function fetchPublicTableStatus(slug: string, token: string): Promise<PublicOrderStatus> {
+  const res = await fetch(`${base(slug, token)}/status`, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  return read<PublicOrderStatus>(res);
+}
+
+/** Sets the same "bill requested" flag the floor shows. Asking twice changes nothing. */
+export async function askForPublicTableBill(slug: string, token: string): Promise<PublicOrderStatus> {
+  const res = await fetch(`${base(slug, token)}/bill`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  return read<PublicOrderStatus>(res);
+}
+
+/** Takes off a line this phone added, while it is still waiting for a member of staff. */
+export async function removePublicTableLine(
+  slug: string,
+  token: string,
+  lineId: string,
+): Promise<PublicOrderStatus> {
+  const res = await fetch(`${base(slug, token)}/lines/${encodeURIComponent(lineId.trim())}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  return read<PublicOrderStatus>(res);
 }

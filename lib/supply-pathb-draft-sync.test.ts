@@ -84,5 +84,30 @@ describe("supply-pathb-draft-sync", () => {
     expect(fields.sellPriceStr).toBe("65.00");
     expect(fields.sellPriceTouched).toBe(true);
     expect(fields.expiry).toBe("2026-08-01");
+    expect(fields.packUnit).toBeNull();
+    expect(fields.unitsPerPurchaseUnit).toBeNull();
+  });
+
+  it("hydrates a packaged line with its pack view and snapshot", () => {
+    const fields = pathBLineToSyncFields({
+      id: "l2",
+      sortOrder: 0,
+      descriptionText: "Biscuits (carton of 12 packets)",
+      amountMoney: 2400,
+      suggestedItemId: "i1",
+      lineStatus: "pending",
+      draftQty: 120,
+      draftUnitCost: 20,
+      purchaseUnit: "carton",
+      purchaseQty: 2,
+      unitsPerPurchaseUnit: 120,
+      packPrice: 1200,
+      packOptionId: "pack-1",
+    });
+    expect(fields.packUnit).toBe("carton");
+    expect(fields.purchaseQty).toBe(2);
+    expect(fields.unitsPerPurchaseUnit).toBe(120);
+    expect(fields.packPrice).toBe(1200);
+    expect(fields.packOptionId).toBe("pack-1");
   });
 });

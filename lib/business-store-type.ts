@@ -17,7 +17,8 @@ export type StoreTypeId =
   | "cafe"
   | "fast-food"
   | "bar"
-  | "lodging";
+  | "lodging"
+  | "clinic";
 
 /**
  * Shop formats that sell services rather than (or as well as) goods. A store type only picks
@@ -49,6 +50,14 @@ export const TABLE_SERVICE_STORE_TYPES: readonly StoreTypeId[] = ["restaurant", 
  * A store type only picks defaults and wording; branch on {@link isLodgingBusiness}, never by name.
  */
 export const LODGING_STORE_TYPES: readonly StoreTypeId[] = ["lodging"];
+
+/**
+ * A clinic or consulting room (ADR 0034): consultations, tests and procedures billed as one
+ * visit. An add-on like lodging: usually a chemist <em>and</em> a clinic. Deliberately not a
+ * service format, so it never inherits the salon's wording (stylist, chair, tips). A store type
+ * only picks defaults and wording; branch on {@link isClinicBusiness}, never by name.
+ */
+export const CLINIC_STORE_TYPES: readonly StoreTypeId[] = ["clinic"];
 
 /**
  * Shop formats that sell physical goods off a shelf: a mini-mart, a butchery, a pharmacy, a
@@ -90,6 +99,7 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   ...SERVICE_STORE_TYPES,
   ...FOOD_STORE_TYPES,
   ...LODGING_STORE_TYPES,
+  ...CLINIC_STORE_TYPES,
 ];
 
 type StoreTypeSource = {
@@ -212,6 +222,15 @@ export function isPharmacyBusiness(
   return getBusinessStoreTypes(source).includes("pharmacy");
 }
 
+/** True when one of the business's formats is a clinic: it has the Clinic section. */
+export function isClinicBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return getBusinessStoreTypes(source).some((type) =>
+    (CLINIC_STORE_TYPES as readonly string[]).includes(type),
+  );
+}
+
 /** True when any selected format lets rooms: the business has a front desk. */
 export function isLodgingBusiness(
   source: StoreTypeSource | null | undefined,
@@ -312,7 +331,8 @@ export function serviceStationLabel(
   if (types.includes("barbershop") || types.includes("salon")) {
     return "Chair";
   }
-  if (types.includes("spa")) {
+  if (types.includes("spa") || types.includes("clinic")) {
+    // A clinic sees patients in rooms; a chemist with a consulting corner has one.
     return "Room";
   }
   return types.includes("nail-studio") || types.includes("beauty-parlour")

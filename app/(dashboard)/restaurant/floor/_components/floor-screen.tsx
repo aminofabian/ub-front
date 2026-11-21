@@ -204,7 +204,7 @@ export function FloorScreen(rights: FloorRights) {
   const sendHint = `Nothing is ${voice.making} until you send it.`;
   const [floor, setFloor] = useState<FloorRecord | null>(null);
   const [stale, setStale] = useState(false);
-  const [floorFilter, setFloorFilter] = useState<"all" | "attention" | "seated" | "free">("all");
+  const [floorFilter, setFloorFilter] = useState<"all" | "mine" | "attention" | "seated" | "free">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [seating, setSeating] = useState<RestaurantTableRecord | null>(null);
   const [starting, setStarting] = useState<"TAB" | "TAKEAWAY" | "DELIVERY" | "BOOKING" | null>(null);
@@ -270,16 +270,29 @@ export function FloorScreen(rights: FloorRights) {
     let booked = 0;
     let free = 0;
     let attention = 0;
-    for (const { orders } of floor?.tables ?? []) {
+    let mine = 0;
+    const me = floor?.myStaffProfileId ?? null;
+    for (const { table, orders } of floor?.tables ?? []) {
       const live = orders.filter((o) => !o.booked);
       if (live.length > 0) seated += 1;
       else if (orders.length > 0) booked += 1;
       else free += 1;
       if (live.some(needsSomeone)) attention += 1;
+      if (me && (table.waiterStaffProfileId === me || live.some((o) => o.servedByStaffProfileId === me))) mine += 1;
     }
     attention += (floor?.otherOrders ?? []).filter(needsSomeone).length;
-    return { seated, booked, free, attention };
+    return { seated, booked, free, attention, mine };
   }, [floor]);
+
+  /** A table or an order is "mine" when I wait it or the order is served by me. */
+  const isMine = useCallback(
+    (table: RestaurantTableRecord | null, orders: OrderCardRecord[]) => {
+      const me = floor?.myStaffProfileId ?? null;
+      if (!me) return false;
+      return table?.waiterStaffProfileId === me || orders.some((o) => !o.booked && o.servedByStaffProfileId === me);
+    },
+    [floor?.myStaffProfileId],
+  );
 
   // Orders left open from an earlier day — the "why is table 4 still here from Tuesday?" case.
   const carriedOver = useMemo(() => {
@@ -424,6 +437,15 @@ export function FloorScreen(rights: FloorRights) {
           {/* The room: every table, by the part of the restaurant it stands in. */}
           <div className="lg:col-span-8 xl:col-span-9">
           <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b px-4 py-2.5 text-[12px] sm:px-5", FLOOR_RULE)}>
+            {floor.myStaffProfileId ? (
+              <FloorChip
+                label="my tables"
+                count={tally.mine}
+                tone="forest"
+                active={floorFilter === "mine"}
+                onToggle={() => setFloorFilter((f) => (f === "mine" ? "all" : "mine"))}
+              />
+            ) : null}
             <FloorChip
               label="seated"
               count={tally.seated}
@@ -481,7 +503,10 @@ export function FloorScreen(rights: FloorRights) {
                   const takenToday = takenByTable.get(table.id) ?? 0;
                   // A filter dims the tables it excludes rather than hiding them, so the room keeps
                   // its shape and a seated table never vanishes mid-service.
-                  const dimmed = floorFilter !== "all" && tableStatus(orders) !== floorFilter;
+                  const dimmed =
+                    floorFilter === "mine"
+                      ? !isMine(table, orders)
+                      : floorFilter !== "all" && tableStatus(orders) !== floorFilter;
                   return (
                     <li key={table.id} className={cn(dimmed && "opacity-35 transition-opacity")}>
                       <button
@@ -615,7 +640,7 @@ export function FloorScreen(rights: FloorRights) {
                   const tabs = floor.otherOrders.filter(isTab);
                   const rest = floor.otherOrders.filter((o) => !isTab(o));
                   const renderRow = (o: OrderCardRecord) => (
-                    <li key={o.orderId}>
+                    <li key={o.orderId} className={cn(floorFilter === "mine" && !isMine(null, [o]) && "opacity-35")}>
                       <button
                         type="button"
                         className={cn(
@@ -822,7 +847,7 @@ function StartOrderDialog({
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -1061,7 +1086,7 @@ function TablesDialog({
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Tables</DialogTitle>
           <DialogDescription>

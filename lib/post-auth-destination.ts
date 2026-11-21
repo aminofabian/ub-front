@@ -12,6 +12,7 @@ import {
   isButcheryOnlyBusiness,
   isFoodOnlyBusiness,
   isGroceryOperationsBusiness,
+  isClinicBusiness,
   isPharmacyBusiness,
   isTableServiceBusiness,
   type StoreTypeId,
@@ -189,6 +190,13 @@ function dedicatedRoleHome(
   }
   if (roleKey === "stock_manager") {
     return `${APP_ROUTES.inventoryStock}?view=levels`;
+  }
+  if (
+    (roleKey === "clinician" || roleKey === "nurse" || roleKey === "clinic_receptionist") &&
+    isClinicBusiness(business)
+  ) {
+    // Clinic staff work from the Today list; a clinician or nurse has no till at all.
+    return APP_ROUTES.clinic;
   }
   if (roleKey === "pharmacist" && isPharmacyBusiness(business)) {
     // A pharmacist signs in to what needs them: records to check, stock to deal with. The till
@@ -426,6 +434,7 @@ export function formatBusinessStoreTypesLabel(
     "fast-food": "Fast food / takeaway",
     bar: "Bar",
     lodging: "Guest house",
+    clinic: "Clinic",
   };
   const types = getBusinessStoreTypes(business);
   if (types.length === 0) {

@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { ShelfBuyingShareInput } from "@/app/(dashboard)/products/_components/buying-share-field";
 import { showConfirmModal } from "@/components/confirm-modal";
 import {
   DashboardAccessDenied,
@@ -78,6 +79,19 @@ export default function ItemTypesPage() {
 
   // feedback
   const [feedback, setFeedback] = useState<Feedback>(null);
+
+  const saveDepartmentMarkup = useCallback(async (id: string, pct: number | null) => {
+    try {
+      const updated = await updateItemType(
+        id,
+        pct == null ? { clearDefaultMarkup: true } : { defaultMarkupPct: pct },
+      );
+      setRows((prev) => prev.map((row) => (row.id === id ? updated : row)));
+    } catch {
+      setFeedback({ kind: "error", text: "Couldn't save the markup." });
+      throw new Error("markup");
+    }
+  }, []);
 
   // drawers
   const [createOpen, setCreateOpen] = useState(false);
@@ -495,6 +509,15 @@ export default function ItemTypesPage() {
                         </span>
                       </div>
 
+                      <label className="flex items-center gap-2 text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]">
+                        Markup %
+                        <ShelfBuyingShareInput
+                          name={row.label}
+                          value={row.defaultMarkupPct}
+                          disabled={!canWrite}
+                          onSave={(pct) => saveDepartmentMarkup(row.id, pct)}
+                        />
+                      </label>
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px]">
                         {row.color ? (
                           <span className="inline-flex items-center gap-1.5 text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
@@ -586,6 +609,9 @@ export default function ItemTypesPage() {
                       <th scope="col" className="px-3 py-2 font-semibold">
                         Default
                       </th>
+                      <th scope="col" className="px-3 py-2 text-right font-semibold">
+                        Markup %
+                      </th>
                       <th
                         scope="col"
                         className="px-3 py-2 text-right font-semibold"
@@ -676,6 +702,14 @@ export default function ItemTypesPage() {
                               &mdash;
                             </span>
                           )}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <ShelfBuyingShareInput
+                            name={row.label}
+                            value={row.defaultMarkupPct}
+                            disabled={!canWrite}
+                            onSave={(pct) => saveDepartmentMarkup(row.id, pct)}
+                          />
                         </td>
                         <td className="px-3 py-1.5 text-right">
                           {canWrite ? (

@@ -5236,6 +5236,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurant/open-orders/{orderId}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurant/open-orders/{orderId}/move": {
         parameters: {
             query?: never;
@@ -6772,6 +6788,54 @@ export interface paths {
         put?: never;
         post: operations["order"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/table-orders/{token}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["tableOrderStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/table-orders/{token}/bill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["askForBill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/businesses/{slug}/table-orders/{token}/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeTableOrderLine"];
         options?: never;
         head?: never;
         patch?: never;
@@ -21099,6 +21163,10 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            innerPackUnit?: string;
+            innerPackCount?: number;
+            baseUnitsPerInner?: number;
+            defaultPurchase?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -22378,6 +22446,7 @@ export interface components {
             payoutTillNumber?: string;
             payoutPaybillNumber?: string;
             payoutPaybillAccount?: string;
+            defaultMarkupPct?: number;
         };
         SupplierResponse: {
             id?: string;
@@ -22413,6 +22482,7 @@ export interface components {
             updatedAt?: string;
             /** Format: date-time */
             deletedAt?: string;
+            defaultMarkupPct?: number;
         };
         CreateSupplierPortalInviteResponse: {
             inviteId?: string;
@@ -22628,6 +22698,11 @@ export interface components {
             supplierLineStatus?: string;
             qtyAccepted?: number;
             supplierNote?: string;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            baseUnit?: string;
         };
         SupplierPortalShipRequest: {
             deliveryStatus: string;
@@ -24621,9 +24696,12 @@ export interface components {
             /** Format: date-time */
             clientSoldAt?: string;
             customerId?: string;
+            /** @description Notes the customer handed over. On a cash sale this is at least the amount due. On a split it only has to cover the cash payment — the rest of the bill may be M-Pesa or wallet. Change is this minus the cash payment. */
             cashReceived?: number;
             allowOutOfStock?: boolean;
             tips?: components["schemas"]["PostSaleTipRequest"][];
+            /** @description The name a counter order is called by, e.g. "Kevin". Not a customer record and never a phone number; it is shown on the counter's pass and the kitchen ticket. */
+            customerName?: string;
         };
         PostVoidSaleRequest: {
             notes?: string;
@@ -24996,6 +25074,8 @@ export interface components {
             /** Format: int32 */
             linesReady?: number;
             lineNames?: string[];
+            /** @description The name the order is called by, if one was given at the counter. */
+            customerName?: string;
         };
         OpenOrderRequest: {
             branchId: string;
@@ -25014,6 +25094,17 @@ export interface components {
             /** Format: date-time */
             scheduledEnd?: string;
             deliveryFee?: number;
+        };
+        OrderActivityResponse: {
+            id?: string;
+            /** Format: date-time */
+            at?: string;
+            /** @description ORDER_LINE_CANCELLED, ORDER_MOVED, ORDER_MERGED, ORDER_CANCELLED, ORDER_SERVED_BY_CHANGED, BILL_COMP or BILL_UNPAID. */
+            action?: string;
+            lineId?: string;
+            userId?: string;
+            userName?: string;
+            detail?: string;
         };
         BillLineResponse: {
             orderLineId?: string;
@@ -25301,6 +25392,8 @@ export interface components {
             stage?: string;
             /** Format: date-time */
             readyAt?: string;
+            /** Format: int32 */
+            seatNo?: number;
         };
         KitchenTicketResponse: {
             id?: string;
@@ -25317,6 +25410,11 @@ export interface components {
             /** Format: date-time */
             readyAt?: string;
             lines?: components["schemas"]["KitchenLineResponse"][];
+            /** @description DINE_IN, TAKEAWAY, DELIVERY, COUNTER or LODGING; absent on a ticket made before V433. */
+            orderChannel?: string;
+            tableName?: string;
+            /** @description The name a counter order is called by; never a phone number. */
+            customerName?: string;
         };
         KitchenPrintJobResponse: {
             id?: string;
@@ -25515,6 +25613,11 @@ export interface components {
             /** Format: date */
             draftExpiryDate?: string;
             packOptionId?: string;
+            draftLotNumber?: string;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
         };
         PathBSessionDetailResponse: {
             id?: string;
@@ -25536,6 +25639,10 @@ export interface components {
             expiryDate?: string;
             purchaseQty?: number;
             purchaseUnit?: string;
+            lotNumber?: string;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            packOptionId?: string;
         };
         PostPathBRequest: {
             lines: components["schemas"]["PostPathBLineBreakdown"][];
@@ -25561,6 +25668,11 @@ export interface components {
             /** Format: date */
             draftExpiryDate?: string;
             packOptionId?: string;
+            draftLotNumber?: string;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
         };
         CreatePathAPurchaseOrderRequest: {
             supplierId: string;
@@ -25600,6 +25712,12 @@ export interface components {
             supplierLineStatus?: string;
             qtyAccepted?: number;
             supplierNote?: string;
+            packOptionId?: string;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            baseUnit?: string;
         };
         NotifyPurchaseOrderRequest: {
             notifyAdmin?: boolean;
@@ -25621,6 +25739,11 @@ export interface components {
             itemId: string;
             qtyOrdered: number;
             unitEstimatedCost: number;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            packOptionId?: string;
         };
         PostGoodsReceiptLineInput: {
             purchaseOrderLineId: string;
@@ -25951,6 +26074,30 @@ export interface components {
             /** Format: int32 */
             added?: number;
             total?: number;
+        };
+        PublicStatusLine: {
+            /** @description The order line, so a line the diner added can be removed before staff send it. */
+            id?: string;
+            name?: string;
+            quantity?: number;
+            amount?: number;
+            /** @description DRAFT, NEW, PREPARING, READY, SERVED or VOIDED. */
+            stage?: string;
+            /** @description True only for a line this table's phone added that staff have not sent. */
+            removable?: boolean;
+        };
+        PublicOrderStatus: {
+            shopName?: string;
+            tableName?: string;
+            currency?: string;
+            /** Format: int64 */
+            orderNumber?: number;
+            status?: string;
+            billRequested?: boolean;
+            total?: number;
+            /** @description The part of the total not on a paid or closed bill. */
+            due?: number;
+            lines?: components["schemas"]["PublicStatusLine"][];
         };
         PickupMtaaniQuoteRequest: {
             mode: string;
@@ -26801,6 +26948,10 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            innerPackUnit?: string;
+            innerPackCount?: number;
+            baseUnitsPerInner?: number;
+            defaultPurchase?: boolean;
         };
         CreateVariantRequest: {
             sku?: string;
@@ -26999,6 +27150,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             isDefault?: boolean;
+            defaultMarkupPct?: number;
         };
         ItemTypeResponse: {
             id?: string;
@@ -27010,6 +27162,7 @@ export interface components {
             sortOrder?: number;
             active?: boolean;
             isDefault?: boolean;
+            defaultMarkupPct?: number;
         };
         PostStandaloneWastageRequest: {
             branchId: string;
@@ -27728,6 +27881,8 @@ export interface components {
             payments: components["schemas"]["PostSalePaymentRequest"][];
             customerId?: string;
             additionalLines?: components["schemas"]["PostSaleLineRequest"][];
+            /** @description Notes handed over when the invoice is paid with cash, including a split. Change is this amount minus the cash payment. */
+            cashReceived?: number;
         };
         PayGroceryInvoiceResponse: {
             invoiceId?: string;
@@ -29260,6 +29415,8 @@ export interface components {
             payoutPaybillNumber?: string;
             payoutPaybillAccount?: string;
             kopokopoExternalRecipientUrl?: string;
+            defaultMarkupPct?: number;
+            clearDefaultMarkup?: boolean;
         };
         PatchSupplierContactRequest: {
             name?: string;
@@ -29869,6 +30026,11 @@ export interface components {
             sortOrder?: number;
             usableQty?: number;
             wastageQty?: number;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            baseUnit?: string;
         };
         PatchPathBSessionRequest: {
             /** Format: date-time */
@@ -29879,6 +30041,11 @@ export interface components {
         UpdatePathAPurchaseOrderLineRequest: {
             qtyOrdered?: number;
             unitEstimatedCost?: number;
+            purchaseUnit?: string;
+            purchaseQty?: number;
+            unitsPerPurchaseUnit?: number;
+            packPrice?: number;
+            packOptionId?: string;
         };
         PatchCheckoutDeliveryRequest: {
             county?: string;
@@ -29964,6 +30131,10 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             active?: boolean;
+            innerPackUnit?: string;
+            innerPackCount?: number;
+            baseUnitsPerInner?: number;
+            defaultPurchase?: boolean;
         };
         PatchItemRequest: {
             expectedUpdatedAt?: string;
@@ -30010,6 +30181,8 @@ export interface components {
             sortOrder?: number;
             active?: boolean;
             isDefault?: boolean;
+            defaultMarkupPct?: number;
+            clearDefaultMarkup?: boolean;
         };
         PatchSupplyBatchRequest: {
             batchName?: string;
@@ -32565,6 +32738,8 @@ export interface components {
             asOf?: string;
             tables?: components["schemas"]["FloorTable"][];
             otherOrders?: components["schemas"]["OrderCard"][];
+            /** @description The caller's own staff profile, for filtering the floor to their tables; absent when they have no staff profile at this business. */
+            myStaffProfileId?: string;
         };
         FloorTable: {
             table?: components["schemas"]["TableResponse"];
@@ -45887,6 +46062,28 @@ export interface operations {
             };
         };
     };
+    activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What has happened to this order, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderActivityResponse"][];
+                };
+            };
+        };
+    };
     move: {
         parameters: {
             query?: never;
@@ -48414,6 +48611,76 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PublicOrderConfirmation"];
+                };
+            };
+        };
+    };
+    tableOrderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What the table has ordered and what is left to pay */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicOrderStatus"];
+                };
+            };
+        };
+    };
+    askForBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bill was asked for (or already had been) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicOrderStatus"];
+                };
+            };
+        };
+    };
+    removeTableOrderLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+                lineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The line was taken off; the table's order is returned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicOrderStatus"];
                 };
             };
         };

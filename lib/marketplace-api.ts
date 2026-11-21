@@ -291,6 +291,12 @@ export type SupplierPortalOrderLine = {
   supplierLineStatus: string | null;
   qtyAccepted: number | null;
   supplierNote: string | null;
+  /** Packaging as ordered (null for legacy orders). */
+  purchaseUnit?: string | null;
+  purchaseQty?: number | string | null;
+  unitsPerPurchaseUnit?: number | string | null;
+  packPrice?: number | string | null;
+  baseUnit?: string | null;
 };
 
 export type SupplierPortalShopProduct = {

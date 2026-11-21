@@ -413,6 +413,8 @@ export function useProductMutations(d: Dependencies) {
           stock: number;
           imageFile?: File | null;
         }>;
+        /** Used when the buying-price field was left blank. */
+        buyingPrice?: string;
       },
     ) => {
       e.preventDefault();
@@ -453,6 +455,7 @@ export function useProductMutations(d: Dependencies) {
           return;
         }
         const groupOptions = opts?.groupOptions ?? [];
+        const buyingRaw = opts?.buyingPrice ?? parentDraft.buyingPrice;
         if (isCreatingGroup && groupOptions.length === 0) {
           setMessage("Add at least one option with a name and sell price.");
           return;
@@ -539,7 +542,7 @@ export function useProductMutations(d: Dependencies) {
               isSellable: parentDraft.isSellable,
               isStocked:
                 parentDraft.isStocked || Boolean(parentDraft.openingQty.trim()),
-              buyingPrice: parseNum(parentDraft.buyingPrice, "Buy price"),
+              buyingPrice: parseNum(buyingRaw, "Buy price"),
               bundleQty: parseNum(parentDraft.bundleQty, "Pack qty", true),
               bundlePrice: parseNum(parentDraft.bundlePrice, "Sell price"),
               ...(parentDraft.bundleName.trim()
@@ -581,7 +584,7 @@ export function useProductMutations(d: Dependencies) {
             return;
           }
 
-          const buyingPrice = parseNum(parentDraft.buyingPrice, "Buy price");
+          const buyingPrice = parseNum(buyingRaw, "Buy price");
           const sellingPrice = parseNum(parentDraft.bundlePrice, "Sell price");
           const packQty = Math.max(
             1,
@@ -773,7 +776,7 @@ export function useProductMutations(d: Dependencies) {
         if (!isCreatingGroup && canLinkSupplier && sup) {
           const cost =
             parseNum(parentDraft.defaultCostPrice, "Default cost") ??
-            parseNum(parentDraft.buyingPrice, "Buy price");
+            parseNum(buyingRaw, "Buy price");
           try {
             await addItemSupplierLink(created.id, {
               supplierId: sup,
@@ -949,7 +952,7 @@ export function useProductMutations(d: Dependencies) {
             setMessage("Opening quantity must be a positive number.");
           } else {
             const ucRaw = parentDraft.openingUnitCost.trim();
-            const buy = parseNum(parentDraft.buyingPrice, "Buy price");
+            const buy = parseNum(buyingRaw, "Buy price");
             const packQty = Math.max(
               1,
               parseNum(parentDraft.bundleQty, "Pack qty", true) ?? 1,
@@ -2203,6 +2206,11 @@ export function useProductMutations(d: Dependencies) {
     suppliersForLink,
     suppliersLoading,
     loadSuppliersForLink,
+    upsertSupplierForLink: (supplier: SupplierRecord) => {
+      setSuppliersForLink((prev) =>
+        prev.map((row) => (row.id === supplier.id ? supplier : row)),
+      );
+    },
     pendingCatalogImage,
     setPendingCatalogImage,
     pendingVariantImage,

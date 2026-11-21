@@ -6,6 +6,12 @@
 export type SupplyPackMode = {
   unitsPerPack: number;
   packUnit: string;
+  /** Save this custom shape to the product when it is not a saved option yet. */
+  remember?: boolean;
+  /** Optional second packaging level (outer → inner → base item). */
+  innerPackUnit?: string | null;
+  innerPackCount?: number | null;
+  baseUnitsPerInner?: number | null;
 };
 
 function toPositive(raw: string | number | null | undefined): number | null {
@@ -135,4 +141,28 @@ export function toUnitEntry(
     unitStr:
       packPrice != null ? formatSupplyMoney(packPrice / size) : unitStr,
   };
+}
+
+/**
+ * Human label for a posted receipt line's packaging snapshot:
+ * "2 × carton · 24 per carton · 1,200.00 per carton = 48 units".
+ * Returns null for legacy lines that were posted before packaging was recorded.
+ */
+export function supplyPackSnapshotLabel(line: {
+  purchaseUnit?: string | null;
+  purchaseQty?: number | string | null;
+  unitsPerPurchaseUnit?: number | string | null;
+  packPrice?: number | string | null;
+  baseUnit?: string | null;
+}): string | null {
+  const unit = line.purchaseUnit?.trim();
+  const packs = toPositive(line.purchaseQty);
+  const units = toPositive(line.unitsPerPurchaseUnit);
+  if (!unit || packs == null || units == null || units <= 1) return null;
+  const total = Math.round(packs * units * 10000) / 10000;
+  const price = toNonNeg(line.packPrice);
+  const base = line.baseUnit?.trim() || "units";
+  const plural = Math.abs(packs - 1) < 0.0001 ? unit : `${unit}s`;
+  const pricePart = price != null ? ` · ${formatSupplyMoney(price)} per ${unit}` : "";
+  return `${formatSupplyQty(packs)} × ${plural}${pricePart} · ${formatSupplyQty(units)} per ${unit} = ${formatSupplyQty(total)} ${base}`;
 }

@@ -1061,6 +1061,8 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   imageKey?: string | null;
   images?: ItemImageRecord[];
   variants?: ItemSummaryRecord[];
+  /** Purchase packaging shapes on the item (ADR 0036); unit purchase is the absence of a row. */
+  packs?: ItemPackOptionRecord[];
 };
 
 export type ItemTypeRecord = {
@@ -1072,6 +1074,8 @@ export type ItemTypeRecord = {
   sortOrder: number;
   active: boolean;
   isDefault: boolean;
+  /** Markup on cost. 25 means the selling price is 125% of the buying price. Empty means no default. */
+  defaultMarkupPct?: number | string | null;
 };
 
 export type CategorySupplierSummaryRecord = {
@@ -1834,6 +1838,7 @@ export type CreateItemTypePayload = {
   color?: string;
   sortOrder?: number;
   isDefault?: boolean;
+  defaultMarkupPct?: number | null;
 };
 
 export type AddItemSupplierLinkPayload = {
@@ -4387,7 +4392,10 @@ export async function createItemType(
 
 export async function updateItemType(
   id: string,
-  body: Partial<CreateItemTypePayload> & { active?: boolean },
+  body: Partial<CreateItemTypePayload> & {
+    active?: boolean;
+    clearDefaultMarkup?: boolean;
+  },
 ): Promise<ItemTypeRecord> {
   return request<ItemTypeRecord>(
     `${API_ROUTES.itemTypes}/${encodeURIComponent(id)}`,
@@ -6144,6 +6152,12 @@ export type ItemPackOptionRecord = {
   skuSuffix: string | null;
   sortOrder: number;
   active: boolean;
+  /** Optional second packaging level: outer unit → inner package → base item. */
+  innerPackUnit?: string | null;
+  innerPackCount?: number | string | null;
+  baseUnitsPerInner?: number | string | null;
+  /** Pre-selected purchase unit on new receipts; at most one per item. */
+  defaultPurchase?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -6158,6 +6172,11 @@ export type CreateItemPackOptionPayload = {
   skuSuffix?: string | null;
   sortOrder?: number;
   active?: boolean;
+  /** Outer unit → inner package → base item (all three or none). */
+  innerPackUnit?: string | null;
+  innerPackCount?: number | null;
+  baseUnitsPerInner?: number | null;
+  defaultPurchase?: boolean;
 };
 
 export type PatchItemPackOptionPayload = Partial<CreateItemPackOptionPayload>;
@@ -11910,6 +11929,8 @@ export type PostSalePayload = {
   tips?: PostSaleTipPayload[];
   /** Dispensing details when the cart holds prescription-only or controlled medicines. */
   dispensing?: SaleDispensingPayload;
+  /** The name a counter order is called by ("Kevin"). Not a customer record; never a phone number. */
+  customerName?: string | null;
 };
 
 export type SaleItemResponseRecord = {
@@ -12452,6 +12473,11 @@ export type PathBLineRecord = {
   packOptionId?: string | null;
   /** Manufacturer's lot number typed on the draft line. */
   draftLotNumber?: string | null;
+  /** Packaging as entered, so a reloaded draft still reads "5 cartons × 24". */
+  purchaseUnit?: string | null;
+  purchaseQty?: number | string | null;
+  unitsPerPurchaseUnit?: number | string | null;
+  packPrice?: number | string | null;
 };
 
 export type PathBSessionDetailRecord = {
@@ -12479,6 +12505,14 @@ export type AddPathBLinePayload = {
   packOptionId?: string | null;
   /** Manufacturer's lot number; required at post time when the item is a medicine. */
   draftLotNumber?: string | null;
+  /** Purchase unit typed at receive time ("carton", "bale", "sack"…). */
+  purchaseUnit?: string | null;
+  /** Number of purchase units bought; null = legacy unit-mode line. */
+  purchaseQty?: number | string | null;
+  /** Base items in one purchase unit; required for inline custom packs. */
+  unitsPerPurchaseUnit?: number | string | null;
+  /** Price of one purchase unit; derived from the line total when absent. */
+  packPrice?: number | string | null;
 };
 
 export type PatchPathBSessionPayload = {
@@ -12499,6 +12533,12 @@ export type PostPathBLineBreakdownPayload = {
   /** As-entered purchase qty/unit — server validates conversion when present. */
   purchaseQty?: number | string;
   purchaseUnit?: string;
+  /** Base items per purchase unit; must match the stored draft-line snapshot. */
+  unitsPerPurchaseUnit?: number | string;
+  /** Price of one purchase unit, kept on the posted invoice line. */
+  packPrice?: number | string;
+  /** Saved pack option used at receive time, kept on the posted invoice line. */
+  packOptionId?: string | null;
 };
 
 export type PostPathBPayload = {
@@ -12536,6 +12576,13 @@ export type PathAPurchaseOrderLineRecord = {
   supplierLineStatus?: string | null;
   qtyAccepted?: number | string | null;
   supplierNote?: string | null;
+  /** Packaging as ordered (null for legacy lines). */
+  packOptionId?: string | null;
+  purchaseUnit?: string | null;
+  purchaseQty?: number | string | null;
+  unitsPerPurchaseUnit?: number | string | null;
+  packPrice?: number | string | null;
+  baseUnit?: string | null;
 };
 
 export type PathAPurchaseOrderDetailRecord = {
@@ -12730,6 +12777,12 @@ export async function postPathAPurchaseOrderLine(
     itemId: string;
     qtyOrdered: number | string;
     unitEstimatedCost: number | string;
+    /** Packaging as ordered; qtyOrdered stays in base units. */
+    purchaseUnit?: string | null;
+    purchaseQty?: number | string | null;
+    unitsPerPurchaseUnit?: number | string | null;
+    packPrice?: number | string | null;
+    packOptionId?: string | null;
   },
 ): Promise<PathAPurchaseOrderLineRecord> {
   return request<PathAPurchaseOrderLineRecord>(
@@ -12744,6 +12797,11 @@ export async function patchPathAPurchaseOrderLine(
   body: {
     qtyOrdered?: number | string;
     unitEstimatedCost?: number | string;
+    purchaseUnit?: string | null;
+    purchaseQty?: number | string | null;
+    unitsPerPurchaseUnit?: number | string | null;
+    packPrice?: number | string | null;
+    packOptionId?: string | null;
   },
 ): Promise<PathAPurchaseOrderLineRecord> {
   return request<PathAPurchaseOrderLineRecord>(
@@ -13038,6 +13096,12 @@ export type PathBSupplyInvoiceLineRecord = {
   sortOrder: number;
   usableQty: number | string;
   wastageQty: number | string;
+  /** Packaging snapshot captured when the receipt was posted (null for legacy lines). */
+  purchaseUnit?: string | null;
+  purchaseQty?: number | string | null;
+  unitsPerPurchaseUnit?: number | string | null;
+  packPrice?: number | string | null;
+  baseUnit?: string | null;
 };
 
 export type PathBSupplyExpenseRecord = {
@@ -13671,6 +13735,8 @@ export type SupplierRecord = {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
+  /** Markup on cost. Wins over the category and department when this supplier is chosen. */
+  defaultMarkupPct?: number | string | null;
 };
 
 export type SupplierContactRecord = {
@@ -13701,6 +13767,7 @@ export type CreateSupplierPayload = {
   payoutTillNumber?: string;
   payoutPaybillNumber?: string;
   payoutPaybillAccount?: string;
+  defaultMarkupPct?: number | null;
 };
 
 export type PatchSupplierPayload = {
@@ -13720,6 +13787,8 @@ export type PatchSupplierPayload = {
   payoutTillNumber?: string | null;
   payoutPaybillNumber?: string | null;
   payoutPaybillAccount?: string | null;
+  defaultMarkupPct?: number | null;
+  clearDefaultMarkup?: boolean;
 };
 
 export type CreateSupplierContactPayload = {

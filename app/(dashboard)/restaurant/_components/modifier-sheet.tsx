@@ -22,23 +22,33 @@ function ruleLabel(group: ModifierGroupRecord): string {
 export function ModifierSheet({
   item,
   groups,
+  initial,
+  actionLabel = "Add",
   onClose,
   onAdd,
 }: {
   item: MenuItemRecord;
   groups: ModifierGroupRecord[];
+  /** A line being changed: its choices, note and quantity are shown as they are. */
+  initial?: { optionIds: string[]; note: string; quantity: number };
+  /** "Add" when ringing, "Save" when changing a line already on the order. */
+  actionLabel?: string;
   onClose: () => void;
   onAdd: (choice: { unitPrice: number; optionIds: string[]; optionNames: string[]; note: string; quantity: number }) => void;
 }) {
-  const [selected, setSelected] = useState<string[]>(() => defaultSelection(groups));
-  const [note, setNote] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [selected, setSelected] = useState<string[]>(() =>
+    initial
+      ? initial.optionIds.filter((id) => groups.some((g) => g.options.some((o) => o.id === id && o.available)))
+      : defaultSelection(groups),
+  );
+  const [note, setNote] = useState(initial?.note ?? "");
+  const [quantity, setQuantity] = useState(initial?.quantity ?? 1);
   const priced = useMemo(() => priceSelection(item, groups, selected), [item, groups, selected]);
   const problem = selectionProblem(groups, selected);
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{item.name}</DialogTitle>
           <DialogDescription>
@@ -143,7 +153,7 @@ export function ModifierSheet({
               })
             }
           >
-            Add · {kes(priced.unitPrice * quantity)}
+            {actionLabel} · {kes(priced.unitPrice * quantity)}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -38,7 +38,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
   if (visible.length === 0) return null;
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-1.5">
       <HubSectionLabel
         title="Open work"
         className="px-0.5"
@@ -93,7 +93,7 @@ export function OpenWorkBoard({ columns }: { columns: OpenWorkColumn[] }) {
 
       <div className="sm:hidden">{active?.panel}</div>
 
-      <div className="hidden flex-wrap items-start gap-3.5 sm:flex">
+      <div className="hidden flex-wrap items-start gap-2 sm:flex">
         {visible.map((column) => (
           <div
             key={column.id}

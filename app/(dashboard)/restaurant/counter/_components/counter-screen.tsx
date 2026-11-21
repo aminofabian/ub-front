@@ -17,8 +17,10 @@ import {
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
-import { tryPostSaleWithRetries, type SaleRecord } from "@/lib/api";
+import { postVoidSale, tryPostSaleWithRetries, type SaleRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { formatMoney } from "@/lib/money";
@@ -48,11 +50,13 @@ import {
   cartTotal,
   elapsedLabel,
   groupsFor,
+  round2,
   tileState,
   type OrderCartLine,
 } from "@/lib/restaurant-cart";
 import { enqueuePendingSale, flushSaleOutbox, isSaleOutboxSupported } from "@/lib/sale-outbox";
 import { COUNTER_VOICES, type CounterVoice } from "@/lib/food-till";
+import { localPrinter, printSaleReceiptOnThisDevice } from "@/lib/restaurant-print";
 import { requestSetup } from "@/lib/setup-requirements";
 
 import { OpenForTheDay } from "../../_components/open-for-the-day";
@@ -63,11 +67,33 @@ import { MENU_TILE as TILE, MENU_TILE_ON as TILE_ON, MenuPicker } from "../../_c
 import { MpesaRequest, mpesaRequestAmount } from "../../_components/mpesa-request";
 import { ModifierSheet } from "../../_components/modifier-sheet";
 import { NoBranch } from "../../_components/no-branch";
+import { ReasonDialog, type ReasonRequest } from "../../_components/reason-dialog";
 
 const kes = (n: number) => formatMoney(n, "KES");
 
+/** The sales this device rang, newest first: enough to reprint a receipt or undo a mis-rung order. */
+type RecentSale = {
+  saleId: string;
+  orderNumber: number | null;
+  receiptNo: number | null;
+  total: number;
+  at: string;
+  customerName?: string | null;
+  voided?: boolean;
+};
+
+const RECENT_LIMIT = 8;
+const recentKey = (branchId: string) => `kiosk:restaurant:recent:${branchId}:v1`;
+
 type Done =
-  | { kind: "paid"; sale: SaleRecord; total: number; change: number | null; orderNumber: number | null }
+  | {
+      kind: "paid";
+      sale: SaleRecord;
+      total: number;
+      change: number | null;
+      orderNumber: number | null;
+      customerName: string | null;
+    }
   | { kind: "queued"; total: number; lines: OrderCartLine[] }
   | { kind: "charged"; total: number; roomName: string | null; guestName: string | null };
 
@@ -96,14 +122,19 @@ export function CounterScreen({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cart, setCart] = useState<OrderCartLine[]>([]);
   const [choosing, setChoosing] = useState<MenuItemRecord | null>(null);
+  /** The line being changed: its choices, note and quantity are reopened in the sheet. */
+  const [editing, setEditing] = useState<OrderCartLine | null>(null);
   const [orders, setOrders] = useState<OrderSummaryRecord[]>([]);
   const [ordersStale, setOrdersStale] = useState(false);
   const [unprinted, setUnprinted] = useState<UnprintedTicketRecord[]>([]);
   const [reprinting, setReprinting] = useState<string | null>(null);
   const [handingOver, setHandingOver] = useState<string | null>(null);
   const [outboxProblem, setOutboxProblem] = useState<string | null>(null);
-  const [method, setMethod] = useState<"cash" | "mpesa_manual">("cash");
+  const [method, setMethod] = useState<"cash" | "mpesa_manual" | "both">("cash");
   const [cashReceived, setCashReceived] = useState("");
+  const [cashPart, setCashPart] = useState("");
+  /** Optional name the order is called by at the pass ("Kevin"); never a phone number. */
+  const [ticketName, setTicketName] = useState("");
   const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [needsShift, setNeedsShift] = useState(false);
@@ -112,12 +143,92 @@ export function CounterScreen({
   const [phoneAsked, setPhoneAsked] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [receiptProblem, setReceiptProblem] = useState<string | null>(null);
+  const [hasPrinter, setHasPrinter] = useState(false);
   // The "charge to the room" picker: null when closed, the in-house stays when open.
   const [roomPicker, setRoomPicker] = useState<InHouseStayRecord[] | null>(null);
   const [charging, setCharging] = useState(false);
   // One key per order: retrying after a dropped connection must not ring it twice.
   const saleKeyRef = useRef<string>(nextIdempotencyKey());
   const lineSeq = useRef(0);
+
+  // Whether this device has a receipt printer, so a shop without one is not shown a button that
+  // can only fail. The receipt bytes come from the server, so the paper matches the fiscal receipt.
+  useEffect(() => {
+    setHasPrinter(localPrinter() != null);
+  }, []);
+
+  const printReceipt = useCallback(async (saleId: string, cashReceived?: number | null) => {
+    setReceiptProblem(null);
+    try {
+      await printSaleReceiptOnThisDevice(saleId, cashReceived);
+    } catch (e) {
+      setReceiptProblem(e instanceof Error && e.message ? e.message : "The receipt did not print.");
+    }
+  }, []);
+
+  // The last few sales this device rang, kept on the device: a receipt can be reprinted, and a
+  // mis-rung order can be voided without hunting for it in Sales → Transactions.
+  const [recent, setRecent] = useState<RecentSale[]>([]);
+  const [voidAsk, setVoidAsk] = useState<ReasonRequest | null>(null);
+  const canVoidSale =
+    hasPermission(me?.permissions, Permission.SalesVoidOwn) || hasPermission(me?.permissions, Permission.SalesVoidAny);
+
+  useEffect(() => {
+    if (!branchId) return;
+    try {
+      const raw = window.localStorage.getItem(recentKey(branchId));
+      setRecent(raw ? (JSON.parse(raw) as RecentSale[]) : []);
+    } catch {
+      setRecent([]);
+    }
+  }, [branchId]);
+
+  function persistRecent(list: RecentSale[]) {
+    if (!branchId) return;
+    try {
+      window.localStorage.setItem(recentKey(branchId), JSON.stringify(list));
+    } catch {
+      // private mode: the list lasts for this visit
+    }
+  }
+
+  function rememberSale(row: RecentSale) {
+    setRecent((prev) => {
+      const next = [row, ...prev.filter((r) => r.saleId !== row.saleId)].slice(0, RECENT_LIMIT);
+      persistRecent(next);
+      return next;
+    });
+  }
+
+  function markVoided(saleId: string) {
+    setRecent((prev) => {
+      const next = prev.map((r) => (r.saleId === saleId ? { ...r, voided: true } : r));
+      persistRecent(next);
+      return next;
+    });
+  }
+
+  function askVoid(row: RecentSale) {
+    setVoidAsk({
+      title: `Void order ${row.orderNumber ?? row.receiptNo ?? ""}?`,
+      hint: "The sale is reversed, the kitchen is told to stop if it is still making it, and the drawer is adjusted. A reason is kept with it.",
+      confirm: "Void the sale",
+      required: true,
+      run: (reason) => {
+        void (async () => {
+          try {
+            await postVoidSale(row.saleId, { notes: reason });
+            markVoided(row.saleId);
+            toast.success("Sale voided.");
+            void loadOrders();
+          } catch (e) {
+            toast.error(e instanceof Error && e.message ? e.message : "The sale was not voided.");
+          }
+        })();
+      },
+    });
+  }
 
   const loadMenu = useCallback(async () => {
     if (!branchId) return;
@@ -214,6 +325,10 @@ export function CounterScreen({
   const total = cartTotal(cart);
   const cashNumber = cashReceived.trim() === "" ? null : Number(cashReceived);
   const change = method === "cash" && cashNumber != null && cashNumber >= total ? cashNumber - total : null;
+  // Paying part cash and part M-Pesa: the M-Pesa share is whatever the cash part does not cover.
+  const cashPartNumber = cashPart.trim() === "" ? null : Number(cashPart);
+  const mpesaDue = method === "both" ? round2(Math.max(0, total - (cashPartNumber ?? 0))) : total;
+  const editingItem = editing ? (menu?.items.find((i) => i.id === editing.menuItemId) ?? null) : null;
 
   const ASKED = "A payment request is on the customer's phone. Wait for it, or stop waiting, before changing the order.";
 
@@ -252,24 +367,36 @@ export function CounterScreen({
     );
   }
 
+  /** Reopen a rung line: its choices, note and quantity, then replace it in place. */
+  function startEditing(line: OrderCartLine) {
+    if (phoneAsked) return setError(ASKED);
+    if (!menu?.items.some((i) => i.id === line.menuItemId)) return;
+    setError(null);
+    setEditing(line);
+  }
+
   function reset() {
     saleKeyRef.current = nextIdempotencyKey();
     setCart([]);
     setCashReceived("");
+    setCashPart("");
+    setTicketName("");
+    setEditing(null);
     setReference("");
     setError(null);
     setNeedsShift(false);
     setDone(null);
+    setReceiptProblem(null);
     void loadOrders();
   }
 
   /** M-Pesa has confirmed a request for {@code asked}: record the order against its code. */
   function mpesaReceived(receipt: string, asked: number) {
     setReference(receipt);
-    if (asked < mpesaRequestAmount(total)) {
+    if (asked < mpesaRequestAmount(mpesaDue)) {
       // Cannot happen while the order is locked during the request; kept so money is never lost quietly.
       return setError(
-        `M-Pesa received ${kes(asked)} (code ${receipt}) but the order is ${kes(total)}. Take off what was added, then take payment.`,
+        `M-Pesa received ${kes(asked)} (code ${receipt}) but ${kes(mpesaDue)} is owed by M-Pesa. Check the cash part, then take payment.`,
       );
     }
     void pay(receipt);
@@ -282,23 +409,57 @@ export function CounterScreen({
     if (method === "cash" && cashNumber != null && cashNumber < total) {
       return setError(`That is less than ${kes(total)}`);
     }
+    if (method === "both" && (cashPartNumber == null || cashPartNumber <= 0 || cashPartNumber >= total)) {
+      return setError(`Type the cash part: more than zero and less than ${kes(total)}`);
+    }
     setError(null);
     setNeedsShift(false);
     setPaying(true);
+    const code = (confirmedReference ?? reference).trim();
+    // Some cash and the rest M-Pesa is one sale with two tenders, as on a table's bill.
+    const payments =
+      method === "both"
+        ? [
+            { method: "cash" as const, amount: round2(cashPartNumber ?? 0) },
+            { method: "mpesa_manual" as const, amount: mpesaDue, ...(code ? { reference: code } : {}) },
+          ]
+        : undefined;
     const payload = buildOrderSalePayload({
       branchId,
       cart,
-      method: confirmedReference ? "mpesa_manual" : method,
-      reference: confirmedReference ?? reference,
-      cashReceived: cashNumber,
+      method: method === "both" ? "cash" : confirmedReference ? "mpesa_manual" : method,
+      reference: code,
+      ...(payments ? { payments } : {}),
+      cashReceived: method === "cash" ? cashNumber : null,
+      customerName: ticketName.trim() || undefined,
       soldAt: new Date(),
     });
     const key = saleKeyRef.current;
     try {
       const result = await tryPostSaleWithRetries(payload, key, 3, 400);
       if (result.ok) {
-        const order = await fetchOrderForSale(result.sale.id);
-        setDone({ kind: "paid", sale: result.sale, total, change, orderNumber: order?.orderNumber ?? null });
+        // The sale is already recorded; failing to read its order number back must not tell the
+        // cashier the sale failed (a retry would ring nothing new, but the customer is standing there).
+        let order: { orderNumber: number } | null = null;
+        try {
+          order = await fetchOrderForSale(result.sale.id);
+        } catch {
+          order = null;
+        }
+        const name = ticketName.trim() || null;
+        setDone({ kind: "paid", sale: result.sale, total, change, orderNumber: order?.orderNumber ?? null, customerName: name });
+        rememberSale({
+          saleId: result.sale.id,
+          orderNumber: order?.orderNumber ?? null,
+          receiptNo: result.sale.receiptNo ?? null,
+          total,
+          at: new Date().toISOString(),
+          customerName: name,
+        });
+        // The customer's receipt, on the till's own printer. Printed from the server's receipt so the
+        // paper carries the shop's name, the tax and the order number; a shop with no printer simply
+        // gets the button on the slip instead.
+        if (localPrinter()) void printReceipt(result.sale.id, method === "cash" ? cashNumber : null);
         return;
       }
       // Only a server that could not be reached is saved for later. A sale the server refused
@@ -426,6 +587,11 @@ export function CounterScreen({
                       <p className="font-mono text-[5.5rem] font-semibold leading-none tabular-nums text-[var(--op-ink,#121A16)]">
                         {done.orderNumber}
                       </p>
+                      {done.customerName ? (
+                        <p className="mt-1 font-serif text-xl italic text-[var(--op-ink,#121A16)]">
+                          {done.customerName}
+                        </p>
+                      ) : null}
                       <p className="mx-auto mt-3 max-w-[16rem] text-sm text-[var(--op-ink,#121A16)]">
                         {voice.sent}
                       </p>
@@ -438,6 +604,20 @@ export function CounterScreen({
                   {done.change != null && done.change > 0 ? (
                     <p className="mt-4 border-t border-dashed border-[rgba(18,26,22,0.28)] pt-3 text-sm">
                       Change <span className="font-mono text-lg font-semibold tabular-nums">{kes(done.change)}</span>
+                    </p>
+                  ) : null}
+                  {hasPrinter ? (
+                    <button
+                      type="button"
+                      className="mt-4 min-h-11 w-full border border-[rgba(18,26,22,0.28)] px-3 text-sm font-semibold"
+                      onClick={() => void printReceipt(done.sale.id, done.change != null ? done.total + done.change : null)}
+                    >
+                      Print receipt
+                    </button>
+                  ) : null}
+                  {receiptProblem ? (
+                    <p role="alert" className="mt-2 text-xs text-[#8f3f2f]">
+                      {receiptProblem}
                     </p>
                   ) : null}
                   <span
@@ -549,7 +729,7 @@ export function CounterScreen({
               DASHBOARD_TABLE_SURFACE,
               "grid grid-cols-[minmax(0,1fr)] lg:grid-cols-12",
               // On the till page the sheet is the whole screen under the rail.
-              bare && "xl:min-h-[calc(100dvh-7.5rem)]",
+              bare && "xl:min-h-[calc(100vh-7.5rem)]",
             )}
           >
             <section
@@ -627,6 +807,11 @@ export function CounterScreen({
                             {order.sentAt ? elapsedLabel(order.sentAt, now) : ""}
                           </span>
                         </div>
+                        {order.customerName ? (
+                          <p className="mt-1 truncate text-sm font-semibold text-[var(--op-ink,#121A16)]">
+                            {order.customerName}
+                          </p>
+                        ) : null}
                         <p className="mt-2 line-clamp-2 min-h-[2.5em] text-xs leading-snug text-[var(--op-ink,#121A16)] xl:min-h-0">
                           {order.lineNames.join(", ")}
                         </p>
@@ -651,6 +836,56 @@ export function CounterScreen({
                     ))}
                 </ul>
               )}
+              {recent.length > 0 ? (
+                <details className={cn("mt-3 border-t pt-2", COLUMN_RULE)}>
+                  <summary className="min-h-9 cursor-pointer text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--op-muted,#556159)]">
+                    Recent · {recent.length}
+                  </summary>
+                  <ul className="mt-2 grid gap-1">
+                    {recent.map((row) => (
+                      <li
+                        key={row.saleId}
+                        className={cn("flex items-center gap-2 text-sm", row.voided && "opacity-50")}
+                      >
+                        <span className="font-mono font-semibold tabular-nums">
+                          {row.orderNumber ?? row.receiptNo ?? "—"}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--op-muted,#556159)]">
+                          {row.customerName ? `${row.customerName} · ` : ""}
+                          {new Date(row.at).toLocaleTimeString("en-KE", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "Africa/Nairobi",
+                          })}
+                        </span>
+                        <span className="font-mono text-xs tabular-nums">{kes(row.total)}</span>
+                        {row.voided ? (
+                          <span className="text-[11px] font-semibold text-red-700">Voided</span>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="min-h-9 rounded-[2px] px-2 text-xs underline underline-offset-2"
+                              onClick={() => void printReceipt(row.saleId)}
+                            >
+                              Receipt
+                            </button>
+                            {canVoidSale ? (
+                              <button
+                                type="button"
+                                className="min-h-9 rounded-[2px] px-2 text-xs text-[var(--op-muted,#556159)] underline underline-offset-2 hover:text-red-700"
+                                onClick={() => askVoid(row)}
+                              >
+                                Void
+                              </button>
+                            ) : null}
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
             </section>
 
             <section
@@ -724,6 +959,13 @@ export function CounterScreen({
                             <button
                               type="button"
                               className="ml-auto min-h-10 rounded-[2px] px-2 text-xs text-[var(--op-muted,#556159)] underline underline-offset-2 hover:text-[var(--op-ink,#121A16)]"
+                              onClick={() => startEditing(line)}
+                            >
+                              Change
+                            </button>
+                            <button
+                              type="button"
+                              className="min-h-10 rounded-[2px] px-2 text-xs text-[var(--op-muted,#556159)] underline underline-offset-2 hover:text-[var(--op-ink,#121A16)]"
                               onClick={() =>
                                 phoneAsked ? setError(ASKED) : setCart((prev) => prev.filter((l) => l.key !== line.key))
                               }
@@ -736,6 +978,22 @@ export function CounterScreen({
                     </ul>
                   )}
                   <div className="my-3 border-t border-dashed border-[rgba(18,26,22,0.28)]" aria-hidden />
+                  {/* Called by name at the pass ("Kevin") instead of only by number. Optional, and
+                      never a phone number: the name rides on the order and the kitchen docket. */}
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--op-muted,#556159)]">
+                      Name (optional)
+                    </span>
+                    <input
+                      className={dashboardInputClass(false, "h-10 bg-transparent")}
+                      value={ticketName}
+                      maxLength={120}
+                      placeholder="Kevin"
+                      disabled={phoneAsked}
+                      onChange={(e) => setTicketName(e.target.value)}
+                    />
+                  </label>
+                  <div className="my-3 border-t border-dashed border-[rgba(18,26,22,0.28)]" aria-hidden />
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-[var(--op-muted,#556159)]">To pay</span>
                     <span className="font-mono text-[1.75rem] font-semibold leading-none tabular-nums text-[var(--op-ink,#121A16)]">
@@ -746,8 +1004,8 @@ export function CounterScreen({
               </div>
 
               <div className="mt-5 grid gap-3">
-                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How they are paying">
-                  {(["cash", "mpesa_manual"] as const).map((m) => (
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How they are paying">
+                  {(["cash", "mpesa_manual", "both"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -757,7 +1015,7 @@ export function CounterScreen({
                       disabled={phoneAsked}
                       onClick={() => setMethod(m)}
                     >
-                      {m === "cash" ? "Cash" : "M-Pesa"}
+                      {m === "cash" ? "Cash" : m === "mpesa_manual" ? "M-Pesa" : "Both"}
                     </button>
                   ))}
                 </div>
@@ -799,14 +1057,39 @@ export function CounterScreen({
                       </p>
                     ) : null}
                   </div>
-                ) : (
+                ) : null}
+                {method === "both" ? (
                   <div className="grid gap-2">
-                    <MpesaRequest
-                      amount={total}
-                      disabled={paying || cart.length === 0}
-                      onReceived={mpesaReceived}
-                      onWaitingChange={setPhoneAsked}
-                    />
+                    <label className="grid gap-1">
+                      <span className={dashboardLabelClass()}>Cash part</span>
+                      <input
+                        className={dashboardInputClass(false, "h-12 font-mono text-base sm:h-12")}
+                        inputMode="decimal"
+                        value={cashPart}
+                        placeholder="0"
+                        disabled={phoneAsked}
+                        onChange={(e) => {
+                          setCashPart(e.target.value.replace(/[^0-9.]/g, ""));
+                          setError(null);
+                        }}
+                      />
+                      <span className="text-sm">
+                        M-Pesa part{" "}
+                        <span className="font-mono font-semibold tabular-nums">{kes(mpesaDue)}</span>
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+                {method !== "cash" ? (
+                  <div className="grid gap-2">
+                    {mpesaDue > 0 ? (
+                      <MpesaRequest
+                        amount={mpesaDue}
+                        disabled={paying || cart.length === 0}
+                        onReceived={mpesaReceived}
+                        onWaitingChange={setPhoneAsked}
+                      />
+                    ) : null}
                     <label className="grid gap-1">
                       <span className={dashboardLabelClass()}>M-Pesa code (optional)</span>
                       <input
@@ -817,11 +1100,13 @@ export function CounterScreen({
                         onChange={(e) => setReference(e.target.value)}
                       />
                       <span className={dashboardHintClass()}>
-                        If they paid to your till themselves, check the payment on your phone before you confirm.
+                        {method === "both"
+                          ? `Only the M-Pesa part, ${kes(mpesaDue)}. Check it on your phone before you confirm.`
+                          : "If they paid to your till themselves, check the payment on your phone before you confirm."}
                       </span>
                     </label>
                   </div>
-                )}
+                ) : null}
 
                 {error ? (
                   <p role="alert" className="text-sm text-red-700">
@@ -896,6 +1181,36 @@ export function CounterScreen({
           }}
         />
       ) : null}
+
+      {editing && editingItem ? (
+        <ModifierSheet
+          item={editingItem}
+          groups={groupsFor(editingItem, menu?.modifierGroups ?? [])}
+          initial={{ optionIds: editing.optionIds, note: editing.note, quantity: editing.quantity }}
+          actionLabel="Save"
+          onClose={() => setEditing(null)}
+          onAdd={(choice) => {
+            const key = editing.key;
+            setCart((prev) =>
+              prev.map((l) =>
+                l.key === key
+                  ? {
+                      ...l,
+                      quantity: choice.quantity,
+                      unitPrice: choice.unitPrice,
+                      optionIds: choice.optionIds,
+                      optionNames: choice.optionNames,
+                      note: choice.note,
+                    }
+                  : l,
+              ),
+            );
+            setEditing(null);
+          }}
+        />
+      ) : null}
+
+      {voidAsk ? <ReasonDialog request={voidAsk} onClose={() => setVoidAsk(null)} /> : null}
 
       {roomPicker ? (
         <div

@@ -11,6 +11,10 @@ import {
 import { Check, ImagePlus, Plus, ScanBarcode, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import {
+  buyingFollowsShare,
+  buyingPriceFromSelling,
+} from "./buying-price-share";
 import styles from "./product-create-modal.module.css";
 
 /** Most options one family can be created with. */
@@ -109,14 +113,18 @@ export type ReadyGroupOption = {
 export function readyGroupOptions(
   rows: GroupOptionRow[],
   familyName = "",
+  buyingSharePct: number | null = null,
 ): ReadyGroupOption[] {
   return rows
     .map((row) => {
       const label = composeOptionLabel(familyName, row.label);
       const sell = parseMoney(row.unitPrice);
+      const derived = buyingPriceFromSelling(row.unitPrice, buyingSharePct);
       const buy =
         row.buyingPrice.trim() === ""
-          ? null
+          ? derived
+            ? Number(derived)
+            : null
           : parseMoney(row.buyingPrice, true);
       const stock = parseQty(row.stock);
       if (!label || sell == null || stock == null) return null;
@@ -149,6 +157,7 @@ export function CreateGroupOptionsPad({
   onChange,
   currency,
   familyName = "",
+  buyingSharePct = null,
   disabled,
   onScanBarcode,
   renderRowHint,
@@ -158,6 +167,8 @@ export function CreateGroupOptionsPad({
   currency: string;
   /** Live family / parent name shown as a non-editable prefix in each option field. */
   familyName?: string;
+  /** Empty option costs are the selling price divided by (1 + markup / 100). */
+  buyingSharePct?: number | null;
   disabled?: boolean;
   /** Opens the camera for one option's barcode. The parent owns the scanner overlay. */
   onScanBarcode?: (rowKey: string) => void;
@@ -416,9 +427,17 @@ export function CreateGroupOptionsPad({
                   inputMode="decimal"
                   value={row.unitPrice}
                   disabled={disabled}
-                  onChange={(e) =>
-                    patch(row.key, { unitPrice: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const unitPrice = e.target.value;
+                    const buyingPrice = buyingFollowsShare(
+                      row.buyingPrice,
+                      row.unitPrice,
+                      buyingSharePct,
+                    )
+                      ? buyingPriceFromSelling(unitPrice, buyingSharePct)
+                      : row.buyingPrice;
+                    patch(row.key, { unitPrice, buyingPrice });
+                  }}
                   onKeyDown={handleEnter}
                   placeholder="0.00"
                   aria-label={`Option ${index + 1} sell price`}
@@ -452,7 +471,9 @@ export function CreateGroupOptionsPad({
                     patch(row.key, { buyingPrice: e.target.value })
                   }
                   onKeyDown={handleEnter}
-                  placeholder="0.00"
+                  placeholder={
+                    buyingPriceFromSelling(row.unitPrice, buyingSharePct) || "0.00"
+                  }
                   aria-label={`Option ${index + 1} cost`}
                 />
               </div>

@@ -18,6 +18,7 @@ import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   addItemSupplierLink,
   addSupplyBatchExpense,
+  createItemPackOption,
   fetchSellPriceSuggestion,
   fetchSupplierById,
   fetchSupplierItemLinks,
@@ -413,6 +414,44 @@ function rowPackDefaults(row: SupplyDraftRow) {
     packSize: row.link?.packSize,
     packageUnitsPerSale: row.item?.packageUnitsPerSale,
   });
+}
+
+/** Persist custom pack shapes the operator asked to remember, keyed by row key. */
+async function persistRememberedPacks(
+  rows: SupplyDraftRow[],
+  canSave: boolean,
+): Promise<Map<string, string>> {
+  const ids = new Map<string, string>();
+  if (!canSave) return ids;
+  for (const row of rows) {
+    const pack = rowPack(row);
+    if (!pack || row.packOptionId || !pack.remember) continue;
+    const itemId = rowItemId(row);
+    if (!itemId) continue;
+    const existing = row.link?.packs?.find(
+      (p) =>
+        (p.packUnit || "pack").toLowerCase() ===
+          (pack.packUnit || "pack").toLowerCase() &&
+        Number(p.unitsPerPack) === pack.unitsPerPack,
+    );
+    if (existing) {
+      ids.set(row.key, existing.id);
+      continue;
+    }
+    try {
+      const created = await createItemPackOption(itemId, {
+        packUnit: pack.packUnit || "pack",
+        unitsPerPack: pack.unitsPerPack,
+        innerPackUnit: pack.innerPackUnit ?? null,
+        innerPackCount: pack.innerPackCount ?? null,
+        baseUnitsPerInner: pack.baseUnitsPerInner ?? null,
+      });
+      ids.set(row.key, created.id);
+    } catch {
+      // Shape already exists (409) or no permission: keep the receipt line working.
+    }
+  }
+  return ids;
 }
 
 function applyOnHandToRows(
@@ -996,6 +1035,15 @@ export function NewSupplyDrawer({
           .filter((l) => l.lineStatus === "pending" && l.suggestedItemId)
           .map((line) => {
             const fields = pathBLineToSyncFields(line);
+            const restoredPack =
+              fields.unitsPerPurchaseUnit != null &&
+              fields.unitsPerPurchaseUnit > 1 &&
+              fields.purchaseQty != null
+                ? {
+                    unitsPerPack: fields.unitsPerPurchaseUnit,
+                    packUnit: fields.packUnit || "pack",
+                  }
+                : null;
             return {
               key: newRowKey(),
               source: "linked" as const,
@@ -1008,12 +1056,20 @@ export function NewSupplyDrawer({
                 active: true,
               },
               item: null,
-              qtyStr: fields.qtyStr,
-              unitStr: fields.unitStr,
+              // A packaged line reopens as packs (the way it was typed), not expanded pieces.
+              qtyStr: restoredPack
+                ? String(fields.purchaseQty)
+                : fields.qtyStr,
+              unitStr:
+                restoredPack && fields.packPrice != null
+                  ? fields.packPrice.toFixed(2)
+                  : fields.unitStr,
               sellPriceStr: fields.sellPriceStr,
               sellPriceTouched: fields.sellPriceTouched,
               expiry: fields.expiry,
               lot: fields.lot,
+              packMode: restoredPack,
+              packOptionId: fields.packOptionId,
               serverLineId: line.id,
             };
           });
@@ -1076,6 +1132,23 @@ export function NewSupplyDrawer({
       void (async () => {
         setServerSyncState("syncing");
         try {
+          const rememberedPacks = await persistRememberedPacks(rows, canCreateProduct);
+          if (rememberedPacks.size > 0) {
+            setRows((prev) =>
+              prev.map((r) => {
+                const id = rememberedPacks.get(r.key);
+                return id
+                  ? {
+                      ...r,
+                      packOptionId: id,
+                      packMode: r.packMode
+                        ? { ...r.packMode, remember: false }
+                        : r.packMode,
+                    }
+                  : r;
+              }),
+            );
+          }
           const syncRows: SyncableSupplyRow[] = rows.map((row) => {
             const payload = linePayload(row);
             const pack = rowPack(row);
@@ -1097,6 +1170,11 @@ export function NewSupplyDrawer({
               qty,
               unitCost,
               sellPrice: sell,
+              purchaseUnit: pack ? pack.packUnit : (row.item?.unitType ?? null),
+              purchaseQty: pack ? (parsePositiveQty(row.qtyStr) ?? qty) : qty,
+              unitsPerPurchaseUnit: pack ? pack.unitsPerPack : 1,
+              packPrice: pack ? parseNonNeg(row.unitStr) : null,
+              packOptionId: rememberedPacks.get(row.key) ?? row.packOptionId ?? null,
             };
           });
           const ensured = await ensureSupplyPathBSession({
@@ -1154,6 +1232,7 @@ export function NewSupplyDrawer({
     notes,
     showExpiry,
     extras,
+    canCreateProduct,
   ]);
 
   const discardLocalDraft = useCallback(() => {
@@ -1678,6 +1757,23 @@ export function NewSupplyDrawer({
       postIdempotencyKeyRef.current = nextIdempotencyKey();
     }
     try {
+      const rememberedPacks = await persistRememberedPacks(rows, canCreateProduct);
+      if (rememberedPacks.size > 0) {
+        setRows((prev) =>
+          prev.map((r) => {
+            const id = rememberedPacks.get(r.key);
+            return id
+              ? {
+                  ...r,
+                  packOptionId: id,
+                  packMode: r.packMode
+                    ? { ...r.packMode, remember: false }
+                    : r.packMode,
+                }
+              : r;
+          }),
+        );
+      }
       const syncRows: SyncableSupplyRow[] = rows.map((row) => {
         const payload = linePayload(row);
         const pack = rowPack(row);
@@ -1699,6 +1795,11 @@ export function NewSupplyDrawer({
           qty,
           unitCost,
           sellPrice: sell,
+          purchaseUnit: pack ? pack.packUnit : (row.item?.unitType ?? null),
+          purchaseQty: pack ? (parsePositiveQty(row.qtyStr) ?? qty) : qty,
+          unitsPerPurchaseUnit: pack ? pack.unitsPerPack : 1,
+          packPrice: pack ? parseNonNeg(row.unitStr) : null,
+          packOptionId: rememberedPacks.get(row.key) ?? row.packOptionId ?? null,
         };
       });
       const ensured = await ensureSupplyPathBSession({
@@ -1736,7 +1837,8 @@ export function NewSupplyDrawer({
       const sessionId = ensured.sessionId;
       const postBody = {
         lines: synced.map(({ row, serverLineId }) => {
-          const qty = supplyStockQty(row.qtyStr, rowPack(row)) ?? 0;
+          const pack = rowPack(row);
+          const qty = supplyStockQty(row.qtyStr, pack) ?? 0;
           const exp = row.expiry.trim();
           return {
             lineId: serverLineId,
@@ -1745,6 +1847,11 @@ export function NewSupplyDrawer({
             wastageQty: 0,
             expiryDate: exp.length >= 8 ? exp : null,
             lotNumber: row.lot?.trim() || null,
+            purchaseQty: pack ? (parsePositiveQty(row.qtyStr) ?? undefined) : undefined,
+            purchaseUnit: pack ? pack.packUnit : undefined,
+            unitsPerPurchaseUnit: pack ? pack.unitsPerPack : undefined,
+            packPrice: pack ? (parseNonNeg(row.unitStr) ?? undefined) : undefined,
+            packOptionId: rememberedPacks.get(row.key) ?? row.packOptionId ?? undefined,
           };
         }),
       };
@@ -2200,6 +2307,7 @@ export function NewSupplyDrawer({
                               return (
                                 <div key={row.key} data-nsd-row={row.key}>
                                   <SupplyDraftLineCard
+                                    canSavePackOption={canCreateProduct}
                                     row={row}
                                     label={rowLabel(row)}
                                     barcode={rowBarcode(row)}
@@ -2557,6 +2665,7 @@ export function NewSupplyDrawer({
                                         )}
                                       >
                                         <SupplyQtyCell
+                                          canSavePackOption={canCreateProduct}
                                           compact
                                           quiet
                                           value={row.qtyStr}

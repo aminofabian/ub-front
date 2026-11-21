@@ -10,7 +10,7 @@ export function HubAllClear() {
     <section
       className={cn(
         HUB_SURFACE,
-        "flex items-center gap-2.5 px-4 py-3 text-[13px] text-[#344054]",
+        "flex items-center gap-2 rounded-[2px] px-3 py-2 text-[13px] text-[#344054]",
       )}
     >
       <CheckCircle2

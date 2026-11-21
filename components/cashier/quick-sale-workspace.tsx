@@ -145,7 +145,7 @@ import {
 import { DispensingDialog } from "@/components/pharmacy/dispensing-dialog";
 import { PharmacyTillProvider, usePharmacyTillStore } from "@/components/pharmacy/pharmacy-till";
 import { isPharmacyBusiness } from "@/lib/business-store-type";
-import { fetchGenericHits, tillBlockedReason, tillMedicineBlocked } from "@/lib/pharmacy-till";
+import { fetchGenericHits, tillBlockedReason, tillMedicineBlocked, offlineDispensingCheck } from "@/lib/pharmacy-till";
 import {
   OFFLINE_DISPENSING_MESSAGE,
   cartHasCounterOnlyItem,
@@ -153,6 +153,7 @@ import {
 } from "@/lib/pharmacy-counter-only";
 import {
   dispensingIsFixableAtTill,
+  saleFingerprint,
   withoutPatientDetails,
   type DispensingHint,
   type DispensingRequiredDetail,
@@ -360,6 +361,33 @@ type QuickSaleWorkspaceProps = {
 
 /** Survives React Strict Mode remounts (component refs reset). */
 const posDraftHydrateLocks = new Set<string>();
+
+/** What a checkout attempt carries besides the cart itself. */
+type SaleCompletionOpts = {
+  skipBranchConfirm?: boolean;
+  skipBelowCostConfirm?: boolean;
+  /** Admin override — allow this sale to drive stock negative. */
+  allowOutOfStock?: boolean;
+  /** Set-up steps this sale already went through (register the till, open a shift). */
+  setupTried?: SetupRequirement[];
+  /** Dispensing details collected by the dispensing dialog for gated medicines. */
+  dispensing?: SaleDispensingPayload;
+};
+
+/**
+ * Dispensing details are kept for the cart they were typed for, so a failed charge can be
+ * retried without sending the cashier back to the pharmacist. The fingerprint makes sure the
+ * cart has not changed since; the approval is only reused well inside its 15-minute life.
+ */
+type HeldDispensing = {
+  cartId: string;
+  fingerprint: string;
+  at: number;
+  dispensing: SaleDispensingPayload;
+};
+
+const DISPENSING_HOLD_MS = 30 * 60_000;
+const APPROVAL_REUSE_MS = 10 * 60_000;
 
 export function QuickSaleWorkspace({
   variant = "admin",
@@ -2547,6 +2575,15 @@ export function QuickSaleWorkspace({
 
   const genericSearchOn = isPharmacyBusiness(business);
   const tillStore = usePharmacyTillStore(genericSearchOn);
+  // The patient belongs to the cart on screen; switching carts must not carry them over.
+  useEffect(() => {
+    if (!tillStore.enabled) return;
+    tillStore.setActiveCart(activeCartId);
+  }, [tillStore, activeCartId]);
+  useEffect(() => {
+    if (!tillStore.enabled) return;
+    tillStore.retainCarts(carts.map((cart) => cart.id));
+  }, [tillStore, carts]);
   useEffect(() => {
     if (!canSell) {
       return;
@@ -3532,35 +3569,18 @@ export function QuickSaleWorkspace({
     itemIds: string[];
     /** Quantity of each item in the sale, so a pharmacist approves the amount as well as the medicine. */
     quantities: Record<string, number>;
-    opts: {
-      skipBranchConfirm?: boolean;
-      skipBelowCostConfirm?: boolean;
-      allowOutOfStock?: boolean;
-      setupTried?: SetupRequirement[];
-    };
+    /** Set when the till is offline: what it already knows about the medicines in the cart. */
+    offlineCheck?: ReturnType<typeof offlineDispensingCheck>;
+    /** What was typed on a previous attempt, to save re-entering it after a failed charge. */
+    initial?: SaleDispensingPayload | null;
+    opts: Omit<SaleCompletionOpts, "dispensing">;
   } | null>(null);
+  /** Dispensing typed for a cart, kept across a failed charge until it is used or goes stale. */
+  const heldDispensingRef = useRef<HeldDispensing | null>(null);
   /** Latest `onComplete`, so a sale paused for the open-shift dialog resumes with fresh state. */
-  const onCompleteRef = useRef<
-    | ((opts?: {
-        skipBranchConfirm?: boolean;
-        skipBelowCostConfirm?: boolean;
-        allowOutOfStock?: boolean;
-        setupTried?: SetupRequirement[];
-        dispensing?: SaleDispensingPayload;
-      }) => Promise<void>)
-    | null
-  >(null);
+  const onCompleteRef = useRef<((opts?: SaleCompletionOpts) => Promise<void>) | null>(null);
 
-  const onComplete = useCallback(async (opts?: {
-    skipBranchConfirm?: boolean;
-    skipBelowCostConfirm?: boolean;
-    /** Admin override — allow this sale to drive stock negative. */
-    allowOutOfStock?: boolean;
-    /** Set-up steps this sale already went through (register the till, open a shift). */
-    setupTried?: SetupRequirement[];
-    /** Dispensing details collected by the dispensing dialog for gated medicines. */
-    dispensing?: SaleDispensingPayload;
-  }) => {
+  const onComplete = useCallback(async (opts?: SaleCompletionOpts) => {
     const bid = branchId.trim();
     if (!bid) {
       setError("Choose a branch.");
@@ -3691,6 +3711,41 @@ export function QuickSaleWorkspace({
         unitPrice: p,
       });
     }
+    // A failed charge keeps the dispensing details for this same cart, so the cashier does not
+    // have to walk the pharmacist through it again. A changed cart, or a stale approval, falls
+    // back to the dialog (which is prefilled from the same record).
+    const fingerprint = saleFingerprint(payloadLines);
+    const held = heldDispensingRef.current;
+    const heldForCart =
+      held && held.cartId === activeCartId && Date.now() - held.at < DISPENSING_HOLD_MS
+        ? held
+        : null;
+    // What to fill the dialog with. A cart that has changed since still gets its prescriber
+    // and patient back, but not the approval: that was for the old quantities.
+    // A different patient linked at the cart means this is a different sale now. No cart
+    // patient means the dialog itself may have linked one, so the held details still stand.
+    const cartPatient = tillStore.patient();
+    const patientUnchanged =
+      !cartPatient || heldForCart?.dispensing.patientId === cartPatient.id;
+    let initialForPrompt: SaleDispensingPayload | null = null;
+    if (heldForCart) {
+      initialForPrompt = { ...heldForCart.dispensing };
+      if (
+        heldForCart.fingerprint !== fingerprint ||
+        !patientUnchanged ||
+        Date.now() - heldForCart.at > APPROVAL_REUSE_MS
+      ) {
+        delete initialForPrompt.approvalId;
+      }
+    }
+    // Only an unchanged cart can go straight back to the server without reopening the dialog.
+    const heldForSale =
+      heldForCart && heldForCart.fingerprint === fingerprint && patientUnchanged
+        ? initialForPrompt
+        : null;
+    const saleOpts: SaleCompletionOpts | undefined = heldForSale
+      ? { ...opts, dispensing: heldForSale }
+      : opts;
     if (grandTotal <= 0) {
       setError("Grand total must be positive.");
       setNotice("");
@@ -4022,7 +4077,7 @@ export function QuickSaleWorkspace({
         : {}),
       // Admin override: force this sale through even when stock is short.
       ...(opts?.allowOutOfStock ? { allowOutOfStock: true } : {}),
-      ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
+      ...(saleOpts?.dispensing ? { dispensing: saleOpts.dispensing } : {}),
     };
 
     const linesSnapshot = lines.map((line) => ({
@@ -4060,7 +4115,7 @@ export function QuickSaleWorkspace({
     // Queueing is safe for a gated medicine only when the person at the till may dispense and
     // has already given the details; a PIN approval is short-lived and may not survive a replay.
     const mustNotQueueForDispensing = () =>
-      !(opts?.dispensing && !opts.dispensing.approvalId) &&
+      !(saleOpts?.dispensing && !saleOpts.dispensing.approvalId) &&
       cartHasCounterOnlyItem(
         business?.id ?? null,
         payloadLines.map((l) => l.itemId?.trim() ?? "").filter((id) => id !== ""),
@@ -4091,6 +4146,34 @@ export function QuickSaleWorkspace({
       // A medicine that needs the pharmacist cannot be queued: the server would refuse the
       // sale on replay, after the medicine has already left the shop.
       if (mustNotQueueForDispensing()) {
+        // Someone who may dispense can still record the prescription offline: the till already
+        // knows each medicine's class. A cashier cannot, because a pharmacist's PIN needs the server.
+        const offlineCheck = saleOpts?.dispensing
+          ? null
+          : offlineDispensingCheck(
+              lines
+                .filter((l) => !!l.itemId)
+                .map((l) => ({ itemId: l.itemId, name: l.label })),
+              tillStore.get,
+              tillStore.mayDispense(),
+            );
+        if (offlineCheck && !offlineCheck.blocked) {
+          setError("");
+          setDispensingPrompt({
+            hint: "record",
+            itemIds: offlineCheck.lines.map((l) => l.itemId),
+            quantities: payloadLines.reduce<Record<string, number>>((acc, l) => {
+              const id = l.itemId?.trim() ?? "";
+              const q = Number(l.quantity);
+              if (id !== "" && Number.isFinite(q) && q > 0) acc[id] = (acc[id] ?? 0) + q;
+              return acc;
+            }, {}),
+            offlineCheck,
+            initial: initialForPrompt,
+            opts: opts ?? {},
+          });
+          return;
+        }
         setError(OFFLINE_DISPENSING_MESSAGE);
         return;
       }
@@ -4101,7 +4184,7 @@ export function QuickSaleWorkspace({
           ...saleCustomerIdPatch(linkedCustomer),
           clientSoldAt: salePayload.clientSoldAt,
           expectedVersion: activeCart.version,
-          ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
+          ...(saleOpts?.dispensing ? { dispensing: saleOpts.dispensing } : {}),
         };
 
         const draftId = activeCart.draftId;
@@ -4148,9 +4231,9 @@ export function QuickSaleWorkspace({
     const holdForSetup = (gap: SetupRequiredDetail) => {
       pauseForSetup(gap, {
         action: "completing the sale",
-        tried: opts?.setupTried,
+        tried: saleOpts?.setupTried,
         resume: (tried) =>
-          void onCompleteRef.current?.({ ...opts, setupTried: tried }),
+          void onCompleteRef.current?.({ ...saleOpts, setupTried: tried }),
         onBlocked: setError,
       });
     };
@@ -4493,7 +4576,7 @@ export function QuickSaleWorkspace({
         clientSoldAt: salePayload.clientSoldAt,
         expectedVersion: draftVersion,
         ...(airtimeLines.length > 0 ? { additionalLines: airtimeLines } : {}),
-        ...(opts?.dispensing ? { dispensing: opts.dispensing } : {}),
+        ...(saleOpts?.dispensing ? { dispensing: saleOpts.dispensing } : {}),
       };
 
       let sale: SaleRecord | null = null;
@@ -4531,6 +4614,8 @@ export function QuickSaleWorkspace({
       }
 
       if (sale) {
+        // The details were used. The next cart starts clean.
+        heldDispensingRef.current = null;
         setInvoiceRefreshKey((k) => k + 1);
         setPendingSalesRefreshKey((k) => k + 1);
         const completedReceipt = buildPosReceiptSnapshot({
@@ -4632,6 +4717,7 @@ export function QuickSaleWorkspace({
               if (id !== "" && Number.isFinite(q) && q > 0) acc[id] = (acc[id] ?? 0) + q;
               return acc;
             }, {}),
+            initial: initialForPrompt,
             opts: opts ?? {},
           });
         } else {
@@ -5482,9 +5568,21 @@ export function QuickSaleWorkspace({
           itemIds={dispensingPrompt.itemIds}
           quantities={dispensingPrompt.quantities}
           hint={dispensingPrompt.hint}
+          offlineCheck={dispensingPrompt.offlineCheck ?? null}
+          initial={dispensingPrompt.initial ?? null}
           onDismiss={() => setDispensingPrompt(null)}
           onConfirm={(dispensing) => {
             const held = dispensingPrompt;
+            // Keep what was just typed for this cart. A charge that fails after this can be
+            // retried without asking the pharmacist to approve the same medicines again.
+            heldDispensingRef.current = {
+              cartId: activeCartId,
+              fingerprint: saleFingerprint(
+                Object.entries(held.quantities).map(([itemId, quantity]) => ({ itemId, quantity })),
+              ),
+              at: Date.now(),
+              dispensing,
+            };
             setDispensingPrompt(null);
             void onCompleteRef.current?.({ ...held.opts, dispensing });
           }}

@@ -38,6 +38,7 @@ import {
   updatePatient,
   type DispensingRecord,
   type PharmacyPatient,
+  formatPatientNo,
 } from "@/lib/pharmacy-api";
 
 const PAGE_SIZE = 25;
@@ -114,7 +115,7 @@ export function PharmacyPatients({ canWrite, canManage }: { canWrite: boolean; c
           setApplied(q);
         }}
       >
-        <Field label="Find by name or phone" className="min-w-[14rem] flex-1">
+        <Field label="Find by name, phone or patient number" className="min-w-[14rem] flex-1">
           <input className={RX_INPUT} value={q} onChange={(e) => setQ(e.target.value)} maxLength={64} />
         </Field>
         <Button type="submit" variant="outline" className="h-11 rounded-[2px] px-3.5 sm:h-9">
@@ -137,9 +138,10 @@ export function PharmacyPatients({ canWrite, canManage }: { canWrite: boolean; c
 
       {patients.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse">
+          <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className={cn("border-b", RX_RULE)}>
+                <th className={RX_TH}>Number</th>
                 <th className={RX_TH}>Name</th>
                 <th className={RX_TH}>Phone</th>
                 <th className={RX_TH}>Allergies</th>
@@ -152,6 +154,7 @@ export function PharmacyPatients({ canWrite, canManage }: { canWrite: boolean; c
             <tbody>
               {patients.map((p) => (
                 <tr key={p.id} className={RX_ROW}>
+                  <td className={cn(RX_TD, "font-mono text-[13px] tabular-nums")}>{formatPatientNo(p.patientNo)}</td>
                   <td className={cn(RX_TD, "font-medium", RX_INK)}>{p.name}</td>
                   <td className={cn(RX_TD, "font-mono text-[13px]")}>{p.phone ?? ""}</td>
                   <td className={RX_TD}>{p.allergies ?? <span className={RX_MUTED}>None recorded</span>}</td>
@@ -259,7 +262,9 @@ function PatientHistory({
       {patient ? (
         <Panel
           title={patient.name}
-          description={patient.phone ?? "No phone number recorded"}
+          description={[formatPatientNo(patient.patientNo), patient.phone ?? "No phone number recorded"]
+            .filter(Boolean)
+            .join(" · ")}
           aside={
             <div className="flex gap-2">
               {canWrite ? (
