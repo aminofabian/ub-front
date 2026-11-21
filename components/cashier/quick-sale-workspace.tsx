@@ -143,7 +143,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DispensingDialog } from "@/components/pharmacy/dispensing-dialog";
+import { PharmacyTillProvider, usePharmacyTillStore } from "@/components/pharmacy/pharmacy-till";
 import { isPharmacyBusiness } from "@/lib/business-store-type";
+import { fetchGenericHits, tillBlockedReason, tillMedicineBlocked } from "@/lib/pharmacy-till";
 import {
   OFFLINE_DISPENSING_MESSAGE,
   cartHasCounterOnlyItem,
@@ -2543,6 +2545,8 @@ export function QuickSaleWorkspace({
     };
   }, [lastSale?.customerId, online, canLookupCustomers]);
 
+  const genericSearchOn = isPharmacyBusiness(business);
+  const tillStore = usePharmacyTillStore(genericSearchOn);
   useEffect(() => {
     if (!canSell) {
       return;
@@ -2598,6 +2602,24 @@ export function QuickSaleWorkspace({
             writeCachedItemsSearch(q, sellable);
           }
           setSearchBanner(null);
+          // Pharmacy: also list the other brands of a medicine typed by its generic name.
+          if (genericSearchOn && q && !looksLikePosBarcodeQuery(q)) {
+            void fetchGenericHits(q, new Set(sellable.map((i) => i.id)), {
+              branchId,
+              signal: controller.signal,
+            })
+              .then((extra) => {
+                const more = extra.filter(isPosSellableSku);
+                if (controller.signal.aborted || more.length === 0) {
+                  return;
+                }
+                setHits((prev) => [
+                  ...prev,
+                  ...more.filter((m) => !prev.some((p) => p.id === m.id)),
+                ]);
+              })
+              .catch(() => undefined);
+          }
         })
         .catch((err: unknown) => {
           if (
@@ -2630,7 +2652,7 @@ export function QuickSaleWorkspace({
       window.clearTimeout(t);
       controller.abort();
     };
-  }, [canSell, search, online, categoryFilterId, branchId, posItemTypeId]);
+  }, [canSell, search, online, categoryFilterId, branchId, posItemTypeId, genericSearchOn]);
 
   const visibleCategoryTiles = useMemo(() => {
     if (categoryBrowseStack.length === 0) {
@@ -2800,6 +2822,13 @@ export function QuickSaleWorkspace({
         toast.error("Choose a specific size or flavour — this is a product family.");
         return false;
       }
+      // Pharmacy: a medicine with no class set never enters a sale. One the till has not looked
+      // up yet (a fresh scan) is let in; the cart line flags it and the server refuses it at payment.
+      const tillMedicine = tillStore.get(item.id);
+      if (tillMedicine && tillMedicineBlocked(tillMedicine)) {
+        toast.error(`${cashierItemPrimaryLabel(item)}: ${tillBlockedReason(tillMedicine)}`);
+        return false;
+      }
       const addQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
       const weighed = item.isWeighed === true;
       const normalizedAdd = weighed ? addQty : Math.max(1, Math.round(addQty));
@@ -2914,6 +2943,7 @@ export function QuickSaleWorkspace({
       keepAisleFilter,
       categoryFilterId,
       clearCategoryFilter,
+      tillStore,
     ],
   );
 
@@ -5918,6 +5948,13 @@ export function QuickSaleWorkspace({
     </div>
   );
 
+  // Pharmacy shops: product rows and cart lines read medicine details from this provider.
+  const tillBody = (
+    <PharmacyTillProvider store={tillStore} branchId={branchId}>
+      {workspaceBody}
+    </PharmacyTillProvider>
+  );
+
   if (inShellDrawer) {
     const showBusinessLink =
       isOwnerOrAdmin ||
@@ -5928,7 +5965,7 @@ export function QuickSaleWorkspace({
           className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden pos-market-paper"
           style={dialogBrandTheme}
         >
-          <div className="min-h-0 flex-1 overflow-hidden">{workspaceBody}</div>
+          <div className="min-h-0 flex-1 overflow-hidden">{tillBody}</div>
           <CashierBottomNav
             adminHref={showBusinessLink ? APP_ROUTES.business : null}
             adminLabel="Business"
@@ -5946,5 +5983,5 @@ export function QuickSaleWorkspace({
     );
   }
 
-  return workspaceBody;
+  return tillBody;
 }

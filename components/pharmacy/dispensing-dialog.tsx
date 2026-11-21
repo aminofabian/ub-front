@@ -3,6 +3,7 @@
 import { Pill } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useTillPatient } from "@/components/pharmacy/pharmacy-till";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -138,6 +139,20 @@ export function DispensingDialog({ itemIds, quantities, hint, onConfirm, onDismi
       .then(setOwed)
       .catch(() => setOwed([]));
   };
+
+  // A patient attached at the till arrives already linked, so nobody types the number twice.
+  const tillPatient = useTillPatient();
+  const tillPatientApplied = useRef(false);
+  useEffect(() => {
+    if (!tillPatient || tillPatientApplied.current) return;
+    tillPatientApplied.current = true;
+    setLinked(tillPatient);
+    setPatientName((prev) => prev.trim() || tillPatient.name);
+    setPatientPhone((prev) => prev.trim() || (tillPatient.phone ?? ""));
+    fetchOwingsForPatient(tillPatient.id)
+      .then(setOwed)
+      .catch(() => setOwed([]));
+  }, [tillPatient]);
 
   const unlinkProfile = () => {
     setLinked(null);

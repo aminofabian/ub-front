@@ -65,6 +65,7 @@ import {
 } from "@/lib/pos-catalog-groups";
 import type { TopProductRecord } from "@/lib/top-products";
 import { CART_STALE_MS, CART_VERY_STALE_MS } from "@/lib/cart-session";
+import { PharmacyTillCartStrip, TillMedicineLine } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 import type { CashierPosShiftLinksProps } from "./cashier-pos-layout";
@@ -1435,6 +1436,9 @@ export function CashierCounterStage(props: CashierCounterStageProps) {
                 </div>
               ) : (
                 <ul className="flex flex-col gap-2">
+                  <li className="empty:hidden">
+                    <PharmacyTillCartStrip itemIds={lines.map((l) => l.itemId)} className="border" />
+                  </li>
                   {[...lines].reverse().map((line, index) => (
                     <OrderTicket
                       key={line.key}
@@ -1704,6 +1708,7 @@ function OrderTicket({
               {option ? (
                 <span className={cn("mt-0.5 block truncate text-[12px]", MUTE)}>{option}</span>
               ) : null}
+              {airtime ? null : <TillMedicineLine itemId={line.itemId} where="cart" />}
             </button>
             <span
               className={cn(

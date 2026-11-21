@@ -10,6 +10,7 @@ import {
   groupPosCatalogHits,
   posVariantOptionLabel,
 } from "@/lib/pos-catalog-groups";
+import { TillMedicineLine, useTillBlocked } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 import { stockTone } from "../pos-variant-table";
@@ -54,6 +55,7 @@ function HitRow({
   const stock = formatPosStockQty(item.stockQty);
   const tone = stockTone(item);
   const rowRef = useRef<HTMLButtonElement>(null);
+  const medicineBlocked = useTillBlocked(item.id);
 
   useEffect(() => {
     if (active) {
@@ -65,8 +67,9 @@ function HitRow({
     <button
       ref={rowRef}
       type="button"
-      onClick={onPick}
+      onClick={medicineBlocked ? undefined : onPick}
       disabled={!isPosSellableSku(item)}
+      aria-disabled={medicineBlocked || undefined}
       className={cn(
         "flex w-full items-center gap-3 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-3 py-2 text-left",
         "hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
@@ -78,9 +81,11 @@ function HitRow({
           "bg-[color-mix(in_srgb,var(--pos-primary)_6%,var(--card))]",
       )}
       aria-label={
-        cartQty > 0
-          ? `${cashierItemPrimaryLabel(item)}, ${cartQty} in cart. Add another.`
-          : `Add ${cashierItemPrimaryLabel(item)}`
+        medicineBlocked
+          ? `${cashierItemPrimaryLabel(item)} cannot be sold yet`
+          : cartQty > 0
+            ? `${cashierItemPrimaryLabel(item)}, ${cartQty} in cart. Add another.`
+            : `Add ${cashierItemPrimaryLabel(item)}`
       }
     >
       <span className="min-w-0 flex-1">
@@ -108,6 +113,7 @@ function HitRow({
             </span>
           ) : null}
         </span>
+        <TillMedicineLine itemId={item.id} where="shelf" />
       </span>
       <span className="shrink-0 font-mono text-[13px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
         {shelfLine}
@@ -117,7 +123,7 @@ function HitRow({
           <span className="tabular-nums text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)]">
             ×{cartQty}
           </span>
-        ) : (
+        ) : medicineBlocked ? null : (
           <Plus
             className="size-4 text-[var(--pos-primary,#14532d)]"
             aria-hidden

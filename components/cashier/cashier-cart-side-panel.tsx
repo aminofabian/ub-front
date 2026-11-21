@@ -11,6 +11,7 @@ import {
 } from "@/lib/cashier-item-display";
 import { isSellBelowCost } from "@/lib/margin-guard";
 import { isPackSellSku } from "@/lib/pack-sell-sku";
+import { PharmacyTillCartStrip, TillMedicineLine } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 import {
@@ -141,6 +142,7 @@ export function CashierCartSidePanel({
           <ShoppingCart className="mt-1 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
         </div>
 
+        <PharmacyTillCartStrip itemIds={lines.map((l) => l.itemId)} className="shrink-0 px-3" />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1">
           {lines.length === 0 ? (
             <div className="flex h-full min-h-0 flex-col items-center justify-center px-4 py-6 text-center">
@@ -191,6 +193,7 @@ export function CashierCartSidePanel({
                               Below cost
                             </p>
                           ) : null}
+                          {airtime ? null : <TillMedicineLine itemId={line.itemId} where="cart" />}
                         </div>
                         {!airtime &&
                         allowWeighedToggle &&

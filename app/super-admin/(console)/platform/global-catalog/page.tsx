@@ -26,6 +26,10 @@ import {
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { GlobalCatalogCategoriesPanel } from "@/components/super-admin/global-catalog-categories-panel";
 import { GlobalCatalogImportDialog } from "@/components/super-admin/global-catalog-import-dialog";
+import {
+  GlobalCatalogMedicineFields,
+  GlobalCatalogMedicinesPanel,
+} from "@/components/super-admin/global-catalog-medicines";
 import { GlobalCatalogPacksPanel } from "@/components/super-admin/global-catalog-packs-panel";
 import { GlobalCatalogSuppliersPanel } from "@/components/super-admin/global-catalog-suppliers-panel";
 import { Badge } from "@/components/ui/badge";
@@ -114,7 +118,7 @@ function statusBadgeClass(status: string): string {
   return "bg-muted text-muted-foreground";
 }
 
-type Mode = "curate" | "promote" | "packs" | "categories" | "suppliers";
+type Mode = "curate" | "promote" | "packs" | "categories" | "suppliers" | "medicines";
 
 const MODE_TABS: { value: Mode; label: string }[] = [
   { value: "curate", label: "Curate" },
@@ -122,6 +126,7 @@ const MODE_TABS: { value: Mode; label: string }[] = [
   { value: "packs", label: "Packs" },
   { value: "categories", label: "Categories" },
   { value: "suppliers", label: "Suppliers" },
+  { value: "medicines", label: "Medicines" },
 ];
 
 function promotedGlobalIds(result: SaPromoteResult | null): string[] {
@@ -1435,6 +1440,8 @@ export default function SuperAdminGlobalCatalogPage() {
           onBusyChange={setBusy}
           onSaved={reload}
         />
+      ) : mode === "medicines" ? (
+        <GlobalCatalogMedicinesPanel catalogId={catalogId} busy={busy} onBusyChange={setBusy} />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
           <SaSection
@@ -1755,6 +1762,14 @@ export default function SuperAdminGlobalCatalogPage() {
                     </select>
                   </div>
                 </div>
+
+                {selected ? (
+                  <GlobalCatalogMedicineFields
+                    key={selected.id}
+                    productId={selected.id}
+                    storeKitId={selected.storeKitId}
+                  />
+                ) : null}
 
                 {/* Structure: parent link + packaging (scope §7.2) */}
                 <div className="space-y-3 rounded-lg border border-border/60 p-3">

@@ -69,6 +69,22 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.grocery);
   });
 
+  it("sends a pharmacist to the pharmacy workspace, and only in a pharmacy", () => {
+    const chemist = { profile: { storeTypes: ["pharmacy"] } };
+    expect(
+      resolvePostAuthDestination({ role: { key: "pharmacist" } }, null, chemist),
+    ).toBe(APP_ROUTES.pharmacy);
+    expect(
+      resolvePostAuthDestination({ role: { key: "pharmacist" } }, null, miniMart),
+    ).toBe(APP_ROUTES.business);
+    expect(
+      roleLandingRedirect({ role: { key: "pharmacist" } }, APP_ROUTES.business, chemist),
+    ).toBe(APP_ROUTES.pharmacy);
+    expect(
+      roleLandingRedirect({ role: { key: "pharmacist" } }, APP_ROUTES.pharmacy, chemist),
+    ).toBeNull();
+  });
+
   it("sends butcher cashiers to /butcher", () => {
     expect(
       resolvePostAuthDestination({ role: { key: "butcher_cashier" } }),

@@ -84,6 +84,7 @@ import {
   salesMute,
   salesToolBtnClass,
 } from "@/components/sales/sales-surface";
+import { TillMedicineLine, useTillBlocked } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 import {
   CashierProductModal,
@@ -661,28 +662,34 @@ function PosTileFrame({
   ariaLabel,
   title,
   className,
+  itemId,
   children,
 }: {
   onPick: () => void;
   ariaLabel: string;
   title: string;
   className?: string;
+  /** Catalogue item on the tile; a pharmacy till will not add a medicine it cannot sell. */
+  itemId?: string;
   children: ReactNode;
 }) {
+  const medicineBlocked = useTillBlocked(itemId);
   return (
     <div
       className={cn(
         KIOSK_TILE_SHELL,
         "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+        medicineBlocked && "cursor-not-allowed",
         className,
       )}
-      onClick={onPick}
+      onClick={medicineBlocked ? undefined : onPick}
     >
       <button
         type="button"
         className="absolute inset-0 z-0"
-        aria-label={ariaLabel}
+        aria-label={medicineBlocked ? `${title} cannot be sold yet` : ariaLabel}
         title={title}
+        disabled={medicineBlocked}
       />
       <div className="pointer-events-none relative z-[1] flex h-full min-h-0 flex-col">
         {children}
@@ -797,11 +804,14 @@ function KioskTileTitle({
   rank = null,
   highValue = false,
   compact = false,
+  itemId,
 }: {
   primary: string;
   option: string | null;
   fullTitle: string;
   shelfLine: string;
+  /** Catalogue item, so a pharmacy till can show its class and expiry under the price. */
+  itemId?: string;
   /** 1-based place in a ranked shelf; only the leaders are badged. */
   rank?: number | null;
   highValue?: boolean;
@@ -858,6 +868,11 @@ function KioskTileTitle({
           </span>
         ) : null}
       </div>
+      <TillMedicineLine
+        itemId={itemId}
+        where="shelf"
+        className={cn("mt-0 text-left", compact ? "line-clamp-1 text-[9px]" : "line-clamp-2 text-[10px]")}
+      />
       {/* Hover/focus reveal for truncated near-duplicates. */}
       <span
         role="tooltip"
@@ -923,6 +938,7 @@ function TopSellerTile({
   return (
     <PosTileFrame
       onPick={onPick}
+      itemId={product.id}
       title={title}
       ariaLabel={
         cartQty > 0
@@ -969,6 +985,7 @@ function TopSellerTile({
           rank={rank}
           highValue={highValue}
           compact={compact}
+          itemId={product.id}
         />
       </div>
     </PosTileFrame>
@@ -1010,6 +1027,7 @@ function SearchHitTile({
   return (
     <PosTileFrame
       onPick={onPick}
+      itemId={item.id}
       title={title}
       ariaLabel={
         cartQty > 0
@@ -1055,6 +1073,7 @@ function SearchHitTile({
           shelfLine={shelfLine}
           highValue={highValue}
           compact={compact}
+          itemId={item.id}
         />
         {showCategory ? (
           <span className="max-w-full truncate text-[9px] font-medium uppercase tracking-wide text-muted-foreground">

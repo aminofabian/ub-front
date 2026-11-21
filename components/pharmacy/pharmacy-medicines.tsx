@@ -32,6 +32,7 @@ import {
   DISPENSING_CLASS_HINT,
   DISPENSING_CLASS_LABEL,
   classifyMedicines,
+  confirmSuggestedClasses,
   fetchMedicines,
   markMedicines,
   saveMedicine,
@@ -128,6 +129,23 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
     }
   };
 
+  const suggestedSelected = rows.filter(
+    (r) => selected.has(r.itemId) && r.dispensingClass === "UNCLASSIFIED" && r.suggestedClass,
+  );
+  const acceptSuggested = async () => {
+    if (suggestedSelected.length === 0) return;
+    setBusy(true);
+    try {
+      const res = await confirmSuggestedClasses(suggestedSelected.map((r) => r.itemId));
+      toast.success(`${res.changed} set to the suggested class`);
+      refresh();
+    } catch (err) {
+      toast.error(errorText(err, "Could not accept the suggested classes."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -187,6 +205,17 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
               Set class
             </Button>
             <span className={cn("text-[12.5px]", RX_MUTED)}>{DISPENSING_CLASS_HINT[bulkClass]}</span>
+            {suggestedSelected.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="ml-auto h-11 rounded-[2px] px-3.5 sm:h-9"
+                disabled={busy}
+                onClick={() => void acceptSuggested()}
+              >
+                Accept suggested class for {suggestedSelected.length}
+              </Button>
+            ) : null}
           </div>
         ) : null}
 
@@ -199,7 +228,7 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
             body={
               search || cls
                 ? "Try another search or filter."
-                : "Mark the products that are medicines. You can mark a whole department at once."
+                : "Mark the products that are medicines. You can mark a whole department at once. Medicines you add from the pharmacy catalogue are marked for you."
             }
             action={
               canManage && !search && !cls ? (
@@ -256,6 +285,11 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
                     </td>
                     <td className={RX_TD}>
                       <Chip tone={classTone(r.dispensingClass)}>{DISPENSING_CLASS_LABEL[r.dispensingClass]}</Chip>
+                      {r.dispensingClass === "UNCLASSIFIED" && r.suggestedClass ? (
+                        <p className={cn("mt-1 text-[12.5px] leading-snug", RX_MUTED)}>
+                          Catalogue suggests {DISPENSING_CLASS_LABEL[r.suggestedClass].toLowerCase()}
+                        </p>
+                      ) : null}
                     </td>
                     <td className={cn(RX_TD, "text-right")}>
                       {canManage ? (
@@ -329,12 +363,15 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
   );
 }
 
-function MedicineEditor({
+export function MedicineEditor({
   medicine,
+  isNew = false,
   onClose,
   onSaved,
 }: {
   medicine: MedicineRecord;
+  /** The product is not a medicine yet: saving marks it, and there is nothing to un-mark. */
+  isNew?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -395,7 +432,11 @@ function MedicineEditor({
         >
           <DialogHeader className="text-left">
             <DialogTitle>{medicine.name}</DialogTitle>
-            <DialogDescription>Medicine details and how the till treats it.</DialogDescription>
+            <DialogDescription>
+              {isNew
+                ? "Marking this as a medicine means it needs a lot number and expiry date when received. Stock already on the shelf without them cannot be sold until you add them."
+                : "Medicine details and how the till treats it."}
+            </DialogDescription>
           </DialogHeader>
           <Field label="Dispensing class" hint={DISPENSING_CLASS_HINT[cls]}>
             <select className={RX_INPUT} value={cls} onChange={(e) => setCls(e.target.value as DispensingClass)}>
@@ -406,6 +447,20 @@ function MedicineEditor({
               ))}
             </select>
           </Field>
+          {medicine.dispensingClass === "UNCLASSIFIED" && medicine.suggestedClass && cls === "UNCLASSIFIED" ? (
+            <p className={cn("-mt-2 text-[13px] leading-snug", RX_MUTED)}>
+              The catalogue suggests {DISPENSING_CLASS_LABEL[medicine.suggestedClass].toLowerCase()}. Check it
+              against the pack, then{" "}
+              <button
+                type="button"
+                className="font-medium text-[var(--op-accent,#1d4b3b)] underline underline-offset-4"
+                onClick={() => setCls(medicine.suggestedClass as DispensingClass)}
+              >
+                use it
+              </button>
+              .
+            </p>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Generic name" className="sm:col-span-2">
               <input className={RX_INPUT} value={form.genericName} onChange={set("genericName")} maxLength={255} placeholder="e.g. Amoxicillin" />
@@ -446,15 +501,19 @@ function MedicineEditor({
           </label>
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter className="gap-2 sm:justify-between">
-            <Button type="button" variant="outline" className="text-destructive" disabled={busy} onClick={() => void remove()}>
-              Not a medicine
-            </Button>
+            {isNew ? (
+              <span />
+            ) : (
+              <Button type="button" variant="outline" className="text-destructive" disabled={busy} onClick={() => void remove()}>
+                Not a medicine
+              </Button>
+            )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit" disabled={busy}>
-                Save
+                {isNew ? "Mark as a medicine" : "Save"}
               </Button>
             </div>
           </DialogFooter>

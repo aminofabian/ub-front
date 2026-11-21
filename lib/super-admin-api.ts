@@ -5317,3 +5317,103 @@ export async function createSaDomainOfferRegistration(
     { method: "POST" },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Global catalogue: medicine details on pharmacy products
+// ---------------------------------------------------------------------------
+
+export type SaSuggestedClass = "OTC" | "PRESCRIPTION_ONLY" | "CONTROLLED";
+
+export type SaProductMedicine = {
+  globalProductId: string;
+  /** False when the product is not marked as a medicine; every other field is then null. */
+  medicine: boolean;
+  genericName: string | null;
+  strength: string | null;
+  dosageForm: string | null;
+  packSize: string | null;
+  manufacturer: string | null;
+  suggestedClass: SaSuggestedClass | null;
+};
+
+export type SaProductMedicineInput = {
+  genericName: string;
+  strength: string;
+  dosageForm: string;
+  packSize: string;
+  manufacturer: string;
+  suggestedClass: SaSuggestedClass | "";
+};
+
+export type SaMedicineImportResult = {
+  dryRun: boolean;
+  rows: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  skipped: Array<{ row: number; reason: string }>;
+};
+
+export async function fetchSaProductMedicine(productId: string): Promise<SaProductMedicine> {
+  return saRequest<SaProductMedicine>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${encodeURIComponent(productId)}/medicine`,
+  );
+}
+
+export async function saveSaProductMedicine(
+  productId: string,
+  body: SaProductMedicineInput,
+): Promise<SaProductMedicine> {
+  return saRequest<SaProductMedicine>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${encodeURIComponent(productId)}/medicine`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export async function removeSaProductMedicine(productId: string): Promise<void> {
+  await saRequest<void>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${encodeURIComponent(productId)}/medicine`,
+    { method: "DELETE" },
+  );
+}
+
+/** Every pharmacy product with its medicine columns, to fill in and upload again. */
+export async function exportSaCatalogMedicinesCsv(catalogId?: string | null): Promise<SaCsvExport> {
+  const token = await saAuthToken();
+  let response: Response;
+  try {
+    response = await fetch(
+      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}/medicines/export.csv${catalogQuerySuffix(catalogId)}`),
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  } catch {
+    throwNetworkError();
+  }
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  return { blob: await response.blob(), fileName: "catalogue-medicines.csv" };
+}
+
+export async function importSaCatalogMedicinesCsv(
+  file: File,
+  opts: { catalogId?: string | null; dryRun: boolean },
+): Promise<SaMedicineImportResult> {
+  const query = new URLSearchParams();
+  withCatalogId(query, opts.catalogId);
+  query.set("dryRun", opts.dryRun ? "true" : "false");
+  const form = new FormData();
+  form.append("file", file);
+  return saRequest<SaMedicineImportResult>(
+    `${API_ROUTES.superAdminGlobalCatalog}/medicines/import?${query.toString()}`,
+    { method: "POST", body: form },
+  );
+}

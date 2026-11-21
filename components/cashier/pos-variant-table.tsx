@@ -15,6 +15,7 @@ import {
   formatPosStockQty,
   posVariantOptionLabel,
 } from "@/lib/pos-catalog-groups";
+import { TillMedicineLine, useTillBlocked } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 export function stockTone(item: ItemSummaryRecord): "out" | "low" | null {
@@ -85,26 +86,33 @@ export function PosVariantRow({
   const optionShown = optionLabel ?? option;
   const stock = stockLineFor(item);
   const tone = stockTone(item);
+  // Pharmacy: a medicine with no class (or a blocked controlled one) cannot go into a sale.
+  const medicineBlocked = useTillBlocked(item.id);
 
   return (
     <button
       type="button"
-      onClick={onPick}
+      onClick={medicineBlocked ? undefined : onPick}
       disabled={!isPosSellableSku(item)}
+      // Not `disabled`: that fades the row, and the reason it cannot be sold has to stay readable.
+      aria-disabled={medicineBlocked || undefined}
       className={cn(
         "grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(5.5rem,8.5rem)_auto] items-start gap-x-2.5 gap-y-0.5 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-2.5 py-2 text-left transition-colors",
         "hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,var(--card))]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
+        medicineBlocked && "cursor-not-allowed hover:bg-transparent",
         cartQty > 0 &&
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,var(--card))]",
         justAdded && "ring-1 ring-inset ring-[var(--pos-primary)]/35",
         tone === "out" && "opacity-70",
       )}
       aria-label={
-        cartQty > 0
-          ? `${cashierItemPrimaryLabel(item)}, ${cartQty} in cart. Add another.`
-          : `Add ${cashierItemPrimaryLabel(item)}`
+        medicineBlocked
+          ? `${cashierItemPrimaryLabel(item)} cannot be sold yet`
+          : cartQty > 0
+            ? `${cashierItemPrimaryLabel(item)}, ${cartQty} in cart. Add another.`
+            : `Add ${cashierItemPrimaryLabel(item)}`
       }
     >
       <span className="min-w-0">
@@ -131,6 +139,7 @@ export function PosVariantRow({
             {stock}
           </span>
         ) : null}
+        <TillMedicineLine itemId={item.id} where="shelf" />
       </span>
       <span className="shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums text-foreground">
         {shelfLine}
@@ -148,7 +157,7 @@ export function PosVariantRow({
           <span className="rounded bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
             ×{cartQty}
           </span>
-        ) : (
+        ) : medicineBlocked ? null : (
           <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[var(--pos-primary,#0f766e)]">
             <Plus className="size-3.5" aria-hidden />
             Add

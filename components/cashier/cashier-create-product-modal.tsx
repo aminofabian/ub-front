@@ -30,6 +30,10 @@ import {
   normalizeFamilyPrefix,
   stripFamilyPrefixFromInput,
 } from "@/app/(dashboard)/products/_components/CreateGroupOptionsPad";
+import { useOptionalDashboard } from "@/components/dashboard-provider";
+import { MedicineQuestionDialog } from "@/components/pharmacy/medicine-question-dialog";
+import { isPharmacyBusiness } from "@/lib/business-store-type";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -240,7 +244,37 @@ function parsePosQty(raw: string, allowZero = false): number | null {
   return n > 0 ? n : null;
 }
 
-export function CashierCreateProductModal({
+/**
+ * Quick "new product" sheet for the till, receiving and ordering. In a pharmacy it first asks
+ * whether the product is a medicine: a medicine created here would have no class, lot or expiry
+ * and would sell like a packet of sweets, so medicines are sent to Products instead.
+ */
+export function CashierCreateProductModal(props: CashierCreateProductModalProps) {
+  const dashboard = useOptionalDashboard();
+  const pharmacy = isPharmacyBusiness(dashboard?.business);
+  const [notMedicine, setNotMedicine] = useState(false);
+  const { open } = props;
+  useEffect(() => {
+    if (!open) setNotMedicine(false);
+  }, [open]);
+
+  if (!pharmacy || notMedicine || !open) {
+    return <CashierCreateProductSheet {...props} />;
+  }
+  return (
+    <MedicineQuestionDialog
+      canAddMedicines={
+        hasPermission(dashboard?.me?.permissions, Permission.PharmacyManage) &&
+        hasPermission(dashboard?.me?.permissions, Permission.CatalogItemsWrite)
+      }
+      style={props.brandTheme}
+      onNotMedicine={() => setNotMedicine(true)}
+      onClose={() => props.onOpenChange(false)}
+    />
+  );
+}
+
+function CashierCreateProductSheet({
   open,
   onOpenChange,
   brandTheme,

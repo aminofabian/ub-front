@@ -481,6 +481,45 @@ the order the work happens; on a phone they stack in that order.
 - Each house has one ink of its own (forest, brass, coffee, chilli). Do not add a second accent per house.
 
 
+### Pharmacy at the till (the cashier page of a chemist)
+
+Viewed in the preview harness with sample data: search rows, the cart rail,
+the ledger's match list and sheet, the patient strip, the hub notice, the
+quick-form question and the super-admin Medicines panel. The tile shelf and
+the counter ticket carry the same line and were not viewed. Not yet seen in
+the running app.
+
+- The cashier page is the same page. A pharmacy adds **one line** under a
+  product name, never a badge, card or new column. It reads in the order a
+  cashier checks: may I sell it, is it the right drug, is it in date.
+  "Prescription only · Amoxicillin 500 mg capsule · Expires Mar 2027".
+- Weight follows what needs noticing. Prescription only is forest and
+  semibold. Over the counter is the ordinary case: muted, regular weight.
+  A short-dated expiry, or no dated stock at the branch, is amber semibold.
+- A medicine that cannot be sold shows **only the reason**, in the till's
+  red ("No class set yet. Cannot be sold."), and has no Add. The row is not
+  faded and its expiry is dropped: the reason is the one thing to read.
+- In the cart the drug is already chosen, so the line changes job: the class
+  appears only when payment will need the pharmacist, on its own line, and
+  the next line names the lot and expiry. Phrases never break mid-way
+  ("Expires Mar 2027" wraps whole).
+- The cart opens with the patient when there is a medicine in it: "Add the
+  patient" by phone number, then name and number at 13px, any allergy note
+  in red with `role="alert"`, and one muted sentence saying what payment will
+  ask for. 12px, a step up from the 11px line text. Nothing appears for a
+  sale with no medicine.
+- Expiry is shown by month. Packs are dated by month and the day adds noise.
+- Till colours are the till's own (forest, amber, red as used for stock and
+  below-cost), not the operator shell's terracotta.
+
+- **Outside the till.** The side menu's Pharmacy section lists the page's
+  sections under the same names as the page's tabs (grouped Stock, Dispensing,
+  Records). The new-product form gains one checkbox, "This is a medicine";
+  ticked, it shows generic name, strength, form and "How it is sold" in the
+  form's own field style, and one muted sentence says stock is received, not
+  typed in. A product page shows a Medicine block as a label, one line of
+  state (terracotta only when it cannot be sold) and one outlined action.
+
 ## Pharmacy workspace
 
 Every section and the till's dispensing dialog were viewed at 1440 wide in a

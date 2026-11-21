@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -90,7 +91,22 @@ export function PharmacyWorkspace() {
   const canOrder = hasPermission(permissions, Permission.PurchasingPathAWrite);
   const canManageClaims = hasPermission(permissions, Permission.PharmacyClaimsManage);
 
-  const [tab, setTab] = useState<PharmacyTab>("overview");
+  // The open section lives in the address (?tab=), so the side menu can link to each one, the
+  // browser's Back button moves between them, and a section can be bookmarked.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedParam = searchParams.get("tab");
+  const requestedTab: PharmacyTab = TABS.some((t) => t.key === requestedParam)
+    ? (requestedParam as PharmacyTab)
+    : "overview";
+  const setTab = useCallback(
+    (next: PharmacyTab) => {
+      router.push(next === "overview" ? APP_ROUTES.pharmacy : `${APP_ROUTES.pharmacy}?tab=${next}`, {
+        scroll: false,
+      });
+    },
+    [router],
+  );
   const [dashboard, setDashboard] = useState<PharmacyDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [medicineClass, setMedicineClass] = useState<DispensingClass | null>(null);
@@ -148,6 +164,8 @@ export function PharmacyWorkspace() {
     return true;
   });
   const visibleKeys = new Set(allTabs.map((t) => t.key));
+  // A link to a section this person may not open lands on the front page instead of a blank one.
+  const tab: PharmacyTab = visibleKeys.has(requestedTab) ? requestedTab : "overview";
   const visibleGroups = GROUPS.filter((g) => g.tabs.some((t) => visibleKeys.has(t)));
   const activeGroup = visibleGroups.find((g) => g.tabs.includes(tab)) ?? visibleGroups[0];
   const subTabs = activeGroup ? allTabs.filter((t) => activeGroup.tabs.includes(t.key)) : [];

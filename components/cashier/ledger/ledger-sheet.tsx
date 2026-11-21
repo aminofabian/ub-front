@@ -3,10 +3,13 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
+import { TillMedicineLine } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 export type LedgerSheetLine = {
   key: string;
+  /** Catalogue item behind the line, for the pharmacy medicine line. Absent on non-item lines. */
+  itemId?: string;
   code: string;
   item: string;
   quantity: string;
@@ -222,6 +225,7 @@ export function LedgerSheet({
                           {line.code}
                         </span>
                       ) : null}
+                      <TillMedicineLine itemId={line.itemId} where="cart" />
                     </button>
                     <span className="shrink-0 pt-0.5 font-mono text-[13px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
                       {line.total.toFixed(2)}
@@ -419,6 +423,7 @@ export function LedgerSheet({
                         {line.code}
                       </span>
                     ) : null}
+                    <TillMedicineLine itemId={line.itemId} where="cart" />
                   </button>
                 </CellFrame>
                 <CellFrame

@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/dialog";
 import type { FormDrawerProps } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
-import { isButcheryBusiness } from "@/lib/business-store-type";
+import { hasPermission, Permission } from "@/lib/permissions";
+import { isButcheryBusiness, isPharmacyBusiness } from "@/lib/business-store-type";
+import { ProductCreateMedicineFields } from "@/components/pharmacy/product-medicine-fields";
 import {
   BUTCHER_PRODUCT_TEMPLATES,
   matchItemTypeIdForTemplate,
@@ -290,8 +292,11 @@ export function ProductCreateModal({
   onCatalogRefresh,
 }: Props) {
   const modeId = useId();
-  const { business, branchId } = useDashboard();
+  const { business, branchId, me } = useDashboard();
   const showButcherTemplates = isButcheryBusiness(business);
+  // A chemist says at creation whether the product is a medicine, so it is never sold unclassified by accident.
+  const showMedicineFields =
+    isPharmacyBusiness(business) && hasPermission(me?.permissions, Permission.PharmacyManage);
   const fileRef = useRef<HTMLInputElement>(null);
   const categorySelectRef = useRef<SearchableSelectHandle>(null);
   const departmentSelectRef = useRef<SearchableSelectHandle>(null);
@@ -1512,6 +1517,10 @@ export function ProductCreateModal({
                         }`
                       : "\u00a0"}
                   </p>
+
+                  {showMedicineFields ? (
+                    <ProductCreateMedicineFields inputClassName={fieldClass} labelClassName={labelClass} />
+                  ) : null}
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">

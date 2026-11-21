@@ -44,6 +44,8 @@ export type MedicineRecord = {
   dispensingClass: DispensingClass;
   restockOnRefund: boolean;
   classSetAt: string | null;
+  /** Class the platform catalogue suggested on adoption; only meaningful while unclassified. */
+  suggestedClass?: DispensingClass | null;
 };
 
 export type MedicinePage = {
@@ -124,6 +126,14 @@ export function classifyMedicines(
   return apiRequest("/api/v1/pharmacy/medicines/classify", {
     method: "POST",
     body: { itemIds, dispensingClass },
+  });
+}
+
+/** Accepts the catalogue's suggested class for these unclassified medicines. */
+export function confirmSuggestedClasses(itemIds: string[]): Promise<{ changed: number; skipped: number }> {
+  return apiRequest("/api/v1/pharmacy/medicines/confirm-suggested", {
+    method: "POST",
+    body: { itemIds },
   });
 }
 

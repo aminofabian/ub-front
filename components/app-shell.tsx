@@ -161,6 +161,8 @@ const FOOD_LEAD_SECTIONS: readonly string[] = ["restaurant"];
 /** A lodging tenant's daily work starts at the front desk; pull it up the rail, out of the leftovers. */
 const LODGING_LEAD_SECTIONS: readonly string[] = ["front-desk"];
 const FOOD_AND_LODGING_LEAD_SECTIONS: readonly string[] = ["restaurant", "front-desk"];
+/** A chemist's daily work is the pharmacy section; it follows Business in the rail. */
+const PHARMACY_LEAD_SECTIONS: readonly string[] = ["pharmacy"];
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -515,7 +517,23 @@ const NAV_SECTIONS: readonly NavSection[] = [
     blurb: "Medicines, stock safety and the dispensing log",
     icon: Pill,
     entryHref: APP_ROUTES.pharmacy,
-    items: [{ href: APP_ROUTES.pharmacy, label: "Pharmacy" }],
+    // One page with sections: each item opens a section with ?tab=. See isNavItemVisible for
+    // who sees which, and itemIsActive for how the bare path stays the overview only.
+    // Labels match the tabs on the page.
+    items: [
+      { href: APP_ROUTES.pharmacy, label: "Overview" },
+      { href: `${APP_ROUTES.pharmacy}?tab=medicines`, label: "Medicines" },
+      { href: `${APP_ROUTES.pharmacy}?tab=stock`, label: "Stock safety", group: "Stock" },
+      { href: `${APP_ROUTES.pharmacy}?tab=recall`, label: "Recall", group: "Stock" },
+      { href: `${APP_ROUTES.pharmacy}?tab=ordering`, label: "Ordering", group: "Stock" },
+      { href: `${APP_ROUTES.pharmacy}?tab=dispensing`, label: "Dispensing log", group: "Dispensing" },
+      { href: `${APP_ROUTES.pharmacy}?tab=patients`, label: "Patients", group: "Dispensing" },
+      { href: `${APP_ROUTES.pharmacy}?tab=followups`, label: "Follow-ups", group: "Dispensing" },
+      { href: `${APP_ROUTES.pharmacy}?tab=register`, label: "Controlled register", group: "Dispensing" },
+      { href: `${APP_ROUTES.pharmacy}?tab=compliance`, label: "Compliance", group: "Records" },
+      { href: `${APP_ROUTES.pharmacy}?tab=claims`, label: "Scheme claims", group: "Records" },
+      { href: `${APP_ROUTES.pharmacy}?tab=settings`, label: "Settings" },
+    ],
   },
   {
     id: "ops",
@@ -664,6 +682,8 @@ type NavGate = {
   isLodgingBusiness: boolean;
   /** One of the business's formats is a pharmacy / chemist. */
   isPharmacyBusiness: boolean;
+  /** Which Pharmacy sections this person can open; mirrors the checks in PharmacyWorkspace. */
+  pharmacyNav: { stock: boolean; recall: boolean; records: boolean; compliance: boolean };
   /** The business sells physical goods off a shelf — a retail shop, or one that opted into a product line. */
   sellsGoods: boolean;
   canManageMenu: boolean;
@@ -935,9 +955,25 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
   if (item.href === APP_ROUTES.store) return gate.canViewStoreRoom;
-  if (item.href === APP_ROUTES.pharmacy)
+  if (item.href.split("?")[0] === APP_ROUTES.pharmacy) {
     // Same permission as the store room: the pharmacy pages read with catalog.items.read.
-    return gate.isPharmacyBusiness && gate.canViewStoreRoom;
+    if (!gate.isPharmacyBusiness || !gate.canViewStoreRoom) return false;
+    // Each section is listed only for someone the page itself would show it to.
+    const section = new URLSearchParams(item.href.split("?")[1] ?? "").get("tab");
+    if (section === "stock" || section === "ordering") return gate.pharmacyNav.stock;
+    if (section === "recall") return gate.pharmacyNav.recall;
+    if (
+      section === "dispensing" ||
+      section === "patients" ||
+      section === "followups" ||
+      section === "register" ||
+      section === "claims"
+    ) {
+      return gate.pharmacyNav.records;
+    }
+    if (section === "compliance") return gate.pharmacyNav.compliance;
+    return true;
+  }
   if (item.href === APP_ROUTES.purchasingIntelligence)
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
@@ -1078,6 +1114,12 @@ function itemIsActive(
   // Product pages live under /products/p/. Price tags and the catalog must not light up "Add products".
   if (hrefPath === APP_ROUTES.products) {
     return path === hrefPath || path.startsWith(`${APP_ROUTES.products}/p/`);
+  }
+
+  // Pharmacy is one page with ?tab= sections. The bare path is its front page only.
+  if (hrefPath === APP_ROUTES.pharmacy && !hrefQuery) {
+    const tab = live.get("tab");
+    return path === hrefPath && (!tab || tab === "overview");
   }
 
   // Home vs Take stock share /inventory/stock — distinguish by ?view=
@@ -1419,6 +1461,14 @@ export function AppShell({ children }: AppShellProps) {
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
       // The desktop till does not carry batch or dispensing data to the cloud yet.
       isPharmacyBusiness: isPharmacyBusiness(business) && !IS_DESKTOP,
+      pharmacyNav: {
+        stock: hasPermission(me?.permissions, Permission.InventoryRead),
+        recall: hasPermission(me?.permissions, Permission.InventoryWrite),
+        records: hasPermission(me?.permissions, Permission.PharmacyRecordsRead),
+        compliance:
+          hasPermission(me?.permissions, Permission.PharmacyDispense) ||
+          hasPermission(me?.permissions, Permission.PharmacyManage),
+      },
       // On the desktop app the full retail sidebar always stands (service/food screens are off there),
       // so never let a desktop tenant lose the catalogue. In the cloud, mini-marts and other shops
       // always have it; a restaurant or a service shop gets it once products are turned on.
@@ -2173,7 +2223,9 @@ export function AppShell({ children }: AppShellProps) {
                     ? FOOD_LEAD_SECTIONS
                     : lodgingShop
                       ? LODGING_LEAD_SECTIONS
-                      : undefined
+                      : isPharmacyBusiness(business) && !IS_DESKTOP
+                        ? PHARMACY_LEAD_SECTIONS
+                        : undefined
             }
             pathname={pathname}
             homeHref={homeHref}

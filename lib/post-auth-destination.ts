@@ -12,6 +12,7 @@ import {
   isButcheryOnlyBusiness,
   isFoodOnlyBusiness,
   isGroceryOperationsBusiness,
+  isPharmacyBusiness,
   isTableServiceBusiness,
   type StoreTypeId,
   getBusinessStoreTypes,
@@ -188,6 +189,11 @@ function dedicatedRoleHome(
   }
   if (roleKey === "stock_manager") {
     return `${APP_ROUTES.inventoryStock}?view=levels`;
+  }
+  if (roleKey === "pharmacist" && isPharmacyBusiness(business)) {
+    // A pharmacist signs in to what needs them: records to check, stock to deal with. The till
+    // is one tap away, and they are not tied to one branch.
+    return APP_ROUTES.pharmacy;
   }
   if (roleKey === "manager" && isGroceryOperationsBusiness(business)) {
     return APP_ROUTES.grocery;

@@ -34,6 +34,10 @@ import {
   UnlinkedSupplierBadge,
 } from "@/components/suppliers/supplier-display-name";
 import { isRealSupplierLink } from "@/lib/supplier-display";
+import { ProductMedicineSection } from "@/components/pharmacy/product-medicine-fields";
+import { isPharmacyBusiness } from "@/lib/business-store-type";
+import { useDashboard } from "@/components/dashboard-provider";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { reserveBarcode } from "@/lib/barcode-generate-client";
@@ -432,6 +436,10 @@ export function ProductDetailPanel(props: Props) {
 
   const panelKind = detailPanelKind(detail, variantRows.length);
   const isChildVariant = !!detail.variantOfItemId?.trim();
+  // Pharmacy: a pack or size follows its parent's class, so only the parent shows the block.
+  const dashboard = useDashboard();
+  const showMedicineSection = isPharmacyBusiness(dashboard.business) && !isChildVariant;
+  const canManageMedicines = hasPermission(dashboard.me?.permissions, Permission.PharmacyManage);
   const parentProductId = detail.variantOfItemId?.trim() || null;
   const openAddVariant =
     onOpenAddVariant ?? (() => setActiveDrawer("add-variant"));
@@ -1437,6 +1445,16 @@ export function ProductDetailPanel(props: Props) {
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {showMedicineSection ? (
+        <ProductMedicineSection
+          itemId={detail.id}
+          itemName={detail.name}
+          canManage={canManageMedicines}
+          className={cn(detailSectionClass, "border-b border-border px-2.5 py-2.5")}
+          labelClassName={detailSectionLabelClass}
+        />
       ) : null}
 
       {/* SKUs — variants & packages */}

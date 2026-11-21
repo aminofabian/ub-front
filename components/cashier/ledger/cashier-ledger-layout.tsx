@@ -99,6 +99,7 @@ import {
   salesMute,
   salesToolBtnClass,
 } from "@/components/sales/sales-surface";
+import { PharmacyTillCartStrip } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 import { MpesaRailPicker } from "@/components/payments/mpesa-rail-picker";
 import { MpesaTransactionCodeField } from "@/components/cashier/mpesa-transaction-code-field";
@@ -381,6 +382,7 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
     () =>
       cart.lines.map((line) => ({
         key: line.key,
+        itemId: line.itemId,
         code: (line.item.sku || line.item.barcode || "").trim(),
         item: line.label,
         quantity: line.quantity,
@@ -1228,6 +1230,10 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   onPick={pickTopProduct}
                 />
               ) : null}
+              <PharmacyTillCartStrip
+                itemIds={cart.lines.map((l) => l.itemId)}
+                className="shrink-0 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card"
+              />
               <LedgerSheet
                 lines={sheetLines}
                 selectedKey={selectedKey}

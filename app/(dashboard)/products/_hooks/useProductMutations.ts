@@ -57,6 +57,8 @@ import {
   variantSellShape,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
+import { saveMedicine } from "@/lib/pharmacy-api";
+import { productMedicineDraft } from "@/lib/product-medicine-draft";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import type {
   BulkStockAdjustParams,
@@ -725,6 +727,31 @@ export function useProductMutations(d: Dependencies) {
           createdOnServer = true;
         }
 
+        // Pharmacy: the form said this product is a medicine. The medicine record is keyed by
+        // the product, so it is saved now. If it fails the product still exists; say so.
+        const medicineDraft = productMedicineDraft.get();
+        let markedMedicine = false;
+        let medicineNote = "";
+        if (medicineDraft.on && created?.id) {
+          try {
+            await saveMedicine(created.id, {
+              genericName: medicineDraft.genericName,
+              strength: medicineDraft.strength,
+              dosageForm: medicineDraft.dosageForm,
+              dispensingClass: medicineDraft.dispensingClass,
+            });
+            markedMedicine = true;
+            medicineNote =
+              medicineDraft.dispensingClass === "UNCLASSIFIED"
+                ? " Marked as a medicine with no class yet, so it cannot be sold until you set one. Receive its stock with a lot number and expiry date."
+                : " Marked as a medicine. Receive its stock with a lot number and expiry date.";
+          } catch {
+            medicineNote =
+              " It could not be marked as a medicine. Open the product and mark it before selling.";
+          }
+          productMedicineDraft.reset();
+        }
+
         // Supplier link — standalone only
         const sup = parentDraft.supplierId.trim();
         if (!isCreatingGroup && canLinkSupplier && sup) {
@@ -781,7 +808,8 @@ export function useProductMutations(d: Dependencies) {
               bundlePrice: String(opt.unitPrice),
               defaultCostPrice:
                 opt.buyingPrice != null ? String(opt.buyingPrice) : "",
-              openingQty: String(opt.stock),
+              // A medicine's stock is received with its lot and expiry, never typed in here.
+              openingQty: markedMedicine ? "" : String(opt.stock),
               openingBranchId: branchId,
               openingUnitCost:
                 opt.buyingPrice != null ? String(opt.buyingPrice) : "",
@@ -880,11 +908,13 @@ export function useProductMutations(d: Dependencies) {
           setActiveDrawer(null);
           const n = groupOptions.length;
           setMessage(
-            warnings.length > 0
-              ? `Family created with ${n} option${n === 1 ? "" : "s"}. ${warnings[0]}`
-              : n === 1
-                ? "Family created with 1 option."
-                : `Family created with ${n} options.`,
+            `${
+              warnings.length > 0
+                ? `Family created with ${n} option${n === 1 ? "" : "s"}. ${warnings[0]}`
+                : n === 1
+                  ? "Family created with 1 option."
+                  : `Family created with ${n} options.`
+            }${medicineNote}`,
           );
           return true;
         }
@@ -893,6 +923,7 @@ export function useProductMutations(d: Dependencies) {
         if (
           !isCreatingGroup &&
           !openingStockHandledByAdopt &&
+          !markedMedicine &&
           canInventoryWrite &&
           parentDraft.openingQty.trim() &&
           openingBranchId
@@ -968,9 +999,7 @@ export function useProductMutations(d: Dependencies) {
                   ? ` ${extraPackSizesAdded} pack size${extraPackSizesAdded === 1 ? "" : "s"} added with it.`
                   : ""
               }`
-            : linkedSupplier
-              ? "Product created and linked."
-              : "Product created.",
+            : `${linkedSupplier ? "Product created and linked." : "Product created."}${medicineNote}`,
         );
       } catch (err) {
         setMessage(formatMutationError(err, "Create failed."));

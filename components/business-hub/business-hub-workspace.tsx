@@ -62,11 +62,13 @@ import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
+import { PharmacyHubNotice } from "@/components/business-hub/pharmacy-hub-notice";
 import {
   getBusinessStoreTypes,
   isFoodLedBusiness,
   isFoodOnlyStoreTypes,
   isLodgingBusiness,
+  isPharmacyBusiness,
   isTableServiceStoreTypes,
   isServiceBusiness,
   isServiceOnlyBusiness,
@@ -1756,6 +1758,14 @@ export function BusinessHubWorkspace() {
             />
           ) : null}
           {canManageBusinessSettings ? <SetupProgressBanner /> : null}
+          {isPharmacyBusiness(business) &&
+          !IS_DESKTOP &&
+          hasPermission(me?.permissions, Permission.CatalogItemsRead) ? (
+            <PharmacyHubNotice
+              branchId={branchId ?? null}
+              canReadStock={hasPermission(me?.permissions, Permission.InventoryRead)}
+            />
+          ) : null}
           {serviceFloor ? (
             <ServiceFloorPanel
               branchId={branchId ?? null}

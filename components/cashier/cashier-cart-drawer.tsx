@@ -60,6 +60,7 @@ import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { settleSplitTender, type SplitSettlement } from "@/lib/split-tender";
+import { PharmacyTillCartStrip, TillMedicineLine } from "@/components/pharmacy/pharmacy-till";
 import { cn } from "@/lib/utils";
 
 const fieldClass = (extra?: string) =>
@@ -898,6 +899,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </p>
                 ) : null}
               </div>
+              <PharmacyTillCartStrip itemIds={lines.map((l) => l.itemId)} className="mt-2 border border-border/40 bg-background/80" />
               {linesOpen && lines.length > 0 ? (
                 <ul className="pos-scroll mt-2 max-h-48 space-y-0.5 overflow-y-auto overscroll-contain rounded-none border border-border/40 bg-background/80 p-1 sm:max-h-28">
                   {lines.map((line) => {
@@ -924,6 +926,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               · Below cost
                             </span>
                           ) : null}
+                          <TillMedicineLine itemId={line.itemId} where="cart" className="truncate font-normal" />
                         </span>
                         <span
                           className={cn(
