@@ -1695,6 +1695,11 @@ export type FeatureFlagsPatchPayload = {
    * shift per till). Turning it back on closes those hidden shifts.
    */
   shiftsDisabled?: boolean;
+  /**
+   * Email stock with buying and selling prices, and today's sales, when a shift
+   * closes. Absent means on.
+   */
+  shiftsEmailCloseReports?: boolean;
   tillListen?: {
     checkout?: boolean;
     openCart?: boolean;

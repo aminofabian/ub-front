@@ -138,6 +138,11 @@ export type ShiftSettingsForm = {
    * `shifts.disabled`, so an absent flag means shifts stay on.
    */
   disabled: boolean;
+  /**
+   * Email the owner when a shift closes. Absent flag means on, so the stored
+   * value is only `false` after an opt-out.
+   */
+  emailCloseReports: boolean;
 };
 
 export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
@@ -163,6 +168,7 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
   prefillOpeningFromLastClose: false,
   disabled: false,
+  emailCloseReports: true,
 };
 
 export function cashierCapabilitiesFromRecord(
@@ -193,6 +199,7 @@ export function shiftSettingsFromRecord(
     prefillOpeningFromLastClose:
       ff[SHIFT_SETTINGS_FLAGS.prefillOpeningFromLastClose] === true,
     disabled: ff[SHIFT_SETTINGS_FLAGS.disabled] === true,
+    emailCloseReports: ff[SHIFT_SETTINGS_FLAGS.emailCloseReports] !== false,
   };
 }
 

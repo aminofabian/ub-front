@@ -1573,6 +1573,18 @@ export function BusinessSettingsForm({
                 description="Cashiers open a shift with a counted float and close it with a cash count. Turn this off and tills sell straight away, with no shift to open and no drawer count. Turning it back on clears unfinished carts saved on tills."
               />
               <ToggleRow
+                checked={shiftSettings.emailCloseReports}
+                onChange={(checked) =>
+                  setShiftSettings((previous) => ({
+                    ...previous,
+                    emailCloseReports: checked,
+                  }))
+                }
+                icon={<Banknote className="size-4 text-muted-foreground" />}
+                title="Email stock and today's sales"
+                description="When a shift closes, email the owner a stock list with buying price, selling price and quantity, and a second email of today's sales. Turn this off to stop both."
+              />
+              <ToggleRow
                 disabled={shiftSettings.disabled}
                 checked={shiftSettings.prefillOpeningFromLastClose}
                 onChange={(checked) =>

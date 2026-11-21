@@ -493,6 +493,7 @@ export function useBusinessSettingsEditor() {
             shiftsPrefillOpeningFromLastClose:
               shiftSettings.prefillOpeningFromLastClose,
             shiftsDisabled: shiftSettings.disabled,
+            shiftsEmailCloseReports: shiftSettings.emailCloseReports,
             tillListen: {
               checkout: tillListen.checkout,
               openCart: tillListen.openCart,

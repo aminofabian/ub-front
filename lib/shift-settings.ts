@@ -3,6 +3,11 @@ export const SHIFT_SETTINGS_FLAGS = {
   prefillOpeningFromLastClose: "shifts.prefill_opening_from_last_close",
   /** Business sells without opening shifts; the server keeps one hidden shift per till. */
   disabled: "shifts.disabled",
+  /**
+   * Email stock (buying, selling, on-hand) and today's sales when a shift closes.
+   * Absent means on.
+   */
+  emailCloseReports: "shifts.email_close_reports",
 } as const;
 
 export function isPrefillOpeningFromLastCloseEnabled(
