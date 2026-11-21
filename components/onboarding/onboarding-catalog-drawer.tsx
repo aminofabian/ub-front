@@ -25,6 +25,7 @@ import {
   type GlobalCatalogMetaRecord,
   type GlobalProductRecord,
 } from "@/lib/api";
+import { selectIncomingShelfProducts } from "@/lib/catalog-shelf-load";
 import { pickSuggestedOnboardingPack } from "@/lib/onboarding-suggested-pack";
 import {
   adoptOpeningUnitCost,
@@ -116,6 +117,11 @@ export function OnboardingCatalogDrawer({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const seededPackIdRef = useRef<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const importLockRef = useRef(false);
+  /** Set when the person clears the shelf, so later pages do not tick themselves again. */
+  const autoSelectPausedRef = useRef(false);
+  /** Products the person unticked. Later pages must not put them back. */
+  const optedOutIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (importingRef) {
@@ -130,6 +136,9 @@ export function OnboardingCatalogDrawer({
     }
     let cancelled = false;
     seededPackIdRef.current = null;
+    importLockRef.current = false;
+    autoSelectPausedRef.current = false;
+    optedOutIdsRef.current = new Set();
     setSelected(new Map());
     setSearch("");
     setStorefrontVisible(true);
@@ -216,8 +225,11 @@ export function OnboardingCatalogDrawer({
 
     let cancelled = false;
     const signal = { cancelled: false };
+    autoSelectPausedRef.current = false;
+    optedOutIdsRef.current = new Set();
     setLoadingShelf(true);
     setBrowseLoadLabel("Loading products…");
+    setBrowseProducts([]);
     void (async () => {
       try {
         const products = await fetchAllGlobalCatalogProducts(
@@ -232,21 +244,40 @@ export function OnboardingCatalogDrawer({
           {
             pageSize: 200,
             signal,
-            onProgress: (loaded, total) => {
+            onPage: (page, loaded, total) => {
               if (cancelled) return;
+              setBrowseProducts((prev) => prev.concat(page));
+              setBrowseTotal(total);
               setBrowseLoadLabel(
                 total > 0
                   ? `Loading ${loaded} of ${total}…`
                   : `Loading ${loaded}…`,
               );
+              if (autoSelectPausedRef.current) return;
+              setSelected((prev) => {
+                const next = selectIncomingShelfProducts(
+                  prev,
+                  page,
+                  optedOutIdsRef.current,
+                );
+                return next ?? prev;
+              });
             },
           },
         );
-        if (!cancelled) {
-          setBrowseProducts(products);
-          setBrowseTotal(products.length);
-          setBrowseLoadLabel(null);
-        }
+        if (cancelled) return;
+        setBrowseProducts(products);
+        setBrowseTotal(products.length);
+        setBrowseLoadLabel(null);
+        if (autoSelectPausedRef.current) return;
+        setSelected((prev) => {
+          const next = selectIncomingShelfProducts(
+            prev,
+            products,
+            optedOutIdsRef.current,
+          );
+          return next ?? prev;
+        });
       } catch {
         if (!cancelled) {
           setBrowseProducts([]);
@@ -322,14 +353,17 @@ export function OnboardingCatalogDrawer({
       const next = new Map(prev);
       if (next.has(product.id)) {
         next.delete(product.id);
+        optedOutIdsRef.current.add(product.id);
       } else {
         next.set(product.id, product);
+        optedOutIdsRef.current.delete(product.id);
       }
       return next;
     });
   }, []);
 
   const removeSelected = useCallback((productId: string) => {
+    optedOutIdsRef.current.add(productId);
     setSelected((prev) => {
       const next = new Map(prev);
       next.delete(productId);
@@ -338,13 +372,16 @@ export function OnboardingCatalogDrawer({
   }, []);
 
   const clearSelected = useCallback(() => {
+    autoSelectPausedRef.current = true;
     setSelected(new Map());
   }, []);
 
   const selectAllOnShelf = useCallback(() => {
+    autoSelectPausedRef.current = false;
     setSelected((prev) => {
       const next = new Map(prev);
       for (const product of shelfSelectable) {
+        optedOutIdsRef.current.delete(product.id);
         next.set(product.id, product);
       }
       return next;
@@ -352,6 +389,10 @@ export function OnboardingCatalogDrawer({
   }, [shelfSelectable]);
 
   const clearShelfSelection = useCallback(() => {
+    autoSelectPausedRef.current = true;
+    for (const product of shelfSelectable) {
+      optedOutIdsRef.current.add(product.id);
+    }
     setSelected((prev) => {
       if (shelfSelectable.length === 0) {
         return prev;
@@ -366,6 +407,7 @@ export function OnboardingCatalogDrawer({
   }, [shelfSelectable]);
 
   const handleImport = useCallback(async () => {
+    if (importLockRef.current) return;
     if (!canAdopt || selected.size === 0 || !openingBranchId.trim()) {
       if (!openingBranchId.trim()) {
         setErrorMessage(
@@ -375,6 +417,7 @@ export function OnboardingCatalogDrawer({
       return;
     }
 
+    importLockRef.current = true;
     const products = [...selected.values()];
     const lines = buildAdoptLines(products, storefrontVisible);
     setImporting(true);
@@ -388,6 +431,7 @@ export function OnboardingCatalogDrawer({
       message: "Checking selection…",
     });
 
+    let holdBusy = false;
     try {
       const preview = await previewGlobalCatalogAdopt(lines, {
         createMissingCategories: true,
@@ -458,6 +502,7 @@ export function OnboardingCatalogDrawer({
         percent: 100,
         message: `Imported ${imported} product${imported === 1 ? "" : "s"}`,
       });
+      holdBusy = true;
       window.setTimeout(() => {
         onSuccess(imported);
         onOpenChange(false);
@@ -472,7 +517,10 @@ export function OnboardingCatalogDrawer({
       );
       setImportProgress(null);
     } finally {
-      setImporting(false);
+      if (!holdBusy) {
+        importLockRef.current = false;
+        setImporting(false);
+      }
     }
   }, [
     canAdopt,

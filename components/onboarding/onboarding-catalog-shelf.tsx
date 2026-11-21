@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, ChevronLeft, Package, Search, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { Check, ChevronLeft, Loader2, Package, Search, X } from "lucide-react";
+import { useRef, type ReactNode } from "react";
 
 import { Switch } from "@/components/ui/switch";
 import type {
@@ -206,6 +207,14 @@ export function OnboardingCatalogShelf({
 }: OnboardingCatalogShelfProps) {
   const selectedList = [...selected.values()];
   const selectedCount = selectedList.length;
+  const manifestScrollRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual list
+  const manifestVirtualizer = useVirtualizer({
+    count: selectedCount,
+    getScrollElement: () => manifestScrollRef.current,
+    estimateSize: () => 52,
+    overscan: 8,
+  });
   const importPercent = importProgress
     ? Math.min(100, Math.max(0, importProgress.percent))
     : 0;
@@ -272,39 +281,53 @@ export function OnboardingCatalogShelf({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div
+        ref={manifestScrollRef}
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
+      >
         {selectedCount === 0 ? (
           <div className="flex h-full min-h-[10rem] items-center justify-center border border-dashed border-[rgba(18,26,22,0.22)] px-5 py-6 text-center text-[13px] leading-relaxed text-[#556159]">
             Tap shelf products to build your starter catalogue. Drafts stay until
             you import.
           </div>
         ) : (
-          <ul className="divide-y divide-dashed divide-[rgba(18,26,22,0.2)]">
-            {selectedList.map((product) => (
-              <li
-                key={product.id}
-                className="flex items-center gap-2 py-1 pl-1"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[13px] font-medium leading-snug text-[#121A16]">
-                    {product.name}
-                  </p>
-                  <p className="mt-0.5 font-mono text-[11px] tabular-nums text-[#556159]">
-                    {product.recommendedSellingPrice != null
-                      ? formatMoney(product.recommendedSellingPrice, currency)
-                      : "—"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemoveSelected(product.id)}
-                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] text-[#626D66] transition-colors hover:text-[#121A16] active:bg-[#EFEBE2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B]"
-                  aria-label={`Remove ${product.name}`}
+          <ul
+            className="relative w-full"
+            style={{ height: manifestVirtualizer.getTotalSize() }}
+          >
+            {manifestVirtualizer.getVirtualItems().map((item) => {
+              const product = selectedList[item.index];
+              if (!product) return null;
+              return (
+                <li
+                  key={product.id}
+                  data-index={item.index}
+                  ref={manifestVirtualizer.measureElement}
+                  className="absolute left-0 top-0 flex w-full items-center gap-2 border-b border-dashed border-[rgba(18,26,22,0.2)] py-1 pl-1"
+                  style={{ transform: `translateY(${item.start}px)` }}
                 >
-                  <X className="size-4" aria-hidden />
-                </button>
-              </li>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-[13px] font-medium leading-snug text-[#121A16]">
+                      {product.name}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[11px] tabular-nums text-[#556159]">
+                      {product.recommendedSellingPrice != null
+                        ? formatMoney(product.recommendedSellingPrice, currency)
+                        : "—"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveSelected(product.id)}
+                    disabled={importing}
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] text-[#626D66] transition-colors hover:text-[#121A16] active:bg-[#EFEBE2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] disabled:opacity-40"
+                    aria-label={`Remove ${product.name}`}
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -338,23 +361,43 @@ export function OnboardingCatalogShelf({
         ) : null}
         <button
           type="button"
-          disabled={!canAdopt || selectedCount === 0 || importing}
-          onClick={onImport}
+          disabled={(!canAdopt || selectedCount === 0) && !importing}
+          aria-disabled={!canAdopt || selectedCount === 0 || importing}
+          aria-busy={importing}
+          onClick={() => {
+            if (!canAdopt || selectedCount === 0 || importing) return;
+            onImport();
+          }}
           className={cn(
-            "flex h-12 w-full items-center justify-center gap-2 rounded-[2px] text-[15px] font-semibold tracking-[-0.01em] transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            "relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-[2px] text-[15px] font-semibold tracking-[-0.01em]",
+            "transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FCFAF5]",
-            canAdopt && selectedCount > 0 && !importing
-              ? "bg-[#1D4B3B] text-[#F4F1EA] hover:bg-[#163B2E] motion-safe:active:scale-[0.985]"
-              : "cursor-not-allowed bg-[#E4DFD3] text-[#626D66]",
+            "motion-safe:active:scale-[0.97]",
+            importing
+              ? "pointer-events-none cursor-progress bg-[#1D4B3B] text-[#F4F1EA]"
+              : canAdopt && selectedCount > 0
+                ? "bg-[#1D4B3B] text-[#F4F1EA] hover:bg-[#163B2E]"
+                : "cursor-not-allowed bg-[#E4DFD3] text-[#626D66]",
           )}
         >
-          {importing
-            ? importProgress
-              ? `Importing… ${importPercent}%`
-              : "Importing…"
-            : selectedCount > 0
-              ? `Import ${selectedCount} product${selectedCount === 1 ? "" : "s"}`
-              : "Select products to import"}
+          {importing ? (
+            <span
+              className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+              aria-hidden
+            />
+          ) : null}
+          <span className="relative inline-flex items-center gap-2">
+            {importing ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
+            {importing
+              ? importProgress
+                ? `Importing… ${importPercent}%`
+                : "Importing…"
+              : selectedCount > 0
+                ? `Import ${selectedCount.toLocaleString("en-KE")} product${selectedCount === 1 ? "" : "s"}`
+                : "Select products to import"}
+          </span>
         </button>
         {selectedCount > 0 && !importing ? (
           <button
@@ -580,25 +623,46 @@ export function OnboardingCatalogShelf({
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[rgba(18,26,22,0.1)] bg-[#FCFAF5] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
         <button
           type="button"
+          aria-disabled={importing || selectedCount === 0}
+          aria-busy={importing}
           onClick={() => {
-            if (selectedCount === 0) {
+            if (selectedCount === 0 || importing || mobileManifestOpen) {
               return;
             }
             hapticTap(8);
             onMobileManifestOpenChange(true);
           }}
           className={cn(
-            "flex h-12 w-full items-center justify-between rounded-[2px] px-4 text-[15px] font-semibold transition-[background-color,transform] duration-200 touch-manipulation motion-safe:active:scale-[0.99]",
-            selectedCount > 0
-              ? "bg-[#1D4B3B] text-[#F4F1EA]"
-              : "border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#556159]",
+            "relative flex h-12 w-full items-center justify-between overflow-hidden rounded-[2px] px-4 text-[15px] font-semibold",
+            "transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] touch-manipulation",
+            "motion-safe:active:scale-[0.97]",
+            importing
+              ? "pointer-events-none cursor-progress bg-[#1D4B3B] text-[#F4F1EA]"
+              : selectedCount > 0
+                ? "bg-[#1D4B3B] text-[#F4F1EA]"
+                : "border border-[rgba(18,26,22,0.14)] bg-[#FCFAF5] text-[#556159]",
           )}
         >
-          <span>
-            {selectedCount > 0 ? "Review selection" : "Tap products to add them"}
+          {importing ? (
+            <span
+              className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+              aria-hidden
+            />
+          ) : null}
+          <span className="relative inline-flex items-center gap-2">
+            {importing ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : null}
+            {importing
+              ? "Importing…"
+              : selectedCount > 0
+                ? "Review selection"
+                : "Tap products to add them"}
           </span>
-          {selectedCount > 0 ? (
-            <span className="font-mono text-[13px] tabular-nums">{selectedCount} selected</span>
+          {selectedCount > 0 && !importing ? (
+            <span className="relative font-mono text-[13px] tabular-nums">
+              {selectedCount.toLocaleString("en-KE")} selected
+            </span>
           ) : null}
         </button>
       </div>

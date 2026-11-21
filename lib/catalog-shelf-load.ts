@@ -101,6 +101,30 @@ export type ShelfAisle = {
  * The biggest aisles among what has loaded, with how many of each are ticked. Products already
  * in the shop are left out: they cannot be chosen again.
  */
+/**
+ * Products to tick as a shelf page arrives. Skips anything already chosen, already in the
+ * shop, or that the person has unticked. Returns null when nothing new was added.
+ */
+export function selectIncomingShelfProducts<
+  T extends { id: string; alreadyImported?: boolean },
+>(
+  selected: ReadonlyMap<string, T>,
+  incoming: readonly T[],
+  optedOutIds: ReadonlySet<string>,
+): Map<string, T> | null {
+  if (incoming.length === 0) return null;
+  const next = new Map(selected);
+  let added = false;
+  for (const product of incoming) {
+    if (product.alreadyImported) continue;
+    if (optedOutIds.has(product.id)) continue;
+    if (next.has(product.id)) continue;
+    next.set(product.id, product);
+    added = true;
+  }
+  return added ? next : null;
+}
+
 export function shelfAisles<
   T extends { id: string; categoryName?: string | null; alreadyImported?: boolean },
 >(products: readonly T[], isSelected: (id: string) => boolean, max = 8): ShelfAisle[] {

@@ -1178,6 +1178,26 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     animation: shimmer 2s infinite;
 }
 
+@keyframes catalog-btn-sheen {
+    from {
+        transform: translateX(-130%);
+    }
+    to {
+        transform: translateX(420%);
+    }
+}
+
+.catalog-btn-sheen {
+    animation: catalog-btn-sheen 1.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .catalog-btn-sheen {
+        animation: none;
+        opacity: 0;
+    }
+}
+
 /* Neighborhood mart — storefront browse tokens. The merchant's design-studio
    surface + auto-contrast ink win via --sf-* when set; these are fallbacks. */
 .storefront-browse {

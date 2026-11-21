@@ -198,6 +198,8 @@ export default function GlobalCatalogPage() {
   const [includeVariants, setIncludeVariants] = useState(true);
   const [replacing, setReplacing] = useState(false);
   const [actionPhase, setActionPhase] = useState<CatalogActionPhase>("ready");
+  const adoptLockRef = useRef(false);
+  const reviewLockRef = useRef(false);
 
   const fromOnboarding = searchParams.get("from") === "onboarding";
   /** A starter pack arriving in slices: what has landed, out of how many, and since when. */
@@ -443,6 +445,9 @@ export default function GlobalCatalogPage() {
   }, [fromOnboarding, selectedPackId, initialLoading, products]);
 
   useEffect(() => {
+    if (!reviewOpen) {
+      reviewLockRef.current = false;
+    }
     if (adopting) {
       setActionPhase("importing");
       return;
@@ -988,6 +993,7 @@ export default function GlobalCatalogPage() {
       setPreviewResult(null);
       return;
     }
+    setPreviewLoading(true);
     const timer = window.setTimeout(() => {
       void runPreview();
     }, 350);
@@ -1238,10 +1244,13 @@ export default function GlobalCatalogPage() {
   };
 
   const handlePreview = () => {
+    if (reviewLockRef.current || reviewOpen || adopting) return;
     if (selectedImportable.length === 0) {
       toast.error("Select products that are not already in your catalog.");
       return;
     }
+    reviewLockRef.current = true;
+    setActionPhase("reviewing");
     setReviewOpen(true);
   };
 
@@ -1398,6 +1407,8 @@ export default function GlobalCatalogPage() {
       confirmLabel: "Import all",
       confirmVariant: "default",
       onConfirm: () => {
+        if (adoptLockRef.current) return;
+        adoptLockRef.current = true;
         void (async () => {
           setAdopting(true);
           setActionPhase("importing");
@@ -1502,6 +1513,7 @@ export default function GlobalCatalogPage() {
               toast.error(e instanceof Error ? e.message : "Import failed");
             }
           } finally {
+            adoptLockRef.current = false;
             setAdopting(false);
             setImportProgress(null);
           }
@@ -1511,10 +1523,13 @@ export default function GlobalCatalogPage() {
   };
 
   const handleAdopt = async () => {
+    if (adoptLockRef.current) return;
     if (!defaultBranchId) {
       toast.error("No branch selected");
       return;
     }
+    adoptLockRef.current = true;
+    setAdopting(true);
     try {
       const lines = buildLines();
       const preview =
@@ -1556,7 +1571,6 @@ export default function GlobalCatalogPage() {
         return;
       }
 
-      setAdopting(true);
       setImportProgress({
         phase: "importing",
         processed: 0,
@@ -1638,6 +1652,7 @@ export default function GlobalCatalogPage() {
         toast.error("Adopt failed");
       }
     } finally {
+      adoptLockRef.current = false;
       setAdopting(false);
       setImportProgress(null);
     }
@@ -1948,19 +1963,39 @@ export default function GlobalCatalogPage() {
           ) : null}
           <Button
             size="sm"
-            disabled={selectedImportable.length === 0 || !canAdopt}
+            disabled={
+              selectedImportable.length === 0 ||
+              !canAdopt ||
+              reviewOpen ||
+              previewLoading ||
+              adopting
+            }
+            aria-busy={reviewOpen || previewLoading}
             title={
               selectedImportable.length === 0
                 ? "Select products below to enable import"
                 : undefined
             }
-            className="h-8 rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+            className={cn(
+              "relative h-8 overflow-hidden rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]",
+              (reviewOpen || previewLoading) && "disabled:opacity-100",
+            )}
             onClick={handlePreview}
           >
-            <ShoppingCart className="mr-1.5 size-4" />
-            Review & import
-            {selectedImportable.length > 0
-              ? ` (${selectedImportable.length})`
+            {reviewOpen || previewLoading ? (
+              <span
+                className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+                aria-hidden
+              />
+            ) : null}
+            {reviewOpen || previewLoading ? (
+              <Loader2 className="relative mr-1.5 size-4 animate-spin" aria-hidden />
+            ) : (
+              <ShoppingCart className="mr-1.5 size-4" />
+            )}
+            {reviewOpen || previewLoading ? "Reviewing…" : "Review & import"}
+            {!reviewOpen && !previewLoading && selectedImportable.length > 0
+              ? ` (${selectedImportable.length.toLocaleString("en-KE")})`
               : ""}
           </Button>
         </div>
@@ -2257,15 +2292,25 @@ export default function GlobalCatalogPage() {
                   initialLoading ||
                   (hideImported && (totalElements ?? 0) === 0 && products.length === 0)
                 }
+                aria-busy={adopting}
                 title="Import every product in this view that is not already in your shop"
-                className="h-8 rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]"
+                className={cn(
+                  "relative h-8 overflow-hidden rounded-xl bg-[var(--catalog-primary,#0f766e)] text-white hover:bg-[color-mix(in_srgb,var(--catalog-primary,#0f766e)_88%,#000)]",
+                  adopting && "disabled:opacity-100",
+                )}
                 onClick={handleImportAll}
               >
                 {adopting ? (
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  <span
+                    className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+                    aria-hidden
+                  />
                 ) : null}
-                Import all
-                {hideImported && totalElements != null && !selectedPackId
+                {adopting ? (
+                  <Loader2 className="relative mr-1.5 size-3.5 animate-spin" aria-hidden />
+                ) : null}
+                {adopting ? "Importing…" : "Import all"}
+                {!adopting && hideImported && totalElements != null && !selectedPackId
                   ? ` (${totalElements.toLocaleString()})`
                   : ""}
               </Button>

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  selectIncomingShelfProducts,
   shelfAisles,
   shelfAnnouncement,
   shelfBaysFilled,
@@ -102,5 +103,32 @@ describe("aisles", () => {
 
   test("are capped", () => {
     expect(shelfAisles(products, () => true, 1)).toHaveLength(1);
+  });
+});
+
+describe("select incoming shelf products", () => {
+  const page = [
+    { id: "a", alreadyImported: false },
+    { id: "b", alreadyImported: true },
+    { id: "c", alreadyImported: false },
+  ];
+
+  test("ticks every new product that is not already in the shop", () => {
+    const next = selectIncomingShelfProducts(new Map(), page, new Set());
+    expect([...(next?.keys() ?? [])]).toEqual(["a", "c"]);
+  });
+
+  test("leaves an unticked product unticked when a later page arrives", () => {
+    const selected = new Map([["a", page[0]]]);
+    const next = selectIncomingShelfProducts(selected, page, new Set(["c"]));
+    expect(next).toBeNull();
+  });
+
+  test("does not replace a selection that already has the page", () => {
+    const selected = new Map([
+      ["a", page[0]],
+      ["c", page[2]],
+    ]);
+    expect(selectIncomingShelfProducts(selected, page, new Set())).toBeNull();
   });
 });

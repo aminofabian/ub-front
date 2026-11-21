@@ -714,33 +714,46 @@ export function GlobalCatalogReviewImportDialog({
         <div className="shrink-0 border-t border-border/70 bg-background px-4 py-3">
           {importProgress ? (
             <GlobalCatalogImportProgress
+              className="mb-3"
               progress={importProgress}
               productNames={productNames}
             />
-          ) : (
-            <>
-              {unresolvedConflictCount > 0 ? (
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-200">
-                  <AlertTriangle className="size-3.5 shrink-0" />
-                  Resolve {unresolvedConflictCount} SKU conflict
-                  {unresolvedConflictCount === 1 ? "" : "s"} before importing.
-                </p>
-              ) : null}
-              <Button
-                className="w-full"
-                disabled={importDisabled}
-                onClick={onImport}
-              >
-                {adopting ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <PackagePlus className="mr-2 size-4" />
-                )}
-                Import {readyImportCount > 0 ? readyImportCount : products.length}{" "}
-                products
-              </Button>
-            </>
-          )}
+          ) : null}
+          {unresolvedConflictCount > 0 && !adopting ? (
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="size-3.5 shrink-0" />
+              Resolve {unresolvedConflictCount} SKU conflict
+              {unresolvedConflictCount === 1 ? "" : "s"} before importing.
+            </p>
+          ) : null}
+          <Button
+            className={cn(
+              "relative w-full overflow-hidden",
+              (adopting || previewLoading) && "disabled:opacity-100",
+            )}
+            disabled={importDisabled}
+            aria-busy={adopting || previewLoading}
+            onClick={onImport}
+          >
+            {adopting || previewLoading ? (
+              <span
+                className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+                aria-hidden
+              />
+            ) : null}
+            <span className="relative inline-flex items-center">
+              {adopting || previewLoading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : (
+                <PackagePlus className="mr-2 size-4" />
+              )}
+              {adopting
+                ? "Importing…"
+                : previewLoading
+                  ? "Checking…"
+                  : `Import ${(readyImportCount > 0 ? readyImportCount : products.length).toLocaleString("en-KE")} products`}
+            </span>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

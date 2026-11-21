@@ -160,7 +160,9 @@ export function GlobalCatalogActionProgressBar({
   });
   const busy =
     phase === "loading" || phase === "selecting" || phase === "importing";
-  const showActions = phase === "ready" && selectedCount > 0;
+  const reviewBusy = phase === "reviewing";
+  const showActions =
+    (phase === "ready" && selectedCount > 0) || reviewBusy;
 
   return (
     <div
@@ -249,22 +251,38 @@ export function GlobalCatalogActionProgressBar({
             <div className="flex shrink-0 items-center gap-1.5">
               <Button
                 size="sm"
-                className="h-8 gap-1.5 rounded-full"
-                disabled={!canImport}
+                className={cn(
+                  "relative h-8 gap-1.5 overflow-hidden rounded-full",
+                  reviewBusy && "disabled:opacity-100",
+                )}
+                disabled={!canImport || reviewBusy}
+                aria-busy={reviewBusy}
                 onClick={onReview}
               >
-                <PackagePlus className="size-3.5" />
-                Review &amp; import
-                {selectedCount > 0 ? ` (${selectedCount})` : ""}
+                {reviewBusy ? (
+                  <span
+                    className="catalog-btn-sheen pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-white/25"
+                    aria-hidden
+                  />
+                ) : null}
+                {reviewBusy ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <PackagePlus className="size-3.5" />
+                )}
+                {reviewBusy ? "Reviewing…" : "Review & import"}
+                {!reviewBusy && selectedCount > 0 ? ` (${selectedCount})` : ""}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 rounded-full text-xs"
-                onClick={onClear}
-              >
-                Clear
-              </Button>
+              {reviewBusy ? null : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 rounded-full text-xs"
+                  onClick={onClear}
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           ) : null}
         </div>
