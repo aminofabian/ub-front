@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { GlobalCatalogLoadMoreSkeleton } from "@/components/products/global-catalog-product-skeleton";
+import { CatalogShelfLoader } from "@/components/products/catalog-shelf-loader";
+import { shelfAisles, type ShelfAisle } from "@/lib/catalog-shelf-load";
 import { CatalogImportCeremony } from "@/components/products/catalog-import-ceremony";
 import { CatalogImportSheet } from "./catalog-import-sheet";
 import { CatalogMobileCards } from "./catalog-mobile-cards";
@@ -55,6 +57,7 @@ import {
   fetchCategories,
   fetchGlobalCatalogMeta,
   fetchGlobalCatalogPack,
+  fetchGlobalCatalogPackSlice,
   fetchAllGlobalCatalogProducts,
   fetchGlobalCatalogProducts,
   previewGlobalCatalogAdopt,
@@ -112,6 +115,26 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 export default function GlobalCatalogPage() {
   const router = useRouter();
+  // Pharmacy: products that arrive as medicines have no class yet and cannot be sold. Say so
+  // here, where the import happened, with the way to the place that fixes it.
+  const notifyMedicinesAdded = (lines: Array<{ status: string; message?: string | null }>) => {
+    const count = lines.filter(
+      (l) => l.status === "imported" && (l.message ?? "").includes("Marked as a medicine"),
+    ).length;
+    if (count === 0) return;
+    toast.info(
+      count === 1
+        ? "1 product was added as a medicine. It cannot be sold until its class is set."
+        : `${count.toLocaleString()} products were added as medicines. They cannot be sold until their classes are set.`,
+      {
+        duration: 20000,
+        action: {
+          label: "Set classes",
+          onClick: () => router.push(`${APP_ROUTES.pharmacy}?tab=medicines`),
+        },
+      },
+    );
+  };
   const searchParams = useSearchParams();
   const { me, business, branches, branchId } = useDashboard();
   const canAdopt = hasPermission(
@@ -177,6 +200,21 @@ export default function GlobalCatalogPage() {
   const [actionPhase, setActionPhase] = useState<CatalogActionPhase>("ready");
 
   const fromOnboarding = searchParams.get("from") === "onboarding";
+  /** A starter pack arriving in slices: what has landed, out of how many, and since when. */
+  const [packLoad, setPackLoad] = useState<{
+    packId: string;
+    loaded: number;
+    total: number;
+    done: boolean;
+    startedAt: number;
+  } | null>(null);
+  /** Bumped by every load, so a slice loop for a pack the person has left stops quietly. */
+  const packLoadGenRef = useRef(0);
+  const packLoadingRef = useRef(false);
+  /** Onboarding ticks each slice as it lands, until the person clears the selection. */
+  const autoCollectRef = useRef(true);
+  /** Rows on screen. A pack of thousands is drawn a screenful at a time, not all at once. */
+  const [renderLimit, setRenderLimit] = useState(120);
   const packIdFromUrl = searchParams.get("packId");
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -447,6 +485,9 @@ export default function GlobalCatalogPage() {
     }) => {
       if (loadingRef.current) return;
       loadingRef.current = true;
+      // Whatever was arriving for the previous pack is no longer wanted.
+      const generation = ++packLoadGenRef.current;
+      packLoadingRef.current = false;
 
       if (reset) {
         setInitialLoading(true);
@@ -459,17 +500,112 @@ export default function GlobalCatalogPage() {
           if (reset) {
             productsSourcePackIdRef.current = null;
           }
-          const pack = await fetchGlobalCatalogPack(packId, {
-            onlyNotImported: hideImported,
-          });
-          productsSourcePackIdRef.current = packId;
-          setProducts(pack.products);
           setHasMore(false);
           hasMoreRef.current = false;
-          setTotalElements(pack.products.length);
           pageRef.current = 0;
+          setRenderLimit(120);
+          autoCollectRef.current = true;
+          const startedAt = Date.now();
+          setPackLoad({ packId, loaded: 0, total: 0, done: false, startedAt });
+          packLoadingRef.current = true;
+
+          // Tick a slice's products as they land (onboarding selects the whole pack to sell).
+          const collect = (rows: GlobalProductRecord[]) => {
+            if (!fromOnboarding || !autoCollectRef.current) return;
+            setSelected((prev) => {
+              const next = new Map(prev);
+              for (const p of rows) {
+                if (!p.alreadyImported) next.set(p.id, p);
+              }
+              return next;
+            });
+          };
+
+          let first: Awaited<ReturnType<typeof fetchGlobalCatalogPackSlice>>;
+          try {
+            // A small first slice, so there is something to choose from within seconds.
+            first = await fetchGlobalCatalogPackSlice(packId, {
+              offset: 0,
+              limit: 100,
+              onlyNotImported: hideImported,
+            });
+          } catch {
+            // A server without the slice endpoint: load the pack whole, as before.
+            const pack = await fetchGlobalCatalogPack(packId, {
+              onlyNotImported: hideImported,
+            });
+            if (generation !== packLoadGenRef.current) return;
+            packLoadingRef.current = false;
+            productsSourcePackIdRef.current = packId;
+            setProducts(pack.products);
+            setTotalElements(pack.products.length);
+            setPackLoad(null);
+            return;
+          }
+          if (generation !== packLoadGenRef.current) return;
+          productsSourcePackIdRef.current = packId;
+          if (fromOnboarding) {
+            // The slices are ticked as they land, so the old tick-everything-at-the-end pass is skipped.
+            autoSelectedForPackIdRef.current = packId;
+            setSelected(new Map());
+            setActionPhase("ready");
+          }
+          setProducts(first.products);
+          collect(first.products);
+          setTotalElements(first.total);
+          setPackLoad({
+            packId,
+            loaded: first.nextOffset,
+            total: first.total,
+            done: first.done,
+            startedAt,
+          });
+          if (first.done) {
+            packLoadingRef.current = false;
+            return;
+          }
+
+          // The rest arrives in the background while the person starts choosing.
+          void (async () => {
+            let offset = first.nextOffset;
+            let failures = 0;
+            while (generation === packLoadGenRef.current) {
+              try {
+                const slice = await fetchGlobalCatalogPackSlice(packId, {
+                  offset,
+                  limit: 500,
+                  onlyNotImported: hideImported,
+                });
+                if (generation !== packLoadGenRef.current) return;
+                failures = 0;
+                offset = slice.nextOffset;
+                setProducts((prev) => [...prev, ...slice.products]);
+                collect(slice.products);
+                setPackLoad({
+                  packId,
+                  loaded: slice.nextOffset,
+                  total: slice.total,
+                  done: slice.done,
+                  startedAt,
+                });
+                if (slice.done) break;
+              } catch {
+                failures += 1;
+                if (failures >= 3) {
+                  if (generation === packLoadGenRef.current) {
+                    toast.error("Some of the pack did not load. Check the connection and reopen the pack.");
+                    setPackLoad((prev) => (prev ? { ...prev, done: true, total: prev.loaded } : prev));
+                  }
+                  break;
+                }
+                await new Promise((resolve) => window.setTimeout(resolve, 1500 * failures));
+              }
+            }
+            if (generation === packLoadGenRef.current) packLoadingRef.current = false;
+          })();
           return;
         }
+        setPackLoad(null);
 
         const result = await fetchGlobalCatalogProducts({
           categoryId: categoryId ?? undefined,
@@ -498,11 +634,13 @@ export default function GlobalCatalogPage() {
         setLoadingMore(false);
       }
     },
-    [debouncedSearch, hideImported],
+    [debouncedSearch, hideImported, fromOnboarding],
   );
 
   const syncLoadedProducts = useCallback(async () => {
     if (loadingRef.current || syncingRef.current || initialLoading) return;
+    // A pack still arriving in slices must not be replaced by a whole-pack refetch.
+    if (packLoadingRef.current) return;
 
     syncingRef.current = true;
     setSyncing(true);
@@ -641,6 +779,24 @@ export default function GlobalCatalogPage() {
     return () => observer.disconnect();
   }, [initialLoading, hasMore, selectedPackId, products.length]);
 
+  // Pack mode: draw the next screenful when the end of the drawn rows comes into view.
+  const packSentinelRef = useRef<HTMLDivElement>(null);
+  const moreRowsToDraw = !!selectedPackId && renderLimit < products.length;
+  useEffect(() => {
+    if (!moreRowsToDraw || initialLoading) return;
+    const root = scrollRef.current;
+    const sentinel = packSentinelRef.current;
+    if (!root || !sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setRenderLimit((n) => n + 120);
+      },
+      { root, rootMargin: "400px 0px", threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [moreRowsToDraw, initialLoading, renderLimit]);
+
   const toggleProduct = (product: GlobalProductRecord) => {
     setSelected((prev) => {
       const next = new Map(prev);
@@ -664,6 +820,31 @@ export default function GlobalCatalogPage() {
     });
   };
 
+  const packLoading = !!packLoad && packLoad.packId === selectedPackId;
+  // In pack mode only a window of rows is drawn; scrolling near the end draws more.
+  const shownProducts = useMemo(
+    () => (selectedPackId ? products.slice(0, renderLimit) : products),
+    [products, renderLimit, selectedPackId],
+  );
+  const packAisles = useMemo(
+    () => (packLoading && fromOnboarding ? shelfAisles(products, (id) => selected.has(id)) : []),
+    [packLoading, fromOnboarding, products, selected],
+  );
+  const toggleAisle = (aisle: ShelfAisle) => {
+    const inAisle = products.filter(
+      (p) => !p.alreadyImported && (p.categoryName?.trim() || "Other").toLowerCase() === aisle.key,
+    );
+    setSelected((prev) => {
+      const next = new Map(prev);
+      const allTicked = inAisle.every((p) => next.has(p.id));
+      for (const p of inAisle) {
+        if (allTicked) next.delete(p.id);
+        else next.set(p.id, p);
+      }
+      return next;
+    });
+  };
+
   const selectedImportable = useMemo(
     () => Array.from(selected.values()).filter((p) => !p.alreadyImported),
     [selected],
@@ -674,6 +855,7 @@ export default function GlobalCatalogPage() {
   );
 
   const clearSelection = () => {
+    autoCollectRef.current = false;
     selectGenerationRef.current += 1;
     setSelected(new Map());
     setSkippedProductIds(new Set());
@@ -1278,6 +1460,7 @@ export default function GlobalCatalogPage() {
             const mergedCount = result.lines.filter(
               (l) => l.status === "merged",
             ).length;
+            notifyMedicinesAdded(result.lines);
             if (importedNew === 0 && mergedCount === 0) {
               toast.error("No products were imported.");
               setActionPhase("ready");
@@ -1394,6 +1577,7 @@ export default function GlobalCatalogPage() {
       const mergedCount = result.lines.filter(
         (l) => l.status === "merged",
       ).length;
+            notifyMedicinesAdded(result.lines);
       const skuSkipped = result.lines.filter(
         (l) => l.status === "skip_sku_conflict",
       ).length;
@@ -2101,13 +2285,26 @@ export default function GlobalCatalogPage() {
             ref={scrollRef}
             className="relative flex-1 overflow-auto scroll-smooth"
           >
+            {packLoad && packLoading ? (
+              <CatalogShelfLoader
+                loaded={packLoad.loaded}
+                total={packLoad.total}
+                done={packLoad.done}
+                startedAt={packLoad.startedAt}
+                noun={storeTypes.includes("pharmacy") ? "medicines" : "products"}
+                selectedCount={selectedImportable.length}
+                selectableCount={products.filter((p) => !p.alreadyImported).length}
+                aisles={packAisles}
+                onToggleAisle={fromOnboarding ? toggleAisle : undefined}
+              />
+            ) : null}
             {/* Desktop/tablet: the spreadsheet grid. Its 7 columns need a
                 horizontal scroll on laptops, so it lives in `overflow-x-auto`. */}
             <div className="hidden lg:block">
               <div className="overflow-x-auto">
                 <div className="min-w-[44rem]">
                   <CatalogImportSheet
-                    products={products}
+                    products={shownProducts}
                     selectedIds={new Set(selected.keys())}
                     overrides={lineOverrides}
                     categoryName={(categoryId) =>
@@ -2140,7 +2337,7 @@ export default function GlobalCatalogPage() {
             {/* Phone: the grid is unusable at ~390px — one card per product. */}
             <div className="lg:hidden">
               <CatalogMobileCards
-                products={products}
+                products={shownProducts}
                 selectedIds={new Set(selected.keys())}
                 overrides={lineOverrides}
                 categoryName={(categoryId) =>
@@ -2282,6 +2479,15 @@ export default function GlobalCatalogPage() {
 
             {loadingMore ? <GlobalCatalogLoadMoreSkeleton rows={5} /> : null}
 
+            {selectedPackId && !initialLoading && shownProducts.length < products.length ? (
+              <div
+                ref={packSentinelRef}
+                className="flex min-h-16 items-center justify-center py-4 text-xs text-muted-foreground"
+              >
+                Showing {shownProducts.length.toLocaleString()} of {products.length.toLocaleString()}. Scroll for more.
+              </div>
+            ) : null}
+
             {!initialLoading && hasMore && !selectedPackId ? (
               <div
                 ref={sentinelRef}
@@ -2347,7 +2553,13 @@ export default function GlobalCatalogPage() {
                             )
                       }
                       importProgress={importProgress}
-                      canImport={selectedImportable.length > 0 && canAdopt}
+                      // Not while a pack is still arriving: reviewing then would quietly leave
+                      // out everything that has not landed yet.
+                      canImport={
+                        selectedImportable.length > 0 &&
+                        canAdopt &&
+                        !(packLoading && packLoad != null && !packLoad.done)
+                      }
                       onReview={handlePreview}
                       onClear={clearSelection}
                       className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400"

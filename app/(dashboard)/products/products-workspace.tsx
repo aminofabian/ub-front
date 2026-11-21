@@ -470,6 +470,12 @@ export function ProductsWorkspace() {
     marginPct: detail.marginPct,
     canCatalogWrite,
     canInventoryWrite,
+    // Pharmacy: stock added from the Medicine block should show in the figures beside it.
+    onMedicineStockAdded: () => {
+      const id = detail.selectedId;
+      if (id) void detail.refreshSelectedDetail(id);
+      void catalog.refreshFullCatalog();
+    },
     branches,
     canLinkSupplier,
     quickEdit: quick.quickEdit,

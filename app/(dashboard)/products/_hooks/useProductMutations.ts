@@ -57,7 +57,7 @@ import {
   variantSellShape,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
-import { saveMedicine } from "@/lib/pharmacy-api";
+import { fetchMedicineForItem, saveMedicine } from "@/lib/pharmacy-api";
 import { productMedicineDraft } from "@/lib/product-medicine-draft";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import type {
@@ -727,24 +727,40 @@ export function useProductMutations(d: Dependencies) {
           createdOnServer = true;
         }
 
-        // Pharmacy: the form said this product is a medicine. The medicine record is keyed by
-        // the product, so it is saved now. If it fails the product still exists; say so.
+        // Pharmacy: the form said this product is a medicine, or it came from the shared
+        // catalogue already marked as one. The medicine record is keyed by the product, so it
+        // is saved now. If that fails the product still exists; say so.
         const medicineDraft = productMedicineDraft.get();
         let markedMedicine = false;
         let medicineNote = "";
-        if (medicineDraft.on && created?.id) {
+        if (created?.id && (medicineDraft.on || (productMedicineDraft.isFormOpen() && adoptedFromSharedCatalog))) {
+          const stockHint = " Use Add stock on the product to enter its lot number and expiry date.";
           try {
-            await saveMedicine(created.id, {
-              genericName: medicineDraft.genericName,
-              strength: medicineDraft.strength,
-              dosageForm: medicineDraft.dosageForm,
-              dispensingClass: medicineDraft.dispensingClass,
-            });
-            markedMedicine = true;
-            medicineNote =
-              medicineDraft.dispensingClass === "UNCLASSIFIED"
-                ? " Marked as a medicine with no class yet, so it cannot be sold until you set one. Receive its stock with a lot number and expiry date."
-                : " Marked as a medicine. Receive its stock with a lot number and expiry date.";
+            // What the catalogue already filled in is kept wherever the form was left blank.
+            const fromCatalogue = adoptedFromSharedCatalog
+              ? await fetchMedicineForItem(created.id).catch(() => null)
+              : null;
+            let cls = fromCatalogue?.dispensingClass ?? "UNCLASSIFIED";
+            if (medicineDraft.on) {
+              if (medicineDraft.dispensingClass !== "UNCLASSIFIED") cls = medicineDraft.dispensingClass;
+              await saveMedicine(created.id, {
+                genericName: medicineDraft.genericName.trim() || fromCatalogue?.genericName || "",
+                strength: medicineDraft.strength.trim() || fromCatalogue?.strength || "",
+                dosageForm: medicineDraft.dosageForm.trim() || fromCatalogue?.dosageForm || "",
+                packSize: fromCatalogue?.packSize ?? "",
+                manufacturer: fromCatalogue?.manufacturer ?? "",
+                registrationNo: fromCatalogue?.registrationNo ?? "",
+                storageNote: fromCatalogue?.storageNote ?? "",
+                dispensingClass: cls,
+              });
+            }
+            if (medicineDraft.on || fromCatalogue) {
+              markedMedicine = true;
+              medicineNote =
+                cls === "UNCLASSIFIED"
+                  ? ` Marked as a medicine with no class yet, so it cannot be sold until you set one.${stockHint}`
+                  : ` Marked as a medicine.${stockHint}`;
+            }
           } catch {
             medicineNote =
               " It could not be marked as a medicine. Open the product and mark it before selling.";
@@ -998,7 +1014,7 @@ export function useProductMutations(d: Dependencies) {
                 extraPackSizesAdded > 0
                   ? ` ${extraPackSizesAdded} pack size${extraPackSizesAdded === 1 ? "" : "s"} added with it.`
                   : ""
-              }`
+              }${medicineNote}`
             : `${linkedSupplier ? "Product created and linked." : "Product created."}${medicineNote}`,
         );
       } catch (err) {

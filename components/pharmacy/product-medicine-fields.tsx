@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
+import { useDashboard } from "@/components/dashboard-provider";
+import { MedicineStockDialog } from "@/components/pharmacy/medicine-stock-dialog";
 import { MedicineEditor } from "@/components/pharmacy/pharmacy-medicines";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -13,6 +15,7 @@ import {
   type DispensingClass,
   type MedicineRecord,
 } from "@/lib/pharmacy-api";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { productMedicineDraft } from "@/lib/product-medicine-draft";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +35,13 @@ export function ProductCreateMedicineFields({
 }) {
   const draft = useSyncExternalStore(productMedicineDraft.subscribe, productMedicineDraft.get, productMedicineDraft.get);
   // A form opened afresh must not inherit the last product's answer.
-  useEffect(() => () => productMedicineDraft.reset(), []);
+  useEffect(() => {
+    productMedicineDraft.setFormOpen(true);
+    return () => {
+      productMedicineDraft.setFormOpen(false);
+      productMedicineDraft.reset();
+    };
+  }, []);
 
   const text = (key: "genericName" | "strength" | "dosageForm") => (e: React.ChangeEvent<HTMLInputElement>) =>
     productMedicineDraft.set({ [key]: e.target.value });
@@ -116,8 +125,8 @@ export function ProductCreateMedicineFields({
             </div>
           </div>
           <p className={labelClassName}>
-            Stock is not added here for a medicine. After saving, receive it with its lot number and expiry
-            date.
+            Stock is not added here for a medicine. After saving, use Add stock on the product, where you
+            enter its lot number and expiry date.
           </p>
         </>
       ) : null}
@@ -135,16 +144,22 @@ export function ProductMedicineSection({
   canManage,
   className,
   labelClassName,
+  onStockAdded,
 }: {
   itemId: string;
   itemName: string;
   canManage: boolean;
+  /** So the page around it can re-read the product's stock. */
+  onStockAdded?: () => void;
   className?: string;
   labelClassName?: string;
 }) {
   const [medicine, setMedicine] = useState<MedicineRecord | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<MedicineRecord | null>(null);
+  const [stocking, setStocking] = useState(false);
+  const { me } = useDashboard();
+  const canAddStock = hasPermission(me?.permissions, Permission.InventoryWrite);
 
   const load = useCallback(() => {
     let alive = true;
@@ -226,6 +241,11 @@ export function ProductMedicineSection({
               {medicine ? (blocked ? "Set the class" : "Edit") : "Mark as a medicine"}
             </button>
           ) : null}
+          {medicine && canAddStock ? (
+            <button type="button" className={buttonClass} onClick={() => setStocking(true)}>
+              Add stock
+            </button>
+          ) : null}
           {medicine ? (
             <Link
               href={`${APP_ROUTES.pharmacy}?tab=stock`}
@@ -236,6 +256,16 @@ export function ProductMedicineSection({
           ) : null}
         </div>
       </div>
+      {stocking ? (
+        <MedicineStockDialog
+          medicines={[{ itemId, name: itemName }]}
+          onClose={() => setStocking(false)}
+          onSaved={() => {
+            setStocking(false);
+            onStockAdded?.();
+          }}
+        />
+      ) : null}
       {editing ? (
         <MedicineEditor
           medicine={editing}

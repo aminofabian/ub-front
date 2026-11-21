@@ -87,6 +87,28 @@ export function PharmacyStock({ canWrite, initialView, shortDatedDays, onChanged
     load();
   }, [load]);
 
+  const [bulkBusy, setBulkBusy] = useState(false);
+  /** One batch at a time, so a failure names the batch and the rest still go through. */
+  const quarantineAllExpired = async () => {
+    const batches = rows.filter((r) => r.status !== "quarantined");
+    if (batches.length === 0) return;
+    setBulkBusy(true);
+    let failed = 0;
+    for (const b of batches) {
+      try {
+        await quarantineBatch(b.batchId, "Expired");
+      } catch {
+        failed++;
+      }
+    }
+    setBulkBusy(false);
+    if (failed > 0) {
+      setError(`${failed} of ${batches.length} could not be quarantined. They are still listed below.`);
+    }
+    load();
+    onChanged();
+  };
+
   const done = () => {
     setAction(null);
     load();
@@ -121,6 +143,22 @@ export function PharmacyStock({ canWrite, initialView, shortDatedDays, onChanged
           ))}
         </div>
 
+        {canWrite && view === "expired" && rows.length > 1 ? (
+          <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5", RX_RULE)}>
+            <p className={cn("text-[13px]", RX_MUTED)}>
+              The till already refuses these. Quarantine takes them off the sellable count until you write them off.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-[2px] px-3.5 sm:h-9"
+              disabled={bulkBusy}
+              onClick={() => void quarantineAllExpired()}
+            >
+              {bulkBusy ? "Quarantining…" : `Quarantine all ${rows.length}`}
+            </Button>
+          </div>
+        ) : null}
         {error ? <p role="alert" className="px-4 py-3 text-sm text-destructive">{error}</p> : null}
         {loading && rows.length === 0 ? <p className={cn("px-4 py-6 text-sm", RX_MUTED)}>Loading…</p> : null}
         {!loading && rows.length === 0 && !error ? (

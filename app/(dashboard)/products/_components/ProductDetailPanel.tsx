@@ -121,6 +121,7 @@ type Props = {
   marginPct: number | null;
   canCatalogWrite: boolean;
   canInventoryWrite: boolean;
+  onMedicineStockAdded?: () => void;
   canLinkSupplier: boolean;
   branches: { id: string; name: string }[];
   // quick-edit
@@ -338,6 +339,7 @@ export function ProductDetailPanel(props: Props) {
     marginPct,
     canCatalogWrite,
     canInventoryWrite,
+    onMedicineStockAdded,
     branches,
     quickEdit,
     quickProductName,
@@ -1452,6 +1454,7 @@ export function ProductDetailPanel(props: Props) {
           itemId={detail.id}
           itemName={detail.name}
           canManage={canManageMedicines}
+          onStockAdded={onMedicineStockAdded}
           className={cn(detailSectionClass, "border-b border-border px-2.5 py-2.5")}
           labelClassName={detailSectionLabelClass}
         />

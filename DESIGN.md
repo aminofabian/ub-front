@@ -520,6 +520,30 @@ the running app.
   typed in. A product page shows a Medicine block as a label, one line of
   state (terracotta only when it cannot be sold) and one outlined action.
 
+## Catalogue: unpacking a big starter pack
+
+Still frames viewed in the preview harness at three points of a load. The
+motion itself, and the page with a real 5,000-product pack, were not seen.
+
+- A pack now arrives in slices (100 first, then 500 at a time) and only a
+  screenful of rows is drawn; more are drawn on scroll. The first products
+  can be chosen within seconds.
+- While it arrives, a panel above the list shows a count that climbs, a
+  shelf of twenty bays that fill as each twentieth lands, the quarter marks,
+  what is being fetched next, and the time left at the measured pace. No
+  time is quoted from the small first slice. Review stays shut until the
+  last slice lands, and the panel says so.
+- Onboarding ticks each slice as it lands. The aisles appear as buttons to
+  keep or skip a whole aisle in one tap; a running tally shows what is
+  ticked and what is left out.
+- Motion: onboarding is a first-time moment, so it has the delight budget.
+  Boxes drop onto the shelf (260ms, 50ms stagger), the bay in progress
+  breathes at a constant pace, the sentence settles in when it changes,
+  the "All unpacked" stamp lands slightly turned. Transform and opacity
+  only, `cubic-bezier(0.23, 1, 0.32, 1)`, CSS animations so they hold up
+  while rows render. Aisle buttons press to 0.97. Reduced motion keeps the
+  fades and drops the travel and the loop.
+
 ## Pharmacy workspace
 
 Every section and the till's dispensing dialog were viewed at 1440 wide in a

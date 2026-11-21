@@ -6818,6 +6818,31 @@ export async function fetchGlobalCatalogPack(
   );
 }
 
+export type GlobalProductPackSliceRecord = {
+  id: string;
+  name: string;
+  /** Every product in the pack, whether or not the shop already has it. */
+  total: number;
+  offset: number;
+  nextOffset: number;
+  done: boolean;
+  products: GlobalProductRecord[];
+};
+
+/** One slice of a starter pack, so a pack of thousands can be shown as it arrives. */
+export async function fetchGlobalCatalogPackSlice(
+  id: string,
+  opts: { offset: number; limit: number; onlyNotImported?: boolean },
+): Promise<GlobalProductPackSliceRecord> {
+  const q = new URLSearchParams();
+  q.set("offset", String(opts.offset));
+  q.set("limit", String(opts.limit));
+  q.set("onlyNotImported", opts.onlyNotImported === false ? "false" : "true");
+  return request<GlobalProductPackSliceRecord>(
+    `${API_ROUTES.globalCatalog}/packs/${encodeURIComponent(id)}/products?${q.toString()}`,
+  );
+}
+
 const SYNC_ADOPT_MAX_LINES = 25;
 /** Must match backend {@code GlobalCatalogJobService.JOB_ADOPT_MAX_LINES}. */
 const JOB_ADOPT_MAX_LINES = 500;

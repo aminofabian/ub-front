@@ -1,0 +1,305 @@
+/*
+ * "Unpacking the catalogue" loader. Onboarding only sees this once, so it gets the delight
+ * budget. Everything that moves is transform or opacity, and the looping parts are CSS
+ * animations so they stay smooth while the page is busy rendering thousands of rows.
+ */
+.root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ink: #121a16;
+  --muted: #556159;
+  --forest: #1d4b3b;
+  --forest-soft: color-mix(in srgb, #1d4b3b 14%, #fcfaf5);
+  --paper: #fcfaf5;
+  --shelf: rgb(18 26 22 / 14%);
+  --amber: #8a5a12;
+
+  color: var(--ink);
+  background: var(--paper);
+  border-bottom: 1px solid var(--shelf);
+  padding: 0.875rem 1rem 0.75rem;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.625rem;
+}
+
+.count {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.headline {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.percent {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.detail {
+  margin: 0.5rem 0 0;
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* The detail line changes a few times during a load: let the new one settle in. */
+.detailLine {
+  display: block;
+  animation: line-in 220ms var(--ease-out) both;
+}
+
+/* ── The shelf ─────────────────────────────────────────────────────────── */
+.shelf {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  align-items: end;
+  height: 2.25rem;
+  margin-top: 0.75rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.bay {
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  height: 100%;
+  padding-bottom: 2px;
+}
+
+.box {
+  flex: 1 1 0;
+  border-radius: 1px;
+  background: var(--forest);
+  opacity: 0;
+  transform: translateY(-70%);
+}
+
+/* A bay that has fully arrived: its three boxes drop onto the shelf, bottom one first. */
+.bayFull .box {
+  animation: box-drop 260ms var(--ease-out) both;
+}
+.bayFull .box:nth-child(2) {
+  animation-delay: 50ms;
+  background: color-mix(in srgb, var(--forest) 78%, white);
+}
+.bayFull .box:nth-child(3) {
+  animation-delay: 100ms;
+  background: color-mix(in srgb, var(--forest) 58%, white);
+}
+
+/* The bay being unpacked right now: one box breathing, at a constant pace. */
+.bayActive .box:first-child {
+  opacity: 1;
+  transform: none;
+  background: var(--forest-soft);
+  animation: box-wait 900ms linear infinite alternate;
+}
+
+/* ── Done ──────────────────────────────────────────────────────────────── */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  border: 1.5px solid var(--forest);
+  border-radius: 2px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--forest);
+  transform-origin: center;
+  animation: stamp-in 280ms var(--ease-out) both;
+}
+
+/* ── Aisles: keep or skip a whole aisle ────────────────────────────────── */
+.aisles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+.aislesLabel {
+  margin-right: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.aisle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--forest) 45%, transparent);
+  border-radius: 2px;
+  background: var(--forest-soft);
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--forest);
+  cursor: pointer;
+  /* Press feedback only. A transition, so a quick second tap retargets instead of restarting. */
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 160ms ease,
+    color 160ms ease;
+  animation: aisle-in 240ms var(--ease-out) both;
+}
+
+.aisle:active {
+  transform: scale(0.97);
+}
+
+.aisle:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.aisleSkipped {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--shelf);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.aislePart {
+  background: transparent;
+  border-style: dashed;
+}
+
+.aisleCount {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.tally {
+  margin: 0.625rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tally strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .aisle {
+    min-height: 2.25rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aisle:hover {
+    background: color-mix(in srgb, var(--forest) 22%, #fcfaf5);
+  }
+  .aisleSkipped:hover {
+    background: var(--forest-soft);
+    color: var(--forest);
+  }
+}
+
+@keyframes box-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-70%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes box-wait {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateY(35%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
+}
+
+@keyframes aisle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion: keep the fades that say something changed, drop the travel and the loop. */
+@media (prefers-reduced-motion: reduce) {
+  .bayFull .box,
+  .detailLine,
+  .stamp,
+  .aisle {
+    animation-name: fade-only;
+    animation-duration: 160ms;
+    animation-delay: 0ms;
+  }
+  .stamp {
+    transform: rotate(-2deg);
+  }
+  .bayActive .box:first-child {
+    animation: none;
+    opacity: 0.7;
+  }
+  .aisle:active {
+    transform: none;
+  }
+}
+
+@keyframes fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -189,6 +189,8 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
   const [phone, setPhone] = useState("");
   const [matches, setMatches] = useState<PatientMatch[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lookupFailed, setLookupFailed] = useState(false);
+  const [shortNumber, setShortNumber] = useState(false);
 
   const empty = itemIds.length === 0;
   useEffect(() => {
@@ -206,13 +208,20 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
   const find = () => {
     const value = phone.trim();
     if (value.replace(/\D/g, "").length < 7) {
-      setMatches([]);
+      setMatches(null);
+      setShortNumber(true);
       return;
     }
+    setShortNumber(false);
     setBusy(true);
+    setLookupFailed(false);
     lookupPatientsByPhone(value)
       .then(setMatches)
-      .catch(() => setMatches([]))
+      .catch(() => {
+        // Not the same as "nobody has this number": say the search itself did not work.
+        setMatches(null);
+        setLookupFailed(true);
+      })
       .finally(() => setBusy(false));
   };
 
@@ -269,6 +278,8 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
                 onChange={(e) => {
                   setPhone(e.target.value);
                   setMatches(null);
+                  setShortNumber(false);
+                  setLookupFailed(false);
                 }}
                 className="h-9 min-w-0 flex-1 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-card px-2 text-[13px] text-foreground outline-none focus-visible:border-[var(--pos-primary,#0f766e)]"
               />
@@ -284,6 +295,12 @@ export function PharmacyTillCartStrip({ itemIds, className }: { itemIds: string[
               </button>
             </span>
           </label>
+          {shortNumber ? <p className="text-muted-foreground">Enter the whole phone number.</p> : null}
+          {lookupFailed ? (
+            <p role="alert" className={WARN}>
+              Could not search just now. Check the connection and try again, or type their details at payment.
+            </p>
+          ) : null}
           {matches && matches.length === 0 ? (
             <p className="text-muted-foreground">
               No patient profile has this number. You can still type their details at payment.

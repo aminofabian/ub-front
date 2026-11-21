@@ -129,6 +129,25 @@ export function classifyMedicines(
   });
 }
 
+/**
+ * Puts a medicine's stock on the books with the lot number and expiry date from its pack. Uses
+ * the ordinary stock-increase, which refuses a medicine without both.
+ */
+export function addMedicineStock(body: {
+  branchId: string;
+  itemId: string;
+  quantity: number;
+  unitCost: number;
+  lotNumber: string;
+  expiryDate: string;
+}): Promise<{ batchId: string | null }> {
+  return apiRequest("/api/v1/inventory/stock-increase", {
+    method: "POST",
+    body: { ...body, notes: "Stock added from Pharmacy with lot and expiry" },
+    toast: false,
+  });
+}
+
 /** Accepts the catalogue's suggested class for these unclassified medicines. */
 export function confirmSuggestedClasses(itemIds: string[]): Promise<{ changed: number; skipped: number }> {
   return apiRequest("/api/v1/pharmacy/medicines/confirm-suggested", {

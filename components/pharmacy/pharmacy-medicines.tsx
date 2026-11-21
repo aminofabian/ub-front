@@ -16,6 +16,8 @@ import {
   classTone,
   errorText,
 } from "@/components/pharmacy/pharmacy-ui";
+import { useDashboard } from "@/components/dashboard-provider";
+import { MedicineStockDialog, type MedicineStockTarget } from "@/components/pharmacy/medicine-stock-dialog";
 import { Chip, EmptyState, Panel } from "@/components/sms-hub/sms-hub-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +42,7 @@ import {
   type DispensingClass,
   type MedicineRecord,
 } from "@/lib/pharmacy-api";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
@@ -64,6 +67,9 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<MedicineRecord | null>(null);
   const [marking, setMarking] = useState(false);
+  const [stocking, setStocking] = useState<MedicineStockTarget[] | null>(null);
+  const { me } = useDashboard();
+  const canAddStock = hasPermission(me?.permissions, Permission.InventoryWrite);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -132,6 +138,10 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
   const suggestedSelected = rows.filter(
     (r) => selected.has(r.itemId) && r.dispensingClass === "UNCLASSIFIED" && r.suggestedClass,
   );
+  const suggestedOnPage = rows.filter((r) => r.dispensingClass === "UNCLASSIFIED" && r.suggestedClass);
+  const selectSuggested = () => setSelected(new Set(suggestedOnPage.map((r) => r.itemId)));
+  const selectedOnPage = rows.filter((r) => selected.has(r.itemId));
+
   const acceptSuggested = async () => {
     if (suggestedSelected.length === 0) return;
     setBusy(true);
@@ -186,7 +196,7 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
           </div>
         </div>
 
-        {canManage && selected.size > 0 ? (
+        {(canManage || canAddStock) && selected.size > 0 ? (
           <div className={cn("flex flex-wrap items-center gap-2 border-b px-4 py-2.5", RX_RULE)}>
             <span className={cn("text-sm font-medium", RX_INK)}>{selected.size} selected</span>
             <select
@@ -205,11 +215,22 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
               Set class
             </Button>
             <span className={cn("text-[12.5px]", RX_MUTED)}>{DISPENSING_CLASS_HINT[bulkClass]}</span>
-            {suggestedSelected.length > 0 ? (
+            {canAddStock && selectedOnPage.length > 0 ? (
               <Button
                 type="button"
                 variant="outline"
                 className="ml-auto h-11 rounded-[2px] px-3.5 sm:h-9"
+                disabled={busy}
+                onClick={() => setStocking(selectedOnPage.map((r) => ({ itemId: r.itemId, name: r.name })))}
+              >
+                Add stock for {selectedOnPage.length}
+              </Button>
+            ) : null}
+            {suggestedSelected.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn("h-11 rounded-[2px] px-3.5 sm:h-9", canAddStock ? "" : "ml-auto")}
                 disabled={busy}
                 onClick={() => void acceptSuggested()}
               >
@@ -217,6 +238,22 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
               </Button>
             ) : null}
           </div>
+        ) : null}
+
+        {canManage && suggestedOnPage.length > 0 && selected.size === 0 ? (
+          <p className={cn("border-b px-4 py-2.5 text-[13px]", RX_RULE, RX_MUTED)}>
+            {suggestedOnPage.length === 1
+              ? "1 medicine on this page has a class suggested by the catalogue."
+              : `${suggestedOnPage.length} medicines on this page have a class suggested by the catalogue.`}{" "}
+            <button
+              type="button"
+              className="font-medium text-[var(--op-accent,#1d4b3b)] underline underline-offset-4"
+              onClick={selectSuggested}
+            >
+              Select {suggestedOnPage.length === 1 ? "it" : "them"}
+            </button>{" "}
+            to check and accept.
+          </p>
         ) : null}
 
         {error ? <p role="alert" className="px-4 py-3 text-sm text-destructive">{error}</p> : null}
@@ -292,11 +329,23 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
                       ) : null}
                     </td>
                     <td className={cn(RX_TD, "text-right")}>
-                      {canManage ? (
-                        <Button type="button" variant="outline" className="h-11 rounded-[2px] px-3.5 sm:h-9" onClick={() => setEditing(r)}>
-                          Edit
-                        </Button>
-                      ) : null}
+                      <div className="flex justify-end gap-1.5">
+                        {canAddStock ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 rounded-[2px] px-3.5 sm:h-9"
+                            onClick={() => setStocking([{ itemId: r.itemId, name: r.name }])}
+                          >
+                            Add stock
+                          </Button>
+                        ) : null}
+                        {canManage ? (
+                          <Button type="button" variant="outline" className="h-11 rounded-[2px] px-3.5 sm:h-9" onClick={() => setEditing(r)}>
+                            Edit
+                          </Button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -328,6 +377,16 @@ export function PharmacyMedicines({ canManage, initialClass, onChanged }: Props)
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
+            refresh();
+          }}
+        />
+      ) : null}
+      {stocking ? (
+        <MedicineStockDialog
+          medicines={stocking}
+          onClose={() => setStocking(null)}
+          onSaved={() => {
+            setStocking(null);
             refresh();
           }}
         />

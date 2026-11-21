@@ -24,6 +24,8 @@ const EMPTY: ProductMedicineDraft = {
 };
 
 let current: ProductMedicineDraft = EMPTY;
+/** True while a pharmacy's new-product form is open, so the save step knows to look at medicines. */
+let formOpen = false;
 const listeners = new Set<() => void>();
 
 export const productMedicineDraft = {
@@ -37,6 +39,11 @@ export const productMedicineDraft = {
     current = EMPTY;
     for (const l of listeners) l();
   },
+  /** Called by the form's medicine block when it appears and when it goes. */
+  setFormOpen(open: boolean) {
+    formOpen = open;
+  },
+  isFormOpen: (): boolean => formOpen,
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => {
