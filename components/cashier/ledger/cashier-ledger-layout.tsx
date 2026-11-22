@@ -350,6 +350,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
         case "drawout":
           posShiftLinks?.onShortcut("new-drawout");
           break;
+        case "open-drawer":
+          posShiftLinks?.onShortcut("open-drawer");
+          break;
         case "open-shift":
           posShiftLinks?.onShortcut("open-shift");
           break;

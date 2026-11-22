@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ClipboardCheck,
   ClipboardList,
+  DoorOpen,
   Loader2,
   LogOut,
   Minus,
@@ -169,7 +170,9 @@ export type CashierPosShiftLinksProps = {
   canCloseShift: boolean;
   canDrawout: boolean;
   /** Open shift / drawout / close flows in-place (no redirect to Shifts). */
-  onShortcut: (action: "new-drawout" | "open-shift" | "close-shift") => void;
+  onShortcut: (
+    action: "new-drawout" | "open-shift" | "close-shift" | "open-drawer",
+  ) => void;
 };
 
 export type CashierPosLayoutProps = {
@@ -1801,6 +1804,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         case "drawout":
           posShiftLinks?.onShortcut("new-drawout");
           break;
+        case "open-drawer":
+          posShiftLinks?.onShortcut("open-drawer");
+          break;
         case "open-shift":
           posShiftLinks?.onShortcut("open-shift");
           break;
@@ -2178,6 +2184,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   salesHair,
                 )}
               >
+                {posShiftLinks.hasOpenShift ? (
+                  <button
+                    type="button"
+                    onClick={() => posShiftLinks.onShortcut("open-drawer")}
+                    className={POS_SECONDARY_CHIP_CLASS}
+                  >
+                    <DoorOpen className="size-3.5 shrink-0" aria-hidden />
+                    Open drawer
+                  </button>
+                ) : null}
                 {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"

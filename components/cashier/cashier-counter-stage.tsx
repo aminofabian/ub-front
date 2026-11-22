@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ClipboardCheck,
   ClipboardList,
+  DoorOpen,
   Loader2,
   LogOut,
   Minus,
@@ -789,6 +790,16 @@ export function CashierCounterStage(props: CashierCounterStageProps) {
           ) : null}
           {posShiftLinks?.branchSelected ? (
             <>
+              {posShiftLinks.hasOpenShift ? (
+                <button
+                  type="button"
+                  className={toolClass}
+                  onClick={() => posShiftLinks.onShortcut("open-drawer")}
+                >
+                  <DoorOpen className="size-3.5" aria-hidden />
+                  Open drawer
+                </button>
+              ) : null}
               {posShiftLinks.canDrawout && posShiftLinks.hasOpenShift ? (
                 <button
                   type="button"

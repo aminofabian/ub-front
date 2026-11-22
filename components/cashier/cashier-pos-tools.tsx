@@ -3,6 +3,7 @@
 import {
   ClipboardCheck,
   ClipboardList,
+  DoorOpen,
   LogOut,
   PackagePlus,
   PlusCircle,
@@ -28,6 +29,7 @@ export const CASHIER_TOOL_ICONS: Record<CashierMobileToolId, LucideIcon> = {
   "order-confirm": ClipboardCheck,
   airtime: Smartphone,
   drawout: Wallet,
+  "open-drawer": DoorOpen,
   "open-shift": PlusCircle,
   "close-shift": LogOut,
 };
@@ -127,6 +129,14 @@ export function buildCashierTools(
 
   const shift = caps.posShiftLinks;
   if (shift?.branchSelected) {
+    if (shift.hasOpenShift) {
+      tools.push({
+        id: "open-drawer",
+        label: "Open drawer",
+        hint: "Open the cash drawer with no sale",
+        section: "shift",
+      });
+    }
     if (shift.canDrawout && shift.hasOpenShift) {
       tools.push({
         id: "drawout",

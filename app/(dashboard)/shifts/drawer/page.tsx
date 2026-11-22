@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, DoorOpen, X } from "lucide-react";
+import { Check, DoorOpen } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -31,7 +31,6 @@ const SHIFT_LIST_SIZE = 40;
 const OPEN_SHIFT_STATUS = "open";
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
-const UNMATCHED_ROW = "bg-red-50 text-red-800";
 const TICKED_ROW = "bg-emerald-50/70";
 const CASH_KIND = "CASH";
 const DRAWOUT_KIND = "DRAWOUT";
@@ -50,7 +49,7 @@ const HOW_LABEL: Record<CashDrawerOpenLogRow["reason"], string> = {
   KEY: "Key",
   CASH_SALE: "Till, cash sale",
   REPRINT: "Till, reprint",
-  UNKNOWN: "Till",
+  UNKNOWN: "Opened, no sale",
 };
 
 export default function DrawerOpenLogPage() {
@@ -134,7 +133,7 @@ export default function DrawerOpenLogPage() {
       <DashboardPageHero
         icon={DoorOpen}
         title="Drawer log"
-        description="Cash that opened the drawer gets a green tick. An opening with nothing behind it stays red."
+        description="Every time the drawer opens is listed, including when there is no sale."
         showActiveScope
       >
         <ShiftPicker
@@ -215,6 +214,14 @@ function LogBody({
   return (
     <>
       <LogSummary unmatched={log.unmatched} total={log.rows.length} tenders={tenders} />
+      {log.rows.length === 0 ? (
+        <p className="text-[13px]">This shift has no drawer openings yet.</p>
+      ) : (
+        <section className="flex flex-col gap-1.5">
+          <h2 className="text-[13px] font-medium">Drawer openings</h2>
+          <LogTable rows={log.rows} formatMoney={formatMoney} />
+        </section>
+      )}
       <TenderTable
         title="Cash payments"
         rows={tenders.filter((row) => row.kind === CASH_KIND)}
@@ -226,14 +233,6 @@ function LogBody({
         rows={tenders.filter((row) => row.kind === DRAWOUT_KIND)}
         formatMoney={formatMoney}
       />
-      {log.rows.length === 0 ? (
-        <p className="text-[13px]">This shift has no drawer openings yet.</p>
-      ) : (
-        <section className="flex flex-col gap-1.5">
-          <h2 className="text-[13px] font-medium">Drawer openings</h2>
-          <LogTable rows={log.rows} formatMoney={formatMoney} />
-        </section>
-      )}
     </>
   );
 }
@@ -265,8 +264,8 @@ function LogSummary({
         </span>
       ) : null}
       {unmatched > 0 ? (
-        <span className="font-medium text-red-800">
-          {unmatched} {unmatched === 1 ? "opening has" : "openings have"} no cash payment or drawout
+        <span className="text-[var(--op-muted,#7A7368)]">
+          {unmatched} {unmatched === 1 ? "opening" : "openings"} with no sale
         </span>
       ) : null}
       {total > 0 && unmatched === 0 ? (
@@ -301,7 +300,6 @@ function LogTable({
               className={cn(
                 "border-b border-[var(--op-border,#E7E1D6)] last:border-b-0",
                 row.matched && row.matchKind === CASH_KIND && TICKED_ROW,
-                !row.matched && UNMATCHED_ROW,
               )}
             >
               <td className="px-3 py-2 whitespace-nowrap">{formatWhen(row.openedAt)}</td>
@@ -309,7 +307,7 @@ function LogTable({
               <td className="px-3 py-2 whitespace-nowrap">{howLabel(row)}</td>
               <td className="px-3 py-2">
                 <span className="inline-flex items-center gap-2">
-                  {row.matched ? <TickMark /> : <MissMark />}
+                  {row.matched ? <TickMark /> : null}
                   {matchText(row, formatMoney)}
                 </span>
               </td>
@@ -412,17 +410,6 @@ function QuietMark() {
   );
 }
 
-function MissMark() {
-  return (
-    <span
-      className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-red-700 text-white"
-      aria-hidden
-    >
-      <X className="size-3.5" strokeWidth={3} />
-    </span>
-  );
-}
-
 function keepOrPickShift(current: string, rows: ShiftListItem[]): string {
   if (current && rows.some((row) => row.id === current)) return current;
   const open = rows.find((row) => row.status === OPEN_SHIFT_STATUS);
@@ -459,7 +446,7 @@ function matchText(
   row: CashDrawerOpenLogRow,
   formatMoney: (amount: number | string | null | undefined) => string,
 ): string {
-  if (!row.matched || !row.matchKind) return "No cash payment or drawout";
+  if (!row.matched || !row.matchKind) return "No sale";
   const kind = row.matchKind === "DRAWOUT" ? "Drawout" : "Cash";
   const when = row.matchAt ? formatWhen(row.matchAt) : "";
   return [kind, row.matchLabel, formatMoney(row.matchAmount), when].filter(Boolean).join(" · ");

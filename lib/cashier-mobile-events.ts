@@ -23,6 +23,7 @@ export type CashierMobileToolId =
   | "order-confirm"
   | "airtime"
   | "drawout"
+  | "open-drawer"
   | "open-shift"
   | "close-shift";
 

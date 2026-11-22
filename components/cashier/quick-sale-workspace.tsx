@@ -5471,7 +5471,7 @@ export function QuickSaleWorkspace({
   );
 
   const onPosShiftShortcut = useCallback(
-    (action: "new-drawout" | "open-shift" | "close-shift") => {
+    (action: "new-drawout" | "open-shift" | "close-shift" | "open-drawer") => {
       setError("");
       if (action === "open-shift") {
         if (branchOpenShift) {
@@ -5487,6 +5487,19 @@ export function QuickSaleWorkspace({
         setError("No open shift for this register.");
         return;
       }
+      if (action === "open-drawer") {
+        const printerBranch = branches.find((b) => b.id === branchId.trim());
+        void kickCashDrawer(
+          {
+            cupsName: printerBranch?.receipt?.printerCupsName ?? null,
+            branchId: branchId.trim() || null,
+          },
+          { reason: "UNKNOWN" },
+        ).then((opened) => {
+          if (opened) toast.success("Drawer opened. No sale.");
+        });
+        return;
+      }
       if (action === "close-shift") {
         setOpenShiftGate(false);
         setStaleClosePrompt(false);
@@ -5495,7 +5508,7 @@ export function QuickSaleWorkspace({
         setDrawoutModal(true);
       }
     },
-    [branchOpenShift, canDrawout],
+    [branchId, branchOpenShift, branches, canDrawout],
   );
 
   const currency = business?.currency?.trim() ?? "";
