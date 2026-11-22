@@ -219,7 +219,9 @@ export function SupplierPortalTakeOrderWorkspace({
       });
       setCart({});
       setMobileOrderOpen(false);
-      toast.success(`Order ${created.poNumber} created`);
+      toast.success(
+        `Order ${created.poNumber} sent to the shop. It goes ahead once the shop confirms it.`,
+      );
       onOrderCreated?.(created.purchaseOrderId);
     } catch (error) {
       toast.error(

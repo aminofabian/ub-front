@@ -1131,7 +1131,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const currency = tab?.currency || "KES";
   const displayShop = tab?.shopName || shopName;
   const firstName = tab?.customerName?.trim().split(/\s+/)[0] || null;
-  const sealedLocked = Boolean(tab?.pageSealed && !tab?.pageUnlocked);
+  // No PIN yet: the tab is private until its owner sets one with a texted code.
+  const needsPin = Boolean(tab?.restricted && !tab?.pageSealed);
+  const sealedLocked =
+    Boolean(tab?.pageSealed && !tab?.pageUnlocked) || needsPin;
   const payDisabled = busy || promptSent || owed <= 0;
   const manualPayDisabled = busy || manualSubmitted || owed <= 0;
   const amountNum = Number.parseFloat(amount);
@@ -1505,6 +1508,16 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             onSealedChange={() => void reload()}
           >
             <main className="flex flex-1 flex-col">
+              {needsPin ? (
+                <p
+                  role="status"
+                  className="mx-3 mt-3 border border-dashed border-current/30 px-3 py-3 text-[13px] leading-relaxed"
+                >
+                  <strong className="block">Your tab is private.</strong>
+                  Set a PIN to see what you owe and to pay. Tap “Protect this
+                  page” below and we will text a code to this number.
+                </p>
+              ) : null}
               <div className="flex min-h-[68dvh] flex-col md:hidden">
                 <section
                   className={styles.standing}

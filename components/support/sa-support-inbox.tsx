@@ -53,6 +53,7 @@ import {
   type RealtimeFrame,
 } from "@/lib/realtime";
 import { uploadSupportAttachmentToCloudinary } from "@/lib/support-attachments";
+import { SaAppealDecision } from "@/components/support/sa-appeal-decision";
 import {
   type SaSupportConversation,
   type SaSupportMessage,
@@ -98,6 +99,7 @@ function toLocalMessage(message: SaSupportMessage): ChatMessageShape {
     messageKind: message.messageKind ?? "TEXT",
     orderCard: message.orderCard ?? null,
     welcomeCard: message.welcomeCard ?? null,
+    appeal: message.appeal ?? null,
     attachment: message.attachment ?? null,
     replyTo: message.replyTo ?? null,
     reactions: message.reactions ?? [],
@@ -603,11 +605,20 @@ export function SaSupportInbox() {
           messageKind: String(data.messageKind ?? "TEXT"),
           orderCard: orderCardFromRealtime(data),
           welcomeCard: welcomeCardFromRealtime(data),
+          appeal: null,
           attachment: attachmentFromRealtime(data),
           replyTo: replyFromRealtime(data),
           readAt: null,
           createdAt: String(data.createdAt ?? new Date().toISOString()),
         };
+        if (incoming.messageKind === "ORDER_APPEAL") {
+          // The realtime frame has no order id; reload the thread so the decision panel has it.
+          void fetchSaSupportConversation(convId)
+            .then((detail) => {
+              if (convId === activeIdRef.current) setMessages((detail.messages ?? []).map(toLocalMessage));
+            })
+            .catch(() => undefined);
+        }
 
         const isActive = convId === activeIdRef.current;
         // Soft chime for every incoming tenant/visitor message — whether the agent is
@@ -1556,6 +1567,7 @@ export function SaSupportInbox() {
                         onScrollToMessage={scrollToMessage}
                         onRetry={message.failed ? () => retry(message) : undefined}
                       />
+                      {message.appeal ? <SaAppealDecision orderId={message.appeal.orderId} /> : null}
                     </div>
                   </React.Fragment>
                 );

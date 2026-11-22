@@ -110,6 +110,7 @@ import {
   isLodgingBusiness,
   isClinicBusiness,
   isPharmacyBusiness,
+  isSupplierBusiness,
   isServiceBusiness,
   isTableServiceBusiness,
   isServiceOnlyBusiness,
@@ -409,6 +410,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
         label: "Compare suppliers",
         group: "Suppliers",
       },
+      // Orders a connected supplier sent this shop to confirm (ADR 0041).
+      { href: APP_ROUTES.purchasingTradeOrders, label: "Orders from suppliers", group: "Suppliers" },
       {
         href: APP_ROUTES.purchasingRecordPayment,
         label: "Advance / deposit",
@@ -663,6 +666,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
         featureFlag: "shop",
         group: "Reports",
       },
+      // A supplier's shop only: orders buyers sent from the storefront. See isNavItemVisible.
+      { href: APP_ROUTES.storefrontTradeOrders, label: "Trade orders", group: "Reports" },
       { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
       { href: APP_ROUTES.cashier, label: "Sell", group: "Tills" },
       {
@@ -704,6 +709,8 @@ type NavGate = {
   isLodgingBusiness: boolean;
   /** One of the business's formats is a pharmacy / chemist. */
   isPharmacyBusiness: boolean;
+  /** The business is a supplier's wholesale shop (ADR 0038). */
+  isSupplierBusiness: boolean;
   /** Which Pharmacy sections this person can open; mirrors the checks in PharmacyWorkspace. */
   pharmacyNav: { stock: boolean; recall: boolean; records: boolean; compliance: boolean };
   /** One of the business's formats is a clinic, and this person holds a clinic hat. */
@@ -796,6 +803,8 @@ const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
   APP_ROUTES.promoCampaigns,
   APP_ROUTES.businessDomains,
   APP_ROUTES.storefrontWebOrders,
+  APP_ROUTES.storefrontTradeOrders,
+  APP_ROUTES.purchasingTradeOrders,
   APP_ROUTES.onlineAirtime,
 ];
 
@@ -1004,6 +1013,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     if (section === "compliance") return gate.pharmacyNav.compliance;
     return true;
   }
+  if (item.href === APP_ROUTES.purchasingTradeOrders) return gate.canPathAOrder;
   if (item.href === APP_ROUTES.purchasingIntelligence)
     return gate.canViewPurchasingIntelligence;
   if (item.href === APP_ROUTES.purchasingAddSupplies)
@@ -1097,6 +1107,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.storefrontWebOrders)
     return gate.canViewStorefrontOrders;
+  if (item.href === APP_ROUTES.storefrontTradeOrders)
+    return gate.isSupplierBusiness && gate.canViewStorefrontOrders;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
   if (item.href === APP_ROUTES.grocery) {
@@ -1501,6 +1513,7 @@ export function AppShell({ children }: AppShellProps) {
       isLodgingBusiness: isLodgingBusiness(business) && !IS_DESKTOP,
       // The desktop till does not carry batch or dispensing data to the cloud yet.
       isPharmacyBusiness: isPharmacyBusiness(business) && !IS_DESKTOP,
+      isSupplierBusiness: isSupplierBusiness(business),
       // Visits are held tickets with a patient; the desktop till carries neither.
       clinicNav: {
         enter:

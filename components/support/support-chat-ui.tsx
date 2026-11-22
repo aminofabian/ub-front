@@ -97,6 +97,7 @@ export type ChatMessageShape = {
   body: string;
   messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
   orderCard?: ChatOrderCardShape | null;
+  appeal?: { orderId: string } | null;
   welcomeCard?: ChatWelcomeCardShape | null;
   attachment?: ChatAttachmentShape | null;
   replyTo?: ChatReplyShape | null;

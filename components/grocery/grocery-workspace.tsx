@@ -48,6 +48,9 @@ import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
+import { TradeTermsBar } from "@/components/grocery/trade-terms-bar";
+import { attachCounterInvoiceAccount, counterPriceFor, type CounterTerms } from "@/lib/counter-terms";
+import { isSupplierBusiness, SUPPLIER_COUNTER_ORDERS_FLAG } from "@/lib/business-store-type";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -473,6 +476,9 @@ export function GroceryWorkspace() {
       window.localStorage.getItem(SYSTEM_KEYBOARD_STORAGE_KEY) === "1",
   );
   const tileShelfPriceValues = useRef<Record<string, number>>({});
+  /** A supplier's counter: the buyer's account terms applied to this order, if the clerk picked one. */
+  const [tradeTerms, setTradeTerms] = useState<CounterTerms | null>(null);
+  const tradeTermsRef = useRef<CounterTerms | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cart state
@@ -1045,7 +1051,11 @@ export function GroceryWorkspace() {
           label:
             `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
           quantity: 1,
-          unitPrice: tileShelfPriceValues.current[item.id] ?? 0,
+          unitPrice: counterPriceFor(
+            tradeTermsRef.current,
+            item.id,
+            tileShelfPriceValues.current[item.id] ?? 0,
+          ),
           unitName: weighed ? "kg" : "",
           isWeighed: weighed,
           packageVariant: item.packageVariant === true,
@@ -1084,6 +1094,26 @@ export function GroceryWorkspace() {
     },
     [scheduleDraftSync],
   );
+
+  const applyTradeTerms = useCallback(
+    (next: CounterTerms | null) => {
+      tradeTermsRef.current = next;
+      setTradeTerms(next);
+      // Reprice from the shelf price; a line whose shelf price is unknown keeps what it has.
+      setLines((prev) =>
+        prev.map((l) => {
+          const shelf = tileShelfPriceValues.current[l.itemId];
+          return shelf == null ? l : { ...l, unitPrice: counterPriceFor(next, l.itemId, shelf) };
+        }),
+      );
+      scheduleDraftSync();
+    },
+    [scheduleDraftSync],
+  );
+  const tradeTermsSlot =
+    isSupplierBusiness(business) && featureFlags[SUPPLIER_COUNTER_ORDERS_FLAG] === true ? (
+      <TradeTermsBar terms={tradeTerms} currency={currency} onChange={applyTradeTerms} />
+    ) : null;
 
   const [weighedToggleBusyItemId, setWeighedToggleBusyItemId] = useState<
     string | null
@@ -1387,6 +1417,22 @@ export function GroceryWorkspace() {
           customerPhone: forwardPhone,
         });
       }
+
+      // A supplier's counter: record the buyer's account on the invoice. The server re-checks the prices.
+      const accountForInvoice = tradeTermsRef.current?.found ? tradeTermsRef.current.accountId : null;
+      if (accountForInvoice) {
+        try {
+          const attached = await attachCounterInvoiceAccount(invoice.id, accountForInvoice);
+          // The buyer's number is now on the invoice; show it on the clerk's copy too.
+          invoice = { ...invoice, customerPhone: attached.buyerPhone ?? invoice.customerPhone };
+        } catch (attachError) {
+          toast.error("The invoice was made without the account", {
+            description: attachError instanceof Error ? attachError.message : undefined,
+          });
+        }
+      }
+      tradeTermsRef.current = null;
+      setTradeTerms(null);
 
       if (draftSyncTimer.current != null) {
         window.clearTimeout(draftSyncTimer.current);
@@ -2030,6 +2076,7 @@ export function GroceryWorkspace() {
                 </div>
               ) : (
                 <GroceryInvoiceCart
+                  topSlot={tradeTermsSlot}
                   lines={lines}
                   onUpdateLine={updateLine}
                   onRemoveLine={removeLine}
@@ -2269,6 +2316,7 @@ export function GroceryWorkspace() {
                   </div>
                 ) : (
                   <GroceryInvoiceCart
+                    topSlot={tradeTermsSlot}
                     lines={lines}
                     onUpdateLine={updateLine}
                     onRemoveLine={removeLine}

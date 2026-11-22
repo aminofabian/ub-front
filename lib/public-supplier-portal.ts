@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/config";
 import { getPageSealUnlock } from "@/lib/page-seal";
+import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 
 export type PublicSupplierSupplyLine = {
   description: string;
@@ -42,6 +43,11 @@ export type PublicSupplierPortal = {
   supplies: PublicSupplierSupplyRow[];
   movements: PublicSupplierMovementRow[];
   linkedProducts: string[];
+  /**
+   * True when the figures were withheld: the page was not unlocked with its PIN
+   * and the viewer is not a signed-in supplier this shop connected.
+   */
+  restricted?: boolean;
 };
 
 export type PublicSupplierSellingPeriod = "today" | "week" | "month";
@@ -64,6 +70,26 @@ export type PublicSupplierProductsSelling = {
   sort: "units" | "revenue" | string;
   products: PublicSupplierProductSellingRow[];
 };
+
+/**
+ * Sends the supplier portal sign-in when this browser has one, so a connected
+ * supplier sees its own figures. A stale sign-in must not break a public page,
+ * so a 401 is retried once without it.
+ */
+async function fetchAsSupplierWhenSignedIn(
+  url: string,
+  headers: Record<string, string>,
+): Promise<Response> {
+  const token = getSupplierPortalAccessToken();
+  if (token) {
+    const res = await fetch(url, {
+      headers: { ...headers, Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (res.status !== 401) return res;
+  }
+  return fetch(url, { headers, cache: "no-store" });
+}
 
 async function readJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -96,12 +122,9 @@ export async function fetchPublicSupplierPortal(
   const unlock = getPageSealUnlock("shop-supplier", s);
   const headers = tenantHostHeaders();
   if (unlock) headers["X-Page-Unlock"] = unlock;
-  const res = await fetch(
+  const res = await fetchAsSupplierWhenSignedIn(
     apiUrl(`/api/v1/public/suppliers/${encodeURIComponent(s)}`),
-    {
-      headers,
-      cache: "no-store",
-    },
+    headers,
   );
   if (res.status === 404) return null;
   return await readJson<PublicSupplierPortal>(res);
@@ -118,14 +141,11 @@ export async function fetchPublicSupplierProductsSelling(
   const headers = tenantHostHeaders();
   if (unlock) headers["X-Page-Unlock"] = unlock;
   const params = new URLSearchParams({ period, sort });
-  const res = await fetch(
+  const res = await fetchAsSupplierWhenSignedIn(
     apiUrl(
       `/api/v1/public/suppliers/${encodeURIComponent(s)}/products-selling?${params}`,
     ),
-    {
-      headers,
-      cache: "no-store",
-    },
+    headers,
   );
   if (res.status === 404) return null;
   return await readJson<PublicSupplierProductsSelling>(res);

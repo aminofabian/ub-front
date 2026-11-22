@@ -142,6 +142,9 @@ function MarketplaceBrowseWorkspaceInner({
   const [searchInput, setSearchInput] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
+  // P3-2: narrow the supplier list to those with their own shop, and to those that deliver somewhere.
+  const [shopsOnly, setShopsOnly] = useState(false);
+  const [coverage, setCoverage] = useState("");
   const [activeSupplierId, setActiveSupplierId] = useState<string | null>(null);
   const [locations, setLocations] = useState<string[]>([]);
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
@@ -254,6 +257,8 @@ function MarketplaceBrowseWorkspaceInner({
       const page = await searchMarketplaceSuppliers({
         q: debouncedSearch,
         location: activeLocation ?? undefined,
+        coverage: coverage.trim().length >= 3 ? coverage : undefined,
+        shopsOnly,
         size: SUPPLIER_PAGE_SIZE,
       });
       setSuppliers(page.content);
@@ -263,7 +268,7 @@ function MarketplaceBrowseWorkspaceInner({
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, activeLocation]);
+  }, [debouncedSearch, activeLocation, shopsOnly, coverage]);
 
   useEffect(() => {
     if (tab === "suppliers") {
@@ -519,6 +524,28 @@ function MarketplaceBrowseWorkspaceInner({
           >
             <span aria-hidden className={mktPosAccentBar} />
             <div className="space-y-2 pl-2">
+              {tab !== "products" ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[var(--pos-ink,#1c1915)]">
+                  <label className="flex min-h-9 items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      className="size-4"
+                      checked={shopsOnly}
+                      onChange={(e) => setShopsOnly(e.target.checked)}
+                    />
+                    Only suppliers with their own shop
+                  </label>
+                  <label className="flex min-h-9 items-center gap-1.5">
+                    Delivers to
+                    <input
+                      className="h-9 w-36 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-transparent px-2"
+                      placeholder="Area or town"
+                      value={coverage}
+                      onChange={(e) => setCoverage(e.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h1 className="text-[15px] font-semibold leading-tight text-[var(--pos-ink,#1c1915)]">
@@ -1138,6 +1165,9 @@ function SupplierFilterColumn({
               <span className="text-[12px] font-semibold leading-snug text-[var(--pos-ink,#1c1915)]">
                 {s.name}
               </span>
+              {s.shopSlug ? (
+                <span className="text-[11px] leading-snug text-[var(--pos-primary,#0f766e)]">Has its own shop</span>
+              ) : null}
               {s.contactPhone?.trim() ? (
                 <span
                   className="block max-w-full truncate font-mono text-[10px] tabular-nums text-[var(--pos-primary,#0f766e)]"

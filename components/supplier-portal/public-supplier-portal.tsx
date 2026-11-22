@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { APP_ROUTES } from "@/lib/config";
 import { PageSealGate } from "@/components/page-seal/page-seal-gate";
 import { PublicSupplierComplaintModal } from "@/components/supplier-portal/public-supplier-complaint-modal";
 import { hasAccessSession } from "@/lib/auth";
@@ -405,6 +406,8 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
   }
 
   const sealedLocked = Boolean(sealStatus?.sealed && !sealStatus.unlockValid);
+  // The shop's figures were withheld from this viewer; the zeros are not balances.
+  const restricted = data.restricted === true && !sealedLocked;
 
   return (
     <div
@@ -439,7 +442,7 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
                 <h1 className="truncate text-[13px] font-semibold leading-tight tracking-tight">
                   {data.supplierName}
                 </h1>
-                {sealStatus == null || sealedLocked ? null : (
+                {sealStatus == null || sealedLocked || restricted ? null : (
                   <span
                     className={cn(
                       "shrink-0 px-1 py-px text-[8px] font-bold uppercase tracking-[0.1em]",
@@ -476,7 +479,23 @@ export function PublicSupplierPortalView({ username, branding, fallback }: Props
             }}
             onSealedChange={() => setSealEpoch((n) => n + 1)}
           >
-            {sealedLocked ? null : (
+            {restricted ? (
+              <section
+                className={cn("border bg-white/85 px-3 py-4 text-[13px] leading-relaxed", INK_BORDER)}
+              >
+                <p className="font-semibold">Balances are private</p>
+                <p className="mt-1 text-muted-foreground">
+                  {data.shopName} has not opened this page yet. If you are this
+                  supplier,{" "}
+                  <a className="underline" href={APP_ROUTES.supplierPortalLogin}>
+                    sign in to the supplier portal
+                  </a>{" "}
+                  to see what you are owed, or ask the shop to protect this page
+                  with a PIN and share the PIN with you.
+                </p>
+              </section>
+            ) : null}
+            {sealedLocked || restricted ? null : (
               <>
         <section>
           <div

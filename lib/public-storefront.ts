@@ -137,6 +137,10 @@ export type PublicCatalogItemDetail = {
   onlinePurchaseMode?: string | null;
   weighed?: boolean | null;
   unitType?: string | null;
+  /** The least that may be ordered online, when the shop set one. */
+  minOrderQty?: number | null;
+  /** Lower prices from set quantities, lowest quantity first. */
+  priceBreaks?: { minQty: number; unitPrice: number }[] | null;
 };
 
 export const STOREFRONT_ONLINE_IN_STORE_ONLY = "in_store_only";

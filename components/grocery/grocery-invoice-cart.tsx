@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   ShoppingBasket,
   Trash2,
@@ -38,6 +39,8 @@ export type GroceryCartLine = {
 
 type GroceryInvoiceCartProps = {
   lines: GroceryCartLine[];
+  /** Shown above the cart header (a supplier's account bar at the counter). */
+  topSlot?: ReactNode;
   onUpdateLine: (
     key: string,
     field: "quantity" | "unitPrice",
@@ -252,6 +255,7 @@ function CartLineItem({
 
 export function GroceryInvoiceCart({
   lines,
+  topSlot,
   onUpdateLine,
   onRemoveLine,
   onToggleWeighed,
@@ -296,6 +300,7 @@ export function GroceryInvoiceCart({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
+      {topSlot}
       {/* ── Header ── */}
       <header
         className={cn(

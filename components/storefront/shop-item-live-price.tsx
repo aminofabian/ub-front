@@ -24,8 +24,11 @@ export function ShopItemLivePrice({
   const [regularPrice, setRegularPrice] = useState<number | null>(null);
   const [savedAmount, setSavedAmount] = useState<number | null>(null);
   const [discountName, setDiscountName] = useState<string | null>(null);
+  // Wholesale terms: only a shop that set them sends any, so other shops render exactly as before.
+  const [terms, setTerms] = useState<string[]>([]);
 
   useEffect(() => {
+    setTerms([]);
     setPrice(initialPrice);
     setRegularPrice(null);
     setSavedAmount(null);
@@ -56,6 +59,14 @@ export function ShopItemLivePrice({
       setDiscountName((current) =>
         current === detail.discountName ? current : (detail.discountName ?? null),
       );
+      const lines: string[] = [];
+      if (detail.minOrderQty != null && detail.minOrderQty > 0) {
+        lines.push(`Minimum order ${Number(detail.minOrderQty)}`);
+      }
+      for (const b of detail.priceBreaks ?? []) {
+        lines.push(`${Number(b.minQty)} or more: ${formatDisplayPrice(detail.currency, b.unitPrice)} each`);
+      }
+      setTerms((current) => (current.join("|") === lines.join("|") ? current : lines));
     };
 
     const timer = window.setInterval(() => {
@@ -100,6 +111,14 @@ export function ShopItemLivePrice({
       ) : (
         formatDisplayPrice(currency, price)
       )}
+      {terms.map((line) => (
+        <span
+          key={line}
+          className="mt-1 block text-[13px] font-normal leading-snug tracking-normal text-[var(--storefront-ink-muted,#5c6560)]"
+        >
+          {line}
+        </span>
+      ))}
     </span>
   );
 }

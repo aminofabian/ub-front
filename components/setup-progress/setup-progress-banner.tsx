@@ -120,7 +120,7 @@ export function SetupProgressBanner({
                   {currentLabel}
                 </p>
                 <p className={cn("text-[11px]", HUB_MUTED)}>
-                  {data.percentComplete}% complete
+                  {data.shopReady ? "Supplier setup" : `${data.percentComplete}% complete`}
                 </p>
               </div>
               {expanded ? (

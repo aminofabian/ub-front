@@ -1695,6 +1695,8 @@ export type FeatureFlagsPatchPayload = {
    * shift per till). Turning it back on closes those hidden shifts.
    */
   shiftsDisabled?: boolean;
+  /** Supplier shops only: clerks take counter orders and the cashier is paid for them. */
+  supplierCounterOrders?: boolean;
   /**
    * Email stock with buying and selling prices, and today's sales, when a shift
    * closes. Absent means on.
@@ -6223,6 +6225,457 @@ export async function deleteItemPackOption(
     `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/pack-options/${encodeURIComponent(optionId.trim())}`,
     { method: "DELETE" },
   );
+}
+
+/** A trade order as the supplier's shop sees it. `lines` is absent in a list. */
+export type SalesOrder = {
+  id: string;
+  code: string;
+  status: string;
+  currency: string;
+  total: number;
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail?: string | null;
+  buyerBusinessName?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  /** "prepaid", or "credit" when the buyer's number has an approved account with this shop. */
+  paymentTerms?: string | null;
+  /** True when a signed-in marketplace buyer placed it for a shop they are staff of. */
+  buyerVerified?: boolean;
+  /** True when this order took the buyer's account over its credit limit. */
+  overCreditLimit?: boolean;
+  lines?: {
+    id: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    status: string;
+    acceptedQty?: number | null;
+  }[];
+};
+
+export async function fetchSalesOrders(status?: string): Promise<SalesOrder[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return request<SalesOrder[]>(`${API_ROUTES.salesOrders}${query}`);
+}
+
+export async function fetchSalesOrder(orderId: string): Promise<SalesOrder> {
+  return request<SalesOrder>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}`);
+}
+
+/** For every line, how much will be supplied: all of it, less, or 0 for none. */
+/** A supplier's "This is wrong" appeal on one counted order. Posted to its support chat with the order attached. */
+export async function appealSalesOrder(orderId: string, reason: string): Promise<{ id: string }> {
+  return request<{ id: string }>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}/appeal`, {
+    method: "POST",
+    body: { reason },
+  });
+}
+
+export async function answerSalesOrder(
+  orderId: string,
+  lines: { lineId: string; acceptedQty: number }[],
+): Promise<SalesOrder> {
+  return request<SalesOrder>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}/answer`, {
+    method: "POST",
+    body: { lines },
+  });
+}
+
+export async function dispatchSalesOrder(orderId: string): Promise<SalesOrder> {
+  return request<SalesOrder>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}/dispatch`, {
+    method: "POST",
+  });
+}
+
+export async function cancelSalesOrder(orderId: string): Promise<SalesOrder> {
+  return request<SalesOrder>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}/cancel`, {
+    method: "POST",
+  });
+}
+
+/** The record a supplier's shop and a buyer's shop share about one order. `lines` and `events` are absent in a list. */
+export type TradeOrder = {
+  id: string;
+  orderCode: string;
+  supplierName: string;
+  orderState: string;
+  deliveryState: string;
+  moneyState: string;
+  currency: string;
+  total: number;
+  createdAt: string;
+  lines?: {
+    productName: string;
+    barcode?: string | null;
+    packUnit?: string | null;
+    packSize?: number | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    lineNo: number;
+    /** What the buying shop says arrived. Absent until it has said. */
+    receivedQty?: number | null;
+  }[];
+  /** Money the buying shop holds in escrow for this order, when it holds any. */
+  escrow?: { status: string; amount: number } | null;
+  events?: { eventNo: number; kind: string; actorSide: string; createdAt: string }[];
+  /** True once the buying shop has made its purchase order from this. */
+  hasPurchaseOrder?: boolean;
+};
+
+/** A line of a supplier's order and this shop's product with the same barcode, if it has one. */
+export type TradeOrderMatch = {
+  lineNo: number;
+  productName: string;
+  barcode?: string | null;
+  itemId?: string | null;
+  itemName?: string | null;
+};
+
+export async function fetchTradeOrderMatches(tradeOrderId: string): Promise<TradeOrderMatch[]> {
+  return request<TradeOrderMatch[]>(
+    `${API_ROUTES.tradeOrdersIncoming}/${encodeURIComponent(tradeOrderId.trim())}/matches`,
+  );
+}
+
+/** Makes this shop's own draft purchase order from a confirmed order. */
+export async function makePurchaseOrderFromTradeOrder(
+  tradeOrderId: string,
+  matches: { lineNo: number; itemId: string }[],
+): Promise<{ purchaseOrderId: string; poNumber: string }> {
+  return request<{ purchaseOrderId: string; poNumber: string }>(
+    `${API_ROUTES.tradeOrdersIncoming}/${encodeURIComponent(tradeOrderId.trim())}/purchase-order`,
+    { method: "POST", body: { matches } },
+  );
+}
+
+export type ConnectedShop = { businessId: string; name: string };
+
+/** Buyer's side: orders suppliers have sent this shop. */
+export async function fetchIncomingTradeOrders(state?: string): Promise<TradeOrder[]> {
+  const query = state ? `?state=${encodeURIComponent(state)}` : "";
+  return request<TradeOrder[]>(`${API_ROUTES.tradeOrdersIncoming}${query}`);
+}
+
+export async function fetchIncomingTradeOrder(tradeOrderId: string): Promise<TradeOrder> {
+  return request<TradeOrder>(`${API_ROUTES.tradeOrdersIncoming}/${encodeURIComponent(tradeOrderId.trim())}`);
+}
+
+export async function decideIncomingTradeOrder(
+  tradeOrderId: string,
+  decision: "confirm" | "decline",
+): Promise<TradeOrder> {
+  return request<TradeOrder>(
+    `${API_ROUTES.tradeOrdersIncoming}/${encodeURIComponent(tradeOrderId.trim())}/decision`,
+    { method: "POST", body: { decision } },
+  );
+}
+
+/** Buyer's side: say what arrived, for every line. A shortage marks the order disputed. */
+export async function recordTradeOrderReceived(
+  tradeOrderId: string,
+  lines: { lineNo: number; receivedQty: number }[],
+): Promise<TradeOrder> {
+  return request<TradeOrder>(
+    `${API_ROUTES.tradeOrdersIncoming}/${encodeURIComponent(tradeOrderId.trim())}/received`,
+    { method: "POST", body: { lines } },
+  );
+}
+
+/** Supplier's side: what was sent to a shop for one of its sales orders. Null when nothing was sent. */
+export async function fetchSentTradeOrder(salesOrderId: string): Promise<TradeOrder | null> {
+  try {
+    return await request<TradeOrder>(`${API_ROUTES.tradeOrdersOutgoing}/${encodeURIComponent(salesOrderId.trim())}`);
+  } catch {
+    return null;
+  }
+}
+
+/** Supplier's side: the dispute the shop raised has been dealt with. */
+export async function resolveTradeOrderDispute(salesOrderId: string): Promise<TradeOrder> {
+  return request<TradeOrder>(
+    `${API_ROUTES.tradeOrdersOutgoing}/${encodeURIComponent(salesOrderId.trim())}/resolve`,
+    { method: "POST" },
+  );
+}
+
+/** Takes money off what is owed on an invoice: a shortage, a return, a price put right. */
+export async function issueSalesCreditNote(invoiceId: string, amount: number, reason: string): Promise<SalesInvoice> {
+  return request<SalesInvoice>(`${API_ROUTES.salesInvoices}/${encodeURIComponent(invoiceId.trim())}/credit-notes`, {
+    method: "POST",
+    body: { amount, reason: reason.trim() },
+  });
+}
+
+/** Supplier's side: shops with an active connection to this supplier. */
+export async function fetchConnectedShops(): Promise<ConnectedShop[]> {
+  return request<ConnectedShop[]>(`${API_ROUTES.tradeOrdersOutgoing}/connected-shops`);
+}
+
+/** Supplier's side: send an accepted order to a connected shop. Safe to repeat. */
+export async function sendSalesOrderToShop(salesOrderId: string, buyerBusinessId: string): Promise<TradeOrder> {
+  return request<TradeOrder>(`${API_ROUTES.tradeOrdersOutgoing}/${encodeURIComponent(salesOrderId.trim())}`, {
+    method: "POST",
+    body: { buyerBusinessId },
+  });
+}
+
+/** What a buyer owes a supplier's shop for one dispatched trade order. `receipts` is absent in a list. */
+export type SalesInvoice = {
+  id: string;
+  invoiceNo: string;
+  salesOrderId: string;
+  status: string;
+  currency: string;
+  total: number;
+  amountPaid: number;
+  balance: number;
+  issuedOn: string;
+  dueOn: string;
+  buyerName: string;
+  buyerBusinessName?: string | null;
+  buyerPhone: string;
+  receipts?: { id: string; amount: number; method: string; reference?: string | null; receivedOn: string }[];
+  /** Taken off what is owed by credit notes. */
+  amountCredited?: number | null;
+};
+
+export type ReceivablesAgeing = {
+  currency: string | null;
+  total: number;
+  buyers: {
+    buyer: string;
+    buyerPhone: string;
+    notYetDue: number;
+    days1To30: number;
+    days31To60: number;
+    days61To90: number;
+    over90: number;
+    total: number;
+  }[];
+};
+
+export async function fetchSalesInvoices(unpaidOnly: boolean): Promise<SalesInvoice[]> {
+  return request<SalesInvoice[]>(`${API_ROUTES.salesInvoices}?unpaid=${unpaidOnly ? "true" : "false"}`);
+}
+
+export async function fetchSalesInvoice(invoiceId: string): Promise<SalesInvoice> {
+  return request<SalesInvoice>(`${API_ROUTES.salesInvoices}/${encodeURIComponent(invoiceId.trim())}`);
+}
+
+export async function fetchReceivablesAgeing(): Promise<ReceivablesAgeing> {
+  return request<ReceivablesAgeing>(`${API_ROUTES.salesInvoices}/ageing`);
+}
+
+export async function recordSalesReceipt(
+  invoiceId: string,
+  body: { amount: number; method: "cash" | "mpesa" | "bank"; reference?: string },
+): Promise<SalesInvoice> {
+  return request<SalesInvoice>(`${API_ROUTES.salesInvoices}/${encodeURIComponent(invoiceId.trim())}/receipts`, {
+    method: "POST",
+    body: { amount: body.amount, method: body.method, reference: body.reference?.trim() || undefined },
+  });
+}
+
+/** A supplier's own trade figures over a number of days. */
+export type SalesFigures = {
+  days: number;
+  currency: string | null;
+  orders: number;
+  waitingForAnAnswer: number;
+  askedValue: number;
+  acceptedValue: number;
+  fillRatePercent: number | null;
+  invoiced: number;
+  stillOwed: number;
+  topBuyers: { name: string; value: number; quantity: number }[];
+  topProducts: { name: string; value: number; quantity: number }[];
+  /** Only with the supplier engagement flag on; absent otherwise. */
+  answeredSample?: number;
+  /** Median working hours to answer, from five answered orders. Absent until then. */
+  medianAnswerWorkingHours?: number | null;
+};
+
+/** An order a buying shop asked to be placed again every so many days. */
+export type StandingOrder = {
+  id: string;
+  supplierName?: string | null;
+  buyerBusinessName: string;
+  everyDays: number;
+  nextRunOn: string;
+  lastResult?: string | null;
+  lines: { itemName: string; quantity: number }[];
+};
+
+export async function fetchSalesFigures(days: number): Promise<SalesFigures> {
+  return request<SalesFigures>(`${API_ROUTES.salesOrders}/figures?days=${encodeURIComponent(String(days))}`);
+}
+
+export async function fetchSupplierStandingOrders(): Promise<StandingOrder[]> {
+  return request<StandingOrder[]>(`${API_ROUTES.salesOrders}/standing`);
+}
+
+/** One line of a supplier's own standing. Supplier-only; a null value means not measured yet. */
+export type SupplierStandingMeasure = {
+  key: string;
+  label: string;
+  value: number | null;
+  unit: "hours" | "percent";
+  sample: number;
+};
+
+/** A supplier's own standing over 90 days. State is off, new (below the sample floor) or measured. */
+export type SupplierStanding = {
+  enabled: boolean;
+  state: "off" | "new" | "measured";
+  answeredOrders: number;
+  buyers: number;
+  measures: SupplierStandingMeasure[];
+  /** The supplier's own dispatch lead time, in working days. Absent when off. */
+  dispatchLeadWorkingDays?: number | null;
+  /** The dates the supplier has marked as closed, ISO. Absent when off. */
+  closedDays?: string[] | null;
+};
+
+export async function fetchSupplierStanding(days: number): Promise<SupplierStanding> {
+  return request<SupplierStanding>(
+    `${API_ROUTES.salesOrders}/standing-measures?days=${encodeURIComponent(String(days))}`,
+  );
+}
+
+/** Replaces the supplier's closed days (ISO dates). A closed day stops the working clock. */
+export async function setSupplierClosedDays(dates: string[]): Promise<void> {
+  await request(`${API_ROUTES.salesOrders}/closed-days`, {
+    method: "PUT",
+    body: JSON.stringify({ dates }),
+  });
+}
+
+/** Sets how many working days the supplier takes to dispatch an accepted order (one to three). */
+export async function setSupplierDispatchLeadTime(workingDays: number): Promise<void> {
+  await request(`${API_ROUTES.salesOrders}/lead-time`, {
+    method: "PUT",
+    body: JSON.stringify({ workingDays }),
+  });
+}
+
+export async function stopSupplierStandingOrder(standingOrderId: string): Promise<void> {
+  await request(`${API_ROUTES.salesOrders}/standing/${encodeURIComponent(standingOrderId.trim())}/stop`, {
+    method: "POST",
+  });
+}
+
+/** Downloads the shop's sales invoices as a CSV file. */
+export async function downloadSalesInvoicesCsv(): Promise<void> {
+  const blob = await requestBinary(`${API_ROUTES.salesInvoices}/export.csv`);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "sales-invoices.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** One product's price for one buyer's account. */
+export type TradeAccountPrice = { itemId: string; unitPrice: number; itemName?: string | null };
+
+export async function fetchTradeAccountPrices(accountId: string): Promise<TradeAccountPrice[]> {
+  return request<TradeAccountPrice[]>(`${API_ROUTES.tradeAccounts}/${encodeURIComponent(accountId.trim())}/prices`);
+}
+
+/** Replaces the buyer's price list with what is sent. */
+export async function saveTradeAccountPrices(
+  accountId: string,
+  prices: { itemId: string; unitPrice: number }[],
+): Promise<TradeAccountPrice[]> {
+  return request<TradeAccountPrice[]>(`${API_ROUTES.tradeAccounts}/${encodeURIComponent(accountId.trim())}/prices`, {
+    method: "PUT",
+    body: prices,
+  });
+}
+
+/** A buyer's account with this supplier's shop. */
+export type TradeAccount = {
+  id: string;
+  status: string;
+  buyerName: string;
+  buyerPhone: string;
+  businessName?: string | null;
+  note?: string | null;
+  creditLimit?: number | null;
+  termsDays?: number | null;
+  createdAt: string;
+  /** True when the account belongs to a shop whose staff signed in, not just a phone number. */
+  buyerVerified?: boolean;
+  discountPercent?: number | null;
+};
+
+/** Opens or updates the account of the shop a signed-in marketplace buyer ordered for. */
+export async function decideSalesOrderAccount(
+  orderId: string,
+  body: {
+    status: "approved" | "declined" | "suspended";
+    creditLimit: number | null;
+    termsDays: number | null;
+    discountPercent: number | null;
+  },
+): Promise<TradeAccount> {
+  return request<TradeAccount>(`${API_ROUTES.salesOrders}/${encodeURIComponent(orderId.trim())}/account`, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchTradeAccounts(status?: string): Promise<TradeAccount[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return request<TradeAccount[]>(`${API_ROUTES.tradeAccounts}${query}`);
+}
+
+export async function decideTradeAccount(
+  accountId: string,
+  body: {
+    status: "approved" | "declined" | "suspended";
+    creditLimit: number | null;
+    termsDays: number | null;
+    discountPercent?: number | null;
+  },
+): Promise<TradeAccount> {
+  return request<TradeAccount>(
+    `${API_ROUTES.tradeAccounts}/${encodeURIComponent(accountId.trim())}/decision`,
+    { method: "POST", body },
+  );
+}
+
+/** "From `minQty` upwards, each one costs `unitPrice`." */
+export type ItemPriceBreak = { minQty: number; unitPrice: number };
+
+/** Wholesale terms on one product. They apply to online orders, not the till. */
+export type ItemTradeTerms = {
+  minOrderQty: number | null;
+  priceBreaks: ItemPriceBreak[];
+};
+
+export async function fetchItemTradeTerms(itemId: string): Promise<ItemTradeTerms> {
+  const terms = await request<Partial<ItemTradeTerms>>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/trade-terms`,
+  );
+  return { minOrderQty: terms.minOrderQty ?? null, priceBreaks: terms.priceBreaks ?? [] };
+}
+
+/** Replaces the product's terms with what is sent. */
+export async function saveItemTradeTerms(itemId: string, body: ItemTradeTerms): Promise<ItemTradeTerms> {
+  const terms = await request<Partial<ItemTradeTerms>>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/trade-terms`,
+    { method: "PUT", body },
+  );
+  return { minOrderQty: terms.minOrderQty ?? null, priceBreaks: terms.priceBreaks ?? [] };
 }
 
 export async function patchItem(

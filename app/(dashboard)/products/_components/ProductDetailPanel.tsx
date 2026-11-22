@@ -35,7 +35,8 @@ import {
 } from "@/components/suppliers/supplier-display-name";
 import { isRealSupplierLink } from "@/lib/supplier-display";
 import { ProductMedicineSection } from "@/components/pharmacy/product-medicine-fields";
-import { isPharmacyBusiness } from "@/lib/business-store-type";
+import { ProductTradeTermsSection } from "@/components/wholesale/product-trade-terms";
+import { isPharmacyBusiness, isSupplierBusiness } from "@/lib/business-store-type";
 import { useDashboard } from "@/components/dashboard-provider";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -442,6 +443,9 @@ export function ProductDetailPanel(props: Props) {
   const dashboard = useDashboard();
   const showMedicineSection = isPharmacyBusiness(dashboard.business) && !isChildVariant;
   const canManageMedicines = hasPermission(dashboard.me?.permissions, Permission.PharmacyManage);
+  // A supplier's shop: minimum order and quantity prices, on anything that is itself sold.
+  const showTradeTerms = isSupplierBusiness(dashboard.business) && panelKind !== "group";
+  const canSetTradeTerms = hasPermission(dashboard.me?.permissions, Permission.PricingSellPriceSet);
   const parentProductId = detail.variantOfItemId?.trim() || null;
   const openAddVariant =
     onOpenAddVariant ?? (() => setActiveDrawer("add-variant"));
@@ -1485,6 +1489,15 @@ export function ProductDetailPanel(props: Props) {
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {showTradeTerms ? (
+        <ProductTradeTermsSection
+          itemId={detail.id}
+          canEdit={canSetTradeTerms}
+          className={cn(detailSectionClass, "border-b border-border px-2.5 py-2.5")}
+          labelClassName={detailSectionLabelClass}
+        />
       ) : null}
 
       {showMedicineSection ? (

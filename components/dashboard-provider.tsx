@@ -24,7 +24,7 @@ import {
 } from "@/lib/api";
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { isBranchLockedRole } from "@/lib/branch-access";
-import { isGroceryOperationsBusiness } from "@/lib/business-store-type";
+import { isClerkCounterBusiness } from "@/lib/business-store-type";
 import { syncCatalogDisplayPolicyFromBusiness } from "@/lib/catalog-display-policy";
 import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -430,7 +430,7 @@ export function DashboardProvider({
   // even when the shop never selected a grocery format. Clerks keep access by role.
   const canAccessGrocery =
     hasPermission(effectiveMe?.permissions, Permission.GroceryInvoicesRead) &&
-    (isGroceryClerk || isGroceryOperationsBusiness(effectiveBusiness));
+    (isGroceryClerk || isClerkCounterBusiness(effectiveBusiness));
 
   useEffect(() => {
     if (!effectiveMe?.id) return;

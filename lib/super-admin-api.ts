@@ -4067,6 +4067,8 @@ export type SaSupportMessage = {
   senderName: string | null;
   body: string;
   messageKind?: "TEXT" | "ORDER_CARD" | "WELCOME_CARD" | string | null;
+  /** Set on a supplier's order appeal: the order it is about. */
+  appeal?: { orderId: string } | null;
   orderCard?: {
     orderId: string;
     orderCode: string;
@@ -5415,5 +5417,34 @@ export async function importSaCatalogMedicinesCsv(
   return saRequest<SaMedicineImportResult>(
     `${API_ROUTES.superAdminGlobalCatalog}/medicines/import?${query.toString()}`,
     { method: "POST", body: form },
+  );
+}
+
+/** Whether one order counts in a supplier's standing, as platform support has set it. */
+export type SaStandingExclusion = {
+  orderId: string;
+  standingExcluded: boolean;
+  standingExcludedAt: string | null;
+  standingExclusionNote: string | null;
+};
+
+export async function fetchSaStandingExclusion(orderId: string): Promise<SaStandingExclusion> {
+  return saRequest<SaStandingExclusion>(
+    `${API_ROUTES.superAdminStanding}/orders/${encodeURIComponent(orderId)}`,
+  );
+}
+
+/** Platform support only. Leaving an order out needs a note; the supplier sees the decision in its thread. */
+export async function setSaStandingExclusion(
+  orderId: string,
+  excluded: boolean,
+  note: string | null,
+): Promise<SaStandingExclusion> {
+  return saRequest<SaStandingExclusion>(
+    `${API_ROUTES.superAdminStanding}/orders/${encodeURIComponent(orderId)}/exclusion`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ excluded, note }),
+    },
   );
 }

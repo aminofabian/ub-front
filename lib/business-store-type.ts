@@ -116,6 +116,7 @@ type StoreTypeSource = {
       sellsProducts?: boolean | null;
     } | null;
   } | null;
+  featureFlags?: Record<string, boolean> | null;
 };
 
 function normalizeStoreType(value: string | null | undefined): StoreTypeId | null {
@@ -197,6 +198,22 @@ export function isGroceryOperationsBusiness(
   );
 }
 
+/** Matches FeatureFlagService#FLAG_SUPPLIER_COUNTER_ORDERS on the backend. */
+export const SUPPLIER_COUNTER_ORDERS_FLAG = "supplier.counter_orders";
+
+/**
+ * True when the shop runs the clerk counter: a clerk takes the order and prints the invoice, the cashier takes
+ * the payment. Grocery formats always do; a supplier shop does once it turns counter orders on.
+ */
+export function isClerkCounterBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  return (
+    isGroceryOperationsBusiness(source) ||
+    (isSupplierBusiness(source) && source?.featureFlags?.[SUPPLIER_COUNTER_ORDERS_FLAG] === true)
+  );
+}
+
 /** True when any selected format is a service format (kinyozi, salon, spa, …). */
 export function isServiceBusiness(
   source: StoreTypeSource | null | undefined,
@@ -212,6 +229,35 @@ export function isFoodBusiness(
 ): boolean {
   return getBusinessStoreTypes(source).some((type) =>
     (FOOD_STORE_TYPES as readonly string[]).includes(type),
+  );
+}
+
+/**
+ * A wholesale supplier's shop (ADR 0038). The platform sets this format when a supplier opens its
+ * shop from the supplier portal; it is deliberately not a {@link StoreTypeId}, so no picker offers
+ * it and no label table needs an entry for it. Branch on {@link isSupplierBusiness}, never by name.
+ */
+export const SUPPLIER_STORE_TYPES: readonly string[] = ["supplier"];
+
+/** True when one of the business's formats is a supplier's wholesale shop. */
+export function isSupplierBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  if (!source) {
+    return false;
+  }
+  // Read the stored codes themselves: getBusinessStoreTypes keeps only the formats a shop can
+  // pick, so it never returns this one.
+  const stored: unknown[] = [
+    ...(source.profile?.storeTypes ?? []),
+    source.profile?.storeType,
+    ...(source.onboarding?.answers?.storeTypes ?? []),
+    source.onboarding?.answers?.storeType,
+  ];
+  return stored.some(
+    (value) =>
+      typeof value === "string" &&
+      SUPPLIER_STORE_TYPES.includes(value.trim().toLowerCase()),
   );
 }
 

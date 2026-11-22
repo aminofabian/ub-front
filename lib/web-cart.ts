@@ -24,6 +24,10 @@ export type PublicWebCartLine = {
   lineTotal: number | null;
   weighed?: boolean | null;
   unitType?: string | null;
+  /** The shelf price, present only when this quantity earned a lower one. */
+  regularUnitPrice?: number | null;
+  /** The least that may be ordered of this product, when the shop set one. */
+  minOrderQty?: number | null;
 };
 
 export type PublicWebCart = {
@@ -34,6 +38,8 @@ export type PublicWebCart = {
   expiresAt: string;
   subtotal: number | null;
   lines: PublicWebCartLine[];
+  /** True on a supplier's shop: the cart can be sent as a trade order. */
+  tradeOrders?: boolean | null;
 };
 
 /** Lines that cannot be checked out (no branch sell price or shelf price). */
@@ -350,6 +356,115 @@ export async function submitWebCheckout(
     throw new Error(await readFetchErrorMessage(res));
   }
   return (await res.json()) as PublicCheckoutResult;
+}
+
+export type TradeOrderPlaced = {
+  orderId: string;
+  orderCode: string;
+  status: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+};
+
+export type TradeOrderTracking = {
+  orderId: string;
+  orderCode: string;
+  status: string;
+  currency: string;
+  total: number;
+  createdAt: string;
+  lines: {
+    itemName: string;
+    quantity: number;
+    acceptedQty?: number | null;
+    unitPrice: number;
+    lineTotal: number;
+    status: string;
+  }[];
+};
+
+export function tradeOrderStatusLabel(status: string): string {
+  switch (status) {
+    case "placed":
+      return "Waiting for an answer";
+    case "accepted":
+      return "Accepted";
+    case "part_accepted":
+      return "Part accepted";
+    case "rejected":
+      return "Not supplied";
+    case "dispatched":
+      return "Dispatched";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status.replace(/_/g, " ");
+  }
+}
+
+/** Sends the cart to a supplier's shop as a trade order. Nothing is paid and no stock is held. */
+export async function placeTradeOrder(
+  slug: string,
+  cartId: string,
+  payload: { buyerName: string; buyerPhone: string; buyerBusinessName?: string; buyerEmail?: string; notes?: string },
+): Promise<TradeOrderPlaced> {
+  const res = await fetch(`${cartBase(slug)}/${encodeURIComponent(cartId.trim())}/trade-order`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      buyerName: payload.buyerName.trim(),
+      buyerPhone: payload.buyerPhone.trim(),
+      buyerBusinessName: payload.buyerBusinessName?.trim() || undefined,
+      buyerEmail: payload.buyerEmail?.trim() || undefined,
+      notes: payload.notes?.trim() || undefined,
+    }),
+  });
+  if (res.status === 404) {
+    throw new Error("Cart not found or expired. Start again from the shop.");
+  }
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+  return (await res.json()) as TradeOrderPlaced;
+}
+
+/** Asks a supplier's shop for an account. The reply is the same whatever the shop has decided. */
+export async function applyForTradeAccount(
+  slug: string,
+  payload: { buyerName: string; buyerPhone: string; businessName?: string; note?: string },
+): Promise<void> {
+  const res = await fetch(
+    `${browserApiV1Base()}/public/businesses/${encodeURIComponent(slug.trim())}/trade-accounts`,
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyerName: payload.buyerName.trim(),
+        buyerPhone: payload.buyerPhone.trim(),
+        businessName: payload.businessName?.trim() || undefined,
+        note: payload.note?.trim() || undefined,
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+}
+
+/** The buyer's view of a trade order. Null when there is no such order at this shop. */
+export async function fetchTradeOrder(slug: string, orderId: string): Promise<TradeOrderTracking | null> {
+  const res = await fetch(
+    `${browserApiV1Base()}/public/businesses/${encodeURIComponent(slug.trim())}/trade-orders/${encodeURIComponent(orderId.trim())}`,
+    { headers: { Accept: "application/json" }, cache: "no-store" },
+  );
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+  return (await res.json()) as TradeOrderTracking;
 }
 
 export async function createWebCart(slug: string): Promise<PublicWebCart | null> {

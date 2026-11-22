@@ -58,6 +58,11 @@ const INK = "#1c1915";
 const TEAL = "#0f766e";
 const MANGO = "#b9691a";
 
+/** An order the supplier took for a shop, still waiting for the shop to confirm it. */
+function isProposal(order: { status: string }): boolean {
+  return order.status === "draft";
+}
+
 function fmtWhen(iso: string | null | undefined): string {
   if (!iso) return "";
   try {
@@ -178,7 +183,9 @@ function SupplierPortalOrdersPageInner() {
   }, [orders, shopFilterId, orderSearch]);
 
   const awaitingCount = useMemo(
-    () => filteredOrders.filter((o) => !o.supplierResponseAt).length,
+    () =>
+      filteredOrders.filter((o) => !o.supplierResponseAt && !isProposal(o))
+        .length,
     [filteredOrders],
   );
 
@@ -455,7 +462,7 @@ function InboxBoard({
               <EmptyRail />
             ) : (
               filteredOrders.map((order, i) => {
-                const awaiting = !order.supplierResponseAt;
+                const awaiting = !order.supplierResponseAt && !isProposal(order);
                 const selected = selectedId === order.purchaseOrderId;
                 return (
                   <button
@@ -485,7 +492,7 @@ function InboxBoard({
                         {order.poNumber}
                       </span>
                       <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--inbox-ink)_40%,transparent)]">
-                        {order.status}
+                        {isProposal(order) ? "With shop" : order.status}
                       </span>
                     </div>
                     <p className="mt-1 truncate text-[13px] font-semibold leading-snug text-[var(--inbox-ink)]">
@@ -677,7 +684,7 @@ function OrderDetailBody({
   lineDrafts: LineDraft[];
   setLineDrafts: Dispatch<SetStateAction<LineDraft[]>>;
 }) {
-  const awaiting = !detail.supplierResponseAt;
+  const awaiting = !detail.supplierResponseAt && !isProposal(detail);
 
   return (
     <div className="px-3 py-3 sm:px-4">
@@ -814,7 +821,12 @@ function DetailActions({
 }) {
   return (
     <div className="shrink-0 space-y-2 border-t-2 border-[var(--inbox-ink)] bg-[color-mix(in_srgb,#f3eee6_88%,transparent)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
-      {!detail.supplierResponseAt ? (
+      {isProposal(detail) ? (
+        <p className="text-[12px] leading-relaxed text-[color-mix(in_srgb,var(--inbox-ink)_72%,transparent)]">
+          You took this order for the shop. It is waiting for the shop to
+          confirm it. You can respond once the shop sends it.
+        </p>
+      ) : !detail.supplierResponseAt ? (
         <button
           type="button"
           className={cn(spBtnPrimary, "h-11 w-full text-[12px]")}

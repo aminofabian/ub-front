@@ -34,6 +34,16 @@ const PLATFORM_HOSTS: ReadonlySet<string> = buildPlatformHostSet();
 
 function buildPlatformHostSet(): ReadonlySet<string> {
   const set = new Set<string>(DEFAULT_PLATFORM_HOSTS);
+  // The marketplace host is the platform, never a shop (ADR 0038, P0.6).
+  const marketplace = (process.env.NEXT_PUBLIC_MARKETPLACE_HOST ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .split("/")[0]
+    ?.split(":")[0];
+  if (marketplace) {
+    set.add(marketplace);
+  }
   for (const raw of (process.env.PLATFORM_HOST ?? "").split(",")) {
     const host = raw.trim().toLowerCase();
     if (!host) {

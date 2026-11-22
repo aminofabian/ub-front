@@ -8,7 +8,7 @@ import {
   getBusinessStoreTypes,
   isButcheryBusiness,
   isFoodBusiness,
-  isGroceryOperationsBusiness,
+  isClerkCounterBusiness,
   isClinicBusiness,
   isPharmacyBusiness,
   isServiceBusiness,
@@ -19,8 +19,8 @@ type Business = Parameters<typeof getBusinessStoreTypes>[0];
 /** Role key to the question "does this shop have the format the role belongs to?". */
 const FORMAT_ROLES: Record<string, (business: Business) => boolean> = {
   butcher_cashier: isButcheryBusiness,
-  grocery_clerk: isGroceryOperationsBusiness,
-  grocery_manager: isGroceryOperationsBusiness,
+  grocery_clerk: isClerkCounterBusiness,
+  grocery_manager: isClerkCounterBusiness,
   kitchen_staff: isFoodBusiness,
   waiter: isFoodBusiness,
   service_staff: isServiceBusiness,

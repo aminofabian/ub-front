@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { APP_BASE_URL } from "@/lib/config";
+import { marketplacePublicOrigin } from "@/lib/marketplace-host";
 import { tryFetchMarketplaceProductBySlug } from "@/lib/marketplace-api";
 import {
   findMarketplaceProduct,
@@ -22,7 +23,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug, productSlug } = await params;
   const detail = await tryFetchMarketplaceProductBySlug(slug, productSlug);
-  const base = APP_BASE_URL.replace(/\/+$/, "");
+  const base = marketplacePublicOrigin(APP_BASE_URL);
 
   if (!detail) {
     return {

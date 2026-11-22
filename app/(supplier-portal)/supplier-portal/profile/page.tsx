@@ -8,17 +8,267 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SupplierPortalShell } from "@/components/supplier-portal/supplier-portal-shell";
-import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
+import { registerAccount } from "@/lib/api";
+import { persistSessionTenantHost, setSessionTenantId } from "@/lib/auth";
+import { APP_ROUTES, PLATFORM_DOMAIN, slugDerivedShopUrl } from "@/lib/config";
 import {
   claimSupplierPortalUsername,
   fetchSupplierPortalLinkCandidates,
   fetchSupplierPortalProfile,
+  fetchSupplierPortalShop,
+  fetchSupplierPortalVisibility,
+  importSupplierPortalShopProducts,
   linkSupplierPortalLocalSupplier,
+  openSupplierPortalShop,
   patchSupplierPortalProfile,
+  patchSupplierPortalVisibility,
   type SupplierPortalLinkCandidate,
   type SupplierPortalProfile,
+  type SupplierPortalShop,
+  type SupplierPortalVisibility,
+  type SupplierShopImport,
 } from "@/lib/marketplace-api";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
+
+/**
+ * "Open your wholesale shop": the supplier gets a shop of its own on the platform, on the same
+ * plans as any shop, and creates the owner sign-in for it in the same step.
+ */
+function WholesaleShop({ suggestedAddress }: { suggestedAddress: string }) {
+  const [shop, setShop] = useState<SupplierPortalShop | null>(null);
+  const [address, setAddress] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetchSupplierPortalShop()
+      .then(setShop)
+      .catch(() => setShop(null));
+  }, []);
+
+  if (!shop) return null;
+
+  const shopUrl = shop.slug ? slugDerivedShopUrl(shop.slug) : "";
+
+  const describeCopy = (result: SupplierShopImport): string => {
+    const parts: string[] = [];
+    if (result.copied > 0) {
+      parts.push(`${result.copied} product${result.copied === 1 ? "" : "s"} copied into your shop`);
+    }
+    if (result.alreadyInShop > 0) {
+      parts.push(`${result.alreadyInShop} already there`);
+    }
+    if (result.failed > 0) {
+      parts.push(`${result.failed} could not be copied`);
+    }
+    if (parts.length === 0) {
+      parts.push("No products to copy yet");
+    }
+    const line = `${parts.join(", ")}.`;
+    return result.stoppedByPlanLimit
+      ? `${line} ${result.planMessage ?? "Your plan has no room for more products."}`
+      : line;
+  };
+
+  const onCopyProducts = async () => {
+    setBusy(true);
+    try {
+      const result = await importSupplierPortalShopProducts();
+      setNote(describeCopy(result));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not copy your products");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onOpen = async () => {
+    if (!ownerName.trim() || !email.trim() || password.length < 8) {
+      toast.error("Enter your name, an email and a password of at least 8 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      const opened = await openSupplierPortalShop(address);
+      setShop(opened);
+      if (!opened.businessId || !opened.slug) {
+        throw new Error("The shop could not be opened");
+      }
+      // Create the shop's owner sign-in straight away, the way shop sign-up does.
+      setSessionTenantId(opened.businessId);
+      const url = slugDerivedShopUrl(opened.slug);
+      if (url) {
+        try {
+          persistSessionTenantHost(new URL(url).hostname);
+        } catch {
+          /* ignore */
+        }
+      }
+      const registered = await registerAccount(ownerName.trim(), email.trim(), password);
+      setPassword("");
+      // Bring the price list across so the shop does not start empty.
+      const copyLine = await importSupplierPortalShopProducts()
+        .then(describeCopy)
+        .catch(() => "Your products were not copied yet; use the button below.");
+      setNote(
+        `${
+          registered.status === "ACTIVE" || registered.status === "active"
+            ? "Your shop is open. Sign in there with the email and password you just set."
+            : `Your shop is open. We sent a link to ${registered.email}; verify it, then sign in at your shop.`
+        } ${copyLine}`,
+      );
+      toast.success("Wholesale shop opened");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not open the shop");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="space-y-3 rounded-md border border-input p-4">
+      <header>
+        <h3 className="text-base font-semibold">Your wholesale shop</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {shop.opened
+            ? "Your own shop: products, stock, orders and your own books."
+            : "Open a shop of your own: your products, stock, orders and your own books. It is on the same plans as any shop, so choose a plan whose daily sales limit fits what you sell."}
+        </p>
+      </header>
+      {shop.opened ? (
+        <p className="text-sm">
+          {shopUrl ? (
+            <>
+              <a className="font-medium underline" href={`${shopUrl}/login`}>
+                {shop.host || shopUrl}
+              </a>
+              <span className="block text-xs text-muted-foreground">
+                No sign-in for the shop yet?{" "}
+                <a className="underline" href={`${shopUrl}/signup`}>
+                  Create the owner sign-in
+                </a>
+                .
+              </span>
+            </>
+          ) : (
+            <span className="font-medium">{shop.name}</span>
+          )}
+          <span className="mt-3 block">
+            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void onCopyProducts()}>
+              {busy ? "Copying…" : "Copy my price list into the shop"}
+            </Button>
+          </span>
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1 text-sm sm:col-span-2">
+            <span className="font-medium">Shop address</span>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={suggestedAddress || "your-shop"}
+            />
+            <span className="text-xs text-muted-foreground">
+              Leave empty to use {suggestedAddress ? `"${suggestedAddress}"` : "your business name"}.
+            </span>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">Your name</span>
+            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">Email for the shop sign-in</span>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label className="block space-y-1 text-sm sm:col-span-2">
+            <span className="font-medium">Password</span>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+          <Button type="button" disabled={busy} onClick={() => void onOpen()}>
+            {busy ? "Opening…" : "Open my wholesale shop"}
+          </Button>
+        </div>
+      )}
+      {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
+    </section>
+  );
+}
+
+/** A supplier stays in the directory; it chooses whether prices and contacts show there. */
+function PublicPageVisibility() {
+  const [visibility, setVisibility] = useState<SupplierPortalVisibility | null>(null);
+  const [savingKey, setSavingKey] = useState<keyof SupplierPortalVisibility | null>(null);
+
+  useEffect(() => {
+    void fetchSupplierPortalVisibility()
+      .then(setVisibility)
+      .catch(() => setVisibility(null));
+  }, []);
+
+  if (!visibility) return null;
+
+  const toggle = async (key: keyof SupplierPortalVisibility, hide: boolean) => {
+    setSavingKey(key);
+    try {
+      setVisibility(await patchSupplierPortalVisibility({ [key]: hide }));
+      toast.success("Saved");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  return (
+    <section className="space-y-3 rounded-md border border-input p-4">
+      <header>
+        <h3 className="text-base font-semibold">What your public page shows</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your business and products stay listed for shops to find. You choose
+          whether your prices and contact details show.
+        </p>
+      </header>
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4"
+          checked={!visibility.hidePrices}
+          disabled={savingKey !== null}
+          onChange={(e) => void toggle("hidePrices", !e.target.checked)}
+        />
+        <span>
+          <span className="font-medium">Show my prices</span>
+          <span className="block text-xs text-muted-foreground">
+            When off, shops see your products without prices and ask you.
+          </span>
+        </span>
+      </label>
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4"
+          checked={!visibility.hideContacts}
+          disabled={savingKey !== null}
+          onChange={(e) => void toggle("hideContacts", !e.target.checked)}
+        />
+        <span>
+          <span className="font-medium">Show my phone and email</span>
+          <span className="block text-xs text-muted-foreground">
+            When off, your contact phone and email are not on your public page.
+          </span>
+        </span>
+      </label>
+    </section>
+  );
+}
 
 export default function SupplierPortalProfilePage() {
   const router = useRouter();
@@ -311,6 +561,10 @@ export default function SupplierPortalProfilePage() {
             {saving ? "Saving…" : "Save profile"}
           </Button>
         </form>
+
+        <PublicPageVisibility />
+
+        <WholesaleShop suggestedAddress={profile.username ?? ""} />
       </div>
     </SupplierPortalShell>
   );

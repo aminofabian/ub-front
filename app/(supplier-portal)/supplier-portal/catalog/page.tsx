@@ -18,17 +18,25 @@ import {
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  addSupplierPortalProductPack,
   createSupplierPortalProduct,
   deleteSupplierPortalProduct,
   fetchSupplierPortalProducts,
   fetchSupplierPortalProfile,
   patchSupplierPortalProduct,
+  removeSupplierPortalProductPack,
+  uploadSupplierPortalProductImage,
   type MarketplaceSupplierDetail,
   type SupplierPortalProduct,
   type SupplierPortalProfile,
 } from "@/lib/marketplace-api";
 import { getSupplierPortalAccessToken } from "@/lib/supplier-portal-session";
 import { cn } from "@/lib/utils";
+
+const EMPTY_PACK = { packSize: "", packUnit: "", unitPrice: "" };
+
+/** Product pictures a supplier uploads; the server allows 8 MB. */
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 const EMPTY_FORM = {
   name: "",
@@ -103,6 +111,9 @@ export default function SupplierPortalCatalogPage() {
   const [creating, setCreating] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [packsOpenId, setPacksOpenId] = useState<string | null>(null);
+  const [packForm, setPackForm] = useState(EMPTY_PACK);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,6 +219,69 @@ export default function SupplierPortalCatalogPage() {
     }
   };
 
+  const onUploadImage = async (product: SupplierPortalProduct, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose a picture file");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("The picture is too large (8 MB at most)");
+      return;
+    }
+    setBusyId(product.id);
+    try {
+      await uploadSupplierPortalProductImage(product.id, file);
+      toast.success("Picture updated");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onAddPack = async (product: SupplierPortalProduct) => {
+    const packSize = Number(packForm.packSize);
+    const unitPrice = Number(packForm.unitPrice);
+    if (!Number.isFinite(packSize) || packSize <= 0) {
+      toast.error("Enter how many are in the pack");
+      return;
+    }
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      toast.error("Enter the price for one pack");
+      return;
+    }
+    setBusyId(product.id);
+    try {
+      await addSupplierPortalProductPack(product.id, {
+        packSize,
+        packUnit: packForm.packUnit.trim() || undefined,
+        unitPrice,
+      });
+      setPackForm(EMPTY_PACK);
+      toast.success("Pack added");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not add the pack");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onRemovePack = async (product: SupplierPortalProduct, packId: string) => {
+    setBusyId(product.id);
+    try {
+      await removeSupplierPortalProductPack(product.id, packId);
+      toast.success("Pack removed");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not remove the pack");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <SupplierPortalShell>
       <div className={cn(spPage, "space-y-3")}>
@@ -238,7 +312,7 @@ export default function SupplierPortalCatalogPage() {
               className={spBtnGhost}
               onClick={() => setManageOpen((v) => !v)}
             >
-              {manageOpen ? "Hide manage" : "Manage prices"}
+              {manageOpen ? "Hide manage" : "Manage products"}
             </button>
             <button
               type="button"
@@ -306,7 +380,7 @@ export default function SupplierPortalCatalogPage() {
         {manageOpen ? (
           <section className="overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,#fff_88%,#f7f3eb)]">
             <div className="flex h-9 items-center justify-between bg-[var(--pos-primary,#0f766e)] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
-              <span>Manage prices</span>
+              <span>Manage products</span>
               <span className="font-mono opacity-85">{products.length}</span>
             </div>
             {products.length === 0 ? (
@@ -314,7 +388,7 @@ export default function SupplierPortalCatalogPage() {
                 No products yet.
               </p>
             ) : (
-              <ul className="max-h-56 divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] overflow-y-auto">
+              <ul className="max-h-[28rem] divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] overflow-y-auto">
                 {products.map((product) => (
                   <li
                     key={product.id}
@@ -327,6 +401,9 @@ export default function SupplierPortalCatalogPage() {
                       <p className="font-mono text-[11px] text-muted-foreground">
                         {product.categoryName || "Uncategorised"}
                         {product.pendingEditId ? " · pending approval" : ""}
+                        {product.pricePublic === false
+                          ? " · price not public yet, save it to show it"
+                          : ""}
                       </p>
                     </div>
                     <button
@@ -339,10 +416,108 @@ export default function SupplierPortalCatalogPage() {
                     <button
                       type="button"
                       className={cn(spBtnGhost, "h-7 text-[10px]")}
+                      onClick={() => {
+                        setPackForm(EMPTY_PACK);
+                        setPacksOpenId((id) => (id === product.id ? null : product.id));
+                      }}
+                    >
+                      Packs{product.packs && product.packs.length > 1 ? ` (${product.packs.length})` : ""}
+                    </button>
+                    <label
+                      className={cn(
+                        spBtnGhost,
+                        "h-7 cursor-pointer text-[10px]",
+                        busyId === product.id && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      {product.imageUrl ? "Change photo" : "Add photo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={busyId === product.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          void onUploadImage(product, file);
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className={cn(spBtnGhost, "h-7 text-[10px]")}
                       onClick={() => onDelete(product.id, product.name)}
                     >
                       Remove
                     </button>
+                    {packsOpenId === product.id ? (
+                      <div className="w-full space-y-2 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pt-2">
+                        {(product.packs ?? []).length === 0 ? (
+                          <p className="text-[12px] text-muted-foreground">No packs yet.</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {(product.packs ?? []).map((pack) => (
+                              <li
+                                key={pack.id}
+                                className="flex items-center justify-between gap-2 font-mono text-[12px] tabular-nums"
+                              >
+                                <span>
+                                  {pack.packSize ?? 1} {pack.packUnit || "each"} ·{" "}
+                                  {pack.currency || "KES"} {pack.unitPrice ?? "—"}
+                                </span>
+                                {(product.packs ?? []).length > 1 ? (
+                                  <button
+                                    type="button"
+                                    className={cn(spBtnGhost, "h-6 text-[10px]")}
+                                    disabled={busyId === product.id}
+                                    onClick={() => void onRemovePack(product, pack.id)}
+                                  >
+                                    Remove pack
+                                  </button>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="grid gap-2 sm:grid-cols-4">
+                          <Input
+                            placeholder="How many in the pack"
+                            inputMode="decimal"
+                            value={packForm.packSize}
+                            onChange={(e) =>
+                              setPackForm((f) => ({ ...f, packSize: e.target.value }))
+                            }
+                            className="h-8 rounded-none font-mono"
+                          />
+                          <Input
+                            placeholder="Pack name (carton, dozen)"
+                            value={packForm.packUnit}
+                            onChange={(e) =>
+                              setPackForm((f) => ({ ...f, packUnit: e.target.value }))
+                            }
+                            className="h-8 rounded-none"
+                          />
+                          <Input
+                            placeholder="Price for one pack"
+                            inputMode="decimal"
+                            value={packForm.unitPrice}
+                            onChange={(e) =>
+                              setPackForm((f) => ({ ...f, unitPrice: e.target.value }))
+                            }
+                            className="h-8 rounded-none font-mono"
+                          />
+                          <button
+                            type="button"
+                            className={cn(spBtnPrimary, "h-8 text-[11px]")}
+                            disabled={busyId === product.id}
+                            onClick={() => void onAddPack(product)}
+                          >
+                            <Plus className="size-3.5" />
+                            Add pack
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>

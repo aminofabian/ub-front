@@ -209,6 +209,8 @@ export const APP_ROUTES = {
   /** Supply spend report: period totals, trend, and supplier/category mix. */
   purchasingSpend: "/supplies/spend",
   purchasingApAging: "/purchasing/ap-aging",
+  /** Orders a connected supplier sent this shop to confirm (ADR 0041). */
+  purchasingTradeOrders: "/purchasing/trade-orders",
   purchasingRecordPayment: "/purchasing/record-payment",
   inventoryStock: "/inventory/stock",
   inventoryRestock: "/inventory/restock",
@@ -241,6 +243,8 @@ export const APP_ROUTES = {
   salesPendingCarts: "/sales/pending-carts",
   salesReports: "/sales/reports",
   storefrontWebOrders: "/storefront/web-orders",
+  /** A supplier's trade desk: orders buyers sent from the shop (ADR 0040). */
+  storefrontTradeOrders: "/storefront/trade-orders",
   promoCampaigns: "/business/promotions",
   salesQuick: "/sales/quick",
   cashier: "/cashier",
@@ -266,6 +270,8 @@ export const APP_ROUTES = {
   shopCheckout: "/shop/checkout",
   /** Guest order tracking by short code (scope §15). */
   shopOrderTrack: (code: string) => `/shop/o/${encodeURIComponent(code)}`,
+  /** The buyer's page for a trade order they placed with a supplier. */
+  shopTradeOrder: (orderId: string) => `/shop/trade-order/${encodeURIComponent(orderId)}`,
   barcode: "/barcode",
   paymentsSettings: "/payments/settings",
   /** Day tender tape — chronological sale payments for reconciling / following along. */
@@ -331,6 +337,11 @@ export const API_ROUTES = {
   payroll: "/api/v1/payroll",
   roles: "/api/v1/roles",
   items: "/api/v1/items",
+  salesOrders: "/api/v1/sales-orders",
+  tradeAccounts: "/api/v1/trade-accounts",
+  salesInvoices: "/api/v1/sales-invoices",
+  tradeOrdersIncoming: "/api/v1/trade-orders/incoming",
+  tradeOrdersOutgoing: "/api/v1/trade-orders/outgoing",
   itemTypes: "/api/v1/item-types",
   aisles: "/api/v1/aisles",
   services: "/api/v1/services",
@@ -379,6 +390,7 @@ export const API_ROUTES = {
   supplierPortalReports: "/api/v1/supplier-portal/reports",
   support: "/api/v1/support",
   superAdminSupport: "/api/v1/super-admin/support",
+  superAdminStanding: "/api/v1/super-admin/standing",
   superAdminServing: "/api/v1/super-admin/serving",
   marketplaceProductEditRequests: "/api/v1/marketplace/product-edit-requests",
   supplierPortalCapabilities: "/api/v1/supplier-portal/capabilities",

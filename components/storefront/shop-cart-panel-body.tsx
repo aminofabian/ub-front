@@ -5,6 +5,7 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronRight, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
+import { TradeOrderButton } from "@/components/storefront/trade-order-button";
 import { WhatsAppCheckoutButton } from "@/components/storefront/whatsapp-checkout-button";
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
@@ -345,6 +346,12 @@ export function ShopCartPanelBody({ onClose, compactHeader, onExpand, hideHeader
                       compactHeader ? "h-9 rounded-[3px] text-xs" : "h-10",
                     )}
                     surface="cart-drawer"
+                  />
+                ) : null}
+                {canCheckout ? (
+                  <TradeOrderButton
+                    className={cn("w-full", compactHeader ? "h-9 rounded-[3px] text-xs" : "h-10 rounded-xl")}
+                    onPlaced={onClose}
                   />
                 ) : null}
                 {onExpand ? (

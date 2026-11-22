@@ -31,6 +31,8 @@ export type MarketplaceSupplierSearchRow = {
   payoutType: string | null;
   deliveryRegions: string[];
   categoryTags: string[];
+  /** The address of the supplier's own shop, when it has one that is open online. */
+  shopSlug?: string | null;
 };
 
 export type MarketplaceProductSearchRow = {
@@ -85,6 +87,8 @@ export type MarketplaceSupplierDetail = {
   deliveryRegions: string[];
   categoryTags: string[];
   products: MarketplaceCatalogProductPreview[];
+  /** The address of the supplier's own shop, when it has one that is open online. */
+  shopSlug?: string | null;
 };
 
 export type MarketplaceCatalogProductPreview = {
@@ -265,6 +269,24 @@ export type SupplierPortalProduct = {
   pendingEditId?: string | null;
   pendingProposed?: Record<string, unknown> | null;
   imageUrl?: string | null;
+  /** False while the price was copied from a shop and the supplier has not saved it yet. */
+  pricePublic?: boolean;
+  /** Every pack the product is sold in, cheapest first. */
+  packs?: SupplierPortalProductPack[];
+};
+
+export type SupplierPortalProductPack = {
+  id: string;
+  packSize: number | null;
+  packUnit: string | null;
+  unitPrice: number | null;
+  currency: string | null;
+};
+
+/** What a supplier keeps off its public pages. The supplier itself stays listed. */
+export type SupplierPortalVisibility = {
+  hidePrices: boolean;
+  hideContacts: boolean;
 };
 
 export type SupplierPortalOrderRow = {
@@ -431,7 +453,10 @@ async function supplierPortalFetch<T>(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
   };
-  if (method !== "GET" && method !== "HEAD") {
+  // A file upload sets its own multipart content type (with the boundary).
+  const isUpload =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (method !== "GET" && method !== "HEAD" && !isUpload) {
     headers["Content-Type"] = "application/json";
   }
   if (init.headers && typeof init.headers === "object" && !Array.isArray(init.headers)) {
@@ -476,6 +501,10 @@ function toPageResult<T>(raw: unknown, size: number): ItemsPageResult<T> {
 export async function searchMarketplaceSuppliers(opts?: {
   q?: string;
   location?: string;
+  /** Only suppliers whose delivery regions include this place. */
+  coverage?: string;
+  /** Only suppliers that have their own shop open online. */
+  shopsOnly?: boolean;
   page?: number;
   size?: number;
 }): Promise<ItemsPageResult<MarketplaceSupplierSearchRow>> {
@@ -487,6 +516,12 @@ export async function searchMarketplaceSuppliers(opts?: {
   }
   if (opts?.location?.trim()) {
     params.set("location", opts.location.trim());
+  }
+  if (opts?.coverage?.trim()) {
+    params.set("coverage", opts.coverage.trim());
+  }
+  if (opts?.shopsOnly) {
+    params.set("shopsOnly", "true");
   }
   const raw = await publicFetch<unknown>(
     `${API_ROUTES.publicMarketplace}/suppliers/search?${params}`,
@@ -549,6 +584,24 @@ export async function tryFetchMarketplaceSupplierBySlug(
 ): Promise<MarketplaceSupplierDetail | null> {
   try {
     return await fetchMarketplaceSupplierBySlug(slug);
+  } catch {
+    return null;
+  }
+}
+
+/** What buyers may read about a supplier: true lines only, with their sample. Null when unavailable. */
+export type SupplierBuyerLines = {
+  enabled: boolean;
+  orders: number;
+  buyers: number;
+  lines: { key: string; label: string; orders: number; buyers: number }[];
+};
+
+export async function tryFetchSupplierBuyerLines(supplierId: string): Promise<SupplierBuyerLines | null> {
+  try {
+    return await publicFetch<SupplierBuyerLines>(
+      `${API_ROUTES.publicMarketplace}/suppliers/${encodeURIComponent(supplierId)}/buyer-lines`,
+    );
   } catch {
     return null;
   }
@@ -926,6 +979,98 @@ export async function patchSupplierPortalProduct(
 ): Promise<SupplierPortalProduct> {
   return supplierPortalFetch<SupplierPortalProduct>(
     `${API_ROUTES.supplierPortalProducts}/${productId}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function addSupplierPortalProductPack(
+  productId: string,
+  body: { packSize: number; packUnit?: string; unitPrice: number },
+): Promise<SupplierPortalProduct> {
+  return supplierPortalFetch<SupplierPortalProduct>(
+    `${API_ROUTES.supplierPortalProducts}/${encodeURIComponent(productId)}/packs`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function removeSupplierPortalProductPack(
+  productId: string,
+  packId: string,
+): Promise<SupplierPortalProduct> {
+  return supplierPortalFetch<SupplierPortalProduct>(
+    `${API_ROUTES.supplierPortalProducts}/${encodeURIComponent(productId)}/packs/${encodeURIComponent(packId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function uploadSupplierPortalProductImage(
+  productId: string,
+  file: File,
+): Promise<SupplierPortalProduct> {
+  const form = new FormData();
+  form.append("file", file);
+  return supplierPortalFetch<SupplierPortalProduct>(
+    `${API_ROUTES.supplierPortalProducts}/${encodeURIComponent(productId)}/image`,
+    { method: "POST", body: form },
+  );
+}
+
+/** The supplier's own wholesale shop. `opened` false means none yet. */
+export type SupplierPortalShop = {
+  opened: boolean;
+  businessId: string | null;
+  slug: string | null;
+  name: string | null;
+  host: string | null;
+};
+
+export async function fetchSupplierPortalShop(): Promise<SupplierPortalShop> {
+  return supplierPortalFetch<SupplierPortalShop>(
+    `${API_ROUTES.supplierPortalProfile.replace(/\/profile$/, "")}/shop`,
+  );
+}
+
+/** Opens the shop, or returns the one already open. */
+export async function openSupplierPortalShop(
+  shopAddress?: string,
+): Promise<SupplierPortalShop> {
+  return supplierPortalFetch<SupplierPortalShop>(
+    `${API_ROUTES.supplierPortalProfile.replace(/\/profile$/, "")}/shop`,
+    {
+      method: "POST",
+      body: JSON.stringify(shopAddress?.trim() ? { shopAddress: shopAddress.trim() } : {}),
+    },
+  );
+}
+
+/** What copying the price list into the shop did. */
+export type SupplierShopImport = {
+  copied: number;
+  alreadyInShop: number;
+  failed: number;
+  stoppedByPlanLimit: boolean;
+  planMessage: string | null;
+};
+
+/** Copies the supplier's price list into its shop. Safe to repeat. */
+export async function importSupplierPortalShopProducts(): Promise<SupplierShopImport> {
+  return supplierPortalFetch<SupplierShopImport>(
+    `${API_ROUTES.supplierPortalProfile.replace(/\/profile$/, "")}/shop/products/import`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSupplierPortalVisibility(): Promise<SupplierPortalVisibility> {
+  return supplierPortalFetch<SupplierPortalVisibility>(
+    `${API_ROUTES.supplierPortalProfile}/visibility`,
+  );
+}
+
+export async function patchSupplierPortalVisibility(
+  body: Partial<SupplierPortalVisibility>,
+): Promise<SupplierPortalVisibility> {
+  return supplierPortalFetch<SupplierPortalVisibility>(
+    `${API_ROUTES.supplierPortalProfile}/visibility`,
     { method: "PATCH", body: JSON.stringify(body) },
   );
 }

@@ -29,6 +29,8 @@ export type PublicCustomerTab = {
   purchases: PublicTabPurchaseRow[];
   pageSealed?: boolean;
   pageUnlocked?: boolean;
+  /** Balance and purchases withheld: no PIN set yet, or the PIN was not entered. */
+  restricted?: boolean;
 };
 
 export type PublicTabStk = {

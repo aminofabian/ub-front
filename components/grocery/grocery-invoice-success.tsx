@@ -202,6 +202,9 @@ export function GroceryInvoiceSuccess({
             <p className="mt-3.5 text-center font-mono text-[15px] font-bold tracking-[0.2em] text-gray-900">
               {invoice.barcodeCode}
             </p>
+            {invoice.customerPhone ? (
+              <p className="mt-1.5 text-center text-[13px] text-gray-900">Buyer: {invoice.customerPhone}</p>
+            ) : null}
           </div>
 
           {/* Invoice summary */}

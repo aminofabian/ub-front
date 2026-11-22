@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { CounterOnAccountButton } from "@/components/cashier/counter-on-account-button";
+import { isSupplierBusiness, SUPPLIER_COUNTER_ORDERS_FLAG } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import {
@@ -131,7 +133,12 @@ export function PendingInvoicesPanel({
   activeCartHasItems = false,
   refreshKey = 0,
 }: PendingInvoicesPanelProps) {
-  const { branchId, me } = useDashboard();
+  const { branchId, me, business } = useDashboard();
+  // A supplier's counter: an owner or admin may put an unpaid invoice on the buyer's account.
+  const canPutOnAccount =
+    hasPermission(me?.permissions, Permission.BusinessManageSettings) &&
+    isSupplierBusiness(business) &&
+    business?.featureFlags?.[SUPPLIER_COUNTER_ORDERS_FLAG] === true;
   const online = useOnlineStatus();
   // Permission only — owners inherit grocery.invoices.read even when profile
   // storeTypes are empty (common for older tenants). Gating on
@@ -585,6 +592,9 @@ export function PendingInvoicesPanel({
                       </>
                     );
 
+                    const onAccountButton = canPutOnAccount ? (
+                      <CounterOnAccountButton invoiceId={inv.id} onDone={() => removeInvoiceById(inv.id)} />
+                    ) : null;
                     const voidButton = canCancelInvoices ? (
                       <button
                         type="button"
@@ -666,7 +676,8 @@ export function PendingInvoicesPanel({
                               >
                                 New
                               </button>
-                              {voidButton}
+                              {onAccountButton}
+                            {voidButton}
                             </div>
                           </div>
                         ) : (
@@ -717,6 +728,7 @@ export function PendingInvoicesPanel({
                               </div>
                               <PlusCircle className="mt-1 size-4 shrink-0 text-muted-foreground" />
                             </button>
+                            {onAccountButton}
                             {voidButton}
                           </div>
                         )}

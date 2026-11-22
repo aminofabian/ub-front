@@ -41,6 +41,8 @@ const HEADER_ALLOWLIST = [
   "x-guest-id",
   "x-guest-token",
   "x-guest-phone",
+  // Marketplace buyer session (ADR 0043): a phone-code sign-in that can place trade orders only.
+  "x-marketplace-buyer",
   "x-test-user-id",
   "x-test-role-id",
 ] as const;

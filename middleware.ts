@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { marketplaceRouting } from "@/lib/marketplace-host";
 import {
   STOREFRONT_PREVIEW_DESIGN_HEADER,
   STOREFRONT_PREVIEW_DESIGN_PARAM,
@@ -18,6 +19,10 @@ import {
  * Also copies merchant storefront preview query params onto request headers so
  * layouts (which do not receive searchParams) can render the staged theme.
  *
+ * The marketplace is its own host (ADR 0038, P0.6): on it `/` serves the
+ * directory, and every other host sends `/marketplace…` there. Off until
+ * NEXT_PUBLIC_MARKETPLACE_HOST is set (see lib/marketplace-host.ts).
+ *
  * Protected dashboard routes rely on client-side JWT checks in layout hooks.
  * We intentionally do NOT gate navigations on the {@code ub.session} cookie
  * here — Safari / iOS often fails to persist that JS-written hint, which
@@ -32,6 +37,17 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/api/") ||
     pathname.startsWith("/webhooks/") ||
     pathname.startsWith("/actuator/");
+
+  const routing = isProxiedApi
+    ? null
+    : marketplaceRouting(
+        request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+        pathname,
+        request.nextUrl.search,
+      );
+  if (routing?.kind === "redirect") {
+    return NextResponse.redirect(routing.url, 308);
+  }
 
   if (isProxiedApi) {
     const host = request.headers.get("host");
@@ -67,6 +83,14 @@ export function middleware(request: NextRequest) {
   if (previewDesign) {
     requestHeaders.set(STOREFRONT_PREVIEW_DESIGN_HEADER, previewDesign);
     mutated = true;
+  }
+
+  if (routing?.kind === "rewrite") {
+    const target = request.nextUrl.clone();
+    target.pathname = routing.pathname;
+    return NextResponse.rewrite(target, {
+      request: { headers: requestHeaders },
+    });
   }
 
   if (mutated) {
