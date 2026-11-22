@@ -38,6 +38,7 @@ import {
 import { OPEN_POS_SHIFT_EVENT, POS_GUIDANCE_RESOLVED_EVENT, notifyPosGuidance } from "@/lib/pos-guidance";
 import { requestSetup } from "@/lib/setup-requirements";
 import { isShiftsDisabled } from "@/lib/shift-settings";
+import { useTurnOffShifts } from "@/components/setup/use-turn-off-shifts";
 import { isServiceOnlyBusiness, serviceStationLabel } from "@/lib/business-store-type";
 import { isServiceCashier } from "@/lib/service-nav";
 import { APP_ROUTES } from "@/lib/config";
@@ -110,6 +111,7 @@ function message(err: unknown, fallback: string): string {
  */
 export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | "till" }) {
   const { branchId, business, me } = useDashboard();
+  const { turnOff: turnOffShifts } = useTurnOffShifts();
   const till = variant === "till";
   // Typing what a helper is paid, and saying what the usual helpers get, are commission decisions.
   const canManageRoles = hasPermission(me?.permissions, Permission.CommissionsPlansManage);
@@ -611,6 +613,7 @@ export function FloorBoard({ variant = "dashboard" }: { variant?: "dashboard" | 
         <CloseShiftModal
           open
           onClose={() => setClosingShift(false)}
+          onSkipShifts={turnOffShifts ?? undefined}
           shift={shift}
           onClosed={() => {
             setClosingShift(false);

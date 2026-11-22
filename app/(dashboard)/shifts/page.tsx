@@ -63,6 +63,7 @@ import { humanTillLabel } from "@/lib/till-device";
 import { cn } from "@/lib/utils";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { isShiftsDisabled } from "@/lib/shift-settings";
+import { useTurnOffShifts } from "@/components/setup/use-turn-off-shifts";
 
 import {
   KES_DENOMINATIONS,
@@ -1641,6 +1642,7 @@ function ShiftDetail({
 
 export default function ShiftsPage() {
   const { me, business, canManageBusinessSettings } = useDashboard();
+  const { turnOff: turnOffShifts } = useTurnOffShifts();
   const featureFlags = useFeatureFlags();
   const shiftsDisabled = isShiftsDisabled(featureFlags);
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
@@ -2544,12 +2546,14 @@ export default function ShiftsPage() {
           isBranchLockedRole ? (me?.branchId ?? null) : null
         }
         onOpened={handleShiftOpened}
+        onSkipShifts={turnOffShifts ?? undefined}
       />
       <CloseShiftModal
         open={closeModal}
         onClose={() => setCloseModal(false)}
         shift={currentOpenShift}
         onClosed={handleShiftClosed}
+        onSkipShifts={turnOffShifts ?? undefined}
       />
       {currentOpenShift && (
         <DrawoutModal

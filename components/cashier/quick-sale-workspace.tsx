@@ -5901,7 +5901,7 @@ export function QuickSaleWorkspace({
             allowZeroFloat={firstSaleFloatMode}
             explain={openShiftExplain}
             onSkipShifts={
-              openShiftExplain && turnOffShifts
+              turnOffShifts
                 ? async () => {
                     await turnOffShifts();
                     completeSetup("shift", true);
@@ -5936,6 +5936,13 @@ export function QuickSaleWorkspace({
               setCloseShiftModal(false);
               setStaleClosePrompt(false);
             }}
+            onSkipShifts={
+              turnOffShifts
+                ? async () => {
+                    await turnOffShifts();
+                  }
+                : undefined
+            }
             shift={branchOpenShift}
             onContinue={
               staleClosePrompt

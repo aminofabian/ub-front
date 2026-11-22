@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { Banknote, Building2, Coins, DoorClosed, Minus, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -173,6 +181,45 @@ function shortDenomLabel(value: number): string {
   return value.toLocaleString("en-KE");
 }
 
+type DenominationKind = "note" | "coin";
+
+/** Paper rectangle for a note, round metal mark for a coin. */
+function DenominationMark({
+  kind,
+  label,
+}: {
+  kind: DenominationKind;
+  label: string;
+}) {
+  const shared =
+    "flex shrink-0 items-center justify-center font-mono text-[10px] font-semibold tabular-nums leading-none text-[var(--pos-ink,#1c1915)]";
+  if (kind === "coin") {
+    return (
+      <span
+        className={cn(
+          shared,
+          "size-7 rounded-full border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_32%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,#fff)]",
+        )}
+      >
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        shared,
+        "h-6 min-w-[3.15rem] rounded-[2px] border px-1",
+        "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)]",
+        "bg-[var(--pos-paper,#f1ece3)]",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 /** All Kenyan KES denominations in display order (largest first). */
 export const KES_DENOMINATIONS = [
   { value: 1000, type: "NOTE", label: "KES 1,000" },
@@ -252,6 +299,7 @@ export function denomsToQuantities(
 export function DenominationRow({
   denomValue,
   label,
+  kind,
   quantity,
   onChange,
   autoFocus,
@@ -259,6 +307,7 @@ export function DenominationRow({
 }: {
   denomValue: number;
   label: string;
+  kind: DenominationKind;
   quantity: number;
   onChange?: (val: number) => void;
   autoFocus?: boolean;
@@ -268,6 +317,7 @@ export function DenominationRow({
   const hasQty = quantity > 0;
   const editable = !readOnly && !!onChange;
   const shortLabel = shortDenomLabel(denomValue);
+  const coin = kind === "coin";
 
   const setQty = (next: number) => {
     if (!onChange) return;
@@ -277,20 +327,17 @@ export function DenominationRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[3.5rem_auto_minmax(0,1fr)] items-center gap-1.5 px-1.5 py-1.5 sm:grid-cols-[3rem_6.5rem_minmax(0,1fr)] sm:gap-1 sm:py-px",
+        "grid grid-cols-[3.5rem_auto_minmax(0,1fr)] items-center gap-1.5 px-1.5 py-1.5 sm:grid-cols-[3.5rem_6.5rem_minmax(0,1fr)] sm:gap-1 sm:py-1",
         "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] last:border-b-0",
         "transition-[background-color] duration-150",
         hasQty
-          ? "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
-          : "bg-transparent hover:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)]",
+          ? coin
+            ? "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_7%,transparent)]"
+            : "bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)]"
+          : "bg-transparent hover:bg-[color-mix(in_srgb,#fff_40%,transparent)]",
       )}
     >
-      <p
-        className="truncate font-mono text-[11px] font-semibold tabular-nums tracking-tight text-[var(--pos-ink,#1c1915)] sm:text-[12px]"
-        title={label}
-      >
-        {shortLabel}
-      </p>
+      <DenominationMark kind={kind} label={shortLabel} />
 
       <div className="flex w-auto shrink-0 items-center justify-between gap-1 sm:w-[6.5rem] sm:gap-0.5">
         {editable ? (
@@ -359,28 +406,51 @@ export function DenominationRow({
 
 function DenominationGroup({
   title,
+  kind,
   icon,
   total,
   children,
 }: {
   title: string;
+  kind: DenominationKind;
   icon: ReactNode;
   total: number;
   children: ReactNode;
 }) {
+  const coin = kind === "coin";
   return (
-    <section className="min-w-0">
-      <div className="flex items-center justify-between gap-1 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)] px-1.5 py-0.5">
-        <div className="flex items-center gap-1">
+    <section
+      aria-label={title}
+      className={cn(
+        "min-w-0 border",
+        coin
+          ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,#fff)]"
+          : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,#fff_72%,var(--pos-paper,#f1ece3))]",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 px-2 py-1.5",
+          coin
+            ? "bg-[var(--pos-ink,#1c1915)] text-[var(--pos-paper,#f1ece3)]"
+            : "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] text-[var(--pos-ink,#1c1915)]",
+        )}
+      >
+        <div className="flex items-center gap-1.5">
           <span
-            className="flex size-4 items-center justify-center text-[var(--pos-primary,#0f766e)]"
+            className={cn(
+              "flex size-6 items-center justify-center",
+              coin
+                ? "rounded-full border border-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,transparent)] text-[var(--pos-paper,#f1ece3)]"
+                : "rounded-[2px] bg-[var(--pos-paper,#f1ece3)] text-[var(--pos-primary,#0f766e)]",
+            )}
             aria-hidden
           >
             {icon}
           </span>
-          <h5 className={SHIFT_MODAL_SECTION_TITLE}>{title}</h5>
+          <h5 className="text-[13px] font-semibold tracking-normal">{title}</h5>
         </div>
-        <span className="font-mono text-[11px] font-semibold tabular-nums text-[var(--pos-ink,#1c1915)]">
+        <span className="font-mono text-[12px] font-semibold tabular-nums">
           {moneyStr(total)}
         </span>
       </div>
@@ -416,6 +486,7 @@ export function DenominationTable({
 
   const renderRows = (
     denoms: readonly { value: number; type: string; label: string }[],
+    kind: DenominationKind,
     startIndex: number,
   ) =>
     denoms.map((denom, i) => (
@@ -423,6 +494,7 @@ export function DenominationTable({
         key={denom.value}
         denomValue={denom.value}
         label={denom.label}
+        kind={kind}
         quantity={quantities[denom.value] || 0}
         readOnly={readOnly}
         onChange={
@@ -448,21 +520,23 @@ export function DenominationTable({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+      <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2">
         <DenominationGroup
           title="Notes"
-          icon={<Banknote className="size-3" strokeWidth={2.25} />}
+          kind="note"
+          icon={<Banknote className="size-3.5" strokeWidth={2.25} />}
           total={notesTotal}
         >
-          {renderRows(notes, 0)}
+          {renderRows(notes, "note", 0)}
         </DenominationGroup>
 
         <DenominationGroup
           title="Coins"
-          icon={<Coins className="size-3" strokeWidth={2.25} />}
+          kind="coin"
+          icon={<Coins className="size-3.5" strokeWidth={2.25} />}
           total={coinsTotal}
         >
-          {renderRows(coins, notes.length)}
+          {renderRows(coins, "coin", notes.length)}
         </DenominationGroup>
       </div>
     </div>
@@ -510,6 +584,77 @@ function CashTotalField({
       />
       {footer}
     </div>
+  );
+}
+
+const TURN_OFF_SHIFTS_OPEN =
+  "Sales will be saved without a cash-drawer count, and nobody has to open or close a shift. You can turn shifts back on in Business configuration; doing so clears unfinished carts saved on tills.";
+
+const TURN_OFF_SHIFTS_CLOSE =
+  "Tills sell without anyone opening or closing a shift. This count is dropped, and the shift stays as it is. You can turn shifts back on in Business configuration; doing so clears unfinished carts saved on tills.";
+
+function TurnOffShiftsConfirm({
+  body,
+  skipping,
+  error,
+  panelRef,
+  onConfirm,
+  onKeep,
+}: {
+  body: string;
+  skipping: boolean;
+  error: string;
+  panelRef?: RefObject<HTMLDivElement | null>;
+  onConfirm: () => void;
+  onKeep: () => void;
+}) {
+  return (
+    <div
+      ref={panelRef}
+      role="group"
+      aria-label="Turn shifts off"
+      className="space-y-2 border border-[var(--op-rule)] px-3 py-2.5"
+    >
+      <p className="text-[13px] font-semibold text-[var(--op-ink)]">
+        Turn shifts off
+      </p>
+      <p className="text-[12px] leading-relaxed text-[var(--op-muted)]">{body}</p>
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={skipping}
+          onClick={onConfirm}
+          className={SHIFT_MODAL_BTN_PRIMARY}
+        >
+          {skipping ? "Saving…" : "Turn shifts off"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={skipping}
+          onClick={onKeep}
+          className={SHIFT_MODAL_BTN_OUTLINE}
+        >
+          Keep shifts
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function TurnOffShiftsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className={cn(SHIFT_MODAL_BTN_OUTLINE, "sm:mr-auto")}
+      onClick={onClick}
+    >
+      Turn shifts off
+    </Button>
   );
 }
 
@@ -884,45 +1029,17 @@ export function OpenShiftModal({
           <div className={SHIFT_MODAL_BODY}>
             <div className="space-y-2">
               {onSkipShifts && confirmingSkip ? (
-                <div
-                  ref={skipPanelRef}
-                  role="group"
-                  aria-label="Sell without shifts"
-                  className="space-y-2 border border-[var(--op-rule)] px-3 py-2.5"
-                >
-                  <p className="text-[12px] leading-relaxed text-[var(--op-muted)]">
-                    Sales will be saved without a cash-drawer count, and nobody has to
-                    open or close a shift. You can switch shifts back on in Business
-                    settings; doing so clears unfinished carts saved on tills.
-                  </p>
-                  {skipError ? (
-                    <DashboardFeedback kind="error" text={skipError} />
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={skipping}
-                      onClick={() => void skipShifts()}
-                      className={SHIFT_MODAL_BTN_PRIMARY}
-                    >
-                      {skipping ? "Saving…" : "Sell without shifts"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={skipping}
-                      onClick={() => {
-                        setConfirmingSkip(false);
-                        setSkipError("");
-                      }}
-                      className={SHIFT_MODAL_BTN_OUTLINE}
-                    >
-                      Keep shifts
-                    </Button>
-                  </div>
-                </div>
+                <TurnOffShiftsConfirm
+                  body={TURN_OFF_SHIFTS_OPEN}
+                  skipping={skipping}
+                  error={skipError}
+                  panelRef={skipPanelRef}
+                  onConfirm={() => void skipShifts()}
+                  onKeep={() => {
+                    setConfirmingSkip(false);
+                    setSkipError("");
+                  }}
+                />
               ) : null}
               {explain ? (
                 <SetupExplainer
@@ -1018,13 +1135,7 @@ export function OpenShiftModal({
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
             {onSkipShifts && !confirmingSkip ? (
-              <button
-                type="button"
-                className="text-left text-[12px] text-[var(--op-muted)] underline underline-offset-2 hover:text-[var(--op-ink)] sm:mr-auto sm:self-center"
-                onClick={() => setConfirmingSkip(true)}
-              >
-                Prefer not to use shifts?
-              </button>
+              <TurnOffShiftsButton onClick={() => setConfirmingSkip(true)} />
             ) : null}
             <DialogClose asChild>
               <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
@@ -1035,19 +1146,19 @@ export function OpenShiftModal({
               <Button
                 type="button"
                 variant="outline"
-                disabled={loading || prefillBusy || skipping || !branchId}
+                disabled={loading || prefillBusy || skipping || confirmingSkip || !branchId}
                 onClick={() => void openWithEmptyFloat()}
                 className={SHIFT_MODAL_BTN_OUTLINE}
               >
                 Empty float
               </Button>
             ) : null}
-            <Button
-              type="button"
-              disabled={loading || prefillBusy || skipping}
-              onClick={handleOpen}
-              className={SHIFT_MODAL_BTN_PRIMARY}
-            >
+              <Button
+                type="button"
+                disabled={loading || prefillBusy || skipping || confirmingSkip}
+                onClick={handleOpen}
+                className={SHIFT_MODAL_BTN_PRIMARY}
+              >
               {loading
                 ? "Opening..."
                 : `Open Shift (${moneyStr(totalCash, currency)})`}
@@ -1262,6 +1373,7 @@ export function CloseShiftModal({
   shift,
   onClosed,
   onContinue,
+  onSkipShifts,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1272,6 +1384,12 @@ export function CloseShiftModal({
    * instead of counting out.
    */
   onContinue?: () => void;
+  /**
+   * Owners and admins can leave the count and sell without shifts. Should save
+   * the setting and resolve; the modal closes itself afterwards. Reject with a
+   * message to show in place. Does not close the open shift.
+   */
+  onSkipShifts?: () => Promise<void>;
 }) {
   const dashboard = useOptionalDashboard();
   const currency = resolveCurrencyCode(dashboard?.business?.currency);
@@ -1294,6 +1412,10 @@ export function CloseShiftModal({
   const [varianceReason, setVarianceReason] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmingSkip, setConfirmingSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const [skipError, setSkipError] = useState("");
+  const skipPanelRef = useRef<HTMLDivElement | null>(null);
   const [liveShift, setLiveShift] = useState<ShiftRecord | null>(shift);
   const [drawouts, setDrawouts] = useState<DrawoutRecord[]>([]);
   const canApproveDrawouts = hasPermission(
@@ -1539,6 +1661,38 @@ export function CloseShiftModal({
     onClose();
   }, [onContinue, onClose]);
 
+  useEffect(() => {
+    if (!open) return;
+    setConfirmingSkip(false);
+    setSkipping(false);
+    setSkipError("");
+  }, [open]);
+
+  useEffect(() => {
+    if (confirmingSkip) {
+      skipPanelRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [confirmingSkip]);
+
+  const skipShifts = useCallback(async () => {
+    if (!onSkipShifts || !shift) return;
+    setSkipError("");
+    setSkipping(true);
+    try {
+      clearCloseShiftDraft(businessId, userId, shift.id);
+      await onSkipShifts();
+      onClose();
+    } catch (e) {
+      setSkipError(
+        e instanceof Error && e.message
+          ? e.message
+          : "Could not turn shifts off. Try again.",
+      );
+    } finally {
+      setSkipping(false);
+    }
+  }, [onSkipShifts, shift, businessId, userId, onClose]);
+
   const staleDuration =
     onContinue && till?.openedAt
       ? formatShiftOpenDuration(till.openedAt, Date.now())
@@ -1584,6 +1738,19 @@ export function CloseShiftModal({
           <div className={SHIFT_MODAL_BODY}>
             {open ? <OpenOrdersAtClose branchId={shift?.branchId} /> : null}
             <div className="space-y-2">
+              {onSkipShifts && confirmingSkip ? (
+                <TurnOffShiftsConfirm
+                  body={TURN_OFF_SHIFTS_CLOSE}
+                  skipping={skipping}
+                  error={skipError}
+                  panelRef={skipPanelRef}
+                  onConfirm={() => void skipShifts()}
+                  onKeep={() => {
+                    setConfirmingSkip(false);
+                    setSkipError("");
+                  }}
+                />
+              ) : null}
               {canSeeCashVarianceDetail ? (
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 gap-px overflow-hidden rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]">
@@ -1812,24 +1979,37 @@ export function CloseShiftModal({
 
 
           <DialogFooter className={SHIFT_MODAL_FOOTER}>
+            {onSkipShifts && !confirmingSkip ? (
+              <TurnOffShiftsButton onClick={() => setConfirmingSkip(true)} />
+            ) : null}
             {onContinue ? (
               <Button
                 type="button"
                 variant="outline"
                 className={SHIFT_MODAL_BTN_OUTLINE}
-                disabled={loading}
+                disabled={loading || skipping}
                 onClick={handleContinue}
               >
                 Continue this shift
               </Button>
             ) : (
               <DialogClose asChild>
-                <Button type="button" variant="outline" className={SHIFT_MODAL_BTN_OUTLINE}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SHIFT_MODAL_BTN_OUTLINE}
+                  disabled={skipping}
+                >
                   Cancel
                 </Button>
               </DialogClose>
             )}
-            <Button type="button" disabled={loading} onClick={handleClose} className={SHIFT_MODAL_BTN_PRIMARY}>
+            <Button
+              type="button"
+              disabled={loading || skipping || confirmingSkip}
+              onClick={handleClose}
+              className={SHIFT_MODAL_BTN_PRIMARY}
+            >
               {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
             </Button>
           </DialogFooter>
