@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check, DoorOpen } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
+  DASHBOARD_TABLE_HEAD,
   DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
@@ -31,9 +32,16 @@ const SHIFT_LIST_SIZE = 40;
 const OPEN_SHIFT_STATUS = "open";
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
-const TICKED_ROW = "bg-emerald-50/70";
 const CASH_KIND = "CASH";
 const DRAWOUT_KIND = "DRAWOUT";
+const RULE = "border-[var(--op-border,#E7E1D6)]";
+const PAPER = "bg-[var(--op-surface,#FCFAF5)]";
+const INK = "text-[var(--op-ink,#121A16)]";
+const MUTED = "text-[var(--op-muted,#556159)]";
+const MATCHED_WASH = "bg-[color-mix(in_srgb,var(--op-accent,#1D4B3B)_8%,transparent)]";
+const FOREST_FILL = "bg-[var(--op-accent,#1D4B3B)]";
+const HAIRLINE = "border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)]";
+const COLUMN_SCROLL = "min-h-0 lg:max-h-[min(70dvh,36rem)] lg:overflow-y-auto";
 
 const WHEN_FORMAT = new Intl.DateTimeFormat("en-KE", {
   timeZone: NAIROBI_TIME_ZONE,
@@ -43,6 +51,20 @@ const WHEN_FORMAT = new Intl.DateTimeFormat("en-KE", {
   minute: "2-digit",
   second: "2-digit",
   hourCycle: "h23",
+});
+
+const CLOCK_FORMAT = new Intl.DateTimeFormat("en-KE", {
+  timeZone: NAIROBI_TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+const DAY_FORMAT = new Intl.DateTimeFormat("en-KE", {
+  timeZone: NAIROBI_TIME_ZONE,
+  day: "2-digit",
+  month: "short",
 });
 
 const HOW_LABEL: Record<CashDrawerOpenLogRow["reason"], string> = {
@@ -133,7 +155,7 @@ export default function DrawerOpenLogPage() {
       <DashboardPageHero
         icon={DoorOpen}
         title="Drawer log"
-        description="Every time the drawer opens is listed, including when there is no sale."
+        description="Openings down the left. Cash and drawouts in the columns beside them."
         showActiveScope
       >
         <ShiftPicker
@@ -172,7 +194,12 @@ function ShiftPicker({
     <label className="flex items-center gap-2 text-[13px]">
       <span className="text-[var(--op-muted,#7A7368)]">Shift</span>
       <select
-        className="h-8 min-w-64 rounded-none border border-[var(--op-border,#E7E1D6)] bg-[var(--op-surface,#FCFAF5)] px-2"
+        className={cn(
+          "h-8 min-w-64 rounded-[2px] border px-2",
+          RULE,
+          PAPER,
+          "focus-visible:border-[var(--op-accent,#1D4B3B)] focus-visible:outline-none",
+        )}
         value={shiftId}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -207,75 +234,80 @@ function LogBody({
     return <DashboardLoading label="Loading the drawer log…" />;
   }
   if (!shiftId || shifts.length === 0) {
-    return <p className="text-[13px]">No shifts on this branch yet.</p>;
+    return <p className={cn("text-[13px]", INK)}>No shifts on this branch yet.</p>;
   }
   if (!log) return null;
   const tenders = log.tenders ?? [];
-  return (
-    <>
-      <LogSummary unmatched={log.unmatched} total={log.rows.length} tenders={tenders} />
-      {log.rows.length === 0 ? (
-        <p className="text-[13px]">This shift has no drawer openings yet.</p>
-      ) : (
-        <section className="flex flex-col gap-1.5">
-          <h2 className="text-[13px] font-medium">Drawer openings</h2>
-          <LogTable rows={log.rows} formatMoney={formatMoney} />
-        </section>
-      )}
-      <TenderTable
-        title="Cash payments"
-        rows={tenders.filter((row) => row.kind === CASH_KIND)}
-        formatMoney={formatMoney}
-        empty="No cash payments on this shift."
-      />
-      <TenderTable
-        title="Drawouts"
-        rows={tenders.filter((row) => row.kind === DRAWOUT_KIND)}
-        formatMoney={formatMoney}
-      />
-    </>
-  );
-}
-
-function LogSummary({
-  unmatched,
-  total,
-  tenders,
-}: {
-  unmatched: number;
-  total: number;
-  tenders: CashDrawerOpenLogTender[];
-}) {
   const cash = tenders.filter((row) => row.kind === CASH_KIND);
-  const ticked = cash.filter((row) => row.coincided).length;
-  const quiet = cash.length - ticked;
-  if (total === 0 && cash.length === 0) return null;
+  const drawouts = tenders.filter((row) => row.kind === DRAWOUT_KIND);
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-      {ticked > 0 ? (
-        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-800">
-          <TickMark />
-          {ticked} cash {ticked === 1 ? "payment lines" : "payments line"} up
-        </span>
-      ) : null}
-      {quiet > 0 ? (
-        <span className="text-[var(--op-muted,#7A7368)]">
-          {quiet} cash {quiet === 1 ? "payment" : "payments"} with the drawer shut
-        </span>
-      ) : null}
-      {unmatched > 0 ? (
-        <span className="text-[var(--op-muted,#7A7368)]">
-          {unmatched} {unmatched === 1 ? "opening" : "openings"} with no sale
-        </span>
-      ) : null}
-      {total > 0 && unmatched === 0 ? (
-        <span>Every opening lines up with a cash payment or a drawout.</span>
-      ) : null}
+    <div className="flex flex-col gap-3">
+      <CountStrip log={log} cash={cash} />
+      <div
+        className={cn(
+          DASHBOARD_TABLE_SURFACE,
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_minmax(0,1fr)]",
+        )}
+      >
+        <OpeningColumn rows={log.rows} formatMoney={formatMoney} />
+        <TenderColumn
+          title="Cash"
+          rows={cash}
+          formatMoney={formatMoney}
+          empty="No cash payments on this shift."
+          className={cn("border-b md:border-r md:border-b-0", HAIRLINE)}
+        />
+        <TenderColumn
+          title="Drawouts"
+          rows={drawouts}
+          formatMoney={formatMoney}
+          empty="No drawouts on this shift."
+        />
+      </div>
     </div>
   );
 }
 
-function LogTable({
+function CountStrip({
+  log,
+  cash,
+}: {
+  log: CashDrawerOpenLogResponse;
+  cash: CashDrawerOpenLogTender[];
+}) {
+  const linedUp = log.rows.filter((row) => row.matched).length;
+  const quiet = cash.filter((row) => !row.coincided).length;
+  const cells: { label: string; value: number; mark?: ReactNode }[] = [
+    { label: "Openings", value: log.rows.length },
+    { label: "Lined up", value: linedUp, mark: <TickMark /> },
+    { label: "No sale", value: log.unmatched, mark: <QuietMark /> },
+    { label: "Drawer shut", value: quiet },
+  ];
+  return (
+    <dl className={cn(DASHBOARD_TABLE_SURFACE, "grid grid-cols-2 sm:grid-cols-4")}>
+      {cells.map((cell, index) => (
+        <div
+          key={cell.label}
+          className={cn(
+            "flex items-center justify-between gap-2 px-3 py-2.5",
+            index % 2 === 0 && "border-r",
+            index === 1 && "sm:border-r",
+            index < 2 && "border-b sm:border-b-0",
+            HAIRLINE,
+          )}
+        >
+          <dt className={cn("inline-flex items-center gap-1.5 text-[12px]", MUTED)}>
+            {cell.mark}
+            {cell.label}
+          </dt>
+          <dd className={cn("font-mono text-[15px] font-semibold tabular-nums", INK)}>{cell.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function OpeningColumn({
   rows,
   formatMoney,
 }: {
@@ -283,107 +315,200 @@ function LogTable({
   formatMoney: (amount: number | string | null | undefined) => string;
 }) {
   return (
-    <div className={DASHBOARD_TABLE_SURFACE}>
-      <table className="w-full text-left text-[13px]">
-        <thead>
-          <tr className="border-b border-[var(--op-border,#E7E1D6)] text-[12px] uppercase tracking-wide text-[var(--op-muted,#7A7368)]">
-            <th className="px-3 py-2 font-medium">Opened</th>
-            <th className="px-3 py-2 font-medium">Closed</th>
-            <th className="px-3 py-2 font-medium">How</th>
-            <th className="px-3 py-2 font-medium">Matches</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
+    <LedgerColumn
+      title="Openings"
+      count={rows.length}
+      className={cn(
+        "border-b md:col-span-2 lg:col-span-1 lg:border-r lg:border-b-0",
+        HAIRLINE,
+      )}
+    >
+      {rows.length === 0 ? (
+        <EmptyLine text="This shift has no drawer openings yet." />
+      ) : (
+        <ol className="m-0 list-none p-0">
+          {rows.map((row, index) => (
+            <OpeningEntry
               key={row.id}
-              className={cn(
-                "border-b border-[var(--op-border,#E7E1D6)] last:border-b-0",
-                row.matched && row.matchKind === CASH_KIND && TICKED_ROW,
-              )}
-            >
-              <td className="px-3 py-2 whitespace-nowrap">{formatWhen(row.openedAt)}</td>
-              <td className="px-3 py-2 whitespace-nowrap">{closedLabel(row)}</td>
-              <td className="px-3 py-2 whitespace-nowrap">{howLabel(row)}</td>
-              <td className="px-3 py-2">
-                <span className="inline-flex items-center gap-2">
-                  {row.matched ? <TickMark /> : null}
-                  {matchText(row, formatMoney)}
-                </span>
-              </td>
-            </tr>
+              row={row}
+              showDay={index === 0 || dayOf(rows[index - 1].openedAt) !== dayOf(row.openedAt)}
+              first={index === 0}
+              last={index === rows.length - 1}
+              formatMoney={formatMoney}
+            />
           ))}
-        </tbody>
-      </table>
-    </div>
+        </ol>
+      )}
+    </LedgerColumn>
   );
 }
 
-function TenderTable({
+function OpeningEntry({
+  row,
+  showDay,
+  first,
+  last,
+  formatMoney,
+}: {
+  row: CashDrawerOpenLogRow;
+  showDay: boolean;
+  first: boolean;
+  last: boolean;
+  formatMoney: (amount: number | string | null | undefined) => string;
+}) {
+  return (
+    <li
+      className={cn(
+        "grid grid-cols-[4.5rem_0.75rem_minmax(0,1fr)] gap-x-2 border-b px-3 py-2.5 last:border-b-0",
+        HAIRLINE,
+        row.matched && MATCHED_WASH,
+      )}
+    >
+      <div className="pt-0.5">
+        <p className={cn("font-mono text-[12px] tabular-nums leading-none", INK)}>{clockOf(row.openedAt)}</p>
+        {showDay ? <p className={cn("mt-1 text-[11px]", MUTED)}>{dayOf(row.openedAt)}</p> : null}
+      </div>
+      <RailDot matched={row.matched} drawout={row.matchKind === DRAWOUT_KIND} first={first} last={last} />
+      <div className="min-w-0">
+        <p className={cn("text-[13px] font-medium leading-tight", INK)}>{howLabel(row)}</p>
+        <p className={cn("mt-0.5 text-[12px] leading-snug", MUTED)}>{closedNote(row)}</p>
+        <p className={cn("mt-1 inline-flex items-start gap-1.5 text-[12px] leading-snug", row.matched ? INK : MUTED)}>
+          {row.matched ? <TickMark /> : <QuietMark />}
+          {matchText(row, formatMoney)}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function RailDot({
+  matched,
+  drawout,
+  first,
+  last,
+}: {
+  matched: boolean;
+  drawout: boolean;
+  first: boolean;
+  last: boolean;
+}) {
+  return (
+    <span className="relative flex h-full justify-center" aria-hidden>
+      <span
+        className={cn(
+          "absolute w-px bg-[color-mix(in_srgb,var(--order-ink,#121A16)_35%,transparent)]",
+          first ? "top-1.5" : "-top-2.5",
+          last ? "bottom-1.5" : "-bottom-2.5",
+        )}
+      />
+      <span
+        className={cn(
+          "relative z-10 mt-1 size-2 shrink-0 border",
+          drawout ? "rounded-[1px]" : "rounded-full",
+          matched ? cn(FOREST_FILL, "border-transparent") : cn(PAPER, "border-[var(--op-ink,#121A16)]"),
+        )}
+      />
+    </span>
+  );
+}
+
+function TenderColumn({
   title,
   rows,
   formatMoney,
   empty,
+  className,
 }: {
   title: string;
   rows: CashDrawerOpenLogTender[];
   formatMoney: (amount: number | string | null | undefined) => string;
-  empty?: string;
+  empty: string;
+  className?: string;
 }) {
-  if (rows.length === 0) {
-    return empty ? <p className="text-[13px]">{empty}</p> : null;
-  }
   return (
-    <section className="flex flex-col gap-1.5">
-      <h2 className="text-[13px] font-medium">{title}</h2>
-      <div className={DASHBOARD_TABLE_SURFACE}>
-        <table className="w-full text-left text-[13px]">
-          <thead>
-            <tr className="border-b border-[var(--op-border,#E7E1D6)] text-[12px] uppercase tracking-wide text-[var(--op-muted,#7A7368)]">
-              <th className="px-3 py-2 font-medium">Drawer</th>
-              <th className="px-3 py-2 font-medium">When</th>
-              <th className="px-3 py-2 font-medium">What</th>
-              <th className="px-3 py-2 font-medium">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr
-                key={`${row.kind}-${row.id}`}
-                className={cn(
-                  "border-b border-[var(--op-border,#E7E1D6)] last:border-b-0",
-                  row.coincided && TICKED_ROW,
-                )}
-              >
-                <td className="px-3 py-2">
-                  <CoincideMark tender={row} />
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {row.at ? formatWhen(row.at) : "—"}
-                </td>
-                <td className="px-3 py-2">{row.label || title}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatMoney(row.amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <LedgerColumn title={title} count={rows.length} className={className}>
+      {rows.length === 0 ? (
+        <EmptyLine text={empty} />
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {rows.map((row) => (
+            <TenderEntry key={`${row.kind}-${row.id}`} row={row} title={title} formatMoney={formatMoney} />
+          ))}
+        </ul>
+      )}
+    </LedgerColumn>
+  );
+}
+
+function TenderEntry({
+  row,
+  title,
+  formatMoney,
+}: {
+  row: CashDrawerOpenLogTender;
+  title: string;
+  formatMoney: (amount: number | string | null | undefined) => string;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex items-start justify-between gap-3 border-b px-3 py-2.5 last:border-b-0",
+        HAIRLINE,
+        row.coincided && MATCHED_WASH,
+      )}
+    >
+      <div className="min-w-0">
+        <p className={cn("text-[13px] font-medium leading-tight", INK)}>{row.label || title}</p>
+        <p className="mt-1 text-[12px] leading-snug">
+          <CoincideMark tender={row} />
+        </p>
+        <p className={cn("mt-0.5 font-mono text-[11px] tabular-nums", MUTED)}>
+          {row.at ? clockOf(row.at) : "—"}
+        </p>
       </div>
+      <p className={cn("shrink-0 font-mono text-[13px] tabular-nums", INK)}>{formatMoney(row.amount)}</p>
+    </li>
+  );
+}
+
+function LedgerColumn({
+  title,
+  count,
+  className,
+  children,
+}: {
+  title: string;
+  count: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn("flex h-full min-w-0 flex-col", className)}>
+      <header className={cn(DASHBOARD_TABLE_HEAD, "flex items-baseline justify-between")}>
+        <h2 className={cn("text-[15px] font-semibold", INK)}>{title}</h2>
+        <span className={cn("font-mono text-[12px] tabular-nums", MUTED)}>{count}</span>
+      </header>
+      <div className={COLUMN_SCROLL}>{children}</div>
     </section>
   );
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <p className={cn("px-3 py-6 text-[13px]", MUTED)}>{text}</p>;
 }
 
 function CoincideMark({ tender }: { tender: CashDrawerOpenLogTender }) {
   if (!tender.coincided) {
     return (
-      <span className="inline-flex items-center gap-2 text-[var(--op-muted,#7A7368)]">
+      <span className={cn("inline-flex items-center gap-1.5", MUTED)}>
         <QuietMark />
         Drawer stayed shut
       </span>
     );
   }
-  const when = tender.drawerOpenedAt ? formatWhen(tender.drawerOpenedAt) : "";
+  const when = tender.drawerOpenedAt ? clockOf(tender.drawerOpenedAt) : "";
   return (
-    <span className="inline-flex items-center gap-2 font-medium text-emerald-800">
+    <span className={cn("inline-flex items-center gap-1.5 font-medium", INK)}>
       <TickMark />
       {when ? `Opened ${when}` : "Drawer opened"}
     </span>
@@ -393,10 +518,13 @@ function CoincideMark({ tender }: { tender: CashDrawerOpenLogTender }) {
 function TickMark() {
   return (
     <span
-      className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
+      className={cn(
+        "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-white",
+        FOREST_FILL,
+      )}
       aria-hidden
     >
-      <Check className="size-3.5" strokeWidth={3} />
+      <Check className="size-2.5" strokeWidth={3} />
     </span>
   );
 }
@@ -404,7 +532,7 @@ function TickMark() {
 function QuietMark() {
   return (
     <span
-      className="inline-flex size-5 shrink-0 rounded-full border border-[var(--op-border,#C9C2B4)]"
+      className="inline-flex size-4 shrink-0 rounded-full border border-[var(--op-ink,#121A16)]"
       aria-hidden
     />
   );
@@ -427,10 +555,11 @@ function howLabel(row: CashDrawerOpenLogRow): string {
   return HOW_LABEL[row.reason] ?? "Till";
 }
 
-function closedLabel(row: CashDrawerOpenLogRow): string {
+function closedNote(row: CashDrawerOpenLogRow): string {
   if (!row.closedAt) return "Still open";
   const held = heldOpen(row.openedAt, row.closedAt);
-  return held ? `${formatWhen(row.closedAt)} · ${held}` : formatWhen(row.closedAt);
+  const clock = clockOf(row.closedAt);
+  return held ? `Shut ${clock} · ${held}` : `Shut ${clock}`;
 }
 
 function heldOpen(openedAt: string, closedAt: string): string {
@@ -447,9 +576,21 @@ function matchText(
   formatMoney: (amount: number | string | null | undefined) => string,
 ): string {
   if (!row.matched || !row.matchKind) return "No sale";
-  const kind = row.matchKind === "DRAWOUT" ? "Drawout" : "Cash";
-  const when = row.matchAt ? formatWhen(row.matchAt) : "";
+  const kind = row.matchKind === DRAWOUT_KIND ? "Drawout" : "Cash";
+  const when = row.matchAt ? clockOf(row.matchAt) : "";
   return [kind, row.matchLabel, formatMoney(row.matchAmount), when].filter(Boolean).join(" · ");
+}
+
+function clockOf(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return CLOCK_FORMAT.format(date);
+}
+
+function dayOf(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return DAY_FORMAT.format(date);
 }
 
 function formatWhen(iso: string): string {
