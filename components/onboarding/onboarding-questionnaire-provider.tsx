@@ -304,6 +304,9 @@ export function OnboardingQuestionnaireProvider({
   /** Primitive so a refreshed `me` object does not re-run the start check. */
   const meRoleKey = me?.role?.key ?? "";
 
+  /** The walkthrough opens itself once per page load; a refreshed business must not restart it mid-answer. */
+  const autoStartedRef = useRef(false);
+
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
     activateOnboardingQuestionnaire();
@@ -399,9 +402,11 @@ export function OnboardingQuestionnaireProvider({
       // tab the owner is on. Opening it moves the shop to `active`, so this
       // fires once per shop; after that the hub's Resume banner takes over.
       if (
-        shopAwaitsFirstWalkthrough(hydrated?.status, isOwnerAdmin) ||
-        shouldStartOnboardingQuestionnaire()
+        !autoStartedRef.current &&
+        (shopAwaitsFirstWalkthrough(hydrated?.status, isOwnerAdmin, hydrated?.step) ||
+          shouldStartOnboardingQuestionnaire())
       ) {
+        autoStartedRef.current = true;
         startQuestionnaire();
       }
     })();

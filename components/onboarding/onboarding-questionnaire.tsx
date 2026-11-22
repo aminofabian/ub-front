@@ -6,6 +6,7 @@ import {
   isTableServiceStoreTypes,
 } from "@/lib/business-store-type";
 import { fetchBusinessTypes } from "@/lib/business-types-api";
+import { becomeSupplier } from "@/lib/api";
 import { IS_DESKTOP } from "@/lib/runtime";
 
 import {
@@ -328,6 +329,9 @@ function QuestionnaireProgress({ step, food = false }: { step: number; food?: bo
     </div>
   );
 }
+
+/** Kept on this device: the owner picked "Supplier" in step one. */
+const SUPPLIER_CHOICE_KEY = "kiosk.onboarding.supplier";
 
 function StoreTypeButton({
   label,
@@ -927,6 +931,33 @@ export function OnboardingQuestionnaire({
     foodDishInputsRef.current[index]?.focus();
   }, [foodMenuItems]);
 
+  /**
+   * "Supplier" is not one of the shop formats: the platform sets it, with the shop's marketplace page. The choice
+   * is kept on this device until step one is continued, when the server makes the page.
+   */
+  const [supplierChosen, setSupplierChosen] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(SUPPLIER_CHOICE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [supplierBusy, setSupplierBusy] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
+  const toggleSupplier = () => {
+    setSupplierError("");
+    setSupplierChosen((prev) => {
+      const next = !prev;
+      try {
+        if (next) window.localStorage.setItem(SUPPLIER_CHOICE_KEY, "1");
+        else window.localStorage.removeItem(SUPPLIER_CHOICE_KEY);
+      } catch {
+        // Private mode: the choice still holds for this visit.
+      }
+      return next;
+    });
+  };
+
   const toggleStoreType = (value: StoreTypeChoice) => {
     setStoreTypes((prev) =>
       prev.includes(value)
@@ -940,7 +971,7 @@ export function OnboardingQuestionnaire({
       // The kind of shop comes first: every later question, starting with the next one, is
       // worded for it.
       case 1:
-        return storeTypes.length > 0;
+        return (storeTypes.length > 0 || supplierChosen) && !supplierBusy;
       case 2:
         return (
           Boolean(branchCount) &&
@@ -977,6 +1008,8 @@ export function OnboardingQuestionnaire({
         return false;
     }
   }, [
+    supplierChosen,
+    supplierBusy,
     step,
     branchCount,
     branchLocalities,
@@ -1100,13 +1133,35 @@ export function OnboardingQuestionnaire({
     }
     clearAutoAdvance();
     switch (step) {
-      case 1:
-        if (storeTypes.length === 0) return;
-        onContinue({
-          storeTypes: [...storeTypes],
-          selectedDepartments: [],
-        });
+      case 1: {
+        if (storeTypes.length === 0 && !supplierChosen) return;
+        // A supplier with no other format sells goods: "other" is the neutral goods format.
+        const chosenTypes: StoreTypeChoice[] = storeTypes.length > 0 ? [...storeTypes] : ["other"];
+        if (!supplierChosen) {
+          onContinue({ storeTypes: chosenTypes, selectedDepartments: [] });
+          break;
+        }
+        setSupplierBusy(true);
+        setSupplierError("");
+        void becomeSupplier()
+          .then(() => {
+            if (storeTypes.length === 0) setStoreTypes(chosenTypes);
+            // The server holds the choice now; the note on this device has done its job.
+            try {
+              window.localStorage.removeItem(SUPPLIER_CHOICE_KEY);
+            } catch {
+              // Nothing to clear.
+            }
+            onContinue({ storeTypes: chosenTypes, selectedDepartments: [] });
+          })
+          .catch((error: unknown) => {
+            setSupplierError(
+              error instanceof Error ? error.message : "Could not set up your supplier page. Try again.",
+            );
+          })
+          .finally(() => setSupplierBusy(false));
         break;
+      }
       case 2:
         if (!branchCount) return;
         onContinue({
@@ -1808,11 +1863,33 @@ export function OnboardingQuestionnaire({
                     );
                   })}
                 </div>
+                {IS_DESKTOP ? null : (
+                  <section aria-label="Wholesale" className="mt-4">
+                    <h3 className="mb-1.5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#556159]">
+                      Wholesale
+                      <span className="h-px flex-1 bg-[rgba(18,26,22,0.12)]" aria-hidden />
+                    </h3>
+                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                      <StoreTypeButton
+                        label="Supplier / wholesaler"
+                        hint="Sell to other shops, with your own page on the Kiosk marketplace"
+                        icon={Store}
+                        selected={supplierChosen}
+                        onClick={toggleSupplier}
+                      />
+                    </div>
+                  </section>
+                )}
                 <p className={NOTE}>
-                  {storeTypes.length === 0
+                  {storeTypes.length === 0 && !supplierChosen
                     ? "Select at least one shop type to continue."
-                    : `${storeTypes.length} selected`}
+                    : `${storeTypes.length + (supplierChosen ? 1 : 0)} selected`}
                 </p>
+                {supplierError ? (
+                  <p className={NOTE} role="alert">
+                    {supplierError}
+                  </p>
+                ) : null}
                 {isFoodOnlyShop ? (
                   <p className={NOTE}>
                     Next: where you are, then your kitchen and a few dishes

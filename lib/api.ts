@@ -17706,3 +17706,97 @@ export async function postRestockSuggestionSnooze(
     { method: "POST", body: { days } },
   );
 }
+
+/** The shop picked "Supplier" at sign-up: the platform makes its marketplace page and marks the shop. */
+export async function becomeSupplier(): Promise<{ supplier: boolean; marketplaceSupplierId: string }> {
+  return request<{ supplier: boolean; marketplaceSupplierId: string }>("/api/v1/supplier-signup", {
+    method: "POST",
+  });
+}
+
+/** A supplier shop's marketplace page, managed from inside the shop. */
+export type ShopSupplierPage = {
+  profile: {
+    marketplaceSupplierId: string;
+    name: string;
+    username: string | null;
+    description: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    altContactPhone: string | null;
+    contactLocation: string | null;
+    status: string;
+    deliveryRegions: string[];
+    categoryTags: string[];
+    publicHubPath: string | null;
+  };
+  listed: boolean;
+  hidePrices: boolean;
+  hideContacts: boolean;
+};
+
+export async function fetchShopSupplierPage(): Promise<ShopSupplierPage> {
+  return request<ShopSupplierPage>("/api/v1/supplier-page");
+}
+
+export async function updateShopSupplierPage(patch: {
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactLocation?: string;
+  deliveryRegions?: string[];
+}): Promise<ShopSupplierPage> {
+  return request<ShopSupplierPage>("/api/v1/supplier-page", { method: "PATCH", body: patch });
+}
+
+export async function updateShopSupplierPageVisibility(patch: {
+  hidePrices?: boolean;
+  hideContacts?: boolean;
+}): Promise<ShopSupplierPage> {
+  return request<ShopSupplierPage>("/api/v1/supplier-page/visibility", { method: "PATCH", body: patch });
+}
+
+export async function claimShopSupplierPageUsername(username: string): Promise<ShopSupplierPage> {
+  return request<ShopSupplierPage>("/api/v1/supplier-page/username", { method: "POST", body: { username } });
+}
+
+export async function listShopSupplierPage(): Promise<ShopSupplierPage> {
+  return request<ShopSupplierPage>("/api/v1/supplier-page/list", { method: "POST" });
+}
+
+/** How a supplier is paid, managed from inside its shop. */
+export type ShopSupplierPayout = {
+  paybill: string | null;
+  tillNumber: string | null;
+  mobileMoney: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+  /** False when the platform has switched payout edits off. */
+  editable: boolean;
+};
+
+export async function fetchShopSupplierPayout(): Promise<ShopSupplierPayout> {
+  return request<ShopSupplierPayout>("/api/v1/supplier-page/payout");
+}
+
+export async function updateShopSupplierPayout(
+  patch: Partial<Omit<ShopSupplierPayout, "editable">>,
+): Promise<ShopSupplierPayout> {
+  return request<ShopSupplierPayout>("/api/v1/supplier-page/payout", { method: "PATCH", body: patch });
+}
+
+export type ShopTeamInviteRow = {
+  name: string;
+  email: string | null;
+  outcome: "invited" | "already_in_shop" | "no_email" | "failed";
+  reason: string | null;
+};
+
+/** Invites the supplier's portal team into the shop. Each person gets the normal staff invitation. */
+export async function inviteSupplierPortalTeam(): Promise<{ rows: ShopTeamInviteRow[] }> {
+  return request<{ rows: ShopTeamInviteRow[] }>("/api/v1/supplier-page/team/invite-portal-team", {
+    method: "POST",
+  });
+}

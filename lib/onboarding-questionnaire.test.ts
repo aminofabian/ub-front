@@ -241,6 +241,10 @@ describe("soft skip + resume", () => {
 
   it("does not open the walkthrough once the shop has moved past pending", () => {
     expect(shopAwaitsFirstWalkthrough("active", true)).toBe(false);
+    // Left half-answered: the owner goes back into the walkthrough at sign-in.
+    expect(shopAwaitsFirstWalkthrough("active", true, 3)).toBe(true);
+    // Setup already applied (the receive-M-Pesa step or later): the hub takes over.
+    expect(shopAwaitsFirstWalkthrough("active", true, 8)).toBe(false);
     expect(shopAwaitsFirstWalkthrough("completed", true)).toBe(false);
     expect(shopAwaitsFirstWalkthrough("dismissed", true)).toBe(false);
     expect(shopAwaitsFirstWalkthrough("idle", true)).toBe(false);

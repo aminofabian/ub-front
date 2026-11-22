@@ -1137,11 +1137,18 @@ export function shouldStartOnboardingQuestionnaire(): boolean {
 export function shopAwaitsFirstWalkthrough(
   serverStatus: string | null | undefined,
   isOwnerOrAdmin: boolean,
+  serverStep?: number | null,
 ): boolean {
   if (!isOwnerOrAdmin || wasOnboardingQuestionnaireSkippedThisSession()) {
     return false;
   }
-  return (serverStatus?.trim().toLowerCase() ?? "") === "pending";
+  const status = serverStatus?.trim().toLowerCase() ?? "";
+  if (status === "pending") {
+    return true;
+  }
+  // Opened once and left half-answered: nothing is set up in the shop yet, so the owner is
+  // taken back into the walkthrough at sign-in instead of being left on the hub.
+  return onboardingAnswersAreDraft(status, serverStep);
 }
 
 /**
