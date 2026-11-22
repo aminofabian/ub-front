@@ -60,14 +60,14 @@ export function StockHealthPanel({ items }: { items: StockHealthItem[] }) {
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block truncate text-[11px] font-medium leading-tight",
+                  "block truncate text-[10px] font-medium leading-tight",
                   HUB_MUTED,
                 )}
               >
                 {item.label}
               </span>
               <span
-                className="mt-1 block truncate text-[14px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[13px]"
+                className="mt-1 block truncate text-[13px] font-semibold leading-none tracking-[-0.02em] text-[#141414] tabular-nums sm:text-[12px]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {item.value}

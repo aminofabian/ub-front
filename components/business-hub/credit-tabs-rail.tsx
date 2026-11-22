@@ -65,17 +65,17 @@ export function CreditTabsRail({
     >
       <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+          <p className="truncate text-[12px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Credit tape
           </p>
           {!empty ? (
-            <p className="truncate text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+            <p className="truncate text-[11px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {tabs.length} open · {fmtMoney(totalOwed, currency)}
             </p>
           ) : null}
           {collections != null ? (
             <p
-              className="truncate text-[12px] font-medium tabular-nums text-[#0B6B43]"
+              className="truncate text-[11px] font-medium tabular-nums text-[#0B6B43]"
               title={`Credit payments collected ${paidPeriodLabel}`}
             >
               Paid {paidPeriodLabel} · {collections}
@@ -84,7 +84,7 @@ export function CreditTabsRail({
         </div>
         <Link
           href={APP_ROUTES.creditsOnTab}
-          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[12px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[11px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
         >
           All
         </Link>
@@ -92,7 +92,7 @@ export function CreditTabsRail({
 
       {empty ? (
         <div className="px-3 pb-3 pt-0.5">
-          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
+          <p className="text-[12px] text-[var(--hub-muted,#5E6B65)]">
             {paid != null && paid > 0.009
               ? `No open tabs · ${fmtMoney(paid, currency)} collected ${paidPeriodLabel}.`
               : "No open credit tabs."}
@@ -125,7 +125,7 @@ export function CreditTabsRail({
                       onClick={() => onInspect?.(tab)}
                       aria-label={`Open credit history for ${name}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
                           "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
@@ -136,7 +136,7 @@ export function CreditTabsRail({
                       <>
                         <p
                           className={cn(
-                            "mt-0.5 truncate text-[12px] tabular-nums",
+                            "mt-0.5 truncate text-[11px] tabular-nums",
                             storedCustomerPhoneIssue(tab.primaryPhone)
                               ? "font-semibold text-red-700"
                               : "text-[var(--hub-muted,#5E6B65)]",
@@ -147,27 +147,27 @@ export function CreditTabsRail({
                         <CustomerPhoneFlag
                           phone={tab.primaryPhone}
                           compact
-                          className="mt-0.5 text-[11px] text-red-700"
+                          className="mt-0.5 text-[10px] text-red-700"
                         />
                       </>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <p className="max-w-[7rem] truncate text-right text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                    <p className="max-w-[7rem] truncate text-right text-[12px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
                       {fmtMoney(owed, currency)}
                     </p>
                     {payEnabled ? (
                       <button
                         type="button"
                         onClick={() => onPayTab?.(tab)}
-                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[12px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
+                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[11px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
                         title={`Record credit payment for ${name}`}
                         aria-label={`Pay credit tab for ${name}`}
                       >
                         Pay
                       </button>
                     ) : (
-                      <span className="rounded-full bg-[#FBEBD2] px-2.5 py-[3px] text-[12px] font-semibold text-[#8A4B00]">
+                      <span className="rounded-full bg-[#FBEBD2] px-2.5 py-[3px] text-[11px] font-semibold text-[#8A4B00]">
                         Owed
                       </span>
                     )}

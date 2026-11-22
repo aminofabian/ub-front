@@ -66,18 +66,18 @@ export function SupplyBillsRail({
     >
       <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+          <p className="truncate text-[12px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Supply tape
           </p>
           {!empty ? (
-            <p className="truncate text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+            <p className="truncate text-[11px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {summary.count} · {fmtMoney(summary.totalInvoiced, currency)}
             </p>
           ) : null}
         </div>
         <Link
           href={`${APP_ROUTES.purchasingAddSupplies}?filter=today`}
-          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[12px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[11px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
         >
           All
         </Link>
@@ -85,7 +85,7 @@ export function SupplyBillsRail({
 
       {empty ? (
         <div className="px-3 pb-3 pt-0.5">
-          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
+          <p className="text-[12px] text-[var(--hub-muted,#5E6B65)]">
             No supplies yet today.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function SupplyBillsRail({
                       onClick={() => onInspect?.(bill)}
                       aria-label={`Open supply history for ${supplierLabel}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
                           "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
@@ -133,28 +133,28 @@ export function SupplyBillsRail({
                     </button>
                     <time
                       dateTime={bill.createdAt}
-                      className="mt-0.5 block text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]"
+                      className="mt-0.5 block text-[11px] tabular-nums text-[var(--hub-muted,#5E6B65)]"
                       title={new Date(bill.createdAt).toLocaleString()}
                     >
                       {formatClock(bill.createdAt)}
                     </time>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <p className="text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                    <p className="text-[12px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
                       {fmtMoney(total, currency)}
                     </p>
                     {payEnabled && unpaid ? (
                       <button
                         type="button"
                         onClick={() => onPayBill?.(bill)}
-                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[12px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
+                        className="rounded-lg border border-[var(--hub-accent,#0F4A38)] bg-white px-3 py-[3px] text-[11px] font-semibold text-[var(--hub-accent,#0F4A38)] transition-colors hover:bg-[#E3EEE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hub-accent,#0F4A38)]/45"
                         title={`Pay ${supplierLabel}`}
                         aria-label={`Pay bill for ${supplierLabel} (${label})`}
                       >
                         {label === "Partial" ? "Pay · Partial" : "Pay"}
                       </button>
                     ) : (
-                      <span className="rounded-full bg-[#E3F3EA] px-2.5 py-[3px] text-[12px] font-semibold text-[#0B6B43]">
+                      <span className="rounded-full bg-[#E3F3EA] px-2.5 py-[3px] text-[11px] font-semibold text-[#0B6B43]">
                         {label}
                       </span>
                     )}

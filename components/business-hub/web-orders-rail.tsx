@@ -72,18 +72,18 @@ export function WebOrdersRail({
     >
       <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+          <p className="truncate text-[12px] font-semibold tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
             Web orders
           </p>
           {!empty ? (
-            <p className="truncate text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
+            <p className="truncate text-[11px] tabular-nums text-[var(--hub-muted,#5E6B65)]">
               {orders.length} open · {fmtMoney(total, currency)}
             </p>
           ) : null}
         </div>
         <Link
           href={APP_ROUTES.storefrontWebOrders}
-          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[12px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
+          className="flex min-h-8 shrink-0 items-center rounded-[2px] bg-[#F0EDE4] px-2.5 text-[11px] font-semibold text-[var(--hub-ink,#14211C)] transition-colors hover:bg-[#E7E3D8]"
         >
           All
         </Link>
@@ -91,7 +91,7 @@ export function WebOrdersRail({
 
       {empty ? (
         <div className="px-3 pb-3 pt-0.5">
-          <p className="text-[13px] text-[var(--hub-muted,#5E6B65)]">
+          <p className="text-[12px] text-[var(--hub-muted,#5E6B65)]">
             No open web orders right now.
           </p>
         </div>
@@ -128,7 +128,7 @@ export function WebOrdersRail({
                       onClick={() => onInspect?.(order)}
                       aria-label={`Open purchase history for ${order.customerName?.trim() || "customer"}`}
                       className={cn(
-                        "block max-w-full truncate text-left text-[14px] font-medium text-[var(--hub-ink,#14211C)]",
+                        "block max-w-full truncate text-left text-[12px] font-medium text-[var(--hub-ink,#14211C)]",
                         onInspect &&
                           "underline decoration-[var(--hub-accent,#0F4A38)]/30 underline-offset-2 hover:decoration-[var(--hub-accent,#0F4A38)]",
                       )}
@@ -137,7 +137,7 @@ export function WebOrdersRail({
                     </button>
                     <Link
                       href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
-                      className="mt-0.5 block text-[12px] tabular-nums text-[var(--hub-muted,#5E6B65)] hover:text-[var(--hub-ink,#14211C)]"
+                      className="mt-0.5 block text-[11px] tabular-nums text-[var(--hub-muted,#5E6B65)] hover:text-[var(--hub-ink,#14211C)]"
                       title={new Date(order.createdAt).toLocaleString()}
                     >
                       <time dateTime={order.createdAt}>
@@ -146,13 +146,13 @@ export function WebOrdersRail({
                     </Link>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <p className="text-[14px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
+                    <p className="text-[12px] font-semibold tabular-nums text-[var(--hub-ink,#14211C)]">
                       {fmtMoney(order.grandTotal, order.currency || currency)}
                     </p>
                     <Link
                       href={`${APP_ROUTES.storefrontWebOrders}?orderId=${encodeURIComponent(order.id)}`}
                       className={cn(
-                        "rounded-full px-2.5 py-[3px] text-[12px] font-semibold",
+                        "rounded-full px-2.5 py-[3px] text-[11px] font-semibold",
                         statusPill,
                       )}
                     >

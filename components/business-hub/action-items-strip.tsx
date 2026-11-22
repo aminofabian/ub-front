@@ -60,11 +60,11 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
                 <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]">
+                <span className="block text-[12px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]">
                   {item.label}
                 </span>
                 {item.detail ? (
-                  <span className="block truncate text-[12px] text-[var(--hub-muted,#5E6B65)]">
+                  <span className="block truncate text-[11px] text-[var(--hub-muted,#5E6B65)]">
                     {item.detail}
                   </span>
                 ) : null}

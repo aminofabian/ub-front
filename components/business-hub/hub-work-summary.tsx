@@ -35,10 +35,10 @@ export function HubWorkSummary({ cards }: { cards: HubWorkCard[] }) {
                 <Icon className="size-4" strokeWidth={1.9} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] text-[var(--hub-muted,#5E6B65)]">
+                <span className="block truncate text-[11px] text-[var(--hub-muted,#5E6B65)]">
                   {card.label}
                 </span>
-                <span className="block break-words text-[15px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
+                <span className="block break-words text-[13px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--hub-ink,#14211C)]">
                   {card.meta}
                 </span>
               </span>

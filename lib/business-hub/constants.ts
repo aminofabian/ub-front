@@ -28,7 +28,7 @@ export const HUB_DIVIDE = "divide-[var(--hub-rule,#E7E3D8)]";
 export const HUB_BORDER = "border-[var(--hub-rule,#E7E3D8)]";
 
 export const HUB_SECTION =
-  "inline-flex items-center gap-2 text-[13px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]";
+  "inline-flex items-center gap-2 text-[12px] font-semibold tracking-[-0.005em] text-[var(--hub-ink,#14211C)]";
 
 export const HUB_BTN =
   "rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0F4A38)]";
