@@ -1,4 +1,4 @@
-import { request } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
 import { API_ROUTES } from "@/lib/config";
 
 /** A buyer's approved account as the clerk at a supplier's counter needs it. */
@@ -16,7 +16,7 @@ export type CounterTerms = {
 };
 
 export async function fetchCounterTerms(phone: string): Promise<CounterTerms> {
-  return request<CounterTerms>(
+  return apiRequest<CounterTerms>(
     `${API_ROUTES.salesOrders}/counter-terms?phone=${encodeURIComponent(phone.trim())}`,
   );
 }
@@ -36,21 +36,21 @@ export async function attachCounterInvoiceAccount(
   invoiceId: string,
   accountId: string,
 ): Promise<CounterInvoiceAccount> {
-  return request<CounterInvoiceAccount>(
+  return apiRequest<CounterInvoiceAccount>(
     `${API_ROUTES.salesOrders}/counter-invoices/${encodeURIComponent(invoiceId)}/account`,
     { method: "PUT", body: { accountId } },
   );
 }
 
 export async function fetchCounterInvoiceAccount(invoiceId: string): Promise<CounterInvoiceAccount> {
-  return request<CounterInvoiceAccount>(
+  return apiRequest<CounterInvoiceAccount>(
     `${API_ROUTES.salesOrders}/counter-invoices/${encodeURIComponent(invoiceId)}/account`,
   );
 }
 
 /** An owner or admin puts a pending counter invoice on the account the clerk priced it for. */
 export async function putCounterInvoiceOnAccount(invoiceId: string): Promise<{ id: string }> {
-  return request<{ id: string }>(`${API_ROUTES.salesOrders}/counter-on-account`, {
+  return apiRequest<{ id: string }>(`${API_ROUTES.salesOrders}/counter-on-account`, {
     method: "POST",
     body: { invoiceId },
   });
