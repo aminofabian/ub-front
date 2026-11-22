@@ -3085,6 +3085,21 @@ export async function loginWithPassword(
   }
 }
 
+/**
+ * A supplier's portal team signing in to their own shop with their portal details: email or phone number, with
+ * the portal password or PIN.
+ */
+export async function loginWithSupplierPortal(identifier: string, secret: string): Promise<void> {
+  const payload = await request<LoginResponse>("/api/v1/auth/login-supplier", {
+    method: "POST",
+    body: { identifier, password: secret },
+    requiresAuth: false,
+  });
+  if (!applyAuthSessionPayload(payload, { signIn: true })) {
+    throw new ApiRequestError("Login failed: no session returned.", 502, payload);
+  }
+}
+
 export async function loginWithPin(
   email: string,
   pin: string,

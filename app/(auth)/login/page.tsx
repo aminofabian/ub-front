@@ -27,6 +27,7 @@ import {
   fetchMe,
   fetchShopperAccountOverview,
   loginWithPassword,
+  loginWithSupplierPortal,
   loginWithPin,
   resolveBusinessByEmail,
 } from "@/lib/api";
@@ -189,6 +190,31 @@ function CustomerLoginPageContent() {
     }
   };
 
+  // A supplier's portal team may sign in to their shop with their portal details (phone or email, PIN or password).
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [supplierIdentifier, setSupplierIdentifier] = useState("");
+  const [supplierSecret, setSupplierSecret] = useState("");
+  const onSupplierSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
+    let navigatedAway = false;
+    try {
+      const id = await ensureTenantResolved();
+      persistTenantId(id ?? "");
+      await loginWithSupplierPortal(supplierIdentifier.trim(), supplierSecret);
+      const dest = await resolveAfterAuth();
+      await completeAuthAndNavigate(dest, tenant?.slug);
+      navigatedAway = true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Login failed.");
+    } finally {
+      if (!navigatedAway) {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
   const onPhoneSignedIn = async () => {
     setIsSubmitting(true);
     setErrorMessage("");
@@ -339,6 +365,48 @@ function CustomerLoginPageContent() {
           )}
         </button>
       </form>
+      {supplierOpen ? (
+        <form className="mt-6 space-y-3" onSubmit={(event) => void onSupplierSubmit(event)}>
+          <div>
+            <label className={fieldLabelClass} htmlFor="login-supplier-id">
+              Supplier portal phone or email
+            </label>
+            <input
+              id="login-supplier-id"
+              className={authInputClassName}
+              value={supplierIdentifier}
+              onChange={(event) => setSupplierIdentifier(event.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div>
+            <label className={fieldLabelClass} htmlFor="login-supplier-secret">
+              Supplier portal PIN or password
+            </label>
+            <input
+              id="login-supplier-secret"
+              className={authInputClassName}
+              type="password"
+              value={supplierSecret}
+              onChange={(event) => setSupplierSecret(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          <button type="submit" disabled={isSubmitting} className="text-sm font-medium underline underline-offset-4">
+            Sign in with supplier portal details
+          </button>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="mt-6 text-sm font-medium underline underline-offset-4"
+          onClick={() => setSupplierOpen(true)}
+        >
+          I use the supplier portal
+        </button>
+      )}
         </>
       ) : (
         <div className="mt-6">

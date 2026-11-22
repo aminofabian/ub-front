@@ -22,3 +22,10 @@ describe("accounts with no sign-in", () => {
     expect(accountHandle({ name: " ", email: "staff.9f2c@team.invalid" })).toBe("this person");
   });
 });
+
+describe("supplier portal sign-in accounts", () => {
+  test("shows how they sign in instead of the placeholder address", () => {
+    expect(accountEmailLabel("supplier-abc@portal.invalid")).toBe("Signs in with supplier portal details");
+    expect(accountHandle({ name: "Amina", email: "supplier-abc@portal.invalid" })).toBe("Amina");
+  });
+});
