@@ -72,6 +72,8 @@ import {
   isTableServiceStoreTypes,
   isServiceBusiness,
   isServiceOnlyBusiness,
+  isSupplierBusiness,
+  isWholesaleOnlyBusiness,
 } from "@/lib/business-store-type";
 import { foodTillKind } from "@/lib/food-till";
 import { ServiceFloorPanel } from "@/components/business-hub/service-floor-panel";
@@ -1296,8 +1298,32 @@ export function BusinessHubWorkspace() {
         group: "Customers",
       });
     }
+    // A supplier reaches for its trade desk before anything a shop counter has. A wholesale-only
+    // shop has no tills to register, so that shortcut is left out.
+    const supplierLinks: JumpInLink[] = [];
+    if (isSupplierBusiness(business) && hasPermission(me?.permissions, Permission.StorefrontOrdersRead)) {
+      supplierLinks.push({
+        href: APP_ROUTES.storefrontTradeOrders,
+        label: "Trade desk",
+        hint: "Orders to answer and dispatch",
+        icon: Truck,
+        group: "Trade",
+      });
+      if (canManageBusinessSettings) {
+        supplierLinks.push({
+          href: APP_ROUTES.storefrontSupplierPage,
+          label: "Your page",
+          hint: "How shops see you on Kiosk",
+          icon: Store,
+          group: "Trade",
+        });
+      }
+    }
+    const shopLinks = isWholesaleOnlyBusiness(business)
+      ? links.filter((link) => !link.href.includes("manageTills=1"))
+      : links;
     // A shop that also lets rooms gets its front desk first, as a food-only lodging tenant does.
-    return lodgingLink ? [lodgingLink, ...links] : links;
+    return [...supplierLinks, ...(lodgingLink ? [lodgingLink] : []), ...shopLinks];
   }, [
     foodOnly,
     foodTables,
@@ -1310,6 +1336,8 @@ export function BusinessHubWorkspace() {
     canViewSalesIntelligence,
     showButcherCounter,
     canAccessGrocery,
+    business,
+    me,
   ]);
 
   const canAddSupplier = canWriteSuppliers(me, business);

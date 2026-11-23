@@ -26,6 +26,8 @@ import { TradeFiguresPanel } from "@/components/wholesale/trade-figures-panel";
 import { OrderAppeal } from "@/components/wholesale/order-appeal";
 import { SupplierOverviewPanel } from "@/components/wholesale/supplier-overview-panel";
 import { SupplierPortalLinks } from "@/components/wholesale/supplier-portal-links";
+import { SupplyMessagesPanel } from "@/components/wholesale/supply-messages-panel";
+import { SupplyRestockPanel } from "@/components/wholesale/supply-restock-panel";
 import { SupplierNav, supplierPlaceFromLocation, type SupplierPlace } from "@/components/wholesale/supplier-nav";
 import {
   inSupplierStage,
@@ -61,7 +63,7 @@ const PLACE_TITLE: Record<SupplierPlace, { title: string; purpose: string }> = {
     purpose: "Orders buyers placed in your shop. Answer each one, then dispatch what you accepted. Nothing is taken from stock until you accept.",
   },
   money: { title: "Buyers and money", purpose: "Who buys on account, the invoices you have raised and what is still owed." },
-  shops: { title: "Shops you supply", purpose: "The shops that buy from you through their own purchasing: their orders, deliveries, messages and payments." },
+  shops: { title: "Shops you supply", purpose: "The shops that buy from you through their own purchasing: what to restock in each, and what you and they have said." },
   page: { title: "Your page", purpose: "" },
 };
 
@@ -82,6 +84,7 @@ export function TradeDesk() {
   const [busy, setBusy] = useState(false);
   const [view, setViewState] = useState<SupplierPlace>("today");
   const [moneyView, setMoneyView] = useState<"invoices" | "accounts" | "figures">("invoices");
+  const [shopsView, setShopsView] = useState<"restock" | "messages" | "more">("restock");
   // Arriving from another supplier page with ?view= opens that place. The address follows the place after that,
   // so a reload or a shared link comes back to the same one.
   useEffect(() => {
@@ -556,7 +559,24 @@ export function TradeDesk() {
         </>
       ) : null}
 
-      {view === "shops" ? <SupplierPortalLinks /> : null}
+      {view === "shops" ? (
+        <>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {([
+              ["restock", "What to restock"],
+              ["messages", "Messages"],
+              ["more", "Orders, deliveries and payments"],
+            ] as const).map(([key, label]) => (
+              <button key={key} type="button" aria-pressed={shopsView === key} className={chip(shopsView === key)} onClick={() => setShopsView(key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {shopsView === "restock" ? <SupplyRestockPanel /> : null}
+          {shopsView === "messages" ? <SupplyMessagesPanel /> : null}
+          {shopsView === "more" ? <SupplierPortalLinks /> : null}
+        </>
+      ) : null}
 
       <div className={view !== "orders" ? "hidden" : "mt-4 flex flex-wrap gap-1.5"}>
         {SUPPLIER_ORDER_STAGES.map((f) => (

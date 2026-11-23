@@ -111,6 +111,7 @@ import {
   isClinicBusiness,
   isPharmacyBusiness,
   isSupplierBusiness,
+  isWholesaleOnlyBusiness,
   isServiceBusiness,
   isTableServiceBusiness,
   isServiceOnlyBusiness,
@@ -170,6 +171,27 @@ const PHARMACY_LEAD_SECTIONS: readonly string[] = ["pharmacy"];
 const CLINIC_LEAD_SECTIONS: readonly string[] = ["clinic"];
 const CLINIC_AND_PHARMACY_LEAD_SECTIONS: readonly string[] = ["clinic", "pharmacy"];
 
+/** Retail-counter sections a wholesale-only shop does not have: shifts and tills, and customer tabs. */
+const WHOLESALE_ONLY_HIDDEN_SECTIONS: readonly string[] = ["ops", "credits"];
+
+/**
+ * How the shared sections read in a wholesale-only shop. The pages are the same; only the words change,
+ * so the menu speaks of a business that supplies shops and not of a shop with a counter.
+ */
+const WHOLESALE_SECTION_WORDING: Readonly<Record<string, { title?: string; blurb: string }>> = {
+  overview: { blurb: "How the business is doing" },
+  org: { title: "Your business", blurb: "Business details, people, and locations" },
+  catalog: { blurb: "What you sell to shops and how it's grouped" },
+  procurement: { blurb: "What you order in, receive, and owe" },
+  inventory: { blurb: "What you have to sell, counts, and what to restock" },
+  payments: { blurb: "Money received and how you get paid" },
+  customers: { blurb: "People who buy from you, history, and segments" },
+  sales: { blurb: "What you sold and reports" },
+};
+
+/** A supplier's daily work is its trade desk: orders, buyers and the shops it supplies. It leads the rail. */
+const SUPPLIER_LEAD_SECTIONS: readonly string[] = ["supplier"];
+
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "overview",
@@ -179,6 +201,21 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: LayoutDashboard,
     entryHref: APP_ROUTES.business,
     items: [{ href: APP_ROUTES.business, label: "Business" }],
+  },
+  // A supplier's shop only (see isNavItemVisible): for every other shop both items are hidden, so the
+  // section is dropped. The places inside the trade desk (Today, Orders, Buyers and money, Shops you
+  // supply) are its own line of navigation, so the rail carries one way in.
+  {
+    id: "supplier",
+    title: "Wholesale",
+    shortLabel: "Trade",
+    blurb: "Orders, buyers and the shops you supply",
+    icon: Truck,
+    entryHref: APP_ROUTES.storefrontTradeOrders,
+    items: [
+      { href: APP_ROUTES.storefrontTradeOrders, label: "Trade desk" },
+      { href: APP_ROUTES.storefrontSupplierPage, label: "Your page" },
+    ],
   },
   {
     id: "org",
@@ -666,8 +703,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
         featureFlag: "shop",
         group: "Reports",
       },
-      // A supplier's shop only: orders buyers sent from the storefront. See isNavItemVisible.
-      { href: APP_ROUTES.storefrontTradeOrders, label: "Trade orders", group: "Reports" },
       { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
       { href: APP_ROUTES.cashier, label: "Sell", group: "Tills" },
       {
@@ -1109,6 +1144,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewStorefrontOrders;
   if (item.href === APP_ROUTES.storefrontTradeOrders)
     return gate.isSupplierBusiness && gate.canViewStorefrontOrders;
+  if (item.href === APP_ROUTES.storefrontSupplierPage)
+    return gate.isSupplierBusiness && gate.canManageBusinessSettings === true;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
   if (item.href === APP_ROUTES.grocery) {
@@ -1622,7 +1659,17 @@ export function AppShell({ children }: AppShellProps) {
     // A shop that only sells services has no shelves: leave the shelf pages out of its menu.
     // A food-led shop (a bar or restaurant, rooms or not) keeps buying and stock, loses the shelf
     // pages, and keeps its front desk — lodging is an add-on, not a reason to show the retail shelf.
-    return trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodLedShop, foodTableService);
+    const trimmed = trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodLedShop, foodTableService);
+    // A shop that only sells wholesale has no till, no shifts and no customer tabs: its buyers have
+    // trade accounts under Trade. Leaving those sections out is what stops it reading as a mini mart.
+    return isWholesaleOnlyBusiness(business) && !IS_DESKTOP
+      ? trimmed
+          .filter((section) => !WHOLESALE_ONLY_HIDDEN_SECTIONS.includes(section.id))
+          .map((section) => {
+            const wording = WHOLESALE_SECTION_WORDING[section.id];
+            return wording ? { ...section, ...wording } : section;
+          })
+      : trimmed;
   }, [
     serviceOnlyShop,
     foodOnlyShop,
@@ -1826,6 +1873,10 @@ export function AppShell({ children }: AppShellProps) {
 
   const headerPosLinks = useMemo((): HeaderPosLink[] => {
     const links: HeaderPosLink[] = [];
+    // A wholesale-only shop has no till: its way in is the trade desk, which leads the rail.
+    if (isWholesaleOnlyBusiness(business) && !IS_DESKTOP) {
+      return links;
+    }
     if (canQuickSale) {
       // A restaurant rings dishes at its counter; the retail till behind "Sell" only knows products.
       links.push(
@@ -1856,7 +1907,7 @@ export function AppShell({ children }: AppShellProps) {
       });
     }
     return links;
-  }, [canQuickSale, canAccessGrocery, canViewSuppliers, mergedFeatureFlags, foodOnlyShop]);
+  }, [canQuickSale, canAccessGrocery, canViewSuppliers, mergedFeatureFlags, foodOnlyShop, business]);
 
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
@@ -2028,7 +2079,26 @@ export function AppShell({ children }: AppShellProps) {
                     : tab,
               )
             : BOTTOM_TABS;
-    return tabs.map((tab) => {
+    // A supplier's phone leads with the trade desk. In a wholesale-only shop it takes the place of
+    // "Sell", which that shop does not have; a supplier with a counter keeps "Sell" and gives up
+    // "Sales", which stays one tap away under More.
+    const tradeTabReplaces =
+      IS_DESKTOP || !isSupplierBusiness(business) || !canViewStorefrontOrders
+        ? null
+        : isWholesaleOnlyBusiness(business)
+          ? "ops"
+          : "sales";
+    return tabs.map((tab): BottomTab => {
+      if (tradeTabReplaces && tab.id === tradeTabReplaces) {
+        return {
+          id: "trade",
+          label: "Trade",
+          icon: Truck,
+          href: APP_ROUTES.storefrontTradeOrders,
+          matchSectionIds: ["supplier"],
+          primary: tradeTabReplaces === "ops",
+        };
+      }
       if (tab.id !== "ops") return tab;
       if (canQuickSale && foodOnlyShop) {
         // The restaurant counter rings dishes; the retail till behind "Sell" only knows products.
@@ -2105,6 +2175,7 @@ export function AppShell({ children }: AppShellProps) {
     foodOnlyShop,
     canTakeRestaurantOrders,
     canWorkRestaurantKitchen,
+    canViewStorefrontOrders,
   ]);
 
   // Which bottom tab is currently "active"
@@ -2297,7 +2368,9 @@ export function AppShell({ children }: AppShellProps) {
         <div className={cn("shrink-0", desktopChromeVisible)}>
           <DesktopNavRail
             leadSectionIds={
-              serviceOnlyShop
+              isSupplierBusiness(business)
+                ? SUPPLIER_LEAD_SECTIONS
+                : serviceOnlyShop
                 ? SERVICE_LEAD_SECTIONS
                 : foodLedShop && lodgingShop
                   ? FOOD_AND_LODGING_LEAD_SECTIONS

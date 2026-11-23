@@ -17,6 +17,7 @@ import {
   isTableServiceBusiness,
   type StoreTypeId,
   getBusinessStoreTypes,
+  isWholesaleOnlyBusiness,
 } from "@/lib/business-store-type";
 
 export type PostAuthMe = {
@@ -338,6 +339,15 @@ export function resolvePostAuthDestination(
       return isTableServiceBusiness(business)
         ? APP_ROUTES.restaurantFloor
         : APP_ROUTES.restaurantCounter;
+    }
+    // An owner or admin of a wholesale-only shop works from the trade desk: what is waiting for an
+    // answer, what to dispatch. The business hub stays in the menu.
+    if (
+      !IS_DESKTOP &&
+      isWholesaleOnlyBusiness(business) &&
+      (roleKeyOf(me) === "owner" || roleKeyOf(me) === "admin")
+    ) {
+      return APP_ROUTES.storefrontTradeOrders;
     }
     return roleHome;
   }

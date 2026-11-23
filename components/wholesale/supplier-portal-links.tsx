@@ -12,10 +12,9 @@ import { setSupplierPortalAccessToken, setSupplierPortalSessionId } from "@/lib/
 
 /** The portal pages that have no equivalent in the shop yet, in the words a supplier would use for them. */
 const LINKS: { label: string; hint: string; href: string }[] = [
-  { label: "Shops you supply", hint: "How your products are selling in each shop, and what to restock", href: APP_ROUTES.supplierPortalShops },
+  { label: "Each shop in detail", hint: "What you have supplied to one shop, and how it is selling there", href: APP_ROUTES.supplierPortalShops },
   { label: "Purchase orders from shops", hint: "Orders shops sent you from their own purchasing", href: APP_ROUTES.supplierPortalOrders },
   { label: "Deliveries", hint: "What is on its way and what has arrived", href: APP_ROUTES.supplierPortalDeliveries },
-  { label: "Messages", hint: "Messages between you and the shops you supply", href: APP_ROUTES.supplierPortalMessages },
   { label: "What shops have paid", hint: "Payments and invoices as each shop recorded them", href: APP_ROUTES.supplierPortalPayments },
   { label: "Statements", hint: "A statement for each shop, to download", href: APP_ROUTES.supplierPortalStatements },
   { label: "Reports", hint: "Reports to download", href: APP_ROUTES.supplierPortalReports },
@@ -53,7 +52,7 @@ export function SupplierPortalLinks() {
   return (
     <section aria-label="Shops you supply" className="mt-4">
       <p className="text-[13px] text-muted-foreground">
-        These are about orders shops sent from their own purchasing. Orders placed in your shop are under Orders.
+        These pages have not moved into your shop yet. They open signed in. Orders placed in your shop are under Orders.
       </p>
       <ul className="mt-3 grid gap-1 sm:grid-cols-2">
         {LINKS.map((link) => (

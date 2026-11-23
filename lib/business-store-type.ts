@@ -214,6 +214,24 @@ export function isClerkCounterBusiness(
   );
 }
 
+/**
+ * True for a shop that only sells wholesale: it is a supplier's shop, its only other format is the neutral
+ * "other" (or none), and it has not turned on selling over the counter. Such a shop has no till, no shifts and
+ * no customer tabs, so those are left out of its menus. A supplier that is also a mini mart, or that sells
+ * over the counter, keeps them.
+ */
+export function isWholesaleOnlyBusiness(
+  source: StoreTypeSource | null | undefined,
+): boolean {
+  if (!isSupplierBusiness(source)) {
+    return false;
+  }
+  if (source?.featureFlags?.[SUPPLIER_COUNTER_ORDERS_FLAG] === true) {
+    return false;
+  }
+  return getBusinessStoreTypes(source).every((type) => type === "other");
+}
+
 /** True when any selected format is a service format (kinyozi, salon, spa, …). */
 export function isServiceBusiness(
   source: StoreTypeSource | null | undefined,

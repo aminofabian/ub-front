@@ -245,6 +245,7 @@ export const APP_ROUTES = {
   storefrontWebOrders: "/storefront/web-orders",
   /** A supplier's trade desk: orders buyers sent from the shop (ADR 0040). */
   storefrontTradeOrders: "/storefront/trade-orders",
+  storefrontSupplierPage: "/storefront/supplier-page",
   promoCampaigns: "/business/promotions",
   salesQuick: "/sales/quick",
   cashier: "/cashier",

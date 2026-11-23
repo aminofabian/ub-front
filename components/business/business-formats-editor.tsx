@@ -6,11 +6,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
 import {
+  becomeSupplier,
   changeBusinessFormats,
   fetchBusinessFormats,
   type BusinessFormatOption,
 } from "@/lib/api";
-import { FOOD_STORE_TYPES, LODGING_STORE_TYPES, SERVICE_STORE_TYPES } from "@/lib/business-store-type";
+import { useDashboard } from "@/components/dashboard-provider";
+import {
+  FOOD_STORE_TYPES,
+  isSupplierBusiness,
+  LODGING_STORE_TYPES,
+  SERVICE_STORE_TYPES,
+} from "@/lib/business-store-type";
 import { STORE_TYPE_OPTIONS } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 
@@ -37,12 +44,16 @@ export function BusinessFormatsEditor({
   /** Optional code -> image URL from the business-type catalogue (ADR 0029). */
   typeImages?: Record<string, string>;
 }) {
+  const { business, refreshSession } = useDashboard();
+  // A supplier's shop: the format the platform set, shown so the owner sees what the business is.
+  const supplier = isSupplierBusiness(business);
   const [formats, setFormats] = useState<BusinessFormatOption[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmSupplier, setConfirmSupplier] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError("");
@@ -112,6 +123,23 @@ export function BusinessFormatsEditor({
     }
   }
 
+  /** Makes this shop a supplier's shop. Saved at once: it is not part of "Save formats". */
+  async function startSupplying() {
+    setActionError("");
+    setSuccess("");
+    setBusy(true);
+    try {
+      await becomeSupplier();
+      setConfirmSupplier(false);
+      await Promise.all([refreshSession(), load()]);
+      setSuccess("You are now a supplier. Open Trade in the menu to set up your page.");
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not make this a supplier's shop. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loadError) return <AuthAlert variant="error">{loadError}</AuthAlert>;
   if (formats == null) {
     return <p className="text-sm text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">Loading…</p>;
@@ -124,6 +152,81 @@ export function BusinessFormatsEditor({
     <div className="space-y-6">
       {actionError ? <AuthAlert variant="error">{actionError}</AuthAlert> : null}
       {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
+
+      <section aria-label="Wholesale">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color-mix(in_srgb,var(--op-ink,#121A16)_55%,transparent)]">
+          Wholesale
+        </h3>
+        <p className="mt-0.5 text-[13px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">
+          Selling to other shops: trade orders, buyer accounts and a page on the Kiosk marketplace.
+        </p>
+        <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          {supplier ? (
+            <div className="flex items-center gap-2.5 rounded-[2px] border border-[#1D4B3B] bg-[color-mix(in_srgb,#1D4B3B_7%,var(--op-surface,#FCFAF5))] px-3 py-2.5">
+              <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-[2px] bg-[#1D4B3B] text-[#F4F1EA]">
+                <Check className="size-4" strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-[var(--op-ink,#121A16)]">Supplier / wholesaler</span>
+                  <Lock className="size-3 text-[#8f3f2f]" aria-label="Cannot be turned off here" />
+                </span>
+                <span className="mt-0.5 block text-[12px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">
+                  On. Your orders are under Trade. To stop, ask Kiosk support.
+                </span>
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              aria-pressed={false}
+              disabled={busy}
+              onClick={() => {
+                setActionError("");
+                setSuccess("");
+                setConfirmSupplier(true);
+              }}
+              className={cn(
+                "group relative flex items-center gap-2.5 rounded-[2px] border px-3 py-2.5 text-left",
+                "transition-[border-color,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4B3B] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-surface,#FCFAF5)]",
+                "border-[color-mix(in_srgb,var(--op-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] hover:border-[color-mix(in_srgb,var(--op-ink,#121A16)_22%,transparent)]",
+              )}
+            >
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-[2px] bg-[color-mix(in_srgb,var(--op-ink,#121A16)_7%,transparent)]"
+              >
+                <span className="font-serif text-lg italic text-[color-mix(in_srgb,var(--op-ink,#121A16)_45%,transparent)]">S</span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-[var(--op-ink,#121A16)]">Supplier / wholesaler</span>
+                <span className="mt-0.5 line-clamp-1 text-[12px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">
+                  Sell to other shops on Kiosk
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
+        {!supplier && confirmSupplier ? (
+          <div className="mt-2 border border-[color-mix(in_srgb,var(--op-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] px-3 py-3">
+            <p className="text-sm font-semibold text-[var(--op-ink,#121A16)]">Become a supplier?</p>
+            <p className="mt-1 max-w-[70ch] text-[13px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_70%,transparent)]">
+              Kiosk makes your marketplace page and adds Trade to your menu. Shops cannot see the page until you
+              list it. Your other formats stay as they are. You cannot turn this off here afterwards; Kiosk
+              support can.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button disabled={busy} onClick={() => void startSupplying()}>
+                {busy ? "Setting up…" : "Become a supplier"}
+              </Button>
+              <Button variant="outline" disabled={busy} onClick={() => setConfirmSupplier(false)}>
+                Not now
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       {SECTIONS.map((section) => {
         const codes = codesBySection(section.key);

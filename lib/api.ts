@@ -17907,3 +17907,35 @@ export async function openSupplierPortalSession(): Promise<{ accessToken: string
     method: "POST",
   });
 }
+
+// ── Shops a supplier supplies, read from inside the supplier's own shop ──────────────────────────
+// The same answers the supplier portal gives, asked with the shop's session.
+
+export type SupplyRestockBoard = import("@/lib/marketplace-api").SupplierPortalRestockBoard;
+export type SupplyMessage = import("@/lib/marketplace-api").SupplierPortalMessageRow;
+export type SupplyMessageShop = import("@/lib/marketplace-api").SupplierPortalMessageShopOption;
+
+export async function fetchSupplyRestockBoard(window: "day" | "week" | "month"): Promise<SupplyRestockBoard> {
+  return request<SupplyRestockBoard>(`/api/v1/supplier-page/supply/restock-board?window=${window}`);
+}
+
+export async function fetchSupplyMessages(): Promise<SupplyMessage[]> {
+  return request<SupplyMessage[]>("/api/v1/supplier-page/supply/messages");
+}
+
+export async function fetchSupplyMessageShops(): Promise<SupplyMessageShop[]> {
+  return request<SupplyMessageShop[]>("/api/v1/supplier-page/supply/messages/shops");
+}
+
+export async function sendSupplyMessage(localSupplierId: string, body: string): Promise<SupplyMessage> {
+  return request<SupplyMessage>("/api/v1/supplier-page/supply/messages", {
+    method: "POST",
+    body: { localSupplierId, body },
+  });
+}
+
+export async function markSupplyMessageRead(messageId: string): Promise<void> {
+  await request<unknown>(`/api/v1/supplier-page/supply/messages/${encodeURIComponent(messageId)}/read`, {
+    method: "POST",
+  });
+}
