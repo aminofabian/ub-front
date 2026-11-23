@@ -147,7 +147,7 @@ function Band({
   return (
     <section
       id={id}
-      className="scroll-mt-28 grid gap-2 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:gap-6"
+      className="scroll-mt-20 grid gap-2 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:gap-6"
     >
       <div className="lg:pt-1">
         <h2 className={cn("text-[1.15rem] font-semibold leading-tight tracking-[-0.03em]", INK)}>
@@ -198,7 +198,10 @@ function TextLink({ href, children }: { href: string; children: string }) {
   return (
     <Link
       href={href}
-      className={cn("text-[12px] font-semibold text-[var(--op-accent)] underline-offset-4 hover:underline", FOCUS)}
+      className={cn(
+        "inline-flex min-h-11 items-center text-[12px] font-semibold text-[var(--op-accent)] underline-offset-4 hover:underline",
+        FOCUS,
+      )}
     >
       {children}
     </Link>
@@ -215,18 +218,23 @@ function JumpBar({
       aria-label="On this page"
       className="sticky top-0 z-10 bg-[var(--op-bg)]"
     >
-      <div className={cn(GRID, "grid-cols-2 overflow-hidden rounded-[2px] border lg:grid-cols-5", RULE)}>
-      {items.map((item, index) => (
+      <div
+        className={cn(
+          "flex gap-px overflow-x-auto rounded-[2px] border bg-[var(--op-rule)]",
+          "lg:grid lg:grid-cols-5 lg:overflow-visible",
+          RULE,
+        )}
+      >
+      {items.map((item) => (
         <a
           key={item.id}
           href={`#${item.id}`}
           onClick={(event) => onJump(event, item.id)}
           className={cn(
-            "flex min-h-11 flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-3 py-2",
-            "hover:bg-[#f4f4f4]",
+            "flex min-h-11 w-[42%] shrink-0 flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-3 py-2",
+            "hover:bg-[#f4f4f4] lg:w-auto lg:shrink",
             SURFACE,
             FOCUS,
-            index === items.length - 1 && "col-span-2 lg:col-span-1",
           )}
         >
           <span className={cn("text-[12px] font-medium", MUTED)}>{item.label}</span>
@@ -257,7 +265,7 @@ function AttentionBand({ data, loading }: OverviewDeskProps) {
       note="Signups that stalled, and threads waiting on the platform."
     >
       <div className={cn(GRID, "lg:grid-cols-[minmax(0,1.45fr)_minmax(14.5rem,0.7fr)]")}>
-        <div id="stuck" className={cn("scroll-mt-28", SURFACE)}>
+        <div id="stuck" className={cn("scroll-mt-20", SURFACE)}>
           <ColumnHead
             title="Stuck signups"
             action={
@@ -418,10 +426,10 @@ function Period({ label, units, detail }: { label: string; units: string; detail
   return (
     <div className={cn("min-w-0 px-3 py-2.5", SURFACE)}>
       <p className={cn("text-[11px] font-medium", MUTED)}>{label}</p>
-      <p className={cn("mt-0.5 truncate text-[1.05rem] font-semibold tabular-nums tracking-[-0.03em]", INK)}>
+      <p className={cn("mt-0.5 text-[1.05rem] font-semibold tabular-nums tracking-[-0.03em]", INK)}>
         {units}
       </p>
-      <p className={cn("mt-0.5 truncate text-[11px]", MUTED)}>{detail}</p>
+      <p className={cn("mt-0.5 text-[11px] leading-snug", MUTED)}>{detail}</p>
     </div>
   );
 }
@@ -489,7 +497,7 @@ function MovingBand({ data, loading }: OverviewDeskProps) {
   return (
     <Band title="Moving" note="Who sold this week, and which SKUs left the shelf.">
       <div className={cn(GRID, "lg:grid-cols-2")}>
-        <div id="hot" className={cn("scroll-mt-28", SURFACE)}>
+        <div id="hot" className={cn("scroll-mt-20", SURFACE)}>
           <ColumnHead title="Hottest tills" meta="7 days" />
           {loading ? <SkeletonRows rows={5} /> : null}
           {!loading && hot.length === 0 ? <EmptyLine>No sales this week yet.</EmptyLine> : null}
@@ -521,7 +529,7 @@ function MovingBand({ data, loading }: OverviewDeskProps) {
             </ul>
           ) : null}
         </div>
-        <div id="sellers" className={cn("scroll-mt-28", SURFACE)}>
+        <div id="sellers" className={cn("scroll-mt-20", SURFACE)}>
           <ColumnHead title="Best sellers" meta="30 days" />
           {loading ? <SkeletonRows rows={5} /> : null}
           {!loading && sellers.length === 0 ? (
@@ -563,7 +571,7 @@ function ShopsBand({ data, loading }: OverviewDeskProps) {
   return (
     <Band id="recent" title="Shops" note="The directory, the newest shops, and the doors off this page.">
       <div className={GRID}>
-        <div id="jump" className={cn(GRID, "scroll-mt-28 grid-cols-2 sm:grid-cols-4")}>
+        <div id="jump" className={cn(GRID, "scroll-mt-20 grid-cols-2 sm:grid-cols-4")}>
           <InlineFact label="Total" value={figure(loading, formatInt(data?.tenants.total))} />
           <InlineFact label="Active" value={figure(loading, formatInt(data?.tenants.active))} />
           <InlineFact label="Inactive" value={figure(loading, formatInt(data?.tenants.inactive))} />
@@ -698,7 +706,7 @@ export function OverviewDesk({ data, loading }: OverviewDeskProps) {
     <div className="flex flex-col gap-6 lg:gap-8">
       <JumpBar items={jumps} />
       <AttentionBand data={data} loading={loading} />
-      <section id="payments" className="scroll-mt-28">
+      <section id="payments" className="scroll-mt-20">
         <PlatformPaymentsLedger
           payments={platformPayments.payments}
           seenAt={platformPayments.seenAt}
