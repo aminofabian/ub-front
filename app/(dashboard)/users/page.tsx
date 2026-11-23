@@ -65,6 +65,7 @@ import {
   type UserDraft,
 } from "./_lib/create-user-draft";
 import { isDepartmentHeadRole } from "@/lib/department-counter";
+import { RolePicker } from "./_components/role-picker";
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
@@ -164,13 +165,6 @@ export default function UsersPage() {
         setUsers(userRows);
         setRoles(roleRows);
         setBranches(branchRows);
-        setDraft((previous) => {
-          const next = { ...previous };
-          if (roleRows.length > 0 && !next.roleId) {
-            next.roleId = roleRows[0].id;
-          }
-          return next;
-        });
         setLoadFailed(false);
         setFeedback(null);
       })
@@ -249,7 +243,8 @@ export default function UsersPage() {
   const resetInviteDraft = useCallback(() => {
     setDraft({
       ...DEFAULT_USER_DRAFT,
-      roleId: roles[0]?.id ?? "",
+      // No role to start with: the first one in a list used to be Owner.
+      roleId: "",
       branchId: isOwner ? "" : (me?.branchId ?? ""),
     });
   }, [roles, isOwner, me?.branchId]);
@@ -264,6 +259,12 @@ export default function UsersPage() {
     }
     setInviteDrawerOpen(open);
   };
+
+  // A link from elsewhere ("Add someone to your team") opens the form straight away.
+  const askedToAdd = searchParams.get("add") === "1";
+  useEffect(() => {
+    if (askedToAdd) setInviteDrawerOpen(true);
+  }, [askedToAdd]);
 
   const openDepartmentAssign = (user: UserRecord) => {
     setDeptAssignUserId(user.id);
@@ -306,6 +307,10 @@ export default function UsersPage() {
 
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!draft.roleId || !roles.some((role) => role.id === draft.roleId)) {
+      setFeedback({ kind: "error", text: "Choose what this person will do." });
+      return;
+    }
     const built = buildCreateUserPayload(draft);
     if (!built.ok) {
       setFeedback({ kind: "error", text: built.error });
@@ -1090,6 +1095,18 @@ export default function UsersPage() {
             onSubmit={onCreateUser}
           >
             <FormDrawerFields
+              legend="What will this person do?"
+              hint="Pick the job. It decides which pages they see and what they can change. You can change it later."
+            >
+              <RolePicker
+                roles={roles}
+                business={business}
+                value={draft.roleId}
+                onChange={(roleId) => setDraft((previous) => ({ ...previous, roleId }))}
+                disabled={creating}
+              />
+            </FormDrawerFields>
+            <FormDrawerFields
               legend="Account"
               hint="Email must be unique in your workspace. Set a password now, email an invite, or give them a PIN for kiosk access."
             >
@@ -1128,28 +1145,6 @@ export default function UsersPage() {
                     autoComplete="email"
                     aria-label="New user email"
                   />
-                </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  Role
-                  <select
-                    className={dashboardSelectClass()}
-                    value={draft.roleId}
-                    onChange={(event) =>
-                      setDraft((previous) => ({
-                        ...previous,
-                        roleId: event.target.value,
-                      }))
-                    }
-                    aria-label="Role for new user"
-                  >
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {isDepartmentHeadRole(role.key)
-                          ? "Department Head"
-                          : role.name}
-                      </option>
-                    ))}
-                  </select>
                 </label>
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Branch

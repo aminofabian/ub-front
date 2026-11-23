@@ -27,7 +27,7 @@ import {
 import { FormDrawer } from "@/components/form-drawer";
 import { useDashboard } from "@/components/dashboard-provider";
 import { fetchCatalogListStats } from "@/lib/api";
-import { isFoodOnlyBusiness, isTableServiceBusiness } from "@/lib/business-store-type";
+import { isFoodOnlyBusiness, isTableServiceBusiness, isWholesaleOnlyBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 import { cashierFirstSaleActivateHref } from "@/lib/first-sale-activate";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
@@ -437,6 +437,7 @@ export function NewMerchantGuideDrawer() {
   const router = useRouter();
   const { business } = useDashboard();
   const businessId = business?.id?.trim() || "no-business";
+  const wholesaleOnly = isWholesaleOnlyBusiness(business);
   const shopName = business?.name?.trim() || "Your shop";
 
   const foodOnly = isFoodOnlyBusiness(business);
@@ -458,6 +459,8 @@ export function NewMerchantGuideDrawer() {
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
+          // A wholesale-only shop has no till to ring: its way in is "Start here" on the trade desk.
+          if (wholesaleOnly) return;
           // Configured shops still missing stock (incl. legacy "completed" empty).
           const state = getOnboardingQuestionnaireState();
           const awaitingStock =
@@ -505,6 +508,7 @@ export function NewMerchantGuideDrawer() {
     onboardingCompletedAt,
     onboardingDismissedAt,
     foodOnly,
+    wholesaleOnly,
   ]);
 
   const close = useCallback(() => {

@@ -43,7 +43,7 @@ describe("supplier portal addresses on a shop", () => {
     });
     expect(shopPortalRouting("yourshop.kiosk.ke", "/supplier-portal/login")).toEqual({
       kind: "redirect",
-      pathname: "/storefront/trade-orders",
+      pathname: "/trade",
     });
     expect(shopPortalRouting("yourshop.kiosk.ke", "/products")).toBeNull();
   });

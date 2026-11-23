@@ -59,6 +59,7 @@ const APP_PATH_PREFIXES = [
   "/suppliers",
   "/supplies",
   "/support",
+  "/trade",
   "/sync-conflicts",
   "/team",
   "/users",

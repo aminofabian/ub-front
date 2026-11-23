@@ -35,7 +35,7 @@ const PORTAL_NAME: Record<string, string> = Object.fromEntries(
 );
 
 /** Where the portal's sign-in sends someone on a shop: back to the trade desk, which opens the portal signed in. */
-const SHOP_SIGN_IN = "/storefront/trade-orders";
+const SHOP_SIGN_IN = "/trade";
 
 function hostnameOnly(host: string | null | undefined): string {
   return (host ?? "").trim().toLowerCase().replace(/:\d+$/, "");

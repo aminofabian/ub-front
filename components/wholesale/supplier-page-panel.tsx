@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CounterOrdersSetting } from "@/components/wholesale/counter-orders-setting";
-import { SupplierNav } from "@/components/wholesale/supplier-nav";
+import { SupplierHeading, SupplierNav } from "@/components/wholesale/supplier-nav";
+import { APP_ROUTES } from "@/lib/config";
 import {
   claimShopSupplierPageUsername,
   fetchShopSupplierPage,
@@ -161,12 +163,12 @@ export function SupplierPagePanel() {
     );
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Your page</h1>
-        <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">
-          What buyers read about you on the Kiosk marketplace, how you are paid, and who works with you.
-        </p>
+        <SupplierHeading
+          title="Your page"
+          purpose="What buyers read about you on the Kiosk marketplace, how you are paid, and who works with you."
+        />
         <div className="mt-4">
           <SupplierNav current="page" />
         </div>
@@ -177,6 +179,9 @@ export function SupplierPagePanel() {
         </p>
       </div>
 
+      {/* The page buyers read on the left; how the business is run on the right. */}
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-6">
       <form
         className="space-y-4"
         onSubmit={(event) => {
@@ -262,7 +267,19 @@ export function SupplierPagePanel() {
           />
         </div>
       </div>
-
+      {page.listed ? null : (
+        <div className="border-t border-foreground/10 pt-4">
+          <Button type="button" disabled={busy} onClick={() => void run(listShopSupplierPage, "Your page is listed")}>
+            List my page on the marketplace
+          </Button>
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
+            Needs a contact phone number and where you deliver. Once listed, the page stays listed; you can hide
+            your prices or contact details instead.
+          </p>
+        </div>
+      )}
+        </div>
+        <div className="min-w-0 space-y-6 lg:border-l lg:border-border lg:pl-10">
       {payout ? (
         <form
           className="space-y-4 border-t border-foreground/10 pt-4"
@@ -292,6 +309,20 @@ export function SupplierPagePanel() {
       ) : null}
 
       <div className="space-y-2 border-t border-foreground/10 pt-4">
+        <h2 className="text-[15px] font-semibold">Your team</h2>
+        <p className="text-[12px] text-muted-foreground">
+          Add a store manager, an order clerk, a cashier or someone for accounts. You pick the job; that decides
+          which pages they see and what they can change.
+        </p>
+        <Link
+          href={`${APP_ROUTES.users}?add=1`}
+          className="inline-flex min-h-11 items-center rounded-[2px] border border-foreground/15 px-3 text-[14px] font-medium text-foreground hover:border-foreground/30 sm:min-h-9"
+        >
+          Add someone to your team
+        </Link>
+      </div>
+
+      <div className="space-y-2 border-t border-foreground/10 pt-4">
         <h2 className="text-[15px] font-semibold">Your supplier portal team</h2>
         <p className="text-[12px] text-muted-foreground">
           Invite the people on your supplier portal into this shop. Each gets an email to set a shop password.
@@ -316,18 +347,8 @@ export function SupplierPagePanel() {
         <h2 className="text-[15px] font-semibold">Selling over the counter</h2>
         <CounterOrdersSetting />
       </div>
-
-      {page.listed ? null : (
-        <div className="border-t border-foreground/10 pt-4">
-          <Button type="button" disabled={busy} onClick={() => void run(listShopSupplierPage, "Your page is listed")}>
-            List my page on the marketplace
-          </Button>
-          <p className="mt-1.5 text-[12px] text-muted-foreground">
-            Needs a contact phone number and where you deliver. Once listed, the page stays listed; you can hide
-            your prices or contact details instead.
-          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

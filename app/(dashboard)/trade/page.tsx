@@ -2,6 +2,6 @@
 
 import { TradeDesk } from "@/components/wholesale/trade-desk";
 
-export default function StorefrontTradeOrdersRoute() {
+export default function TradeDeskRoute() {
   return <TradeDesk />;
 }

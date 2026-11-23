@@ -137,6 +137,10 @@ const cloudOnlyConfig: NextConfig = {
   async redirects() {
     return [
       overviewRedirect,
+      // A supplier's pages moved to short addresses. Old links, bookmarks and notices still open;
+      // the query (?view=orders) is carried over.
+      { source: "/storefront/trade-orders", destination: "/trade", permanent: false },
+      { source: "/storefront/supplier-page", destination: "/trade/your-page", permanent: false },
       // Till Print Bridge downloads were renamed from palmart-* to kiosk-*
       // (Kiosk is the platform). Keep old links, open cashier tabs and help
       // bookmarks working.

@@ -2,6 +2,6 @@
 
 import { SupplierPagePanel } from "@/components/wholesale/supplier-page-panel";
 
-export default function StorefrontSupplierPageRoute() {
+export default function SupplierYourPageRoute() {
   return <SupplierPagePanel />;
 }

@@ -67,7 +67,7 @@ export function SupplierOverviewPanel({ quietWhenOff = false }: { quietWhenOff?:
     void markSupplierMilestonesSeen().catch(() => undefined);
   };
   return (
-    <div className="mt-4 space-y-6 text-[14px]">
+    <div className="space-y-6 text-[14px]">
       {newMilestones.length > 0 ? (
         <section
           aria-label="New"
@@ -118,15 +118,21 @@ export function SupplierOverviewPanel({ quietWhenOff = false }: { quietWhenOff?:
       {data.steps.length > 0 ? (
         <section aria-label="Getting ready">
           <h2 className="font-semibold">Getting ready</h2>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 divide-y divide-border border-y border-border">
             {data.steps.map((step) => (
-              <li key={step.key}>
+              <li key={step.key} className="flex min-h-11 items-center justify-between gap-4 py-2">
                 {step.done ? (
-                  <span>{step.label}: Done</span>
+                  <>
+                    <span className="text-muted-foreground">{step.label}</span>
+                    <span className="shrink-0 text-[13px] text-muted-foreground">Done</span>
+                  </>
                 ) : (
-                  <a href={step.actionUrl} className="underline underline-offset-4">
-                    {step.label}: To do
-                  </a>
+                  <>
+                    <a href={step.actionUrl} className="font-medium underline underline-offset-4">
+                      {step.label}
+                    </a>
+                    <span className="shrink-0 text-[13px] text-foreground">To do</span>
+                  </>
                 )}
               </li>
             ))}

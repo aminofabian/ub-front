@@ -1,6 +1,7 @@
 "use client";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 /**
@@ -10,14 +11,14 @@ import { hasPermission, Permission } from "@/lib/permissions";
  */
 export type SupplierPlace = "today" | "orders" | "money" | "shops" | "page";
 
-const TRADE_DESK = "/storefront/trade-orders";
+const TRADE_DESK = APP_ROUTES.storefrontTradeOrders;
 
 export const SUPPLIER_PLACES: { place: SupplierPlace; label: string; title: string; href: string }[] = [
-  { place: "today", label: "Today", title: "What needs your attention now", href: `${TRADE_DESK}?view=today` },
+  { place: "today", label: "Today", title: "What needs your attention now", href: TRADE_DESK },
   { place: "orders", label: "Orders", title: "Trade orders, from placed to dispatched", href: `${TRADE_DESK}?view=orders` },
   { place: "money", label: "Buyers and money", title: "Buyer accounts, invoices and what is owed", href: `${TRADE_DESK}?view=money` },
   { place: "shops", label: "Shops you supply", title: "The shops that buy from you", href: `${TRADE_DESK}?view=shops` },
-  { place: "page", label: "Your page", title: "Your marketplace page, how you are paid and your team", href: "/storefront/supplier-page" },
+  { place: "page", label: "Your page", title: "Your marketplace page, how you are paid and your team", href: APP_ROUTES.storefrontSupplierPage },
 ];
 
 /** Reads `?view=` once, on arrival from another page. Null when it names nothing known. */
@@ -50,8 +51,9 @@ export function SupplierNav({
       active ? "border-[var(--kiosk-gold,#1D4B3B)] text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
     }`;
 
+  // On a wide screen the side menu lists these same places, so the line would say it twice.
   return (
-    <nav aria-label="Supplier" className="flex gap-5 overflow-x-auto border-b border-border">
+    <nav aria-label="Supplier" className="flex gap-5 overflow-x-auto border-b border-border xl:hidden">
       {places.map((p) => {
         const active = p.place === current;
         const label =
@@ -75,5 +77,15 @@ export function SupplierNav({
         );
       })}
     </nav>
+  );
+}
+
+/** The title of a supplier page and the one line saying what it is for. The same on every one of them. */
+export function SupplierHeading({ title, purpose }: { title: string; purpose?: string }) {
+  return (
+    <header>
+      <h1 className="font-serif text-[1.7rem] leading-tight tracking-tight text-foreground">{title}</h1>
+      {purpose ? <p className="mt-1 max-w-[70ch] text-[13px] text-muted-foreground">{purpose}</p> : null}
+    </header>
   );
 }

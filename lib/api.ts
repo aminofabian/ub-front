@@ -935,6 +935,10 @@ export type RoleRecord = {
   id: string;
   key: string;
   name: string;
+  /** The server's one-line account of the role. */
+  description?: string | null;
+  /** What the role may do; used to say which areas of work it touches. */
+  permissionKeys?: string[] | null;
 };
 
 export type ItemSummaryRecord = {

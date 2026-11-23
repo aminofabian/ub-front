@@ -213,7 +213,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Truck,
     entryHref: APP_ROUTES.storefrontTradeOrders,
     items: [
-      { href: APP_ROUTES.storefrontTradeOrders, label: "Trade desk" },
+      // One page with ?view= places, like Clinic. See isNavItemVisible and itemIsActive.
+      { href: APP_ROUTES.storefrontTradeOrders, label: "Today" },
+      { href: `${APP_ROUTES.storefrontTradeOrders}?view=orders`, label: "Orders" },
+      { href: `${APP_ROUTES.storefrontTradeOrders}?view=money`, label: "Buyers and money" },
+      { href: `${APP_ROUTES.storefrontTradeOrders}?view=shops`, label: "Shops you supply" },
       { href: APP_ROUTES.storefrontSupplierPage, label: "Your page" },
     ],
   },
@@ -1142,7 +1146,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.storefrontWebOrders)
     return gate.canViewStorefrontOrders;
-  if (item.href === APP_ROUTES.storefrontTradeOrders)
+  if (item.href.split("?")[0] === APP_ROUTES.storefrontTradeOrders)
     return gate.isSupplierBusiness && gate.canViewStorefrontOrders;
   if (item.href === APP_ROUTES.storefrontSupplierPage)
     return gate.isSupplierBusiness && gate.canManageBusinessSettings === true;
@@ -1203,6 +1207,12 @@ function itemIsActive(
   if (hrefPath === APP_ROUTES.clinic && !hrefQuery) {
     const tab = live.get("tab");
     return path === hrefPath && (!tab || tab === "today");
+  }
+
+  // The trade desk is one page with ?view= places. The bare path is Today only, and never "Your page".
+  if (hrefPath === APP_ROUTES.storefrontTradeOrders && !hrefQuery) {
+    const view = live.get("view");
+    return path === hrefPath && (!view || view === "today");
   }
 
   // Pharmacy is one page with ?tab= sections. The bare path is its front page only.

@@ -32,6 +32,7 @@ export const AUTH_PROTECTED_PREFIXES = [
   "/analytics",
   "/sales",
   "/storefront",
+  "/trade",
   "/payments",
   "/settings",
   "/sync-conflicts",
