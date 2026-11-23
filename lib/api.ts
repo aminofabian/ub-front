@@ -6317,6 +6317,58 @@ export async function cancelSalesOrder(orderId: string): Promise<SalesOrder> {
   });
 }
 
+/**
+ * Desktop till (trade sync on): answering, dispatching and cancelling are queued on the till and applied
+ * by the online shop on the next sync. Same response shape as the web calls, so the UI flow is identical.
+ */
+const TILL_TRADE = "/api/v1/desktop/trade";
+export async function answerSalesOrderOnTill(
+  orderId: string,
+  lines: { lineId: string; acceptedQty: number }[],
+): Promise<SalesOrder> {
+  return request<SalesOrder>(`${TILL_TRADE}/orders/${encodeURIComponent(orderId.trim())}/answer`, {
+    method: "POST",
+    body: { lines },
+  });
+}
+export async function dispatchSalesOrderOnTill(orderId: string): Promise<SalesOrder> {
+  return request<SalesOrder>(`${TILL_TRADE}/orders/${encodeURIComponent(orderId.trim())}/dispatch`, {
+    method: "POST",
+  });
+}
+export async function cancelSalesOrderOnTill(orderId: string): Promise<SalesOrder> {
+  return request<SalesOrder>(`${TILL_TRADE}/orders/${encodeURIComponent(orderId.trim())}/cancel`, {
+    method: "POST",
+  });
+}
+
+/** Till (trade sync): record a payment; queued and applied by the online shop on the next sync. */
+export async function recordSalesReceiptOnTill(
+  invoiceId: string,
+  body: { amount: number; method: "cash" | "mpesa" | "bank"; reference?: string },
+): Promise<SalesInvoice> {
+  return request<SalesInvoice>(`${TILL_TRADE}/invoices/${encodeURIComponent(invoiceId.trim())}/receipts`, {
+    method: "POST",
+    body: { amount: body.amount, method: body.method, reference: body.reference?.trim() || undefined },
+  });
+}
+
+/** Till (trade sync): approve or change a buyer account; queued and applied online on the next sync. */
+export async function decideTradeAccountOnTill(
+  accountId: string,
+  body: {
+    status: "approved" | "declined" | "suspended";
+    creditLimit: number | null;
+    termsDays: number | null;
+    discountPercent?: number | null;
+  },
+): Promise<void> {
+  await request<void>(`${TILL_TRADE}/accounts/${encodeURIComponent(accountId.trim())}/decision`, {
+    method: "POST",
+    body,
+  });
+}
+
 /** The record a supplier's shop and a buyer's shop share about one order. `lines` and `events` are absent in a list. */
 export type TradeOrder = {
   id: string;

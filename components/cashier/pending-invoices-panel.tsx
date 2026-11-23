@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { CounterOnAccountButton } from "@/components/cashier/counter-on-account-button";
 import { isSupplierBusiness, SUPPLIER_COUNTER_ORDERS_FLAG } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -592,7 +593,8 @@ export function PendingInvoicesPanel({
                       </>
                     );
 
-                    const onAccountButton = canPutOnAccount ? (
+                    // Not on a desktop till: buyer accounts are kept online.
+                    const onAccountButton = canPutOnAccount && !IS_DESKTOP ? (
                       <CounterOnAccountButton invoiceId={inv.id} onDone={() => removeInvoiceById(inv.id)} />
                     ) : null;
                     const voidButton = canCancelInvoices ? (

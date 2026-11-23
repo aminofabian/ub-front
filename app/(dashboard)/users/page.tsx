@@ -18,7 +18,7 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { StaffProfileDrawer } from "@/components/staff/staff-profile-drawer";
 import { Button } from "@/components/ui/button";
 import { showThemedConfirmToast } from "@/components/super-admin/themed-confirm-toast";
@@ -77,9 +77,19 @@ export default function UsersPage() {
   // Every role the server knows. What the screen offers is `roles`, below, narrowed to the
   // formats this shop runs: a chemist is not offered Kitchen staff or Butcher Cashier.
   const [allRoles, setRoles] = useState<RoleRecord[]>([]);
+  const heldRoleIds = useMemo(
+    () => users.flatMap((user) => (user.role?.id ? [user.role.id] : [])),
+    [users],
+  );
+  // People already on the team keep their role in the list, so it can be changed.
+  // Adding someone only offers jobs this shop actually runs.
   const roles = useMemo(
-    () => rolesForBusiness(allRoles, business, users.map((u) => u.role?.id ?? "")),
-    [allRoles, business, users],
+    () => rolesForBusiness(allRoles, business, heldRoleIds),
+    [allRoles, business, heldRoleIds],
+  );
+  const rolesToOffer = useMemo(
+    () => rolesForBusiness(allRoles, business),
+    [allRoles, business],
   );
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState("");
@@ -250,6 +260,7 @@ export default function UsersPage() {
   }, [roles, isOwner, me?.branchId]);
 
   const onInviteDrawerOpenChange = (open: boolean) => {
+    if (open) setFeedback(null);
     if (!open) {
       if (skipInviteDrawerResetAfterCreate.current) {
         skipInviteDrawerResetAfterCreate.current = false;
@@ -1057,7 +1068,13 @@ export default function UsersPage() {
           description="Create the account with a password you choose, an email invite, or a till PIN."
           contextLabel="Team"
           icon={<UserPlus className="size-5 text-primary" aria-hidden />}
-          width="wide"
+          width="large"
+          bodyLayout="fill"
+          banner={
+            feedback?.kind === "error" ? (
+              <FormDrawerMessageBanner text={feedback.text} />
+            ) : null
+          }
           footer={
             <div className="flex flex-wrap justify-end gap-2">
               <Button
@@ -1091,26 +1108,41 @@ export default function UsersPage() {
         >
           <form
             id="invite-user-form"
-            className="space-y-6"
+            className="flex h-[calc(92dvh-13.5rem)] min-h-0 w-full flex-col overflow-hidden sm:h-full sm:min-h-0 sm:flex-1 sm:flex-row"
             onSubmit={onCreateUser}
           >
-            <FormDrawerFields
-              legend="What will this person do?"
-              hint="Pick the job. It decides which pages they see and what they can change. You can change it later."
+            <section
+              aria-labelledby="invite-user-role"
+              className="flex h-[46%] min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-[var(--op-rule)] sm:h-full sm:w-[19.5rem] sm:border-b-0 sm:border-r"
             >
+              <p
+                id="invite-user-role"
+                className="shrink-0 px-4 pb-2 pt-3 text-[11px] font-semibold tracking-tight text-foreground/70"
+              >
+                Role
+              </p>
               <RolePicker
-                roles={roles}
+                roles={rolesToOffer}
                 business={business}
                 value={draft.roleId}
                 onChange={(roleId) => setDraft((previous) => ({ ...previous, roleId }))}
                 disabled={creating}
               />
-            </FormDrawerFields>
-            <FormDrawerFields
-              legend="Account"
-              hint="Email must be unique in your workspace. Set a password now, email an invite, or give them a PIN for kiosk access."
+            </section>
+            <section
+              aria-labelledby="invite-user-account"
+              className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-color:rgba(18,26,22,0.28)_transparent] [scrollbar-width:thin] sm:px-6"
             >
-              <div className="grid gap-3 sm:grid-cols-2">
+              <p
+                id="invite-user-account"
+                className="text-[11px] font-semibold tracking-tight text-foreground/70"
+              >
+                Account
+              </p>
+              <p className="mb-3 mt-1 text-[12px] leading-snug text-muted-foreground">
+                Email must be unique in this workspace.
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Full name
                   <input
@@ -1194,12 +1226,11 @@ export default function UsersPage() {
                 </label>
                 {draft.credentialMethod === "password" ? (
                   <>
+                    <p className="text-[11px] font-normal leading-snug text-muted-foreground md:col-span-2">
+                      At least {MIN_PASSWORD_LENGTH} characters. They can sign in with this right away.
+                    </p>
                     <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                       Password
-                      <span className="font-normal text-muted-foreground/80">
-                        At least {MIN_PASSWORD_LENGTH} characters. They can
-                        sign in with this right away.
-                      </span>
                       <input
                         className={dashboardInputClass()}
                         type="password"
@@ -1237,7 +1268,7 @@ export default function UsersPage() {
                   </>
                 ) : null}
                 {draft.credentialMethod === "pin" ? (
-                  <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground md:col-span-2">
                     PIN{" "}
                     <span className="font-normal text-muted-foreground/80">
                       (4–6 digits, required for PIN login on a branch)
@@ -1259,23 +1290,25 @@ export default function UsersPage() {
                   </label>
                 ) : null}
                 {draft.credentialMethod === "invite" ? (
-                  <p className="sm:col-span-2 rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                  <p className="rounded-none bg-muted/50 px-3 py-2 text-xs text-muted-foreground md:col-span-2">
                     We&apos;ll email this person a secure link to set their own
                     password. They can sign in once they&apos;ve set it.
                   </p>
                 ) : null}
                 {serviceShop ? (
-                  <UserPayFields
-                    pay={pay}
-                    onPayChange={setPay}
-                    joinPayMode={draft.joinPayMode}
-                    onJoinPayModeChange={(joinPayMode) => setDraft((previous) => ({ ...previous, joinPayMode }))}
-                    canSetSalary={canSetSalary}
-                    canSetCommission={canSetCommission}
-                    disabled={creating}
-                  />
+                  <div className="border-t border-[var(--op-rule)] pt-3 md:col-span-2">
+                    <UserPayFields
+                      pay={pay}
+                      onPayChange={setPay}
+                      joinPayMode={draft.joinPayMode}
+                      onJoinPayModeChange={(joinPayMode) => setDraft((previous) => ({ ...previous, joinPayMode }))}
+                      canSetSalary={canSetSalary}
+                      canSetCommission={canSetCommission}
+                      disabled={creating}
+                    />
+                  </div>
                 ) : (
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-2">
+                <label className="flex flex-col gap-1.5 border-t border-[var(--op-rule)] pt-3 text-xs font-medium text-muted-foreground md:col-span-2">
                   First month salary
                   <select
                     className={dashboardSelectClass()}
@@ -1301,7 +1334,7 @@ export default function UsersPage() {
                 </label>
                 )}
               </div>
-            </FormDrawerFields>
+            </section>
           </form>
         </FormDrawer>
       ) : null}

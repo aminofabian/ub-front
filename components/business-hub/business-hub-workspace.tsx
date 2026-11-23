@@ -1304,12 +1304,12 @@ export function BusinessHubWorkspace() {
     if (isSupplierBusiness(business) && hasPermission(me?.permissions, Permission.StorefrontOrdersRead)) {
       supplierLinks.push({
         href: APP_ROUTES.storefrontTradeOrders,
-        label: "Trade desk",
-        hint: "Orders to answer and dispatch",
+        label: IS_DESKTOP ? "Trade orders (online)" : "Trade desk",
+        hint: IS_DESKTOP ? "Answered in your online shop" : "Orders to answer and dispatch",
         icon: Truck,
         group: "Trade",
       });
-      if (canManageBusinessSettings) {
+      if (canManageBusinessSettings && !IS_DESKTOP) {
         supplierLinks.push({
           href: APP_ROUTES.storefrontSupplierPage,
           label: "Your page",

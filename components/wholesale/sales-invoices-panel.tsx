@@ -29,7 +29,20 @@ function money(currency: string, value: number): string {
  * What buyers owe this supplier: an invoice is raised when a trade order is dispatched, and money
  * received is recorded against it here.
  */
-export function SalesInvoicesPanel({ canRecord }: { canRecord: boolean }) {
+export function SalesInvoicesPanel({
+  canRecord,
+  recordReceiptFn = recordSalesReceipt,
+  allowCreditNote = true,
+}: {
+  canRecord: boolean;
+  /** Desktop till: queue the payment for the online shop. */
+  recordReceiptFn?: (
+    invoiceId: string,
+    body: { amount: number; method: "cash" | "mpesa" | "bank"; reference?: string },
+  ) => Promise<SalesInvoice>;
+  /** Desktop till: credit notes are issued online for now. */
+  allowCreditNote?: boolean;
+}) {
   const [unpaidOnly, setUnpaidOnly] = useState(true);
   const [invoices, setInvoices] = useState<SalesInvoice[] | null>(null);
   const [ageing, setAgeing] = useState<ReceivablesAgeing | null>(null);
@@ -101,7 +114,7 @@ export function SalesInvoicesPanel({ canRecord }: { canRecord: boolean }) {
     }
     setBusy(true);
     try {
-      const updated = await recordSalesReceipt(open.id, { amount: value, method, reference });
+      const updated = await recordReceiptFn(open.id, { amount: value, method, reference });
       setOpen(updated);
       setAmount(updated.balance > 0 ? String(updated.balance) : "");
       setReference("");
@@ -186,6 +199,8 @@ export function SalesInvoicesPanel({ canRecord }: { canRecord: boolean }) {
               {busy ? "Saving…" : "Record payment"}
             </Button>
 
+{allowCreditNote ? (
+              <>
             <p className="mt-4 text-[14px] font-medium">Take money off this invoice</p>
             <p className="text-[12px] leading-snug text-muted-foreground">
               For a shortage, goods sent back or a wrong price. It does not put stock back on your shelf.
@@ -201,6 +216,8 @@ export function SalesInvoicesPanel({ canRecord }: { canRecord: boolean }) {
             <Button type="button" variant="outline" disabled={busy} onClick={() => void credit()}>
               Save credit note
             </Button>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

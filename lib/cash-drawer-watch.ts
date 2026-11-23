@@ -1,10 +1,13 @@
 /**
  * Decides whether a change in the printer's drawer switch is a key turn or
- * the pulse the till just sent. The bit itself is not trusted as "open"
- * until a pulse shows which level means open — drawers disagree on polarity.
+ * the pulse the till just sent. The bit is not trusted as "open" until a
+ * pulse shows which level means open, or the pin sits still as shut.
  */
 
 export const DRAWER_KICK_GRACE_MS = 3_000;
+
+/** Identical switch readings before the steady level is treated as shut. */
+const RESTING_SAMPLES = 3;
 
 export const CASH_DRAWER_KICK_ARM_EVENT = "kiosk:cash-drawer-kick-arm";
 export const CASH_DRAWER_KICKED_EVENT = "kiosk:cash-drawer-kicked";
@@ -35,6 +38,8 @@ export type DrawerWatchState = {
   /** The switch went open while a pulse was still in flight. */
   pulseOpen: boolean;
   pulseClosedAt: number | null;
+  /** How many polls in a row have seen the same pin. */
+  restingSamples: number;
 };
 
 export type DrawerWatchEffect =
@@ -74,6 +79,7 @@ export function initialDrawerWatchState(
     lastKickId: null,
     pulseOpen: false,
     pulseClosedAt: null,
+    restingSamples: 0,
   };
 }
 
@@ -172,10 +178,13 @@ export function stepDrawerWatch(
   newId: () => string,
 ): DrawerWatchStep {
   if (state.lastPinHigh === null) {
-    return { state: { ...state, lastPinHigh: sample.pinHigh }, effects: [] };
+    return {
+      state: { ...state, lastPinHigh: sample.pinHigh, restingSamples: 1 },
+      effects: [],
+    };
   }
   if (state.lastPinHigh === sample.pinHigh) {
-    return { state, effects: [] };
+    return { state: noteResting(state, sample.now), effects: [] };
   }
   return pinChanged(state, sample, newId);
 }
@@ -199,16 +208,27 @@ function pinChanged(
   newId: () => string,
 ): DrawerWatchStep {
   const level: DrawerOpenLevel = sample.pinHigh ? "high" : "low";
-  const next: DrawerWatchState = { ...state, lastPinHigh: sample.pinHigh };
+  const next: DrawerWatchState = { ...state, lastPinHigh: sample.pinHigh, restingSamples: 1 };
   const kickRecent = isRecentKick(state, sample.now);
-  if (next.openLevel == null) {
-    if (!kickRecent) return { state: next, effects: [] };
-    next.openLevel = level;
-  }
+  if (next.openLevel == null && !kickRecent) return { state: next, effects: [] };
+  if (kickRecent || next.openLevel == null) next.openLevel = level;
   if (level === next.openLevel) {
     return markOpened(next, kickRecent, sample.now, newId);
   }
   return markClosed(next, sample.now);
+}
+
+/** The pin that sits still is the drawer shut. The other level is open. */
+function noteResting(state: DrawerWatchState, now: number): DrawerWatchState {
+  const restingSamples = Math.min(state.restingSamples + 1, RESTING_SAMPLES);
+  const stillLearning =
+    state.openLevel != null ||
+    isRecentKick(state, now) ||
+    restingSamples < RESTING_SAMPLES ||
+    state.lastPinHigh == null;
+  if (stillLearning) return { ...state, restingSamples };
+  const openLevel: DrawerOpenLevel = state.lastPinHigh ? "low" : "high";
+  return { ...state, restingSamples, openLevel };
 }
 
 function markOpened(
@@ -227,11 +247,30 @@ function markOpened(
   if (kickRecent) {
     return { state: { ...state, pulseOpen: true }, effects: [] };
   }
-  if (state.sensorOpenId) return { state, effects: [] };
+  if (state.sensorOpenId) return reopen(state, now, newId);
   const clientEventId = newId();
   return {
     state: { ...state, sensorOpenId: clientEventId },
     effects: [{ type: "open", source: "KEY", clientEventId, openedAt: now }],
+  };
+}
+
+/** The drawer shut without a reading, then opened again. Keep both. */
+function reopen(state: DrawerWatchState, now: number, newId: () => string): DrawerWatchStep {
+  const previous = state.sensorOpenId;
+  const clientEventId = newId();
+  if (!previous) {
+    return {
+      state: { ...state, sensorOpenId: clientEventId },
+      effects: [{ type: "open", source: "KEY", clientEventId, openedAt: now }],
+    };
+  }
+  return {
+    state: { ...state, sensorOpenId: clientEventId },
+    effects: [
+      { type: "close", clientEventId: previous, closedAt: now },
+      { type: "open", source: "KEY", clientEventId, openedAt: now },
+    ],
   };
 }
 

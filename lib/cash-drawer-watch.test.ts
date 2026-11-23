@@ -77,6 +77,18 @@ describe("stepDrawerWatch", () => {
     ]);
   });
 
+  it("records a key once the drawer has sat shut, with no sale and no pulse", () => {
+    const nextId = idFactory();
+    let state = watch();
+    state = stepDrawerWatch(state, { pinHigh: false, now: 1_000 }, nextId).state;
+    state = stepDrawerWatch(state, { pinHigh: false, now: 2_000 }, nextId).state;
+    state = stepDrawerWatch(state, { pinHigh: false, now: 3_000 }, nextId).state;
+    expect(state.openLevel).toBe("high");
+
+    const opened = stepDrawerWatch(state, { pinHigh: true, now: 4_000 }, nextId);
+    expect(opened.effects[0]).toMatchObject({ type: "open", source: "KEY", openedAt: 4_000 });
+  });
+
   it("records a key when the switch opens with no recent pulse", () => {
     const state = watch({
       openLevel: "high",
@@ -93,6 +105,18 @@ describe("stepDrawerWatch", () => {
       source: "KEY",
       openedAt: 1_000 + DRAWER_KICK_GRACE_MS + 1,
     });
+  });
+
+  it("records a later key when the previous opening never reported a close", () => {
+    const state = watch({
+      openLevel: "high",
+      lastPinHigh: false,
+      sensorOpenId: "still-open",
+      restingSamples: 1,
+    });
+    const step = stepDrawerWatch(state, { pinHigh: true, now: 9_000 }, idFactory());
+    expect(step.effects.map((effect) => effect.type)).toEqual(["close", "open"]);
+    expect(step.effects[1]).toMatchObject({ type: "open", source: "KEY" });
   });
 
   it("keeps a switch movement when the pulse is refused", () => {

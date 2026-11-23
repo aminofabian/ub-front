@@ -105,7 +105,7 @@ export function ShopHeaderBar({
               variant="storefront"
               size="sm"
               href={APP_ROUTES.shop}
-              className="min-w-0 shrink lg:hidden"
+              className="min-w-0 flex-1 lg:hidden"
             />
             <StorefrontEditableLogo
               brand={headerTitle}
@@ -117,7 +117,7 @@ export function ShopHeaderBar({
               className="hidden shrink-0 self-center lg:inline-flex"
             />
 
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-0.5 lg:hidden">
+            <div className="flex shrink-0 items-center justify-end gap-0.5 lg:hidden">
               {slug ? (
                 <Link
                   href={APP_ROUTES.shopperPwa(slug)}

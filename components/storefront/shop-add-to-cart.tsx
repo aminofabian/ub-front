@@ -221,7 +221,7 @@ export default function ShopAddToCart({
               <button
                 type="button"
                 onClick={() => void adjustCart(-step)}
-                className="flex size-7 items-center justify-center rounded-md text-sm hover:bg-muted"
+                className="flex h-full min-w-10 items-center justify-center rounded-md text-base leading-none transition-colors hover:bg-muted disabled:opacity-50"
                 disabled={busy}
                 aria-label="Decrease quantity"
               >
@@ -230,7 +230,7 @@ export default function ShopAddToCart({
               <button
                 type="button"
                 onClick={() => void adjustCart(step)}
-                className="flex size-7 items-center justify-center rounded-md text-sm hover:bg-muted"
+                className="flex h-full min-w-10 items-center justify-center rounded-md text-base leading-none transition-colors hover:bg-muted disabled:opacity-50"
                 disabled={busy}
                 aria-label="Increase quantity"
               >
@@ -284,7 +284,7 @@ export default function ShopAddToCart({
         {weighed ? qtyControls : null}
         <div className="flex w-full items-center gap-3">
           {!weighed ? (
-            <div className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-background px-2">
+            <div className="flex h-11 items-center gap-0.5 rounded-xl border border-border/60 bg-background px-1">
               <button
                 type="button"
                 onClick={() =>
@@ -292,8 +292,9 @@ export default function ShopAddToCart({
                     ? void adjustCart(-1)
                     : setPickQty((q) => Math.max(1, q - 1))
                 }
-                className="flex size-7 items-center justify-center rounded-lg text-sm hover:bg-muted"
+                className="flex h-full min-w-10 items-center justify-center rounded-lg text-base leading-none transition-colors hover:bg-muted disabled:opacity-50"
                 disabled={busy || (!inCart && pickQty <= 1)}
+                aria-label="Decrease quantity"
               >
                 −
               </button>
@@ -305,8 +306,9 @@ export default function ShopAddToCart({
                 onClick={() =>
                   inCart ? void adjustCart(1) : setPickQty((q) => q + 1)
                 }
-                className="flex size-7 items-center justify-center rounded-lg text-sm hover:bg-muted"
+                className="flex h-full min-w-10 items-center justify-center rounded-lg text-base leading-none transition-colors hover:bg-muted disabled:opacity-50"
                 disabled={busy}
+                aria-label="Increase quantity"
               >
                 +
               </button>

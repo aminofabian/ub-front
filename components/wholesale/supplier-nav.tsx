@@ -32,19 +32,24 @@ export function SupplierNav({
   current,
   onSelect,
   waiting,
+  hidePage = false,
 }: {
   current: SupplierPlace;
   /** On the trade desk the places are views of one page, so choosing one does not reload it. */
   onSelect?: (place: SupplierPlace) => void;
   /** Orders waiting for the supplier's answer, shown beside "Orders" when there are any. */
   waiting?: number;
+  /** Desktop till: the marketplace page is managed online, so its tab is left off. */
+  hidePage?: boolean;
 }) {
   const { me } = useDashboard();
   const canSeeMoney = hasPermission(me?.permissions, Permission.CreditsCustomersRead);
   const canManagePage = hasPermission(me?.permissions, Permission.BusinessManageSettings);
 
   const places = SUPPLIER_PLACES.filter(
-    (p) => (p.place !== "money" || canSeeMoney) && (p.place !== "page" || canManagePage),
+    (p) =>
+      (p.place !== "money" || canSeeMoney) &&
+      (p.place !== "page" || (canManagePage && !hidePage)),
   );
   const tab = (active: boolean) =>
     `-mb-px inline-flex min-h-11 items-center whitespace-nowrap border-b-2 px-1 text-[14px] font-medium ${

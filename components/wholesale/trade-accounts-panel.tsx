@@ -143,7 +143,20 @@ function AccountPrices({ accountId }: { accountId: string }) {
  * Buyers who asked this supplier for an account. Approving one marks that buyer's later orders as
  * "on account". The phone number is not verified, so this is the supplier's own note about a buyer.
  */
-export function TradeAccountsPanel({ canDecide }: { canDecide: boolean }) {
+export function TradeAccountsPanel({
+  canDecide,
+  decideFn = decideTradeAccount,
+  hidePrices = false,
+}: {
+  canDecide: boolean;
+  /** Desktop till: queue the decision for the online shop. */
+  decideFn?: (
+    accountId: string,
+    body: { status: "approved" | "declined" | "suspended"; creditLimit: number | null; termsDays: number | null; discountPercent?: number | null },
+  ) => Promise<unknown>;
+  /** Desktop till: per-buyer price lists are managed online. */
+  hidePrices?: boolean;
+}) {
   const [accounts, setAccounts] = useState<TradeAccount[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -183,7 +196,7 @@ export function TradeAccountsPanel({ canDecide }: { canDecide: boolean }) {
     }
     setBusy(true);
     try {
-      await decideTradeAccount(account.id, { status, creditLimit, termsDays });
+      await decideFn(account.id, { status, creditLimit, termsDays });
       setEditing(null);
       load();
     } catch (error) {
@@ -226,7 +239,7 @@ export function TradeAccountsPanel({ canDecide }: { canDecide: boolean }) {
                 {a.buyerVerified ? " · shop verified by staff sign-in" : " · phone number only"}
               </p>
               {a.note ? <p className="mt-1 text-[13px] text-foreground">{a.note}</p> : null}
-              {a.buyerVerified && a.status === "approved" && canDecide ? <AccountPrices accountId={a.id} /> : null}
+              {a.buyerVerified && a.status === "approved" && canDecide && !hidePrices ? <AccountPrices accountId={a.id} /> : null}
             </div>
             {canDecide && editing !== a.id ? (
               <Button

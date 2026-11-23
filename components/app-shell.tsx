@@ -842,7 +842,6 @@ const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
   APP_ROUTES.promoCampaigns,
   APP_ROUTES.businessDomains,
   APP_ROUTES.storefrontWebOrders,
-  APP_ROUTES.storefrontTradeOrders,
   APP_ROUTES.purchasingTradeOrders,
   APP_ROUTES.onlineAirtime,
 ];
@@ -1146,10 +1145,14 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.storefrontWebOrders)
     return gate.canViewStorefrontOrders;
-  if (item.href.split("?")[0] === APP_ROUTES.storefrontTradeOrders)
+  if (item.href.split("?")[0] === APP_ROUTES.storefrontTradeOrders) {
+    // The desktop till keeps one Trade page, which says the work is done online and where. The places
+    // themselves (orders, buyers, shops) are not on a till: their data is not copied to it.
+    if (IS_DESKTOP && item.href.includes("?")) return false;
     return gate.isSupplierBusiness && gate.canViewStorefrontOrders;
+  }
   if (item.href === APP_ROUTES.storefrontSupplierPage)
-    return gate.isSupplierBusiness && gate.canManageBusinessSettings === true;
+    return !IS_DESKTOP && gate.isSupplierBusiness && gate.canManageBusinessSettings === true;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
   if (item.href === APP_ROUTES.grocery) {
@@ -1672,7 +1675,19 @@ export function AppShell({ children }: AppShellProps) {
     const trimmed = trimNavForFoodOnly(trimNavForServiceOnly(permitted, serviceOnlyShop), foodLedShop, foodTableService);
     // A shop that only sells wholesale has no till, no shifts and no customer tabs: its buyers have
     // trade accounts under Trade. Leaving those sections out is what stops it reading as a mini mart.
-    return isWholesaleOnlyBusiness(business) && !IS_DESKTOP
+    if (IS_DESKTOP) {
+      // On the till the Trade section is one page that points online; its name says so.
+      return trimmed.map((section) =>
+        section.id === "supplier"
+          ? {
+              ...section,
+              blurb: "Answered in your online shop, not on this till",
+              items: section.items.map((item) => ({ ...item, label: "Trade orders (online)" })),
+            }
+          : section,
+      );
+    }
+    return isWholesaleOnlyBusiness(business)
       ? trimmed
           .filter((section) => !WHOLESALE_ONLY_HIDDEN_SECTIONS.includes(section.id))
           .map((section) => {

@@ -2,24 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Check,
-  Loader2,
-  Package,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Loader2, Package, RefreshCw } from "lucide-react";
 
-import {
-  BillingPeriodToggle,
-  BillingUsageMeter,
-  formatBillingMoney,
-} from "@/components/billing/billing-ui";
+import { formatBillingMoney } from "@/components/billing/billing-ui";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { FormDrawer } from "@/components/form-drawer";
 import { SubscriptionRenewalForm } from "@/components/subscription-renewal-form";
 import { Button } from "@/components/ui/button";
+import { useSubscriptionBillingStatus } from "@/hooks/use-subscription-billing-status";
 import {
   fetchSubscriptionBillingStatus,
   fetchSubscriptionPlans,
@@ -28,9 +18,11 @@ import {
   type SubscriptionPlanRecord,
   type SubscriptionRenewalQuoteRecord,
 } from "@/lib/api";
+import { clearLoginBillingGate, getLoginBillingGate } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { SUBSCRIPTION_BLOCKED_EVENT } from "@/lib/subscription-events";
 import { formatPlanCount, formatPlanMoney, isPlanDowngrade, planFitsUsage } from "@/lib/subscription-plan-fit";
 import { cn } from "@/lib/utils";
 
@@ -83,23 +75,60 @@ function planLimits(plan: SubscriptionPlanRecord): string {
   return `${products} · ${people} · ${revenue}`;
 }
 
-const STATUS_COPY: Record<
-  SubscriptionBillingStatusRecord["status"],
-  { label: string; tone: string }
-> = {
-  ACTIVE: {
-    label: "Active",
-    tone: "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
-  },
-  GRACE: {
-    label: "In grace",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100",
-  },
-  SUSPENDED: {
-    label: "Paused",
-    tone: "border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-200",
-  },
-};
+function UsageLine({
+  label,
+  used,
+  limit,
+  money = false,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  money?: boolean;
+}) {
+  const unlimited = limit == null;
+  const over = !unlimited && used > limit;
+  const pct = unlimited
+    ? 0
+    : Math.min(100, (used / Math.max(1, limit)) * 100);
+  const usedLabel = money
+    ? formatBillingMoney(Math.round(used))
+    : used.toLocaleString("en-KE");
+  const capLabel = unlimited
+    ? "unlimited"
+    : money
+      ? formatBillingMoney(limit)
+      : limit.toLocaleString("en-KE");
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="text-[var(--op-ink)]">{label}</span>
+        <span className="text-[var(--op-muted)]">
+          <b
+            className={cn(
+              "font-semibold tabular-nums",
+              over ? "text-[var(--op-highlight)]" : "text-[var(--op-ink)]",
+            )}
+          >
+            {usedLabel}
+          </b>
+          {" / "}
+          {capLabel}
+        </span>
+      </div>
+      <div className="h-0.5 bg-[var(--op-rule)]">
+        <div
+          className={cn(
+            "h-full",
+            over ? "bg-[var(--op-highlight)]" : "bg-[var(--op-accent)]",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 function PackageCard({
   plan,
@@ -124,6 +153,17 @@ function PackageCard({
 }) {
   const price = planPrice(plan, periodMonths);
   const disabled = downgrade || (!fits && plan.tierCode !== "enterprise");
+  const tag = current
+    ? "Current"
+    : downgrade
+      ? "Lower"
+      : !fits && plan.tierCode !== "enterprise"
+        ? "Too small"
+        : recommended
+          ? "Fits"
+          : upgrade
+            ? "Upgrade"
+            : null;
 
   return (
     <button
@@ -132,83 +172,60 @@ function PackageCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        "relative flex h-full w-full flex-col gap-2 rounded-xl border p-3 text-left transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "flex w-full min-h-11 items-center gap-3.5 border px-3.5 py-3 text-left text-[var(--op-ink)]",
+        "rounded-[2px] transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--op-accent)]/35",
         selected
-          ? "border-primary/45 bg-primary/[0.055]"
-          : "border-border/60 bg-muted/10 hover:border-border hover:bg-muted/20",
-        disabled && "cursor-not-allowed opacity-55 hover:bg-muted/10",
+          ? "border-[var(--op-accent)] bg-[var(--op-accent-soft)] shadow-[inset_2px_0_0_var(--op-accent)]"
+          : "border-[var(--op-rule)] bg-[var(--op-surface)] hover:border-[color-mix(in_srgb,var(--op-ink)_22%,transparent)]",
+        disabled && "cursor-not-allowed opacity-55",
       )}
     >
-      <span className="flex items-start justify-between gap-2">
-        <span className="min-w-0">
-          <span className="flex flex-wrap items-center gap-1.5">
-            <span className="font-heading text-[13px] font-semibold tracking-[-0.015em] text-foreground">
-              {plan.displayName}
-            </span>
-            {current ? (
-              <span className="rounded-full border border-border/70 bg-background px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Current
-              </span>
-            ) : null}
-            {downgrade ? (
-              <span className="rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Lower package
-              </span>
-            ) : null}
-            {recommended && !current && !downgrade ? (
-              <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-primary">
-                Fits this shop
-              </span>
-            ) : null}
-            {upgrade && !current ? (
-              <span className="rounded-full border border-emerald-600/25 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-emerald-800 dark:text-emerald-200">
-                Upgrade
-              </span>
-            ) : null}
-          </span>
-          <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">
-            {planLimits(plan)}
-          </span>
-        </span>
-        <span className="shrink-0 text-right">
-          <span className="block text-[13px] font-semibold tabular-nums text-foreground">
-            {price.amount}
-          </span>
-          {price.suffix ? (
-            <span className="block text-[10px] font-medium text-muted-foreground">
-              {price.suffix}
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
+          selected
+            ? "border-[var(--op-accent)] bg-[var(--op-accent)]"
+            : "border-[var(--op-faint)] bg-[var(--op-surface)]",
+        )}
+        aria-hidden
+      >
+        <span
+          className={cn(
+            "size-2 rounded-full bg-white",
+            selected ? "opacity-100" : "opacity-0",
+          )}
+        />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[15px] font-semibold">{plan.displayName}</span>
+          {tag ? (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                current
+                  ? "bg-[var(--op-accent-soft)] text-[var(--op-accent)]"
+                  : "bg-[var(--op-bg)] text-[var(--op-muted)]",
+              )}
+            >
+              {tag}
             </span>
           ) : null}
         </span>
-      </span>
-
-      {!fits && !downgrade && plan.tierCode !== "enterprise" ? (
-        <span className="text-[10.5px] font-medium text-red-700 dark:text-red-300">
-          Too small for this shop
+        <span className="text-[12.5px] leading-snug text-[var(--op-muted)]">
+          {planLimits(plan)}
         </span>
-      ) : null}
-
-      <span
-        className={cn(
-          "mt-auto flex items-center gap-1 text-[10.5px] font-semibold",
-          selected ? "text-primary" : "text-muted-foreground",
-        )}
-      >
-        {downgrade ? (
-          "Downgrades are not available"
-        ) : selected ? (
-          <>
-            <Check className="size-3" strokeWidth={2.75} aria-hidden />
-            Selected
-          </>
-        ) : disabled ? (
-          "Not available"
-        ) : upgrade ? (
-          "Upgrade to this package"
-        ) : (
-          "Renew this package"
-        )}
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="block text-[15px] font-semibold tabular-nums">
+          {price.amount}
+        </span>
+        {price.suffix ? (
+          <span className="block text-xs text-[var(--op-muted)]">
+            {price.suffix === "/yr" ? "/year" : "/month"}
+          </span>
+        ) : null}
       </span>
     </button>
   );
@@ -217,9 +234,12 @@ function PackageCard({
 function ChoosePackageDrawer({
   open,
   onOpenChange,
+  locked = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Unpaid shop: the back office stays behind this panel until payment lands. */
+  locked?: boolean;
 }) {
   const dashboard = useOptionalDashboard();
   const [status, setStatus] = useState<SubscriptionBillingStatusRecord | null>(
@@ -378,110 +398,191 @@ function ChoosePackageDrawer({
     plans.length > 0 &&
     plans.every((plan) => plan.sortOrder <= currentSortOrder);
   const paidThrough = formatPeriodEnd(status?.currentPeriodEnd);
-  const statusCopy = status ? STATUS_COPY[status.status] : null;
+  const expired =
+    locked || status?.status === "SUSPENDED" || Boolean(status?.accessBlocked);
+  const heading = expired ? "Your plan has expired" : "Choose a package";
+  const paidLine = paidThrough
+    ? expired
+      ? `Ended ${paidThrough}`
+      : `Paid through ${paidThrough}`
+    : "No paid period on file yet";
+  const renewingCurrent = Boolean(selectedPlan && selectedPlan.tierCode === currentTier);
+  const summaryTitle = selectedPlan
+    ? `${renewingCurrent ? "Renew" : "Upgrade to"} ${selectedPlan.displayName}`
+    : "Choose a package";
+  const summaryMeta =
+    periodMonths === 12 ? "12 months, pay for 10 · M-Pesa STK" : "1 month · M-Pesa STK";
+  const quoted =
+    quote != null && quote.tier === selectedTier && quote.periodMonths === periodMonths;
+  const summaryTotal = quoted
+    ? formatBillingMoney(quote.amountKes, quote.currency)
+    : selectedPlan
+      ? planPrice(selectedPlan, periodMonths).amount
+      : "";
+  const badge = expired
+    ? { label: "Expired", className: "text-[var(--op-highlight)]" }
+    : status?.status === "GRACE"
+      ? { label: "In grace", className: "text-[var(--op-highlight)]" }
+      : { label: "Active", className: "text-[var(--op-accent)]" };
+  const payFooter =
+    status?.billingEnabled && !talkToUs && selectedPlan ? (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="font-medium text-[var(--op-ink)]">{summaryTitle}</p>
+            <p className="text-[13px] text-[var(--op-muted)]">{summaryMeta}</p>
+          </div>
+          <p className="text-[1.65rem] font-medium tabular-nums leading-none text-[var(--op-ink)]">
+            {summaryTotal}
+          </p>
+        </div>
+        {quoteLoading ? (
+          <div className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--op-muted)]">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Working out the amount…
+          </div>
+        ) : !selectedFits ? (
+          <p className="text-sm leading-relaxed text-[var(--op-muted)]">
+            {selectedPlan.displayName} is still too small for this shop. Pick
+            the package that fits.
+          </p>
+        ) : quote &&
+          quote.tier === selectedTier &&
+          quote.periodMonths === periodMonths ? (
+          <SubscriptionRenewalForm
+            quote={quote}
+            canPay={canPay}
+            presentation="bar"
+            note="The new period starts when payment lands. Days already paid for are added on."
+          />
+        ) : (
+          <p className="text-sm text-[var(--op-muted)]">
+            Could not load a price for {selectedPlan.displayName}. Try again.
+          </p>
+        )}
+      </div>
+    ) : null;
 
   return (
     <FormDrawer
       open={open}
-      onOpenChange={onOpenChange}
-      title="Choose a package"
-      description="Pick a bigger package and pay with M-Pesa. We highlight the one that fits your catalog, team, and daily sales — packages only move up."
-      contextLabel="Plan & billing"
-      icon={<Package className="size-4" aria-hidden />}
-      headerDensity="compact"
-      width="wide"
-      banner={
-        error ? (
-          <div className="flex items-start gap-2.5 border border-destructive/35 bg-destructive/[0.06] px-3 py-2.5 text-[12px] leading-snug text-destructive">
-            <p className="min-w-0 flex-1">{error}</p>
-            <Button
-              type="button"
-              size="xs"
-              variant="outline"
-              onClick={() => setReloadKey((key) => key + 1)}
-            >
-              <RefreshCw className="size-3" aria-hidden />
-              Retry
-            </Button>
-          </div>
-        ) : null
+      onOpenChange={(next) => {
+        if (locked && !next) return;
+        onOpenChange(next);
+      }}
+      dismissible={!locked}
+      title={heading}
+      description={
+        expired
+          ? "Renew below to open the back office. Selling stays open while you pay."
+          : "Pick a package and pay with M-Pesa. Packages only move up."
       }
+      footer={payFooter}
     >
+      {error ? (
+        <div className="flex items-start gap-2.5 border border-[color-mix(in_srgb,var(--op-highlight)_35%,transparent)] px-3 py-2.5 text-[13px] leading-snug text-[var(--op-highlight)]">
+          <p className="min-w-0 flex-1">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] px-2 text-xs font-medium text-[var(--op-ink)]"
+          >
+            <RefreshCw className="size-3" aria-hidden />
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       {loading && !status ? (
-        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[var(--op-muted)]">
           <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading your packages…
+          Loading your plan…
         </div>
       ) : status ? (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border/60 bg-muted/15 p-3.5">
-            <div className="flex flex-wrap items-start justify-between gap-2">
+        <>
+          {expired ? (
+            <div className="flex flex-col gap-3 border border-[color-mix(in_srgb,var(--op-highlight)_28%,transparent)] bg-[color-mix(in_srgb,var(--op-highlight)_7%,var(--op-surface))] px-3.5 py-3">
+              <p className="text-sm leading-relaxed text-[var(--op-ink)]">
+                Keep selling from the till or the clerk. The back office opens
+                again once this plan is renewed.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={APP_ROUTES.cashier}
+                  className="flex min-h-11 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-sm font-medium text-[var(--op-ink)]"
+                >
+                  Open the till
+                </Link>
+                <Link
+                  href={APP_ROUTES.clerk}
+                  className="flex min-h-11 items-center justify-center rounded-[2px] border border-[var(--op-rule)] bg-[var(--op-surface)] text-sm font-medium text-[var(--op-ink)]"
+                >
+                  Open the clerk
+                </Link>
+              </div>
+            </div>
+          ) : null}
+
+          <section aria-label="Current package" className="flex flex-col gap-4">
+            <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Current package
-                </p>
-                <p className="mt-0.5 font-heading text-lg font-semibold tracking-[-0.02em] text-foreground">
+                <p
+                  className="truncate text-[1.7rem] font-normal leading-none tracking-[-0.02em] text-[var(--op-ink)]"
+                  style={{
+                    fontFamily:
+                      'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                  }}
+                >
                   {status.tierDisplayName?.trim() || status.tier}
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {paidThrough
-                    ? `Paid through ${paidThrough}`
-                    : "No paid period on file yet"}
-                </p>
+                <p className="mt-1.5 text-sm text-[var(--op-muted)]">{paidLine}</p>
               </div>
-              {statusCopy ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.1em]",
-                    statusCopy.tone,
-                  )}
-                >
-                  {statusCopy.label}
-                </span>
-              ) : null}
+              <span
+                className={cn(
+                  "shrink-0 text-[13px] font-medium",
+                  badge.className,
+                )}
+              >
+                {badge.label}
+              </span>
             </div>
-
             {fit ? (
-              <div className="mt-3 grid gap-3 border-t border-border/50 pt-3 sm:grid-cols-3">
-                <BillingUsageMeter
+              <div className="flex flex-col gap-3.5 border-t border-[var(--op-rule)] pt-4">
+                <UsageLine
                   label="Products"
                   used={fit.productCount}
                   limit={fit.productLimit}
-                  unit="products"
                 />
-                <BillingUsageMeter
+                <UsageLine
                   label="People"
                   used={fit.userCount}
                   limit={fit.userLimit}
-                  unit="people"
                 />
-                <BillingUsageMeter
-                  label="Daily sales (KES)"
+                <UsageLine
+                  label="Daily sales"
                   used={Math.round(fit.dailyRevenueKes ?? 0)}
                   limit={fit.dailyRevenueLimit}
-                  unit="KES/day"
+                  money
                 />
               </div>
             ) : null}
-
             {fit?.needsUpgrade && fit.reasons[0] ? (
-              <p className="mt-2.5 flex items-start gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-2.5 py-2 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
-                <Sparkles className="mt-0.5 size-3 shrink-0" aria-hidden />
+              <p className="text-[13px] leading-snug text-[var(--op-highlight)]">
                 {fit.reasons[0]}
               </p>
             ) : null}
-          </div>
+          </section>
 
           {!status.billingEnabled ? (
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-4">
-              <p className="text-sm font-medium text-foreground">
-                Online package changes are not enabled yet
+            <div className="border-t border-[var(--op-rule)] pt-5">
+              <p className="text-sm font-medium text-[var(--op-ink)]">
+                Online renewals are not switched on yet
               </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                Talk to us and we will switch this shop to the package you
-                want. Your current access is unchanged.
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--op-muted)]">
+                Talk to us and we will renew this shop. Nothing else changes
+                until then.
               </p>
-              <Button type="button" size="sm" className="mt-3" asChild>
+              <Button type="button" size="sm" className="mt-3 rounded-[2px]" asChild>
                 <Link href={APP_ROUTES.support}>
                   Talk to us
                   <ArrowRight className="size-3.5" aria-hidden />
@@ -489,123 +590,123 @@ function ChoosePackageDrawer({
               </Button>
             </div>
           ) : (
-            <>
-              {plans.length > 0 ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {plans.map((plan) => (
-                    <PackageCard
-                      key={plan.tierCode}
-                      plan={plan}
-                      periodMonths={periodMonths}
-                      selected={plan.tierCode === selectedTier}
-                      current={plan.tierCode === currentTier}
-                      recommended={
-                        plan.tierCode === recommendedTier && Boolean(fit?.needsUpgrade)
-                      }
-                      upgrade={
-                        currentSortOrder != null &&
-                        plan.sortOrder > currentSortOrder
-                      }
-                      downgrade={isPlanDowngrade(
-                        plan.sortOrder,
-                        currentSortOrder,
-                      )}
-                      fits={planFitsUsage(
-                        plan.productLimit,
-                        plan.cashierLimit,
-                        productCount,
-                        userCount,
-                        plan.dailyRevenueLimitKes,
-                        dailyRevenue,
-                      )}
-                      onSelect={() => setSelectedTier(plan.tierCode)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No packages are published yet. Talk to us and we will set one
-                  up for this shop.
-                </p>
+            <section
+              aria-label="Choose a package"
+              className="flex flex-col gap-3 border-t border-[var(--op-rule)] pt-5"
+            >
+              <h3 className="text-[15px] font-medium text-[var(--op-ink)]">
+                {expired ? "Renew a package" : "Choose a package"}
+              </h3>
+              <div className="grid grid-cols-2 border border-[var(--op-rule)]">
+                <button
+                  type="button"
+                  aria-pressed={periodMonths === 1}
+                  onClick={() => setPeriodMonths(1)}
+                  className={cn(
+                    "h-11 text-sm font-medium",
+                    periodMonths === 1
+                      ? "bg-[var(--op-accent)] text-[var(--op-surface)]"
+                      : "bg-transparent text-[var(--op-ink)]",
+                  )}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={periodMonths === 12}
+                  onClick={() => setPeriodMonths(12)}
+                  className={cn(
+                    "flex h-11 items-center justify-center gap-2 border-l border-[var(--op-rule)] text-sm font-medium",
+                    periodMonths === 12
+                      ? "border-transparent bg-[var(--op-accent)] text-[var(--op-surface)]"
+                      : "bg-transparent text-[var(--op-ink)]",
+                  )}
+                >
+                  Annual
+                  <span
+                    className={cn(
+                      "text-[11px] font-medium",
+                      periodMonths === 12
+                        ? "text-[color-mix(in_srgb,var(--op-surface)_78%,transparent)]"
+                        : "text-[var(--op-accent)]",
+                    )}
+                  >
+                    2 months free
+                  </span>
+                </button>
+              </div>
+
+                  {plans.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {plans.map((plan) => (
+                        <PackageCard
+                          key={plan.tierCode}
+                          plan={plan}
+                          periodMonths={periodMonths}
+                          selected={plan.tierCode === selectedTier}
+                          current={plan.tierCode === currentTier}
+                          recommended={
+                            plan.tierCode === recommendedTier &&
+                            Boolean(fit?.needsUpgrade)
+                          }
+                          upgrade={
+                            currentSortOrder != null &&
+                            plan.sortOrder > currentSortOrder
+                          }
+                          downgrade={isPlanDowngrade(plan.sortOrder, currentSortOrder)}
+                          fits={planFitsUsage(
+                            plan.productLimit,
+                            plan.cashierLimit,
+                            productCount,
+                            userCount,
+                            plan.dailyRevenueLimitKes,
+                            dailyRevenue,
+                          )}
+                          onSelect={() => setSelectedTier(plan.tierCode)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="border border-[var(--op-rule)] px-4 py-6 text-center text-sm text-[var(--op-muted)]">
+                      No packages are published yet. Talk to us and we will set
+                      one up for this shop.
+                    </p>
+                  )}
+
+                  {talkToUs && selectedPlan ? (
+                    <div className="border-t border-[var(--op-rule)] pt-4">
+                      <p className="text-sm leading-relaxed text-[var(--op-ink)]">
+                        {selectedPlan.tierCode === "free"
+                          ? currentTier === "free"
+                            ? "You are on Free. Pick a paid package above to renew a larger plan."
+                            : "Free does not cover this shop. Pick a paid package that fits, or talk to us."
+                          : selectedCustomEnterprise
+                            ? "Enterprise is quoted around what this shop already runs. Talk to us and we will build the package."
+                            : "This shop is past every self-serve package. We will quote Enterprise around what you already run."}
+                      </p>
+                      <Button type="button" className="mt-3 h-10 rounded-[2px]" asChild>
+                        <Link href={APP_ROUTES.support}>
+                          Talk to us
+                          <ArrowRight className="size-4" aria-hidden />
+                        </Link>
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  <p className="text-[13px] leading-relaxed text-[var(--op-muted)]">
+                    Packages only move up.
+                    {atTopPackage
+                      ? " You are already on the top published package. Renew it below, or talk to us for a custom agreement."
+                      : " Lower packages stay listed so you can see what this shop has outgrown. Talk to us if you need a downgrade."}
+                  </p>
+                </section>
               )}
-
-              <p className="flex items-start gap-1.5 rounded-lg border border-border/50 bg-muted/10 px-2.5 py-2 text-[10.5px] leading-snug text-muted-foreground">
-                <Sparkles className="mt-0.5 size-3 shrink-0" aria-hidden />
-                Packages only move up. Lower packages stay visible so you can
-                see what this shop has outgrown — talk to us if you need a
-                downgrade.
-              </p>
-
-              {atTopPackage ? (
-                <p className="rounded-lg border border-emerald-600/25 bg-emerald-500/[0.07] px-2.5 py-2 text-[10.5px] leading-snug text-emerald-800 dark:text-emerald-200">
-                  You&apos;re already on the top published package. Renew below,
-                  or talk to us for a custom enterprise agreement.
-                </p>
-              ) : null}
-
-              {selectedPlan && !talkToUs ? (
-                <BillingPeriodToggle
-                  value={periodMonths}
-                  onChange={setPeriodMonths}
-                />
-              ) : null}
-
-              {talkToUs && selectedPlan ? (
-                <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 px-4 py-4">
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {selectedPlan.tierCode === "free"
-                      ? currentTier === "free"
-                        ? "You're on Free. Pick a paid package above to upgrade — lower packages aren't available."
-                        : "Free does not cover this shop. Pick a paid package that fits, or talk to us for a custom quote."
-                      : selectedCustomEnterprise
-                        ? "Enterprise is quoted around what this shop already runs. Talk to us and we will build the package."
-                        : "This shop is past every self-serve package. We will quote Enterprise around what you already run."}
-                  </p>
-                  <Button type="button" className="h-10 w-full sm:w-auto" asChild>
-                    <Link href={APP_ROUTES.support}>
-                      Talk to us
-                      <ArrowRight className="size-4" aria-hidden />
-                    </Link>
-                  </Button>
-                </div>
-              ) : quoteLoading ? (
-                <div className="flex items-center justify-center gap-2 py-7 text-sm text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Loading your quote…
-                </div>
-              ) : selectedPlan && !selectedFits ? (
-                <p className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-4 text-sm leading-relaxed text-muted-foreground">
-                  {selectedPlan.displayName} is still too small for this shop.
-                  Pick the highlighted package.
-                </p>
-              ) : quote &&
-                quote.tier === selectedTier &&
-                quote.periodMonths === periodMonths ? (
-                <div className="space-y-3">
-                  <SubscriptionRenewalForm
-                    quote={quote}
-                    canPay={canPay}
-                    compact
-                  />
-                  <p className="text-center text-[10.5px] leading-relaxed text-muted-foreground">
-                    Your new package takes effect when payment lands. Any paid
-                    days you already have are added after the current period.
-                  </p>
-                </div>
-              ) : selectedPlan ? (
-                <p className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
-                  Could not load a quote for {selectedPlan.displayName}. Try
-                  again.
-                </p>
-              ) : null}
             </>
+          ) : (
+            <p className="py-16 text-center text-sm text-[var(--op-muted)]">
+              Could not load your plan. Try again.
+            </p>
           )}
-        </div>
-      ) : (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          Could not load your package. Close this panel and try again.
-        </p>
-      )}
     </FormDrawer>
   );
 }
@@ -663,5 +764,45 @@ export function ChoosePackageButton({
 
       <ChoosePackageDrawer open={open} onOpenChange={setOpen} />
     </>
+  );
+}
+
+/**
+ * Locks the back office while the shop is unpaid. Cashiers and clerks never
+ * mount this — it lives on the dashboard shell, and the close control is off.
+ */
+export function UnpaidBusinessPaymentDrawer() {
+  const { status } = useSubscriptionBillingStatus();
+  const [loginSuspended, setLoginSuspended] = useState(() => {
+    return getLoginBillingGate()?.subscriptionBillingStatus === "SUSPENDED";
+  });
+
+  useEffect(() => {
+    if (IS_DESKTOP || !status) return;
+    if (!status.accessBlocked) {
+      clearLoginBillingGate();
+      setLoginSuspended(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (IS_DESKTOP) return;
+    const onBlocked = () => setLoginSuspended(true);
+    window.addEventListener(SUBSCRIPTION_BLOCKED_EVENT, onBlocked);
+    return () => {
+      window.removeEventListener(SUBSCRIPTION_BLOCKED_EVENT, onBlocked);
+    };
+  }, []);
+
+  const locked =
+    !IS_DESKTOP && (status != null ? status.accessBlocked : loginSuspended);
+  if (!locked) return null;
+
+  return (
+    <ChoosePackageDrawer
+      open
+      locked
+      onOpenChange={() => {}}
+    />
   );
 }

@@ -41,12 +41,24 @@ export const CRM_PILL_IDLE =
   "border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)] hover:text-[var(--order-ink,#15231f)]";
 
 export function customerTableCheckboxClass(className?: string) {
+  // A credit checkbox decides what gets actioned in bulk — it must be a real
+  // thumb target. The glyph stays compact (`size-4`) but the box carries a
+  // 44px hit area on coarse pointers via padding + background-clip, so a
+  // caller can shrink the visual without shrinking the tap zone.
   return cn(
-    "size-4 shrink-0 rounded-none border-input accent-[var(--pos-primary,#0f766e)]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#0f766e)]",
+    "size-4 shrink-0 cursor-pointer rounded-[2px] border-input accent-[var(--pos-primary,#1D4B3B)]",
+    "[@media(pointer:coarse)]:size-5",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] focus-visible:ring-offset-1",
     className,
   );
 }
+
+/**
+ * Wrap a checkbox (or any small control) in a ≥44px coarse-pointer hit area
+ * without enlarging the visible glyph. Put it on the control's label/container.
+ */
+export const CRM_TOUCH_HIT =
+  "relative flex items-center justify-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11";
 
 export function customerTableRowClass(selected?: boolean, focused?: boolean) {
   return cn(

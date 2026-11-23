@@ -12,6 +12,7 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { DashboardAccessRedirects } from "@/components/dashboard/dashboard-access-redirects";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
+import { UnpaidBusinessPaymentDrawer } from "@/components/billing/choose-package";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { CashierTillPrintListener } from "@/components/cashier/cashier-till-print-listener";
@@ -73,6 +74,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
             <SupportLauncher />
             <NotificationsDrawer />
             <NewMerchantGuideDrawer />
+            <UnpaidBusinessPaymentDrawer />
             <DashboardToaster />
           </RealtimeProvider>
         </SupportUnreadProvider>

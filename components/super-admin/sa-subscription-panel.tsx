@@ -223,7 +223,7 @@ export function SaSubscriptionPanel({
               >
                 <option value="ACTIVE">ACTIVE — paid, full access</option>
                 <option value="GRACE">GRACE — expired, still open</option>
-                <option value="SUSPENDED">SUSPENDED — locked out</option>
+                <option value="SUSPENDED">SUSPENDED — back office locked, till stays open</option>
               </select>
             </div>
             <div className="space-y-1.5">

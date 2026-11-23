@@ -60,6 +60,11 @@ export type FormDrawerProps = {
   hideHeader?: boolean;
   /** When set, marks the drawer panel for onboarding tour spotlight. */
   onboardingTarget?: OnboardingTargetId;
+  /**
+   * When false the panel cannot be dismissed: no close control, and escape,
+   * the scrim, and the phone drag handle leave it open.
+   */
+  dismissible?: boolean;
 };
 
 /** Compact alert for drawer banners — sharp by default for sheet drawers. */
@@ -154,6 +159,7 @@ export function FormDrawer({
   onboardingTarget,
   dockRoot = null,
   docked = false,
+  dismissible = true,
 }: FormDrawerProps) {
   const sharp = appearance === "sharp";
   const compactHeader = headerDensity === "compact";
@@ -179,7 +185,7 @@ export function FormDrawer({
   }, []);
   const sheetBottom = !inColumn && !isFull && !centered && phone;
   const { panelRef, grabberProps, dragging } = useSheetDragDismiss({
-    enabled: sheetBottom,
+    enabled: sheetBottom && dismissible,
     onDismiss: () => onOpenChange(false),
   });
   const dash = useOptionalDashboard();
@@ -198,7 +204,10 @@ export function FormDrawer({
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next && !dismissible) return;
+        onOpenChange(next);
+      }}
       modal={!onboardingTarget && !inColumn}
     >
       <Dialog.Portal container={inColumn ? dockRoot : undefined}>
@@ -209,7 +218,8 @@ export function FormDrawer({
               // support `backdrop-filter` (older Chromium on Windows 10, GPUs
               // with hardware acceleration disabled, etc.). The blur is a
               // progressive enhancement, not the source of separation.
-              "fixed inset-0 z-50 bg-black/35 dark:bg-black/55",
+              "fixed inset-0 bg-black/35 dark:bg-black/55",
+              dismissible ? "z-50" : "z-[200]",
               "supports-[backdrop-filter]:bg-black/20 supports-[backdrop-filter]:backdrop-blur-[3px]",
               "supports-[backdrop-filter]:dark:bg-black/40",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -223,12 +233,22 @@ export function FormDrawer({
           {...(onboardingTarget
             ? { "data-onboarding-target": onboardingTarget }
             : {})}
+          onEscapeKeyDown={(event) => {
+            if (!dismissible) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (!dismissible) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (!dismissible) event.preventDefault();
+          }}
           className={cn(
             "form-drawer premium-portal flex flex-col overflow-hidden outline-none",
             inColumn
               ? "absolute inset-0 z-10 h-full max-h-full w-full max-w-none"
               : "fixed",
-            !inColumn && (onboardingTarget ? "z-[250]" : "z-50"),
+            !inColumn &&
+              (onboardingTarget ? "z-[250]" : dismissible ? "z-50" : "z-[200]"),
             inColumn
               ? cn(
                   "rounded-none border-0 bg-[var(--op-surface)] shadow-none",
@@ -252,7 +272,8 @@ export function FormDrawer({
                 : sheetBottom
                   ? cn(
                       "inset-x-0 bottom-0 top-auto h-auto max-h-[min(92dvh,44rem)] w-full",
-                      "rounded-t-[2px] border border-[var(--op-rule)] border-b-0 bg-[var(--op-surface)]",
+                      "border-[var(--op-rule)] bg-[var(--op-surface)]",
+                      "rounded-t-[2px] border border-b-0",
                       "shadow-[0_-16px_48px_-24px_rgba(18,26,22,0.22)]",
                       "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
                     )
@@ -314,7 +335,7 @@ export function FormDrawer({
               !inColumn && !sheetBottom && !centered && "pl-px",
             )}
           >
-            {sheetBottom ? (
+            {sheetBottom && dismissible ? (
               <SheetGrabber {...grabberProps} dragging={dragging} />
             ) : null}
             {hideHeader ? (
@@ -325,7 +346,7 @@ export function FormDrawer({
                     ? description
                     : "Form panel. Press Escape to close."}
                 </Dialog.Description>
-                {inColumn ? null : (
+                {inColumn || !dismissible ? null : (
                   <Dialog.Close asChild>
                     <Button
                       type="button"
@@ -411,6 +432,7 @@ export function FormDrawer({
                         </Dialog.Description>
                       )}
                     </div>
+                    {dismissible ? (
                     <Dialog.Close asChild>
                       <Button
                         type="button"
@@ -425,6 +447,7 @@ export function FormDrawer({
                         <X className="size-3.5" strokeWidth={2} />
                       </Button>
                     </Dialog.Close>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -464,7 +487,7 @@ export function FormDrawer({
                               {contextLabel}
                             </span>
                           ) : null}
-                          {description ? (
+                          {description && dismissible ? (
                             <span className="hidden text-[10px] font-medium tabular-nums text-muted-foreground/75 sm:inline">
                               Esc to close
                             </span>
@@ -491,13 +514,14 @@ export function FormDrawer({
                             Form panel. Press Escape to close.
                           </Dialog.Description>
                         )}
-                        {!description ? (
+                        {!description && dismissible ? (
                           <p className="hidden text-[11px] text-muted-foreground/80 sm:block">
                             Press Esc to close
                           </p>
                         ) : null}
                       </div>
                     </div>
+                    {dismissible ? (
                     <Dialog.Close asChild>
                       <Button
                         type="button"
@@ -514,6 +538,7 @@ export function FormDrawer({
                         <X className="size-4" strokeWidth={2} />
                       </Button>
                     </Dialog.Close>
+                    ) : null}
                   </>
                 )}
               </div>

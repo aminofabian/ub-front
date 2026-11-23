@@ -575,7 +575,7 @@ function matchText(
   row: CashDrawerOpenLogRow,
   formatMoney: (amount: number | string | null | undefined) => string,
 ): string {
-  if (!row.matched || !row.matchKind) return "No sale";
+  if (!row.matched || !row.matchKind) return "No sale or drawout";
   const kind = row.matchKind === DRAWOUT_KIND ? "Drawout" : "Cash";
   const when = row.matchAt ? clockOf(row.matchAt) : "";
   return [kind, row.matchLabel, formatMoney(row.matchAmount), when].filter(Boolean).join(" · ");

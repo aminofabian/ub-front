@@ -10,7 +10,10 @@ import {
   salesToolBtnClass,
 } from "@/components/sales/sales-surface";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
-import { customerTableCheckboxClass } from "@/components/credits/customer-crm-ui";
+import {
+  CRM_TOUCH_HIT,
+  customerTableCheckboxClass,
+} from "@/components/credits/customer-crm-ui";
 import { customerPrimaryPhone } from "@/components/credits/customer-phone-flag";
 import type { CustomerRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -74,7 +77,7 @@ export function CustomerListColumn({
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Name, C-no, phone"
             aria-label="Search customers"
-            className={dashboardInputClass(false, "h-7 pl-7 text-[11px]")}
+            className={dashboardInputClass(false, "pl-7 text-[13px] sm:text-[11px]")}
           />
         </label>
 
@@ -103,7 +106,8 @@ export function CustomerListColumn({
           </div>
           <label
             className={cn(
-              "ml-auto flex cursor-pointer items-center gap-1 text-[10px]",
+              "ml-auto flex cursor-pointer items-center gap-1.5 text-[12px]",
+              "[@media(pointer:coarse)]:min-h-11",
               salesMute,
             )}
           >
@@ -111,7 +115,7 @@ export function CustomerListColumn({
               type="checkbox"
               checked={outstandingOnly}
               onChange={(e) => onOutstandingOnly(e.target.checked)}
-              className={customerTableCheckboxClass("size-2.5")}
+              className={customerTableCheckboxClass()}
             />
             Tab only
           </label>
@@ -167,16 +171,15 @@ export function CustomerListColumn({
                 >
                   <div className="grid gap-1 px-1.5 py-1.5 sm:grid-cols-[auto_minmax(0,1fr)]">
                     {canSelect ? (
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => onToggleSelect(row.id)}
-                        className={cn(
-                          customerTableCheckboxClass(),
-                          "mt-0.5 size-2.5",
-                        )}
-                        aria-label={`Select ${row.name}`}
-                      />
+                      <label className={cn(CRM_TOUCH_HIT, "-m-1 self-start")}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => onToggleSelect(row.id)}
+                          className={customerTableCheckboxClass()}
+                          aria-label={`Select ${row.name}`}
+                        />
+                      </label>
                     ) : null}
                     <button
                       type="button"
@@ -200,7 +203,7 @@ export function CustomerListColumn({
                               {row.name}
                             </p>
                             {row.customerNo != null ? (
-                              <span className="text-[9px] tabular-nums text-muted-foreground">
+                              <span className="text-[11px] tabular-nums text-muted-foreground">
                                 C-{row.customerNo}
                               </span>
                             ) : null}
@@ -210,7 +213,7 @@ export function CustomerListColumn({
                               <CrmBar pct={pct} className="h-0.5" />
                             </div>
                           ) : null}
-                          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+                          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
                             {customerPrimaryPhone(row.phones) || "No phone"}
                             {owed > 0 ? (
                               <span className="font-semibold text-[#9a2e16]">

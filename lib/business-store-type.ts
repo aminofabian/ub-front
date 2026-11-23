@@ -201,6 +201,9 @@ export function isGroceryOperationsBusiness(
 /** Matches FeatureFlagService#FLAG_SUPPLIER_COUNTER_ORDERS on the backend. */
 export const SUPPLIER_COUNTER_ORDERS_FLAG = "supplier.counter_orders";
 
+/** Desktop till: a supplier's trade orders are mirrored onto the till (read-only in S1, actions in S2). Off by default. */
+export const DESKTOP_TRADE_SYNC_FLAG = "desktop.trade_sync";
+
 /**
  * True when the shop runs the clerk counter: a clerk takes the order and prints the invoice, the cashier takes
  * the payment. Grocery formats always do; a supplier shop does once it turns counter orders on.

@@ -55,8 +55,11 @@ function renderBody(
   tenant: TenantContext | null,
   children: ReactNode,
 ): ReactNode {
-  if (tenant && tenant.status !== "ACTIVE") {
-    return <TenantStatusPage status={tenant.status} />;
+  // Manual deactivation is a hard lock. An unpaid subscription stays on the
+  // host: the till and clerk keep selling, and the back office opens the
+  // payment drawer instead of this page.
+  if (tenant && tenant.status === "INACTIVE") {
+    return <TenantStatusPage status="INACTIVE" />;
   }
   return children;
 }

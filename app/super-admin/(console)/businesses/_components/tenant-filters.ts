@@ -189,8 +189,8 @@ export function isNewTenant(row: SaBusinessRow, now: number): boolean {
 }
 
 /**
- * True when the shop is on the public "temporarily suspended" gate.
- * That gate is the billing hold, which leaves the manual active flag on.
+ * True when the shop is unpaid. The till stays open; the back office
+ * payment drawer is the lock. The manual active flag stays on.
  */
 export function isSuspendedTenant(row: SaBusinessRow): boolean {
   if (row.tenantStatus === "SUSPENDED") return true;

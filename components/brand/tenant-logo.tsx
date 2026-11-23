@@ -368,14 +368,21 @@ export function TenantLogo({
       />
     );
 
+    // `min-w-0` lets the wordmark's own `truncate` fire when the header row is
+    // tight (a long name like "NAIROBI BUTCHERY" on a phone). The caller owns
+    // shrink: the compact bar passes `shrink`, the desktop lockup `shrink-0`.
     if (href) {
       return (
-        <Link href={href} className={cn("inline-flex shrink-0 items-center", className)} aria-label={brand}>
+        <Link
+          href={href}
+          className={cn("inline-flex min-w-0 items-center", className)}
+          aria-label={brand}
+        >
           {inner}
         </Link>
       );
     }
-    return <span className={cn("inline-flex", className)}>{inner}</span>;
+    return <span className={cn("inline-flex min-w-0", className)}>{inner}</span>;
   }
 
   if (variant === "storefront-hero") {

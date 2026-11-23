@@ -6076,6 +6076,7 @@ export function QuickSaleWorkspace({
       <CashDrawerOpenWatch
         branchId={branchId}
         shiftId={branchOpenShift?.id ?? null}
+        printerName={branches.find((branch) => branch.id === branchId.trim())?.receipt?.printerCupsName}
       />
       {workspaceBody}
     </PharmacyTillProvider>

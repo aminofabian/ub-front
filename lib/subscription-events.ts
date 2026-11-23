@@ -1,6 +1,6 @@
 /**
  * Fired whenever an authenticated request is rejected because the shop's
- * subscription is blocked. The renewal wall listens for it so a session that
+ * subscription is blocked. The unpaid payment drawer listens for it so a session that
  * was suspended mid-flight immediately surfaces the payment surface instead of
  * a blank dashboard or a toast storm.
  */

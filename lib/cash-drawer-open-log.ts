@@ -17,7 +17,11 @@ import {
   type DrawerOpenLevel,
   type DrawerWatchEffect,
 } from "@/lib/cash-drawer-watch";
-import { getLocalTillNetworkTarget, readDrawerSwitch } from "@/lib/till-print-bridge";
+import {
+  getLocalTillCupsName,
+  getLocalTillNetworkTarget,
+  readDrawerSwitch,
+} from "@/lib/till-print-bridge";
 
 const QUEUE_KEY = "kiosk.drawer-open-jobs.v1";
 const LEVEL_KEY = "kiosk.drawer-open-level.v1";
@@ -35,9 +39,11 @@ type SendResult = "ok" | "retry" | "drop";
 export function startCashDrawerOpenLog(input: {
   branchId: string;
   shiftId: string | null;
+  printerName?: string | null;
 }): { stop: () => void } {
   const branchId = input.branchId.trim();
   const shiftId = input.shiftId?.trim() || null;
+  const printerName = input.printerName?.trim() || null;
   if (!branchId || typeof window === "undefined") return { stop() {} };
 
   let stopped = false;
@@ -92,7 +98,10 @@ export function startCashDrawerOpenLog(input: {
   timer = window.setTimeout(tick, SENSOR_POLL_MS);
 
   async function sampleSwitch(): Promise<number> {
-    const reading = await readDrawerSwitch(getLocalTillNetworkTarget());
+    const reading = await readDrawerSwitch(
+      getLocalTillNetworkTarget(),
+      getLocalTillCupsName() || printerName,
+    );
     if (!reading.readable) return waitFor(reading.reason);
     const step = stepDrawerWatch(
       state,

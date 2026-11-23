@@ -87,6 +87,7 @@ describe("subscription banner state", () => {
     expect(banner?.tone).toBe("critical");
     expect(banner?.icon).toBe("lock");
     expect(banner?.dismissible).toBe(false);
+    expect(banner?.description.toLowerCase()).toContain("till");
   });
 
   it("warns but does not lock when auto-block is off", () => {

@@ -48,6 +48,7 @@ import { BranchRequiredBanner } from "@/components/branch-required-banner";
 import { SetupRequirementHost } from "@/components/setup/setup-requirement-host";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlag, useFeatureFlags } from "@/components/providers/tenant-provider";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { TradeTermsBar } from "@/components/grocery/trade-terms-bar";
 import { attachCounterInvoiceAccount, counterPriceFor, type CounterTerms } from "@/lib/counter-terms";
 import { isSupplierBusiness, SUPPLIER_COUNTER_ORDERS_FLAG } from "@/lib/business-store-type";
@@ -1111,7 +1112,8 @@ export function GroceryWorkspace() {
     [scheduleDraftSync],
   );
   const tradeTermsSlot =
-    isSupplierBusiness(business) && featureFlags[SUPPLIER_COUNTER_ORDERS_FLAG] === true ? (
+    // Buyer accounts are kept online and not copied to a desktop till, so account terms are not offered there.
+    !IS_DESKTOP && isSupplierBusiness(business) && featureFlags[SUPPLIER_COUNTER_ORDERS_FLAG] === true ? (
       <TradeTermsBar terms={tradeTerms} currency={currency} onChange={applyTradeTerms} />
     ) : null;
 

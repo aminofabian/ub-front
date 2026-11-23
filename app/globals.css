@@ -1213,6 +1213,55 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
     color: var(--storefront-ink);
 }
 
+/* Browser surfaces for the shopper storefront — the parts no component draws.
+   Selection, caret and scrollbar ship as browser defaults; theme them from the
+   merchant's own brand (`--primary`, set per tenant by the design studio) so a
+   shopper's highlight, text cursor and scrollbar all carry *this shop's* colour.
+   Scoped to `.storefront-browse`, so it stays out of the operator shell. */
+.storefront-browse {
+    caret-color: var(--primary, var(--storefront-ink));
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--storefront-ink) 22%,
+            transparent
+        )
+        transparent;
+    scrollbar-width: thin;
+}
+
+.storefront-browse ::selection {
+    background: color-mix(in srgb, var(--primary, #141816) 20%, transparent);
+    color: var(--storefront-ink);
+}
+
+.storefront-browse ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.storefront-browse ::-webkit-scrollbar-thumb {
+    background-color: color-mix(
+        in srgb,
+        var(--storefront-ink) 18%,
+        transparent
+    );
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+}
+
+.storefront-browse ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(
+        in srgb,
+        var(--storefront-ink) 30%,
+        transparent
+    );
+}
+
+.storefront-browse ::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 /* Merchant font pairing (design studio) — once a pairing is chosen it becomes
    the shop's voice: body type everywhere, display type on headlines. The
    theme's own instrument fonts (logo marks, mono labels) keep their job. */
@@ -7525,6 +7574,49 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     --op-rule-soft: rgba(18, 26, 22, 0.06);
 }
 
+/* Browser surfaces for the operator shell — the parts we don't draw.
+   Selection, caret, scrollbar and tabular numerals ship with browser
+   defaults that belong to no design system; theme them once here from the
+   ivory/forest palette so every dashboard route (124 of them) inherits the
+   same finish. Scoped to the shell root so it never bleeds into storefront. */
+.tablet-app-root {
+    caret-color: var(--op-accent, #1d4b3b);
+    scrollbar-color: color-mix(in srgb, var(--op-ink, #121a16) 20%, transparent)
+        transparent;
+    scrollbar-width: thin;
+}
+
+.tablet-app-root ::selection {
+    background: color-mix(in srgb, var(--op-accent, #1d4b3b) 18%, transparent);
+    color: var(--op-ink, #121a16);
+}
+
+.tablet-app-root ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.tablet-app-root ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--op-ink, #121a16) 16%, transparent);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+}
+
+.tablet-app-root ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--op-ink, #121a16) 28%, transparent);
+}
+
+.tablet-app-root ::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Money, quantities and receipts line up on the decimal — the counter's
+   own habit. Opt out with `.proportional-nums` where a label isn't data. */
+.tablet-app-root :where(table, [data-numeric], .op-numeric) {
+    font-variant-numeric: tabular-nums;
+}
+
 /* Shell header: a quiet fascia, not a market stall. */
 .tablet-header-fascia {
     background: var(--op-bg);
@@ -8598,6 +8690,9 @@ html:has([data-store-theme-id="butcher-board"]) ::selection {
     --font-serif: var(--font-cormorant), Georgia, "Times New Roman", serif;
     font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
     color: var(--op-ink);
+    caret-color: var(--op-accent);
+    scrollbar-color: color-mix(in srgb, var(--op-ink) 20%, transparent) transparent;
+    scrollbar-width: thin;
 }
 
 .premium-portal .rounded-2xl,

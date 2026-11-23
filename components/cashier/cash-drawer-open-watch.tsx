@@ -8,13 +8,15 @@ import { startCashDrawerOpenLog } from "@/lib/cash-drawer-open-log";
 export function CashDrawerOpenWatch({
   branchId,
   shiftId,
+  printerName,
 }: {
   branchId: string;
   shiftId: string | null;
+  printerName?: string | null;
 }) {
   useEffect(() => {
-    const log = startCashDrawerOpenLog({ branchId, shiftId });
+    const log = startCashDrawerOpenLog({ branchId, shiftId, printerName });
     return () => log.stop();
-  }, [branchId, shiftId]);
+  }, [branchId, shiftId, printerName]);
   return null;
 }

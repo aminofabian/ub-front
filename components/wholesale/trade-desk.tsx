@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentProps } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
   answerSalesOrder,
+  decideTradeAccount,
+  recordSalesReceipt,
   fetchSupplierStanding,
   cancelSalesOrder,
   decideSalesOrderAccount,
@@ -75,7 +77,36 @@ const PLACE_TITLE: Record<SupplierPlace, { title: string; purpose: string }> = {
 };
 
 /** The supplier's trade desk: orders buyers sent from the shop, to accept, dispatch or cancel. */
-export function TradeDesk() {
+/**
+ * `readOnly` is the desktop till's S1 mode: orders are mirrored down and shown, but answering and
+ * dispatching happen online until the till can push actions (S2). The web passes nothing, so it is unaffected.
+ */
+export function TradeDesk({
+  readOnly = false,
+  pendingSyncNote = false,
+  answerFn = answerSalesOrder,
+  dispatchFn = dispatchSalesOrder,
+  cancelFn = cancelSalesOrder,
+  onlineOnlyExtras = false,
+  onlineTradeAddress,
+  tillMoney = false,
+  decideAccountFn = decideTradeAccount,
+  recordReceiptFn = recordSalesReceipt,
+}: {
+  readOnly?: boolean;
+  /** Desktop till: say that changes reach the online shop on the next sync. */
+  pendingSyncNote?: boolean;
+  answerFn?: (orderId: string, lines: { lineId: string; acceptedQty: number }[]) => Promise<SalesOrder>;
+  dispatchFn?: (orderId: string) => Promise<SalesOrder>;
+  cancelFn?: (orderId: string) => Promise<SalesOrder>;
+  /** Desktop till (S1/S2): only orders work offline; buyers/money, shops and the page are managed online. */
+  onlineOnlyExtras?: boolean;
+  onlineTradeAddress?: string;
+  /** Desktop till: money works from the mirror, writes are queued; prices and credit notes stay online. */
+  tillMoney?: boolean;
+  decideAccountFn?: ComponentProps<typeof TradeAccountsPanel>["decideFn"];
+  recordReceiptFn?: ComponentProps<typeof SalesInvoicesPanel>["recordReceiptFn"];
+} = {}) {
   const [stage, setStage] = useState<SupplierOrderStage | "all">("to_answer");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [appealsOn, setAppealsOn] = useState(false);
@@ -255,9 +286,15 @@ export function TradeDesk() {
     const answer = supplierAnswerAction(
       open.lines.map((l) => ({ asked: Number(l.quantity), supply: Number(supply[l.id] ?? "0") })),
     );
-    void act(() => answerSalesOrder(open.id, lines), answer.done);
+    void act(() => answerFn(open.id, lines), answer.done);
   };
 
+  const onlineNote = (what: string) => (
+    <p className="mt-4 max-w-[70ch] border-y border-border py-4 text-[14px] text-muted-foreground">
+      {what} is managed in your online shop{onlineTradeAddress ? ` (${onlineTradeAddress})` : ""}. This till shows and
+      answers orders offline; the rest needs the internet for now.
+    </p>
+  );
   const inputClass = "h-11 w-24 border border-foreground/15 bg-background px-2 text-right text-[14px] tabular-nums sm:h-9";
 
   if (open) {
@@ -276,6 +313,15 @@ export function TradeDesk() {
         <button type="button" className="min-h-11 text-[13px] font-medium underline underline-offset-4 sm:min-h-0" onClick={() => setOpen(null)}>
           Back to orders
         </button>
+        {readOnly ? (
+          <p className="mt-3 border-y border-border py-2 text-[13px] text-muted-foreground">
+            Answering and dispatching are done in your online shop for now. This till shows where each order stands.
+          </p>
+        ) : pendingSyncNote ? (
+          <p className="mt-3 border-y border-border py-2 text-[13px] text-muted-foreground">
+            Saved on this till. The buyer is told when the till is next online.
+          </p>
+        ) : null}
 
         {/* The order in one line: what it is, where it stands, what it is worth. */}
         <div className="mt-2 flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
@@ -337,7 +383,7 @@ export function TradeDesk() {
                     <td className="py-2.5 pr-2">{l.itemName}</td>
                     <td className="py-2.5 text-right tabular-nums">{qty(l.quantity)}</td>
                     <td className="py-2.5 text-right tabular-nums">
-                      {placed ? (
+                      {placed && !readOnly ? (
                         <input
                           className={inputClass}
                           inputMode="decimal"
@@ -357,7 +403,7 @@ export function TradeDesk() {
               </tbody>
             </table>
 
-            {placed ? (
+            {placed && !readOnly ? (
               <p className="mt-4 max-w-[70ch] text-[13px] leading-snug text-muted-foreground">
                 Enter 0 for a line you cannot supply.{" "}
                 {answer.kind === "none"
@@ -365,19 +411,19 @@ export function TradeDesk() {
                   : "Accepting takes this stock off your shelf now and tells the buyer what you will supply."}
               </p>
             ) : null}
-            {holdsStock ? (
+            {holdsStock && !readOnly ? (
               <p className="mt-4 max-w-[70ch] text-[13px] leading-snug text-muted-foreground">
                 Marking it dispatched raises the invoice for what you accepted. After that the order cannot be cancelled here.
               </p>
             ) : null}
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className={readOnly ? "hidden" : "mt-3 flex flex-wrap gap-2"}>
               {placed ? (
                 <Button type="button" disabled={busy} onClick={sendAnswer}>
                   {answer.label}
                 </Button>
               ) : null}
               {holdsStock ? (
-                <Button type="button" disabled={busy} onClick={() => void act(() => dispatchSalesOrder(open.id), "Order dispatched")}>
+                <Button type="button" disabled={busy} onClick={() => void act(() => dispatchFn(open.id), "Order dispatched")}>
                   Mark as dispatched
                 </Button>
               ) : null}
@@ -401,7 +447,7 @@ export function TradeDesk() {
                     disabled={busy}
                     onClick={() => {
                       setConfirmCancel(false);
-                      void act(() => cancelSalesOrder(open.id), "Order cancelled");
+                      void act(() => cancelFn(open.id), "Order cancelled");
                     }}
                   >
                     Yes, cancel this order
@@ -412,7 +458,7 @@ export function TradeDesk() {
                 </div>
               </div>
             ) : null}
-            {appealsOn && open.status !== "placed" ? <OrderAppeal key={open.id} orderId={open.id} /> : null}
+            {!readOnly && appealsOn && open.status !== "placed" ? <OrderAppeal key={open.id} orderId={open.id} /> : null}
           </section>
 
           {/* Who is buying and on what terms: read beside the lines, not above them. */}
@@ -444,7 +490,7 @@ export function TradeDesk() {
               </p>
             </section>
 
-            {open.buyerVerified && canDecideAccounts ? (
+            {open.buyerVerified && canDecideAccounts && !readOnly ? (
               <section>
                 <h2 className={sideHeading}>Account for this shop</h2>
                 {accountSaved ? (
@@ -503,15 +549,17 @@ export function TradeDesk() {
                     <p className="text-muted-foreground">
                       Take the difference off the invoice with a credit note, then mark it settled.
                     </p>
-                    <Button type="button" variant="outline" size="sm" className="mt-2" disabled={busy} onClick={() => void resolveDispute()}>
-                      Mark the shortage as settled
-                    </Button>
+                    {readOnly ? null : (
+                      <Button type="button" variant="outline" size="sm" className="mt-2" disabled={busy} onClick={() => void resolveDispute()}>
+                        Mark the shortage as settled
+                      </Button>
+                    )}
                   </div>
                 ) : null}
               </section>
             ) : null}
 
-            {holdsStock && shops.length > 0 && !shared ? (
+            {holdsStock && shops.length > 0 && !shared && !readOnly ? (
               <section>
                 <h2 className={sideHeading}>Is this buyer one of your connected shops?</h2>
                 {sentTo ? (
@@ -583,7 +631,7 @@ export function TradeDesk() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <SupplierHeading title={PLACE_TITLE[view].title} purpose={PLACE_TITLE[view].purpose} />
       <div className="mt-4">
-        <SupplierNav current={view} onSelect={setView} waiting={count("to_answer")} />
+        <SupplierNav current={view} onSelect={setView} waiting={count("to_answer")} hidePage={onlineOnlyExtras} />
       </div>
 
       {view === "today" ? (
@@ -680,13 +728,20 @@ export function TradeDesk() {
               </button>
             ))}
           </div>
-          {moneyView === "accounts" ? <TradeAccountsPanel canDecide={canDecideAccounts} /> : null}
-          {moneyView === "invoices" ? <SalesInvoicesPanel canRecord={canDecideAccounts} /> : null}
+          {moneyView === "accounts" ? (
+            <TradeAccountsPanel canDecide={canDecideAccounts} decideFn={decideAccountFn} hidePrices={tillMoney} />
+          ) : null}
+          {moneyView === "invoices" ? (
+            <SalesInvoicesPanel canRecord={canDecideAccounts} recordReceiptFn={recordReceiptFn} allowCreditNote={!tillMoney} />
+          ) : null}
           {moneyView === "figures" ? <TradeFiguresPanel /> : null}
         </>
       ) : null}
 
       {view === "shops" ? (
+        onlineOnlyExtras ? (
+          onlineNote("The shops you supply, restock and messages")
+        ) : (
         <>
           <div className="mt-4 flex flex-wrap gap-1.5">
             {([
@@ -703,6 +758,7 @@ export function TradeDesk() {
           {shopsView === "messages" ? <SupplyMessagesPanel /> : null}
           {shopsView === "more" ? <SupplierPortalLinks /> : null}
         </>
+        )
       ) : null}
 
       <div className={view !== "orders" ? "hidden" : "mt-4 flex flex-wrap gap-1.5"}>

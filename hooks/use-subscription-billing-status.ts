@@ -63,7 +63,7 @@ function onWake() {
 }
 
 /**
- * Shared subscription status for the banner, plan-fit notice, and renewal wall.
+ * Shared subscription status for the banner, plan-fit notice, and unpaid drawer.
  * Keeps one cached value and one poll/focus refresh, so a Super Admin switch or
  * a successful M-Pesa payment is reflected without a reload.
  */

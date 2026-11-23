@@ -120,6 +120,56 @@ function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
   }
 }
 
+$script:QueueEndpoint = @{}
+$script:QueueEndpointAt = @{}
+
+function ConvertTo-DrawerEndpoint([string]$PortName) {
+  $text = $PortName.Trim()
+  if ($text -match '^IP_(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$') {
+    $port = 9100
+    if ($Matches[2]) { $port = [int]$Matches[2] }
+    return @{ Host = $Matches[1]; Port = $port }
+  }
+  if ($text -match '^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$') {
+    $port = 9100
+    if ($Matches[2]) { $port = [int]$Matches[2] }
+    return @{ Host = $Matches[1]; Port = $port }
+  }
+  return $null
+}
+
+function Get-QueueEndpoint([string]$Name) {
+  $key = $Name.Trim()
+  if (-not $key) { return $null }
+  $now = [DateTime]::UtcNow
+  if ($script:QueueEndpointAt.ContainsKey($key)) {
+    $age = $now - $script:QueueEndpointAt[$key]
+    if ($age.TotalSeconds -lt 60) { return $script:QueueEndpoint[$key] }
+  }
+  $endpoint = $null
+  foreach ($row in @(Get-PrinterRows)) {
+    if ([string]$row.Name -eq $key) {
+      $endpoint = ConvertTo-DrawerEndpoint ([string]$row.PortName)
+      break
+    }
+  }
+  $script:QueueEndpoint[$key] = $endpoint
+  $script:QueueEndpointAt[$key] = $now
+  return $endpoint
+}
+
+function Write-DrawerStatus($Stream, [string]$HostName, [int]$PortNumber) {
+  try {
+    $raw = Read-DrawerSwitch $HostName $PortNumber
+    $pin = "false"
+    if (($raw -band 1) -eq 1) { $pin = "true" }
+    Write-HttpResponse $Stream 200 ("{""readable"":true,""pinHigh"":" + $pin + ",""raw"":" + $raw + "}") "application/json"
+  } catch {
+    Write-BridgeLog ("Drawer status unreadable: " + $_.Exception.Message)
+    Write-HttpResponse $Stream 200 '{"readable":false,"reason":"timeout"}' "application/json"
+  }
+}
+
 # ESC/POS GS r 2. Bit 0 of the reply is drawer-kick pin 3.
 function Read-DrawerSwitch([string]$HostName, [int]$PortNumber) {
   $client = New-Object System.Net.Sockets.TcpClient
@@ -284,7 +334,7 @@ function Handle-Request($Req, $Stream) {
   }
 
   if ($method -eq "GET" -and ($path -eq "/health" -or $path -eq "/")) {
-    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"printEngine":"v5-bypass-epson","port":' + $Port + '}'
+    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"printEngine":"v5-bypass-epson","drawerSwitch":"queue","port":' + $Port + '}'
     Write-HttpResponse $Stream 200 $body "application/json"
     return
   }
@@ -308,18 +358,15 @@ function Handle-Request($Req, $Stream) {
     $netPort = 9100
     try { $netPort = [int]$netPortRaw } catch { $netPort = 9100 }
     if ($netHost -and $netHost.Trim()) {
-      try {
-        $raw = Read-DrawerSwitch $netHost.Trim() $netPort
-        $pin = "false"
-        if (($raw -band 1) -eq 1) { $pin = "true" }
-        Write-HttpResponse $Stream 200 ("{""readable"":true,""pinHigh"":" + $pin + ",""raw"":" + $raw + "}") "application/json"
-      } catch {
-        Write-BridgeLog ("Drawer status unreadable: " + $_.Exception.Message)
-        Write-HttpResponse $Stream 200 '{"readable":false,"reason":"timeout"}' "application/json"
-      }
+      Write-DrawerStatus $Stream $netHost.Trim() $netPort
       return
     }
     if ($cups -and $cups.Trim()) {
+      $endpoint = Get-QueueEndpoint $cups.Trim()
+      if ($endpoint) {
+        Write-DrawerStatus $Stream $endpoint.Host $endpoint.Port
+        return
+      }
       Write-HttpResponse $Stream 200 '{"readable":false,"reason":"queue"}' "application/json"
       return
     }

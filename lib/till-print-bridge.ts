@@ -36,8 +36,22 @@ export type TillBridgeHealth = {
   win7?: boolean;
   /** Receipt queue the Windows installer picked, so no Detect click is needed. */
   printerName?: string | null;
+  /**
+   * "queue" once this helper can read the drawer switch through a named printer
+   * queue. Older helpers omit it.
+   */
+  drawerSwitch?: string;
   port?: number;
 };
+
+/** Health value once a named printer queue can answer the drawer switch. */
+export const TILL_BRIDGE_DRAWER_SWITCH = "queue";
+
+/** True when a running helper is too old to record a drawer opening with no sale. */
+export function tillBridgeNeedsDrawerUpdate(health: TillBridgeHealth | null): boolean {
+  if (!health?.ok) return false;
+  return health.drawerSwitch !== TILL_BRIDGE_DRAWER_SWITCH;
+}
 
 /** Minimum Windows print engine required for Epson/ePOS USB receipts. */
 export const REQUIRED_WIN_PRINT_ENGINE = "v5-bypass-epson";
@@ -389,12 +403,15 @@ const STATUS_REASONS = new Set(["queue", "timeout", "no-printer"]);
  */
 export async function readDrawerSwitch(
   target: { host: string; port: number } | null,
+  printerName?: string | null,
 ): Promise<DrawerSwitchReading> {
   const headers: Record<string, string> = {};
   if (target?.host) {
     headers["X-Printer-Host"] = target.host;
     headers["X-Printer-Port"] = String(target.port > 0 ? target.port : 9100);
   }
+  const queue = printerName?.trim();
+  if (queue) headers["X-Printer-Cups-Name"] = queue;
   const { signal, done } = bridgeTimeoutSignal(BRIDGE_DRAWER_TIMEOUT_MS);
   let res: Response;
   try {

@@ -22,7 +22,8 @@ const HAIRLINE =
 const INK = "text-[var(--order-ink,#121A16)]";
 const MUTED =
   "text-[color-mix(in_srgb,var(--order-ink,#121A16)_52%,transparent)]";
-const TEAL = "text-[var(--pos-primary,#1D4B3B)]";
+/** Deep forest accent (DESIGN.md `--kiosk-gold`), wired via `--pos-primary`. */
+const ACCENT = "text-[var(--pos-primary,#1D4B3B)]";
 
 /**
  * Standard admin page shell. Height stays content-sized so AppShell’s main
@@ -132,18 +133,18 @@ export function DashboardFeedback({
           "border-[var(--pos-primary,#1D4B3B)] text-[var(--pos-primary,#1D4B3B)]",
         kind === "error" && "border-destructive/40 text-destructive",
         kind === "warning" &&
-          "border-amber-700/40 text-amber-800 dark:text-amber-200",
+          "border-[color-mix(in_srgb,var(--op-highlight,#A55237)_45%,transparent)] text-[var(--op-highlight,#A55237)]",
         className,
       )}
     >
       {kind === "success" ? (
         <CheckCircle2
-          className={cn("mt-0.5 size-4 shrink-0", TEAL)}
+          className={cn("mt-0.5 size-4 shrink-0", ACCENT)}
           aria-hidden
         />
       ) : kind === "warning" ? (
         <AlertTriangle
-          className="mt-0.5 size-4 shrink-0 text-amber-800"
+          className="mt-0.5 size-4 shrink-0 text-[var(--op-highlight,#A55237)]"
           aria-hidden
         />
       ) : (
@@ -162,7 +163,7 @@ export function DashboardNotice({ text }: { text: string }) {
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-xl border bg-white px-3 py-2 text-sm",
+        "flex items-start gap-2 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-3 py-2 text-sm",
         HAIRLINE,
         INK,
       )}
@@ -199,11 +200,11 @@ export function DashboardQuickLinks({
             key={href}
             href={href}
             className={cn(
-              "inline-flex h-9 items-center gap-1 rounded-full border bg-white px-2 text-[11px] font-semibold tracking-[-0.02em] sm:h-7 sm:px-1.5",
+              "inline-flex h-9 items-center gap-1.5 rounded-full border bg-[var(--op-surface,#FCFAF5)] px-3 text-[11px] font-semibold tracking-[-0.02em] transition-colors duration-200 sm:h-7 sm:px-2.5",
               HAIRLINE,
               MUTED,
-              "hover:text-[var(--order-ink,#121A16)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
+              "hover:border-[var(--pos-primary,#1D4B3B)] hover:text-[var(--pos-primary,#1D4B3B)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-bg,#F4F1EA)]",
             )}
           >
             <Icon className="size-3 shrink-0 opacity-70" aria-hidden />
@@ -220,17 +221,18 @@ export function DashboardQuickLinks({
           key={href}
           href={href}
           className={cn(
-            "group flex items-center gap-2 rounded-xl border bg-white px-3 py-2",
+            "group flex items-center gap-2.5 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-3 py-2 transition-colors duration-200",
             HAIRLINE,
             "hover:border-[var(--pos-primary,#1D4B3B)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--op-bg,#F4F1EA)]",
           )}
         >
           <span
             className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-lg border bg-white",
+              "flex size-7 shrink-0 items-center justify-center rounded-[2px] border bg-[var(--op-bg,#F4F1EA)]",
               HAIRLINE,
-              TEAL,
+              ACCENT,
+              "transition-colors duration-200 group-hover:border-[var(--pos-primary,#1D4B3B)]",
             )}
           >
             <Icon className="size-3.5" aria-hidden />
@@ -282,7 +284,7 @@ export function DashboardPageHero({
   return (
     <header
       className={cn(
-        "dashboard-page-hero flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border bg-white px-2.5 py-1 sm:px-3",
+        "dashboard-page-hero flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] px-2.5 py-1 sm:px-3",
         HAIRLINE,
       )}
     >
@@ -290,9 +292,9 @@ export function DashboardPageHero({
         <div className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              "inline-flex size-7 shrink-0 items-center justify-center rounded-lg border bg-white",
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-[2px] border bg-[var(--op-bg,#F4F1EA)]",
               "border-[var(--pos-primary,#1D4B3B)]",
-              TEAL,
+              ACCENT,
             )}
           >
             <Icon className="size-3.5" aria-hidden />
@@ -333,7 +335,7 @@ export function DashboardPageHero({
 export function DashboardLoading({ label = "Loading…" }: { label?: string }) {
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center justify-center gap-3 py-20">
-      <Loader2 className={cn("size-6 animate-spin", TEAL)} aria-hidden />
+      <Loader2 className={cn("size-6 animate-spin", ACCENT)} aria-hidden />
       <p className={cn("text-[13px] font-medium", MUTED)}>{label}</p>
     </div>
   );
@@ -352,7 +354,7 @@ export function DashboardLoadError({
     <div className="mx-auto w-full max-w-lg py-16">
       <div
         className={cn(
-          "rounded-2xl border bg-white p-6 text-center",
+          "rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] p-6 text-center",
           "border-destructive/40",
         )}
       >
@@ -372,7 +374,7 @@ export function DashboardLoadError({
         </p>
         {onRetry ? (
           <Button
-            className="mt-6 h-11 gap-2 rounded-none sm:h-8"
+            className="mt-6 h-11 gap-2 rounded-[2px] sm:h-8"
             variant="outline"
             type="button"
             onClick={onRetry}
@@ -400,11 +402,14 @@ export function DashboardAccessDenied({
   return (
     <div className="mx-auto max-w-lg py-16">
       <div
-        className={cn("rounded-none border bg-white p-6 text-center", HAIRLINE)}
+        className={cn(
+          "rounded-[2px] border bg-[var(--op-surface,#FCFAF5)] p-6 text-center",
+          HAIRLINE,
+        )}
       >
         <div
           className={cn(
-            "mx-auto flex size-10 items-center justify-center rounded-none border bg-white",
+            "mx-auto flex size-10 items-center justify-center rounded-[2px] border bg-[var(--op-bg,#F4F1EA)]",
             HAIRLINE,
             MUTED,
           )}
@@ -421,7 +426,7 @@ export function DashboardAccessDenied({
         </h1>
         <div className={cn("mt-2 text-sm", MUTED)}>{description}</div>
         {backHref ? (
-          <Button asChild className="mt-6 h-11 rounded-none sm:h-8" variant="outline">
+          <Button asChild className="mt-6 h-11 rounded-[2px] sm:h-8" variant="outline">
             <Link href={backHref}>{backLabel ?? "Go back"}</Link>
           </Button>
         ) : null}

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { CashierPrinterGuideDrawer } from "@/components/cashier/cashier-printer-guide-drawer";
 import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
+import { TillBridgeUpdateDialog } from "@/components/cashier/till-bridge-update-dialog";
 import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchTillBridgeHealth,
   getLocalTillCupsName,
+  tillBridgeNeedsDrawerUpdate,
   REQUIRED_WIN_LIST_ENGINE,
   REQUIRED_WIN_PRINT_ENGINE,
   setLocalTillCupsName,
@@ -174,6 +176,10 @@ export function TillPrinterStatus({
       !winEngineStale &&
       (effectiveName || (IS_DESKTOP && desktopNetworkReady)),
   );
+  const updateDialog = (
+    <TillBridgeUpdateDialog needed={!IS_DESKTOP && tillBridgeNeedsDrawerUpdate(health)} />
+  );
+
   const readyLabel = effectiveName
     ? effectiveName
     : desktopNetworkReady
@@ -358,6 +364,7 @@ export function TillPrinterStatus({
   if (printerReady && readyLabel) {
     return (
       <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
+        {updateDialog}
         <Button
           type="button"
           variant="outline"
@@ -417,6 +424,7 @@ export function TillPrinterStatus({
 
   return (
     <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
+      {updateDialog}
       <div className="flex max-w-full flex-wrap items-center gap-1">
         <Button
           type="button"

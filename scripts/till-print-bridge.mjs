@@ -489,6 +489,51 @@ async function sendWindowsRaw(name, data) {
 /** ESC/POS GS r 2. Bit 0 of the reply is drawer-kick pin 3. */
 const DRAWER_STATUS = Buffer.from([0x1d, 0x72, 0x02]);
 const STATUS_TIMEOUT_MS = 1_200;
+const QUEUE_ENDPOINT_TTL_MS = 60_000;
+const queueEndpoints = new Map();
+
+/** A CUPS or Windows queue that is really a network printer, so the switch can be read. */
+function endpointFromQueueUri(uri) {
+  const text = String(uri || "").trim();
+  const socket = /^(?:socket|tcp):\/\/([^/:]+)(?::(\d+))?/i.exec(text);
+  if (socket) return endpointOf(socket[1], socket[2]);
+  const windowsIp = /^IP_(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$/i.exec(text);
+  if (windowsIp) return endpointOf(windowsIp[1], windowsIp[2]);
+  const bareIp = /^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$/.exec(text);
+  if (bareIp) return endpointOf(bareIp[1], bareIp[2]);
+  return null;
+}
+
+function endpointOf(host, portRaw) {
+  if (!host || !HOST_RE.test(host)) return null;
+  const port = Number(portRaw);
+  return { host, port: Number.isInteger(port) && port > 0 && port <= 65535 ? port : DEFAULT_RAW_PORT };
+}
+
+async function resolveQueueEndpoint(name) {
+  const cached = queueEndpoints.get(name);
+  if (cached && Date.now() - cached.at < QUEUE_ENDPOINT_TTL_MS) return cached.endpoint;
+  let endpoint = null;
+  try {
+    const listed = await listPrinters();
+    const row = listed.printers.find((printer) => printer.name === name);
+    endpoint = row ? endpointFromQueueUri(row.uri) : null;
+  } catch {
+    endpoint = null;
+  }
+  queueEndpoints.set(name, { endpoint, at: Date.now() });
+  return endpoint;
+}
+
+async function replyDrawerStatus(res, host, port) {
+  try {
+    const status = await readDrawerStatus(host, port);
+    send(res, 200, { readable: true, pinHigh: status.pinHigh, raw: status.raw }, "application/json");
+  } catch (e) {
+    logLine("Drawer status unreadable:", e instanceof Error ? e.message : e);
+    send(res, 200, { readable: false, reason: "timeout" }, "application/json");
+  }
+}
 
 function readDrawerStatus(host, port) {
   return new Promise((resolve, reject) => {
@@ -575,6 +620,7 @@ const server = createServer(async (req, res) => {
         networkRaw: true,
         printEngine: IS_WIN ? PRINT_ENGINE : "cups-or-network",
         ...(IS_WIN ? { listEngine: "usb-pnp-v2" } : {}),
+        drawerSwitch: "queue",
         port: PORT,
       },
       "application/json",
@@ -606,14 +652,15 @@ const server = createServer(async (req, res) => {
         send(res, 400, "Invalid X-Printer-Host");
         return;
       }
-      try {
-        const status = await readDrawerStatus(netHost, netPort);
-        send(res, 200, { readable: true, pinHigh: status.pinHigh, raw: status.raw }, "application/json");
-      } catch (e) {
-        logLine("Drawer status unreadable:", e instanceof Error ? e.message : e);
-        send(res, 200, { readable: false, reason: "timeout" }, "application/json");
-      }
+      await replyDrawerStatus(res, netHost, netPort);
       return;
+    }
+    if (cups) {
+      const endpoint = await resolveQueueEndpoint(cups);
+      if (endpoint) {
+        await replyDrawerStatus(res, endpoint.host, endpoint.port);
+        return;
+      }
     }
     send(
       res,

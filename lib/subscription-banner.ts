@@ -96,9 +96,9 @@ export function resolveSubscriptionBanner(
       tone: "critical",
       key: "blocked",
       eyebrow: "Subscription blocked",
-      title: "Your shop is paused — renew to reopen it",
+      title: "The back office stays closed until this shop is paid",
       description:
-        "The grace period has ended. Your data is safe; access returns as soon as payment lands.",
+        "The till and the clerk can keep selling. Pay in the package panel to open the back office again. Your data is safe.",
       cta: "Renew subscription",
       href: billingHref,
       icon: "lock",
@@ -144,7 +144,7 @@ export function resolveSubscriptionBanner(
             : `${dayLabel(daysLeft)} left in grace`
           : "Your subscription has expired",
       description: status.autoBlockEnabled
-        ? "Renew now to keep the shop running. Automatic blocking is on, so access pauses when grace runs out."
+        ? "Renew now. When grace ends, the back office locks until you pay. The till and the clerk keep selling."
         : "Automatic blocking is off, so the shop keeps working while you renew. Renew to avoid a future interruption.",
       cta: "Renew subscription",
       href: billingHref,

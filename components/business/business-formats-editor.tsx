@@ -19,6 +19,7 @@ import {
   SERVICE_STORE_TYPES,
 } from "@/lib/business-store-type";
 import { STORE_TYPE_OPTIONS } from "@/lib/onboarding-questionnaire";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
 // Section order and copy mirror onboarding and the Super Admin catalogue, so the three read alike.
@@ -174,6 +175,13 @@ export function BusinessFormatsEditor({
                 <span className="mt-0.5 block text-[12px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">
                   On. Your orders are under Trade. To stop, ask Kiosk support.
                 </span>
+              </span>
+            </div>
+          ) : IS_DESKTOP ? (
+            <div className="rounded-[2px] border border-[color-mix(in_srgb,var(--op-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] px-3 py-2.5">
+              <span className="block text-sm font-semibold text-[var(--op-ink,#121A16)]">Supplier / wholesaler</span>
+              <span className="mt-0.5 block text-[12px] text-[color-mix(in_srgb,var(--op-ink,#121A16)_60%,transparent)]">
+                Set up in your online shop on kiosk.ke, under Business formats. It then shows on this till.
               </span>
             </div>
           ) : (

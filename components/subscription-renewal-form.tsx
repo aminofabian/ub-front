@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Smartphone } from "lucide-react";
+import { Loader2, Lock, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ import {
   billingPhoneInputClass,
   formatBillingMoney,
 } from "@/components/billing/billing-ui";
+import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
   fetchSubscriptionRenewalOrderStatus,
@@ -17,6 +18,10 @@ import {
   type SubscriptionRenewalQuoteRecord,
 } from "@/lib/api";
 import { clearLoginBillingGate } from "@/lib/auth";
+import {
+  formatKenyanPhoneDisplay,
+  toKenyanMsisdn254,
+} from "@/lib/kenyan-phone";
 import { notifySubscriptionStatusChanged } from "@/lib/subscription-events";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +30,10 @@ type Props = {
   canPay: boolean;
   onPaid?: () => void;
   compact?: boolean;
+  /** `bar` drops the quote card so a sticky footer can show the amount. */
+  presentation?: "card" | "bar";
+  payLabel?: string;
+  note?: string;
 };
 
 export function SubscriptionRenewalForm({
@@ -32,11 +41,20 @@ export function SubscriptionRenewalForm({
   canPay,
   onPaid,
   compact = false,
+  presentation = "card",
+  payLabel,
+  note,
 }: Props) {
+  const dashboard = useOptionalDashboard();
+  const savedPhone = toKenyanMsisdn254(dashboard?.me?.phone ?? "") ?? "";
+  const savedDisplay = formatKenyanPhoneDisplay(savedPhone);
   const [phone, setPhone] = useState("");
+  const [editingPhone, setEditingPhone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [polling, setPolling] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const usingSaved = Boolean(savedPhone) && !editingPhone;
 
   useEffect(() => {
     return () => {
@@ -45,6 +63,10 @@ export function SubscriptionRenewalForm({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (editingPhone) phoneRef.current?.focus();
+  }, [editingPhone]);
 
   const startPoll = (orderId: string) => {
     setPolling(true);
@@ -80,7 +102,7 @@ export function SubscriptionRenewalForm({
 
   const onPay = async () => {
     if (!canPay || submitting || polling) return;
-    const trimmed = phone.trim();
+    const trimmed = (usingSaved ? savedPhone : phone).trim();
     if (!trimmed) {
       toast.error("Enter your M-Pesa phone number.");
       return;
@@ -116,37 +138,85 @@ export function SubscriptionRenewalForm({
       ? `Save ${formatBillingMoney(quote.savingsKes, quote.currency)} vs monthly`
       : null;
 
+  const amountLabel = formatBillingMoney(quote.amountKes, quote.currency);
+  const buttonLabel =
+    payLabel ??
+    (presentation === "bar"
+      ? canPay
+        ? `Pay ${amountLabel} with M-Pesa`
+        : "Payment unavailable for your role"
+      : "Pay with M-Pesa");
+
   return (
-    <div className={cn(compact ? "space-y-3" : "space-y-5")}>
-      <BillingQuoteCard
-        compact={compact}
-        planName={`${quote.tierDisplayName} plan`}
-        amountLabel={formatBillingMoney(quote.amountKes, quote.currency)}
-        periodLabel={periodLabel}
-        savingsLabel={savingsLabel}
-      />
+    <div className={cn(compact || presentation === "bar" ? "space-y-3" : "space-y-5")}>
+      {presentation === "card" ? (
+        <BillingQuoteCard
+          compact={compact}
+          planName={`${quote.tierDisplayName} plan`}
+          amountLabel={formatBillingMoney(quote.amountKes, quote.currency)}
+          periodLabel={periodLabel}
+          savingsLabel={savingsLabel}
+        />
+      ) : null}
 
       {canPay ? (
         <div className="space-y-4">
-          <BillingField label="M-Pesa phone">
-            <div className="relative">
-              <Smartphone
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70"
-                aria-hidden
-              />
-              <input
-                type="tel"
-                className={cn(billingPhoneInputClass(submitting || polling), "pl-9")}
-                placeholder="2547…"
-                value={phone}
+          {usingSaved ? (
+            <div className="flex items-center justify-between gap-3 border border-[var(--op-rule)] bg-[var(--op-bg)] px-3 py-2.5">
+              <span className="min-w-0">
+                <span className="block text-[11px] font-medium text-[var(--op-muted)]">
+                  M-Pesa phone
+                </span>
+                <span className="mt-0.5 block truncate text-sm tabular-nums text-[var(--op-ink)]">
+                  {savedDisplay}
+                </span>
+              </span>
+              <button
+                type="button"
+                className="shrink-0 text-[13px] font-medium text-[var(--op-accent)] underline-offset-2 hover:underline disabled:opacity-50"
                 disabled={submitting || polling}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+                onClick={() => {
+                  setPhone("");
+                  setEditingPhone(true);
+                }}
+              >
+                Use a different number
+              </button>
             </div>
-          </BillingField>
+          ) : (
+            <div className="space-y-2">
+              <BillingField label="M-Pesa phone">
+                <div className="relative">
+                  <Smartphone
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70"
+                    aria-hidden
+                  />
+                  <input
+                    ref={phoneRef}
+                    type="tel"
+                    className={cn(billingPhoneInputClass(submitting || polling), "pl-9")}
+                    placeholder="2547…"
+                    value={phone}
+                    disabled={submitting || polling}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              </BillingField>
+              {savedPhone ? (
+                <button
+                  type="button"
+                  className="text-[13px] font-medium text-[var(--op-accent)] underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={submitting || polling}
+                  onClick={() => setEditingPhone(false)}
+                >
+                  Use {savedDisplay}
+                </button>
+              ) : null}
+            </div>
+          )}
           <Button
             type="button"
-            className="h-11 w-full active:scale-[0.99]"
+            className="h-11 w-full rounded-[2px] text-[15px] active:scale-[0.99]"
             disabled={submitting || polling}
             onClick={() => void onPay()}
           >
@@ -156,18 +226,34 @@ export function SubscriptionRenewalForm({
                 {polling ? "Waiting for M-Pesa…" : "Sending STK…"}
               </>
             ) : (
-              "Pay with M-Pesa"
+              buttonLabel
             )}
           </Button>
-          <p className="text-center text-xs leading-relaxed text-muted-foreground">
-            Approve the STK prompt on your phone. Access restores automatically
-            after payment.
+          <p
+            className="text-center text-xs leading-relaxed text-[var(--op-muted)]"
+          >
+            {note ??
+              (presentation === "bar"
+                ? "The new period starts when payment lands. Days you have already paid for are added on."
+                : "Approve the STK prompt on your phone. Access restores automatically after payment.")}
           </p>
         </div>
       ) : (
-        <p className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-          Ask a business owner to renew — your account cannot initiate payments.
-        </p>
+        <div className="space-y-3">
+          <p className="flex items-start gap-2.5 border border-[var(--op-rule)] px-3 py-2.5 text-[13px] leading-snug text-[var(--op-ink)]">
+            <Lock className="mt-0.5 size-4 shrink-0 text-[var(--op-highlight)]" aria-hidden />
+            Ask a business owner to renew. This account cannot start a payment.
+          </p>
+          {presentation === "bar" ? (
+            <button
+              type="button"
+              disabled
+              className="h-11 w-full rounded-[2px] bg-[var(--muted)] text-[15px] font-medium text-[var(--muted-foreground)]"
+            >
+              {buttonLabel}
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   );

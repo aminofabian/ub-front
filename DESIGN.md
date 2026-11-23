@@ -127,9 +127,12 @@ storefront still need the same treatment surface by surface.
   controls. The Oxanium dependency is gone from the console shell.
 - Super-admin sign-in is wrapped in the auth-shell tokens so the primary
   button is forest, the card is paper, and the heading is Cormorant.
-- The overview's floating pulse cards no longer collide; the empty right
-  dossier is now a **Platform pulse** summary with attention, units, active
-  tenants, and three hairline shortcuts.
+- The overview is a desk, not a theatre. A sticky jump row (needs you, till
+  today, sold today, hottest, active) leads into bands: needs-you beside the
+  stuck-signup list, the till book, sold (14-day bars plus storefront), moving
+  (hottest tills | best sellers), and shops (fleet counts, newest, shortcuts).
+  Old hashes (`#attention`, `#stuck`, `#commerce`, `#hot`, `#sellers`,
+  `#recent`, `#jump`) still land on those bands.
 - Public marketplace uses the same paper/forest skin: serif marketplace
   heading, 2px product cards, forest selected states, muted platform logo.
 - Tenant storefronts remain tenant-themed. Their colours, banners, and
