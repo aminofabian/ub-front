@@ -99,6 +99,10 @@ import {
   type SupplyPackMode,
 } from "@/lib/supply-pack-math";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
+import {
+  INDIVIDUAL_ITEM_LABEL,
+  packagingLabel,
+} from "@/lib/pack-configuration";
 import { SupplyPackGuideHintButton } from "@/app/(dashboard)/supplies/_components/supply-pack-guide-drawer";
 import { publicSupplierPortalUrl } from "@/lib/public-supplier-portal";
 import { cn } from "@/lib/utils";
@@ -530,11 +534,7 @@ function applyLinePackMode(
   return { ...line, ...converted, packMode: next, packOptionId: null };
 }
 
-function packSizeLabel(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-}
-
-/** One choice in the manifest "Buy as" strip — the pack modal's quick-size chip language. */
+/** One choice in the manifest "Buy as" strip. */
 function PackChip({
   active,
   custom = false,
@@ -556,7 +556,7 @@ function PackChip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition-colors",
+        "inline-flex h-7 min-w-7 items-center justify-center border px-2 text-[11px] font-medium transition-colors",
         active
           ? "border-amber-950 bg-amber-950 text-amber-50 dark:border-amber-100 dark:bg-amber-100 dark:text-amber-950"
           : "border-amber-900/25 text-amber-950/80 hover:border-amber-900/50 dark:border-amber-200/25 dark:text-amber-100/80",
@@ -1498,7 +1498,7 @@ function SupplyCartPanel({
           {lines.length === 0 ? (
             <p className="mx-3 my-4 px-1 py-8 text-center text-[11px] leading-relaxed text-muted-foreground">
               Tap a shelf product or scan a barcode.
-              Pack sizes appear on each line when available.
+              Each line says whether you are receiving a pack or a single item.
             </p>
           ) : (
             <ul className="divide-y divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:divide-border/40">
@@ -1522,14 +1522,6 @@ function SupplyCartPanel({
                       <span className="font-mono text-[10px] font-semibold tabular-nums leading-none text-muted-foreground">
                         {String(index + 1).padStart(2, "0")}
                       </span>
-                      {packed ? (
-                        <span
-                          className="font-mono text-[9px] font-bold tabular-nums text-amber-900/80 dark:text-amber-200/80"
-                          title={`Pack of ${pack.unitsPerPack}`}
-                        >
-                          ×{packSizeLabel(pack.unitsPerPack)}
-                        </span>
-                      ) : null}
                     </div>
 
                     <div className="min-w-0 space-y-1.5">
@@ -1538,6 +1530,13 @@ function SupplyCartPanel({
                           <p className="truncate text-[12px] font-semibold leading-snug text-foreground">
                             {line.name}
                           </p>
+                          {packed || (line.packs && line.packs.length > 0) ? (
+                            <p className="mt-0.5 text-[12px] font-medium leading-snug text-foreground">
+                              {packed
+                                ? packagingLabel(pack.packUnit, pack.unitsPerPack)
+                                : INDIVIDUAL_ITEM_LABEL}
+                            </p>
+                          ) : null}
                           <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
                             Stock {formatStock(line.stock)}
                             {qty > 0
@@ -1564,9 +1563,9 @@ function SupplyCartPanel({
                           <PackChip
                             active={!packed}
                             onClick={() => onSelectPack(line.itemId, null)}
-                            title="Buy loose pieces"
+                            title={INDIVIDUAL_ITEM_LABEL}
                           >
-                            Unit
+                            {INDIVIDUAL_ITEM_LABEL}
                           </PackChip>
                           {line.packs.map((option) => (
                             <PackChip
@@ -1577,13 +1576,15 @@ function SupplyCartPanel({
                               onClick={() =>
                                 onSelectPack(line.itemId, option.id)
                               }
-                              title={
-                                option.unitPrice != null
-                                  ? `Pack of ${packSizeLabel(option.unitsPerPack)} · ${Number(option.unitPrice).toFixed(2)} per ${option.packUnit || "pack"}`
-                                  : `Pack of ${packSizeLabel(option.unitsPerPack)}`
-                              }
+                              title={packagingLabel(
+                                option.packUnit,
+                                option.unitsPerPack,
+                              )}
                             >
-                              ×{packSizeLabel(option.unitsPerPack)}
+                              {packagingLabel(
+                                option.packUnit,
+                                option.unitsPerPack,
+                              )}
                             </PackChip>
                           ))}
                           <PackChip
@@ -1592,13 +1593,13 @@ function SupplyCartPanel({
                             onClick={() => onEditPack(line.itemId)}
                             title={
                               packed && !line.packOptionId
-                                ? `Edit custom pack ×${pack.unitsPerPack}`
-                                : "Set any other pack size"
+                                ? `Edit ${packagingLabel(pack.packUnit, pack.unitsPerPack)}`
+                                : "Other size"
                             }
                           >
                             {packed && !line.packOptionId
-                              ? `×${packSizeLabel(pack?.unitsPerPack ?? 0)}`
-                              : "…"}
+                              ? packagingLabel(pack.packUnit, pack.unitsPerPack)
+                              : "Other size"}
                           </PackChip>
                         </div>
                       ) : null}
@@ -3207,6 +3208,26 @@ export function SupplierReceiveWorkspace({
             : null
         }
         initialUnitsPerPack={packSheetLine?.packMode?.unitsPerPack ?? null}
+        initialPackPrice={
+          packSheetLine?.packMode ? packSheetLine.costStr : null
+        }
+        knownEachPrice={
+          packSheetLine && !packSheetLine.packMode
+            ? packSheetLine.costStr || packSheetLine.seedCost
+            : null
+        }
+        initialInner={
+          packSheetLine?.packMode?.innerPackCount &&
+          packSheetLine.packMode.baseUnitsPerInner
+            ? {
+                unit: packSheetLine.packMode.innerPackUnit,
+                count: packSheetLine.packMode.innerPackCount,
+                base: packSheetLine.packMode.baseUnitsPerInner,
+              }
+            : null
+        }
+        currency={currency}
+        savedOptions={packSheetLine?.packs ?? null}
         onApply={(result) => {
           if (!packSheetLine) return;
           const itemId = packSheetLine.itemId;
@@ -3216,6 +3237,9 @@ export function SupplierReceiveWorkspace({
               const withMode = applyLinePackMode(l, {
                 unitsPerPack: result.unitsPerPack,
                 packUnit: result.packUnit || "pack",
+                innerPackUnit: result.innerPackUnit,
+                innerPackCount: result.innerPackCount,
+                baseUnitsPerInner: result.baseUnitsPerInner,
               });
               const next: SupplyCartLine = {
                 ...withMode,

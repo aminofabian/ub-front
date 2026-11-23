@@ -1030,6 +1030,38 @@ export async function fetchSupplierPortalShop(): Promise<SupplierPortalShop> {
   );
 }
 
+/** The readiness checklist in the portal. `after_shop` steps only mean something once a shop is open. */
+export type SupplierPortalReadiness = {
+  enabled: boolean;
+  steps: { key: string; label: string; state: "done" | "todo" | "after_shop"; actionUrl: string }[];
+};
+
+/** How quickly a portal supplier answers the orders shops send it, what is waiting, and its milestones. */
+export type SupplierPortalOverview = {
+  enabled: boolean;
+  nextThing: { text: string; url: string } | null;
+  waitingToAnswer: number;
+  oldestWaitingSince: string | null;
+  /** "new" until there are enough answered orders from enough shops; then "measured". */
+  state: string;
+  answeredOrders: number;
+  shops: number;
+  medianAnswerWorkingHours: number | null;
+  milestones: string[];
+};
+
+export async function fetchSupplierPortalOverview(): Promise<SupplierPortalOverview> {
+  return supplierPortalFetch<SupplierPortalOverview>(
+    `${API_ROUTES.supplierPortalProfile.replace(/\/profile$/, "")}/shop/overview`,
+  );
+}
+
+export async function fetchSupplierPortalReadiness(): Promise<SupplierPortalReadiness> {
+  return supplierPortalFetch<SupplierPortalReadiness>(
+    `${API_ROUTES.supplierPortalProfile.replace(/\/profile$/, "")}/shop/readiness`,
+  );
+}
+
 /** Opens the shop, or returns the one already open. */
 export async function openSupplierPortalShop(
   shopAddress?: string,
@@ -1234,6 +1266,17 @@ export type SupplierPortalInvoiceRow = {
   balanceOpen: number | string;
   paymentStatus: string;
   status: string;
+  lines?: Array<{
+    id: string;
+    description: string;
+    qty: number | string;
+    unitCost: number | string;
+    lineTotal: number | string;
+    purchaseUnit: string | null;
+    purchaseQty: number | string | null;
+    unitsPerPurchaseUnit: number | string | null;
+    packPrice: number | string | null;
+  }>;
 };
 
 export type SupplierPortalPaymentDetails = {

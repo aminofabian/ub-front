@@ -38,6 +38,13 @@ import {
 } from "@/app/marketplace/_lib/marketplace-order-pdf";
 import { AdvanceDepositDrawer } from "@/app/(dashboard)/supplies/_components/advance-deposit-drawer";
 import { SupplyPackQtyModal } from "@/app/(dashboard)/supplies/_components/supply-pack-qty-modal";
+import {
+  INDIVIDUAL_ITEM_LABEL,
+  formatPackMoneyInput,
+  orderLinePackName,
+  packagingLabel,
+  packPriceFromEach,
+} from "@/lib/pack-configuration";
 import { formatSupplyMoney, supplyN } from "@/app/(dashboard)/supplies/_components/supplies-shared";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
@@ -111,10 +118,6 @@ function cartItemIds(cart: CartQty): string[] {
   return Object.keys(cart).filter((id) => (cart[id] ?? 0) > 0);
 }
 
-function formatPackSize(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-}
-
 function PackChoiceChip({
   active,
   onClick,
@@ -133,7 +136,7 @@ function PackChoiceChip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-6 min-w-7 items-center justify-center rounded-none border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        "inline-flex h-7 min-w-7 items-center justify-center rounded-none border px-2 text-[11px] font-medium transition",
         active
           ? "border-[var(--pos-primary,#0f766e)] bg-white text-[var(--pos-primary,#0f766e)]"
           : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white text-[var(--order-ink,#15231f)] hover:border-[color-mix(in_srgb,var(--order-ink,#15231f)_22%,transparent)]",
@@ -177,6 +180,19 @@ function unitCost(link: SupplierItemLinkRecord): number {
 
 function linkPacks(link: SupplierItemLinkRecord): ItemLinkPackOfferRecord[] {
   return link.packs && link.packs.length > 0 ? link.packs : [];
+}
+
+/** Saved pack price, or the item's cost × how many the pack holds. */
+function savedPackPrice(
+  link: SupplierItemLinkRecord,
+  option: ItemLinkPackOfferRecord,
+): number | null {
+  if (option.unitPrice != null && Number.isFinite(option.unitPrice)) {
+    return option.unitPrice;
+  }
+  const each = unitCost(link);
+  if (!(each > 0) || !(option.unitsPerPack > 1)) return null;
+  return Math.round(each * option.unitsPerPack * 100) / 100;
 }
 
 /** Price for one pack (or one unit when not packed). */
@@ -258,6 +274,52 @@ function formatUnitPriceDisplay(price: number): string {
   const rounded = Math.round(price * 10000) / 10000;
   if (rounded > 0) return String(rounded);
   return price.toFixed(6).replace(/\.?0+$/, "") || "0";
+}
+
+function PackEachField({
+  packPrice,
+  units,
+  onPackPrice,
+}: {
+  packPrice: number;
+  units: number;
+  onPackPrice: (packPrice: number) => void;
+}) {
+  const each =
+    units > 0 ? Math.round((packPrice / units) * 100) / 100 : null;
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown =
+    draft ?? (each != null && each > 0 ? formatPackMoneyInput(each) : "");
+  return (
+    <label className="inline-flex min-w-0 flex-col items-end gap-0.5">
+      <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
+        Price per item
+      </span>
+      <input
+        className="h-8 w-[4.75rem] max-w-full rounded-none border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)] max-xl:h-11 max-xl:w-[6rem] max-xl:rounded-lg max-xl:text-base"
+        inputMode="decimal"
+        aria-label="Price per item"
+        value={shown}
+        placeholder="0"
+        onFocus={() => setDraft(shown)}
+        onChange={(event) => {
+          const raw = event.target.value.replace(",", ".");
+          if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) return;
+          setDraft(raw);
+          if (raw === "" || raw === "." || raw.endsWith(".")) return;
+          const next = Number.parseFloat(raw);
+          const pack = packPriceFromEach(next, units);
+          if (pack != null) onPackPrice(pack);
+        }}
+        onBlur={() => setDraft(null)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            (event.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    </label>
+  );
 }
 
 function formatLineTotalDisplay(amount: number): string {
@@ -1004,10 +1066,11 @@ export function TenantOrderWorkspace({
   const whatsappLines = useMemo(
     () =>
       cartLines.map(({ link, qty, pack, priceOverride }) => ({
-        name:
-          pack != null && pack.size > 1
-            ? `${link.itemName} (pack of ${formatPackSize(pack.size)})`
-            : link.itemName,
+        name: orderLinePackName(
+          link.itemName,
+          pack ? { unit: pack.unit, units: pack.size } : null,
+          linkPacks(link).length > 0,
+        ),
         sku: link.sku,
         barcode: link.barcode,
         qty,
@@ -1204,12 +1267,12 @@ export function TenantOrderWorkspace({
         line.priceOverride,
         line.totalOverride,
       );
-      const packNote =
-        line.pack && line.pack.size > 1
-          ? ` x${formatPackSize(line.pack.size)}`
-          : "";
       return {
-        name: `${line.link.itemName || "Item"}${packNote}`,
+        name: orderLinePackName(
+          line.link.itemName || "Item",
+          line.pack ? { unit: line.pack.unit, units: line.pack.size } : null,
+          linkPacks(line.link).length > 0,
+        ),
         qty: line.qty,
         unitCost: line.qty > 0 ? total / line.qty : 0,
         lineTotal: total,
@@ -1590,7 +1653,7 @@ export function TenantOrderWorkspace({
             packOptionId: option.id,
             size: option.unitsPerPack,
             unit: option.packUnit || "pack",
-            price: option.unitPrice ?? (unitCost(link) || null),
+            price: savedPackPrice(link, option),
           },
         };
       });
@@ -1607,8 +1670,7 @@ export function TenantOrderWorkspace({
       const option = link
         ? linkPacks(link).find((p) => p.id === packOptionId)
         : null;
-      const seeded =
-        option?.unitPrice ?? (link ? unitCost(link) || null : null);
+      const seeded = link && option ? savedPackPrice(link, option) : null;
       if (seeded != null && seeded > 0) {
         setPriceByItemId((prev) => ({ ...prev, [itemId]: seeded }));
       }
@@ -1634,8 +1696,8 @@ export function TenantOrderWorkspace({
             Nothing on the slip.
           </p>
           <p className="max-w-[20rem] text-[12.5px] leading-[1.7] text-[var(--op-muted)]">
-            Tap a product on the shelf to start this order. Pack sizes appear
-            on each line when the supplier offers them.
+            Tap a product on the shelf to start this order. Each line says
+            whether you are buying a pack or a single item.
           </p>
         </div>
       ) : (
@@ -1706,9 +1768,11 @@ export function TenantOrderWorkspace({
                       <p className="break-words text-[13px] font-medium leading-snug text-[var(--order-ink,#15231f)] max-xl:text-[15px]">
                         {link.itemName}
                       </p>
-                      {packed ? (
-                        <p className="mt-0.5 font-mono text-[10px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
-                          ×{formatPackSize(pack.size)} / {pack.unit}
+                      {packed || packs.length > 0 ? (
+                        <p className="mt-0.5 text-[12px] font-medium leading-snug text-[var(--order-ink,#15231f)]">
+                          {packed
+                            ? packagingLabel(pack.unit, pack.size)
+                            : INDIVIDUAL_ITEM_LABEL}
                         </p>
                       ) : null}
                     </div>
@@ -1776,22 +1840,18 @@ export function TenantOrderWorkspace({
                   <PackChoiceChip
                     active={!packed}
                     onClick={() => selectPack(link.itemId, null)}
-                    title="Buy loose units"
+                    title={INDIVIDUAL_ITEM_LABEL}
                   >
-                    Unit
+                    {INDIVIDUAL_ITEM_LABEL}
                   </PackChoiceChip>
                   {packs.map((option) => (
                     <PackChoiceChip
                       key={option.id}
                       active={packed && pack?.packOptionId === option.id}
                       onClick={() => selectPack(link.itemId, option.id)}
-                      title={
-                        option.unitPrice != null
-                          ? `${formatMoney(option.unitPrice, ORDER_CURRENCY)} per ${option.packUnit || "pack"}`
-                          : `Pack of ${formatPackSize(option.unitsPerPack)}`
-                      }
+                      title={packagingLabel(option.packUnit, option.unitsPerPack)}
                     >
-                      ×{formatPackSize(option.unitsPerPack)}
+                      {packagingLabel(option.packUnit, option.unitsPerPack)}
                     </PackChoiceChip>
                   ))}
                   <PackChoiceChip
@@ -1799,13 +1859,13 @@ export function TenantOrderWorkspace({
                     onClick={() => setPackSheetItemId(link.itemId)}
                     title={
                       packed && !pack?.packOptionId
-                        ? `Edit custom pack ×${formatPackSize(pack.size)}`
-                        : "Custom pack size…"
+                        ? `Edit ${packagingLabel(pack.unit, pack.size)}`
+                        : "Other size"
                     }
                   >
                     {packed && !pack?.packOptionId
-                      ? `×${formatPackSize(pack.size)}`
-                      : "…"}
+                      ? packagingLabel(pack.unit, pack.size)
+                      : "Other size"}
                   </PackChoiceChip>
                 </div>
               ) : null}
@@ -1849,7 +1909,7 @@ export function TenantOrderWorkspace({
                         ? "bg-[var(--pos-primary,#0f766e)] text-white"
                         : "text-[color-mix(in_srgb,var(--order-ink,#15231f)_45%,transparent)] hover:bg-white hover:text-[var(--order-ink,#15231f)]",
                     )}
-                    title={packed ? "Edit pack size" : "Custom pack size…"}
+                    title={packed ? "Edit this pack" : "Set a pack"}
                     aria-pressed={packed}
                     onClick={() => setPackSheetItemId(link.itemId)}
                   >
@@ -1859,12 +1919,12 @@ export function TenantOrderWorkspace({
                 <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                   <label className="inline-flex min-w-0 flex-col items-end gap-0.5">
                     <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
-                      {packed ? "Pack price" : "Unit price"}
+                      {packed ? "Pack price" : "Price per item"}
                     </span>
                     <input
                       className="h-8 w-[4.75rem] max-w-full rounded-none border max-xl:h-11 max-xl:w-[6rem] max-xl:rounded-lg max-xl:text-base border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#0f766e)_18%,transparent)]"
                       inputMode="decimal"
-                      aria-label={packed ? "Pack price" : "Unit price"}
+                      aria-label={packed ? "Pack price" : "Price per item"}
                       value={
                         priceDraftByItemId[link.itemId] ??
                         formatUnitPriceDisplay(price)
@@ -1922,6 +1982,13 @@ export function TenantOrderWorkspace({
                       }}
                     />
                   </label>
+                  {packed ? (
+                    <PackEachField
+                      packPrice={price}
+                      units={pack.size}
+                      onPackPrice={(next) => setLinePrice(link.itemId, next)}
+                    />
+                  ) : null}
                   <label className="inline-flex min-w-0 flex-col items-end gap-0.5">
                     <span className="text-[10px] font-medium text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)]">
                       Line total
@@ -3327,12 +3394,25 @@ export function TenantOrderWorkspace({
             ? (packByItemId[packSheetLink.itemId]?.size ?? null)
             : null
         }
+        initialPackPrice={
+          packSheetLink
+            ? (packByItemId[packSheetLink.itemId]?.price ?? null)
+            : null
+        }
+        knownEachPrice={
+          packSheetLink ? unitCost(packSheetLink) || null : null
+        }
+        currency={currency}
         savedOptions={packSheetLink ? linkPacks(packSheetLink) : null}
         onApply={(result) => {
           if (!packSheetLink) return;
           const itemId = packSheetLink.itemId;
+          const each = unitCost(packSheetLink);
           const nextPrice =
-            result.packPrice ?? (unitCost(packSheetLink) || null);
+            result.packPrice ??
+            (each > 0
+              ? Math.round(each * result.unitsPerPack * 100) / 100
+              : null);
           setPackByItemId((prev) => ({
             ...prev,
             [itemId]: {
@@ -3347,8 +3427,6 @@ export function TenantOrderWorkspace({
           }
           if ((cart[itemId] ?? 0) <= 0) {
             setQty(itemId, result.packCount > 0 ? result.packCount : 1);
-          } else if (result.packCount > 0) {
-            setQty(itemId, result.packCount);
           }
           setPackSheetItemId(null);
         }}

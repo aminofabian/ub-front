@@ -36,13 +36,7 @@ export function CounterOrdersSetting() {
   };
 
   return (
-    <>
-    <p className="mt-4 text-[13px]">
-      <a href="/storefront/supplier-page" className="font-medium text-foreground underline underline-offset-4">
-        Your marketplace page
-      </a>
-    </p>
-    <div className="mt-2 flex items-start justify-between gap-4 border border-foreground/15 px-3 py-3">
+    <div className="flex items-start justify-between gap-4 border border-foreground/15 px-3 py-3">
       <div className="text-[13px]">
         <p className="font-medium text-foreground">Counter orders</p>
         <p className="mt-0.5 text-muted-foreground">
@@ -64,6 +58,5 @@ export function CounterOrdersSetting() {
         aria-label="Counter orders"
       />
     </div>
-    </>
   );
 }

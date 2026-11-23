@@ -44,6 +44,7 @@ import {
   type SupplierPayoutType,
 } from "./SupplierPayoutChooser";
 import { SupplierPurchaseHistorySection } from "./SupplierPurchaseHistorySection";
+import { SupplierPortalVisibilityPanel } from "./SupplierPortalVisibilityPanel";
 import {
   statusBadgeClass,
   supKvLabel,
@@ -445,6 +446,13 @@ export function SupplierEditColumn({
           onSavePayout={onSavePayout}
           onPayoutPhoneVerified={onPayoutPhoneVerified}
         />
+
+        {!isPlaceholderSupplier ? (
+          <SupplierPortalVisibilityPanel
+            supplierId={detail.id}
+            canWrite={canWrite}
+          />
+        ) : null}
 
         <SupplierPurchaseHistorySection
           key={purchaseHistoryRefreshKey}

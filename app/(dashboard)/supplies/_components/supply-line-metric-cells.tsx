@@ -165,6 +165,11 @@ type SupplyQtyCellProps = CompactProps & {
   onEnterCost?: () => void;
   /** Prefill pack size from supplier link or product packaging. */
   packDefaults?: SupplyPackQtyDefaults | null;
+  /** Pack price already typed on the line, when the line is in pack mode. */
+  initialPackPrice?: number | string | null;
+  /** Item price, used to fill the pack price when the line is not packed yet. */
+  knownEachPrice?: number | string | null;
+  currency?: string | null;
   packMode?: SupplyPackMode | null;
   onPackModeChange?: (next: SupplyPackMode | null) => void;
   /** Saved pack shapes offered by the supplier link — quick picks in the pack sheet. */
@@ -192,6 +197,9 @@ export function SupplyQtyCell({
   onEnterNext,
   onEnterCost,
   packDefaults = null,
+  initialPackPrice = null,
+  knownEachPrice = null,
+  currency = "KES",
   packMode = null,
   onPackModeChange,
   savedOptions = null,
@@ -345,6 +353,18 @@ export function SupplyQtyCell({
             : packDefaults
         }
         initialUnitsPerPack={packed ? packSize : null}
+        initialPackPrice={initialPackPrice}
+        knownEachPrice={knownEachPrice}
+        currency={currency}
+        initialInner={
+          packMode?.innerPackCount && packMode.baseUnitsPerInner
+            ? {
+                unit: packMode.innerPackUnit,
+                count: packMode.innerPackCount,
+                base: packMode.baseUnitsPerInner,
+              }
+            : null
+        }
         savedOptions={savedOptions}
         canSavePackOption={canSavePackOption}
         onApply={(result) => {

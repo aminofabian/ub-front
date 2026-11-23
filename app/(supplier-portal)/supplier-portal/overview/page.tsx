@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalReadiness } from "@/components/supplier-portal/portal-readiness";
+
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -213,6 +215,7 @@ export default function SupplierPortalOverviewPage() {
           } as CSSProperties
         }
       >
+        <PortalReadiness />
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-[11px] tabular-nums text-[color-mix(in_srgb,var(--dash-ink)_48%,transparent)]">

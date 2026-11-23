@@ -14458,6 +14458,51 @@ export async function inviteSupplierToPortal(
   );
 }
 
+/** What a connected supplier may see of this shop's records (business_supplier_connections). */
+export type SupplierPortalVisibilityRecord = {
+  connected: boolean;
+  status: string | null;
+  canViewPurchaseHistory: boolean;
+  canViewStockLevels: boolean;
+  canViewLowStockAlerts: boolean;
+  canViewSalesVelocity: boolean;
+  canViewDemandForecast: boolean;
+  canSuggestRestock: boolean;
+  canCreateDraftPo: boolean;
+};
+
+export type SupplierPortalVisibilityPatch = Partial<
+  Pick<
+    SupplierPortalVisibilityRecord,
+    | "canViewPurchaseHistory"
+    | "canViewStockLevels"
+    | "canViewLowStockAlerts"
+    | "canViewSalesVelocity"
+    | "canViewDemandForecast"
+    | "canSuggestRestock"
+    | "canCreateDraftPo"
+  >
+>;
+
+export async function fetchSupplierPortalVisibility(
+  supplierId: string,
+): Promise<SupplierPortalVisibilityRecord> {
+  return request<SupplierPortalVisibilityRecord>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/portal-visibility`,
+    { toast: false },
+  );
+}
+
+export async function updateSupplierPortalVisibility(
+  supplierId: string,
+  patch: SupplierPortalVisibilityPatch,
+): Promise<SupplierPortalVisibilityRecord> {
+  return request<SupplierPortalVisibilityRecord>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/portal-visibility`,
+    { method: "PATCH", body: patch, toast: false },
+  );
+}
+
 export async function fetchSupplierContacts(
   supplierId: string,
 ): Promise<SupplierContactRecord[]> {
@@ -17812,6 +17857,53 @@ export type ShopTeamInviteRow = {
 /** Invites the supplier's portal team into the shop. Each person gets the normal staff invitation. */
 export async function inviteSupplierPortalTeam(): Promise<{ rows: ShopTeamInviteRow[] }> {
   return request<{ rows: ShopTeamInviteRow[] }>("/api/v1/supplier-page/team/invite-portal-team", {
+    method: "POST",
+  });
+}
+
+/** A supplier's overview on the trade desk. A part that is switched off is null or empty. */
+export type SupplierOverview = {
+  enabled: boolean;
+  nextThing: { text: string; url: string } | null;
+  waitingToAnswer: number;
+  oldestWaitingSince: string | null;
+  steps: { key: string; label: string; done: boolean; actionUrl: string }[];
+  products: {
+    total: number;
+    orderable: number;
+    notOrderable: number;
+    orderableWithoutPhoto: number;
+    /** Packs with no pack size: a hint, like the photo. */
+    packsWithoutSize: number;
+    /** Medicines that may only be sold at the counter. Left out of `total`; never a failure. */
+    soldAtCounterOnly: number;
+    /** `missing`: "price", "online", "stock". */
+    close: { itemId: string; name: string; missing: string[] }[];
+  } | null;
+  /** `seen` is false until the note is dismissed: it is shown once. */
+  milestones: { key: string; label: string; achievedAt: string; seen: boolean }[];
+  repeatBuyers: number | null;
+  /** The signed-in person's own work; never a total across people. */
+  contribution: { ordersAnsweredWithinAWorkingDay: number; productsMadeOrderable: number } | null;
+  /** Only when a measure dipped: a sentence with both numbers. */
+  recoveryGoals: string[];
+};
+
+/** The supplier dismissed the milestone notes; each is shown once. */
+export async function markSupplierMilestonesSeen(): Promise<void> {
+  await request<void>(`${API_ROUTES.salesOrders}/milestones/seen`, { method: "POST" });
+}
+
+export async function fetchSupplierOverview(): Promise<SupplierOverview> {
+  return request<SupplierOverview>(`${API_ROUTES.salesOrders}/overview`);
+}
+
+/**
+ * Opens the supplier portal for the signed-in shop user. Returns a portal session to keep for the portal's pages,
+ * so they work from the shop without a second sign-in.
+ */
+export async function openSupplierPortalSession(): Promise<{ accessToken: string; sessionId: string | null }> {
+  return request<{ accessToken: string; sessionId: string | null }>("/api/v1/supplier-page/portal-session", {
     method: "POST",
   });
 }

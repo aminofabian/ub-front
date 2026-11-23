@@ -48,6 +48,11 @@ import { kioskPlaceholderWashClass } from "@/components/cashier/kiosk-listing-st
 import { TelLink } from "@/components/tel-link";
 import { APP_ROUTES } from "@/lib/config";
 import type { ItemLinkPackOfferRecord } from "@/lib/api";
+import {
+  INDIVIDUAL_ITEM_LABEL,
+  orderLinePackName,
+  packagingLabel,
+} from "@/lib/pack-configuration";
 import type {
   MarketplaceCatalogProductPreview,
   MarketplaceSupplierDetail,
@@ -118,10 +123,6 @@ type CartPackMeta = Record<string, CartPackSelection>;
 type OrderLayout = "default" | "shelf";
 type PdfDownloadKind = "sheet" | "list" | "chalk" | "order";
 type CatalogueStyleKind = "sheet" | "list" | "chalk";
-
-function formatPackSize(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-}
 
 function pdfFilename(base: string, includePrices: boolean): string {
   return includePrices ? base : base.replace(/\.pdf$/i, "-no-prices.pdf");
@@ -286,7 +287,7 @@ function PackChoiceChip({
       title={title}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-6 min-w-7 items-center justify-center border px-1.5 font-mono text-[10px] font-bold tabular-nums transition",
+        "inline-flex h-7 min-w-7 items-center justify-center border px-2 text-[11px] font-medium transition",
         active
           ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-[var(--pos-primary-ink,#fff)]"
           : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] text-[var(--pos-ink,#1c1915)] hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)]",
@@ -719,10 +720,11 @@ export function MarketplaceOrderWorkspace({
       cartLines.map(({ product, qty, pack }) => {
         const raw = productLineTotal(product, qty, pack);
         return {
-          name:
-            pack != null
-              ? `${product.name} (pack of ${pack.size})`
-              : product.name,
+          name: orderLinePackName(
+            product.name,
+            pack ? { unit: pack.unit, units: pack.size } : null,
+            catalogPackOptions(product).length > 0,
+          ),
           sku: product.sku,
           barcode: product.barcode,
           qty,
@@ -1159,6 +1161,12 @@ export function MarketplaceOrderWorkspace({
           ? packByProductId[packSheetProduct.id]?.size ?? null
           : null
       }
+      initialPackPrice={
+        packSheetProduct
+          ? (packByProductId[packSheetProduct.id]?.price ?? null)
+          : null
+      }
+      currency={packSheetProduct?.currency ?? "KES"}
       savedOptions={
         packSheetProduct
           ? (catalogPackOptions(packSheetProduct) as ItemLinkPackOfferRecord[])
@@ -1181,8 +1189,6 @@ export function MarketplaceOrderWorkspace({
         }));
         if ((cart[id] ?? 0) <= 0) {
           setQty(id, result.packCount > 0 ? result.packCount : 1, true);
-        } else if (result.packCount > 0) {
-          setQty(id, result.packCount);
         }
         setPackSheetProductId(null);
       }}
@@ -1676,8 +1682,10 @@ export function MarketplaceOrderWorkspace({
                       </p>
                       {selectedPack != null && selectedPack.price != null ? (
                         <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                          {formatMoney(selectedPack.price, selected.currency ?? "KES")}{" "}
-                          per {selectedPack.unit} ·{" "}
+                          {packagingLabel(selectedPack.unit, selectedPack.size)}
+                          {" · "}
+                          {formatMoney(selectedPack.price, selected.currency ?? "KES")}
+                          {" · "}
                           {formatMoney(
                             Math.round((selectedPack.price / selectedPack.size) * 100) / 100,
                             selected.currency ?? "KES",
@@ -1690,22 +1698,18 @@ export function MarketplaceOrderWorkspace({
                           <PackChoiceChip
                             active={selectedPack == null}
                             onClick={() => selectPack(selected.id, null)}
-                            title="Buy loose units"
+                            title={INDIVIDUAL_ITEM_LABEL}
                           >
-                            Unit
+                            {INDIVIDUAL_ITEM_LABEL}
                           </PackChoiceChip>
                           {packs.map((option) => (
                             <PackChoiceChip
                               key={option.id}
                               active={selectedPack?.packOptionId === option.id}
                               onClick={() => selectPack(selected.id, option.id)}
-                              title={
-                                option.unitPrice != null
-                                  ? `${formatMoney(option.unitPrice, selected.currency ?? "KES")} per ${option.packUnit || "pack"}`
-                                  : `Pack of ${formatPackSize(option.unitsPerPack)}`
-                              }
+                              title={packagingLabel(option.packUnit, option.unitsPerPack)}
                             >
-                              ×{formatPackSize(option.unitsPerPack)}
+                              {packagingLabel(option.packUnit, option.unitsPerPack)}
                             </PackChoiceChip>
                           ))}
                         </div>
@@ -2457,8 +2461,8 @@ function OrderManifestPanel({
         <div className="min-h-0 flex-1 space-y-0 overflow-y-auto">
           {lines.length === 0 ? (
             <p className="mx-2.5 my-3 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-3 py-10 text-center text-[11px] leading-relaxed text-muted-foreground">
-              Tap shelf products to build this order. Use the pack icon on a
-              line when the supplier sells by the pack.
+              Tap shelf products to build this order. Each line says whether
+              you are buying a pack or a single item.
             </p>
           ) : (
             lines.map((line, index) => {
@@ -2501,6 +2505,21 @@ function OrderManifestPanel({
                       </span>
                       <span>{line.product.name}</span>
                     </p>
+                    {packed || catalogPackOptions(line.product).length > 0 ? (
+                      <button
+                        type="button"
+                        className="mt-0.5 pl-5 text-left text-[12px] font-medium leading-snug text-[var(--pos-ink,#1c1915)] underline-offset-2 hover:underline"
+                        onClick={() =>
+                          packed
+                            ? onEditPack(line.product.id)
+                            : onSelectPack(line.product.id, null)
+                        }
+                      >
+                        {packed
+                          ? packagingLabel(pack.unit, pack.size)
+                          : INDIVIDUAL_ITEM_LABEL}
+                      </button>
+                    ) : null}
                     {line.product.sku ? (
                       <p className="mt-0.5 pl-5 font-mono text-[9px] uppercase tracking-wide text-muted-foreground">
                         {line.product.sku}
@@ -2545,16 +2564,6 @@ function OrderManifestPanel({
                     >
                       <Plus className="size-3" />
                     </button>
-                    {packed ? (
-                      <button
-                        type="button"
-                        className="inline-flex shrink-0 items-center px-1 font-mono text-[9px] font-black tabular-nums text-amber-950"
-                        title="Change pack size"
-                        onClick={() => onEditPack(line.product.id)}
-                      >
-                        ×{pack.size}
-                      </button>
-                    ) : null}
                     <button
                       type="button"
                       className={cn(
@@ -2563,11 +2572,7 @@ function OrderManifestPanel({
                           ? "bg-amber-200/80 text-amber-950"
                           : "text-muted-foreground hover:bg-amber-100 hover:text-amber-950",
                       )}
-                      title={
-                        line.packOptedIn
-                          ? "Edit custom pack size"
-                          : "Custom pack size…"
-                      }
+                      title={line.packOptedIn ? "Edit this pack" : "Set a pack"}
                       aria-pressed={line.packOptedIn}
                       onClick={() => onTogglePack(line.product.id)}
                     >
@@ -2603,9 +2608,12 @@ function OrderManifestPanel({
                       {packed ? (
                         <p className="font-mono text-[9px] tabular-nums text-muted-foreground">
                           {packUnitPrice(line.product, pack) != null ? (
-                            `${formatMoney(packUnitPrice(line.product, pack)!, line.product.currency ?? currency)} / pack`
+                            `${formatMoney(packUnitPrice(line.product, pack)!, line.product.currency ?? currency)} pack · ${formatMoney(
+                              Math.round((packUnitPrice(line.product, pack)! / pack.size) * 100) / 100,
+                              line.product.currency ?? currency,
+                            )} each`
                           ) : (
-                            "Ask / pack"
+                            "Ask"
                           )}
                         </p>
                       ) : null}
@@ -2617,9 +2625,9 @@ function OrderManifestPanel({
                     <PackChoiceChip
                       active={!packed}
                       onClick={() => onSelectPack(line.product.id, null)}
-                      title="Buy loose units"
+                      title={INDIVIDUAL_ITEM_LABEL}
                     >
-                      Unit
+                      {INDIVIDUAL_ITEM_LABEL}
                     </PackChoiceChip>
                     {catalogPackOptions(line.product).map((option) => {
                       const active =
@@ -2629,13 +2637,9 @@ function OrderManifestPanel({
                           key={option.id}
                           active={active}
                           onClick={() => onSelectPack(line.product.id, option.id)}
-                          title={
-                            option.unitPrice != null
-                              ? `${formatMoney(option.unitPrice, line.product.currency ?? currency)} per ${option.packUnit || "pack"}`
-                              : `Pack of ${formatPackSize(option.unitsPerPack)}`
-                          }
+                          title={packagingLabel(option.packUnit, option.unitsPerPack)}
                         >
-                          ×{formatPackSize(option.unitsPerPack)}
+                          {packagingLabel(option.packUnit, option.unitsPerPack)}
                         </PackChoiceChip>
                       );
                     })}
@@ -2863,12 +2867,15 @@ function CatalogueOrderRow({
         </p>
         {pack != null && pack.price != null ? (
           <p className="text-[11px] font-semibold text-muted-foreground">
-            {formatMoney(pack.price, product.currency ?? "KES")} / {pack.unit} ·{" "}
+            {packagingLabel(pack.unit, pack.size)}
+            {" · "}
+            {formatMoney(pack.price, product.currency ?? "KES")}
+            {" · "}
             {formatMoney(
               Math.round((pack.price / pack.size) * 100) / 100,
               product.currency ?? "KES",
             )}{" "}
-            ea
+            each
           </p>
         ) : null}
         {packs.length > 0 ? (
@@ -2876,22 +2883,18 @@ function CatalogueOrderRow({
             <PackChoiceChip
               active={pack == null}
               onClick={() => onSelectPack?.(null)}
-              title="Buy loose units"
+              title={INDIVIDUAL_ITEM_LABEL}
             >
-              Unit
+              {INDIVIDUAL_ITEM_LABEL}
             </PackChoiceChip>
             {packs.map((option) => (
               <PackChoiceChip
                 key={option.id}
                 active={pack?.packOptionId === option.id}
                 onClick={() => onSelectPack?.(option.id)}
-                title={
-                  option.unitPrice != null
-                    ? `${formatMoney(option.unitPrice, product.currency ?? "KES")} per ${option.packUnit || "pack"}`
-                    : `Pack of ${formatPackSize(option.unitsPerPack)}`
-                }
+                title={packagingLabel(option.packUnit, option.unitsPerPack)}
               >
-                ×{formatPackSize(option.unitsPerPack)}
+                {packagingLabel(option.packUnit, option.unitsPerPack)}
               </PackChoiceChip>
             ))}
           </div>
@@ -3067,13 +3070,13 @@ function ShelfProductLedger({
                           </p>
                         )}
                         {pack ? (
-                          <p className="truncate font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                            Pack of {formatPackSize(pack.size)}
+                          <p className="truncate text-[11px] font-medium text-muted-foreground">
+                            {packagingLabel(pack.unit, pack.size)}
                           </p>
                         ) : availablePacks.length > 0 ? (
-                          <p className="truncate font-mono text-[10px] text-muted-foreground">
+                          <p className="truncate text-[11px] text-muted-foreground">
                             {availablePacks
-                              .map((p) => `×${formatPackSize(p.unitsPerPack)}`)
+                              .map((p) => packagingLabel(p.packUnit, p.unitsPerPack))
                               .join(" · ")}
                           </p>
                         ) : null}
@@ -3241,12 +3244,12 @@ function ShelfProductTile({
           </p>
         )}
         {wholesalePack ? (
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_62%,transparent)]">
-            Pack of {formatPackSize(wholesalePack.size)}
+          <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_72%,transparent)]">
+            {packagingLabel(wholesalePack.unit, wholesalePack.size)}
           </p>
         ) : availablePacks.length > 0 ? (
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_42%,transparent)]">
-            {availablePacks.map((p) => `×${formatPackSize(p.unitsPerPack)}`).join(" · ")}
+          <p className="text-[11px] font-medium text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_55%,transparent)]">
+            {availablePacks.map((p) => packagingLabel(p.packUnit, p.unitsPerPack)).join(" · ")}
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-1">

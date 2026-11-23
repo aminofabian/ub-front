@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { CounterOrdersSetting } from "@/components/wholesale/counter-orders-setting";
+import { SupplierNav } from "@/components/wholesale/supplier-nav";
 import {
   claimShopSupplierPageUsername,
   fetchShopSupplierPage,
@@ -159,10 +161,16 @@ export function SupplierPagePanel() {
     );
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Your marketplace page</h1>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Your page</h1>
+        <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">
+          What buyers read about you on the Kiosk marketplace, how you are paid, and who works with you.
+        </p>
+        <div className="mt-4">
+          <SupplierNav current="page" />
+        </div>
+        <p className="mt-4 text-[14px] font-medium text-foreground">
           {page.listed
             ? "Your page is on the Kiosk marketplace. Buyers can find it."
             : "Your page is not on the marketplace yet. Fill it in, then list it."}
@@ -209,7 +217,7 @@ export function SupplierPagePanel() {
           <p className="text-[12px] text-muted-foreground">Separate areas with commas.</p>
         </div>
         <Button type="submit" disabled={busy}>
-          Save
+          Save what buyers read
         </Button>
       </form>
 
@@ -302,6 +310,11 @@ export function SupplierPagePanel() {
             ))}
           </ul>
         ) : null}
+      </div>
+
+      <div className="space-y-2 border-t border-foreground/10 pt-4">
+        <h2 className="text-[15px] font-semibold">Selling over the counter</h2>
+        <CounterOrdersSetting />
       </div>
 
       {page.listed ? null : (

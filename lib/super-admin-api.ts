@@ -5448,3 +5448,19 @@ export async function setSaStandingExclusion(
     },
   );
 }
+
+/** Whether the portal overview and checklist are switched on for one marketplace supplier (decision D2). */
+export type SaSupplierEngagement = { marketplaceSupplierId: string; enabled: boolean };
+
+export async function fetchSaSupplierEngagement(supplierId: string): Promise<SaSupplierEngagement> {
+  return saRequest<SaSupplierEngagement>(
+    `${API_ROUTES.superAdminStanding}/suppliers/${encodeURIComponent(supplierId)}/engagement`,
+  );
+}
+
+export async function setSaSupplierEngagement(supplierId: string, enabled: boolean): Promise<SaSupplierEngagement> {
+  return saRequest<SaSupplierEngagement>(
+    `${API_ROUTES.superAdminStanding}/suppliers/${encodeURIComponent(supplierId)}/engagement`,
+    { method: "PUT", body: JSON.stringify({ enabled }) },
+  );
+}

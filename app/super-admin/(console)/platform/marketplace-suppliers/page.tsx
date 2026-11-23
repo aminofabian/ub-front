@@ -51,6 +51,7 @@ import {
   type SaMarketplaceSupplierUserRow,
 } from "@/lib/super-admin-api";
 import { cn } from "@/lib/utils";
+import { SupplierEngagementSwitch } from "@/components/super-admin/supplier-engagement-switch";
 
 import {
   MarketplaceSuppliersTheatre,
@@ -375,6 +376,7 @@ export default function SuperAdminMarketplaceSuppliersPage() {
                 No public hub username claimed yet.
               </p>
             )}
+            <SupplierEngagementSwitch supplierId={selected.id} />
           </div>
           <div className="flex flex-wrap gap-2">
             {selected.status.toLowerCase() === "suspended" ? (

@@ -2670,6 +2670,12 @@ export function NewSupplyDrawer({
                                           quiet
                                           value={row.qtyStr}
                                           packDefaults={rowPackDefaults(row)}
+                                          initialPackPrice={
+                                            rowPack(row) ? row.unitStr : null
+                                          }
+                                          knownEachPrice={
+                                            rowPack(row) ? null : row.unitStr
+                                          }
                                           packMode={rowPack(row)}
                                           onPackModeChange={(next) =>
                                             setRows((prev) =>

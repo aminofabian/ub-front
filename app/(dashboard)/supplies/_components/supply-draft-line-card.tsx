@@ -282,6 +282,8 @@ export function SupplyDraftLineCard({
           disabled={busy}
           isReady={isReady}
           packDefaults={packDefaults}
+          initialPackPrice={packMode ? row.unitStr : null}
+          knownEachPrice={packMode ? null : row.unitStr}
           packMode={packMode}
           onPackModeChange={onPackModeChange}
           savedOptions={savedOptions}

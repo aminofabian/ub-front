@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { marketplaceRouting } from "@/lib/marketplace-host";
+import { shopPortalRouting } from "@/lib/supplier-portal-paths";
 import {
   STOREFRONT_PREVIEW_DESIGN_HEADER,
   STOREFRONT_PREVIEW_DESIGN_PARAM,
@@ -49,6 +50,23 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(routing.url, 308);
   }
 
+  // On a shop's own address the supplier portal's pages drop the `/supplier-portal` prefix
+  // (lib/supplier-portal-paths.ts). The long address is sent to the short one; the short one is
+  // served by the portal page behind it. Only when the marketplace rules above did not apply.
+  const portalRouting =
+    isProxiedApi || routing
+      ? null
+      : shopPortalRouting(
+          request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+          pathname,
+        );
+  if (portalRouting?.kind === "redirect") {
+    const target = request.nextUrl.clone();
+    target.pathname = portalRouting.pathname;
+    // Temporary on purpose: a permanent redirect is remembered by browsers and hard to take back.
+    return NextResponse.redirect(target, 307);
+  }
+
   if (isProxiedApi) {
     const host = request.headers.get("host");
     if (host && !requestHeaders.get("X-Tenant-Host")) {
@@ -85,9 +103,15 @@ export function middleware(request: NextRequest) {
     mutated = true;
   }
 
-  if (routing?.kind === "rewrite") {
+  const rewriteTo =
+    routing?.kind === "rewrite"
+      ? routing.pathname
+      : portalRouting?.kind === "rewrite"
+        ? portalRouting.pathname
+        : null;
+  if (rewriteTo) {
     const target = request.nextUrl.clone();
-    target.pathname = routing.pathname;
+    target.pathname = rewriteTo;
     return NextResponse.rewrite(target, {
       request: { headers: requestHeaders },
     });

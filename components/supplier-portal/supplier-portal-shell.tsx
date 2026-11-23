@@ -1,5 +1,7 @@
 "use client";
 
+import { portalPathForShopPath } from "@/lib/supplier-portal-paths";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -129,7 +131,9 @@ const MOBILE_TABS = [
 ] as const;
 
 function isActivePath(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  // On a shop's own address the page is at its short address (`/shops`); the menu's links are the long ones.
+  const current = portalPathForShopPath(pathname) ?? pathname;
+  return current === href || current.startsWith(`${href}/`);
 }
 
 function filterNavGroups(
