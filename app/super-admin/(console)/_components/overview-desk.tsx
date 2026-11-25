@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 import { PlatformPaymentsLedger } from "@/components/super-admin/platform-payments-list";
@@ -111,51 +111,14 @@ function tenantHref(id: string, name: string, slug: string, tier = "", active = 
   return `${APP_ROUTES.superAdminBusinesses}/${encodeURIComponent(id)}?${q.toString()}`;
 }
 
-function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function jumpTo(id: string) {
-  history.replaceState(null, "", `#${id}`);
-  document.getElementById(id)?.scrollIntoView({
-    behavior: prefersReducedMotion() ? "auto" : "smooth",
-    block: "start",
-  });
-}
-
-function onJump(event: MouseEvent<HTMLAnchorElement>, id: string) {
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  jumpTo(id);
-}
-
 function figure(loading: boolean, value: string) {
   return loading ? "—" : value;
 }
 
-function Band({
-  id,
-  title,
-  note,
-  children,
-}: {
-  id?: string;
-  title: string;
-  note: string;
-  children: ReactNode;
-}) {
+function Band({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <section
-      id={id}
-      className="scroll-mt-20 grid gap-2 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:gap-6"
-    >
-      <div className="lg:pt-1">
-        <h2 className={cn("text-[1.15rem] font-semibold leading-tight tracking-[-0.03em]", INK)}>
-          {title}
-        </h2>
-        <p className={cn("mt-1 text-[12px] leading-snug", MUTED)}>{note}</p>
-      </div>
-      <div className={cn("overflow-hidden rounded-[2px] border", RULE)}>{children}</div>
+    <section id={id} className={cn("overflow-hidden rounded-[2px] border", RULE)}>
+      {children}
     </section>
   );
 }
@@ -208,48 +171,157 @@ function TextLink({ href, children }: { href: string; children: string }) {
   );
 }
 
-function JumpBar({
-  items,
+type BoardId = "attention" | "payments" | "commerce" | "moving" | "shops";
+
+const BOARD_COPY: Record<BoardId, { title: string; note: string }> = {
+  attention: {
+    title: "Needs you",
+    note: "Signups that stalled, and threads waiting on the platform.",
+  },
+  payments: {
+    title: "Till book",
+    note: "Money paid to Kiosk — SMS credits, packages, domains, and float.",
+  },
+  commerce: {
+    title: "Sold",
+    note: "Till sales across the fleet, then the paid storefront.",
+  },
+  moving: {
+    title: "Moving",
+    note: "Who sold this week, and which SKUs left the shelf.",
+  },
+  shops: {
+    title: "Shops",
+    note: "Newest shops, the fleet counts, and the doors off this page.",
+  },
+};
+
+function boardFromHash(hash: string): BoardId {
+  if (hash === "stuck" || hash === "attention") return "attention";
+  if (hash === "payments") return "payments";
+  if (hash === "commerce") return "commerce";
+  if (hash === "hot" || hash === "sellers" || hash === "moving") return "moving";
+  if (hash === "recent" || hash === "jump" || hash === "shops") return "shops";
+  return "attention";
+}
+
+function hashForBoard(id: BoardId) {
+  if (id === "moving") return "hot";
+  if (id === "shops") return "recent";
+  return id;
+}
+
+function MenuButton({
+  label,
+  value,
+  active,
+  critical,
+  onSelect,
 }: {
-  items: { id: string; label: string; value: string; critical?: boolean }[];
+  label: string;
+  value: string;
+  active: boolean;
+  critical?: boolean;
+  onSelect: () => void;
 }) {
   return (
-    <nav
-      aria-label="On this page"
-      className="sticky top-0 z-10 bg-[var(--op-bg)]"
+    <button
+      type="button"
+      aria-current={active ? "true" : undefined}
+      onClick={onSelect}
+      className={cn(
+        "flex min-h-11 w-auto shrink-0 items-center justify-between gap-3 rounded-[8px] px-2.5 text-left text-[13px] font-medium",
+        "xl:w-full",
+        FOCUS,
+        active
+          ? "bg-[#1a3328] text-white"
+          : "text-[#5c5c5c] hover:bg-white hover:text-[#1a1a1a]",
+      )}
     >
-      <div
+      <span className="truncate">{label}</span>
+      <span
         className={cn(
-          "flex gap-px overflow-x-auto rounded-[2px] border bg-[var(--op-rule)]",
-          "lg:grid lg:grid-cols-5 lg:overflow-visible",
-          RULE,
+          "shrink-0 text-[12px] tabular-nums",
+          active ? "text-white/80" : critical ? CRITICAL : MUTED,
         )}
       >
-      {items.map((item) => (
-        <a
-          key={item.id}
-          href={`#${item.id}`}
-          onClick={(event) => onJump(event, item.id)}
-          className={cn(
-            "flex min-h-11 w-[42%] shrink-0 flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-3 py-2",
-            "hover:bg-[#f4f4f4] lg:w-auto lg:shrink",
-            SURFACE,
-            FOCUS,
-          )}
-        >
-          <span className={cn("text-[12px] font-medium", MUTED)}>{item.label}</span>
-          <span
-            className={cn(
-              "text-[13px] font-semibold tabular-nums tracking-[-0.03em]",
-              item.critical ? CRITICAL : INK,
-            )}
-          >
-            {item.value}
-          </span>
-        </a>
-      ))}
+        {value}
+      </span>
+    </button>
+  );
+}
+
+function WorkMenu({
+  items,
+  active,
+  onSelect,
+}: {
+  items: { id: BoardId; label: string; value: string; critical?: boolean }[];
+  active: BoardId;
+  onSelect: (id: BoardId) => void;
+}) {
+  return (
+    <nav aria-label="Overview sections" className="min-w-0 max-w-full rounded-[12px] bg-[#f4f4f4] p-1.5 xl:sticky xl:top-0">
+      <p className="hidden px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-[#6b6b6b] xl:block">Work</p>
+      <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto xl:flex-col xl:overflow-visible">
+        {items.map((item) => (
+          <MenuButton
+            key={item.id}
+            label={item.label}
+            value={item.value}
+            active={active === item.id}
+            critical={item.critical}
+            onSelect={() => onSelect(item.id)}
+          />
+        ))}
       </div>
     </nav>
+  );
+}
+
+function GoMenu({
+  facts,
+}: {
+  facts: { label: string; value: string; critical?: boolean }[];
+}) {
+  return (
+    <aside className="rounded-[12px] bg-[#f4f4f4] p-1.5 xl:sticky xl:top-0" aria-label="Shortcuts">
+      <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium text-[#6b6b6b]">Right now</p>
+      <ul className="overflow-hidden rounded-[8px] bg-white">
+        {facts.map((fact) => (
+          <li
+            key={fact.label}
+            className="flex min-h-11 items-center justify-between gap-3 border-b border-[#ececec] px-2.5 last:border-b-0"
+          >
+            <span className="text-[12px] text-[#5c5c5c]">{fact.label}</span>
+            <span className={cn("text-[13px] font-semibold tabular-nums", fact.critical ? CRITICAL : INK)}>
+              {fact.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="px-2.5 pb-1 pt-3 text-[11px] font-medium text-[#6b6b6b]">Go</p>
+      <ul className="grid grid-cols-2 gap-1 xl:grid-cols-1">
+        {DIRECTORY.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className={cn(
+                "flex min-h-11 items-center justify-between gap-2 rounded-[8px] px-2.5 text-[13px] font-medium text-[#1a1a1a]",
+                "hover:bg-white",
+                FOCUS,
+              )}
+            >
+              <span className="min-w-0">
+                <span className="block truncate">{item.label}</span>
+                <span className="block truncate text-[11px] font-normal text-[#6b6b6b]">{item.hint}</span>
+              </span>
+              <ArrowUpRight className="size-3.5 shrink-0 text-[#8a8a8a]" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </aside>
   );
 }
 
@@ -259,11 +331,7 @@ function AttentionBand({ data, loading }: OverviewDeskProps) {
   const waiting = data?.support.waitingOnAdmin ?? 0;
 
   return (
-    <Band
-      id="attention"
-      title="Needs you"
-      note="Signups that stalled, and threads waiting on the platform."
-    >
+    <Band id="attention">
       <div className={cn(GRID, "lg:grid-cols-[minmax(0,1.45fr)_minmax(14.5rem,0.7fr)]")}>
         <div id="stuck" className={cn("scroll-mt-20", SURFACE)}>
           <ColumnHead
@@ -377,7 +445,7 @@ function CommerceBand({ data, loading }: OverviewDeskProps) {
   const maxSales = Math.max(1, ...days.map((day) => day.sales));
 
   return (
-    <Band id="commerce" title="Sold" note="Till sales across the fleet, then the paid storefront.">
+    <Band id="commerce">
       <div className={cn(GRID, "lg:grid-cols-[minmax(0,1.5fr)_minmax(15rem,0.62fr)]")}>
         <div className={SURFACE}>
           <div className={cn(GRID, "grid-cols-3 border-b", RULE)}>
@@ -495,9 +563,9 @@ function MovingBand({ data, loading }: OverviewDeskProps) {
   const hot = data?.hotTenants ?? [];
 
   return (
-    <Band title="Moving" note="Who sold this week, and which SKUs left the shelf.">
+    <Band id="hot">
       <div className={cn(GRID, "lg:grid-cols-2")}>
-        <div id="hot" className={cn("scroll-mt-20", SURFACE)}>
+        <div className={SURFACE}>
           <ColumnHead title="Hottest tills" meta="7 days" />
           {loading ? <SkeletonRows rows={5} /> : null}
           {!loading && hot.length === 0 ? <EmptyLine>No sales this week yet.</EmptyLine> : null}
@@ -569,7 +637,7 @@ function ShopsBand({ data, loading }: OverviewDeskProps) {
   const recent = data?.recentTenants ?? [];
 
   return (
-    <Band id="recent" title="Shops" note="The directory, the newest shops, and the doors off this page.">
+    <Band id="recent">
       <div className={GRID}>
         <div id="jump" className={cn(GRID, "scroll-mt-20 grid-cols-2 sm:grid-cols-4")}>
           <InlineFact label="Total" value={figure(loading, formatInt(data?.tenants.total))} />
@@ -577,12 +645,11 @@ function ShopsBand({ data, loading }: OverviewDeskProps) {
           <InlineFact label="Inactive" value={figure(loading, formatInt(data?.tenants.inactive))} />
           <InlineFact label="Kiosk Pay" value={figure(loading, formatInt(data?.tenants.kioskPayActive))} />
         </div>
-        <div className={cn(GRID, "lg:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]")}>
-          <div className={SURFACE}>
-            <ColumnHead
-              title="Newest tenants"
-              action={<TextLink href={APP_ROUTES.superAdminBusinesses}>View all</TextLink>}
-            />
+        <div className={SURFACE}>
+          <ColumnHead
+            title="Newest tenants"
+            action={<TextLink href={APP_ROUTES.superAdminBusinesses}>View all</TextLink>}
+          />
             {loading ? <SkeletonRows rows={5} /> : null}
             {!loading && recent.length === 0 ? <EmptyLine>No tenants yet.</EmptyLine> : null}
             {!loading && recent.length > 0 ? (
@@ -609,26 +676,7 @@ function ShopsBand({ data, loading }: OverviewDeskProps) {
               </ul>
             ) : null}
           </div>
-          <div className={SURFACE}>
-            <ColumnHead title="Shortcuts" meta={String(DIRECTORY.length)} />
-            <ul className={cn(GRID, "sm:grid-cols-2")}>
-              {DIRECTORY.map((item) => (
-                <li key={item.href} className={SURFACE}>
-                  <Link href={item.href} className={cn(ROW, "items-start")}>
-                    <span className="min-w-0 flex-1">
-                      <span className={cn("flex items-center gap-1 text-[13px] font-semibold", INK)}>
-                        {item.label}
-                        <ArrowUpRight className="size-3.5 opacity-60" aria-hidden />
-                      </span>
-                      <span className={cn("block text-[12px]", MUTED)}>{item.hint}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
-      </div>
     </Band>
   );
 }
@@ -663,61 +711,84 @@ export function OverviewDesk({ data, loading }: OverviewDeskProps) {
   );
   const attention = (data?.stuckSignups.total ?? 0) + (data?.support.waitingOnAdmin ?? 0);
   const hottest = data?.hotTenants[0];
+  const [board, setBoard] = useState<BoardId>("attention");
 
   useEffect(() => {
-    const id = window.location.hash.replace(/^#/, "");
-    if (!id) return;
-    document.getElementById(id)?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "start",
-    });
-  }, [data, platformPayments.payments]);
+    const apply = () => setBoard(boardFromHash(window.location.hash.replace(/^#/, "")));
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
-  const jumps = [
+  const selectBoard = (id: BoardId) => {
+    setBoard(id);
+    history.replaceState(null, "", `#${hashForBoard(id)}`);
+  };
+
+  const copy = BOARD_COPY[board];
+  const menu = [
     {
-      id: "attention",
+      id: "attention" as const,
       label: "Needs you",
       value: figure(loading, formatInt(attention)),
       critical: !loading && attention > 0,
     },
     {
-      id: "payments",
-      label: "Till today",
+      id: "payments" as const,
+      label: "Till book",
       value: platformPayments.payments ? formatKes(today.total) : "—",
     },
     {
-      id: "commerce",
-      label: "Sold today",
+      id: "commerce" as const,
+      label: "Sold",
       value: figure(loading, formatUnits(data?.commerce.unitsSoldToday)),
     },
     {
-      id: "hot",
-      label: "Hottest",
+      id: "moving" as const,
+      label: "Moving",
       value: figure(loading, hottest ? formatKes(hottest.revenueLast7Days) : "—"),
     },
     {
-      id: "recent",
-      label: "Active",
+      id: "shops" as const,
+      label: "Shops",
       value: figure(loading, formatInt(data?.tenants.active)),
     },
   ];
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8">
-      <JumpBar items={jumps} />
-      <AttentionBand data={data} loading={loading} />
-      <section id="payments" className="scroll-mt-20">
-        <PlatformPaymentsLedger
-          payments={platformPayments.payments}
-          seenAt={platformPayments.seenAt}
-          todayTotal={today.total}
-          todayCount={today.count}
-          limit={5}
-        />
-      </section>
-      <CommerceBand data={data} loading={loading} />
-      <MovingBand data={data} loading={loading} />
-      <ShopsBand data={data} loading={loading} />
+    <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[11.5rem_minmax(0,1fr)_15.5rem]">
+      <WorkMenu items={menu} active={board} onSelect={selectBoard} />
+      <div className="min-w-0">
+        <header className="mb-3">
+          <h2 className={cn("text-[1.35rem] font-semibold leading-none tracking-[-0.03em]", INK)}>
+            {copy.title}
+          </h2>
+          <p className={cn("mt-1.5 max-w-xl text-[13px] leading-snug", MUTED)}>{copy.note}</p>
+        </header>
+        {board === "attention" ? <AttentionBand data={data} loading={loading} /> : null}
+        {board === "payments" ? (
+          <section id="payments">
+            <PlatformPaymentsLedger
+              payments={platformPayments.payments}
+              seenAt={platformPayments.seenAt}
+              todayTotal={today.total}
+              todayCount={today.count}
+              limit={8}
+            />
+          </section>
+        ) : null}
+        {board === "commerce" ? <CommerceBand data={data} loading={loading} /> : null}
+        {board === "moving" ? <MovingBand data={data} loading={loading} /> : null}
+        {board === "shops" ? <ShopsBand data={data} loading={loading} /> : null}
+      </div>
+      <GoMenu
+        facts={[
+          { label: "Needs you", value: figure(loading, formatInt(attention)), critical: !loading && attention > 0 },
+          { label: "Till today", value: platformPayments.payments ? formatKes(today.total) : "—" },
+          { label: "Units today", value: figure(loading, formatUnits(data?.commerce.unitsSoldToday)) },
+          { label: "Active shops", value: figure(loading, formatInt(data?.tenants.active)) },
+        ]}
+      />
     </div>
   );
 }
