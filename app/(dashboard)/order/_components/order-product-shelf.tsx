@@ -132,6 +132,7 @@ function OrderShelfTile({
   currency,
   pickMode,
   picking,
+  onOrder = false,
   onAdd,
   onSetQty,
   onSetPrice,
@@ -145,6 +146,7 @@ function OrderShelfTile({
   currency: string;
   pickMode: boolean;
   picking: boolean;
+  onOrder?: boolean;
   onAdd: () => void;
   onSetQty: (qty: number) => void;
   onSetPrice?: (price: number) => void;
@@ -263,9 +265,9 @@ function OrderShelfTile({
             type="button"
             className="mt-auto hidden h-10 w-full items-center justify-center rounded-[2px] border border-[var(--pos-primary,#1D4B3B)] bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_8%,var(--order-shelf,#FCFAF5))] text-[13px] font-semibold text-[var(--pos-primary,#1D4B3B)] transition-colors hover:bg-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_14%,var(--order-shelf,#FCFAF5))] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] md:flex"
             onClick={onAdd}
-            disabled={picking}
+            disabled={picking && !onOrder}
           >
-            {picking ? "Adding…" : "Add to order"}
+            {onOrder ? "On this order" : picking ? "Adding…" : "Add to order"}
           </button>
         ) : (
           <div
@@ -345,6 +347,7 @@ function OrderShelfTile({
         inCart={inCart}
         pickMode={pickMode}
         picking={picking}
+        onOrder={onOrder}
         extension={extension}
         prefix={prefix}
         currency={currency}
@@ -449,6 +452,7 @@ function PhoneShelfControl({
   inCart,
   pickMode,
   picking,
+  onOrder = false,
   extension,
   prefix,
   currency,
@@ -463,6 +467,7 @@ function PhoneShelfControl({
   inCart: boolean;
   pickMode: boolean;
   picking: boolean;
+  onOrder?: boolean;
   extension: number;
   prefix: string;
   currency: string;
@@ -477,11 +482,13 @@ function PhoneShelfControl({
         type="button"
         className="inline-flex h-11 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--pos-primary,#1D4B3B)] bg-[var(--order-shelf,#FCFAF5)] px-3.5 text-[14px] font-semibold text-[var(--pos-primary,#1D4B3B)] transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] focus-visible:ring-offset-2 disabled:opacity-60 md:hidden"
         onClick={onAdd}
-        disabled={pickMode && picking}
-        aria-label={picking ? `Adding ${primary}` : `Add ${primary}`}
+        disabled={pickMode && picking && !onOrder}
+        aria-label={
+          onOrder ? `${primary} is on this order` : picking ? `Adding ${primary}` : `Add ${primary}`
+        }
       >
         <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-        {picking ? "Adding" : "Add"}
+        {onOrder ? "On this order" : picking ? "Adding" : "Add"}
       </button>
     );
   }
@@ -564,6 +571,8 @@ export type OrderProductShelfProps = {
   /** Pick mode: tap to add once (no qty stepper). */
   onPickItem?: (link: SupplierItemLinkRecord) => void;
   pickingItemId?: string | null;
+  /** Already on the purchase order — tap scrolls to the line. */
+  onOrderItemIds?: ReadonlySet<string>;
 };
 
 export function OrderProductShelf({
@@ -578,6 +587,7 @@ export function OrderProductShelf({
   currency = ORDER_CURRENCY,
   onPickItem,
   pickingItemId = null,
+  onOrderItemIds,
 }: OrderProductShelfProps) {
   const pickMode = onPickItem != null;
 
@@ -597,6 +607,7 @@ export function OrderProductShelf({
             currency={currency}
             pickMode={pickMode}
             picking={pickingItemId === link.itemId}
+            onOrder={onOrderItemIds?.has(link.itemId) === true}
             onAdd={() =>
               pickMode ? onPickItem(link) : onSetQty(link.itemId, qty + 1)
             }

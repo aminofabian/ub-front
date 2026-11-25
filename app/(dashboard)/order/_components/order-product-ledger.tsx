@@ -150,6 +150,8 @@ export type OrderProductLedgerProps = {
   /** Pick mode: tap to add once (no qty stepper). */
   onPickItem?: (link: SupplierItemLinkRecord) => void;
   pickingItemId?: string | null;
+  /** Already on the purchase order — tap scrolls to the line. */
+  onOrderItemIds?: ReadonlySet<string>;
 };
 
 export function OrderProductLedger({
@@ -164,6 +166,7 @@ export function OrderProductLedger({
   currency = ORDER_CURRENCY,
   onPickItem,
   pickingItemId = null,
+  onOrderItemIds,
 }: OrderProductLedgerProps) {
   const pickMode = onPickItem != null;
   const prefix = orderMoneyPrefix(currency);
@@ -229,6 +232,7 @@ export function OrderProductLedger({
             const totalSet = totalOverride != null && totalOverride > 0;
             const { primary, option } = orderLinkTitleParts(link);
             const inCart = qty > 0;
+            const onOrder = onOrderItemIds?.has(link.itemId) === true;
             const ruled =
               index % 2 === 1
                 ? "bg-[color-mix(in_srgb,var(--op-panel,#EFEBE2)_55%,var(--order-shelf,#FCFAF5))]"
@@ -259,7 +263,13 @@ export function OrderProductLedger({
                     pickMode ? onPickItem(link) : focusOrderQty(link.itemId)
                   }
                   disabled={pickMode && pickingItemId === link.itemId}
-                  title={pickMode ? `Add ${primary}` : `Edit quantity for ${primary}`}
+                  title={
+                    onOrder
+                      ? `${primary} is on this order`
+                      : pickMode
+                        ? `Add ${primary}`
+                        : `Edit quantity for ${primary}`
+                  }
                   className={cn(
                     "flex min-w-0 flex-1 items-center border-r px-2 py-1.5 text-left disabled:opacity-60",
                     HAIR,
@@ -322,11 +332,11 @@ export function OrderProductLedger({
                   {pickMode ? (
                     <button
                       type="button"
-                      disabled={pickingItemId === link.itemId}
+                      disabled={pickingItemId === link.itemId && !onOrder}
                       onClick={() => onPickItem(link)}
                       className="inline-flex h-8 w-full items-center justify-center rounded-[2px] bg-[var(--pos-primary,#1D4B3B)] px-2.5 text-[12px] font-semibold text-[var(--op-surface,#FCFAF5)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)]"
                     >
-                      {pickingItemId === link.itemId ? "…" : "Add"}
+                      {onOrder ? "On order" : pickingItemId === link.itemId ? "…" : "Add"}
                     </button>
                   ) : (
                     <div

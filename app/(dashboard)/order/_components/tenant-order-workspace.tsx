@@ -2515,102 +2515,6 @@ export function TenantOrderWorkspace({
             )}
           />
         </button>
-        <button
-          type="button"
-          onClick={() => setToolsOpen(true)}
-          className="mr-1 inline-flex size-11 shrink-0 items-center justify-center rounded-[2px] border border-[var(--op-rule,rgba(18,26,22,0.10))] bg-[var(--op-surface,#FCFAF5)] text-[var(--op-ink,#121A16)] transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] sm:hidden"
-          aria-label="Order tools"
-        >
-          <Ellipsis className="size-5" aria-hidden />
-        </button>
-        <div
-          className={cn(
-            "hidden shrink-0 items-stretch gap-1 overflow-x-auto py-1.5 pr-1 [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden",
-            embedded && "max-w-[55%]",
-          )}
-        >
-          {onOpenConfirm ? (
-            <button
-              type="button"
-              onClick={onOpenConfirm}
-              title="Receive goods already ordered"
-              className={cn(salesToolBtnClass(), "h-8 shrink-0 px-2.5")}
-            >
-              <ClipboardList className="size-3.5" aria-hidden />
-              Receive
-            </button>
-          ) : (
-            <Link
-              href={APP_ROUTES.orderReceive}
-              title="Receive goods already ordered"
-              className={cn(salesToolBtnClass(), "h-8 shrink-0 px-2.5")}
-            >
-              <ClipboardList className="size-3.5" aria-hidden />
-              Receive
-            </Link>
-          )}
-          {activeSupplier && canCreateProduct ? (
-            <button
-              type="button"
-              onClick={() => setCreateProductOpen(true)}
-              className={cn(
-                salesToolBtnClass(),
-                "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
-              )}
-              title="Create a new catalog product and link it to this supplier"
-            >
-              <PackagePlus className="size-3.5" aria-hidden />
-              <span className={embedded ? "sr-only" : "hidden sm:inline"}>
-                Create
-              </span>
-            </button>
-          ) : null}
-          {activeSupplier && canLinkProducts ? (
-            <button
-              type="button"
-              onClick={() => openLinkCatalog(filter)}
-              className={cn(
-                salesToolBtnClass(true),
-                "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
-              )}
-              title="Link catalog products to this supplier"
-            >
-              <Link2 className="size-3.5" aria-hidden />
-              <span className={embedded ? "sr-only" : undefined}>Link</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setPastOrdersOpen(true)}
-            className={cn(
-              salesToolBtnClass(),
-              "h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
-            )}
-            title="Reorder from a previous purchase order"
-          >
-            <History className="size-3.5" aria-hidden />
-            <span className={embedded ? "sr-only" : "hidden xl:inline"}>
-              Past
-            </span>
-          </button>
-          {!embedded ? (
-            <SupplierGuideDrawer
-              trigger={
-                <button
-                  type="button"
-                  className={cn(
-                    salesToolBtnClass(),
-                    "mr-1 h-9 shrink-0 gap-1.5 px-3 active:scale-[0.98]",
-                  )}
-                  title="The complete supplier flow — summary + full guide"
-                >
-                  <BookOpen className="size-3.5" aria-hidden />
-                  Guide
-                </button>
-              }
-            />
-          ) : null}
-        </div>
       </div>
 
       <div
@@ -2715,45 +2619,22 @@ export function TenantOrderWorkspace({
         >
           <div
             className={cn(
-              "flex shrink-0 items-center gap-2 border-b px-3 py-1.5",
+              "hidden shrink-0 flex-wrap items-center gap-2 border-b px-3 py-1.5 sm:flex",
               salesHair,
               "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]",
             )}
           >
             <p
-              className="hidden max-w-[12rem] shrink-0 truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--op-ink,#121A16)] xl:block"
+              className="hidden max-w-[14rem] shrink-0 truncate text-[13px] font-semibold tracking-[-0.02em] text-[var(--op-ink,#121A16)] xl:block"
               title={activeSupplierLabel ?? "Select a supplier"}
             >
               {activeSupplierLabel ?? "Select a supplier"}
             </p>
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--op-muted,#556159)]" />
-              <input
-                className="h-11 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-3 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-9 sm:text-[14px]"
-                placeholder={
-                  orderTemplate === "ledger"
-                    ? "Search products in this list…"
-                    : "Search this supplier's products"
-                }
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                enterKeyHint="search"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              className="flex size-12 shrink-0 items-center justify-center rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] text-[var(--pos-primary,#1D4B3B)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] sm:hidden"
-              aria-label="Scan a barcode"
-            >
-              <Camera className="size-5" aria-hidden />
-            </button>
             <OrderTemplatePicker
-              className="hidden sm:inline-flex"
               value={orderTemplate}
               onChange={setOrderTemplate}
             />
-            <div className="hidden shrink-0 items-center gap-1 xl:flex">
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
               {onOpenConfirm ? (
                 <button
                   type="button"
@@ -2774,6 +2655,17 @@ export function TenantOrderWorkspace({
                   Receive
                 </Link>
               )}
+              {supplierId && canLinkProducts ? (
+                <button
+                  type="button"
+                  onClick={() => openLinkCatalog(filter)}
+                  className={cn(salesToolBtnClass(true), "h-9 gap-1 px-2.5")}
+                  title="Link products from your catalog"
+                >
+                  <Link2 className="size-3.5" aria-hidden />
+                  Link
+                </button>
+              ) : null}
               {activeSupplier && canCreateProduct ? (
                 <button
                   type="button"
@@ -2809,20 +2701,36 @@ export function TenantOrderWorkspace({
                 />
               ) : null}
             </div>
-            {supplierId && canLinkProducts ? (
+          </div>
+          <div
+            className={cn(
+              "shrink-0 border-b px-3 py-1.5",
+              salesHair,
+              "bg-[color-mix(in_srgb,var(--order-ink,#15231f)_2%,#f9fbfa)]",
+            )}
+          >
+            <div className="relative min-w-0">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--op-muted,#556159)]" />
+              <input
+                className="h-11 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-12 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-9 sm:pr-3 sm:text-[14px]"
+                placeholder={
+                  orderTemplate === "ledger"
+                    ? "Search products in this list…"
+                    : "Search this supplier's products"
+                }
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                enterKeyHint="search"
+              />
               <button
                 type="button"
-                onClick={() => openLinkCatalog(filter)}
-                className={cn(
-                  salesToolBtnClass(true),
-                  "hidden h-10 shrink-0 gap-1 px-3 sm:inline-flex",
-                )}
-                title="Link products from your catalog"
+                onClick={() => setScannerOpen(true)}
+                className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-[var(--pos-primary,#1D4B3B)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pos-primary,#1D4B3B)] sm:hidden"
+                aria-label="Scan a barcode"
               >
-                <Link2 className="size-3.5" aria-hidden />
-                <span className="hidden sm:inline">Link</span>
+                <Camera className="size-5" aria-hidden />
               </button>
-            ) : null}
+            </div>
           </div>
 
           {showShelfChips ? (
@@ -3102,6 +3010,40 @@ export function TenantOrderWorkspace({
             <p className="px-1 pb-2 font-heading text-[18px] font-semibold tracking-[-0.03em]">
               Order tools
             </p>
+            <div className="mb-2 grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                aria-pressed={orderTemplate === "shelf"}
+                onClick={() => {
+                  setOrderTemplate("shelf");
+                  setToolsOpen(false);
+                }}
+                className={cn(
+                  "flex min-h-12 items-center justify-center rounded-2xl px-3 text-[15px] font-semibold active:scale-[0.99]",
+                  orderTemplate === "shelf"
+                    ? "bg-[#0f766e] text-white"
+                    : "bg-[#f4f7f6] text-[#15231f]",
+                )}
+              >
+                Shelf
+              </button>
+              <button
+                type="button"
+                aria-pressed={orderTemplate === "ledger"}
+                onClick={() => {
+                  setOrderTemplate("ledger");
+                  setToolsOpen(false);
+                }}
+                className={cn(
+                  "flex min-h-12 items-center justify-center rounded-2xl px-3 text-[15px] font-semibold active:scale-[0.99]",
+                  orderTemplate === "ledger"
+                    ? "bg-[#0f766e] text-white"
+                    : "bg-[#f4f7f6] text-[#15231f]",
+                )}
+              >
+                Ledger
+              </button>
+            </div>
             <div className="grid gap-1.5">
               {onOpenConfirm ? (
                 <button

@@ -35,6 +35,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  ApiRequestError,
   fetchItemById,
   fetchPathAPurchaseOrder,
   fetchPathAPurchaseOrders,
@@ -49,6 +50,7 @@ import {
   postPathAPurchaseOrderMarkArrived,
   postPathAGoodsReceipt,
   postPathAGrnSupplierInvoice,
+  postStoreRoomInheritOrder,
   postPathAPurchaseOrderLine,
   dispatchTillPrint,
   type PathAPurchaseOrderDetailRecord,
@@ -72,12 +74,64 @@ import {
 } from "@/components/pharmacy/medicine-lot-dialog";
 import { isPharmacyBusiness } from "@/lib/business-store-type";
 import { fetchMedicinesAmong } from "@/lib/pharmacy-api";
+import {
+  ARRIVAL_AS_ORDERED,
+  ARRIVAL_DAMAGED,
+  ARRIVAL_MISSING,
+  ARRIVAL_SHORT,
+  arrivalPassComplete,
+  arrivalStatusLabel,
+  filterSupplierCatalog,
+  nextArrival,
+  planPutAway,
+  retargetArrival,
+  type ArrivalDecision,
+  type ArrivalMap,
+  type PutAwayDestination,
+} from "@/app/(dashboard)/order/_lib/receive-arrival";
 import { OrderProductLedger } from "./order-product-ledger";
 import { OrderProductShelf } from "./order-product-shelf";
 import { OrderTemplatePicker } from "./order-template-picker";
+import { ReceiveArrivalControls } from "./receive-arrival-controls";
+import { ReceiveUnpackSheet, type UnpackSheetLine } from "./receive-unpack-sheet";
 
 const ORDER_CURRENCY = "KES";
 const LINE_SAVE_DEBOUNCE_MS = 400;
+const HTTP_CONFLICT = 409;
+
+async function sendIfDraft(
+  po: PathAPurchaseOrderDetailRecord,
+  suppliers: SupplierRecord[],
+): Promise<PathAPurchaseOrderDetailRecord> {
+  if (po.status !== "draft") return po;
+  const linked = suppliers
+    .find((supplier) => supplier.id === po.supplierId)
+    ?.marketplaceSupplierId?.trim();
+  if (linked) return postPathAPurchaseOrderSendToSupplier(po.id, { toast: false });
+  return postPathAPurchaseOrderSend(po.id);
+}
+
+async function postStorePortion(
+  purchaseOrderId: string,
+  lines: { id: string; qty: number }[],
+): Promise<"ok" | "already" | "failed"> {
+  try {
+    await postStoreRoomInheritOrder({
+      purchaseOrderId,
+      lines: lines.map((line) => ({
+        purchaseOrderLineId: line.id,
+        quantity: line.qty,
+      })),
+    });
+    return "ok";
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === HTTP_CONFLICT) return "already";
+    toast.error(
+      error instanceof Error ? error.message : "Could not count this into the store room",
+    );
+    return "failed";
+  }
+}
 
 type LinePersistOpts = {
   qtyOrdered?: number;
@@ -208,10 +262,7 @@ function lineDraftsFromPo(po: PathAPurchaseOrderDetailRecord) {
     nextOrderQty[line.id] = ordered;
     nextPrice[line.id] = toNum(line.unitEstimatedCost);
     const remaining = roundQty(ordered - received);
-    if (remaining > 0) {
-      nextQty[line.id] = remaining;
-      nextSel[line.id] = true;
-    }
+    if (remaining > 0) nextQty[line.id] = remaining;
   }
   return { nextQty, nextOrderQty, nextPrice, nextSel };
 }
@@ -258,6 +309,9 @@ export function OrderReceivePanel({
   const [selectedLines, setSelectedLines] = useState<Record<string, boolean>>(
     {},
   );
+  const [arrivalByLine, setArrivalByLine] = useState<ArrivalMap>({});
+  const [unpackOpen, setUnpackOpen] = useState(false);
+  const [unpackOverride, setUnpackOverride] = useState(false);
   const [supplierLinks, setSupplierLinks] = useState<SupplierItemLinkRecord[]>(
     [],
   );
@@ -272,6 +326,8 @@ export function OrderReceivePanel({
   const [lotPrompt, setLotPrompt] = useState<{
     lines: MedicineLotLine[];
     overrideArrival?: boolean;
+    onlyLineIds?: string[];
+    skipArrivalGate?: boolean;
   } | null>(null);
   const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
   const [printingReceipt, setPrintingReceipt] = useState(false);
@@ -349,6 +405,8 @@ export function OrderReceivePanel({
         setOrderQtyByLine(drafts.nextOrderQty);
         setPriceByLine(drafts.nextPrice);
         setSelectedLines(drafts.nextSel);
+        setArrivalByLine({});
+        setUnpackOpen(false);
         setAddItemOpen(false);
         setAddItemQuery("");
 
@@ -599,25 +657,15 @@ export function OrderReceivePanel({
     return row?.createdAt ?? null;
   }, [detail, orders, selectedId]);
 
-  const addableLinks = useMemo(() => {
-    const onOrder = new Set((detail?.lines ?? []).map((l) => l.itemId));
-    const q = addItemQuery.trim().toLowerCase();
-    return supplierLinks
-      .filter((link) => !onOrder.has(link.itemId))
-      .filter((link) => {
-        if (!q) return true;
-        const hay = [
-          link.itemName,
-          link.sku,
-          link.barcode ?? "",
-          link.supplierSku ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      })
-      .slice(0, 12);
-  }, [supplierLinks, detail, addItemQuery]);
+  const catalogLinks = useMemo(
+    () => filterSupplierCatalog(supplierLinks, addItemQuery),
+    [supplierLinks, addItemQuery],
+  );
+
+  const onOrderItemIds = useMemo(
+    () => new Set((detail?.lines ?? []).map((line) => line.itemId)),
+    [detail],
+  );
 
   const orderFilename = useMemo(() => {
     if (!detail) return "order.pdf";
@@ -890,6 +938,15 @@ export function OrderReceivePanel({
       const qty = roundQty(Math.max(0, nextReceive));
       setQtyByLine((prev) => ({ ...prev, [lineId]: qty }));
       const po = detailRef.current;
+      const lineForArrival = po?.lines.find((l) => l.id === lineId);
+      if (lineForArrival) {
+        const received = roundQty(toNum(lineForArrival.qtyReceived));
+        const ordered =
+          orderQtyRef.current[lineId] ?? roundQty(toNum(lineForArrival.qtyOrdered));
+        const left = roundQty(Math.max(0, ordered - received));
+        setArrivalByLine((prev) => retargetArrival(prev, lineId, qty, left));
+        setSelectedLines((prev) => ({ ...prev, [lineId]: qty > 0 }));
+      }
       const line = po?.lines.find((l) => l.id === lineId);
       if (!line || qty <= 0) return;
       const already = roundQty(toNum(line.qtyReceived));
@@ -1099,14 +1156,14 @@ export function OrderReceivePanel({
     }
   };
 
-  const markArrived = async () => {
-    if (!detail) return;
+  const markArrived = async (): Promise<boolean> => {
+    if (!detail) return false;
     setMarkingArrived(true);
     try {
       const flushed = await flushAllPending();
       if (!flushed) {
         toast.error("Could not save order changes");
-        return;
+        return false;
       }
       const po = await postPathAPurchaseOrderMarkArrived(detail.id);
       setDetail(po);
@@ -1114,10 +1171,12 @@ export function OrderReceivePanel({
       toast.success(
         "Marked arrived — stock stays unchanged until you unpack quantities.",
       );
+      return true;
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not mark arrived",
       );
+      return false;
     } finally {
       setMarkingArrived(false);
     }
@@ -1125,22 +1184,29 @@ export function OrderReceivePanel({
 
   const confirmSelected = async (opts?: {
     overrideArrival?: boolean;
+    skipArrivalGate?: boolean;
+    onlyLineIds?: string[];
     /** Lot and expiry per order line, collected by the medicines dialog. */
     lots?: MedicineLotValues;
-  }) => {
-    if (!detail) return;
+  }): Promise<boolean> => {
+    if (!detail) return false;
     const receiveBranch = detail.branchId || branchId;
     if (!receiveBranch.trim()) {
       toast.error("Branch is required to confirm");
-      return;
+      return false;
     }
 
     const arrived = ["delivered", "partially_delivered"].includes(
       (detail.deliveryStatus ?? "not_shipped").toLowerCase(),
     );
-    if (twoStepDelivery && !arrived && !opts?.overrideArrival) {
+    if (
+      twoStepDelivery &&
+      !arrived &&
+      !opts?.overrideArrival &&
+      !opts?.skipArrivalGate
+    ) {
       toast.error("Mark arrived first, or use Override to unpack now");
-      return;
+      return false;
     }
 
     setConfirming(true);
@@ -1148,7 +1214,7 @@ export function OrderReceivePanel({
       const flushed = await flushAllPending();
       if (!flushed) {
         toast.error("Could not save order changes");
-        return;
+        return false;
       }
 
       let po = await fetchPathAPurchaseOrder(detail.id);
@@ -1162,8 +1228,11 @@ export function OrderReceivePanel({
       }
       setDetail(po);
 
+      const chosen = new Set(opts?.onlyLineIds);
       const lines = po.lines
-        .filter((l) => selectedLines[l.id])
+        .filter((l) =>
+          opts?.onlyLineIds ? chosen.has(l.id) : Boolean(selectedLines[l.id]),
+        )
         .map((l) => {
           const already = roundQty(toNum(l.qtyReceived));
           const ordered = roundQty(toNum(l.qtyOrdered));
@@ -1182,7 +1251,7 @@ export function OrderReceivePanel({
 
       if (lines.length === 0) {
         toast.error("Select at least one line with quantity");
-        return;
+        return false;
       }
 
       // Medicines need the lot number and expiry from the pack before they enter stock. Ask
@@ -1203,8 +1272,14 @@ export function OrderReceivePanel({
             quantity: l.qtyReceived,
           }));
         if (ask.length > 0) {
-          setLotPrompt({ lines: ask, overrideArrival: opts?.overrideArrival });
-          return;
+          setUnpackOpen(false);
+          setLotPrompt({
+            lines: ask,
+            overrideArrival: opts?.overrideArrival,
+            onlyLineIds: opts?.onlyLineIds,
+            skipArrivalGate: opts?.skipArrivalGate,
+          });
+          return false;
         }
       }
 
@@ -1300,14 +1375,182 @@ export function OrderReceivePanel({
       } else {
         router.push(`${APP_ROUTES.purchasingAddSupplies}?filter=all`);
       }
+      return true;
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not confirm order",
+      );
+      return false;
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const decideLine = (lineId: string, kind: ArrivalDecision) => {
+    const line = detail?.lines.find((row) => row.id === lineId);
+    if (!line) return;
+    const ordered = orderQtyByLine[lineId] ?? toNum(line.qtyOrdered);
+    const remaining = roundQty(Math.max(0, ordered - toNum(line.qtyReceived)));
+    const next = nextArrival(arrivalByLine, lineId, kind);
+    setArrivalByLine(next);
+    if (next[lineId] == null) {
+      setQtyByLine((prev) => ({ ...prev, [lineId]: remaining }));
+      setSelectedLines((prev) => ({ ...prev, [lineId]: false }));
+      return;
+    }
+    if (kind === ARRIVAL_AS_ORDERED) {
+      setQtyByLine((prev) => ({ ...prev, [lineId]: remaining }));
+      setSelectedLines((prev) => ({ ...prev, [lineId]: remaining > 0 }));
+    } else if (kind === ARRIVAL_MISSING) {
+      setQtyByLine((prev) => ({ ...prev, [lineId]: 0 }));
+      setSelectedLines((prev) => ({ ...prev, [lineId]: false }));
+    } else if (kind === ARRIVAL_DAMAGED) {
+      setSelectedLines((prev) => ({ ...prev, [lineId]: false }));
+    } else {
+      setSelectedLines((prev) => ({
+        ...prev,
+        [lineId]: (qtyByLine[lineId] ?? remaining) > 0,
+      }));
+      requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLInputElement>(`[data-receive-qty="${CSS.escape(lineId)}"]`)
+          ?.focus();
+      });
+    }
+    const openIds = openLines.map((row) => row.id);
+    if (kind !== ARRIVAL_SHORT && arrivalPassComplete(openIds, next)) {
+      setUnpackOverride(false);
+      setUnpackOpen(true);
+    }
+  };
+
+  const markAllAsOrdered = async () => {
+    if (!detail || openLines.length === 0) return;
+    const next: ArrivalMap = { ...arrivalByLine };
+    const qty = { ...qtyByLine };
+    const sel = { ...selectedLines };
+    for (const line of openLines) {
+      const kept = next[line.id];
+      if (kept === ARRIVAL_MISSING || kept === ARRIVAL_SHORT || kept === ARRIVAL_DAMAGED) continue;
+      const remaining = roundQty(
+        Math.max(
+          0,
+          (orderQtyByLine[line.id] ?? toNum(line.qtyOrdered)) - toNum(line.qtyReceived),
+        ),
+      );
+      next[line.id] = ARRIVAL_AS_ORDERED;
+      qty[line.id] = remaining;
+      sel[line.id] = remaining > 0;
+    }
+    setArrivalByLine(next);
+    setQtyByLine(qty);
+    setSelectedLines(sel);
+    const status = (detail.deliveryStatus ?? "not_shipped").toLowerCase();
+    const waiting = status !== "delivered" && status !== "partially_delivered";
+    if (twoStepDelivery && waiting) {
+      const marked = await markArrived();
+      if (!marked) return;
+    }
+    setUnpackOverride(false);
+    setUnpackOpen(true);
+  };
+
+  const putAway = async (destByLine: Record<string, PutAwayDestination>) => {
+    if (!detail) return;
+    const openIds = openLines.map((line) => line.id);
+    const plan = planPutAway(openIds, arrivalByLine, qtyByLine, destByLine);
+    if (plan.stockLineIds.length === 0 && plan.storeLines.length === 0) {
+      toast.error("Nothing to put away");
+      return;
+    }
+    setConfirming(true);
+    try {
+      const sent = await sendIfDraft(detail, suppliers);
+      if (sent.status !== detail.status) setDetail(sent);
+      let stored: "ok" | "already" | "failed" | "none" = "none";
+      if (plan.storeLines.length > 0) {
+        stored = await postStorePortion(sent.id, plan.storeLines);
+        if (stored === "failed") return;
+        if (stored === "already") {
+          toast.message(
+            "This order is already in the store room. Those lines were left as they are.",
+          );
+        }
+      }
+      if (plan.stockLineIds.length === 0) {
+        if (stored === "ok") {
+          toast.success("Counted into the store room. The till did not rise.");
+        }
+        setUnpackOpen(false);
+        await refreshOrders();
+        return;
+      }
+      const posted = await confirmStockLines(plan.stockLineIds);
+      if (posted) setUnpackOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not put this delivery away",
       );
     } finally {
       setConfirming(false);
     }
   };
+
+  const confirmStockLines = async (lineIds: string[]) => {
+    let skipArrivalGate = !twoStepDelivery || unpackOverride;
+    if (twoStepDelivery && !unpackOverride && detail) {
+      const status = (detail.deliveryStatus ?? "not_shipped").toLowerCase();
+      const arrived = status === "delivered" || status === "partially_delivered";
+      if (!arrived) {
+        const marked = await postPathAPurchaseOrderMarkArrived(detail.id);
+        setDetail(marked);
+      }
+      skipArrivalGate = true;
+    }
+    return confirmSelected({
+      onlyLineIds: lineIds,
+      overrideArrival: unpackOverride,
+      skipArrivalGate,
+    });
+  };
+
+  const openUnpack = (override: boolean) => {
+    setUnpackOverride(override);
+    setUnpackOpen(true);
+  };
+
+  const pickCatalogLink = (link: SupplierItemLinkRecord) => {
+    const line = detail?.lines.find((row) => row.itemId === link.itemId);
+    if (!line) {
+      void addItemToOrder(link);
+      return;
+    }
+    document
+      .querySelector(`[data-receive-line="${CSS.escape(line.id)}"]`)
+      ?.scrollIntoView({ block: "center" });
+  };
+
+  const unpackLines: UnpackSheetLine[] = openLines.flatMap((line) => {
+    const decision = arrivalByLine[line.id];
+    if (!decision) return [];
+    const ordered = orderQtyByLine[line.id] ?? toNum(line.qtyOrdered);
+    return [
+      {
+        id: line.id,
+        name: itemMeta[line.itemId]?.name ?? "Item",
+        decision,
+        qty: qtyByLine[line.id] ?? 0,
+        ordered,
+        packLabel: supplyPackSnapshotLabel(line),
+      },
+    ];
+  });
+
+  const canPutAway = unpackLines.some(
+    (line) =>
+      (line.decision === ARRIVAL_AS_ORDERED || line.decision === ARRIVAL_SHORT) &&
+      line.qty > 0,
+  );
 
   return (
     <div
@@ -1616,10 +1859,14 @@ export function OrderReceivePanel({
                     Boolean(savingLines[line.id]) || deletingLineId === line.id;
                   const lineSaved = Boolean(savedLineIds[line.id]);
                   const canDelete = toNum(line.qtyReceived) === 0;
+                  const decision = arrivalByLine[line.id];
+                  const qtyEnabled =
+                    canReceive && decision != null && decision !== ARRIVAL_MISSING;
                   const packLabel = supplyPackSnapshotLabel(line);
                   return (
                     <li
                       key={line.id}
+                      data-receive-line={line.id}
                       className={cn(
                         "grid gap-3 rounded-2xl bg-[#f7faf9] p-3 transition-colors lg:rounded-none lg:bg-transparent lg:px-4 lg:py-2.5 lg:grid-cols-[minmax(0,1fr)_5.5rem_6rem_6.5rem_5.5rem_2rem] lg:items-center lg:gap-3",
                         checked
@@ -1629,27 +1876,6 @@ export function OrderReceivePanel({
                       )}
                     >
                       <div className="flex min-w-0 items-start gap-3 lg:col-span-1">
-                        <button
-                          type="button"
-                          aria-pressed={checked}
-                          disabled={!canReceive}
-                          onClick={() =>
-                            setSelectedLines((prev) => ({
-                              ...prev,
-                              [line.id]: !prev[line.id],
-                            }))
-                          }
-                          className={cn(
-                            "relative mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors after:absolute after:-inset-3 after:content-['']",
-                            !canReceive
-                              ? "cursor-not-allowed border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] opacity-40"
-                              : checked
-                                ? "border-[var(--pos-primary,#0f766e)] bg-[var(--pos-primary,#0f766e)] text-white"
-                                : "border-[color-mix(in_srgb,var(--order-ink,#15231f)_18%,transparent)] bg-white",
-                          )}
-                        >
-                          {checked ? <Check className="size-3" /> : null}
-                        </button>
                         <div className="relative size-11 shrink-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white">
                           {thumb ? (
                             <Image
@@ -1681,14 +1907,25 @@ export function OrderReceivePanel({
                             </p>
                           ) : null}
                           <p className="mt-0.5 text-[13px] tabular-nums text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)] lg:text-[10px]">
-                            Received {toNum(line.qtyReceived)}
-                            {!canReceive ? " · fully received" : ""}
+                            {decision
+                              ? arrivalStatusLabel(decision, receiveQty, orderQty)
+                              : `Received ${toNum(line.qtyReceived)}`}
+                            {!canReceive ? " · In stock" : ""}
                             {lineBusy
                               ? " · saving…"
                               : lineSaved
                                 ? " · saved"
                                 : ""}
                           </p>
+                          {canReceive ? (
+                            <div className="mt-2">
+                              <ReceiveArrivalControls
+                                decision={decision}
+                                disabled={lineBusy || confirming}
+                                onDecide={(kind) => decideLine(line.id, kind)}
+                              />
+                            </div>
+                          ) : null}
                           {meta?.packageVariant ? (
                             <p className="mt-0.5 text-[11px] font-medium tabular-nums text-[var(--pos-primary,#0f766e)] lg:text-[10px]">
                               {meta.unitsPerSale && meta.unitsPerSale > 0
@@ -1881,7 +2118,7 @@ export function OrderReceivePanel({
                             <button
                               type="button"
                               className="flex size-11 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] disabled:opacity-40 lg:size-8"
-                              disabled={!checked || lineBusy}
+                              disabled={!qtyEnabled || lineBusy}
                               onClick={() =>
                                 applyReceiveQty(line.id, receiveQty - 1, true)
                               }
@@ -1889,8 +2126,9 @@ export function OrderReceivePanel({
                               <Minus className="size-4 lg:size-3.5" />
                             </button>
                             <input
+                              data-receive-qty={line.id}
                               className="h-11 min-w-[3.5rem] w-[5rem] border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-1 text-center font-heading text-[16px] font-semibold tabular-nums outline-none disabled:opacity-40 lg:h-8 lg:min-w-[3.25rem] lg:w-[4.5rem] lg:text-[13px]"
-                              disabled={!checked || lineBusy}
+                              disabled={!qtyEnabled || lineBusy}
                               inputMode="decimal"
                               value={receiveQty}
                               onChange={(e) => {
@@ -1918,7 +2156,7 @@ export function OrderReceivePanel({
                             <button
                               type="button"
                               className="flex size-11 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] disabled:opacity-40 lg:size-8"
-                              disabled={!checked || lineBusy}
+                              disabled={!qtyEnabled || lineBusy}
                               onClick={() =>
                                 applyReceiveQty(line.id, receiveQty + 1, true)
                               }
@@ -2076,49 +2314,69 @@ export function OrderReceivePanel({
               </button>
               {addItemOpen ? (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="relative min-w-0 flex-1">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
-                      <input
-                        className="h-8 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-[13px] outline-none max-lg:h-11 max-lg:text-base focus:border-[var(--pos-primary,#0f766e)]"
-                        placeholder={
-                          orderTemplate === "ledger"
-                            ? "Search catalog list…"
-                            : "Search supplier catalog…"
-                        }
-                        value={addItemQuery}
-                        onChange={(e) => setAddItemQuery(e.target.value)}
-                      />
-                    </div>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
+                    <input
+                      className="h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-base outline-none focus:border-[var(--pos-primary,#0f766e)] sm:text-[13px]"
+                      placeholder="Search this supplier's catalogue"
+                      value={addItemQuery}
+                      onChange={(e) => setAddItemQuery(e.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+                        const needle = addItemQuery.trim().toLowerCase();
+                        if (needle.length < 4) return;
+                        const exact = supplierLinks.find((link) => {
+                          const barcode = (link.barcode ?? "").trim().toLowerCase();
+                          const sku = (link.sku ?? "").trim().toLowerCase();
+                          return barcode === needle || sku === needle;
+                        });
+                        if (!exact) return;
+                        event.preventDefault();
+                        pickCatalogLink(exact);
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
+                      {supplierLinks.length === 0
+                        ? "No supplier catalogue loaded."
+                        : `${catalogLinks.length} of ${supplierLinks.length}`}
+                    </p>
                     <OrderTemplatePicker
                       value={orderTemplate}
                       onChange={setOrderTemplate}
                     />
                   </div>
-                  {addableLinks.length === 0 ? (
+                  {catalogLinks.length === 0 ? (
                     <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                      {supplierLinks.length === 0
-                        ? "No supplier catalog loaded."
-                        : "No matching items, or all catalog items are already on this order."}
+                      Nothing matches that search.
                     </p>
-                  ) : orderTemplate === "ledger" ? (
-                    <OrderProductLedger
-                      links={addableLinks}
-                      cart={{}}
-                      packByItemId={{}}
-                      onSetQty={() => {}}
-                      onPickItem={(link) => void addItemToOrder(link)}
-                      pickingItemId={addingItemId}
-                    />
                   ) : (
-                    <OrderProductShelf
-                      links={addableLinks}
-                      cart={{}}
-                      packByItemId={{}}
-                      onSetQty={() => {}}
-                      onPickItem={(link) => void addItemToOrder(link)}
-                      pickingItemId={addingItemId}
-                    />
+                    <div className="flex h-[min(28rem,55vh)] min-h-[16rem] flex-col overflow-hidden">
+                      {orderTemplate === "ledger" ? (
+                        <OrderProductLedger
+                          links={catalogLinks}
+                          cart={{}}
+                          packByItemId={{}}
+                          onSetQty={() => {}}
+                          onPickItem={pickCatalogLink}
+                          pickingItemId={addingItemId}
+                          onOrderItemIds={onOrderItemIds}
+                        />
+                      ) : (
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                          <OrderProductShelf
+                            links={catalogLinks}
+                            cart={{}}
+                            packByItemId={{}}
+                            onSetQty={() => {}}
+                            onPickItem={pickCatalogLink}
+                            pickingItemId={addingItemId}
+                            onOrderItemIds={onOrderItemIds}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : null}
@@ -2132,44 +2390,28 @@ export function OrderReceivePanel({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="inline-flex h-8 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
-                  onClick={() => {
-                    const next: Record<string, boolean> = {};
-                    for (const l of openLines) next[l.id] = true;
-                    setSelectedLines(next);
-                  }}
+                  disabled={markingArrived || confirming || openLines.length === 0}
+                  className="inline-flex h-8 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)] disabled:opacity-40"
+                  onClick={() => void markAllAsOrdered()}
                 >
-                  Select all
+                  All as ordered
                 </button>
                 <button
                   type="button"
                   className="inline-flex h-8 items-center rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-3 text-[11px] font-semibold transition hover:text-[var(--pos-primary,#0f766e)]"
-                  onClick={() => setSelectedLines({})}
+                  onClick={() => {
+                    setArrivalByLine({});
+                    setSelectedLines({});
+                    setUnpackOpen(false);
+                  }}
                 >
                   Clear
                 </button>
               </div>
               <p className="hidden text-[10px] leading-relaxed text-[color-mix(in_srgb,var(--order-ink,#15231f)_48%,transparent)] xl:block">
-                {twoStepDelivery ? (
-                  <>
-                    Two-step is on:{" "}
-                    <strong className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)]">
-                      Mark arrived
-                    </strong>{" "}
-                    when crates land, then{" "}
-                    <strong className="font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_70%,transparent)]">
-                      Unpack &amp; add to stock
-                    </strong>
-                    . Use Override for same-day exceptions. Turn off in Business
-                    settings → Receive stock.
-                  </>
-                ) : (
-                  <>
-                    One-step receive: set quantities and confirm to raise stock.
-                    Enable two-step delivery in Business settings for import lead
-                    times (arrive → unpack).
-                  </>
-                )}
+                Mark each line as it lands, then put it away. Sellable stock raises
+                the till. The store room counts the back room and leaves the till
+                alone.
               </p>
             </div>
 
@@ -2226,57 +2468,40 @@ export function OrderReceivePanel({
                       <>
                         <div className="flex flex-col gap-2 lg:flex-row">
                           <div className="lg:min-w-0 lg:flex-1">
-                            {detail &&
-                            (detail.deliveryStatus ?? "not_shipped").toLowerCase() !==
-                              "delivered" ? (
-                              <button
-                                type="button"
-                                disabled={markingArrived || confirming}
-                                onClick={() => void markArrived()}
-                                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
-                              >
-                                {markingArrived ? (
-                                  <>
-                                    <Loader2 className="size-4 animate-spin" />
-                                    Marking arrived…
-                                  </>
-                                ) : (
-                                  <>
-                                    <PackageCheck className="size-4" />
-                                    1 · Mark arrived
-                                  </>
-                                )}
-                              </button>
-                            ) : detail ? (
-                              <p className="flex h-12 items-center justify-center gap-1.5 text-[11px] font-semibold text-emerald-800 lg:h-10">
-                                <PackageCheck className="size-3.5" />
-                                Arrived — ready to unpack
-                              </p>
-                            ) : null}
+                            <button
+                              type="button"
+                              disabled={markingArrived || confirming || openLines.length === 0}
+                              onClick={() => void markAllAsOrdered()}
+                              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                            >
+                              {markingArrived ? (
+                                <>
+                                  <Loader2 className="size-4 animate-spin" />
+                                  Marking arrived…
+                                </>
+                              ) : (
+                                <>
+                                  <PackageCheck className="size-4" />
+                                  All as ordered
+                                </>
+                              )}
+                            </button>
                           </div>
                           <button
                             type="button"
-                            disabled={
-                              confirming ||
-                              markingArrived ||
-                              !detail ||
-                              openLines.length === 0 ||
-                              (detail &&
-                                (detail.deliveryStatus ??
-                                  "not_shipped").toLowerCase() !== "delivered")
-                            }
-                            onClick={() => void confirmSelected()}
+                            disabled={confirming || markingArrived || !canPutAway}
+                            onClick={() => openUnpack(false)}
                             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:w-auto lg:flex-1 lg:text-[13px]"
                           >
                             {confirming ? (
                               <>
                                 <Loader2 className="size-4 animate-spin" />
-                                Adding to stock…
+                                Putting away…
                               </>
                             ) : (
                               <>
                                 <Check className="size-4" />
-                                2 · Unpack &amp; add to stock
+                                Put away
                               </>
                             )}
                           </button>
@@ -2292,12 +2517,10 @@ export function OrderReceivePanel({
                               !detail ||
                               openLines.length === 0
                             }
-                            onClick={() =>
-                              void confirmSelected({ overrideArrival: true })
-                            }
+                            onClick={() => openUnpack(true)}
                             className="w-full text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_55%,transparent)] underline-offset-2 transition hover:text-[var(--order-ink,#15231f)] hover:underline disabled:opacity-40"
                           >
-                            Override — unpack without marking arrived
+                            Put away without marking arrived
                           </button>
                         ) : null}
                         <p className="text-center text-[10px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_58%,transparent)]">
@@ -2312,26 +2535,31 @@ export function OrderReceivePanel({
                       </>
                     ) : (
                       <>
-                        <div>
+                        <div className="flex flex-col gap-2">
                           <button
                             type="button"
-                            disabled={
-                              confirming || !detail || openLines.length === 0
-                            }
-                            onClick={() => void confirmSelected()}
+                            disabled={confirming || openLines.length === 0}
+                            onClick={() => void markAllAsOrdered()}
+                            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[14px] font-semibold text-[var(--pos-primary,#0f766e)] disabled:opacity-50 lg:h-10 lg:text-[13px]"
+                          >
+                            <PackageCheck className="size-4" />
+                            All as ordered
+                          </button>
+                          <button
+                            type="button"
+                            disabled={confirming || !canPutAway}
+                            onClick={() => openUnpack(false)}
                             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--pos-primary,#0f766e)] text-[14px] font-semibold text-white transition hover:bg-[#0d6b63] disabled:opacity-50 lg:h-10 lg:text-[13px]"
                           >
                             {confirming ? (
                               <>
                                 <Loader2 className="size-4 animate-spin" />
-                                Posting supply…
+                                Putting away…
                               </>
                             ) : (
                               <>
                                 <Check className="size-4" />
-                                {isStockFloor
-                                  ? "Unpack & add to stock"
-                                  : "Confirm supply"}
+                                Put away
                               </>
                             )}
                           </button>
@@ -2355,19 +2583,20 @@ export function OrderReceivePanel({
                 <div className="flex gap-2 lg:hidden">
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold text-[#0f766e]"
-                    onClick={() => {
-                      const next: Record<string, boolean> = {};
-                      for (const l of openLines) next[l.id] = true;
-                      setSelectedLines(next);
-                    }}
+                    disabled={markingArrived || confirming || openLines.length === 0}
+                    className="inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold text-[#0f766e] disabled:opacity-40"
+                    onClick={() => void markAllAsOrdered()}
                   >
-                    Select all
+                    All as ordered
                   </button>
                   <button
                     type="button"
                     className="inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold text-[color-mix(in_srgb,var(--order-ink,#15231f)_62%,transparent)]"
-                    onClick={() => setSelectedLines({})}
+                    onClick={() => {
+                      setArrivalByLine({});
+                      setSelectedLines({});
+                      setUnpackOpen(false);
+                    }}
                   >
                     Clear
                   </button>
@@ -2428,6 +2657,13 @@ export function OrderReceivePanel({
           </div>
         </div>
       </div>
+      <ReceiveUnpackSheet
+        open={unpackOpen}
+        busy={confirming || markingArrived}
+        lines={unpackLines}
+        onClose={() => setUnpackOpen(false)}
+        onPutAway={(destByLine) => void putAway(destByLine)}
+      />
       {lotPrompt ? (
         <MedicineLotDialog
           lines={lotPrompt.lines}
@@ -2435,7 +2671,12 @@ export function OrderReceivePanel({
           onConfirm={(lots) => {
             const held = lotPrompt;
             setLotPrompt(null);
-            void confirmSelected({ overrideArrival: held.overrideArrival, lots });
+            void confirmSelected({
+              overrideArrival: held.overrideArrival,
+              onlyLineIds: held.onlyLineIds,
+              skipArrivalGate: held.skipArrivalGate,
+              lots,
+            });
           }}
         />
       ) : null}
