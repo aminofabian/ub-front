@@ -35,6 +35,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  addItemSupplierLink,
   ApiRequestError,
   fetchItemById,
   fetchPathAPurchaseOrder,
@@ -67,6 +68,7 @@ import { supplyPackSnapshotLabel } from "@/lib/supply-pack-math";
 import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { orderNameTitleParts } from "@/app/(dashboard)/order/_lib/order-link-display";
+import { fetchShopCatalogLinks } from "@/app/(dashboard)/order/_lib/shop-catalog-link";
 import {
   MedicineLotDialog,
   type MedicineLotLine,
@@ -151,6 +153,19 @@ function toNum(v: unknown): number {
 function roundQty(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.round(n * 10000) / 10000;
+}
+
+function qtyInputText(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  return String(roundQty(value));
+}
+
+function parseQtyInput(raw: string): number | null {
+  const text = raw.trim().replace(",", ".");
+  if (text === "" || text === ".") return null;
+  const n = Number.parseFloat(text);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return roundQty(n);
 }
 
 function todayIsoDate(): string {
@@ -299,6 +314,12 @@ export function OrderReceivePanel({
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [qtyByLine, setQtyByLine] = useState<ReceiveQty>({});
   const [orderQtyByLine, setOrderQtyByLine] = useState<OrderQty>({});
+  const [orderQtyDraft, setOrderQtyDraft] = useState<Record<string, string>>(
+    {},
+  );
+  const [receiveQtyDraft, setReceiveQtyDraft] = useState<
+    Record<string, string>
+  >({});
   const [priceByLine, setPriceByLine] = useState<ReceivePrice>({});
   const [priceDraftByLine, setPriceDraftByLine] = useState<
     Record<string, string>
@@ -317,6 +338,8 @@ export function OrderReceivePanel({
   );
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [addItemQuery, setAddItemQuery] = useState("");
+  const [shopHits, setShopHits] = useState<SupplierItemLinkRecord[]>([]);
+  const [shopSearchBusy, setShopSearchBusy] = useState(false);
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
   const [savingLines, setSavingLines] = useState<Record<string, boolean>>({});
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
@@ -403,6 +426,8 @@ export function OrderReceivePanel({
         const drafts = lineDraftsFromPo(po);
         setQtyByLine(drafts.nextQty);
         setOrderQtyByLine(drafts.nextOrderQty);
+        setOrderQtyDraft({});
+        setReceiveQtyDraft({});
         setPriceByLine(drafts.nextPrice);
         setSelectedLines(drafts.nextSel);
         setArrivalByLine({});
@@ -657,10 +682,39 @@ export function OrderReceivePanel({
     return row?.createdAt ?? null;
   }, [detail, orders, selectedId]);
 
-  const catalogLinks = useMemo(
-    () => filterSupplierCatalog(supplierLinks, addItemQuery),
-    [supplierLinks, addItemQuery],
-  );
+  const catalogLinks = useMemo(() => {
+    const supplierMatches = filterSupplierCatalog(supplierLinks, addItemQuery);
+    const seen = new Set(supplierMatches.map((link) => link.itemId));
+    const shop = shopHits.filter((link) => !seen.has(link.itemId));
+    return [...supplierMatches, ...shop];
+  }, [supplierLinks, addItemQuery, shopHits]);
+
+  useEffect(() => {
+    const q = addItemQuery.trim();
+    if (q.length < 2) {
+      setShopHits([]);
+      setShopSearchBusy(false);
+      return;
+    }
+    let cancelled = false;
+    setShopSearchBusy(true);
+    const timer = window.setTimeout(() => {
+      void fetchShopCatalogLinks(q)
+        .then((rows) => {
+          if (!cancelled) setShopHits(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setShopHits([]);
+        })
+        .finally(() => {
+          if (!cancelled) setShopSearchBusy(false);
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [addItemQuery]);
 
   const onOrderItemIds = useMemo(
     () => new Set((detail?.lines ?? []).map((line) => line.itemId)),
@@ -936,6 +990,12 @@ export function OrderReceivePanel({
   const applyReceiveQty = useCallback(
     (lineId: string, nextReceive: number, immediate: boolean) => {
       const qty = roundQty(Math.max(0, nextReceive));
+      setReceiveQtyDraft((prev) => {
+        if (prev[lineId] == null) return prev;
+        const next = { ...prev };
+        delete next[lineId];
+        return next;
+      });
       setQtyByLine((prev) => ({ ...prev, [lineId]: qty }));
       const po = detailRef.current;
       const lineForArrival = po?.lines.find((l) => l.id === lineId);
@@ -1051,6 +1111,14 @@ export function OrderReceivePanel({
         unitEstimatedCost: unitCost,
       });
       toast.success(`Added ${link.itemName}`);
+      if (!supplierLinks.some((row) => row.itemId === link.itemId)) {
+        const cost = linkUnitCost(link);
+        void addItemSupplierLink(link.itemId, {
+          supplierId: detail.supplierId,
+          ...(cost > 0 ? { defaultCostPrice: cost } : {}),
+          setPrimary: true,
+        }).catch(() => {});
+      }
       setAddItemQuery("");
       const po = await fetchPathAPurchaseOrder(detail.id);
       setDetail(po);
@@ -1860,8 +1928,6 @@ export function OrderReceivePanel({
                   const lineSaved = Boolean(savedLineIds[line.id]);
                   const canDelete = toNum(line.qtyReceived) === 0;
                   const decision = arrivalByLine[line.id];
-                  const qtyEnabled =
-                    canReceive && decision != null && decision !== ARRIVAL_MISSING;
                   const packLabel = supplyPackSnapshotLabel(line);
                   return (
                     <li
@@ -2039,57 +2105,57 @@ export function OrderReceivePanel({
                         )}>
                           <span className="lg:hidden">Order</span>
                           <input
-                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold max-lg:h-11 max-lg:w-[5.5rem] max-lg:text-base tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)] disabled:opacity-40"
-                            disabled={lineBusy}
+                            className="h-8 w-[4.5rem] rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white px-2 text-center text-[12px] font-semibold max-lg:h-11 max-lg:w-[5.5rem] max-lg:text-base tabular-nums text-[var(--order-ink,#15231f)] outline-none focus:border-[var(--pos-primary,#0f766e)]"
                             inputMode="decimal"
-                            value={orderQty}
+                            value={orderQtyDraft[line.id] ?? qtyInputText(orderQty)}
+                            onFocus={() => {
+                              setOrderQtyDraft((prev) => ({
+                                ...prev,
+                                [line.id]:
+                                  prev[line.id] ?? qtyInputText(orderQty),
+                              }));
+                            }}
                             onChange={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              const next = roundQty(
-                                Number.isFinite(n) ? Math.max(0, n) : 0,
-                              );
-                              setOrderQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: next,
-                              }));
-                              const already = roundQty(toNum(line.qtyReceived));
-                              const remaining = roundQty(
-                                Math.max(0, next - already),
-                              );
-                              setQtyByLine((prev) => ({
-                                ...prev,
-                                [line.id]: remaining,
-                              }));
-                              if (remaining > 0) {
-                                setSelectedLines((prev) => ({
-                                  ...prev,
-                                  [line.id]: true,
-                                }));
+                              const raw = e.target.value.replace(",", ".");
+                              if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                                return;
                               }
-                              if (next > 0) {
-                                schedulePersist(line.id, { qtyOrdered: next });
-                              }
+                              setOrderQtyDraft((prev) => ({
+                                ...prev,
+                                [line.id]: raw,
+                              }));
                             }}
                             onBlur={(e) => {
-                              const n = Number.parseFloat(e.target.value);
-                              if (Number.isFinite(n) && n > 0) {
-                                const next = roundQty(n);
+                              const parsed = parseQtyInput(e.target.value);
+                              setOrderQtyDraft((prev) => {
+                                if (prev[line.id] == null) return prev;
+                                const next = { ...prev };
+                                delete next[line.id];
+                                return next;
+                              });
+                              if (parsed != null && parsed > 0) {
                                 const already = roundQty(
                                   toNum(line.qtyReceived),
                                 );
-                                const remaining = roundQty(
-                                  Math.max(0, next - already),
+                                const left = roundQty(
+                                  Math.max(0, parsed - already),
                                 );
                                 setOrderQtyByLine((prev) => ({
                                   ...prev,
-                                  [line.id]: next,
+                                  [line.id]: parsed,
                                 }));
                                 setQtyByLine((prev) => ({
                                   ...prev,
-                                  [line.id]: remaining,
+                                  [line.id]: left,
                                 }));
+                                if (left > 0) {
+                                  setSelectedLines((prev) => ({
+                                    ...prev,
+                                    [line.id]: true,
+                                  }));
+                                }
                                 void flushPersist(line.id, {
-                                  qtyOrdered: next,
+                                  qtyOrdered: parsed,
                                 });
                                 return;
                               }
@@ -2118,32 +2184,44 @@ export function OrderReceivePanel({
                             <button
                               type="button"
                               className="flex size-11 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] disabled:opacity-40 lg:size-8"
-                              disabled={!qtyEnabled || lineBusy}
+                              disabled={receiveQty <= 0}
                               onClick={() =>
                                 applyReceiveQty(line.id, receiveQty - 1, true)
                               }
+                              aria-label="Decrease received quantity"
                             >
                               <Minus className="size-4 lg:size-3.5" />
                             </button>
                             <input
                               data-receive-qty={line.id}
-                              className="h-11 min-w-[3.5rem] w-[5rem] border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-1 text-center font-heading text-[16px] font-semibold tabular-nums outline-none disabled:opacity-40 lg:h-8 lg:min-w-[3.25rem] lg:w-[4.5rem] lg:text-[13px]"
-                              disabled={!qtyEnabled || lineBusy}
+                              className="h-11 min-w-[3.5rem] w-[5rem] border-x border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-transparent px-1 text-center font-heading text-[16px] font-semibold tabular-nums outline-none lg:h-8 lg:min-w-[3.25rem] lg:w-[4.5rem] lg:text-[13px]"
                               inputMode="decimal"
-                              value={receiveQty}
+                              value={
+                                receiveQtyDraft[line.id] ??
+                                qtyInputText(receiveQty)
+                              }
+                              onFocus={() => {
+                                setReceiveQtyDraft((prev) => ({
+                                  ...prev,
+                                  [line.id]:
+                                    prev[line.id] ?? qtyInputText(receiveQty),
+                                }));
+                              }}
                               onChange={(e) => {
-                                const n = Number.parseFloat(e.target.value);
-                                applyReceiveQty(
-                                  line.id,
-                                  Number.isFinite(n) ? n : 0,
-                                  false,
-                                );
+                                const raw = e.target.value.replace(",", ".");
+                                if (raw !== "" && !/^\d*\.?\d{0,4}$/.test(raw)) {
+                                  return;
+                                }
+                                setReceiveQtyDraft((prev) => ({
+                                  ...prev,
+                                  [line.id]: raw,
+                                }));
                               }}
                               onBlur={(e) => {
-                                const n = Number.parseFloat(e.target.value);
+                                const parsed = parseQtyInput(e.target.value);
                                 applyReceiveQty(
                                   line.id,
-                                  Number.isFinite(n) ? n : 0,
+                                  parsed ?? 0,
                                   true,
                                 );
                               }}
@@ -2155,11 +2233,11 @@ export function OrderReceivePanel({
                             />
                             <button
                               type="button"
-                              className="flex size-11 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] disabled:opacity-40 lg:size-8"
-                              disabled={!qtyEnabled || lineBusy}
+                              className="flex size-11 items-center justify-center text-[var(--order-ink,#15231f)] transition hover:bg-[color-mix(in_srgb,var(--order-ink,#15231f)_4%,transparent)] lg:size-8"
                               onClick={() =>
                                 applyReceiveQty(line.id, receiveQty + 1, true)
                               }
+                              aria-label="Increase received quantity"
                             >
                               <Plus className="size-4 lg:size-3.5" />
                             </button>
@@ -2318,14 +2396,14 @@ export function OrderReceivePanel({
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[color-mix(in_srgb,var(--order-ink,#15231f)_40%,transparent)]" />
                     <input
                       className="h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--order-ink,#15231f)_12%,transparent)] bg-white pl-9 pr-3 text-base outline-none focus:border-[var(--pos-primary,#0f766e)] sm:text-[13px]"
-                      placeholder="Search this supplier's catalogue"
+                      placeholder="Search the catalogue"
                       value={addItemQuery}
                       onChange={(e) => setAddItemQuery(e.target.value)}
                       onKeyDown={(event) => {
                         if (event.key !== "Enter") return;
                         const needle = addItemQuery.trim().toLowerCase();
                         if (needle.length < 4) return;
-                        const exact = supplierLinks.find((link) => {
+                        const exact = catalogLinks.find((link) => {
                           const barcode = (link.barcode ?? "").trim().toLowerCase();
                           const sku = (link.sku ?? "").trim().toLowerCase();
                           return barcode === needle || sku === needle;
@@ -2338,9 +2416,11 @@ export function OrderReceivePanel({
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                      {supplierLinks.length === 0
-                        ? "No supplier catalogue loaded."
-                        : `${catalogLinks.length} of ${supplierLinks.length}`}
+                      {shopSearchBusy
+                        ? "Searching the catalogue…"
+                        : supplierLinks.length === 0 && catalogLinks.length === 0
+                          ? "No catalogue loaded yet."
+                          : `${catalogLinks.length} shown`}
                     </p>
                     <OrderTemplatePicker
                       value={orderTemplate}
@@ -2349,7 +2429,9 @@ export function OrderReceivePanel({
                   </div>
                   {catalogLinks.length === 0 ? (
                     <p className="text-[12px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_52%,transparent)]">
-                      Nothing matches that search.
+                      {shopSearchBusy
+                        ? "Searching the catalogue…"
+                        : "Nothing matches that search."}
                     </p>
                   ) : (
                     <div className="flex h-[min(28rem,55vh)] min-h-[16rem] flex-col overflow-hidden">

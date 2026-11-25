@@ -92,6 +92,7 @@ import { useOrderTemplate } from "@/hooks/use-order-template";
 
 import { SupplierGuideDrawer } from "@/app/(dashboard)/suppliers/_components/SupplierGuideDrawer";
 import { applyPoDetailToCart } from "@/app/(dashboard)/order/_lib/order-lifetime-stats";
+import { fetchShopCatalogLinks } from "@/app/(dashboard)/order/_lib/shop-catalog-link";
 import { OrderCatalogSetupPanel } from "./order-catalog-setup-panel";
 import {
   OrderNotifyOptions,
@@ -432,6 +433,11 @@ export function TenantOrderWorkspace({
     initialSupplierId?.trim() || null,
   );
   const [links, setLinks] = useState<SupplierItemLinkRecord[]>([]);
+  const [shopHits, setShopHits] = useState<SupplierItemLinkRecord[]>([]);
+  const [keptShopLinks, setKeptShopLinks] = useState<SupplierItemLinkRecord[]>(
+    [],
+  );
+  const [shopSearchBusy, setShopSearchBusy] = useState(false);
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);
   const [loadingLinks, setLoadingLinks] = useState(false);
@@ -685,6 +691,49 @@ export function TenantOrderWorkspace({
     }
   }, [supplierId, branchId]);
 
+  useEffect(() => {
+    setShopHits([]);
+    setKeptShopLinks([]);
+    setShopSearchBusy(false);
+  }, [supplierId]);
+
+  useEffect(() => {
+    const q = filter.trim();
+    if (q.length < 2) {
+      setShopHits([]);
+      setShopSearchBusy(false);
+      return;
+    }
+    let cancelled = false;
+    setShopSearchBusy(true);
+    const timer = window.setTimeout(() => {
+      void fetchShopCatalogLinks(q)
+        .then((rows) => {
+          if (!cancelled) setShopHits(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setShopHits([]);
+        })
+        .finally(() => {
+          if (!cancelled) setShopSearchBusy(false);
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [filter]);
+
+  const catalogPool = useMemo(() => {
+    const seen = new Set(links.map((link) => link.itemId));
+    const extra = [...keptShopLinks, ...shopHits].filter((link) => {
+      if (seen.has(link.itemId)) return false;
+      seen.add(link.itemId);
+      return true;
+    });
+    return [...links, ...extra];
+  }, [links, keptShopLinks, shopHits]);
+
   const openLinkCatalog = useCallback((seedQuery?: string) => {
     setLinkCatalogQuery(seedQuery?.trim() ?? "");
     setLinkProductsOpen(true);
@@ -933,11 +982,11 @@ export function TenantOrderWorkspace({
 
   const visibleLinks = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    let rows = links;
-    if (parentFilterId) {
+    let rows = catalogPool;
+    if (parentFilterId && !q) {
       rows = rows.filter((r) => linkParentId(r) === parentFilterId);
     }
-    if (inOrderOnly) {
+    if (inOrderOnly && !q) {
       rows = rows.filter((r) => (cart[r.itemId] ?? 0) > 0);
     }
     if (q) {
@@ -964,10 +1013,10 @@ export function TenantOrderWorkspace({
       if (lowA !== lowB) return lowA - lowB;
       return a.itemName.localeCompare(b.itemName);
     });
-  }, [links, filter, parentFilterId, inOrderOnly, cart]);
+  }, [catalogPool, filter, parentFilterId, inOrderOnly, cart]);
 
   const cartLines = useMemo(() => {
-    const lines = links
+    const lines = catalogPool
       .filter((l) => (cart[l.itemId] ?? 0) > 0)
       .map((l) => ({
         link: l,
@@ -986,7 +1035,7 @@ export function TenantOrderWorkspace({
       if (ib == null) return -1;
       return ia - ib;
     });
-  }, [links, cart, packByItemId, priceByItemId, totalOverrideByItemId, lineOrder]);
+  }, [catalogPool, cart, packByItemId, priceByItemId, totalOverrideByItemId, lineOrder]);
 
   const cartUnits = cartLines.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cartLines.reduce(
@@ -1459,6 +1508,14 @@ export function TenantOrderWorkspace({
   };
 
   const setQty = (itemId: string, qty: number) => {
+    if (qty > 0) {
+      const shop = shopHits.find((link) => link.itemId === itemId);
+      if (shop && !links.some((link) => link.itemId === itemId)) {
+        setKeptShopLinks((prev) =>
+          prev.some((link) => link.itemId === itemId) ? prev : [...prev, shop],
+        );
+      }
+    }
     setCart((prev) => {
       const next = { ...prev };
       if (qty <= 0) delete next[itemId];
@@ -2713,11 +2770,7 @@ export function TenantOrderWorkspace({
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--op-muted,#556159)]" />
               <input
                 className="h-11 w-full rounded-[2px] border border-[color-mix(in_srgb,var(--order-ink,#121A16)_12%,transparent)] bg-[var(--op-surface,#FCFAF5)] pl-10 pr-12 text-base caret-[var(--pos-primary,#1D4B3B)] outline-none placeholder:text-[var(--op-muted,#556159)] focus:border-[var(--pos-primary,#1D4B3B)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--pos-primary,#1D4B3B)_22%,transparent)] sm:h-9 sm:pr-3 sm:text-[14px]"
-                placeholder={
-                  orderTemplate === "ledger"
-                    ? "Search products in this list…"
-                    : "Search this supplier's products"
-                }
+                placeholder="Search the catalogue"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 enterKeyHint="search"
@@ -2845,7 +2898,12 @@ export function TenantOrderWorkspace({
                 Loading shelf…
               </p>
             ) : visibleLinks.length === 0 ? (
-              inOrderOnly ? (
+              shopSearchBusy ? (
+                <p className="flex items-center justify-center gap-2 py-20 text-[13px] text-[color-mix(in_srgb,var(--order-ink,#15231f)_50%,transparent)]">
+                  <Loader2 className="size-4 animate-spin" />
+                  Searching the catalogue…
+                </p>
+              ) : inOrderOnly ? (
                 <p className="py-16 text-center text-[14px] text-[var(--op-muted,#556159)]">
                   Nothing in this order yet. Type a quantity on a product.
                 </p>

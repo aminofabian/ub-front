@@ -97,8 +97,6 @@ export function OrderQtyField({
       onChange={(e) => {
         const next = e.target.value.replace(/[^\d]/g, "").slice(0, 6);
         setDraft(next);
-        const parsed = parseQty(next);
-        if (parsed != null) onSetQty(parsed);
       }}
       onBlur={(e) => {
         focusedRef.current = false;

@@ -25,6 +25,8 @@ export type CatalogLinkFields = {
   sku?: string | null;
   barcode?: string | null;
   supplierSku?: string | null;
+  variantName?: string | null;
+  parentItemName?: string | null;
 };
 
 export type PutAwayPlan = {
@@ -51,7 +53,10 @@ export function nextArrival(
   return next;
 }
 
-/** Keep the label honest when the clerk edits the count after As ordered or Short. */
+/**
+ * Keep the label honest when the clerk edits the count.
+ * Damaged stays damaged. A count with no decision yet becomes As ordered or Short.
+ */
 export function retargetArrival(
   current: ArrivalMap,
   lineId: string,
@@ -59,8 +64,11 @@ export function retargetArrival(
   remaining: number,
 ): ArrivalMap {
   const decision = current[lineId];
-  if (decision !== ARRIVAL_AS_ORDERED && decision !== ARRIVAL_SHORT) return current;
-  if (qty <= 0) return { ...current, [lineId]: ARRIVAL_MISSING };
+  if (decision === ARRIVAL_DAMAGED) return current;
+  if (qty <= 0) {
+    if (decision == null) return current;
+    return { ...current, [lineId]: ARRIVAL_MISSING };
+  }
   if (qty < remaining) return { ...current, [lineId]: ARRIVAL_SHORT };
   return { ...current, [lineId]: ARRIVAL_AS_ORDERED };
 }
@@ -124,7 +132,14 @@ export function filterSupplierCatalog<T extends CatalogLinkFields>(
   const needle = query.trim().toLowerCase();
   if (!needle) return [...links];
   return links.filter((link) => {
-    const hay = [link.itemName, link.sku ?? "", link.barcode ?? "", link.supplierSku ?? ""]
+    const hay = [
+      link.itemName,
+      link.sku ?? "",
+      link.barcode ?? "",
+      link.supplierSku ?? "",
+      link.variantName ?? "",
+      link.parentItemName ?? "",
+    ]
       .join(" ")
       .toLowerCase();
     return hay.includes(needle);

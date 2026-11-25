@@ -33,6 +33,12 @@ describe("supplier catalogue on receive", () => {
       "Item 2",
     ]);
     expect(filterSupplierCatalog(LINES, "123456")).toHaveLength(1);
+    expect(
+      filterSupplierCatalog(
+        [{ itemName: "Greens", variantName: "Terere", parentItemName: "Greens" }],
+        "terere",
+      ).map((link) => link.variantName),
+    ).toEqual(["Terere"]);
   });
 });
 
@@ -57,6 +63,9 @@ describe("arrival decisions", () => {
     expect(retargetArrival(asOrdered, "a", 0, 12).a).toBe(ARRIVAL_MISSING);
     expect(retargetArrival({ a: ARRIVAL_SHORT }, "a", 12, 12).a).toBe(ARRIVAL_AS_ORDERED);
     expect(retargetArrival({ a: ARRIVAL_DAMAGED }, "a", 1, 12).a).toBe(ARRIVAL_DAMAGED);
+    expect(retargetArrival({}, "a", 4, 12).a).toBe(ARRIVAL_SHORT);
+    expect(retargetArrival({}, "a", 12, 12).a).toBe(ARRIVAL_AS_ORDERED);
+    expect(retargetArrival({}, "a", 0, 12).a).toBeUndefined();
   });
 
   test("status is words, with the short count", () => {

@@ -79,14 +79,12 @@ export function SupplierReceiveLinkModal({
       () => {
         setBusy(true);
         void fetchItems(q || undefined, {
-          size: 24,
+          size: 40,
           catalogScope: "ALL",
           softAuth: true,
         })
           .then((rows) => {
-            if (!cancelled) {
-              setHits(rows.filter((r) => r.groupLabelOnly !== true));
-            }
+            if (!cancelled) setHits(rows);
           })
           .catch(() => {
             if (!cancelled) setHits([]);
@@ -266,7 +264,9 @@ export function SupplierReceiveLinkModal({
                           {cashierItemPrimaryLabel(item)}
                         </span>
                         <span className="block truncate font-mono text-[10px] text-muted-foreground">
-                          {item.sku}
+                          {item.parentName?.trim() && item.variantName?.trim()
+                            ? `${item.parentName.trim()} · ${item.variantName.trim()}`
+                            : item.sku}
                           {item.barcode ? ` · ${item.barcode}` : ""}
                           {already ? " · Already linked" : ""}
                         </span>
