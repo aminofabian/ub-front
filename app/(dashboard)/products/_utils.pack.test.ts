@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   allocateOnHand,
+  baseUnitCost,
   unitAvailabilityLabel,
   catalogQtyPresentation,
   familySellsPacks,
@@ -174,6 +175,13 @@ describe("shared shelf breakdown", () => {
     expect(unitAvailabilityLabel(128, tray)).toBe("4, 8 rem");
     expect(unitAvailabilityLabel(150, tray)).toBe("5");
     expect(unitAvailabilityLabel(0, tray)).toBe("0");
+  });
+
+  test("a tray cost becomes a per-egg cost when stocking the shelf", () => {
+    expect(baseUnitCost(430, 30)).toBe(14.3333);
+    expect(baseUnitCost(14.33, 1)).toBe(14.33);
+    expect(baseUnitCost(14.33, null)).toBe(14.33);
+    expect(baseUnitCost(null, 30)).toBeNull();
   });
 
   test("60 eggs is 2 trays and no loose singles", () => {

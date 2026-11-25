@@ -76,6 +76,7 @@ export function usesSharedPackageStock(
         isStocked?: boolean;
         packageUnitsPerSale?: number | string | null;
         packagingUnitQty?: number | string | null;
+        baseStockQty?: number | string | null;
       }
     | null
     | undefined,
@@ -84,6 +85,9 @@ export function usesSharedPackageStock(
   if (row.packageVariant) return true;
   const parentId = row.variantOfItemId?.trim();
   if (!parentId) return false;
+  // The server reports a base count only for units that draw from the base
+  // product — including an ordinary option in a product that sells packs.
+  if (toNumber(row.baseStockQty) != null) return true;
   const units = packageUnitsPerSaleFromRow(row);
   return units != null && row.isStocked === false;
 }
@@ -479,6 +483,19 @@ export function unitAvailabilityLabel(
   return rest > 0.0001
     ? `${formatShelfQty(whole)}, ${formatShelfQty(rest)} rem`
     : formatShelfQty(whole);
+}
+
+/**
+ * Stock is counted and costed in base units. A pack's cost (430 a tray) is
+ * for the whole pack, so one base unit costs that divided by the pack size.
+ */
+export function baseUnitCost(
+  cost: number | null | undefined,
+  unitsPerSale: number | null | undefined,
+): number | null {
+  if (cost == null || !Number.isFinite(cost)) return null;
+  if (unitsPerSale == null || !(unitsPerSale > 1)) return cost;
+  return Math.round((cost / unitsPerSale) * 10000) / 10000;
 }
 
 export function saleTakesLabel(

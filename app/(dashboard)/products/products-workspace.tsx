@@ -45,7 +45,9 @@ import {
 import {
   familySellsPacks,
   resolveCatalogParentId,
+  baseUnitCost,
   stockCatalogItemId,
+  unitsPerSaleOf,
   stockFamilySources,
   toNumber,
 } from "./_utils";
@@ -1130,7 +1132,7 @@ export function ProductsWorkspace() {
           parentName={detail.variantParentDisplayName}
           branches={branches}
           initialBranchId={branchId || ""}
-          defaultUnitCost={detail.primaryCost}
+          defaultUnitCost={baseUnitCost(detail.primaryCost, unitsPerSaleOf(D))}
           onSave={async (input) => {
             const result = await quick.saveOnHandQty(input);
             if (result.ok) {
