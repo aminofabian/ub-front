@@ -33,6 +33,26 @@ import {
   type CatalogLetterKey,
 } from "../_components/catalog-letter-index";
 
+function sharedPoolRow(
+  row: ItemSummaryRecord,
+  parentId: string,
+  baseUnits: number,
+): ItemSummaryRecord {
+  if (row.id === parentId && !row.variantOfItemId) {
+    return { ...row, stockQty: baseUnits };
+  }
+  if (row.variantOfItemId?.trim() !== parentId) return row;
+  const units = Number(row.packageUnitsPerSale);
+  const shares = row.packageVariant || (Number.isFinite(units) && units > 0);
+  if (!shares) return row;
+  const perSale = Number.isFinite(units) && units > 0 ? units : 1;
+  return {
+    ...row,
+    baseStockQty: baseUnits,
+    stockQty: Math.floor(baseUnits / perSale),
+  };
+}
+
 const DISPLAY_TYPE_TO_API: Record<CatalogListDisplayType, CatalogRowType> = {
   parent: "PARENT",
   variant: "VARIANT",
@@ -362,6 +382,21 @@ export function useCatalogList(
       setListLoadingInitial(false);
     }
   }, [debouncedSearch, listFetchOpts, listStatsOpts, rowTypeFilter]);
+
+  /**
+   * One shelf count feeds every pack row already loaded. Whole packs are
+   * floor(base / units per sale); the single keeps the base count.
+   */
+  const syncSharedPoolStock = useCallback(
+    (parentId: string, baseUnits: number) => {
+      const holder = parentId.trim();
+      if (!holder || !Number.isFinite(baseUnits)) return;
+      setListRows((prev) =>
+        prev.map((row) => sharedPoolRow(row, holder, baseUnits)),
+      );
+    },
+    [],
+  );
 
   /** Patch one loaded list row in place — keeps scroll position and loaded pages. */
   const syncListRowFromDetail = useCallback(
@@ -884,6 +919,7 @@ export function useCatalogList(
     upsertAisle,
     refreshFullCatalog,
     syncListRowFromDetail,
+    syncSharedPoolStock,
     loadMoreCatalog,
     jumpToLetter,
     resetFilters,

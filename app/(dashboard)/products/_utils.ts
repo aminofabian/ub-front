@@ -340,6 +340,228 @@ export function effectiveOnHand(
   return toNumber(detail.stockQty);
 }
 
+export type SellingUnitSource = {
+  id: string;
+  name?: string | null;
+  variantName?: string | null;
+  parentName?: string | null;
+  packageVariant?: boolean;
+  packageUnitsPerSale?: number | string | null;
+  packagingUnitQty?: number | string | null;
+  stockQty?: number | string | null;
+  baseStockQty?: number | string | null;
+};
+
+/** Base units one sale of this SKU removes. Null when the row keeps its own stock. */
+export function unitsPerSaleOf(
+  row: Omit<SellingUnitSource, "id"> | null | undefined,
+): number | null {
+  if (!row) return null;
+  const units = packageUnitsPerSaleFromRow(row);
+  if (units != null && units > 0) return units;
+  if (row.packageVariant) return 1;
+  return null;
+}
+
+export type ShelfSellingUnit = {
+  id: string;
+  label: string;
+  unitsPerSale: number;
+};
+
+function sellingUnitLabel(row: SellingUnitSource, baseName: string): string {
+  const label = row.variantName?.trim() || row.name?.trim();
+  if (label) return label;
+  return unitsPerSaleOf(row) === 1 ? baseName : "Pack";
+}
+
+/**
+ * Selling units that draw from one shelf. A family with only packs also gets
+ * a 1-unit line so the loose eggs have somewhere to sit.
+ */
+export function shelfSellingUnits(
+  sources: SellingUnitSource[],
+  baseName: string,
+): ShelfSellingUnit[] {
+  const seen = new Set<string>();
+  const units: ShelfSellingUnit[] = [];
+  for (const row of sources) {
+    const perSale = unitsPerSaleOf(row);
+    if (perSale == null || seen.has(row.id)) continue;
+    seen.add(row.id);
+    units.push({
+      id: row.id,
+      label: sellingUnitLabel(row, baseName),
+      unitsPerSale: perSale,
+    });
+  }
+  if (units.length > 0 && !units.some((unit) => unit.unitsPerSale === 1)) {
+    units.unshift({ id: "base", label: baseName, unitsPerSale: 1 });
+  }
+  units.sort(
+    (a, b) => a.unitsPerSale - b.unitsPerSale || a.label.localeCompare(b.label),
+  );
+  return units;
+}
+
+/** True when the family sells at least one multi-unit pack from a shared shelf. */
+export function familySellsPacks(sources: SellingUnitSource[]): boolean {
+  return sources.some((row) => isPackUnits(unitsPerSaleOf(row)));
+}
+
+/** Variant rows when the family is loaded; otherwise the open pack itself. */
+export function stockFamilySources(
+  detail: SellingUnitSource,
+  variantRows: SellingUnitSource[],
+): SellingUnitSource[] {
+  if (variantRows.length > 0) return variantRows;
+  return unitsPerSaleOf(detail) != null ? [detail] : [];
+}
+
+export type OnHandSlice = ShelfSellingUnit & {
+  count: number;
+  baseUnits: number;
+};
+
+function roundShelfQty(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+/**
+ * Split one on-hand count into whole packs, largest first.
+ * Equal pack sizes share one count. Anything left is `loose` unless a
+ * 1-unit line can hold it.
+ */
+export function allocateOnHand(
+  baseUnits: number,
+  units: ShelfSellingUnit[],
+): { slices: OnHandSlice[]; loose: number } {
+  const safe = Number.isFinite(baseUnits) && baseUnits > 0 ? baseUnits : 0;
+  const sizes = [...new Set(units.map((unit) => unit.unitsPerSale))]
+    .filter((size) => size > 0)
+    .sort((a, b) => b - a);
+  const countBySize = new Map<number, number>();
+  let remaining = safe;
+  for (const size of sizes) {
+    if (size > 1) {
+      const count = Math.floor(remaining / size + 1e-9);
+      countBySize.set(size, count);
+      remaining = roundShelfQty(remaining - count * size);
+      continue;
+    }
+    countBySize.set(size, roundShelfQty(remaining));
+    remaining = 0;
+  }
+  const slices = units.map((unit) => {
+    const count = countBySize.get(unit.unitsPerSale) ?? 0;
+    return {
+      ...unit,
+      count,
+      baseUnits: roundShelfQty(count * unit.unitsPerSale),
+    };
+  });
+  return { slices, loose: remaining };
+}
+
+export function saleTakesLabel(
+  units: number,
+  source?: string | null,
+): string {
+  const name = source?.trim() || "the product";
+  const shown = Number.isInteger(units)
+    ? units.toLocaleString()
+    : units.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return `1 sale takes ${shown} ${name}`;
+}
+
+export function onHandBreakdownLabel(
+  slices: OnHandSlice[],
+  loose: number,
+  baseName: string,
+): string {
+  const ordered = [...slices].sort((a, b) => b.unitsPerSale - a.unitsPerSale);
+  const parts = ordered.map(
+    (slice) => `${formatShelfQty(slice.count)} ${slice.label}`,
+  );
+  if (loose > 0.0001) {
+    parts.push(`${formatShelfQty(loose)} ${baseName} left over`);
+  }
+  return parts.join(", ");
+}
+
+function formatShelfQty(n: number): string {
+  return Number.isInteger(n)
+    ? n.toLocaleString()
+    : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+export type CatalogQtyPresentation = {
+  label: string;
+  title: string;
+  /** Visible "of 168" under a pack count, so it is not a second stock. */
+  note: string | null;
+};
+
+/** Price-cleanup Qty cell: packs show whole packs and which base count they come from. */
+export function catalogQtyPresentation(
+  row: SellingUnitSource,
+): CatalogQtyPresentation {
+  const units = unitsPerSaleOf(row);
+  if (units != null && isPackUnits(units)) {
+    return packQtyPresentation(row, units);
+  }
+  if (units === 1) return eachQtyPresentation(row);
+  const onHand = toNumber(row.stockQty);
+  return {
+    label: onHand != null ? formatShelfQty(onHand) : "—",
+    title: formatStockLabel(row),
+    note: null,
+  };
+}
+
+function eachQtyPresentation(row: SellingUnitSource): CatalogQtyPresentation {
+  const base = toNumber(row.baseStockQty) ?? toNumber(row.stockQty);
+  const source = row.parentName?.trim() || row.name?.trim() || "the shelf";
+  if (base == null) {
+    return { label: "—", title: saleTakesLabel(1, source), note: null };
+  }
+  const shown = formatShelfQty(base);
+  return {
+    label: shown,
+    title: `${shown} ${source}. ${saleTakesLabel(1, source)}`,
+    note: null,
+  };
+}
+
+function packQtyPresentation(
+  row: SellingUnitSource,
+  units: number,
+): CatalogQtyPresentation {
+  const base = toNumber(row.baseStockQty);
+  const whole =
+    toNumber(row.stockQty) ??
+    (base != null ? Math.floor(base / units) : null);
+  const source = row.parentName?.trim() || "the shelf";
+  const takes = saleTakesLabel(units, source);
+  if (whole == null) {
+    return { label: "—", title: takes, note: null };
+  }
+  const packs = countLabel(whole, "pack", "packs");
+  const held = roundShelfQty(whole * units);
+  if (base == null) {
+    return { label: formatShelfQty(whole), title: `${packs}. ${takes}`, note: null };
+  }
+  const ofBase =
+    Math.abs(base - held) > 0.0001
+      ? `${formatShelfQty(held)} of ${formatShelfQty(base)} ${source}`
+      : `${formatShelfQty(base)} ${source}`;
+  return {
+    label: formatShelfQty(whole),
+    title: `${packs} · ${ofBase}. ${takes}`,
+    note: `of ${formatShelfQty(base)}`,
+  };
+}
+
 export function formatAmount(value: number | null | undefined): string {
   if (value == null) return "—";
   return value.toLocaleString(undefined, {

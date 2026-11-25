@@ -1,10 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
+  allocateOnHand,
+  catalogQtyPresentation,
+  familySellsPacks,
   formatStockLabel,
   isPackUnits,
+  onHandBreakdownLabel,
   packChipLabel,
   packEditHint,
   packStockBlock,
+  saleTakesLabel,
+  shelfSellingUnits,
   variantSellShape,
 } from "./_utils";
 
@@ -128,5 +134,101 @@ describe("pack stock guard", () => {
         "eggs",
       ),
     ).toBeNull();
+  });
+});
+
+const eggFamily = [
+  { id: "single", variantName: "single", packageUnitsPerSale: 1 },
+  {
+    id: "tray",
+    variantName: "Tray",
+    packageVariant: true,
+    packageUnitsPerSale: 30,
+  },
+];
+
+describe("shared shelf breakdown", () => {
+  test("lists every selling unit and what one sale takes", () => {
+    const units = shelfSellingUnits(eggFamily, "Eggs Large");
+    expect(units.map((unit) => unit.label)).toEqual(["single", "Tray"]);
+    expect(saleTakesLabel(1, "Eggs Large")).toBe("1 sale takes 1 Eggs Large");
+    expect(saleTakesLabel(30, "Eggs Large")).toBe(
+      "1 sale takes 30 Eggs Large",
+    );
+  });
+
+  test("168 eggs is 5 trays and 18 singles", () => {
+    const units = shelfSellingUnits(eggFamily, "Eggs Large");
+    const { slices, loose } = allocateOnHand(168, units);
+    expect(loose).toBe(0);
+    expect(onHandBreakdownLabel(slices, loose, "Eggs Large")).toBe(
+      "5 Tray, 18 single",
+    );
+  });
+
+  test("60 eggs is 2 trays and no loose singles", () => {
+    const units = shelfSellingUnits(eggFamily, "Eggs Large");
+    const { slices, loose } = allocateOnHand(60, units);
+    expect(onHandBreakdownLabel(slices, loose, "Eggs Large")).toBe(
+      "2 Tray, 0 single",
+    );
+  });
+
+  test("a tray-only family keeps the leftover on the base product", () => {
+    const units = shelfSellingUnits(
+      [{ id: "tray", variantName: "Tray", packageUnitsPerSale: 30 }],
+      "Eggs Large",
+    );
+    expect(units.map((unit) => [unit.label, unit.unitsPerSale])).toEqual([
+      ["Eggs Large", 1],
+      ["Tray", 30],
+    ]);
+    const { slices, loose } = allocateOnHand(18, units);
+    expect(loose).toBe(0);
+    expect(onHandBreakdownLabel(slices, loose, "Eggs Large")).toBe(
+      "0 Tray, 18 Eggs Large",
+    );
+  });
+
+  test("a product with no packs is not a shared shelf", () => {
+    expect(
+      familySellsPacks([
+        { id: "vanilla", variantName: "Vanilla", stockQty: 4 },
+      ]),
+    ).toBe(false);
+  });
+});
+
+describe("catalog qty for a shared shelf", () => {
+  test("a tray shows whole packs and how many of the shelf they use", () => {
+    expect(
+      catalogQtyPresentation({
+        id: "tray",
+        variantName: "Tray",
+        parentName: "Eggs Large",
+        packageVariant: true,
+        packageUnitsPerSale: 30,
+        stockQty: 5,
+        baseStockQty: 168,
+      }),
+    ).toEqual({
+      label: "5",
+      title:
+        "5 packs · 150 of 168 Eggs Large. 1 sale takes 30 Eggs Large",
+      note: "of 168",
+    });
+  });
+
+  test("a single shows the shared shelf, not a second stock", () => {
+    expect(
+      catalogQtyPresentation({
+        id: "single",
+        name: "Eggs Large single",
+        parentName: "Eggs Large",
+        packageUnitsPerSale: 1,
+        stockQty: 168,
+        baseStockQty: 168,
+      }).title,
+    ).toBe("168 Eggs Large. 1 sale takes 1 Eggs Large");
   });
 });

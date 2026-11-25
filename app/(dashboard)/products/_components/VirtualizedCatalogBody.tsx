@@ -20,7 +20,7 @@ import { useMediaLg } from "@/hooks/use-media-lg";
 import { cn } from "@/lib/utils";
 
 import {
-  formatStockLabel,
+  catalogQtyPresentation,
   isPackUnits,
   packChipLabel,
   packEqualsLabel,
@@ -121,26 +121,17 @@ function compactStockDisplay(row: ItemSummaryRecord): {
   label: string;
   className: string;
   title: string;
+  note: string | null;
 } {
-  const full = formatStockLabel(row);
   const tone = catalogStockTone(row.stockQty);
-  if (row.packageVariant) {
-    const pkgs = toNumber(row.stockQty);
-    return {
-      label: pkgs != null ? String(pkgs) : "—",
-      className: tone.className,
-      title: full,
-    };
-  }
-  const qty = toNumber(row.stockQty);
-  if (qty != null) {
-    return {
-      label: qty.toLocaleString(undefined, { maximumFractionDigits: 2 }),
-      className: tone.className,
-      title: full,
-    };
-  }
-  return { label: "—", className: "text-muted-foreground/35", title: full };
+  const presented = catalogQtyPresentation(row);
+  return {
+    label: presented.label,
+    className:
+      presented.label === "—" ? "text-muted-foreground/35" : tone.className,
+    title: presented.title,
+    note: presented.note,
+  };
 }
 
 export const VirtualizedCatalogBody = forwardRef<
@@ -777,17 +768,26 @@ export const VirtualizedCatalogBody = forwardRef<
                         </span>
                       ) : stock.label !== "—" ? (
                         <span
-                          className={cn(
-                            "text-[11px] font-medium tabular-nums tracking-tight",
-                            stock.className.includes("red")
-                              ? "text-red-600 dark:text-red-400"
-                              : stock.className.includes("amber")
-                                ? "text-amber-700 dark:text-amber-300"
-                                : "text-foreground",
-                          )}
+                          className="flex flex-col items-end leading-none"
                           title={stock.title}
                         >
-                          {stock.label}
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium tabular-nums tracking-tight",
+                              stock.className.includes("red")
+                                ? "text-red-600 dark:text-red-400"
+                                : stock.className.includes("amber")
+                                  ? "text-amber-700 dark:text-amber-300"
+                                  : "text-foreground",
+                            )}
+                          >
+                            {stock.label}
+                          </span>
+                          {stock.note ? (
+                            <span className="mt-0.5 text-[9px] font-normal tabular-nums text-foreground/45">
+                              {stock.note}
+                            </span>
+                          ) : null}
                         </span>
                       ) : (
                         <span className="text-[10px] tabular-nums text-foreground/20">

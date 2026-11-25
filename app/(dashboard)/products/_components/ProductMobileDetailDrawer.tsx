@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import type { FormDrawerProps } from "@/components/form-drawer";
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import { ProductDetailPanel } from "./ProductDetailPanel";
-import { usesSharedPackageStock } from "../_utils";
+import { familySellsPacks, stockFamilySources, usesSharedPackageStock } from "../_utils";
 
 type Props = {
   open: boolean;
@@ -75,6 +75,9 @@ export function ProductMobileDetailDrawer({
   const canEdit = detailPanelProps.canCatalogWrite;
   const canStock = detailPanelProps.canInventoryWrite;
   const sharedStock = !!d && usesSharedPackageStock(d);
+  const sellsPacks =
+    !!d &&
+    familySellsPacks(stockFamilySources(d, detailPanelProps.variantRows));
   const scrollRef = useRef<HTMLDivElement>(null);
   const exitTimer = useRef<number | null>(null);
   /** Blocks Radix onOpenChange(false) from starting a second exit while we close. */
@@ -284,11 +287,17 @@ export function ProductMobileDetailDrawer({
                   className={dockBtn}
                   disabled={
                     exiting ||
-                    (sharedStock
-                      ? !canStock || !detailPanelProps.onOpenBaseStock
-                      : !canStock)
+                    (sellsPacks
+                      ? !canStock || !detailPanelProps.onOpenPackStock
+                      : sharedStock
+                        ? !canStock || !detailPanelProps.onOpenBaseStock
+                        : !canStock)
                   }
                   onClick={() => {
+                    if (sellsPacks && detailPanelProps.onOpenPackStock) {
+                      detailPanelProps.onOpenPackStock();
+                      return;
+                    }
                     if (sharedStock && detailPanelProps.onOpenBaseStock) {
                       detailPanelProps.onOpenBaseStock();
                       return;

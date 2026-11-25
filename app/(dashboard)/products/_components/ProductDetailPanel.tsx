@@ -64,11 +64,14 @@ import {
   effectiveOnHand,
   formatAmount,
   formatOverallStockLabel,
+  familySellsPacks,
   formatStockLabel,
   isPackUnits,
-  packEqualsLabel,
   packageUnitsPerSaleFromRow,
+  saleTakesLabel,
+  stockFamilySources,
   toNumber,
+  unitsPerSaleOf,
   usesSharedPackageStock,
 } from "../_utils";
 import { quickInputClass } from "../_types";
@@ -183,6 +186,8 @@ type Props = {
   selectProduct: (id: string | null) => void;
   onOpenPackageSales?: () => void;
   onOpenBaseStock?: () => void;
+  /** Shared shelf: one modal for every pack, instead of a bare quantity. */
+  onOpenPackStock?: () => void;
   onOpenAddVariant?: () => void;
   /** Attach existing standalone SKUs under this family (keeps their history). */
   onOpenAttachExisting?: () => void;
@@ -396,6 +401,7 @@ export function ProductDetailPanel(props: Props) {
     selectProduct,
     onOpenPackageSales,
     onOpenBaseStock,
+    onOpenPackStock,
     onOpenAddVariant,
     onOpenAttachExisting,
     onOpenChangeItemType,
@@ -542,6 +548,11 @@ export function ProductDetailPanel(props: Props) {
   );
 
   const sharedStock = usesSharedPackageStock(detail);
+  const sellsPacks = familySellsPacks(stockFamilySources(detail, variantRows));
+  const openPackStock =
+    sellsPacks && canInventoryWrite && onOpenPackStock
+      ? onOpenPackStock
+      : undefined;
   const stockLevel = effectiveOnHand(detail);
   const stockLabel = formatStockLabel(detail);
   const overallStockLabel = formatOverallStockLabel(detail);
@@ -1175,16 +1186,20 @@ export function ProductDetailPanel(props: Props) {
             "stock",
             () => void saveQuickStock(),
             {
-              canEdit:
-                sharedStock && canInventoryWrite && !!onOpenBaseStock
+              canEdit: openPackStock
+                ? true
+                : sharedStock && canInventoryWrite && !!onOpenBaseStock
                   ? true
                   : canInventoryWrite && !sharedStock,
               highlight: stockLow ? "danger" : "default",
               valueClass: stockLow
                 ? "text-destructive font-semibold"
                 : "font-semibold",
-              onActivate:
-                sharedStock && onOpenBaseStock ? onOpenBaseStock : undefined,
+              onActivate: openPackStock
+                ? openPackStock
+                : sharedStock && onOpenBaseStock
+                  ? onOpenBaseStock
+                  : undefined,
               hint:
                 overallStockLabel !== "—"
                   ? `Overall ${overallStockLabel}`
@@ -1192,7 +1207,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
         </div>
-        {quickEdit === "stock" && !sharedStock && canInventoryWrite ? (
+        {quickEdit === "stock" && !sharedStock && !openPackStock && canInventoryWrite ? (
           <div
             className="border-t border-border/40 bg-white px-2.5 py-2"
             onKeyDown={onInlineEnter(() => void saveQuickStock())}
@@ -1692,17 +1707,13 @@ export function ProductDetailPanel(props: Props) {
                               </span>
                             ) : null}
                           </div>
-                          {v.packageVariant ? (
+                          {unitsPerSaleOf(v) != null ? (
                             <p className="text-[11px] text-muted-foreground">
-                              {isPackUnits(toNumber(v.packageUnitsPerSale)) ? (
-                                <>
-                                  {packEqualsLabel(
-                                    toNumber(v.packageUnitsPerSale),
-                                    variantParentDisplayName ?? detail.name,
-                                  )}
-                                  {" · "}
-                                </>
-                              ) : null}
+                              {saleTakesLabel(
+                                unitsPerSaleOf(v) ?? 1,
+                                variantParentDisplayName ?? detail.name,
+                              )}
+                              {" · "}
                               {formatStockLabel(v)}
                             </p>
                           ) : v.variantName &&
@@ -2213,6 +2224,15 @@ export function ProductDetailPanel(props: Props) {
               >
                 <Boxes className="size-3.5" aria-hidden />
                 Package
+              </Button>
+            ) : openPackStock ? (
+              <Button
+                type="button"
+                className="h-10 flex-1 gap-1.5 rounded-none text-xs font-medium"
+                onClick={openPackStock}
+              >
+                <PackagePlus className="size-3.5" aria-hidden />
+                Stock
               </Button>
             ) : sharedStock && onOpenBaseStock ? (
               <Button

@@ -34,6 +34,94 @@ import {
   toNumber,
 } from "../_utils";
 
+const QTY_EPSILON = 0.0001;
+
+function roundQty(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+/** Returns an error message, or null when the ledger move landed. */
+async function postOnHandChange(input: {
+  stockItemId: string;
+  branchId: string;
+  delta: number;
+  unitCost: number;
+}): Promise<string | null> {
+  const { stockItemId, branchId, delta, unitCost } = input;
+  if (delta > QTY_EPSILON) {
+    await postStockIncrease({
+      branchId,
+      itemId: stockItemId,
+      quantity: delta,
+      unitCost,
+      notes: "Stock set from products",
+    });
+    return null;
+  }
+  const decreaseQty = Math.abs(delta);
+  const allocations = await fetchAllocationPreview({
+    itemId: stockItemId,
+    branchId,
+    quantity: decreaseQty,
+  });
+  if (!allocations.length) {
+    return "Could not allocate stock to remove for this branch.";
+  }
+  let allocated = 0;
+  for (const line of allocations) {
+    const quantity = Number(line.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
+    allocated += quantity;
+    await postBatchDecrease({
+      batchId: line.batchId,
+      quantity,
+      reason: "Stock set from products",
+    });
+  }
+  if (allocated < decreaseQty - QTY_EPSILON) {
+    return `Only ${allocated} could be removed; check batch availability.`;
+  }
+  return null;
+}
+
+function validUnitCost(unitCost: number): boolean {
+  return Number.isFinite(unitCost) && unitCost >= 0;
+}
+
+async function loadOnHand(
+  stockItemId: string,
+  branchId: string,
+  current: number | null,
+): Promise<{ current: number } | { error: string }> {
+  if (current != null) return { current };
+  try {
+    const row = await fetchItemById(stockItemId, { branchId });
+    return { current: effectiveOnHand(row) ?? 0 };
+  } catch (error) {
+    return { error: formatMutationError(error, "Could not load current stock.") };
+  }
+}
+
+function stockSavedMessage(
+  shared: boolean,
+  needsTracking: boolean,
+  target: number,
+): string {
+  if (shared) return `Stock on base product set to ${target}.`;
+  if (needsTracking) return `Stock tracking is on. Stock set to ${target}.`;
+  return `Stock set to ${target}.`;
+}
+
+type OnHandQtyInput = {
+  target: number;
+  branchId: string;
+  unitCost: number;
+  /** Branch on-hand already loaded. Null fetches it. */
+  current: number | null;
+};
+
+type OnHandQtyResult = { ok: boolean; message: string };
+
 type Params = {
   selectedId: string | null;
   detail: ItemDetailRecord | null;
@@ -399,147 +487,120 @@ export function useQuickEdit({
     void runQuickPatch(body, "Reorder settings updated.");
   }, [quickReorderLevel, quickReorderQty, runQuickPatch, setMessage]);
 
+  const refreshStockViews = useCallback(async () => {
+    if (!selectedId || !detail) return;
+    const shared = usesSharedPackageStock(detail);
+    if (shared && detail.variantOfItemId?.trim()) {
+      await refreshSelectedDetail(detail.variantOfItemId.trim());
+      const pkgUpdated = await refreshSelectedDetail(selectedId);
+      if (pkgUpdated) syncListRowFromDetail(pkgUpdated);
+      return;
+    }
+    const updated = await refreshSelectedDetail();
+    if (updated) syncListRowFromDetail(updated);
+  }, [selectedId, detail, refreshSelectedDetail, syncListRowFromDetail]);
+
+  const saveOnHandQty = useCallback(
+    async (input: OnHandQtyInput): Promise<OnHandQtyResult> => {
+      const fail = (message: string): OnHandQtyResult => {
+        setMessage(message);
+        return { ok: false, message };
+      };
+      if (!selectedId || !detail) return fail("Select a product first.");
+      if (!canInventoryWrite) {
+        return fail("You do not have permission to adjust stock.");
+      }
+      const shared = usesSharedPackageStock(detail);
+      const needsTracking = detail.isStocked === false && !shared;
+      if (needsTracking && !canCatalogWrite) {
+        return fail(
+          "Stock is not tracked for this product yet. Ask someone who can edit products to turn it on.",
+        );
+      }
+      if (!Number.isFinite(input.target) || input.target < 0) {
+        return fail("On-hand quantity must be zero or a positive number.");
+      }
+      const branchId = input.branchId.trim();
+      if (!branchId) return fail("Select a branch.");
+
+      const stockItemId = stockCatalogItemId(detail);
+      const loaded = await loadOnHand(stockItemId, branchId, input.current);
+      if ("error" in loaded) return fail(loaded.error);
+      const current = loaded.current;
+      const delta = roundQty(input.target - current);
+      const unchanged = Math.abs(delta) < QTY_EPSILON;
+      if (unchanged && !needsTracking) {
+        setQuickEdit(null);
+        setQuickStockBaseline(null);
+        const message = "Stock unchanged.";
+        setMessage(message);
+        return { ok: true, message };
+      }
+      if (delta > QTY_EPSILON && !validUnitCost(input.unitCost)) {
+        return fail("Unit cost must be a valid non-negative number.");
+      }
+
+      setQuickSaving(true);
+      setMessage("");
+      try {
+        if (needsTracking) await patchItem(selectedId, { isStocked: true });
+        if (!unchanged) {
+          const posted = await postOnHandChange({
+            stockItemId,
+            branchId,
+            delta,
+            unitCost: input.unitCost,
+          });
+          if (posted) return fail(posted);
+        }
+        await refreshStockViews();
+        setQuickEdit(null);
+        setQuickStockBaseline(null);
+        const message = stockSavedMessage(shared, needsTracking, input.target);
+        setMessage(message);
+        return { ok: true, message };
+      } catch (e) {
+        return fail(formatMutationError(e, "Stock adjustment failed."));
+      } finally {
+        setQuickSaving(false);
+      }
+    },
+    [
+      canCatalogWrite,
+      selectedId,
+      detail,
+      canInventoryWrite,
+      refreshStockViews,
+      setMessage,
+    ],
+  );
+
   // ── Stock adjustment via inventory API ──────────────────────────────
   const saveQuickStock = useCallback(async () => {
     if (!selectedId || !detail) return;
-    if (!canInventoryWrite) {
-      setMessage("You do not have permission to adjust stock.");
-      return;
-    }
-    const shared = usesSharedPackageStock(detail);
-    // Typing a quantity on a product that isn't tracked yet says what the person wants:
-    // switch tracking on for them as part of the save instead of sending them away.
-    const needsTracking = detail.isStocked === false && !shared;
-    if (needsTracking && !canCatalogWrite) {
-      setMessage(
-        "Stock is not tracked for this product yet. Ask someone who can edit products to turn it on.",
-      );
-      return;
-    }
     const targetRaw = quickStock.trim();
     if (!targetRaw) {
       setMessage("Enter the on-hand quantity you want.");
       return;
     }
     const target = Number(targetRaw);
-    if (!Number.isFinite(target) || target < 0) {
-      setMessage("On-hand quantity must be zero or a positive number.");
-      return;
-    }
     const branchId = quickStockBranchId.trim();
-    if (!branchId) {
-      setMessage("Select a branch.");
-      return;
-    }
-
-    const stockItemId = stockCatalogItemId(detail);
-    let current = quickStockBaseline;
-    if (current == null) {
-      try {
-        const row = await fetchItemById(stockItemId, { branchId });
-        current = effectiveOnHand(row) ?? 0;
-      } catch (e) {
-        setMessage(formatMutationError(e, "Could not load current stock."));
-        return;
-      }
-    }
-    const delta = Math.round((target - current) * 10000) / 10000;
-
-    if (Math.abs(delta) < 0.0001 && !needsTracking) {
-      setQuickEdit(null);
-      setQuickStockBaseline(null);
-      setMessage("Stock unchanged.");
-      return;
-    }
-
-    let unitCost = 0;
-    if (delta > 0) {
-      const costRaw = quickStockUnitCost.trim();
-      unitCost = costRaw === "" ? 0 : Number(costRaw);
-      if (!Number.isFinite(unitCost) || unitCost < 0) {
-        setMessage("Unit cost must be a valid non-negative number.");
-        return;
-      }
-    }
-
-    setQuickSaving(true);
-    setMessage("");
-    try {
-      if (needsTracking) {
-        await patchItem(selectedId, { isStocked: true });
-      }
-      if (Math.abs(delta) < 0.0001) {
-        // Nothing to add or remove; tracking is now on at the current count.
-      } else if (delta > 0) {
-        await postStockIncrease({
-          branchId,
-          itemId: stockItemId,
-          quantity: delta,
-          unitCost,
-          notes: "Stock set from products",
-        });
-      } else {
-        const decreaseQty = Math.abs(delta);
-        const allocations = await fetchAllocationPreview({
-          itemId: stockItemId,
-          branchId,
-          quantity: decreaseQty,
-        });
-        if (!allocations.length) {
-          setMessage("Could not allocate stock to remove for this branch.");
-          return;
-        }
-        let allocated = 0;
-        for (const line of allocations) {
-          const q = Number(line.quantity);
-          if (!Number.isFinite(q) || q <= 0) continue;
-          allocated += q;
-          await postBatchDecrease({
-            batchId: line.batchId,
-            quantity: q,
-            reason: "Stock set from products",
-          });
-        }
-        if (allocated < decreaseQty - 0.0001) {
-          setMessage(
-            `Only ${allocated} could be removed; check batch availability.`,
-          );
-          return;
-        }
-      }
-
-      if (shared && detail.variantOfItemId?.trim()) {
-        await refreshSelectedDetail(detail.variantOfItemId.trim());
-        const pkgUpdated = await refreshSelectedDetail(selectedId);
-        if (pkgUpdated) syncListRowFromDetail(pkgUpdated);
-      } else {
-        const updated = await refreshSelectedDetail();
-        if (updated) syncListRowFromDetail(updated);
-      }
-      setQuickEdit(null);
-      setQuickStockBaseline(null);
-      setMessage(
-        shared
-          ? `Stock on base product set to ${target}.`
-          : needsTracking
-            ? `Stock tracking is on. Stock set to ${target}.`
-            : `Stock set to ${target}.`,
-      );
-    } catch (e) {
-      setMessage(formatMutationError(e, "Stock adjustment failed."));
-    } finally {
-      setQuickSaving(false);
-    }
+    const costRaw = quickStockUnitCost.trim();
+    const unitCost = costRaw === "" ? 0 : Number(costRaw);
+    await saveOnHandQty({
+      target,
+      branchId,
+      unitCost,
+      current: quickStockBaseline,
+    });
   }, [
-    canCatalogWrite,
     selectedId,
     detail,
-    canInventoryWrite,
     quickStock,
     quickStockBranchId,
     quickStockUnitCost,
-    syncListRowFromDetail,
-    refreshSelectedDetail,
+    quickStockBaseline,
+    saveOnHandQty,
     setMessage,
   ]);
 
@@ -707,6 +768,7 @@ export function useQuickEdit({
     saveQuickMinStock,
     saveQuickReorder,
     saveQuickStock,
+    saveOnHandQty,
     quickEditAllOpen,
     setQuickEditAllOpen,
     qeaName,

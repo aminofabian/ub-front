@@ -35,13 +35,20 @@ import { AddPackageModal } from "./_components/AddPackageModal";
 import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
 import { ChangeAisleModal } from "./_components/ChangeAisleModal";
 import { BulkStockAdjustModal } from "./_components/BulkStockAdjustModal";
+import { PackStockModal } from "./_components/PackStockModal";
 import { BulkPriceEditor } from "./_components/BulkPriceEditor";
 import { RegroupProductsModal } from "./_components/RegroupProductsModal";
 import {
   buildVariantIdsByParentId,
   catalogListDisplayType,
 } from "./_components/catalog-list-styles";
-import { resolveCatalogParentId, toNumber } from "./_utils";
+import {
+  familySellsPacks,
+  resolveCatalogParentId,
+  stockCatalogItemId,
+  stockFamilySources,
+  toNumber,
+} from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
 import {
@@ -123,6 +130,7 @@ export function ProductsWorkspace() {
     null,
   );
   const [packageModalOpen, setPackageModalOpen] = useState(false);
+  const [packStockOpen, setPackStockOpen] = useState(false);
   const [changeItemTypeOpen, setChangeItemTypeOpen] = useState(false);
   const [changeItemTypeMode, setChangeItemTypeMode] = useState<
     "single" | "bulk"
@@ -152,17 +160,26 @@ export function ProductsWorkspace() {
   );
   const didAutoOpenCreate = useRef(false);
 
+  const openShelfStock = useCallback(() => {
+    setPackStockOpen(true);
+  }, []);
+  const shelfSellsPacks =
+    detail.detail != null &&
+    familySellsPacks(stockFamilySources(detail.detail, detail.variantRows));
+
   const openBaseStock = useCallback(async () => {
     const pid = detail.detail?.variantOfItemId?.trim();
     if (!pid) return;
     detail.selectProduct(pid);
     await detail.refreshSelectedDetail(pid);
+    if (shelfSellsPacks) return;
     quick.openQuickEdit("stock");
   }, [
     detail.detail?.variantOfItemId,
     detail.selectProduct,
     detail.refreshSelectedDetail,
     quick.openQuickEdit,
+    shelfSellsPacks,
   ]);
   /** Jump straight to one product's on-hand editor (used by the pack guard). */
   const openStockForProduct = useCallback(
@@ -171,12 +188,18 @@ export function ProductsWorkspace() {
       if (!target) return;
       detail.selectProduct(target);
       await detail.refreshSelectedDetail(target);
+      if (shelfSellsPacks) {
+        openShelfStock();
+        return;
+      }
       quick.openQuickEdit("stock");
     },
     [
       detail.selectProduct,
       detail.refreshSelectedDetail,
       quick.openQuickEdit,
+      shelfSellsPacks,
+      openShelfStock,
     ],
   );
   const [isLg, setIsLg] = useState(false);
@@ -537,6 +560,9 @@ export function ProductsWorkspace() {
       ? () => setPackageModalOpen(true)
       : undefined,
     onOpenBaseStock: canInventoryWrite ? () => void openBaseStock() : undefined,
+    onOpenPackStock: canInventoryWrite
+      ? () => setPackStockOpen(true)
+      : undefined,
     onOpenChangeItemType: canCatalogWrite
       ? () => {
           setChangeItemTypeMode("single");
@@ -1094,6 +1120,26 @@ export function ProductsWorkspace() {
         detail={detail}
         quick={quick}
       />
+
+      {D ? (
+        <PackStockModal
+          open={packStockOpen}
+          onOpenChange={setPackStockOpen}
+          detail={D}
+          variantRows={detail.variantRows}
+          parentName={detail.variantParentDisplayName}
+          branches={branches}
+          initialBranchId={branchId || ""}
+          defaultUnitCost={detail.primaryCost}
+          onSave={async (input) => {
+            const result = await quick.saveOnHandQty(input);
+            if (result.ok) {
+              catalog.syncSharedPoolStock(stockCatalogItemId(D), input.target);
+            }
+            return result;
+          }}
+        />
+      ) : null}
 
       <BulkStockAdjustModal
         open={bulkStockOpen}
