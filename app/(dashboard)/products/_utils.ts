@@ -463,6 +463,24 @@ export function allocateOnHand(
   return { slices, loose: remaining };
 }
 
+/**
+ * What one selling unit could sell from the whole shelf on its own: 158 eggs
+ * are 158 singles, or 5 trays with 8 eggs left over. Every unit reads the
+ * same count, so these overlap — they are not separate stocks.
+ */
+export function unitAvailabilityLabel(
+  baseUnits: number,
+  unit: ShelfSellingUnit,
+): string {
+  const safe = Number.isFinite(baseUnits) && baseUnits > 0 ? baseUnits : 0;
+  if (!(unit.unitsPerSale > 1)) return formatShelfQty(roundShelfQty(safe));
+  const whole = Math.floor(safe / unit.unitsPerSale + 1e-9);
+  const rest = roundShelfQty(safe - whole * unit.unitsPerSale);
+  return rest > 0.0001
+    ? `${formatShelfQty(whole)}, ${formatShelfQty(rest)} rem`
+    : formatShelfQty(whole);
+}
+
 export function saleTakesLabel(
   units: number,
   source?: string | null,

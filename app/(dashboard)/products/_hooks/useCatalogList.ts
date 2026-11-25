@@ -53,6 +53,21 @@ function sharedPoolRow(
   };
 }
 
+/** The shared shelf a freshly loaded row reports, if it reports one. */
+function sharedPoolFromDetail(
+  row: ItemSummaryRecord,
+): { parentId: string; baseUnits: number } | null {
+  const parentId = row.variantOfItemId?.trim();
+  if (!parentId) {
+    if (row.stockQty == null) return null;
+    const own = Number(row.stockQty);
+    return Number.isFinite(own) ? { parentId: row.id, baseUnits: own } : null;
+  }
+  if (row.baseStockQty == null) return null;
+  const base = Number(row.baseStockQty);
+  return Number.isFinite(base) ? { parentId, baseUnits: base } : null;
+}
+
 const DISPLAY_TYPE_TO_API: Record<CatalogListDisplayType, CatalogRowType> = {
   parent: "PARENT",
   variant: "VARIANT",
@@ -436,7 +451,12 @@ export function useCatalogList(
             row.packageUnitsPerSale ?? existing.packageUnitsPerSale,
           baseStockQty: row.baseStockQty ?? existing.baseStockQty,
         };
-        return next;
+        // A fresh count on one selling unit is the family's count: carry it
+        // to the base row and every sibling that draws from the same shelf.
+        const pool = sharedPoolFromDetail(row);
+        return pool
+          ? next.map((r) => sharedPoolRow(r, pool.parentId, pool.baseUnits))
+          : next;
       });
     },
     [categories],

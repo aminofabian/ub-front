@@ -15,13 +15,12 @@ import {
 import { fetchItemById, type ItemDetailRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
-  allocateOnHand,
   effectiveOnHand,
-  onHandBreakdownLabel,
   saleTakesLabel,
   shelfSellingUnits,
   stockCatalogItemId,
   stockFamilySources,
+  unitAvailabilityLabel,
   type SellingUnitSource,
 } from "../_utils";
 import {
@@ -117,7 +116,6 @@ export function PackStockModal({
   const typed = Number(quantity);
   const previewQty =
     quantity.trim() !== "" && Number.isFinite(typed) ? typed : (baseline ?? 0);
-  const { slices, loose } = allocateOnHand(previewQty, units);
   const needsCost =
     baseline != null && Number.isFinite(typed) && typed > baseline + 0.0001;
 
@@ -198,11 +196,11 @@ export function PackStockModal({
                 aria-label={`On hand ${baseName}`}
                 disabled={loading}
               />
-              <span className="text-[11px] text-foreground/45">
-                {loading
-                  ? "Loading this branch…"
-                  : onHandBreakdownLabel(slices, loose, baseName)}
-              </span>
+              {loading ? (
+                <span className="text-[11px] text-foreground/45">
+                  Loading this branch…
+                </span>
+              ) : null}
             </label>
 
             {needsCost ? (
@@ -219,18 +217,25 @@ export function PackStockModal({
             ) : null}
 
             <div>
-              <p className={productFormLabelClass}>One sale takes</p>
+              <p className={productFormLabelClass}>Can sell, per unit</p>
               <ul className="mt-1.5 border border-border/70">
                 {units.map((unit) => (
                   <li
                     key={unit.id}
                     className="flex items-baseline justify-between gap-3 border-t border-border/70 px-2.5 py-1.5 first:border-t-0"
                   >
-                    <span className="text-[13px] text-foreground">
-                      {unit.label}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-[13px] text-foreground">
+                        {unit.label}
+                      </span>
+                      <span className="text-[11px] text-foreground/45">
+                        {saleTakesLabel(unit.unitsPerSale, baseName)}
+                      </span>
                     </span>
-                    <span className="shrink-0 text-right text-[12px] font-semibold tabular-nums text-foreground">
-                      {saleTakesLabel(unit.unitsPerSale, baseName)}
+                    <span className="shrink-0 text-right text-[13px] font-semibold tabular-nums text-foreground">
+                      {loading
+                        ? "…"
+                        : unitAvailabilityLabel(previewQty, unit)}
                     </span>
                   </li>
                 ))}

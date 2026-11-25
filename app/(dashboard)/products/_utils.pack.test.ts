@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   allocateOnHand,
+  unitAvailabilityLabel,
   catalogQtyPresentation,
   familySellsPacks,
   formatStockLabel,
@@ -164,6 +165,15 @@ describe("shared shelf breakdown", () => {
     expect(onHandBreakdownLabel(slices, loose, "Eggs Large")).toBe(
       "5 Tray, 18 single",
     );
+  });
+
+  test("every unit reads the one shelf count", () => {
+    const [single, tray] = shelfSellingUnits(eggFamily, "Eggs Large");
+    expect(unitAvailabilityLabel(158, single)).toBe("158");
+    expect(unitAvailabilityLabel(158, tray)).toBe("5, 8 rem");
+    expect(unitAvailabilityLabel(128, tray)).toBe("4, 8 rem");
+    expect(unitAvailabilityLabel(150, tray)).toBe("5");
+    expect(unitAvailabilityLabel(0, tray)).toBe("0");
   });
 
   test("60 eggs is 2 trays and no loose singles", () => {
