@@ -277,7 +277,10 @@ function lineDraftsFromPo(po: PathAPurchaseOrderDetailRecord) {
     nextOrderQty[line.id] = ordered;
     nextPrice[line.id] = toNum(line.unitEstimatedCost);
     const remaining = roundQty(ordered - received);
-    if (remaining > 0) nextQty[line.id] = remaining;
+    if (remaining > 0) {
+      nextQty[line.id] = remaining;
+      nextSel[line.id] = true;
+    }
   }
   return { nextQty, nextOrderQty, nextPrice, nextSel };
 }
@@ -1126,7 +1129,13 @@ export function OrderReceivePanel({
       setQtyByLine((prev) => ({ ...drafts.nextQty, ...prev }));
       setOrderQtyByLine((prev) => ({ ...prev, ...drafts.nextOrderQty }));
       setPriceByLine((prev) => ({ ...prev, ...drafts.nextPrice }));
-      setSelectedLines((prev) => ({ ...prev, ...drafts.nextSel }));
+      setSelectedLines((prev) => {
+        const next = { ...prev };
+        for (const [lineId, selected] of Object.entries(drafts.nextSel)) {
+          if (next[lineId] == null) next[lineId] = selected;
+        }
+        return next;
+      });
       setItemMeta((prev) => ({
         ...prev,
         [link.itemId]: {
