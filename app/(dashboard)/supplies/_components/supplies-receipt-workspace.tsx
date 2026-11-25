@@ -6,10 +6,15 @@ import {
   CreditCard,
   FileEdit,
   Filter,
+  Loader2,
+  Printer,
   Search,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { useDashboard } from "@/components/dashboard-provider";
+import { CashierPrintPicker } from "@/components/order/cashier-print-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,10 +24,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  dispatchTillPrint,
   fetchPathBSupplyInvoiceDetail,
   type PathBSupplyInvoiceLineRecord,
   type PathBSupplyListRowRecord,
 } from "@/lib/api";
+import { describeTillSend } from "@/lib/till-remote-print";
 import { SupplierDisplayName } from "@/components/suppliers/supplier-display-name";
 import { cn } from "@/lib/utils";
 
@@ -610,7 +617,110 @@ function ReceiptDetailPanel({
             </ul>
           )}
         </div>
+        <SupplyReceiptPrint
+          row={row}
+          lines={linesState.lines}
+          linesLoading={linesState.loading}
+          currency={currency}
+        />
       </div>
+    </div>
+  );
+}
+
+function SupplyReceiptPrint({
+  row,
+  lines,
+  linesLoading,
+  currency,
+}: {
+  row: PathBSupplyListRowRecord;
+  lines: PathBSupplyInvoiceLineRecord[];
+  linesLoading: boolean;
+  currency: string;
+}) {
+  const { business, me, branches, branchId: sessionBranchId } = useDashboard();
+  const [printCashierIds, setPrintCashierIds] = useState<string[]>([]);
+  const [printing, setPrinting] = useState(false);
+  const branchId = row.branchId?.trim() || sessionBranchId;
+  const slipLines = lines
+    .map((line) => {
+      const qty = supplyN(line.qty);
+      const unitCost = supplyN(line.unitCost);
+      return {
+        name: line.description?.trim() || "Item",
+        qty,
+        unitCost,
+        lineTotal: supplyN(line.lineTotal) || Number((qty * unitCost).toFixed(2)),
+      };
+    })
+    .filter((line) => line.qty > 0);
+
+  const printReceiptNow = async () => {
+    if (printCashierIds.length === 0) {
+      toast.error("Tick at least one cashier to print to");
+      return;
+    }
+    if (slipLines.length === 0) {
+      toast.error("This receipt has no items to print");
+      return;
+    }
+    const branchName =
+      branches.find((branch) => branch.id === branchId)?.name ?? "";
+    setPrinting(true);
+    try {
+      const sent = await dispatchTillPrint({
+        kind: "receipt",
+        branchId,
+        targetUserIds: printCashierIds.slice(0, 8),
+        slip: {
+          reference: row.invoiceNumber,
+          supplierName: row.supplierName?.trim() || "Supplier",
+          businessName: business?.name || "",
+          branchName,
+          placedByName: me?.name || "",
+          currency,
+          lines: slipLines,
+        },
+      });
+      toast.success(describeTillSend("receipt", sent.tills ?? []));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not send receipt to till",
+      );
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  return (
+    <div className="shrink-0 border-t border-[color-mix(in_srgb,var(--order-ink,#15231f)_10%,transparent)] bg-white px-3 py-2.5 sm:px-3.5">
+      <CashierPrintPicker
+        mode="multiple"
+        branchId={branchId}
+        storageKey={`palmart:supply-print-cashiers:${branchId || "none"}`}
+        onChange={setPrintCashierIds}
+      />
+      <button
+        type="button"
+        disabled={
+          printing || linesLoading || slipLines.length === 0 || printCashierIds.length === 0
+        }
+        onClick={() => void printReceiptNow()}
+        className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--pos-primary,#0f766e)] bg-white text-[13px] font-semibold text-[var(--pos-primary,#0f766e)] transition hover:bg-[color-mix(in_srgb,var(--pos-primary,#0f766e)_8%,transparent)] disabled:opacity-50"
+      >
+        {printing ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Sending to till…
+          </>
+        ) : (
+          <>
+            <Printer className="size-4" aria-hidden />
+            Print receipt now
+          </>
+        )}
+      </button>
     </div>
   );
 }
