@@ -108,8 +108,12 @@ import {
   SupplyQtyCell,
 } from "./supply-line-metric-cells";
 import {
+  supplyEntryQty,
   supplyLineTotal,
+  supplyMarginCost,
+  supplyPackUnitLabel,
   supplyRetailRevenue,
+  supplySellPerPack,
   supplyStockQty,
   supplyUnitCost,
   toPackEntry,
@@ -1412,8 +1416,14 @@ export function NewSupplyDrawer({
     let revenue = 0;
     for (const row of rows) {
       const pack = rowPack(row);
+      const sellPerPack = supplySellPerPack(pack, row.item);
       const costLine = supplyLineTotal(row.qtyStr, row.unitStr, pack);
-      const sellLine = supplyRetailRevenue(row.qtyStr, row.sellPriceStr, pack);
+      const sellLine = supplyRetailRevenue(
+        row.qtyStr,
+        row.sellPriceStr,
+        pack,
+        sellPerPack,
+      );
       if (costLine != null) cost += costLine;
       if (sellLine != null) revenue += sellLine;
     }
@@ -1931,13 +1941,14 @@ export function NewSupplyDrawer({
         const iid = rowItemId(row) as string | null;
         if (!iid) continue;
         const pack = rowPack(row);
-        const unitCost = supplyUnitCost(row.unitStr, pack);
-        if (unitCost == null || unitCost <= 0) continue;
+        const sellPerPack = supplySellPerPack(pack, row.item);
+        const marginCost = supplyMarginCost(row.unitStr, pack, sellPerPack);
+        if (marginCost == null || marginCost <= 0) continue;
         const sell =
           parseRetailPrice(row.sellPriceStr) ??
           rowPricing[iid]?.currentSellPrice ??
           null;
-        if (isSellBelowCost(sell, unitCost)) {
+        if (isSellBelowCost(sell, marginCost)) {
           catchUpLabels.push(rowLabel(row));
         }
       }
@@ -2281,11 +2292,14 @@ export function NewSupplyDrawer({
                           <div className="space-y-1.5 overflow-auto p-2 lg:hidden">
                             {visibleRows.map((row) => {
                               const p = linePayload(row);
-                              const stock = rowStock(row);
-                              const qty = supplyStockQty(
-                                row.qtyStr,
-                                rowPack(row),
+                              const pack = rowPack(row);
+                              const sellPerPack = supplySellPerPack(
+                                pack,
+                                row.item,
                               );
+                              const stock = rowStock(row);
+                              const qty = supplyStockQty(row.qtyStr, pack);
+                              const entryQty = supplyEntryQty(row.qtyStr, pack);
                               const stockAfter =
                                 stock != null && qty != null
                                   ? stock + qty
@@ -2294,8 +2308,17 @@ export function NewSupplyDrawer({
                               const hint = iid ? rowPricing[iid] : undefined;
                               const unitCost = supplyUnitCost(
                                 row.unitStr,
-                                rowPack(row),
+                                pack,
                               );
+                              const marginCost = supplyMarginCost(
+                                row.unitStr,
+                                pack,
+                                sellPerPack,
+                              );
+                              const packPrice =
+                                pack != null
+                                  ? parseNonNeg(row.unitStr)
+                                  : null;
                               const referenceCost =
                                 row.source === "linked"
                                   ? rowReferenceCost(row.link)
@@ -2317,8 +2340,15 @@ export function NewSupplyDrawer({
                                     stock={stock}
                                     stockAfter={stockAfter}
                                     lineTotal={p?.amountMoney ?? null}
-                                    qty={qty}
-                                    unitCost={unitCost}
+                                    qty={pack ? entryQty : qty}
+                                    unitCost={pack ? packPrice : unitCost}
+                                    marginCost={marginCost}
+                                    sellPerPack={sellPerPack}
+                                    sellUnitLabel={
+                                      sellPerPack
+                                        ? supplyPackUnitLabel(pack)
+                                        : null
+                                    }
                                     referenceCost={referenceCost}
                                     reorderLevel={reorderLevel}
                                     pricingHint={hint}
@@ -2527,9 +2557,15 @@ export function NewSupplyDrawer({
                                 {visibleRows.map((row) => {
                                   const p = linePayload(row);
                                   const stock = rowStock(row);
-                                  const qty = supplyStockQty(
+                                  const pack = rowPack(row);
+                                  const sellPerPack = supplySellPerPack(
+                                    pack,
+                                    row.item,
+                                  );
+                                  const qty = supplyStockQty(row.qtyStr, pack);
+                                  const entryQty = supplyEntryQty(
                                     row.qtyStr,
-                                    rowPack(row),
+                                    pack,
                                   );
                                   const stockAfter =
                                     stock != null && qty != null
@@ -2544,27 +2580,42 @@ export function NewSupplyDrawer({
                                     parsePositiveQty(row.qtyStr) == null;
                                   const unitCost = supplyUnitCost(
                                     row.unitStr,
-                                    rowPack(row),
+                                    pack,
                                   );
+                                  const marginCost = supplyMarginCost(
+                                    row.unitStr,
+                                    pack,
+                                    sellPerPack,
+                                  );
+                                  const packPrice =
+                                    pack != null
+                                      ? parseNonNeg(row.unitStr)
+                                      : null;
                                   const sellPrice = parseNonNeg(
                                     row.sellPriceStr,
                                   );
                                   const marginLabel =
-                                    unitCost != null &&
-                                    unitCost > 0 &&
+                                    marginCost != null &&
+                                    marginCost > 0 &&
                                     sellPrice != null
-                                      ? formatSupplyMargin(sellPrice, unitCost)
+                                      ? formatSupplyMargin(
+                                          sellPrice,
+                                          marginCost,
+                                        )
                                       : null;
                                   const belowCost =
-                                    unitCost != null &&
+                                    marginCost != null &&
                                     sellPrice != null &&
-                                    unitCost > 0 &&
-                                    sellPrice < unitCost;
+                                    marginCost > 0 &&
+                                    sellPrice < marginCost;
                                   const referenceCost =
                                     row.source === "linked"
                                       ? rowReferenceCost(row.link)
                                       : null;
                                   const catalogPack = rowCatalogPack(row);
+                                  const sellUnitLabel = sellPerPack
+                                    ? supplyPackUnitLabel(pack)
+                                    : null;
                                   return (
                                     <tr
                                       key={row.key}
@@ -2671,12 +2722,13 @@ export function NewSupplyDrawer({
                                           value={row.qtyStr}
                                           packDefaults={rowPackDefaults(row)}
                                           initialPackPrice={
-                                            rowPack(row) ? row.unitStr : null
+                                            pack ? row.unitStr : null
                                           }
                                           knownEachPrice={
-                                            rowPack(row) ? null : row.unitStr
+                                            pack ? null : row.unitStr
                                           }
-                                          packMode={rowPack(row)}
+                                          packMode={pack}
+                                          pricingItem={row.item}
                                           onPackModeChange={(next) =>
                                             setRows((prev) =>
                                               prev.map((r) =>
@@ -2769,8 +2821,8 @@ export function NewSupplyDrawer({
                                           compact
                                           quiet
                                           total={p?.amountMoney ?? null}
-                                          qty={qty}
-                                          unitCost={unitCost}
+                                          qty={pack ? entryQty : qty}
+                                          unitCost={pack ? packPrice : unitCost}
                                           isReady={isReady}
                                           disabled={busy}
                                           onUnitCostChange={(value) =>
@@ -2818,7 +2870,12 @@ export function NewSupplyDrawer({
                                           disabled={busy || !iid}
                                           canSetSellPrice={canSetSellPrice}
                                           hint={hint}
-                                          unitStr={row.unitStr}
+                                          unitStr={
+                                            marginCost != null
+                                              ? String(marginCost)
+                                              : row.unitStr
+                                          }
+                                          sellUnitLabel={sellUnitLabel}
                                           sellPriceTouched={
                                             row.sellPriceTouched
                                           }

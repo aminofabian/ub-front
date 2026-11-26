@@ -15,7 +15,11 @@ import {
   type SupplyPackQtyDefaults,
 } from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
-import { formatSupplyQty, type SupplyPackMode } from "@/lib/supply-pack-math";
+import {
+  formatSupplyQty,
+  type SupplyPackMode,
+  type SupplySellPricingItem,
+} from "@/lib/supply-pack-math";
 
 function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.currentTarget.select();
@@ -180,6 +184,8 @@ type SupplyQtyCellProps = CompactProps & {
   onPackModalOpenChange?: (open: boolean) => void;
   /** Catalog write permission: allows saving a custom pack shape to the product. */
   canSavePackOption?: boolean;
+  /** Catalog item — seeds pack vs piece shelf sell in the pack sheet. */
+  pricingItem?: SupplySellPricingItem | null;
   /** Hide under-cell hints for a denser receiving grid. */
   quiet?: boolean;
 };
@@ -206,6 +212,7 @@ export function SupplyQtyCell({
   onPackOptionIdChange,
   onPackModalOpenChange,
   canSavePackOption = false,
+  pricingItem = null,
   quiet = false,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
@@ -367,12 +374,15 @@ export function SupplyQtyCell({
         }
         savedOptions={savedOptions}
         canSavePackOption={canSavePackOption}
+        pricingItem={pricingItem}
+        initialSellUnit={packMode?.sellUnit ?? null}
         onApply={(result) => {
           onPackOptionIdChange?.(result.packOptionId ?? null);
           onPackModeChange?.({
             unitsPerPack: result.unitsPerPack,
             packUnit: result.packUnit || "pack",
             remember: result.saveAsPackOption === true,
+            sellUnit: result.sellUnit,
             innerPackUnit: result.innerPackUnit ?? null,
             innerPackCount: result.innerPackCount ?? null,
             baseUnitsPerInner: result.baseUnitsPerInner ?? null,
@@ -770,13 +780,15 @@ export function SupplyCostCell({
     >
       {label ? (
         <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-          {packed ? "Pack price" : label}
+          {packed
+            ? `Cost / ${packMode!.packUnit?.trim() || "pack"}`
+            : label}
         </span>
       ) : null}
       <div
         className={cn(
           metricShellClass(compact, touch, tone),
-          packed && "bg-amber-50/90 dark:bg-amber-950/35",
+          packed && "bg-primary/[0.05]",
         )}
       >
         <input
@@ -800,12 +812,16 @@ export function SupplyCostCell({
           }}
           disabled={disabled}
           inputMode="decimal"
-          placeholder={packed ? "Pack" : "—"}
-          aria-label={packed ? "Price of one pack" : "Buying price per unit"}
+          placeholder={packed ? "430" : "—"}
+          aria-label={
+            packed
+              ? `Price of one ${packMode!.packUnit?.trim() || "pack"}`
+              : "Buying price per unit"
+          }
           data-nsd-cost=""
         />
         {packed && unitEach != null ? (
-          <span className="pr-1 font-mono text-[8px] font-semibold tabular-nums text-amber-950/80 dark:text-amber-100/80">
+          <span className="pr-1 font-mono text-[8px] font-semibold tabular-nums text-primary/80">
             {unitEach.toFixed(2)}ea
           </span>
         ) : null}

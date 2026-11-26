@@ -23,22 +23,22 @@ const STEPS = [
   {
     n: "1",
     title: "Tap the box on Qty",
-    body: "That marks the line as sold as a pack. A short sheet asks how many pieces are in one carton.",
+    body: "That marks the line as bought in packs. A short sheet asks what one pack holds.",
   },
   {
     n: "2",
-    title: "Set pieces in the pack",
-    body: "Royco of 40 → type 40 (or tap a chip). Optional: enter the pack price so we show each-cost instantly.",
+    title: "Describe one pack",
+    body: "Eggs tray of 30 → call it a tray, type 30 (or tap a size chip), then the price of one tray.",
   },
   {
     n: "3",
-    title: "Type packs, not pieces",
-    body: "Qty becomes packs. One carton → type 1. Two cartons → type 2. The ×40 badge stays on the cell.",
+    title: "Type packs on the line",
+    body: "Qty becomes packs. Ten trays → type 10. The ×30 badge stays on the cell so stock can rise by pieces.",
   },
   {
     n: "4",
-    title: "Type the pack price in Cost",
-    body: "What you paid for one carton. We divide by pieces for unit cost, raise stock by packs × pieces, and keep margin honest.",
+    title: "Cost and sell use the same unit",
+    body: "Cost is the pack price. Sell is the shelf price for how this product sells — per tray when it is a tray SKU, per piece when you break cartons into sachets. Margin compares those two.",
   },
 ] as const;
 
@@ -64,46 +64,57 @@ export function SupplyPackGuideDrawer({
         overlayClassName="z-[295]"
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div className="border-b border-amber-900/15 bg-[color-mix(in_srgb,oklch(0.86_0.08_85)_55%,var(--card))] px-5 pb-4 pt-5 dark:border-amber-200/15 dark:bg-amber-950/35">
+          <div className="border-b border-border/70 bg-[color:var(--kiosk-elevated,#FCFAF5)] px-5 pb-4 pt-5 dark:bg-muted/25">
             <DialogHeader className="pr-10 text-left">
-              <p className="font-mono text-[10px] font-bold tracking-[-0.02em] text-amber-950/65 dark:text-amber-100/70">
-                Receiving tip
-              </p>
-              <DialogTitle className="flex items-center gap-2 pt-1 text-lg">
-                <span className="grid size-8 place-items-center border border-amber-900/35 bg-amber-100 text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/70 dark:text-amber-100">
+              <DialogTitle className="flex items-center gap-2 font-[family-name:var(--font-cormorant)] text-[1.45rem] font-medium tracking-tight">
+                <span className="grid size-8 place-items-center border border-primary/30 bg-primary/10 text-primary">
                   <Package className="size-4" aria-hidden />
                 </span>
-                Sold as a pack
+                Bought as a pack
               </DialogTitle>
               <DialogDescription className="text-[13px] leading-relaxed">
-                When the supplier sells a carton (Royco ×40, eggs ×30), count
-                packs on the line — we convert to shelf pieces and unit cost.
+                When the supplier sells trays or cartons, count packs on the
+                line — we raise stock in pieces and keep cost, sell, and margin
+                on the same unit.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 flex items-stretch gap-2 border border-amber-900/20 bg-background/80 p-2 dark:border-amber-200/20">
-              <div className="flex min-w-0 flex-1 items-center gap-1 border border-amber-800/25 bg-amber-50/90 px-1.5 py-1.5 dark:bg-amber-950/40">
-                <span className="font-mono text-sm font-bold tabular-nums text-primary">
-                  1
-                </span>
-                <span className="font-mono text-[10px] font-black text-amber-950 dark:text-amber-100">
-                  ×40
-                </span>
-                <Package
-                  className="ml-auto size-3.5 text-amber-950 dark:text-amber-100"
-                  aria-hidden
-                />
+            <div className="mt-4 space-y-1.5 border border-border/80 bg-background p-3">
+              <div className="flex items-stretch gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1 border border-primary/25 bg-primary/[0.06] px-1.5 py-1.5">
+                  <span className="font-mono text-sm font-bold tabular-nums text-primary">
+                    10
+                  </span>
+                  <span className="font-mono text-[10px] font-black text-foreground">
+                    ×30
+                  </span>
+                  <Package
+                    className="ml-auto size-3.5 text-primary"
+                    aria-hidden
+                  />
+                </div>
+                <div className="flex min-w-[4.5rem] flex-col items-end justify-center border border-border px-2">
+                  <span className="font-mono text-sm font-semibold tabular-nums">
+                    430
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">
+                    / tray
+                  </span>
+                </div>
+                <div className="flex min-w-[4.5rem] flex-col items-end justify-center border border-border px-2">
+                  <span className="font-mono text-sm font-semibold tabular-nums text-primary">
+                    450
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">
+                    sell / tray
+                  </span>
+                </div>
               </div>
-              <div className="flex min-w-[4.5rem] items-center justify-end border border-amber-800/25 bg-amber-50/90 px-2 font-mono text-sm font-semibold tabular-nums dark:bg-amber-950/40">
-                400
-                <span className="ml-0.5 text-[8px] font-bold tracking-[-0.02em] text-amber-950/60 dark:text-amber-100/60">
-                  ea
-                </span>
-              </div>
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Ten trays @ 430 → pay 4,300 · stock +300 · sell total 4,500 ·
+                margin about +4.7%
+              </p>
             </div>
-            <p className="mt-1.5 text-[11px] text-amber-950/70 dark:text-amber-100/65">
-              One pack of 40 at 400 → stock +40, unit cost 10.00
-            </p>
           </div>
 
           <div className="space-y-2.5 px-5 py-4">
@@ -128,14 +139,14 @@ export function SupplyPackGuideDrawer({
           </div>
 
           <div className="space-y-2 border-t border-border/60 px-5 py-4">
-            <p className="text-[10px] font-bold tracking-[-0.02em] text-muted-foreground">
+            <p className="text-[12px] font-semibold text-muted-foreground">
               Also useful
             </p>
             <div className="grid gap-2">
               <TipRow
                 icon={PencilLine}
                 title="Change pack size"
-                body="Tap the ×40 badge on Qty to reopen the sheet and edit pieces."
+                body="Tap the ×30 badge on Qty to reopen the sheet and edit pieces."
               />
               <TipRow
                 icon={ShoppingBasket}
@@ -145,7 +156,7 @@ export function SupplyPackGuideDrawer({
               <TipRow
                 icon={Sparkles}
                 title="Why it matters"
-                body="You pay for cartons. Stock and shelf price live on pieces. Pack mode keeps both honest without mental maths."
+                body="You pay for trays. Stock counts pieces. Shelf price follows how you sell. Pack mode keeps all three honest without mental maths."
               />
             </div>
           </div>
@@ -193,9 +204,8 @@ export function SupplyPackGuideHintButton({
         <button
           type="button"
           className={cn(
-            "inline-flex h-9 items-center gap-1 rounded-none border border-amber-900/25 bg-amber-50 px-2.5 text-xs font-semibold text-amber-950",
-            "hover:bg-amber-100 touch-manipulation",
-            "dark:border-amber-200/25 dark:bg-amber-950/50 dark:text-amber-100 dark:hover:bg-amber-950/70",
+            "inline-flex h-9 items-center gap-1 rounded-none border border-primary/25 bg-primary/[0.06] px-2.5 text-xs font-semibold text-primary",
+            "hover:bg-primary/10 touch-manipulation",
             "sm:h-8 sm:px-2 sm:text-[10px]",
             className,
           )}

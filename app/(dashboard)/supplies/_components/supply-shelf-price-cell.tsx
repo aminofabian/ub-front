@@ -188,6 +188,11 @@ type SupplyShelfPriceCellProps = {
   touch?: boolean;
   /** When set, renders a field label above the control (mobile cards). */
   label?: string;
+  /**
+   * When the shelf sells packs (tray, carton), show “Sell / tray” so the
+   * typed price matches cost’s pack unit.
+   */
+  sellUnitLabel?: string | null;
   onEnterNext?: () => void;
   /** Hide under-cell “Below cost” / margin chrome. */
   quiet?: boolean;
@@ -204,6 +209,7 @@ export function SupplyShelfPriceCell({
   compact = false,
   touch = false,
   label,
+  sellUnitLabel = null,
   onEnterNext,
   quiet = false,
 }: SupplyShelfPriceCellProps) {
@@ -222,6 +228,13 @@ export function SupplyShelfPriceCell({
       ? formatMargin(retail, unit)
       : null;
   const belowCost = retail != null && unit != null && unit > 0 && retail < unit;
+  const packSell = Boolean(sellUnitLabel?.trim());
+  const fieldLabel = packSell
+    ? `Sell / ${sellUnitLabel!.trim()}`
+    : label;
+  const ariaLabel = packSell
+    ? `Shelf sell price per ${sellUnitLabel!.trim()}`
+    : "Retail sell price";
 
   const h = touch ? "h-11" : compact ? "h-7" : "h-8";
   const text = touch ? "text-base" : compact ? "text-xs" : "text-sm";
@@ -233,13 +246,19 @@ export function SupplyShelfPriceCell({
         touch || !compact ? "gap-1" : "gap-0.5",
       )}
     >
-      {label ? (
+      {fieldLabel ? (
         <span className="text-[11px] font-semibold tracking-[-0.02em] text-muted-foreground">
-          {label}
+          {fieldLabel}
         </span>
       ) : null}
 
-      <div className={shelfShellClass(compact, touch, tone, h)} title={title}>
+      <div
+        className={cn(
+          shelfShellClass(compact, touch, tone, h),
+          packSell && "bg-primary/[0.04]",
+        )}
+        title={title}
+      >
         {canSetSellPrice ? (
           <input
             className={cn(
@@ -264,7 +283,7 @@ export function SupplyShelfPriceCell({
             disabled={disabled || hint?.loading}
             inputMode="decimal"
             placeholder="—"
-            aria-label="Retail sell price"
+            aria-label={ariaLabel}
             data-nsd-retail=""
           />
         ) : (
@@ -277,6 +296,12 @@ export function SupplyShelfPriceCell({
             {value.trim() ? value : "—"}
           </span>
         )}
+
+        {packSell && !hint?.loading ? (
+          <span className="pr-1 font-mono text-[8px] font-semibold tabular-nums text-primary/80">
+            /{sellUnitLabel!.trim()}
+          </span>
+        ) : null}
 
         {hint?.loading ? (
           <span
