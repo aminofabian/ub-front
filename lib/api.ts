@@ -1706,6 +1706,11 @@ export type FeatureFlagsPatchPayload = {
    * closes. Absent means on.
    */
   shiftsEmailCloseReports?: boolean;
+  /**
+   * Only registered tills may sell / PIN-unlock when the branch already has trusted tills.
+   * Absent / false keeps selling open for any signed-in till worker (default).
+   */
+  tillRequireTrusted?: boolean;
   tillListen?: {
     checkout?: boolean;
     openCart?: boolean;

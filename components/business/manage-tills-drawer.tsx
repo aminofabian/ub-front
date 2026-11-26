@@ -231,8 +231,8 @@ export function ManageTillsDrawer({
             This computer
           </p>
           <p className="mt-1 text-[13px] text-[color-mix(in_srgb,#141414_58%,transparent)]">
-            Name it and register so PIN unlock works here once this branch has
-            trusted tills.
+            Name it and register this browser as a till. Required for selling only
+            when “Only registered tills may sell” is on.
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
             <label className="min-w-0 flex-1 space-y-1 text-sm">

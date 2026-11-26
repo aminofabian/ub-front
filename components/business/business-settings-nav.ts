@@ -143,7 +143,7 @@ export const CONFIGURATION_SECTION_META: Record<
   },
   "settings-trusted-tills": {
     title: "Trusted tills",
-    hint: "Register, activate, or deactivate counters. Waiting requests show when a cashier unlocks on a new computer.",
+    hint: "Register counters and phones. Optionally lock selling to registered tills only. Waiting requests show when someone uses a new device.",
   },
   "settings-till-listen": {
     title: "When to listen for till payments",

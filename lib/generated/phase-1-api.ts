@@ -29701,6 +29701,10 @@ export interface components {
             posCashierDrawoutAccess?: components["schemas"]["CashierDrawoutAccessPatch"];
             uiOpeningLoader?: boolean;
             shiftsDisabled?: boolean;
+            shiftsEmailCloseReports?: boolean;
+            supplierCounterOrders?: boolean;
+            /** Only registered tills may sell / PIN-unlock when the branch already has trusted tills. Absent / false keeps selling open (default). */
+            tillRequireTrusted?: boolean;
         };
         HubAlertsFeatureFlagsPatch: {
             beepOnSale?: boolean;
