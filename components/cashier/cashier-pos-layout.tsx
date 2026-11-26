@@ -339,6 +339,7 @@ export type CashierPosLayoutProps = {
     | "kioskPayAvailable"
     | "kioskPayHint"
     | "stkRails"
+    | "stkRailsError"
     | "stkConfigId"
     | "setStkConfigId"
     | "mpesaRef"

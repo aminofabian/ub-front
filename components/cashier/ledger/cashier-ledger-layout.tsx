@@ -1545,10 +1545,15 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
 
           {cart.payMethod === "mpesa_manual" ? (
             <div className="space-y-1.5">
-              {(cart.stkRails?.length ?? 0) === 0 ? (
+              {cart.stkRailsError ? (
+                <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-2 py-1.5 text-[11px] text-[#9a2e16]">
+                  {cart.stkRailsError} Reopen pay to retry.
+                </p>
+              ) : (cart.stkRails?.length ?? 0) === 0 ? (
                 <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-2 py-1.5 text-[11px] text-[#9a2e16]">
                   No M-Pesa lane set up. Add till/paybill or connect Daraja /
-                  KopoKopo under Payments.
+                  KopoKopo under Payments. You can still type the M-Pesa code
+                  below.
                 </p>
               ) : cart.setStkConfigId ? (
                 <MpesaRailPicker
@@ -1576,7 +1581,9 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                   className="h-8 min-w-0 flex-1 rounded-none border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] px-2 text-xs"
                 />
               </div>
-              {allowMpesaCode ? (
+              {allowMpesaCode ||
+              (cart.stkRails?.length ?? 0) === 0 ||
+              Boolean(cart.stkRailsError) ? (
                 <MpesaTransactionCodeField
                   value={cart.mpesaRef}
                   onChange={cart.setMpesaRef}
@@ -1588,7 +1595,8 @@ export function CashierLedgerLayout(props: CashierPosLayoutProps) {
                 disabled={
                   !online ||
                   !isStkPhoneValid(cart.stkAreaCode, cart.stkPhone) ||
-                  (cart.stkRails?.length ?? 0) === 0
+                  (cart.stkRails?.length ?? 0) === 0 ||
+                  Boolean(cart.stkRailsError)
                 }
                 onClick={() =>
                   cart.onStkPush(buildStkPhoneNumber(cart.stkAreaCode, cart.stkPhone))

@@ -622,6 +622,8 @@ export function QuickSaleWorkspace({
       isDefault: boolean;
     }>
   >([]);
+  /** Distinguishes “shop has no lane” from “rails request failed” (was wrongly shown as Not set up). */
+  const [stkRailsError, setStkRailsError] = useState<string | null>(null);
   const [stkConfigId, setStkConfigId] = useState<string | null>(null);
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
@@ -664,6 +666,7 @@ export function QuickSaleWorkspace({
       setKioskPayAvailable(false);
       setKioskPayHint(null);
       setStkRails([]);
+      setStkRailsError(null);
       setStkConfigId(null);
       return;
     }
@@ -673,9 +676,17 @@ export function QuickSaleWorkspace({
         const { fetchKioskPayPosAvailability, fetchPosStkRails } = await import(
           "@/lib/api"
         );
-        const [avail, rails] = await Promise.all([
-          fetchKioskPayPosAvailability(),
-          fetchPosStkRails().catch(() => []),
+        const [avail, railsResult] = await Promise.all([
+          fetchKioskPayPosAvailability().catch(() => null),
+          fetchPosStkRails()
+            .then((rails) => ({ ok: true as const, rails }))
+            .catch((err: unknown) => ({
+              ok: false as const,
+              message:
+                err instanceof Error && err.message.trim()
+                  ? err.message.trim()
+                  : "Could not load M-Pesa lanes.",
+            })),
         ]);
         if (cancelled) return;
         setKioskPayAvailable(Boolean(avail?.available));
@@ -684,12 +695,18 @@ export function QuickSaleWorkspace({
             ? avail.reason.trim()
             : null,
         );
-        setStkRails(rails);
+        if (!railsResult.ok) {
+          setStkRailsError(railsResult.message);
+          // Keep any previously loaded rails so a blip does not brick M-Pesa.
+          return;
+        }
+        setStkRailsError(null);
+        setStkRails(railsResult.rails);
         setStkConfigId((prev) => {
-          if (prev && rails.some((r) => r.configId === prev)) return prev;
+          if (prev && railsResult.rails.some((r) => r.configId === prev)) return prev;
           return (
-            rails.find((r) => r.isDefault)?.configId ??
-            rails[0]?.configId ??
+            railsResult.rails.find((r) => r.isDefault)?.configId ??
+            railsResult.rails[0]?.configId ??
             null
           );
         });
@@ -698,8 +715,7 @@ export function QuickSaleWorkspace({
         // Fail closed — do not offer Kiosk Pay when availability cannot be confirmed.
         setKioskPayAvailable(false);
         setKioskPayHint(null);
-        setStkRails([]);
-        setStkConfigId(null);
+        setStkRailsError("Could not load M-Pesa lanes.");
       }
     })();
     return () => {
@@ -5774,6 +5790,7 @@ export function QuickSaleWorkspace({
           kioskPayAvailable,
           kioskPayHint,
           stkRails,
+          stkRailsError,
           stkConfigId,
           setStkConfigId,
           mpesaRef,

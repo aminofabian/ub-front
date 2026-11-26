@@ -142,6 +142,8 @@ export type CashierCartDrawerProps = {
     displayName: string;
     isDefault: boolean;
   }>;
+  /** Set when GET /rails failed — do not treat as “no lane configured”. */
+  stkRailsError?: string | null;
   stkConfigId?: string | null;
   setStkConfigId?: (id: string) => void;
   mpesaRef: string;
@@ -425,6 +427,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     kioskPayAvailable = false,
     kioskPayHint = null,
     stkRails = [],
+    stkRailsError = null,
     stkConfigId = null,
     setStkConfigId,
     mpesaRef,
@@ -1019,17 +1022,19 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         icon={<Smartphone className="size-3" aria-hidden />}
                         label="M-Pesa"
                         hint={
-                          stkRails.length > 1
-                            ? "Pick lane below"
-                            : stkRails[0]
-                              ? stkRails[0].gatewayType === "CUSTODY_MPESA"
-                                ? "Till / paybill"
-                                : stkRails[0].gatewayType === "KOPOKOPO"
-                                  ? "KopoKopo"
-                                  : stkRails[0].gatewayType === "DARAJA"
-                                    ? "Daraja"
-                                    : "STK prompt"
-                              : "Not set up"
+                          stkRailsError
+                            ? "Couldn’t load lanes"
+                            : stkRails.length > 1
+                              ? "Pick lane below"
+                              : stkRails[0]
+                                ? stkRails[0].gatewayType === "CUSTODY_MPESA"
+                                  ? "Till / paybill"
+                                  : stkRails[0].gatewayType === "KOPOKOPO"
+                                    ? "KopoKopo"
+                                    : stkRails[0].gatewayType === "DARAJA"
+                                      ? "Daraja"
+                                      : "STK prompt"
+                                : "Not set up"
                         }
                       />
                       {/* Kiosk Pay STK needs the cloud wallet — hide on offline desktop. */}
@@ -1539,14 +1544,20 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </p>
                           ) : null}
                           {payMethod === "mpesa_manual" ? (
-                            stkRails.length === 0 ? (
+                            stkRailsError ? (
+                              <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-[12px] text-[#9a2e16]">
+                                {stkRailsError} Check the connection and open
+                                checkout again.
+                              </p>
+                            ) : stkRails.length === 0 ? (
                               <p className="border border-[#9a2e16]/35 bg-[color-mix(in_srgb,#9a2e16_5%,white)] px-3 py-2 text-[12px] text-[#9a2e16]">
                                 No M-Pesa lane set up. Add{" "}
                                 <span className="font-semibold">
                                   Lipa Na M-Pesa till/paybill
                                 </span>{" "}
                                 or connect KopoKopo / Daraja under Payments →
-                                Settings.
+                                Settings. You can still type the customer’s
+                                M-Pesa code below to complete the sale.
                               </p>
                             ) : setStkConfigId ? (
                               <MpesaRailPicker
@@ -1592,7 +1603,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               Enter a valid Kenyan mobile number.
                             </p>
                           ) : null}
-                          {allowMpesaCode && payMethod === "mpesa_manual" ? (
+                          {(allowMpesaCode ||
+                            stkRails.length === 0 ||
+                            Boolean(stkRailsError)) &&
+                          payMethod === "mpesa_manual" ? (
                             <MpesaTransactionCodeField
                               value={mpesaRef}
                               onChange={setMpesaRef}
@@ -1605,7 +1619,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                               !online ||
                               !isStkPhoneValid(stkAreaCode, stkPhone) ||
                               (payMethod === "mpesa_manual" &&
-                                stkRails.length === 0)
+                                (stkRails.length === 0 || Boolean(stkRailsError)))
                             }
                             onClick={() =>
                               onStkPush(
