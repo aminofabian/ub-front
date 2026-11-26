@@ -55,6 +55,7 @@ import {
 } from "@/lib/till-device";
 import {
   fetchTillDeviceMe,
+  requestTillAccess,
   registerTillDevice,
   tillDeviceErrorMessage,
 } from "@/lib/till-devices-api";
@@ -590,6 +591,9 @@ function PosTillLockOverlay() {
         // because first-run PIN setup is when this computer is usually new.
         setTillUnregistered(status === 404 || status === 401 || status === 0);
         setTillLabel((current) => current.trim() || branchName);
+        if (status === 404) {
+          void requestTillAccess({ branchId: bid });
+        }
       });
     return () => {
       cancelled = true;

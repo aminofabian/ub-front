@@ -21,7 +21,7 @@ import {
 } from "@/lib/pos-guidance";
 import { isOpenShiftStatus } from "@/lib/pos-till-shift-gate";
 import { isShiftsDisabled } from "@/lib/shift-settings";
-import { fetchTillDeviceMe } from "@/lib/till-devices-api";
+import { fetchTillDeviceMe, requestTillAccess } from "@/lib/till-devices-api";
 import { cn } from "@/lib/utils";
 
 const COPY: Record<
@@ -110,6 +110,8 @@ export function PosReadinessBanner() {
       })
       .catch(() => {
         if (!cancelled) markActive("register-till");
+        // Same path as Cashier: signed-in on an unknown till still notifies the owner.
+        void requestTillAccess({ branchId: bid });
       });
 
     if (shiftsDisabled) {

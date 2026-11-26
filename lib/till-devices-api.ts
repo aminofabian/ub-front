@@ -157,6 +157,39 @@ export async function reactivateTillDevice(
   return normalizeTillDevice(row);
 }
 
+/**
+ * Ask the shop to trust this browser as a till. Fire-and-forget: owners get in-app /
+ * email / WhatsApp when the quiet period allows. Returns false when the ask could not
+ * be sent (no device id, offline, or the server refused).
+ */
+export async function requestTillAccess(opts: {
+  branchId: string;
+  deviceKey?: string;
+  deviceName?: string;
+}): Promise<boolean> {
+  const branchId = opts.branchId.trim();
+  if (!branchId) return false;
+  const deviceKey =
+    opts.deviceKey?.trim() || getOrCreateTillDeviceId() || undefined;
+  if (!deviceKey) return false;
+  try {
+    await apiRequest("/api/v1/till-access-requests", {
+      method: "POST",
+      body: {
+        branchId,
+        deviceKey,
+        ...(opts.deviceName?.trim()
+          ? { deviceName: opts.deviceName.trim() }
+          : {}),
+      },
+      toast: false,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function listTillAccessRequests(opts?: {
   branchId?: string;
   status?: "pending" | "approved" | "dismissed";
