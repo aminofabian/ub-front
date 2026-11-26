@@ -1961,6 +1961,8 @@ export type SupplierItemLinkRecord = {
   /** Variant option label (e.g. Medium, Pink). */
   variantName?: string | null;
   packageVariant?: boolean;
+  /** Catalog department (item type) of the linked item. */
+  itemTypeId?: string | null;
   /** Offered pack shapes for this link. */
   packs?: ItemLinkPackOfferRecord[];
   version?: number;
@@ -14390,6 +14392,11 @@ export type FetchSuppliersOpts = {
   search?: string;
   /** Exact match on supplier status (e.g. active, inactive, blocked). */
   status?: string;
+  /**
+   * Restrict to suppliers with an active link to a catalog item in these
+   * departments. Pass `[]` for an explicit empty scope (no suppliers).
+   */
+  itemTypeIds?: string[];
   page?: number;
   size?: number;
 };
@@ -14405,6 +14412,16 @@ export async function fetchSuppliersPage(
   }
   if (opts?.status?.trim()) {
     params.set("status", opts.status.trim());
+  }
+  if (opts?.itemTypeIds !== undefined) {
+    for (const id of opts.itemTypeIds) {
+      const trimmed = id?.trim();
+      if (trimmed) params.append("itemTypeIds", trimmed);
+    }
+    // Explicit empty list: send a blank so the server returns no suppliers.
+    if (opts.itemTypeIds.length === 0) {
+      params.append("itemTypeIds", "");
+    }
   }
   const path = `/api/v1/suppliers?${params.toString()}`;
   const raw = await request<unknown>(path);
@@ -14424,8 +14441,10 @@ export async function fetchSuppliersPage(
   return { content, ...meta };
 }
 
-export async function fetchSuppliers(): Promise<SupplierRecord[]> {
-  const page = await fetchSuppliersPage({ page: 0, size: 100 });
+export async function fetchSuppliers(
+  opts?: Pick<FetchSuppliersOpts, "itemTypeIds">,
+): Promise<SupplierRecord[]> {
+  const page = await fetchSuppliersPage({ page: 0, size: 100, ...opts });
   return page.content;
 }
 

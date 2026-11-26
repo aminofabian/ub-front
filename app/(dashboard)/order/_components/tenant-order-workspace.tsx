@@ -49,6 +49,10 @@ import { formatSupplyMoney, supplyN } from "@/app/(dashboard)/supplies/_componen
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { getSessionTenantId } from "@/lib/auth";
 import { Permission, hasPermission } from "@/lib/permissions";
+import {
+  clerkSupplierItemTypeIds,
+  filterLinksByItemTypes,
+} from "@/lib/clerk-supplier-scope";
 import { canLinkSupplierProducts, canWriteSuppliers } from "@/lib/supplier-access";
 import { displaySupplierName } from "@/lib/supplier-display";
 import { APP_ROUTES } from "@/lib/config";
@@ -428,6 +432,11 @@ export function TenantOrderWorkspace({
   );
   const currency = business?.currency?.trim().toUpperCase() || ORDER_CURRENCY;
   const businessId = getSessionTenantId()?.trim() ?? "";
+  /** Departments this person may order for — scopes suppliers and their catalogs. */
+  const supplierItemTypeIds = useMemo(
+    () => clerkSupplierItemTypeIds(me),
+    [me],
+  );
   const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(
     initialSupplierId?.trim() || null,
@@ -616,7 +625,11 @@ export function TenantOrderWorkspace({
   useEffect(() => {
     let cancelled = false;
     setLoadingSuppliers(true);
-    void fetchSuppliers()
+    void fetchSuppliers(
+      supplierItemTypeIds !== undefined
+        ? { itemTypeIds: supplierItemTypeIds }
+        : undefined,
+    )
       .then((rows) => {
         if (cancelled) return;
         const active = rows.filter(
@@ -650,7 +663,12 @@ export function TenantOrderWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [initialMarketplaceSupplierId, initialRoundTo10, initialSupplierId]);
+  }, [
+    initialMarketplaceSupplierId,
+    initialRoundTo10,
+    initialSupplierId,
+    supplierItemTypeIds,
+  ]);
 
   useEffect(() => {
     if (!supplierId) {
@@ -680,7 +698,12 @@ export function TenantOrderWorkspace({
       const rows = await fetchSupplierItemLinks(supplierId, {
         branchId: branchId || undefined,
       });
-      setLinks(rows.filter((r) => r.active));
+      setLinks(
+        filterLinksByItemTypes(
+          rows.filter((r) => r.active),
+          supplierItemTypeIds,
+        ),
+      );
     } catch (error) {
       setLinks([]);
       toast.error(
@@ -689,7 +712,7 @@ export function TenantOrderWorkspace({
     } finally {
       setLoadingLinks(false);
     }
-  }, [supplierId, branchId]);
+  }, [supplierId, branchId, supplierItemTypeIds]);
 
   useEffect(() => {
     setShopHits([]);
@@ -709,7 +732,9 @@ export function TenantOrderWorkspace({
     const timer = window.setTimeout(() => {
       void fetchShopCatalogLinks(q)
         .then((rows) => {
-          if (!cancelled) setShopHits(rows);
+          if (!cancelled) {
+            setShopHits(filterLinksByItemTypes(rows, supplierItemTypeIds));
+          }
         })
         .catch(() => {
           if (!cancelled) setShopHits([]);
@@ -722,7 +747,7 @@ export function TenantOrderWorkspace({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [filter]);
+  }, [filter, supplierItemTypeIds]);
 
   const catalogPool = useMemo(() => {
     const seen = new Set(links.map((link) => link.itemId));
@@ -905,7 +930,11 @@ export function TenantOrderWorkspace({
 
   const refreshSuppliers = useCallback(async () => {
     try {
-      const rows = await fetchSuppliers();
+      const rows = await fetchSuppliers(
+        supplierItemTypeIds !== undefined
+          ? { itemTypeIds: supplierItemTypeIds }
+          : undefined,
+      );
       setSuppliers(
         rows.filter(
           (s) =>
@@ -915,7 +944,7 @@ export function TenantOrderWorkspace({
     } catch {
       /* keep existing list */
     }
-  }, []);
+  }, [supplierItemTypeIds]);
   const linkedItemIds = useMemo(
     () => new Set(links.map((link) => link.itemId)),
     [links],

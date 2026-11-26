@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Truck } from "lucide-react";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { fetchSuppliersPage, type SupplierRecord } from "@/lib/api";
+import { clerkSupplierItemTypeIds } from "@/lib/clerk-supplier-scope";
 import { cn } from "@/lib/utils";
 
 type GroceryStockInPanelProps = {
@@ -12,6 +14,11 @@ type GroceryStockInPanelProps = {
 
 /** Supplier picker for grocery Stock in mode — opens Path B receive till. */
 export function GroceryStockInPanel({ onOpenTill }: GroceryStockInPanelProps) {
+  const { me } = useDashboard();
+  const supplierItemTypeIds = useMemo(
+    () => clerkSupplierItemTypeIds(me),
+    [me],
+  );
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +32,9 @@ export function GroceryStockInPanel({ onOpenTill }: GroceryStockInPanelProps) {
         page: 0,
         size: 50,
         search: query.trim() || undefined,
+        ...(supplierItemTypeIds !== undefined
+          ? { itemTypeIds: supplierItemTypeIds }
+          : {}),
       });
       setSuppliers(page.content ?? []);
     } catch (e) {
@@ -33,7 +43,7 @@ export function GroceryStockInPanel({ onOpenTill }: GroceryStockInPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, supplierItemTypeIds]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {

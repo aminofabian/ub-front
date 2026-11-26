@@ -28,6 +28,7 @@ export function shopItemAsSupplierLink(
     parentItemName: item.parentName ?? null,
     variantName: item.variantName ?? null,
     packageVariant: item.packageVariant === true,
+    itemTypeId: item.itemTypeId ?? null,
   };
 }
 
