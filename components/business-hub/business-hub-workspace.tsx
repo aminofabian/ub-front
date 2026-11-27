@@ -60,6 +60,10 @@ import { ProfitPocketDrawer } from "@/components/business-hub/profit-pocket-draw
 import { ReceiveMpesaSetupCard } from "@/components/business-hub/receive-mpesa-setup-card";
 import { AirtimeFloatHubCard } from "@/components/business-hub/airtime-float-hub-card";
 import { ManageTillsHubCard } from "@/components/business-hub/manage-tills-hub-card";
+import {
+  RecordDeliveryButton,
+  StartSupplySheet,
+} from "@/components/business-hub/start-supply-sheet";
 import { SetupProgressBanner } from "@/components/setup-progress/setup-progress-banner";
 import { QuestionnaireResumeBanner } from "@/components/business-hub/questionnaire-resume-banner";
 import { PharmacyHubNotice } from "@/components/business-hub/pharmacy-hub-notice";
@@ -174,9 +178,11 @@ import {
   type ProfitAndLossResponse,
   type RecentSaleTapeRow,
   type SalesRegisterResponse,
+  type SupplierRecord,
   type WebOrderSummary,
 } from "@/lib/api";
 import { filterAndSortSupplyRows, summarizeSupplyRows } from "@/app/(dashboard)/supplies/_components/supplies-bill-filters";
+import { NewSupplyDrawer } from "@/app/(dashboard)/supplies/_components/new-supply-drawer";
 import { PaySupplyDrawer } from "@/app/(dashboard)/supplies/_components/pay-supply-drawer";
 import { groupLinesIntoTransactions } from "@/lib/sale-transactions";
 import {
@@ -250,6 +256,9 @@ export function BusinessHubWorkspace() {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canPathBRead,
+    canPathBWrite,
+    canViewSuppliers,
+    canViewCategories,
     canRecordSupplierPayment,
     canReviewPaymentClaims,
     canReadFinanceExpenses,
@@ -348,6 +357,10 @@ export function BusinessHubWorkspace() {
   );
   const [marginLeaksOpen, setMarginLeaksOpen] = useState(false);
   const [profitPocketOpen, setProfitPocketOpen] = useState(false);
+  const [startSupplyOpen, setStartSupplyOpen] = useState(false);
+  const [newSupplyOpen, setNewSupplyOpen] = useState(false);
+  const [newSupplySupplier, setNewSupplySupplier] =
+    useState<SupplierRecord | null>(null);
 
   useEffect(() => {
     if (!openPocketFromQuery) return;
@@ -1341,6 +1354,31 @@ export function BusinessHubWorkspace() {
   ]);
 
   const canAddSupplier = canWriteSuppliers(me, business);
+  const canAddSupplies =
+    canPathBWrite && canViewSuppliers && canViewCategories;
+
+  const deliverySeedSuppliers = useMemo(() => {
+    const out: { id: string; name: string }[] = [];
+    const seen = new Set<string>();
+    for (const row of todaySupplies) {
+      const id = row.supplierId?.trim();
+      const name = row.supplierName?.trim();
+      if (!id || !name || seen.has(id)) continue;
+      seen.add(id);
+      out.push({ id, name });
+      if (out.length >= 6) break;
+    }
+    return out;
+  }, [todaySupplies]);
+
+  const openStartSupply = useCallback(() => {
+    setStartSupplyOpen(true);
+  }, []);
+
+  const onPickSupplySupplier = useCallback((supplier: SupplierRecord) => {
+    setNewSupplySupplier(supplier);
+    setNewSupplyOpen(true);
+  }, []);
 
   const quickActionLinks = useMemo(() => {
     // Deliberately NOT the bottom-tab destinations (Sales / Products / Stock).
@@ -1866,6 +1904,9 @@ export function BusinessHubWorkspace() {
                       />
                     </div>
                   ) : null}
+                  {canAddSupplies && !serviceHome ? (
+                    <RecordDeliveryButton onClick={openStartSupply} />
+                  ) : null}
                 </div>
               ) : salesEmpty ? (
                 <BusinessHubEmptyState
@@ -1893,6 +1934,10 @@ export function BusinessHubWorkspace() {
                       }
                     />
                   )}
+
+                  {canAddSupplies ? (
+                    <RecordDeliveryButton onClick={openStartSupply} />
+                  ) : null}
 
                   {/* Quick actions — jobs the bottom tabs don't cover (the desk
                       rail shows the wider shortcut board). The rail copy is the
@@ -2259,6 +2304,35 @@ export function BusinessHubWorkspace() {
             setSelectedCashiers((prev) => prev.filter((n) => n !== name))
           }
         />
+      ) : null}
+
+      {canAddSupplies ? (
+        <>
+          <StartSupplySheet
+            open={startSupplyOpen}
+            onOpenChange={setStartSupplyOpen}
+            onPick={onPickSupplySupplier}
+            seedSuppliers={deliverySeedSuppliers}
+          />
+          <NewSupplyDrawer
+            open={newSupplyOpen}
+            onOpenChange={(open) => {
+              setNewSupplyOpen(open);
+              if (!open) setNewSupplySupplier(null);
+            }}
+            initialSupplier={newSupplySupplier}
+            onPosted={() => {
+              setSupplyJustUpdated(true);
+              if (supplyJustUpdatedTimer.current) {
+                clearTimeout(supplyJustUpdatedTimer.current);
+              }
+              supplyJustUpdatedTimer.current = setTimeout(() => {
+                setSupplyJustUpdated(false);
+              }, 2400);
+              void load();
+            }}
+          />
+        </>
       ) : null}
 
       {canOpenSupplyPay ? (

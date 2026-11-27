@@ -1,27 +1,24 @@
 /**
- * New supply pack mode: the typed qty is packs, typed cost is pack price.
- * Stock still lands as pieces. Shelf sell may be per pack (tray SKU) or per
- * piece (base SKU bought in cartons) — revenue and margin follow that.
+ * New supply pack mode: typed qty is packs, typed cost is pack price, typed
+ * sell is pack sell. Stock still lands as pieces. Catalog reads/writes convert
+ * at the boundary when the SKU’s shelf price is per piece.
  */
 
 import { isPackSellSku } from "@/lib/pack-sell-sku";
-
-export type SupplyPackSellUnit = "pack" | "piece";
 
 export type SupplyPackMode = {
   unitsPerPack: number;
   packUnit: string;
   /** Save this custom shape to the product when it is not a saved option yet. */
   remember?: boolean;
-  /**
-   * How the typed sell price is read. Pack = same unit as cost (tray @ 450).
-   * Piece = shelf each (sachets from a carton). Omitted → infer from catalog.
-   */
-  sellUnit?: SupplyPackSellUnit;
   /** Optional second packaging level (outer → inner → base item). */
   innerPackUnit?: string | null;
   innerPackCount?: number | null;
   baseUnitsPerInner?: number | null;
+  /**
+   * @deprecated Pack lines always price sell per pack. Kept so old drafts parse.
+   */
+  sellUnit?: "pack" | "piece";
 };
 
 export type SupplySellPricingItem = {
@@ -63,49 +60,6 @@ export function resolvePackSize(
 ): number | null {
   if (pack && pack.unitsPerPack > 0) return pack.unitsPerPack;
   return toPositive(fallback);
-}
-
-/**
- * True when shelf sell is priced per pack (Eggs Large Tray @ 450/tray),
- * not per piece (Royco sachets bought in a carton of 40).
- */
-export function supplySellPerPack(
-  pack: SupplyPackMode | null | undefined,
-  item?: SupplySellPricingItem | null,
-): boolean {
-  if (!pack || !(pack.unitsPerPack > 0)) return false;
-  if (pack.sellUnit === "pack") return true;
-  if (pack.sellUnit === "piece") return false;
-  if (isPackSellSku(item)) return true;
-  const sale = toPositive(
-    item?.packageUnitsPerSale ?? item?.packagingUnitQty ?? null,
-  );
-  if (sale == null || sale <= 1) return false;
-  return Math.abs(sale - pack.unitsPerPack) < 0.0001;
-}
-
-/** Default sell-unit choice when opening the pack sheet. */
-export function inferSupplyPackSellUnit(
-  item?: SupplySellPricingItem | null,
-  unitsPerPack?: number | null,
-): SupplyPackSellUnit {
-  if (isPackSellSku(item)) return "pack";
-  const sale = toPositive(
-    item?.packageUnitsPerSale ?? item?.packagingUnitQty ?? null,
-  );
-  if (
-    sale != null &&
-    sale > 1 &&
-    unitsPerPack != null &&
-    Math.abs(sale - unitsPerPack) < 0.0001
-  ) {
-    return "pack";
-  }
-  if (sale != null && sale <= 1) return "piece";
-  // Known base SKU without pack flags → shelf is each.
-  if (item && !isPackSellSku(item)) return "piece";
-  // Ad-hoc / unknown: cost and sell share the pack unit on the line.
-  return "pack";
 }
 
 /** Pack noun for labels: "tray", "carton". */
@@ -151,15 +105,75 @@ export function supplyUnitCost(
 }
 
 /**
- * Cost to compare against the typed sell price for margin / below-cost.
- * Pack-priced shelf → pack price. Piece-priced shelf → unit cost.
+ * True when a typed sell looks like a per-piece price next to a pack cost
+ * (e.g. 15 each beside a 430 tray), not a pack sell (450 / tray).
+ * Tight band around each-cost so a real low tray price (20) is left alone.
+ */
+export function sellLooksLikePiecePrice(
+  sell: number,
+  packPrice: number | null | undefined,
+  unitsPerPack: number,
+): boolean {
+  if (!(unitsPerPack > 1) || !(sell >= 0)) return false;
+  if (packPrice == null || !(packPrice > 0)) return false;
+  const each = packPrice / unitsPerPack;
+  if (!(each > 0)) return false;
+  return sell >= each * 0.75 && sell <= each * 1.35;
+}
+
+/**
+ * Lift a catalog/each sell onto the pack line so cost and sell share a unit.
+ * Piece SKUs always multiply. Pack SKUs multiply only when the figure still
+ * looks like an each price (heals 15-on-a-tray drafts).
+ */
+export function toPackLineSell(
+  sell: number,
+  unitsPerPack: number,
+  packPrice: number | null | undefined,
+  item?: SupplySellPricingItem | null,
+): number {
+  if (!(unitsPerPack > 1) || !(sell >= 0)) return sell;
+  if (item && !isPackSellSku(item)) {
+    return roundSupplyMoney(sell * unitsPerPack);
+  }
+  if (sellLooksLikePiecePrice(sell, packPrice, unitsPerPack)) {
+    return roundSupplyMoney(sell * unitsPerPack);
+  }
+  return roundSupplyMoney(sell);
+}
+
+/** Collapse pack-line sell back to each when leaving pack mode. */
+export function toPieceLineSell(sell: number, unitsPerPack: number): number {
+  if (!(unitsPerPack > 1) || !(sell >= 0)) return sell;
+  return roundSupplyMoney(sell / unitsPerPack);
+}
+
+/**
+ * Pack-denominated sell for margin / revenue, even if the draft still holds an
+ * each price from before the fix.
+ */
+export function supplyPackSell(
+  sellStr: string,
+  costStr: string,
+  pack: SupplyPackMode | null | undefined,
+  item?: SupplySellPricingItem | null,
+): number | null {
+  const sell = toNonNeg(sellStr);
+  if (sell == null) return null;
+  if (!pack || !(pack.unitsPerPack > 0)) return sell;
+  const packPrice = toNonNeg(costStr);
+  return toPackLineSell(sell, pack.unitsPerPack, packPrice, item);
+}
+
+/**
+ * Cost compared to the (pack) sell price for margin / below-cost.
+ * Pack mode → pack price. Otherwise → unit cost.
  */
 export function supplyMarginCost(
   costStr: string,
   pack: SupplyPackMode | null | undefined,
-  sellPerPack: boolean,
 ): number | null {
-  if (sellPerPack && pack && pack.unitsPerPack > 0) {
+  if (pack && pack.unitsPerPack > 0) {
     return toNonNeg(costStr);
   }
   return supplyUnitCost(costStr, pack);
@@ -178,25 +192,40 @@ export function supplyLineTotal(
 }
 
 /**
- * Expected shelf take if every received unit sold at the typed sell price.
- * Pack-priced SKUs: packs × sell. Otherwise pieces × sell.
+ * Expected shelf take if every received pack sold at the pack sell price.
+ * Pack mode always uses packs × pack-sell (after normalizing each→pack).
  */
 export function supplyRetailRevenue(
   qtyStr: string,
   sellStr: string,
   pack: SupplyPackMode | null | undefined,
-  sellPerPack = false,
+  item?: SupplySellPricingItem | null,
+  costStr?: string,
 ): number | null {
-  const sell = toNonNeg(sellStr);
-  if (sell == null) return null;
-  if (sellPerPack && pack && pack.unitsPerPack > 0) {
-    const packs = toPositive(qtyStr);
-    if (packs == null) return null;
-    return roundSupplyMoney(packs * sell);
+  if (!pack || !(pack.unitsPerPack > 0)) {
+    const stock = supplyStockQty(qtyStr, pack);
+    const sell = toNonNeg(sellStr);
+    if (stock == null || sell == null) return null;
+    return roundSupplyMoney(stock * sell);
   }
-  const stock = supplyStockQty(qtyStr, pack);
-  if (stock == null) return null;
-  return roundSupplyMoney(stock * sell);
+  const packs = toPositive(qtyStr);
+  const packSell = supplyPackSell(sellStr, costStr ?? "", pack, item);
+  if (packs == null || packSell == null) return null;
+  return roundSupplyMoney(packs * packSell);
+}
+
+/**
+ * Shelf price to post to the catalog from a pack-line sell.
+ * Pack SKUs keep the pack price; piece SKUs store each.
+ */
+export function toCatalogSellPrice(
+  packLineSell: number,
+  pack: SupplyPackMode | null | undefined,
+  item?: SupplySellPricingItem | null,
+): number {
+  if (!pack || !(pack.unitsPerPack > 1)) return packLineSell;
+  if (isPackSellSku(item)) return roundSupplyMoney(packLineSell);
+  return roundSupplyMoney(packLineSell / pack.unitsPerPack);
 }
 
 /**

@@ -1,16 +1,19 @@
 import { describe, expect, it } from "bun:test";
 
 import {
-  inferSupplyPackSellUnit,
+  sellLooksLikePiecePrice,
   supplyEntryQty,
   supplyLineTotal,
   supplyMarginCost,
+  supplyPackSell,
   supplyPackSnapshotLabel,
   supplyRetailRevenue,
-  supplySellPerPack,
   supplyStockQty,
   supplyUnitCost,
+  toCatalogSellPrice,
   toPackEntry,
+  toPackLineSell,
+  toPieceLineSell,
   toUnitEntry,
 } from "./supply-pack-math";
 
@@ -37,66 +40,58 @@ describe("supply pack math", () => {
     expect(supplyLineTotal("10", "430", tray)).toBe(4300);
   });
 
-  it("detects pack-priced shelf sell from the catalog SKU", () => {
+  it("margin cost is always the pack price in pack mode", () => {
+    expect(supplyMarginCost("430", tray)).toBe(430);
+    expect(supplyMarginCost("10", null)).toBe(10);
+  });
+
+  it("detects an each sell sitting beside a pack cost", () => {
+    expect(sellLooksLikePiecePrice(15, 430, 30)).toBe(true);
+    expect(sellLooksLikePiecePrice(14.33, 429.9, 30)).toBe(true);
+    expect(sellLooksLikePiecePrice(450, 430, 30)).toBe(false);
+    expect(sellLooksLikePiecePrice(429.9, 429.9, 30)).toBe(false);
+    // Real low tray price — not an each figure.
+    expect(sellLooksLikePiecePrice(20, 430, 30)).toBe(false);
+  });
+
+  it("lifts each sell onto the pack line", () => {
+    expect(toPackLineSell(15, 30, 430, null)).toBe(450);
+    expect(toPackLineSell(450, 30, 430, null)).toBe(450);
     expect(
-      supplySellPerPack(tray, {
-        packageVariant: true,
-        packageUnitsPerSale: 30,
-      }),
-    ).toBe(true);
-    expect(
-      supplySellPerPack(pack, {
+      toPackLineSell(15, 40, 400, {
         packageVariant: false,
         packageUnitsPerSale: 1,
       }),
-    ).toBe(false);
+    ).toBe(600);
+    expect(toPieceLineSell(450, 30)).toBe(15);
+  });
+
+  it("normalizes pack sell for margin even when the draft still holds each", () => {
+    expect(supplyPackSell("15", "430", tray)).toBe(450);
+    expect(supplyPackSell("450", "430", tray)).toBe(450);
+  });
+
+  it("retail revenue is always packs × pack sell", () => {
+    // Eggs: 10 trays, sell typed as 15 each → treat as 450 / tray.
+    expect(supplyRetailRevenue("10", "15", tray, null, "430")).toBe(4500);
+    expect(supplyRetailRevenue("10", "450", tray, null, "430")).toBe(4500);
+    // Unpacked line stays pieces × sell.
+    expect(supplyRetailRevenue("2", "15", null)).toBe(30);
+  });
+
+  it("posts pack sell to the catalog in the SKU’s unit", () => {
     expect(
-      supplySellPerPack(pack, {
-        packageUnitsPerSale: 12,
-      }),
-    ).toBe(true);
-    expect(
-      supplySellPerPack({ ...tray, sellUnit: "pack" }, {
-        packageVariant: false,
-        packageUnitsPerSale: 1,
-      }),
-    ).toBe(true);
-    expect(
-      supplySellPerPack({ ...tray, sellUnit: "piece" }, {
+      toCatalogSellPrice(450, tray, {
         packageVariant: true,
         packageUnitsPerSale: 30,
       }),
-    ).toBe(false);
-  });
-
-  it("infers sell unit for the pack sheet", () => {
+    ).toBe(450);
     expect(
-      inferSupplyPackSellUnit(
-        { packageVariant: true, packageUnitsPerSale: 30 },
-        30,
-      ),
-    ).toBe("pack");
-    expect(
-      inferSupplyPackSellUnit(
-        { packageVariant: false, packageUnitsPerSale: 1 },
-        40,
-      ),
-    ).toBe("piece");
-    expect(inferSupplyPackSellUnit(null, 30)).toBe("pack");
-  });
-
-  it("margin cost matches the sell unit", () => {
-    expect(supplyMarginCost("430", tray, true)).toBe(430);
-    expect(supplyMarginCost("430", tray, false)).toBe(14.33);
-    expect(supplyMarginCost("10", null, false)).toBe(10);
-  });
-
-  it("retail revenue uses packs when the shelf sells packs", () => {
-    // Eggs Large Tray: 10 trays @ 450/tray — not 300 eggs × 450.
-    expect(supplyRetailRevenue("10", "450", tray, true)).toBe(4500);
-    expect(supplyRetailRevenue("10", "450", tray, false)).toBe(135000);
-    // Royco sachets bought in a carton: shelf is per piece.
-    expect(supplyRetailRevenue("2", "15", pack, false)).toBe(360);
+      toCatalogSellPrice(600, pack, {
+        packageVariant: false,
+        packageUnitsPerSale: 1,
+      }),
+    ).toBe(50);
   });
 
   it("collapses exact unit multiples to pack count", () => {

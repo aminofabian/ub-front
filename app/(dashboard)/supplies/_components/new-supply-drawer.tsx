@@ -108,15 +108,19 @@ import {
   SupplyQtyCell,
 } from "./supply-line-metric-cells";
 import {
+  formatSupplyMoney,
   supplyEntryQty,
   supplyLineTotal,
   supplyMarginCost,
+  supplyPackSell,
   supplyPackUnitLabel,
   supplyRetailRevenue,
-  supplySellPerPack,
   supplyStockQty,
   supplyUnitCost,
+  toCatalogSellPrice,
   toPackEntry,
+  toPackLineSell,
+  toPieceLineSell,
   toUnitEntry,
   type SupplyPackMode,
 } from "@/lib/supply-pack-math";
@@ -383,15 +387,49 @@ function applyRowPackMode(
       row.unitStr,
       current.unitsPerPack,
     );
-    return { ...row, ...converted, packMode: null, packOptionId: null };
+    const sell = parseNonNeg(row.sellPriceStr);
+    const sellStr =
+      sell != null
+        ? formatSupplyMoney(toPieceLineSell(sell, current.unitsPerPack))
+        : row.sellPriceStr;
+    return {
+      ...row,
+      ...converted,
+      sellPriceStr: sellStr,
+      packMode: null,
+      packOptionId: null,
+    };
   }
+  const packCost = current
+    ? parseNonNeg(row.unitStr)
+    : (() => {
+        const converted = toPackEntry(
+          row.qtyStr,
+          row.unitStr,
+          next.unitsPerPack,
+        );
+        return parseNonNeg(converted.unitStr);
+      })();
+  const sell = parseNonNeg(row.sellPriceStr);
+  const sellStr =
+    sell != null
+      ? formatSupplyMoney(
+          toPackLineSell(sell, next.unitsPerPack, packCost, row.item),
+        )
+      : row.sellPriceStr;
   if (current) {
-    return { ...row, packMode: next, packOptionId: packOptionId ?? null };
+    return {
+      ...row,
+      sellPriceStr: sellStr,
+      packMode: next,
+      packOptionId: packOptionId ?? null,
+    };
   }
   const converted = toPackEntry(row.qtyStr, row.unitStr, next.unitsPerPack);
   return {
     ...row,
     ...converted,
+    sellPriceStr: sellStr,
     packMode: next,
     packOptionId: packOptionId ?? null,
   };
@@ -1416,13 +1454,13 @@ export function NewSupplyDrawer({
     let revenue = 0;
     for (const row of rows) {
       const pack = rowPack(row);
-      const sellPerPack = supplySellPerPack(pack, row.item);
       const costLine = supplyLineTotal(row.qtyStr, row.unitStr, pack);
       const sellLine = supplyRetailRevenue(
         row.qtyStr,
         row.sellPriceStr,
         pack,
-        sellPerPack,
+        row.item,
+        row.unitStr,
       );
       if (costLine != null) cost += costLine;
       if (sellLine != null) revenue += sellLine;
@@ -1433,6 +1471,37 @@ export function NewSupplyDrawer({
       profit: roundMoney2(revenue - cost),
     };
   }, [rows]);
+
+  // Pack lines always price sell per pack. Lift a leftover each price (15 next
+  // to a 430 tray) so the field, margin, and sell total stay in one unit.
+  const packSellHealKey = rows
+    .map((row) => {
+      const pack = rowPack(row);
+      if (!pack) return `${row.key}:`;
+      return `${row.key}:${pack.unitsPerPack}:${row.unitStr}:${row.sellPriceStr}`;
+    })
+    .join("|");
+  useEffect(() => {
+    setRows((prev) => {
+      let changed = false;
+      const next = prev.map((row) => {
+        const pack = rowPack(row);
+        if (!pack) return row;
+        const sell = parseNonNeg(row.sellPriceStr);
+        if (sell == null) return row;
+        const lifted = toPackLineSell(
+          sell,
+          pack.unitsPerPack,
+          parseNonNeg(row.unitStr),
+          row.item,
+        );
+        if (Math.abs(lifted - sell) < 0.005) return row;
+        changed = true;
+        return { ...row, sellPriceStr: formatSupplyMoney(lifted) };
+      });
+      return changed ? next : prev;
+    });
+  }, [packSellHealKey]);
 
   const extrasTotal = useMemo(() => {
     let sum = 0;
@@ -1895,16 +1964,22 @@ export function NewSupplyDrawer({
           if (parsed == null) {
             continue;
           }
+          const pack = rowPack(row);
+          const packSell = pack
+            ? supplyPackSell(row.sellPriceStr, row.unitStr, pack, row.item)
+            : parsed;
+          if (packSell == null) continue;
+          const catalogSell = toCatalogSellPrice(packSell, pack, row.item);
           const hint = rowPricing[iid];
           const cur = hint?.currentSellPrice ?? null;
-          if (cur != null && Math.abs(cur - parsed) < 0.005) {
+          if (cur != null && Math.abs(cur - catalogSell) < 0.005) {
             continue;
           }
           try {
             await postSellingPrice({
               itemId: iid,
               branchId: branchId.trim(),
-              price: parsed,
+              price: catalogSell,
               effectiveFrom: eff,
               notes: supplier ? `Retail after supply (${supplier.name})` : null,
             });
@@ -1941,11 +2016,15 @@ export function NewSupplyDrawer({
         const iid = rowItemId(row) as string | null;
         if (!iid) continue;
         const pack = rowPack(row);
-        const sellPerPack = supplySellPerPack(pack, row.item);
-        const marginCost = supplyMarginCost(row.unitStr, pack, sellPerPack);
+        const marginCost = supplyMarginCost(row.unitStr, pack);
         if (marginCost == null || marginCost <= 0) continue;
         const sell =
-          parseRetailPrice(row.sellPriceStr) ??
+          supplyPackSell(
+            row.sellPriceStr,
+            row.unitStr,
+            pack,
+            row.item,
+          ) ??
           rowPricing[iid]?.currentSellPrice ??
           null;
         if (isSellBelowCost(sell, marginCost)) {
@@ -2293,10 +2372,6 @@ export function NewSupplyDrawer({
                             {visibleRows.map((row) => {
                               const p = linePayload(row);
                               const pack = rowPack(row);
-                              const sellPerPack = supplySellPerPack(
-                                pack,
-                                row.item,
-                              );
                               const stock = rowStock(row);
                               const qty = supplyStockQty(row.qtyStr, pack);
                               const entryQty = supplyEntryQty(row.qtyStr, pack);
@@ -2313,12 +2388,17 @@ export function NewSupplyDrawer({
                               const marginCost = supplyMarginCost(
                                 row.unitStr,
                                 pack,
-                                sellPerPack,
                               );
                               const packPrice =
                                 pack != null
                                   ? parseNonNeg(row.unitStr)
                                   : null;
+                              const packSell = supplyPackSell(
+                                row.sellPriceStr,
+                                row.unitStr,
+                                pack,
+                                row.item,
+                              );
                               const referenceCost =
                                 row.source === "linked"
                                   ? rowReferenceCost(row.link)
@@ -2343,11 +2423,9 @@ export function NewSupplyDrawer({
                                     qty={pack ? entryQty : qty}
                                     unitCost={pack ? packPrice : unitCost}
                                     marginCost={marginCost}
-                                    sellPerPack={sellPerPack}
+                                    packSell={packSell}
                                     sellUnitLabel={
-                                      sellPerPack
-                                        ? supplyPackUnitLabel(pack)
-                                        : null
+                                      pack ? supplyPackUnitLabel(pack) : null
                                     }
                                     referenceCost={referenceCost}
                                     reorderLevel={reorderLevel}
@@ -2558,10 +2636,6 @@ export function NewSupplyDrawer({
                                   const p = linePayload(row);
                                   const stock = rowStock(row);
                                   const pack = rowPack(row);
-                                  const sellPerPack = supplySellPerPack(
-                                    pack,
-                                    row.item,
-                                  );
                                   const qty = supplyStockQty(row.qtyStr, pack);
                                   const entryQty = supplyEntryQty(
                                     row.qtyStr,
@@ -2585,35 +2659,37 @@ export function NewSupplyDrawer({
                                   const marginCost = supplyMarginCost(
                                     row.unitStr,
                                     pack,
-                                    sellPerPack,
                                   );
                                   const packPrice =
                                     pack != null
                                       ? parseNonNeg(row.unitStr)
                                       : null;
-                                  const sellPrice = parseNonNeg(
+                                  const packSell = supplyPackSell(
                                     row.sellPriceStr,
+                                    row.unitStr,
+                                    pack,
+                                    row.item,
                                   );
                                   const marginLabel =
                                     marginCost != null &&
                                     marginCost > 0 &&
-                                    sellPrice != null
+                                    packSell != null
                                       ? formatSupplyMargin(
-                                          sellPrice,
+                                          packSell,
                                           marginCost,
                                         )
                                       : null;
                                   const belowCost =
                                     marginCost != null &&
-                                    sellPrice != null &&
+                                    packSell != null &&
                                     marginCost > 0 &&
-                                    sellPrice < marginCost;
+                                    packSell < marginCost;
                                   const referenceCost =
                                     row.source === "linked"
                                       ? rowReferenceCost(row.link)
                                       : null;
                                   const catalogPack = rowCatalogPack(row);
-                                  const sellUnitLabel = sellPerPack
+                                  const sellUnitLabel = pack
                                     ? supplyPackUnitLabel(pack)
                                     : null;
                                   return (
@@ -2728,7 +2804,6 @@ export function NewSupplyDrawer({
                                             pack ? null : row.unitStr
                                           }
                                           packMode={pack}
-                                          pricingItem={row.item}
                                           onPackModeChange={(next) =>
                                             setRows((prev) =>
                                               prev.map((r) =>

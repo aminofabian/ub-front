@@ -64,7 +64,10 @@ export function useOrderNotifyPrefs() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchOpsAlertSettings()
+    // Optional enrichment for the "notify admin" checkbox. Clerks and other
+    // roles without credits.settings.write / credits.customers.read get 403 —
+    // suppress the Access Denied toast; adminReady stays null (option stays on).
+    fetchOpsAlertSettings({ toast: false })
       .then((s) => {
         if (!cancelled) setAdminReady(Boolean(s.phoneVerified));
       })

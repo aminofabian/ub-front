@@ -23,11 +23,6 @@ import {
   seedPackConfiguration,
 } from "@/lib/pack-configuration";
 import { COMMON_PURCHASE_UNITS } from "@/lib/purchase-unit-conversion";
-import {
-  inferSupplyPackSellUnit,
-  type SupplyPackSellUnit,
-  type SupplySellPricingItem,
-} from "@/lib/supply-pack-math";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "./new-supply-drawer-ui";
@@ -54,8 +49,6 @@ export type SupplyPackQtyApply = {
   baseUnitsPerInner?: number | null;
   /** Save this custom shape as a reusable pack option for the product. */
   saveAsPackOption?: boolean;
-  /** How the line’s sell price should be read after apply. */
-  sellUnit: SupplyPackSellUnit;
 };
 
 export type SupplyPackInnerSeed = {
@@ -81,10 +74,6 @@ type SupplyPackQtyModalProps = {
   initialInner?: SupplyPackInnerSeed | null;
   /** Catalog write permission: gates saving a custom shape to the product. */
   canSavePackOption?: boolean;
-  /** Catalog item — seeds whether shelf sell is per pack or per piece. */
-  pricingItem?: SupplySellPricingItem | null;
-  /** Existing sell-unit choice when editing a packed line. */
-  initialSellUnit?: SupplyPackSellUnit | null;
   onApply: (result: SupplyPackQtyApply) => void;
 };
 
@@ -283,8 +272,6 @@ export function SupplyPackQtyModal({
   savedOptions = null,
   initialInner = null,
   canSavePackOption = false,
-  pricingItem = null,
-  initialSellUnit = null,
   onApply,
 }: SupplyPackQtyModalProps) {
   const dismissGuardRef = useRef(false);
@@ -296,7 +283,6 @@ export function SupplyPackQtyModal({
   const [unitsStr, setUnitsStr] = useState("");
   const [packPriceStr, setPackPriceStr] = useState("");
   const [eachStr, setEachStr] = useState("");
-  const [sellUnit, setSellUnit] = useState<SupplyPackSellUnit>("pack");
   const [innerOpen, setInnerOpen] = useState(false);
   const [innerUnitStr, setInnerUnitStr] = useState("packet");
   const [innerCountStr, setInnerCountStr] = useState("");
@@ -324,11 +310,6 @@ export function SupplyPackQtyModal({
     setUnitsStr(seed.units);
     setPackPriceStr(seed.packPrice);
     setEachStr(seed.each);
-    const seededUnits = toPositiveNumber(seed.units);
-    setSellUnit(
-      initialSellUnit ??
-        inferSupplyPackSellUnit(pricingItem, seededUnits),
-    );
     const innerCount = toPositiveNumber(initialInner?.count);
     const innerBase = toPositiveNumber(initialInner?.base);
     const hasInner = innerCount != null && innerBase != null;
@@ -478,20 +459,15 @@ export function SupplyPackQtyModal({
       innerPackCount: innerStarted ? innerCount : null,
       baseUnitsPerInner: innerStarted ? innerBase : null,
       saveAsPackOption: optionId == null && remember,
-      sellUnit,
     });
     window.setTimeout(() => onOpenChange(false), 0);
   };
 
-  const sellStory =
-    sellUnit === "pack"
-      ? `Sell on the line is per ${unitLabel}`
-      : "Sell on the line is per piece";
   const storyLine =
     packSummary && packPriceParsed != null && readoutEach != null
-      ? `One ${unitLabel} · ${formatMoney(packPriceParsed, currency)} · ${formatMoney(readoutEach, currency)} each · ${sellStory.toLowerCase()}`
+      ? `One ${unitLabel} · ${formatMoney(packPriceParsed, currency)} · ${formatMoney(readoutEach, currency)} each. Qty, cost, and sell on the line stay per ${unitLabel}.`
       : packSummary
-        ? `One ${unitLabel} holds ${formatPackUnits(unitsPerPack!)} — add what the supplier charges · ${sellStory.toLowerCase()}`
+        ? `One ${unitLabel} holds ${formatPackUnits(unitsPerPack!)} — add what the supplier charges. Qty, cost, and sell stay per ${unitLabel}.`
         : "Name the pack, say how many it holds, then the price you pay for one.";
 
   return (
@@ -713,56 +689,6 @@ export function SupplyPackQtyModal({
                   }}
                 />
               </div>
-
-              <fieldset className="space-y-1.5">
-                <legend className="text-[13px] font-medium text-foreground">
-                  Shelf sell price is for
-                </legend>
-                <div
-                  role="radiogroup"
-                  aria-label="Shelf sell unit"
-                  className="grid grid-cols-2 gap-1.5"
-                >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={sellUnit === "pack"}
-                    className={cn(
-                      "border px-3 py-2.5 text-left transition-colors duration-200",
-                      sellUnit === "pack"
-                        ? "border-primary bg-primary/[0.06]"
-                        : "border-border hover:bg-muted/40",
-                    )}
-                    onClick={() => setSellUnit("pack")}
-                  >
-                    <span className="block text-[13px] font-semibold">
-                      One {unitLabel}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
-                      Eggs tray @ 450 — same unit as cost
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={sellUnit === "piece"}
-                    className={cn(
-                      "border px-3 py-2.5 text-left transition-colors duration-200",
-                      sellUnit === "piece"
-                        ? "border-primary bg-primary/[0.06]"
-                        : "border-border hover:bg-muted/40",
-                    )}
-                    onClick={() => setSellUnit("piece")}
-                  >
-                    <span className="block text-[13px] font-semibold">
-                      One piece
-                    </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
-                      Break a carton, sell each sachet
-                    </span>
-                  </button>
-                </div>
-              </fieldset>
             </div>
 
             <div>

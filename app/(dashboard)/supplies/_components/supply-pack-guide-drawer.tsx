@@ -38,7 +38,7 @@ const STEPS = [
   {
     n: "4",
     title: "Cost and sell use the same unit",
-    body: "Cost is the pack price. Sell is the shelf price for how this product sells — per tray when it is a tray SKU, per piece when you break cartons into sachets. Margin compares those two.",
+    body: "Both are per pack on the line — tray cost 430, tray sell 450. Stock still rises by pieces. Margin is (450 − 430) / 430.",
   },
 ] as const;
 

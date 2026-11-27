@@ -53,10 +53,10 @@ type SupplyDraftLineCardProps = {
   lineTotal: number | null;
   qty: number | null;
   unitCost: number | null;
-  /** Cost compared to sell for margin (pack price when shelf sells packs). */
+  /** Cost compared to sell for margin (pack price in pack mode). */
   marginCost?: number | null;
-  /** Shelf sell is priced per pack (tray), not per piece. */
-  sellPerPack?: boolean;
+  /** Pack-denominated sell used for margin (lifts each→pack when needed). */
+  packSell?: number | null;
   /** Pack noun for the sell field, e.g. "tray". */
   sellUnitLabel?: string | null;
   referenceCost?: number | null;
@@ -112,7 +112,7 @@ export function SupplyDraftLineCard({
   qty,
   unitCost,
   marginCost = null,
-  sellPerPack = false,
+  packSell = null,
   sellUnitLabel = null,
   referenceCost = null,
   pricingHint,
@@ -147,20 +147,23 @@ export function SupplyDraftLineCard({
     Boolean(row.expiry.trim()) || showExpiryColumn,
   );
   const costForMargin = marginCost ?? unitCost;
+  const sellForMargin =
+    packSell ??
+    (row.sellPriceStr.trim() !== "" && Number.isFinite(Number(row.sellPriceStr))
+      ? Number(row.sellPriceStr)
+      : null);
   const marginLabel =
-    costForMargin != null && costForMargin > 0 && row.sellPriceStr.trim()
-      ? (() => {
-          const sell = Number(row.sellPriceStr);
-          return Number.isFinite(sell) && sell >= 0
-            ? formatSupplyMargin(sell, costForMargin)
-            : null;
-        })()
+    costForMargin != null &&
+    costForMargin > 0 &&
+    sellForMargin != null &&
+    sellForMargin >= 0
+      ? formatSupplyMargin(sellForMargin, costForMargin)
       : null;
   const belowCost =
     costForMargin != null &&
     costForMargin > 0 &&
-    row.sellPriceStr.trim() !== "" &&
-    Number(row.sellPriceStr) < costForMargin;
+    sellForMargin != null &&
+    sellForMargin < costForMargin;
 
   return (
     <article
@@ -300,7 +303,6 @@ export function SupplyDraftLineCard({
           onPackOptionIdChange={onPackOptionIdChange}
           onPackModalOpenChange={onPackModalOpenChange}
           canSavePackOption={canSavePackOption}
-          pricingItem={row.item}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}
         />
@@ -340,7 +342,7 @@ export function SupplyDraftLineCard({
           unitStr={
             costForMargin != null ? String(costForMargin) : row.unitStr
           }
-          sellUnitLabel={sellPerPack ? sellUnitLabel : null}
+          sellUnitLabel={sellUnitLabel}
           sellPriceTouched={row.sellPriceTouched}
           onEnterNext={() => {
             if (showExpiryColumn || row.expiry.trim()) {

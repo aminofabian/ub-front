@@ -15933,8 +15933,12 @@ export type UpdateOpsAlertSettingsPayload = {
   alertRestockDigest: boolean;
 };
 
-export async function fetchOpsAlertSettings(): Promise<OpsAlertSettingsRecord> {
-  return request<OpsAlertSettingsRecord>("/api/v1/ops-alerts/settings");
+export async function fetchOpsAlertSettings(
+  options?: { toast?: boolean },
+): Promise<OpsAlertSettingsRecord> {
+  return request<OpsAlertSettingsRecord>("/api/v1/ops-alerts/settings", {
+    toast: options?.toast,
+  });
 }
 
 export async function updateOpsAlertSettings(

@@ -15,11 +15,7 @@ import {
   type SupplyPackQtyDefaults,
 } from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
-import {
-  formatSupplyQty,
-  type SupplyPackMode,
-  type SupplySellPricingItem,
-} from "@/lib/supply-pack-math";
+import { formatSupplyQty, type SupplyPackMode } from "@/lib/supply-pack-math";
 
 function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.currentTarget.select();
@@ -184,8 +180,6 @@ type SupplyQtyCellProps = CompactProps & {
   onPackModalOpenChange?: (open: boolean) => void;
   /** Catalog write permission: allows saving a custom pack shape to the product. */
   canSavePackOption?: boolean;
-  /** Catalog item — seeds pack vs piece shelf sell in the pack sheet. */
-  pricingItem?: SupplySellPricingItem | null;
   /** Hide under-cell hints for a denser receiving grid. */
   quiet?: boolean;
 };
@@ -212,7 +206,6 @@ export function SupplyQtyCell({
   onPackOptionIdChange,
   onPackModalOpenChange,
   canSavePackOption = false,
-  pricingItem = null,
   quiet = false,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
@@ -374,15 +367,12 @@ export function SupplyQtyCell({
         }
         savedOptions={savedOptions}
         canSavePackOption={canSavePackOption}
-        pricingItem={pricingItem}
-        initialSellUnit={packMode?.sellUnit ?? null}
         onApply={(result) => {
           onPackOptionIdChange?.(result.packOptionId ?? null);
           onPackModeChange?.({
             unitsPerPack: result.unitsPerPack,
             packUnit: result.packUnit || "pack",
             remember: result.saveAsPackOption === true,
-            sellUnit: result.sellUnit,
             innerPackUnit: result.innerPackUnit ?? null,
             innerPackCount: result.innerPackCount ?? null,
             baseUnitsPerInner: result.baseUnitsPerInner ?? null,
