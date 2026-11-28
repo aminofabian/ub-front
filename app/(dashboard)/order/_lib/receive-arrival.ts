@@ -102,7 +102,11 @@ export function tallyArrival(openLineIds: readonly string[], decisions: ArrivalM
   return tally;
 }
 
-/** Lines that leave the dock. Missing and damaged stay off the shelf. */
+/**
+ * Lines that leave the dock. Missing and damaged stay off the shelf.
+ * The phone keeps the shelf quantity and has no whole-pass fallback. The split is compared in
+ * mobile/packages/orders/test/put-away-agreement.test.ts.
+ */
 export function planPutAway(
   openLineIds: readonly string[],
   decisions: ArrivalMap,

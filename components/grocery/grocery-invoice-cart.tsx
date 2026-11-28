@@ -314,7 +314,7 @@ export function GroceryInvoiceCart({
               className="truncate text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
               style={{
                 fontFamily:
-                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                  'var(--font-georgia-trial), Georgia, "Times New Roman", serif',
               }}
             >
               {title}
@@ -378,7 +378,7 @@ export function GroceryInvoiceCart({
               className="mt-2 text-[1.8rem] font-normal leading-[1.05] tracking-[-0.02em] text-[var(--op-ink)]"
               style={{
                 fontFamily:
-                  'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                  'var(--font-georgia-trial), Georgia, "Times New Roman", serif',
               }}
             >
               Nothing in this sale.

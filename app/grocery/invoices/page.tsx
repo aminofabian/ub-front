@@ -935,7 +935,7 @@ function InvoiceDetailModal({
                 className="truncate text-[1.35rem] font-normal tracking-[-0.02em] text-[var(--op-ink)]"
                 style={{
                   fontFamily:
-                    'var(--font-cormorant), Georgia, "Times New Roman", serif',
+                    'var(--font-georgia-trial), Georgia, "Times New Roman", serif',
                 }}
               >
                 Invoice detail

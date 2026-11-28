@@ -1107,6 +1107,12 @@ html[data-branch-nudge="pick"] select[data-shell-branch-select] {
 /* ── Standalone grocery POS (/grocery) — iPad app frame ─────────────── */
 .grocery-app-root {
     background: #fff;
+    /* Trial face for the grocery counter. One regular cut. */
+    font-family: var(--font-georgia-trial), Georgia, "Times New Roman", serif;
+}
+
+.grocery-app-root :where(.font-sans, .font-heading, .font-manrope) {
+    font-family: var(--font-georgia-trial), Georgia, "Times New Roman", serif;
 }
 
 .dark .grocery-app-root {

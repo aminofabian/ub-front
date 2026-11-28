@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { barlowCondensed } from "@/app/fonts/barlow-condensed";
 import { cormorant } from "@/app/fonts/cormorant";
 import { geistMono } from "@/app/fonts/geist-mono";
+import { georgiaTrial } from "@/app/fonts/georgia";
 import { instrumentSerif } from "@/app/fonts/instrument-serif";
 import { inter } from "@/app/fonts/inter";
 import { plusJakarta } from "@/app/fonts/plus-jakarta";
@@ -106,7 +107,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-KE"
-      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${cormorant.variable} ${instrumentSerif.variable} ${ttNormsPro.variable} ${plusJakarta.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${inter.variable} ${barlowCondensed.variable} ${cormorant.variable} ${instrumentSerif.variable} ${ttNormsPro.variable} ${plusJakarta.variable} ${georgiaTrial.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
